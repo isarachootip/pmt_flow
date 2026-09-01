@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PMT Luxury - Project Management & Tracking</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gold: {
+                            400: '#F5C518',
+                            500: '#D4AF37',
+                            600: '#B8960C',
+                        },
+                        dark: {
+                            900: '#0A0A0A',
+                            800: '#111111',
+                            700: '#1A1A1A',
+                            600: '#2A2A2A',
+                            border: 'rgba(212,175,55,0.15)',
+                            borderHover: 'rgba(212,175,55,0.3)',
+                        }
+                    },
+                    fontFamily: {
+                        heading: ['"Playfair Display"', 'serif'],
+                        body: ['"Inter"', 'sans-serif'],
+                        mono: ['"DM Mono"', 'monospace'],
+                    },
+                    backgroundImage: {
+                        'gold-gradient': 'linear-gradient(to right, #F5C518, #D4AF37, #B8960C)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111111;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #D4AF37;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #F5C518;
+        }
+
+        body {
+            background-color: #0A0A0A;
+            color: #E5E7EB;
+        }
+
+        .gold-border {
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            transition: border-color 0.3s ease;
+        }
+        .gold-border:hover {
+            border-color: rgba(212, 175, 55, 0.5);
+        }
+
+        .kpi-card {
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card::after {
+            content: '';
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(212,175,55,0.2) 0%, rgba(10,10,10,0) 70%);
+            border-radius: 50%;
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, #F5C518 0%, #D4AF37 50%, #B8960C 100%);
+            color: #0A0A0A;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-gold:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+        }
+        .btn-gold-outline {
+            border: 1px solid #D4AF37;
+            color: #D4AF37;
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+        .btn-gold-outline:hover {
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        /* Status colors */
+        .status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; display: inline-block; border: 1px solid transparent; }
+        .status-draft { background: rgba(107, 114, 128, 0.1); color: #9CA3AF; border-color: rgba(156, 163, 175, 0.3); }
+        .status-in-progress { background: rgba(212, 175, 55, 0.1); color: #D4AF37; border-color: rgba(212, 175, 55, 0.3); }
+        .status-qc-pending { background: rgba(168, 85, 247, 0.1); color: #C084FC; border-color: rgba(192, 132, 252, 0.3); }
+        .status-qc-passed { background: rgba(34, 197, 94, 0.1); color: #4ADE80; border-color: rgba(74, 222, 128, 0.3); }
+        .status-after-sale { background: rgba(59, 130, 246, 0.1); color: #60A5FA; border-color: rgba(96, 165, 250, 0.3); }
+        .status-closed { background: rgba(20, 184, 166, 0.1); color: #2DD4BF; border-color: rgba(45, 212, 191, 0.3); }
+        .status-overdue { background: rgba(239, 68, 68, 0.1); color: #F87171; border-color: rgba(248, 113, 113, 0.3); }
+
+        .hidden-view { display: none; }
+        
+        .tab-active { border-bottom: 2px solid #D4AF37; color: #D4AF37; }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden font-body text-gray-300">
+
+    <!-- LOGIN PAGE -->
+    <div id="view-login" class="fixed inset-0 z-50 flex items-center justify-center bg-dark-900 hidden-view">
+        <div class="bg-dark-800 gold-border rounded-xl p-10 w-full max-w-md shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-gold-500 opacity-5 blur-[80px]"></div>
+            <div class="absolute bottom-0 left-0 w-32 h-32 bg-gold-500 opacity-5 blur-[80px]"></div>
+            <div class="text-center mb-10">
+                <h1 class="font-heading text-4xl text-gold-500 font-bold mb-2 tracking-wider">PMT</h1>
+                <p class="text-gray-400 font-light tracking-widest text-sm uppercase">Luxury Project Management</p>
+            </div>
+            <form onsubmit="app.login(event)">
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-gray-500 mb-2">Username</label>
+                        <input type="text" value="admin" class="w-full bg-dark-700 border border-dark-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-gold-500 transition-colors" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-gray-500 mb-2">Password</label>
+                        <input type="password" value="password" class="w-full bg-dark-700 border border-dark-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-gold-500 transition-colors" required>
+                    </div>
+                    <button type="submit" class="w-full btn-gold py-3 rounded-lg mt-4 shadow-lg shadow-gold-500/20">Sign In</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="view-app" class="flex w-full h-full">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-dark-800 border-r border-dark-border flex flex-col z-20">
+            <div class="h-20 flex items-center justify-center border-b border-dark-border">
+                <h1 class="font-heading text-2xl text-gold-500 font-bold tracking-widest">PMT</h1>
+            </div>
+            <div class="p-6">
+                <p class="text-xs text-gray-500 uppercase tracking-widest mb-4">Menu</p>
+                <nav class="space-y-2" id="nav-menu">
+                    <a href="#" onclick="app.navigate('dashboard')" class="nav-link flex items-center px-4 py-3 rounded-lg text-gold-500 bg-gold-500/10 transition-colors">
+                        <i class="ph ph-squares-four text-xl mr-3"></i> Dashboard
+                    </a>
+                    <a href="#" onclick="app.navigate('jobs')" class="nav-link flex items-center px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-dark-700 transition-colors">
+                        <i class="ph ph-briefcase text-xl mr-3"></i> All Jobs
+                    </a>
+                    <a href="#" onclick="app.navigate('gantt')" class="nav-link flex items-center px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-dark-700 transition-colors">
+                        <i class="ph ph-chart-bar text-xl mr-3"></i> Gantt Chart
+                    </a>
+                    <a href="#" onclick="app.navigate('qc')" class="nav-link flex items-center px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-dark-700 transition-colors">
+                        <i class="ph ph-check-circle text-xl mr-3"></i> QC Module
+                    </a>
+                    <a href="#" onclick="app.navigate('csat')" class="nav-link flex items-center px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-dark-700 transition-colors">
+                        <i class="ph ph-phone-call text-xl mr-3"></i> After Sale / CSAT
+                    </a>
+                    <a href="#" onclick="app.navigate('settings')" class="nav-link flex items-center px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-dark-700 transition-colors">
+                        <i class="ph ph-gear text-xl mr-3"></i> Settings
+                    </a>
+                </nav>
+            </div>
+            <div class="mt-auto p-6 border-t border-dark-border">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-dark-600 gold-border flex items-center justify-center overflow-hidden">
+                        <img src="https://ui-avatars.com/api/?name=Admin+User&background=D4AF37&color=0A0A0A" alt="Avatar">
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-semibold text-white">Admin User</p>
+                        <p class="text-xs text-gray-500">System Admin</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+            <!-- Header -->
+            <header class="h-20 bg-dark-800/80 backdrop-blur-md border-b border-dark-border flex items-center justify-between px-8 z-10">
+                <div class="flex items-center w-96">
+                    <div class="relative w-full">
+                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                        <input type="text" placeholder="Search jobs, tasks, customers..." class="w-full bg-dark-900 border border-dark-700 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-gold-500 transition-colors">
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="relative p-2 text-gray-400 hover:text-gold-500 transition-colors">
+                        <i class="ph ph-bell text-2xl"></i>
+                        <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-dark-800"></span>
+                    </button>
+                    <button onclick="app.showModal('modal-create-job')" class="btn-gold px-6 py-2 rounded-full text-sm flex items-center shadow-lg shadow-gold-500/10">
+                        <i class="ph ph-plus mr-2"></i> Create Job (INT)
+                    </button>
+                </div>
+            </header>
+
+            <!-- Page Container -->
+            <div id="page-container" class="flex-1 overflow-y-auto p-8 relative">
+                
+                <!-- Dashboard View -->
+                <div id="page-dashboard" class="page-view space-y-8">
+                    <h2 class="font-heading text-3xl font-bold text-white tracking-wide">Overview</h2>
+                    
+                    <!-- KPIs -->
+                    <div class="grid grid-cols-4 gap-6">
+                        <div class="bg-dark-800 p-6 rounded-xl gold-border kpi-card">
+                            <div class="text-gray-400 text-sm mb-1 uppercase tracking-wider">Total Active Jobs</div>
+                            <div class="text-3xl font-mono text-white mb-2" id="kpi-total">42</div>
+                            <div class="text-xs text-green-400 flex items-center"><i class="ph ph-trend-up mr-1"></i> +12% this week</div>
+                        </div>
+                        <div class="bg-dark-800 p-6 rounded-xl gold-border kpi-card">
+                            <div class="text-gray-400 text-sm mb-1 uppercase tracking-wider">In Progress</div>
+                            <div class="text-3xl font-mono text-gold-500 mb-2" id="kpi-progress">18</div>
+                            <div class="text-xs text-gray-500">Across all teams</div>
+                        </div>
+                        <div class="bg-dark-800 p-6 rounded-xl gold-border kpi-card">
+                            <div class="text-gray-400 text-sm mb-1 uppercase tracking-wider">QC Passed (Month)</div>
+                            <div class="text-3xl font-mono text-white mb-2" id="kpi-qc">24</div>
+                            <div class="text-xs text-green-400 flex items-center"><i class="ph ph-trend-up mr-1"></i> +5% vs last month</div>
+                        </div>
+                        <div class="bg-dark-800 p-6 rounded-xl gold-border kpi-card">
+                            <div class="text-gray-400 text-sm mb-1 uppercase tracking-wider">Estimated Revenue</div>
+                            <div class="text-3xl font-mono text-white mb-2">฿1.2M</div>
+                            <div class="text-xs text-green-400 flex items-center"><i class="ph ph-trend-up mr-1"></i> +2.4%</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-8">
+                        <!-- Chart -->
+                        <div class="col-span-2 bg-dark-800 p-6 rounded-xl gold-border">
+                            <h3 class="font-heading text-xl text-white mb-4">Status Distribution</h3>
+                            <div class="h-64 flex items-center justify-center">
+                                <canvas id="dashboardChart"></canvas>
+                            </div>
+                        </div>
+                        <!-- Alerts (Due <= 5 days) -->
+                        <div class="col-span-1 bg-dark-800 p-6 rounded-xl gold-border flex flex-col">
+                            <h3 class="font-heading text-xl text-white mb-4 flex items-center">
+                                <i class="ph ph-warning-circle text-gold-500 mr-2"></i> Upcoming Deadlines (< 5 days)
+                            </h3>
+                            <div class="space-y-4 overflow-y-auto flex-1 pr-2" id="dashboard-alerts">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Jobs List View -->
+                <div id="page-jobs" class="page-view hidden-view space-y-6">
+                    <div class="flex justify-between items-end">
+                        <h2 class="font-heading text-3xl font-bold text-white tracking-wide">All Jobs</h2>
+                        <div class="flex space-x-4">
+                            <select class="bg-dark-800 border border-dark-600 rounded-lg px-4 py-2 text-sm text-gray-300 focus:outline-none focus:border-gold-500">
+                                <option value="all">All Service Types</option>
+                                <option value="water_heater">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                                <option value="pump">ปั้มแท็งก์</option>
+                                <option value="kitchen">Renovate ครัว</option>
+                            </select>
+                            <select class="bg-dark-800 border border-dark-600 rounded-lg px-4 py-2 text-sm text-gray-300 focus:outline-none focus:border-gold-500">
+                                <option value="all">All Statuses</option>
+                                <option value="IN_PROGRESS">In Progress</option>
+                                <option value="QC_PENDING">QC Pending</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-dark-800 rounded-xl gold-border overflow-hidden">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-dark-900 border-b border-dark-border text-gray-400 uppercase tracking-wider text-xs">
+                                <tr>
+                                    <th class="px-6 py-4 font-medium">Job ID</th>
+                                    <th class="px-6 py-4 font-medium">Customer</th>
+                                    <th class="px-6 py-4 font-medium">Service</th>
+                                    <th class="px-6 py-4 font-medium">Status</th>
+                                    <th class="px-6 py-4 font-medium">Progress</th>
+                                    <th class="px-6 py-4 font-medium">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-dark-border" id="jobs-table-body">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Job Detail View -->
+                <div id="page-job-detail" class="page-view hidden-view space-y-6">
+                    <!-- Populated dynamically by JS -->
+                    <div id="job-detail-content"></div>
+                </div>
+
+                <!-- Gantt Chart View -->
+                <div id="page-gantt" class="page-view hidden-view space-y-6">
+                    <h2 class="font-heading text-3xl font-bold text-white tracking-wide">Gantt Chart</h2>
+                    <div class="bg-dark-800 rounded-xl gold-border p-6 overflow-x-auto">
+                        <div id="gantt-container" class="min-w-[800px]">
+                            <!-- Custom rendered Gantt -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QC Module View -->
+                <div id="page-qc" class="page-view hidden-view space-y-6 h-full flex flex-col">
+                    <h2 class="font-heading text-3xl font-bold text-white tracking-wide">QC Inspection</h2>
+                    <div class="flex gap-6 flex-1 h-0">
+                        <div class="w-1/3 bg-dark-800 rounded-xl gold-border p-4 flex flex-col overflow-hidden">
+                            <h3 class="text-lg text-white mb-4">Pending QC Queue</h3>
+                            <div class="flex-1 overflow-y-auto space-y-3 pr-2" id="qc-queue-list">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                        <div class="flex-1 bg-dark-800 rounded-xl gold-border p-6 overflow-y-auto" id="qc-form-container">
+                            <div class="text-center text-gray-500 mt-20">Select a job from the queue to perform QC inspection.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- After Sale / CSAT View -->
+                <div id="page-csat" class="page-view hidden-view space-y-6">
+                    <h2 class="font-heading text-3xl font-bold text-white tracking-wide">Contact Center / CSAT</h2>
+                    <div class="bg-dark-800 rounded-xl gold-border overflow-hidden">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-dark-900 border-b border-dark-border text-gray-400 uppercase tracking-wider text-xs">
+                                <tr>
+                                    <th class="px-6 py-4 font-medium">Job ID</th>
+                                    <th class="px-6 py-4 font-medium">Customer & Phone</th>
+                                    <th class="px-6 py-4 font-medium">QC Pass Date</th>
+                                    <th class="px-6 py-4 font-medium">Rating</th>
+                                    <th class="px-6 py-4 font-medium">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-dark-border" id="csat-table-body">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Settings View -->
+                <div id="page-settings" class="page-view hidden-view space-y-6 max-w-2xl">
+                    <h2 class="font-heading text-3xl font-bold text-white tracking-wide">System Settings</h2>
+                    <div class="bg-dark-800 rounded-xl gold-border p-8 space-y-6">
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-2">Check-in Radius (meters)</label>
+                            <input type="number" value="400" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-4 py-2 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-2">Minimum Photos Required for Check-in</label>
+                            <input type="number" value="5" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-4 py-2 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-2">Alert Due Days Threshold</label>
+                            <input type="number" value="5" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-4 py-2 text-white">
+                        </div>
+                        <hr class="border-dark-600">
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-2">INT System API Endpoint (Inbound)</label>
+                            <input type="text" value="https://api.int-system.local/v1/orders" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-4 py-2 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-2">BMT System API Endpoint (Outbound Close)</label>
+                            <input type="text" value="https://api.bmt-system.local/v1/close-job" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-4 py-2 text-white">
+                        </div>
+                        <button class="btn-gold px-6 py-2 rounded-lg mt-4" onclick="alert('Settings saved!')">Save Configuration</button>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- Modal: Create Job -->
+    <div id="modal-create-job" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-opacity duration-300">
+        <div class="bg-dark-800 border border-gold-500/30 rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300" id="modal-create-job-content">
+            <div class="p-6 border-b border-dark-border flex justify-between items-center bg-dark-900/50">
+                <h3 class="font-heading text-xl text-gold-500">Create New Job (INT API)</h3>
+                <button onclick="app.hideModal('modal-create-job')" class="text-gray-400 hover:text-white"><i class="ph ph-x text-xl"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Customer Name</label>
+                        <input type="text" id="cj-name" class="w-full bg-dark-900 border border-dark-600 rounded px-3 py-2 text-sm text-white" placeholder="Khun Somchai">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Phone</label>
+                        <input type="text" id="cj-phone" class="w-full bg-dark-900 border border-dark-600 rounded px-3 py-2 text-sm text-white" placeholder="0812345678">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Address</label>
+                    <textarea id="cj-address" class="w-full bg-dark-900 border border-dark-600 rounded px-3 py-2 text-sm text-white" rows="2" placeholder="123 Sukhumvit..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Service Type</label>
+                    <select id="cj-service" class="w-full bg-dark-900 border border-dark-600 rounded px-3 py-2 text-sm text-white">
+                        <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                        <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
+                        <option value="Renovate ครัว">Renovate ครัว</option>
+                        <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Technician Team</label>
+                        <input type="text" id="cj-tech" class="w-full bg-dark-900 border border-dark-600 rounded px-3 py-2 text-sm text-white" placeholder="Team Alpha">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Appointment Date</label>
+                        <input type="date" id="cj-date" class="w-full bg-dark-900 border border-dark-600 rounded px-3 py-2 text-sm text-white">
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 border-t border-dark-border flex justify-end space-x-3 bg-dark-900/50">
+                <button onclick="app.hideModal('modal-create-job')" class="btn-gold-outline px-4 py-2 rounded text-sm">Cancel</button>
+                <button onclick="app.submitCreateJob()" class="btn-gold px-6 py-2 rounded text-sm">Create Job</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-dark-800 border-l-4 border-gold-500 p-4 rounded shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center">
+        <i class="ph ph-check-circle text-gold-500 text-2xl mr-3"></i>
+        <div id="toast-msg" class="text-sm text-white">Success message here</div>
+    </div>
+
+
+    <!-- Application Scripts -->
+    <script>
+        // Mock Database
+        const DB = {
+            jobs: [
+                { id: 'JOB-001', customer: 'Khun Nawat', phone: '0811112222', service: 'Renovate ครัว', status: 'IN_PROGRESS', date: '2026-09-05', progress: 45, address: '99/1 Sukhumvit 55', tech: 'Team A' },
+                { id: 'JOB-002', customer: 'Khun Somsri', phone: '0822223333', service: 'ปั้มแท็งก์', status: 'QC_PENDING', date: '2026-09-02', progress: 100, address: '12 Ari Samphan', tech: 'Team B' },
+                { id: 'JOB-003', customer: 'Khun Anek', phone: '0833334444', service: 'ติดตั้งเครื่องทำน้ำอุ่น', status: 'QC_PASSED', date: '2026-08-30', progress: 100, address: '45 Silom Rd', tech: 'Team C' },
+                { id: 'JOB-004', customer: 'Khun Malee', phone: '0844445555', service: 'สำรวจหน้างาน', status: 'DRAFT', date: '2026-09-10', progress: 0, address: '88 Ladprao 15', tech: 'Team A' },
+                { id: 'JOB-005', customer: 'Khun Chatchai', phone: '0855556666', service: 'Renovate ครัว', status: 'AFTER_SALE', date: '2026-08-25', progress: 100, address: '22 Thong Lo', tech: 'Team B' },
+            ],
+            tasks: [
+                { id: 'T1', jobId: 'JOB-001', name: 'รื้อถอนของเดิม', tech: 'Team A', start: '2026-09-01', days: 2, status: 'DONE' },
+                { id: 'T2', jobId: 'JOB-001', name: 'งานประปา/ไฟฟ้า', tech: 'Team A', start: '2026-09-03', days: 3, status: 'IN_PROGRESS' },
+                { id: 'T3', jobId: 'JOB-001', name: 'ติดตั้งตู้เคาน์เตอร์', tech: 'Team A', start: '2026-09-06', days: 4, status: 'PENDING' },
+                
+                { id: 'T4', jobId: 'JOB-002', name: 'เตรียมหน้างาน', tech: 'Team B', start: '2026-09-01', days: 1, status: 'DONE' },
+                { id: 'T5', jobId: 'JOB-002', name: 'ติดตั้งปั้มและเดินท่อ', tech: 'Team B', start: '2026-09-02', days: 1, status: 'DONE' },
+            ],
+            qcChecklist: [
+                { id: 'Q1', text: 'ความสะอาดพื้นที่หน้างาน (Mandatory)', mandatory: true },
+                { id: 'Q2', text: 'ระบบน้ำไม่รั่วซึม (Mandatory)', mandatory: true },
+                { id: 'Q3', text: 'การเก็บรอยต่อซิลิโคนเรียบร้อย', mandatory: false },
+                { id: 'Q4', text: 'ส่งมอบคู่มือการใช้งานให้ลูกค้า', mandatory: true }
+            ]
+        };
+
+        const app = {
+            state: {
+                currentView: 'login',
+                currentJobId: null,
+            },
+
+            init() {
+                // Remove login view for quick access in demo or handle chart rendering after login
+            },
+
+            login(e) {
+                e.preventDefault();
+                document.getElementById('view-login').classList.add('hidden-view');
+                document.getElementById('view-app').classList.remove('hidden-view');
+                this.navigate('dashboard');
+                setTimeout(() => this.updateDashboardChart(), 100);
+                this.showToast('Login successful. Welcome to PMT Luxury.');
+            },
+
+            navigate(view, param = null) {
+                // Update nav styles
+                document.querySelectorAll('.nav-link').forEach(el => {
+                    el.classList.remove('text-gold-500', 'bg-gold-500/10');
+                    el.classList.add('text-gray-400');
+                });
+                const activeNav = document.querySelector(`.nav-link[onclick="app.navigate('${view}')"]`);
+                if(activeNav) {
+                    activeNav.classList.remove('text-gray-400');
+                    activeNav.classList.add('text-gold-500', 'bg-gold-500/10');
+                }
+
+                // Hide all pages
+                document.querySelectorAll('.page-view').forEach(el => el.classList.add('hidden-view'));
+                
+                // Show requested page
+                const pageEl = document.getElementById(`page-${view}`);
+                if(pageEl) pageEl.classList.remove('hidden-view');
+
+                this.state.currentView = view;
+
+                // Page specific renders
+                if(view === 'jobs') this.renderJobs();
+                if(view === 'dashboard') {
+                    this.renderDashboard();
+                    this.updateDashboardChart();
+                }
+                if(view === 'job-detail') {
+                    this.state.currentJobId = param;
+                    this.renderJobDetail();
+                }
+                if(view === 'gantt') this.renderGantt();
+                if(view === 'qc') this.renderQC();
+                if(view === 'csat') this.renderCSAT();
+            },
+
+            showToast(msg) {
+                const t = document.getElementById('toast');
+                document.getElementById('toast-msg').innerText = msg;
+                t.classList.remove('translate-y-20', 'opacity-0');
+                setTimeout(() => {
+                    t.classList.add('translate-y-20', 'opacity-0');
+                }, 3000);
+            },
+
+            showModal(id) {
+                const m = document.getElementById(id);
+                m.classList.remove('hidden-view');
+                // brief timeout to allow display block to apply before animating opacity
+                setTimeout(() => {
+                    m.classList.remove('opacity-0');
+                    m.querySelector('div').classList.remove('scale-95');
+                }, 10);
+            },
+
+            hideModal(id) {
+                const m = document.getElementById(id);
+                m.classList.add('opacity-0');
+                m.querySelector('div').classList.add('scale-95');
+                setTimeout(() => {
+                    m.classList.add('hidden-view');
+                }, 300);
+            },
+
+            submitCreateJob() {
+                const name = document.getElementById('cj-name').value;
+                const service = document.getElementById('cj-service').value;
+                if(!name) return this.showToast('Please enter customer name');
+                
+                const newId = 'JOB-00' + (DB.jobs.length + 1);
+                DB.jobs.unshift({
+                    id: newId,
+                    customer: name,
+                    phone: document.getElementById('cj-phone').value,
+                    service: service,
+                    status: 'DRAFT',
+                    date: document.getElementById('cj-date').value,
+                    progress: 0,
+                    address: document.getElementById('cj-address').value,
+                    tech: document.getElementById('cj-tech').value
+                });
+                
+                this.hideModal('modal-create-job');
+                this.showToast(`Job ${newId} created successfully via INT API`);
+                if(this.state.currentView === 'jobs') this.renderJobs();
+                if(this.state.currentView === 'dashboard') this.renderDashboard();
+            },
+
+            getStatusHtml(status) {
+                const s = status.toLowerCase().replace('_', '-');
+                const label = status.replace('_', ' ');
+                return `<span class="status-badge status-${s}">${label}</span>`;
+            },
+
+            renderDashboard() {
+                document.getElementById('kpi-total').innerText = DB.jobs.length;
+                document.getElementById('kpi-progress').innerText = DB.jobs.filter(j => j.status==='IN_PROGRESS').length;
+                
+                const alertsHtml = DB.jobs.filter(j => j.status !== 'CLOSED' && j.status !== 'QC_PASSED').map(j => `
+                    <div class="border-l-2 border-red-500 bg-dark-900 p-3 rounded cursor-pointer hover:bg-dark-700 transition" onclick="app.navigate('job-detail', '${j.id}')">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-mono text-xs text-gold-500">${j.id}</span>
+                            <span class="text-xs text-gray-500">${j.date}</span>
+                        </div>
+                        <div class="text-sm text-white">${j.customer} - ${j.service}</div>
+                    </div>
+                `).join('');
+                document.getElementById('dashboard-alerts').innerHTML = alertsHtml;
+            },
+
+            updateDashboardChart() {
+                const ctx = document.getElementById('dashboardChart');
+                if(!ctx) return;
+                
+                // Clear existing chart instance if exists
+                let chartStatus = Chart.getChart("dashboardChart");
+                if (chartStatus != undefined) {
+                  chartStatus.destroy();
+                }
+
+                new Chart(ctx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Draft', 'In Progress', 'QC Pending', 'QC Passed', 'After Sale'],
+                        datasets: [{
+                            data: [1, 1, 1, 1, 1],
+                            backgroundColor: ['#6B7280', '#D4AF37', '#A855F7', '#22C55E', '#3B82F6'],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'right', labels: { color: '#E5E7EB', font: { family: 'Inter' } } } },
+                        cutout: '70%'
+                    }
+                });
+            },
+
+            renderJobs() {
+                const html = DB.jobs.map(j => `
+                    <tr class="hover:bg-dark-700 transition-colors cursor-pointer" onclick="app.navigate('job-detail', '${j.id}')">
+                        <td class="px-6 py-4 font-mono text-gold-500">${j.id}</td>
+                        <td class="px-6 py-4">
+                            <div class="text-white">${j.customer}</div>
+                            <div class="text-xs text-gray-500">${j.phone}</div>
+                        </td>
+                        <td class="px-6 py-4 text-gray-300">${j.service}</td>
+                        <td class="px-6 py-4">${this.getStatusHtml(j.status)}</td>
+                        <td class="px-6 py-4">
+                            <div class="w-full bg-dark-900 rounded-full h-1.5 mt-2">
+                                <div class="bg-gold-500 h-1.5 rounded-full" style="width: ${j.progress}%"></div>
+                            </div>
+                            <div class="text-xs text-right text-gray-500 mt-1">${j.progress}%</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <button class="text-gold-500 hover:text-white"><i class="ph ph-caret-right text-lg"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+                document.getElementById('jobs-table-body').innerHTML = html;
+            },
+
+            renderJobDetail() {
+                const job = DB.jobs.find(j => j.id === this.state.currentJobId);
+                if(!job) return;
+
+                const html = `
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center space-x-4">
+                            <button onclick="app.navigate('jobs')" class="text-gray-400 hover:text-white p-2 rounded-lg bg-dark-800"><i class="ph ph-arrow-left"></i></button>
+                            <h2 class="font-heading text-3xl font-bold text-white tracking-wide">${job.id} <span class="text-lg font-body font-normal text-gray-500 ml-2">/ ${job.customer}</span></h2>
+                        </div>
+                        <div>${this.getStatusHtml(job.status)}</div>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="flex space-x-8 border-b border-dark-600 mb-6 px-2">
+                        <button class="pb-3 text-sm font-medium tab-active">Overview</button>
+                        <button class="pb-3 text-sm font-medium text-gray-400 hover:text-white">Check-in / Tasks</button>
+                        <button class="pb-3 text-sm font-medium text-gray-400 hover:text-white">Design & BOQ</button>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-6">
+                        <!-- Info Card -->
+                        <div class="col-span-1 bg-dark-800 rounded-xl gold-border p-6 space-y-4">
+                            <h3 class="text-lg text-gold-500 mb-4 border-b border-dark-600 pb-2">Customer Info</h3>
+                            <div><div class="text-xs text-gray-500 uppercase">Service</div><div class="text-sm text-white">${job.service}</div></div>
+                            <div><div class="text-xs text-gray-500 uppercase">Phone</div><div class="text-sm text-white">${job.phone}</div></div>
+                            <div><div class="text-xs text-gray-500 uppercase">Address</div><div class="text-sm text-white">${job.address}</div></div>
+                            <div><div class="text-xs text-gray-500 uppercase">Assigned Team</div><div class="text-sm text-white">${job.tech}</div></div>
+                        </div>
+
+                        <!-- Main actions / timeline mock -->
+                        <div class="col-span-2 bg-dark-800 rounded-xl gold-border p-6">
+                            <div class="flex justify-between items-center mb-6 border-b border-dark-600 pb-2">
+                                <h3 class="text-lg text-gold-500">Quick Actions</h3>
+                            </div>
+                            <div class="flex space-x-4 mb-8">
+                                <button class="btn-gold px-4 py-2 rounded text-sm flex items-center" onclick="app.showToast('GPS Check-in recorded at 400m radius.')"><i class="ph ph-map-pin mr-2"></i> Technician Check-in</button>
+                                <button class="btn-gold-outline px-4 py-2 rounded text-sm flex items-center"><i class="ph ph-image mr-2"></i> Upload Photos</button>
+                                <button class="btn-gold-outline px-4 py-2 rounded text-sm flex items-center" onclick="app.completeJob()"><i class="ph ph-check-circle mr-2"></i> Send to QC</button>
+                            </div>
+                            
+                            <h3 class="text-sm text-gray-400 uppercase tracking-wider mb-4">Task Timeline</h3>
+                            <div class="space-y-4 border-l-2 border-dark-600 ml-2 pl-4">
+                                <div class="relative">
+                                    <div class="absolute -left-[21px] top-1 w-2.5 h-2.5 bg-green-500 rounded-full ring-4 ring-dark-800"></div>
+                                    <div class="text-sm text-white">Job Created (INT Inbound)</div>
+                                    <div class="text-xs text-gray-500">System • ${job.date}</div>
+                                </div>
+                                <div class="relative">
+                                    <div class="absolute -left-[21px] top-1 w-2.5 h-2.5 bg-gold-500 rounded-full ring-4 ring-dark-800 animate-pulse"></div>
+                                    <div class="text-sm text-white">Technician Check-in</div>
+                                    <div class="text-xs text-gray-500">Waiting for GPS verification</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('job-detail-content').innerHTML = html;
+            },
+
+            completeJob() {
+                const job = DB.jobs.find(j => j.id === this.state.currentJobId);
+                if(job) job.status = 'QC_PENDING';
+                this.showToast('Job marked for QC Inspection');
+                this.renderJobDetail();
+            },
+
+            renderGantt() {
+                const days = Array.from({length: 10}, (_, i) => i+1);
+                const headerHtml = days.map(d => `<div class="flex-none w-24 text-center text-xs text-gray-500 border-l border-dark-700 pb-2">Sep ${d}</div>`).join('');
+                
+                const rowsHtml = DB.tasks.map(t => {
+                    const startDay = parseInt(t.start.split('-')[2]);
+                    const offset = (startDay - 1) * 96; // 96px = w-24
+                    const width = t.days * 96;
+                    const colorClass = t.status === 'DONE' ? 'bg-green-500/80' : (t.status==='IN_PROGRESS' ? 'bg-gold-500/80' : 'bg-gray-500/80');
+
+                    return `
+                    <div class="flex items-center border-t border-dark-700 py-2 relative h-12">
+                        <div class="w-48 flex-none text-sm text-white truncate pr-4">${t.jobId} - ${t.name}</div>
+                        <div class="flex-1 relative h-full">
+                            <div class="${colorClass} absolute top-1 h-6 rounded text-xs text-white px-2 flex items-center shadow" style="left: ${offset}px; width: ${width}px;">
+                                ${t.tech}
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                const html = `
+                    <div class="flex border-b border-dark-700 mb-2">
+                        <div class="w-48 flex-none"></div>
+                        <div class="flex-1 flex">${headerHtml}</div>
+                    </div>
+                    ${rowsHtml}
+                `;
+                document.getElementById('gantt-container').innerHTML = html;
+            },
+
+            renderQC() {
+                const qcJobs = DB.jobs.filter(j => j.status === 'QC_PENDING');
+                const listHtml = qcJobs.map(j => `
+                    <div class="bg-dark-900 p-4 rounded-lg cursor-pointer border border-transparent hover:border-gold-500/50 transition" onclick="app.selectQCJob('${j.id}')">
+                        <div class="font-mono text-gold-500 mb-1">${j.id}</div>
+                        <div class="text-sm text-white">${j.customer}</div>
+                        <div class="text-xs text-gray-500">${j.service}</div>
+                    </div>
+                `).join('');
+                document.getElementById('qc-queue-list').innerHTML = listHtml || '<div class="text-sm text-gray-500">No jobs pending QC.</div>';
+            },
+
+            selectQCJob(id) {
+                const job = DB.jobs.find(j => j.id === id);
+                let formHtml = `
+                    <div class="flex justify-between items-center border-b border-dark-600 pb-4 mb-6">
+                        <h3 class="font-heading text-xl text-white">QC Inspection: <span class="text-gold-500">${id}</span></h3>
+                        <button class="btn-gold-outline px-3 py-1 rounded text-xs">View Photos</button>
+                    </div>
+                    <div class="space-y-4 mb-8">
+                `;
+
+                DB.qcChecklist.forEach(q => {
+                    formHtml += `
+                        <div class="flex justify-between items-center bg-dark-900 p-4 rounded-lg">
+                            <div class="text-sm text-gray-300 w-2/3">${q.text} ${q.mandatory ? '<span class="text-red-400">*</span>' : ''}</div>
+                            <div class="flex space-x-4">
+                                <label class="flex items-center space-x-1 cursor-pointer text-green-400 text-sm">
+                                    <input type="radio" name="${q.id}" value="PASS" class="accent-green-500" checked> <span>PASS</span>
+                                </label>
+                                <label class="flex items-center space-x-1 cursor-pointer text-red-400 text-sm">
+                                    <input type="radio" name="${q.id}" value="FAIL" class="accent-red-500"> <span>FAIL</span>
+                                </label>
+                                <label class="flex items-center space-x-1 cursor-pointer text-gray-400 text-sm">
+                                    <input type="radio" name="${q.id}" value="NA" class="accent-gray-500"> <span>N/A</span>
+                                </label>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                formHtml += `
+                    </div>
+                    <div class="flex justify-end space-x-4">
+                        <button class="btn-gold-outline px-6 py-2 rounded" onclick="app.showToast('Job marked for Rework')">FAIL - Send to Rework</button>
+                        <button class="btn-gold px-6 py-2 rounded" onclick="app.passQC('${id}')">PASS - Send to CSAT</button>
+                    </div>
+                `;
+
+                document.getElementById('qc-form-container').innerHTML = formHtml;
+            },
+
+            passQC(id) {
+                const job = DB.jobs.find(j => j.id === id);
+                if(job) {
+                    job.status = 'QC_PASSED';
+                    this.showToast(`QC Passed for ${id}. Sent to Contact Center.`);
+                    this.renderQC();
+                    document.getElementById('qc-form-container').innerHTML = '<div class="text-center text-gray-500 mt-20">Select a job from the queue to perform QC inspection.</div>';
+                }
+            },
+
+            renderCSAT() {
+                const jobs = DB.jobs.filter(j => j.status === 'QC_PASSED' || j.status === 'AFTER_SALE');
+                const html = jobs.map(j => `
+                    <tr class="border-b border-dark-border">
+                        <td class="px-6 py-4 font-mono text-gold-500">${j.id}</td>
+                        <td class="px-6 py-4">
+                            <div class="text-white">${j.customer}</div>
+                            <div class="text-xs text-gray-500">${j.phone}</div>
+                        </td>
+                        <td class="px-6 py-4 text-gray-300">Today</td>
+                        <td class="px-6 py-4 text-gold-500">
+                            ${j.status === 'AFTER_SALE' ? '<i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i>' : '<span class="text-gray-500 text-xs">Pending call</span>'}
+                        </td>
+                        <td class="px-6 py-4">
+                            ${j.status === 'AFTER_SALE' ? 
+                            '<button class="btn-gold px-3 py-1 rounded text-xs" onclick="app.closeJob(\''+j.id+'\')">Close & Send BMT</button>' : 
+                            '<button class="btn-gold-outline px-3 py-1 rounded text-xs" onclick="app.markCSAT(\''+j.id+'\')">Log Call (5 Stars)</button>'}
+                        </td>
+                    </tr>
+                `).join('');
+                document.getElementById('csat-table-body').innerHTML = html;
+            },
+
+            markCSAT(id) {
+                const job = DB.jobs.find(j => j.id === id);
+                if(job) job.status = 'AFTER_SALE';
+                this.renderCSAT();
+            },
+
+            closeJob(id) {
+                const job = DB.jobs.find(j => j.id === id);
+                if(job) job.status = 'CLOSED';
+                this.showToast(`Job ${id} CLOSED. Data sent to BMT via API.`);
+                this.renderCSAT();
+            }
+        };
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+    </script>
+</body>
+</html>

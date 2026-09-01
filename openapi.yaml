@@ -1,0 +1,146 @@
+openapi: 3.0.3
+info:
+  title: SPMT (Store Project Management Tool) REST API
+  description: Official Production API Specification for SPMT System - Connecting INT System, Mobile App, Web Admin, and BMT System.
+  version: 1.0.0
+servers:
+  - url: https://api.spmt.local/api/v1
+    description: Production Server
+  - url: http://localhost:3000/api/v1
+    description: Local Development Server
+
+paths:
+  /integration/orders:
+    post:
+      summary: Receive Order from INT System (Inbound API #1)
+      description: Server-to-Server push API for receiving new service orders from INT system.
+      parameters:
+        - in: header
+          name: X-Idempotency-Key
+          required: true
+          schema:
+            type: string
+          example: "INT-REQ-987654321"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [external_ref_id, customer]
+              properties:
+                external_ref_id:
+                  type: string
+                  example: "INT-2026-4521"
+                customer:
+                  type: object
+                  required: [name, phone, address]
+                  properties:
+                    name:
+                      type: string
+                      example: "นาย สมชาย ใจดี"
+                    phone:
+                      type: string
+                      example: "081-234-5678"
+                    address:
+                      type: string
+                      example: "123/45 ถ.พหลโยธิน กรุงเทพฯ"
+                services:
+                  type: array
+                  items:
+                    type: string
+                  example: ["ติดตั้งเครื่องทำน้ำอุ่น"]
+      responses:
+        '201':
+          description: Order created successfully
+        '400':
+          description: Invalid payload or missing Idempotency-Key
+
+  /jobs/{id}/checkin:
+    post:
+      summary: Mobile Site Check-in (Req #2 & #3)
+      description: Record technician check-in with GPS location validation (400m radius) and mandatory 5 site photos.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tech_id, lat, lng, photos]
+              properties:
+                tech_id:
+                  type: integer
+                  example: 101
+                lat:
+                  type: number
+                  example: 13.7563
+                lng:
+                  type: number
+                  example: 100.5018
+                photos:
+                  type: array
+                  minItems: 5
+                  items:
+                    type: string
+                  example: ["img1.jpg", "img2.jpg", "img3.jpg", "img4.jpg", "img5.jpg"]
+                summary:
+                  type: string
+                  example: "เข้าพื้นที่เตรียมเดินสายไฟ"
+      responses:
+        '200':
+          description: Check-in recorded successfully
+        '422':
+          description: Photos count less than 5
+
+  /jobs/{id}/qc-inspection:
+    post:
+      summary: Record QC Inspection (Req #11)
+      description: Record checklist results. Failing any mandatory item triggers overall FAIL and rework assignment.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      item_id:
+                        type: integer
+                      is_mandatory:
+                        type: boolean
+                      result:
+                        type: string
+                        enum: [PASS, FAIL, NA]
+      responses:
+        '200':
+          description: QC result recorded
+
+  /jobs/{id}/close-and-export-bmt:
+    post:
+      summary: Close Job & Push to BMT (Req #12)
+      description: Close job after QC & CSAT pass, push REST API payload containing ONLY QC-passed tasks to BMT system.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Job closed and exported to BMT successfully
