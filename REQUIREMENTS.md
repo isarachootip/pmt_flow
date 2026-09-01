@@ -53,9 +53,12 @@ flowchart TD
 
 | กลุ่มข้อมูล | ฟิลด์ | ประเภท | หมายเหตุ |
 |:---|:---|:---|:---|
-| **ลูกค้า** | ชื่อ-นามสกุล | string | |
-| | เบอร์โทร | string | |
-| | ที่อยู่ติดตั้ง | string | ที่อยู่เต็ม + Geocode (lat/lng) ถ้ามี |
+| **ลูกค้า** | ชื่อ (`first_name`) | string | แยกฟิลด์กับนามสกุล |
+| | นามสกุล (`last_name`) | string | แยกฟิลด์กับชื่อ |
+| | เบอร์โทร (`phone`) | string | |
+| | ที่อยู่ติดตั้ง (`address`) | string | ที่อยู่เต็ม |
+| | ละติจูด (`lat`) | number | พิกัด GPS Latitude (เช่น 13.7563) |
+| | ลองจิจูด (`lng`) | number | พิกัด GPS Longitude (เช่น 100.5018) |
 | **บริการ/สินค้า** | รายการสินค้าที่ซื้อ | array | เช่น เครื่องทำน้ำอุ่น, ปั้มแท็งก์ |
 | | บริการที่ซื้อ | array | เช่น ติดตั้ง, Renovate ครัว, สำรวจหน้างาน |
 | **ช่าง (ถ้ามี)** | ชื่อช่าง | string | อาจยังไม่มีตอนรับ Order |
@@ -70,11 +73,25 @@ flowchart TD
 - บันทึกทุก Payload ลง Integration Log ทันที ก่อนประมวลผล
 
 #### API Spec ที่เสนอ:
-```
+```json
 POST /api/v1/integration/orders
-Headers: Authorization: ApiKey {key}, X-External-Ref: {ref_id}
-Body: { customer, products[], services[], technician?, appointment? }
-Response: { success, data: { job_id, job_no, status: "DRAFT" } }
+Headers: Authorization: ApiKey {key}, X-Idempotency-Key: {ref_id}
+Body: {
+  "external_ref_id": "REF-2026-001",
+  "customer": {
+    "first_name": "สมชาย",
+    "last_name": "ใจดี",
+    "phone": "0812345678",
+    "address": "123 ถนนพหลโยธิน แขวงพญาไท เขตพญาไท กรุงเทพฯ",
+    "lat": 13.7563,
+    "lng": 100.5018
+  },
+  "products": ["เครื่องทำน้ำอุ่น"],
+  "services": ["ติดตั้งเครื่องทำน้ำอุ่น"],
+  "technician": { "name": "สมศักดิ์", "phone": "0899999999" },
+  "appointment": { "date": "2026-09-10", "time": "10:00" }
+}
+Response: { "success": true, "data": { "job_id": 101, "job_no": "JOB-202609-0001", "status": "DRAFT" } }
 ```
 
 ---

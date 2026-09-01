@@ -56,11 +56,12 @@ export enum JobStatus {
 export interface IntInboundPayload {
   external_ref_id: string;
   customer: {
-    name: string;
+    first_name: string;
+    last_name: string;
     phone: string;
     address: string;
-    lat?: number;
-    lng?: number;
+    lat: number;
+    lng: number;
   };
   services: string[];
   technician?: {
@@ -109,10 +110,17 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
     const idempotencyKey = req.headers['x-idempotency-key'] as string;
 
     // Validate payload
-    if (!payload.external_ref_id || !payload.customer?.name || !payload.customer?.phone) {
+    if (
+      !payload.external_ref_id ||
+      !payload.customer?.first_name ||
+      !payload.customer?.last_name ||
+      !payload.customer?.phone ||
+      payload.customer?.lat === undefined ||
+      payload.customer?.lng === undefined
+    ) {
       return res.status(400).json({
         success: false,
-        error: { code: 'INVALID_PAYLOAD', message: 'Customer name, phone, and external_ref_id are required' }
+        error: { code: 'INVALID_PAYLOAD', message: 'Customer first_name, last_name, phone, lat, lng, and external_ref_id are required' }
       });
     }
 

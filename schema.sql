@@ -82,12 +82,13 @@ CREATE TABLE m_user (
 CREATE TABLE m_customer (
     id BIGSERIAL PRIMARY KEY,
     customer_code VARCHAR(30) UNIQUE NOT NULL,
-    full_name VARCHAR(150) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
     phone VARCHAR(30) NOT NULL,
     email VARCHAR(100),
     address TEXT NOT NULL,
-    lat NUMERIC(10, 7),
-    lng NUMERIC(10, 7),
+    lat NUMERIC(10, 7) NOT NULL,
+    lng NUMERIC(10, 7) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

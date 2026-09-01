@@ -76,10 +76,15 @@ app.post('/api/v1/integration/orders', async (req, res) => {
         const payload = req.body;
         const idempotencyKey = req.headers['x-idempotency-key'];
         // Validate payload
-        if (!payload.external_ref_id || !payload.customer?.name || !payload.customer?.phone) {
+        if (!payload.external_ref_id ||
+            !payload.customer?.first_name ||
+            !payload.customer?.last_name ||
+            !payload.customer?.phone ||
+            payload.customer?.lat === undefined ||
+            payload.customer?.lng === undefined) {
             return res.status(400).json({
                 success: false,
-                error: { code: 'INVALID_PAYLOAD', message: 'Customer name, phone, and external_ref_id are required' }
+                error: { code: 'INVALID_PAYLOAD', message: 'Customer first_name, last_name, phone, lat, lng, and external_ref_id are required' }
             });
         }
         // Generate Job No (e.g., JOB-202609-0001)
