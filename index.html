@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PMT Flow — Artifact Admin Dashboard</title>
+    <title>PMT Flow — Artifact Next.js + Shadcn UI Kit</title>
     
     <!-- Fonts: Inter & Geist Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,7 +13,7 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Phosphor Icons -->
+    <!-- Phosphor & Tabler Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
     <!-- Chart.js -->
@@ -38,35 +38,73 @@
                             900: '#4c1d95',
                             950: '#2e1065',
                         },
-                        zinc: {
-                            850: '#141417',
-                            900: '#0f0f12',
-                            950: '#09090b',
-                        }
+                        border: 'var(--border)',
+                        input: 'var(--input)',
+                        ring: 'var(--ring)',
+                        background: 'var(--background)',
+                        foreground: 'var(--foreground)',
+                        card: {
+                            DEFAULT: 'var(--card)',
+                            foreground: 'var(--card-foreground)',
+                        },
+                        muted: {
+                            DEFAULT: 'var(--muted)',
+                            foreground: 'var(--muted-foreground)',
+                        },
+                        accent: {
+                            DEFAULT: 'var(--accent)',
+                            foreground: 'var(--accent-foreground)',
+                        },
                     },
                     fontFamily: {
                         sans: ['"Inter"', 'sans-serif'],
                         display: ['"Plus Jakarta Sans"', '"Inter"', 'sans-serif'],
                         mono: ['"Geist Mono"', 'monospace'],
                     },
-                    boxShadow: {
-                        'glow-sm': '0 0 20px -5px rgba(139, 92, 246, 0.15)',
-                        'glow': '0 0 35px -5px rgba(139, 92, 246, 0.25)',
-                        'glow-lg': '0 0 50px -5px rgba(139, 92, 246, 0.35)',
-                    }
                 }
             }
         }
     </script>
 
     <style>
-        /* Cruip Artifact Theme Styles */
         :root {
-            --bg-primary: #09090b;
-            --bg-card: rgba(18, 18, 23, 0.75);
-            --border-card: rgba(255, 255, 255, 0.08);
-            --text-primary: #f4f4f5;
-            --text-muted: #71717a;
+            --background: #ffffff;
+            --foreground: #09090b;
+            --card: #ffffff;
+            --card-foreground: #09090b;
+            --popover: #ffffff;
+            --popover-foreground: #09090b;
+            --primary: #7c3aed;
+            --primary-foreground: #ffffff;
+            --secondary: #f4f4f5;
+            --secondary-foreground: #18181b;
+            --muted: #f4f4f5;
+            --muted-foreground: #71717a;
+            --accent: #f4f4f5;
+            --accent-foreground: #18181b;
+            --border: #e4e4e7;
+            --input: #e4e4e7;
+            --ring: #7c3aed;
+        }
+
+        .dark {
+            --background: #09090b;
+            --foreground: #f4f4f5;
+            --card: #121215;
+            --card-foreground: #f4f4f5;
+            --popover: #121215;
+            --popover-foreground: #f4f4f5;
+            --primary: #8b5cf6;
+            --primary-foreground: #ffffff;
+            --secondary: #18181b;
+            --secondary-foreground: #f4f4f5;
+            --muted: #18181b;
+            --muted-foreground: #a1a1aa;
+            --accent: #18181b;
+            --accent-foreground: #f4f4f5;
+            --border: rgba(255, 255, 255, 0.08);
+            --input: rgba(255, 255, 255, 0.12);
+            --ring: #8b5cf6;
         }
 
         /* Custom Scrollbar */
@@ -78,78 +116,52 @@
             background: transparent;
         }
         ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.12);
+            background: rgba(150, 150, 150, 0.2);
             border-radius: 9999px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(150, 150, 150, 0.35);
         }
 
         body {
-            background-color: #09090b;
-            color: #f4f4f5;
+            background-color: var(--background);
+            color: var(--foreground);
             font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-            background-image: 
-                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(124, 58, 237, 0.12), transparent),
-                radial-gradient(circle 800px at 100% 100%, rgba(99, 102, 241, 0.04), transparent);
-            background-attachment: fixed;
         }
 
         .artifact-card {
-            background: rgba(18, 18, 22, 0.7);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
             transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .artifact-card:hover {
-            border-color: rgba(255, 255, 255, 0.15);
-        }
-
-        .artifact-card-active {
-            border-color: rgba(139, 92, 246, 0.4);
-            box-shadow: 0 0 30px -10px rgba(139, 92, 246, 0.15);
+            border-color: rgba(139, 92, 246, 0.3);
         }
 
         .btn-artifact-primary {
-            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
             color: #ffffff;
             font-weight: 500;
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1), 0 0 15px -3px rgba(124, 58, 237, 0.3);
         }
         .btn-artifact-primary:hover {
-            background: linear-gradient(135deg, #936bf7 0%, #6d70f5 100%);
-            box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+            background: linear-gradient(135deg, #8b5cf6 0%, #6d70f5 100%);
+            box-shadow: 0 0 20px -2px rgba(124, 58, 237, 0.45);
             transform: translateY(-0.5px);
-        }
-        .btn-artifact-primary:active {
-            transform: translateY(0);
         }
 
         .btn-artifact-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            color: #e4e4e7;
+            background-color: var(--secondary);
+            border: 1px solid var(--border);
+            color: var(--foreground);
             font-weight: 500;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
         }
         .btn-artifact-secondary:hover {
-            background: rgba(255, 255, 255, 0.09);
-            border-color: rgba(255, 255, 255, 0.15);
-            color: #ffffff;
-        }
-
-        .btn-artifact-outline {
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            color: #c4b5fd;
-            background: rgba(139, 92, 246, 0.04);
-            transition: all 0.2s ease;
-        }
-        .btn-artifact-outline:hover {
-            background: rgba(139, 92, 246, 0.12);
-            border-color: rgba(139, 92, 246, 0.5);
-            color: #ffffff;
+            background-color: var(--accent);
+            border-color: rgba(139, 92, 246, 0.4);
         }
 
         /* Status Pills */
@@ -161,7 +173,6 @@
             border-radius: 9999px;
             font-size: 0.725rem;
             font-weight: 500;
-            letter-spacing: 0.01em;
             border: 1px solid transparent;
         }
         .status-pill::before {
@@ -171,363 +182,400 @@
             border-radius: 50%;
         }
 
-        .status-draft { background: rgba(113, 113, 122, 0.12); color: #a1a1aa; border-color: rgba(113, 113, 122, 0.25); }
-        .status-draft::before { background: #a1a1aa; }
+        .status-draft { background: rgba(113, 113, 122, 0.12); color: #71717a; border-color: rgba(113, 113, 122, 0.25); }
+        .status-draft::before { background: #71717a; }
+        .dark .status-draft { color: #a1a1aa; }
 
-        .status-in-progress { background: rgba(245, 158, 11, 0.12); color: #fbbf24; border-color: rgba(245, 158, 11, 0.25); }
-        .status-in-progress::before { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
+        .status-in-progress { background: rgba(245, 158, 11, 0.12); color: #d97706; border-color: rgba(245, 158, 11, 0.25); }
+        .status-in-progress::before { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+        .dark .status-in-progress { color: #fbbf24; }
 
-        .status-qc-pending { background: rgba(139, 92, 246, 0.12); color: #c4b5fd; border-color: rgba(139, 92, 246, 0.25); }
-        .status-qc-pending::before { background: #a78bfa; box-shadow: 0 0 6px #8b5cf6; }
+        .status-qc-pending { background: rgba(139, 92, 246, 0.12); color: #7c3aed; border-color: rgba(139, 92, 246, 0.25); }
+        .status-qc-pending::before { background: #8b5cf6; box-shadow: 0 0 6px #8b5cf6; }
+        .dark .status-qc-pending { color: #c4b5fd; }
 
-        .status-qc-passed { background: rgba(16, 185, 129, 0.12); color: #34d399; border-color: rgba(16, 185, 129, 0.25); }
-        .status-qc-passed::before { background: #34d399; }
+        .status-qc-passed { background: rgba(16, 185, 129, 0.12); color: #059669; border-color: rgba(16, 185, 129, 0.25); }
+        .status-qc-passed::before { background: #10b981; }
+        .dark .status-qc-passed { color: #34d399; }
 
-        .status-after-sale { background: rgba(14, 165, 233, 0.12); color: #38bdf8; border-color: rgba(14, 165, 233, 0.25); }
-        .status-after-sale::before { background: #38bdf8; }
+        .status-after-sale { background: rgba(14, 165, 233, 0.12); color: #0284c7; border-color: rgba(14, 165, 233, 0.25); }
+        .status-after-sale::before { background: #0ea5e9; }
+        .dark .status-after-sale { color: #38bdf8; }
 
-        .status-closed { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.3); }
+        .status-closed { background: rgba(16, 185, 129, 0.15); color: #047857; border-color: rgba(16, 185, 129, 0.3); }
         .status-closed::before { background: #10b981; }
-
-        .status-overdue { background: rgba(244, 63, 94, 0.12); color: #fb7185; border-color: rgba(244, 63, 94, 0.25); }
-        .status-overdue::before { background: #f43f5e; box-shadow: 0 0 6px #f43f5e; }
+        .dark .status-closed { color: #6ee7b7; }
 
         .hidden-view { display: none !important; }
 
         .nav-item-active {
-            background: rgba(139, 92, 246, 0.12) !important;
-            color: #ffffff !important;
-            border-left: 2px solid #8b5cf6;
+            background-color: var(--accent) !important;
+            color: var(--foreground) !important;
+            font-weight: 600;
+            border-left: 2.5px solid var(--primary);
         }
 
         .tab-item-active {
-            border-bottom: 2px solid #8b5cf6;
-            color: #ffffff !important;
+            border-bottom: 2px solid var(--primary);
+            color: var(--foreground) !important;
         }
     </style>
 </head>
-<body class="h-screen flex overflow-hidden font-sans text-zinc-300 select-none">
+<body class="h-screen flex overflow-hidden font-sans select-none antialiased">
 
-    <!-- LOGIN PAGE -->
-    <div id="view-login" class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/90 backdrop-blur-xl hidden-view">
-        <div class="artifact-card rounded-2xl p-8 sm:p-10 w-full max-w-md shadow-2xl relative overflow-hidden">
-            <div class="absolute -top-16 -right-16 w-48 h-48 bg-brand-600/20 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="absolute -bottom-16 -left-16 w-48 h-48 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <div class="flex items-center gap-3 mb-8">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
-                    <i class="ph ph-flow-arrow text-xl text-white"></i>
-                </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="font-display font-bold text-xl text-white tracking-tight">PMT Flow</h1>
-                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">Artifact</span>
+    <!-- MAIN WRAPPER -->
+    <div class="flex w-full h-full">
+        
+        <!-- SIDEBAR NAVIGATION (Artifact Style) -->
+        <aside id="app-sidebar" class="w-64 bg-card border-r border-border flex flex-col z-20 shrink-0 transition-all duration-200">
+            <!-- Workspace / Brand Switcher -->
+            <div class="h-16 flex items-center justify-between px-4 border-b border-border">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center shadow-md shadow-brand-500/20 shrink-0">
+                        <i class="ph ph-flow-arrow text-xl text-white"></i>
                     </div>
-                    <p class="text-xs text-zinc-400">Enterprise Project Management System</p>
-                </div>
-            </div>
-
-            <form onsubmit="app.login(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-medium text-zinc-400 mb-1.5">อีเมลหรือชื่อผู้ใช้งาน</label>
-                    <div class="relative">
-                        <i class="ph ph-user absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500"></i>
-                        <input type="text" value="admin@pmtflow.io" class="w-full bg-zinc-900/80 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors" required>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-zinc-400 mb-1.5">รหัสผ่าน</label>
-                    <div class="relative">
-                        <i class="ph ph-lock-key absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500"></i>
-                        <input type="password" value="••••••••••••" class="w-full bg-zinc-900/80 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors" required>
-                    </div>
-                </div>
-                
-                <div class="flex items-center justify-between text-xs text-zinc-400 pt-1">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked class="rounded border-zinc-700 bg-zinc-800 text-brand-600 focus:ring-brand-500">
-                        จดจำการเข้าสู่ระบบ
-                    </label>
-                    <a href="#" class="text-brand-400 hover:text-brand-300 transition">ลืมรหัสผ่าน?</a>
-                </div>
-
-                <button type="submit" class="w-full btn-artifact-primary py-2.5 rounded-xl text-sm font-medium mt-6">เข้าสู่ระบบ (Sign In)</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- MAIN APPLICATION -->
-    <div id="view-app" class="flex w-full h-full">
-        <!-- Sidebar Navigation -->
-        <aside class="w-64 bg-zinc-950/80 backdrop-blur-xl border-r border-white/[0.08] flex flex-col z-20 shrink-0">
-            <!-- App Logo / Switcher -->
-            <div class="h-16 flex items-center justify-between px-5 border-b border-white/[0.08]">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center shadow-md shadow-brand-500/20">
-                        <i class="ph ph-flow-arrow text-lg text-white"></i>
-                    </div>
-                    <div>
+                    <div class="truncate">
                         <div class="flex items-center gap-1.5">
-                            <span class="font-display font-bold text-sm text-white tracking-tight">PMT Flow</span>
-                            <span class="text-[9px] font-mono px-1 py-0.2 rounded bg-brand-500/20 text-brand-300 font-medium">PRO</span>
+                            <span class="font-display font-bold text-sm text-foreground tracking-tight">PMT Flow</span>
+                            <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-brand-500/15 text-brand-500 font-semibold">Artifact</span>
                         </div>
-                        <span class="text-[11px] text-zinc-500 block leading-none">Artifact Design</span>
+                        <span class="text-[11px] text-muted-foreground truncate block">Enterprise Operations</span>
                     </div>
                 </div>
-                <button class="text-zinc-500 hover:text-zinc-300 transition p-1" title="Collapse sidebar">
+                <button onclick="app.toggleSidebar()" class="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition" title="Toggle Sidebar">
                     <i class="ph ph-sidebar-simple text-lg"></i>
                 </button>
             </div>
 
-            <!-- Nav Items -->
+            <!-- Menu Navigation Links -->
             <div class="flex-1 overflow-y-auto px-3 py-4 space-y-6">
                 <!-- Group: OVERVIEW -->
                 <div>
-                    <div class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">ภาพรวมระบบ</div>
-                    <nav class="space-y-1" id="nav-menu">
-                        <a href="#" onclick="app.navigate('dashboard')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04] transition-all">
+                    <div class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">ภาพรวมระบบ</div>
+                    <nav class="space-y-1">
+                        <a href="#" onclick="app.navigate('dashboard')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
                             <div class="flex items-center gap-2.5">
-                                <i class="ph ph-squares-four text-lg text-zinc-400"></i>
-                                <span>แดชบอร์ด (Dashboard)</span>
+                                <i class="ph ph-squares-four text-base text-brand-500"></i>
+                                <span>แดชบอร์ด (Overview)</span>
                             </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-mono">Live</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-500 font-mono font-medium">Live</span>
                         </a>
-                        <a href="#" onclick="app.navigate('jobs')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04] transition-all">
+                        <a href="#" onclick="app.navigate('jobs')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
                             <div class="flex items-center gap-2.5">
-                                <i class="ph ph-briefcase text-lg text-zinc-400"></i>
+                                <i class="ph ph-briefcase text-base"></i>
                                 <span>รายการงานทั้งหมด</span>
                             </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 font-mono font-medium" id="sidebar-job-count">5</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono" id="sidebar-job-count">5</span>
                         </a>
-                        <a href="#" onclick="app.navigate('gantt')" class="nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04] transition-all">
-                            <i class="ph ph-chart-bar text-lg text-zinc-400"></i>
-                            <span>แผนงาน (Gantt Chart)</span>
+                        <a href="#" onclick="app.navigate('gantt')" class="nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
+                            <i class="ph ph-chart-bar text-base"></i>
+                            <span>แผนงาน (Gantt Timeline)</span>
                         </a>
                     </nav>
                 </div>
 
                 <!-- Group: OPERATIONS -->
                 <div>
-                    <div class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">การควบคุมคุณภาพ</div>
+                    <div class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">การควบคุมคุณภาพ</div>
                     <nav class="space-y-1">
-                        <a href="#" onclick="app.navigate('qc')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04] transition-all">
+                        <a href="#" onclick="app.navigate('qc')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
                             <div class="flex items-center gap-2.5">
-                                <i class="ph ph-check-circle text-lg text-zinc-400"></i>
+                                <i class="ph ph-check-circle text-base"></i>
                                 <span>ตรวจคุณภาพ (QC)</span>
                             </div>
-                            <span class="w-2 h-2 rounded-full bg-brand-400 animate-pulse"></span>
+                            <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
                         </a>
-                        <a href="#" onclick="app.navigate('csat')" class="nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04] transition-all">
-                            <i class="ph ph-star text-lg text-zinc-400"></i>
+                        <a href="#" onclick="app.navigate('csat')" class="nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
+                            <i class="ph ph-star text-base"></i>
                             <span>CSAT & บริการหลังการขาย</span>
                         </a>
                     </nav>
                 </div>
 
-                <!-- Group: SETTINGS -->
+                <!-- Group: SYSTEM -->
                 <div>
-                    <div class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">การตั้งค่าระบบ</div>
+                    <div class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">การตั้งค่าระบบ</div>
                     <nav class="space-y-1">
-                        <a href="#" onclick="app.navigate('settings')" class="nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04] transition-all">
-                            <i class="ph ph-gear-six text-lg text-zinc-400"></i>
+                        <a href="#" onclick="app.navigate('settings')" class="nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
+                            <i class="ph ph-gear text-base"></i>
                             <span>ตั้งค่าระบบ & API</span>
                         </a>
                     </nav>
                 </div>
             </div>
 
-            <!-- User Footer Card -->
-            <div class="p-3 border-t border-white/[0.08]">
-                <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+            <!-- Profile Footer -->
+            <div class="p-3 border-t border-border">
+                <div class="flex items-center justify-between p-2 rounded-xl bg-muted/50 border border-border">
                     <div class="flex items-center gap-2.5 min-w-0">
                         <div class="relative">
-                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" class="w-8 h-8 rounded-lg object-cover ring-1 ring-white/20" alt="Avatar">
-                            <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-zinc-950"></span>
+                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" class="w-8 h-8 rounded-lg object-cover ring-1 ring-border" alt="Avatar">
+                            <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card"></span>
                         </div>
                         <div class="truncate">
-                            <p class="text-xs font-semibold text-white truncate">Isara Admin</p>
-                            <p class="text-[10px] text-zinc-500 truncate">Lead Operations</p>
+                            <p class="text-xs font-semibold text-foreground truncate">Isara Admin</p>
+                            <p class="text-[10px] text-muted-foreground truncate">Lead Operations</p>
                         </div>
                     </div>
-                    <button onclick="app.showToast('Logged out successfully')" class="text-zinc-500 hover:text-zinc-300 p-1.5 rounded-lg hover:bg-white/[0.05] transition" title="Logout">
+                    <button onclick="app.showToast('Logged out successfully')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-card transition" title="Logout">
                         <i class="ph ph-sign-out text-base"></i>
                     </button>
                 </div>
             </div>
         </aside>
 
-        <!-- Main Content Area -->
+        <!-- MAIN CONTENT AREA -->
         <main class="flex-1 flex flex-col h-full overflow-hidden relative">
-            <!-- Header Bar -->
-            <header class="h-16 bg-zinc-950/60 backdrop-blur-xl border-b border-white/[0.08] flex items-center justify-between px-6 z-10">
+            
+            <!-- TOP BAR (Artifact Header) -->
+            <header class="h-16 bg-card/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 z-10">
                 <!-- Breadcrumbs & Search -->
                 <div class="flex items-center gap-6">
-                    <div class="flex items-center gap-2 text-xs font-medium text-zinc-400">
-                        <span class="hover:text-zinc-200 cursor-pointer" onclick="app.navigate('dashboard')">PMT Flow</span>
-                        <i class="ph ph-caret-right text-zinc-600 text-[10px]"></i>
-                        <span class="text-zinc-100 font-semibold" id="topbar-breadcrumb">Dashboard</span>
+                    <div class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                        <span class="hover:text-foreground cursor-pointer" onclick="app.navigate('dashboard')">PMT Flow</span>
+                        <i class="ph ph-caret-right text-muted-foreground/60 text-[10px]"></i>
+                        <span class="text-foreground font-semibold" id="topbar-breadcrumb">Dashboard</span>
                     </div>
 
-                    <!-- Command Search Input -->
+                    <!-- Command Bar Search Input -->
                     <div class="relative w-72 hidden md:block">
-                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
-                        <input type="text" id="global-search-input" onkeyup="app.handleGlobalSearch(event)" placeholder="ค้นหางาน, ช่าง, เบอร์โทร..." class="w-full bg-zinc-900/60 border border-white/[0.08] rounded-lg py-1.5 pl-9 pr-12 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all">
+                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+                        <input type="text" id="global-search-input" onkeyup="app.handleGlobalSearch(event)" placeholder="ค้นหางาน, ช่าง, ลูกค้า..." class="w-full bg-muted/60 border border-border rounded-lg py-1.5 pl-9 pr-12 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all">
                         <div class="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
-                            <span class="text-[10px] font-mono px-1 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">⌘K</span>
+                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-card text-muted-foreground border border-border">⌘K</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Right Actions -->
                 <div class="flex items-center gap-3">
-                    <!-- Notifications -->
-                    <button class="relative p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.05] transition" onclick="app.showToast('คุณมี 2 รายการงานใกล้ถึงกำหนดส่งมอบ')">
-                        <i class="ph ph-bell text-lg"></i>
-                        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-500 rounded-full ring-2 ring-zinc-950"></span>
+                    <!-- Light / Dark Mode Switcher -->
+                    <button onclick="app.toggleTheme()" class="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition" title="Toggle Theme">
+                        <i class="ph ph-sun dark:hidden text-lg"></i>
+                        <i class="ph ph-moon hidden dark:block text-lg"></i>
                     </button>
 
-                    <div class="h-4 w-px bg-white/[0.08]"></div>
+                    <!-- Notifications -->
+                    <button class="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition" onclick="app.showToast('คุณมี 2 รายการงานใกล้ถึงกำหนดส่งมอบ')">
+                        <i class="ph ph-bell text-lg"></i>
+                        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-500 rounded-full ring-2 ring-card"></span>
+                    </button>
+
+                    <div class="h-4 w-px bg-border"></div>
 
                     <!-- Primary Action Button -->
-                    <button onclick="app.showModal('modal-create-job')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-2">
+                    <button onclick="app.showModal('modal-create-job')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-2 font-medium">
                         <i class="ph ph-plus-bold text-sm"></i>
                         <span>รับ Order ใหม่ (INT)</span>
                     </button>
                 </div>
             </header>
 
-            <!-- Page Container -->
-            <div id="page-container" class="flex-1 overflow-y-auto p-6 md:p-8 relative">
+            <!-- PAGE CONTENT CONTAINER -->
+            <div id="page-container" class="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
                 
-                <!-- 1. DASHBOARD VIEW -->
+                <!-- 1. DASHBOARD VIEW (Cruip Artifact Full Layout) -->
                 <div id="page-dashboard" class="page-view space-y-6">
+                    <!-- Dashboard Header -->
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <h2 class="font-display text-2xl font-bold text-white tracking-tight">ภาพรวมระบบ (Executive Dashboard)</h2>
-                            <p class="text-xs text-zinc-400 mt-0.5">ติดตามสถานะงานติดตั้ง รายได้ และคิวการตรวจคุณภาพแบบ Real-time</p>
+                        <div class="space-y-1">
+                            <h1 class="text-xl font-bold tracking-tight sm:text-2xl text-foreground font-display">Store & Operations Overview</h1>
+                            <p class="text-muted-foreground text-xs sm:text-sm">ภาพรวมผลการดำเนินงานและสถิติงานติดตั้งประจำเดือนนี้</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
-                                <i class="ph ph-calendar-blank text-sm"></i>
-                                <span>30 วันล่าสุด</span>
-                            </button>
-                            <button onclick="app.refreshData()" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs" title="Refresh data">
-                                <i class="ph ph-arrows-clockwise text-sm"></i>
+                            <div class="bg-muted inline-flex rounded-lg p-0.5 border border-border">
+                                <button type="button" onclick="app.setTimeRange('7D', this)" class="rounded-md px-3 py-1 text-xs font-medium transition-colors text-muted-foreground hover:text-foreground">7D</button>
+                                <button type="button" onclick="app.setTimeRange('30D', this)" class="rounded-md px-3 py-1 text-xs font-medium transition-colors bg-card text-foreground shadow-sm">30D</button>
+                                <button type="button" onclick="app.setTimeRange('12M', this)" class="rounded-md px-3 py-1 text-xs font-medium transition-colors text-muted-foreground hover:text-foreground">12M</button>
+                            </div>
+                            <button onclick="app.showToast('Exporting summary report to CSV...')" class="btn-artifact-secondary h-8 rounded-lg px-3 text-xs flex items-center gap-1.5">
+                                <i class="ph ph-download-simple"></i>
+                                <span>Export</span>
                             </button>
                         </div>
                     </div>
-                    
-                    <!-- KPI Bento Grid -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <!-- Card 1 -->
-                        <div class="artifact-card p-5 rounded-2xl relative overflow-hidden group">
-                            <div class="flex items-center justify-between text-zinc-400 mb-3">
-                                <span class="text-xs font-medium uppercase tracking-wider">งานทั้งหมดในระบบ</span>
-                                <div class="w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center text-zinc-300">
-                                    <i class="ph ph-briefcase text-base"></i>
+
+                    <!-- 4 Metric Cards with Sparklines (Cruip Artifact Style) -->
+                    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <!-- Card 1: Total Revenue / Volume -->
+                        <div class="artifact-card p-5 flex flex-col justify-between">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="bg-muted text-muted-foreground flex size-9 items-center justify-center rounded-xl border border-border">
+                                    <i class="ph ph-currency-circle-dollar text-lg text-brand-500"></i>
                                 </div>
+                                <span class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                    <i class="ph ph-arrow-up-right text-[10px]"></i> +27.9%
+                                </span>
                             </div>
-                            <div class="flex items-baseline justify-between">
-                                <div class="text-3xl font-display font-bold text-white tracking-tight" id="kpi-total">5</div>
-                                <div class="flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                                    <i class="ph ph-trend-up"></i> +12%
-                                </div>
+                            <div class="space-y-1">
+                                <p class="text-muted-foreground text-xs">ยอดบริการประมาณการ (Revenue)</p>
+                                <p class="text-2xl font-bold tracking-tight text-foreground font-display">฿1,289,500</p>
                             </div>
-                            <div class="mt-3 flex items-center gap-1 text-xs text-zinc-500">
-                                <span>เป้าหมายรายเดือน: 50 รายการ</span>
+                            <!-- Mini Sparkline SVG -->
+                            <div class="mt-3 pt-2 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
+                                <span>เป้าหมายเดือนนี้</span>
+                                <span class="font-mono text-emerald-500 font-medium">฿1.5M (86%)</span>
                             </div>
                         </div>
 
-                        <!-- Card 2 -->
-                        <div class="artifact-card p-5 rounded-2xl relative overflow-hidden group">
-                            <div class="flex items-center justify-between text-zinc-400 mb-3">
-                                <span class="text-xs font-medium uppercase tracking-wider">กำลังดำเนินการ</span>
-                                <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
-                                    <i class="ph ph-wrench text-base"></i>
+                        <!-- Card 2: Active Jobs -->
+                        <div class="artifact-card p-5 flex flex-col justify-between">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="bg-muted text-muted-foreground flex size-9 items-center justify-center rounded-xl border border-border">
+                                    <i class="ph ph-wrench text-lg text-amber-500"></i>
                                 </div>
+                                <span class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                    <i class="ph ph-arrow-up-right text-[10px]"></i> +18.4%
+                                </span>
                             </div>
-                            <div class="flex items-baseline justify-between">
-                                <div class="text-3xl font-display font-bold text-amber-400 tracking-tight" id="kpi-progress">1</div>
-                                <span class="text-xs text-zinc-400 font-mono">3 ทีมพร้อมปฏิบัติงาน</span>
+                            <div class="space-y-1">
+                                <p class="text-muted-foreground text-xs">งานกำลังดำเนินการ (Active Jobs)</p>
+                                <p class="text-2xl font-bold tracking-tight text-foreground font-display" id="kpi-progress">1</p>
                             </div>
-                            <div class="mt-3 flex items-center gap-1 text-xs text-zinc-500">
-                                <span>อัตราการ Check-in GPS: 100%</span>
+                            <div class="mt-3 pt-2 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
+                                <span>ทีมช่างพร้อมปฏิบัติงาน</span>
+                                <span class="font-mono text-foreground font-medium">3 ทีม</span>
                             </div>
                         </div>
 
-                        <!-- Card 3 -->
-                        <div class="artifact-card p-5 rounded-2xl relative overflow-hidden group">
-                            <div class="flex items-center justify-between text-zinc-400 mb-3">
-                                <span class="text-xs font-medium uppercase tracking-wider">QC ผ่านแล้ว (เดือนนี้)</span>
-                                <div class="w-8 h-8 rounded-lg bg-brand-500/10 flex items-center justify-center text-brand-400">
-                                    <i class="ph ph-seal-check text-base"></i>
+                        <!-- Card 3: QC Passed -->
+                        <div class="artifact-card p-5 flex flex-col justify-between">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="bg-muted text-muted-foreground flex size-9 items-center justify-center rounded-xl border border-border">
+                                    <i class="ph ph-seal-check text-lg text-emerald-500"></i>
                                 </div>
+                                <span class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                    <i class="ph ph-arrow-up-right text-[10px]"></i> +5.2%
+                                </span>
                             </div>
-                            <div class="flex items-baseline justify-between">
-                                <div class="text-3xl font-display font-bold text-white tracking-tight" id="kpi-qc">1</div>
-                                <div class="flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                                    <i class="ph ph-trend-up"></i> +5.2%
-                                </div>
+                            <div class="space-y-1">
+                                <p class="text-muted-foreground text-xs">QC ผ่านแล้ว (เดือนนี้)</p>
+                                <p class="text-2xl font-bold tracking-tight text-foreground font-display" id="kpi-qc">2</p>
                             </div>
-                            <div class="mt-3 flex items-center gap-1 text-xs text-zinc-500">
-                                <span>First Time Pass Rate: 94.2%</span>
+                            <div class="mt-3 pt-2 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
+                                <span>First Time Pass Rate</span>
+                                <span class="font-mono text-emerald-500 font-medium">94.2%</span>
                             </div>
                         </div>
 
-                        <!-- Card 4 -->
-                        <div class="artifact-card p-5 rounded-2xl relative overflow-hidden group">
-                            <div class="flex items-center justify-between text-zinc-400 mb-3">
-                                <span class="text-xs font-medium uppercase tracking-wider">คะแนนความพึงพอใจ (CSAT)</span>
-                                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-                                    <i class="ph ph-star text-base"></i>
+                        <!-- Card 4: CSAT Rating -->
+                        <div class="artifact-card p-5 flex flex-col justify-between">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="bg-muted text-muted-foreground flex size-9 items-center justify-center rounded-xl border border-border">
+                                    <i class="ph ph-star text-lg text-amber-400"></i>
+                                </div>
+                                <span class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                    5.0 ★
+                                </span>
+                            </div>
+                            <div class="space-y-1">
+                                <p class="text-muted-foreground text-xs">ความพึงพอใจลูกค้า (CSAT)</p>
+                                <div class="flex items-baseline gap-1">
+                                    <p class="text-2xl font-bold tracking-tight text-foreground font-display">4.92</p>
+                                    <span class="text-xs text-muted-foreground">/ 5.0</span>
                                 </div>
                             </div>
-                            <div class="flex items-baseline justify-between">
-                                <div class="text-3xl font-display font-bold text-white tracking-tight">4.92<span class="text-xs font-normal text-zinc-500 ml-1">/ 5.0</span></div>
-                                <div class="flex items-center gap-0.5 text-amber-400 text-xs">
-                                    <i class="ph ph-star-fill"></i>
-                                    <i class="ph ph-star-fill"></i>
-                                    <i class="ph ph-star-fill"></i>
-                                    <i class="ph ph-star-fill"></i>
-                                    <i class="ph ph-star-fill"></i>
-                                </div>
-                            </div>
-                            <div class="mt-3 flex items-center gap-1 text-xs text-zinc-500">
-                                <span>ตอบแบบสำรวจแล้ว 100%</span>
+                            <div class="mt-3 pt-2 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
+                                <span>ตอบแบบสำรวจ</span>
+                                <span class="font-mono text-foreground font-medium">100%</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Charts & Alerts Section -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <!-- Donut Chart Card -->
-                        <div class="lg:col-span-2 artifact-card p-6 rounded-2xl flex flex-col justify-between">
-                            <div class="flex items-center justify-between mb-4">
+                    <!-- Charts Bento Section (Line/Area Performance + Donut Distribution) -->
+                    <div class="grid gap-6 lg:grid-cols-3">
+                        <!-- Revenue & Workflow Area Chart -->
+                        <div class="artifact-card p-6 lg:col-span-2 flex flex-col justify-between">
+                            <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
                                 <div>
-                                    <h3 class="font-display font-bold text-base text-white">สัดส่วนสถานะงาน (Status Distribution)</h3>
-                                    <p class="text-xs text-zinc-400">จำแนกตามขั้นตอนการดำเนินงานทั้งหมด</p>
+                                    <h2 class="text-base font-semibold text-foreground font-display">Workflow & Performance Overview</h2>
+                                    <p class="text-xs text-muted-foreground">ปริมาณงานที่ส่งมอบเทียบกับเป้าหมายประจำสัปดาห์</p>
                                 </div>
-                                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-white/[0.04] text-zinc-400 border border-white/[0.06]">Realtime Sync</span>
+                                <div class="flex items-center gap-4 text-xs">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="size-2.5 rounded-full bg-brand-500"></span>
+                                        <span class="text-muted-foreground">เดือนนี้</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="size-2.5 rounded-full bg-muted-foreground/50"></span>
+                                        <span class="text-muted-foreground">เดือนก่อน</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="h-64 relative flex items-center justify-center py-2">
+                            <div class="h-64 w-full relative">
+                                <canvas id="performanceChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Donut Chart: Status Distribution -->
+                        <div class="artifact-card p-6 flex flex-col justify-between">
+                            <div class="flex items-center justify-between mb-2">
+                                <h2 class="text-base font-semibold text-foreground font-display">สัดส่วนสถานะงาน</h2>
+                                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border">Realtime</span>
+                            </div>
+                            <div class="h-56 relative flex items-center justify-center">
                                 <canvas id="dashboardChart"></canvas>
                             </div>
+                            <div class="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-border text-[11px] text-muted-foreground">
+                                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500"></span> กำลังทำ: 1</div>
+                                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-brand-500"></span> รอ QC: 1</div>
+                                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> QC ผ่าน: 1</div>
+                                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-sky-500"></span> After Sale: 1</div>
+                            </div>
                         </div>
+                    </div>
 
-                        <!-- Alerts Panel (Due <= 5 days) -->
-                        <div class="artifact-card p-6 rounded-2xl flex flex-col">
-                            <div class="flex items-center justify-between mb-4">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-6 h-6 rounded-md bg-rose-500/10 text-rose-400 flex items-center justify-center">
-                                        <i class="ph ph-warning text-sm"></i>
-                                    </div>
-                                    <h3 class="font-display font-bold text-base text-white">งานใกล้ครบกำหนด</h3>
+                    <!-- Lower Section: Recent Orders Table & Urgent Deadlines -->
+                    <div class="grid gap-6 lg:grid-cols-3">
+                        <!-- Recent Active Jobs Table (2 cols) -->
+                        <div class="artifact-card p-6 lg:col-span-2 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="text-base font-semibold text-foreground font-display">รายการงานล่าสุด (Recent Jobs)</h3>
+                                    <p class="text-xs text-muted-foreground">งานที่อยู่ระหว่างการดำเนินการและรอการตรวจรับ</p>
                                 </div>
-                                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">&le; 5 วัน</span>
+                                <button onclick="app.navigate('jobs')" class="text-xs text-brand-500 hover:text-brand-400 font-medium flex items-center gap-1">
+                                    ดูทั้งหมด <i class="ph ph-arrow-right"></i>
+                                </button>
                             </div>
                             
-                            <div class="space-y-2.5 overflow-y-auto flex-1 pr-1" id="dashboard-alerts">
-                                <!-- Populated by JS -->
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
+                                        <tr>
+                                            <th class="pb-2.5">รหัสงาน</th>
+                                            <th class="pb-2.5">ลูกค้า</th>
+                                            <th class="pb-2.5">บริการ</th>
+                                            <th class="pb-2.5">สถานะ</th>
+                                            <th class="pb-2.5 text-right">ความคืบหน้า</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-border" id="dashboard-recent-jobs">
+                                        <!-- Populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Urgent Deadlines Alert Panel (1 col) -->
+                        <div class="artifact-card p-6 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-6 h-6 rounded-md bg-rose-500/10 text-rose-500 flex items-center justify-center">
+                                            <i class="ph ph-warning text-sm"></i>
+                                        </div>
+                                        <h3 class="text-base font-semibold text-foreground font-display">งานใกล้ครบกำหนด</h3>
+                                    </div>
+                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-500/10 text-rose-500 border border-rose-500/20">&le; 5 วัน</span>
+                                </div>
+                                <div class="space-y-2.5 overflow-y-auto max-h-64 pr-1" id="dashboard-alerts">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                                <span>แจ้งเตือนอัตโนมัติไปยัง LINE ช่าง</span>
+                                <span class="text-emerald-500 flex items-center gap-1"><i class="ph ph-check"></i> ทำงาน</span>
                             </div>
                         </div>
                     </div>
@@ -537,45 +585,39 @@
                 <div id="page-jobs" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <h2 class="font-display text-2xl font-bold text-white tracking-tight">รายการงานทั้งหมด</h2>
-                            <p class="text-xs text-zinc-400 mt-0.5">จัดการ ติดตาม และตรวจสอบสถานะงานติดตั้งทุกโครงการ</p>
+                            <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">รายการงานทั้งหมด (All Work Orders)</h2>
+                            <p class="text-xs text-muted-foreground mt-0.5">จัดการ ค้นหา และติดตามสถานะงานติดตั้งทุกโครงการ</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2.5">
-                            <div class="relative">
-                                <i class="ph ph-funnel absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs"></i>
-                                <select id="filter-service" onchange="app.renderJobs()" class="bg-zinc-900 border border-white/[0.08] rounded-xl pl-8 pr-4 py-2 text-xs text-zinc-300 focus:outline-none focus:border-brand-500">
-                                    <option value="all">ทุกประเภทบริการ</option>
-                                    <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
-                                    <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
-                                    <option value="Renovate ครัว">Renovate ครัว</option>
-                                    <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
-                                </select>
-                            </div>
-                            <div class="relative">
-                                <select id="filter-status" onchange="app.renderJobs()" class="bg-zinc-900 border border-white/[0.08] rounded-xl px-4 py-2 text-xs text-zinc-300 focus:outline-none focus:border-brand-500">
-                                    <option value="all">ทุกสถานะ</option>
-                                    <option value="DRAFT">Draft (เปิดงานใหม่)</option>
-                                    <option value="IN_PROGRESS">In Progress (กำลังทำ)</option>
-                                    <option value="QC_PENDING">QC Pending (รอตรวจ)</option>
-                                    <option value="QC_PASSED">QC Passed (ผ่านแล้ว)</option>
-                                    <option value="AFTER_SALE">After Sale (บริการหลังการขาย)</option>
-                                </select>
-                            </div>
-                            <button onclick="app.showModal('modal-create-job')" class="btn-artifact-primary px-3 py-2 rounded-xl text-xs flex items-center gap-1.5">
+                            <select id="filter-service" onchange="app.renderJobs()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                                <option value="all">ทุกประเภทบริการ</option>
+                                <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                                <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
+                                <option value="Renovate ครัว">Renovate ครัว</option>
+                                <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
+                            </select>
+                            <select id="filter-status" onchange="app.renderJobs()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                                <option value="all">ทุกสถานะ</option>
+                                <option value="DRAFT">Draft (เปิดงานใหม่)</option>
+                                <option value="IN_PROGRESS">In Progress (กำลังทำ)</option>
+                                <option value="QC_PENDING">QC Pending (รอตรวจ)</option>
+                                <option value="QC_PASSED">QC Passed (ผ่านแล้ว)</option>
+                                <option value="AFTER_SALE">After Sale (บริการหลังการขาย)</option>
+                            </select>
+                            <button onclick="app.showModal('modal-create-job')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
                                 <i class="ph ph-plus-bold"></i>
                                 <span>สร้างงานใหม่</span>
                             </button>
                         </div>
                     </div>
                     
-                    <!-- Table Container -->
-                    <div class="artifact-card rounded-2xl overflow-hidden shadow-xl border border-white/[0.08]">
+                    <div class="artifact-card overflow-hidden shadow-sm">
                         <div class="overflow-x-auto">
                             <table class="w-full text-left text-xs">
-                                <thead class="bg-zinc-950/80 border-b border-white/[0.08] text-zinc-400 font-semibold uppercase tracking-wider text-[11px]">
+                                <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
                                     <tr>
                                         <th class="px-5 py-3.5">เลขที่งาน</th>
-                                        <th class="px-5 py-3.5">ลูกค้า & ติดต่อ</th>
+                                        <th class="px-5 py-3.5">ลูกค้า & เบอร์ติดต่อ</th>
                                         <th class="px-5 py-3.5">ประเภทบริการ</th>
                                         <th class="px-5 py-3.5">ช่างผู้รับผิดชอบ</th>
                                         <th class="px-5 py-3.5">สถานะ</th>
@@ -583,7 +625,7 @@
                                         <th class="px-5 py-3.5 text-right">การจัดการ</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-white/[0.05]" id="jobs-table-body">
+                                <tbody class="divide-y divide-border" id="jobs-table-body">
                                     <!-- Populated by JS -->
                                 </tbody>
                             </table>
@@ -602,19 +644,17 @@
                 <div id="page-gantt" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <h2 class="font-display text-2xl font-bold text-white tracking-tight">แผนงานติดตั้ง (Gantt Chart Timeline)</h2>
-                            <p class="text-xs text-zinc-400 mt-0.5">วางแผนตารางเวลาทีมช่างและระยะเวลาดำเนินงานในแต่ละหมวดหมู่</p>
+                            <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">แผนงานติดตั้ง (Gantt Timeline)</h2>
+                            <p class="text-xs text-muted-foreground mt-0.5">วางแผนตารางเวลาทีมช่างและระยะเวลาดำเนินงานในแต่ละหมวดหมู่</p>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <div class="flex items-center gap-1.5 text-xs text-zinc-400">
-                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> เสร็จสิ้น
-                                <span class="w-2.5 h-2.5 rounded-full bg-brand-500 ml-2"></span> กำลังดำเนินการ
-                                <span class="w-2.5 h-2.5 rounded-full bg-zinc-600 ml-2"></span> รอดำเนินการ
-                            </div>
+                        <div class="flex items-center gap-3 text-xs text-muted-foreground">
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> เสร็จสิ้น</span>
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span> กำลังทำ</span>
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-zinc-500"></span> รอดำเนินการ</span>
                         </div>
                     </div>
 
-                    <div class="artifact-card rounded-2xl p-6 overflow-x-auto">
+                    <div class="artifact-card p-6 overflow-x-auto">
                         <div id="gantt-container" class="min-w-[850px]">
                             <!-- Custom rendered Gantt -->
                         </div>
@@ -624,18 +664,18 @@
                 <!-- 5. QC MODULE VIEW -->
                 <div id="page-qc" class="page-view hidden-view space-y-6">
                     <div>
-                        <h2 class="font-display text-2xl font-bold text-white tracking-tight">การตรวจคุณภาพงาน (Quality Control)</h2>
-                        <p class="text-xs text-zinc-400 mt-0.5">ตรวจสอบมาตรฐานงานก่อนส่งมอบและประสานงานต่อไปยัง Contact Center</p>
+                        <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">การตรวจคุณภาพงาน (QC Inspection)</h2>
+                        <p class="text-xs text-muted-foreground mt-0.5">ตรวจสอบมาตรฐานงานก่อนส่งมอบและประสานงานต่อไปยัง Contact Center</p>
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <!-- Left Queue -->
-                        <div class="artifact-card rounded-2xl p-5 flex flex-col h-[600px]">
-                            <div class="flex items-center justify-between pb-3 border-b border-white/[0.08] mb-4">
-                                <h3 class="font-display font-semibold text-sm text-white flex items-center gap-2">
-                                    <i class="ph ph-queue text-brand-400"></i> คิวรอตรวจ QC
+                        <div class="artifact-card p-5 flex flex-col h-[600px]">
+                            <div class="flex items-center justify-between pb-3 border-b border-border mb-4">
+                                <h3 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
+                                    <i class="ph ph-queue text-brand-500"></i> คิวรอตรวจ QC
                                 </h3>
-                                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300" id="qc-queue-count">1 รายการ</span>
+                                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-500/15 text-brand-500 font-semibold" id="qc-queue-count">1 รายการ</span>
                             </div>
                             <div class="flex-1 overflow-y-auto space-y-2.5 pr-1" id="qc-queue-list">
                                 <!-- Populated by JS -->
@@ -643,13 +683,13 @@
                         </div>
 
                         <!-- Right Inspection Form -->
-                        <div class="lg:col-span-2 artifact-card rounded-2xl p-6 overflow-y-auto h-[600px]" id="qc-form-container">
+                        <div class="lg:col-span-2 artifact-card p-6 overflow-y-auto h-[600px]" id="qc-form-container">
                             <div class="h-full flex flex-col items-center justify-center text-center p-8">
-                                <div class="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-zinc-500 mb-4">
+                                <div class="w-16 h-16 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground mb-4">
                                     <i class="ph ph-clipboard-text text-3xl"></i>
                                 </div>
-                                <h4 class="font-display font-medium text-white text-base mb-1">ยังไม่ได้เลือกรายการงาน</h4>
-                                <p class="text-xs text-zinc-500 max-w-sm">กรุณาเลือกงานจากคิวด้านซ้ายเพื่อเปิดแบบฟอร์มตรวจสอบมาตรฐานและ Checklist</p>
+                                <h4 class="font-display font-medium text-foreground text-base mb-1">ยังไม่ได้เลือกรายการงาน</h4>
+                                <p class="text-xs text-muted-foreground max-w-sm">กรุณาเลือกงานจากคิวด้านซ้ายเพื่อเปิดแบบฟอร์มตรวจสอบมาตรฐานและ Checklist</p>
                             </div>
                         </div>
                     </div>
@@ -659,17 +699,15 @@
                 <div id="page-csat" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <h2 class="font-display text-2xl font-bold text-white tracking-tight">บริการหลังการขาย & ประเมินความพึงพอใจ (CSAT)</h2>
-                            <p class="text-xs text-zinc-400 mt-0.5">Contact Center โทรสอบถามความพึงพอใจ 5 ดาว และส่งปิดงานไปยังระบบ BMT</p>
+                            <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">บริการหลังการขาย & CSAT</h2>
+                            <p class="text-xs text-muted-foreground mt-0.5">Contact Center โทรสอบถามความพึงพอใจ 5 ดาว และส่งปิดงานไปยังระบบ BMT</p>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs text-zinc-400">เฉลี่ย CSAT: <strong class="text-white">4.92 / 5.0</strong></span>
-                        </div>
+                        <div class="text-xs text-muted-foreground">เฉลี่ย CSAT: <strong class="text-foreground">4.92 / 5.0</strong></div>
                     </div>
 
-                    <div class="artifact-card rounded-2xl overflow-hidden shadow-xl border border-white/[0.08]">
+                    <div class="artifact-card overflow-hidden shadow-sm">
                         <table class="w-full text-left text-xs">
-                            <thead class="bg-zinc-950/80 border-b border-white/[0.08] text-zinc-400 font-semibold uppercase tracking-wider text-[11px]">
+                            <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
                                 <tr>
                                     <th class="px-5 py-3.5">เลขที่งาน</th>
                                     <th class="px-5 py-3.5">ลูกค้า & เบอร์ติดต่อ</th>
@@ -679,7 +717,7 @@
                                     <th class="px-5 py-3.5 text-right">การดำเนินการ</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-white/[0.05]" id="csat-table-body">
+                            <tbody class="divide-y divide-border" id="csat-table-body">
                                 <!-- Populated by JS -->
                             </tbody>
                         </table>
@@ -689,52 +727,45 @@
                 <!-- 7. SETTINGS VIEW -->
                 <div id="page-settings" class="page-view hidden-view space-y-6 max-w-3xl">
                     <div>
-                        <h2 class="font-display text-2xl font-bold text-white tracking-tight">ตั้งค่าระบบ & การเชื่อมต่อ API</h2>
-                        <p class="text-xs text-zinc-400 mt-0.5">กำหนดค่าพารามิเตอร์ของระบบ GPS Check-in, ภาพถ่าย และ Endpoint ของระบบภายนอก</p>
+                        <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">ตั้งค่าระบบ & การเชื่อมต่อ API</h2>
+                        <p class="text-xs text-muted-foreground mt-0.5">กำหนดค่าพารามิเตอร์ของระบบ GPS Check-in และการเชื่อมต่อระบบภายนอก</p>
                     </div>
 
-                    <div class="artifact-card rounded-2xl p-6 space-y-5">
-                        <h3 class="font-display font-semibold text-sm text-white pb-3 border-b border-white/[0.08]">กฎเกณฑ์หน้างาน (Field Requirements)</h3>
+                    <div class="artifact-card p-6 space-y-5">
+                        <h3 class="font-display font-semibold text-sm text-foreground pb-3 border-b border-border">กฎเกณฑ์หน้างาน (Field Requirements)</h3>
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-medium text-zinc-400 mb-1.5">รัศมี Check-in หน้างานที่อนุญาต (เมตร)</label>
-                                <input type="number" value="400" class="w-full bg-zinc-900 border border-white/[0.08] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
-                                <span class="text-[10px] text-zinc-500 mt-1 block">ระยะห่างจากพิกัด GPS ลูกค้า</span>
+                                <label class="block text-xs font-medium text-muted-foreground mb-1.5">รัศมี Check-in หน้างานที่อนุญาต (เมตร)</label>
+                                <input type="number" value="400" class="w-full bg-card border border-border rounded-lg px-3.5 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-zinc-400 mb-1.5">จำนวนรูปถ่ายขั้นต่ำในการ Check-in (รูป)</label>
-                                <input type="number" value="5" class="w-full bg-zinc-900 border border-white/[0.08] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
-                                <span class="text-[10px] text-zinc-500 mt-1 block">ต้องอัปโหลดครบก่อนกดส่ง QC</span>
+                                <label class="block text-xs font-medium text-muted-foreground mb-1.5">จำนวนรูปถ่ายขั้นต่ำในการ Check-in (รูป)</label>
+                                <input type="number" value="5" class="w-full bg-card border border-border rounded-lg px-3.5 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-medium text-zinc-400 mb-1.5">เกณฑ์แจ้งเตือนงานใกล้ถึงกำหนด (วัน)</label>
-                            <input type="number" value="5" class="w-full bg-zinc-900 border border-white/[0.08] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-brand-500 max-w-xs">
-                        </div>
-
-                        <h3 class="font-display font-semibold text-sm text-white pt-4 pb-3 border-b border-white/[0.08]">การเชื่อมต่อ API ภายนอก (INT & BMT Integration)</h3>
+                        <h3 class="font-display font-semibold text-sm text-foreground pt-4 pb-3 border-b border-border">การเชื่อมต่อ API ภายนอก (INT & BMT Integration)</h3>
                         
                         <div class="space-y-4">
                             <div>
-                                <label class="block text-xs font-medium text-zinc-400 mb-1.5">INT System API Endpoint (รับ Order ขาเข้า)</label>
+                                <label class="block text-xs font-medium text-muted-foreground mb-1.5">INT System API Endpoint (รับ Order ขาเข้า)</label>
                                 <div class="flex gap-2">
-                                    <input type="text" value="https://api.int-system.local/v1/orders" class="flex-1 bg-zinc-900 border border-white/[0.08] rounded-xl px-3.5 py-2 text-xs font-mono text-brand-300 focus:outline-none focus:border-brand-500">
-                                    <button class="btn-artifact-secondary px-3 py-2 rounded-xl text-xs" onclick="app.showToast('INT API Connection: SUCCESS (Status 200 OK)')">Test</button>
+                                    <input type="text" value="https://api.int-system.local/v1/orders" class="flex-1 bg-card border border-border rounded-lg px-3.5 py-2 text-xs font-mono text-brand-500 focus:outline-none focus:border-brand-500">
+                                    <button class="btn-artifact-secondary px-3 py-2 rounded-lg text-xs" onclick="app.showToast('INT API Connection: SUCCESS (Status 200 OK)')">Test</button>
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-zinc-400 mb-1.5">BMT System API Endpoint (ส่งปิดงานขาออก)</label>
+                                <label class="block text-xs font-medium text-muted-foreground mb-1.5">BMT System API Endpoint (ส่งปิดงานขาออก)</label>
                                 <div class="flex gap-2">
-                                    <input type="text" value="https://api.bmt-system.local/v1/close-job" class="flex-1 bg-zinc-900 border border-white/[0.08] rounded-xl px-3.5 py-2 text-xs font-mono text-emerald-300 focus:outline-none focus:border-brand-500">
-                                    <button class="btn-artifact-secondary px-3 py-2 rounded-xl text-xs" onclick="app.showToast('BMT API Connection: SUCCESS (Status 200 OK)')">Test</button>
+                                    <input type="text" value="https://api.bmt-system.local/v1/close-job" class="flex-1 bg-card border border-border rounded-lg px-3.5 py-2 text-xs font-mono text-emerald-500 focus:outline-none focus:border-brand-500">
+                                    <button class="btn-artifact-secondary px-3 py-2 rounded-lg text-xs" onclick="app.showToast('BMT API Connection: SUCCESS (Status 200 OK)')">Test</button>
                                 </div>
                             </div>
                         </div>
 
                         <div class="pt-4 flex justify-end">
-                            <button class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-medium" onclick="app.showToast('บันทึกการตั้งค่าระบบเรียบร้อยแล้ว')">บันทึกการตั้งค่า</button>
+                            <button class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium" onclick="app.showToast('บันทึกการตั้งค่าระบบเรียบร้อยแล้ว')">บันทึกการตั้งค่า</button>
                         </div>
                     </div>
                 </div>
@@ -744,19 +775,19 @@
     </div>
 
     <!-- MODAL: CREATE NEW JOB (INT Intake) -->
-    <div id="modal-create-job" class="fixed inset-0 z-50 bg-zinc-950/80 backdrop-blur-md flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
+    <div id="modal-create-job" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
         <div class="artifact-card rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200" id="modal-create-job-content">
-            <div class="p-5 border-b border-white/[0.08] flex justify-between items-center bg-white/[0.02]">
+            <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-7 h-7 rounded-lg bg-brand-500/10 text-brand-400 flex items-center justify-center">
+                    <div class="w-7 h-7 rounded-lg bg-brand-500/15 text-brand-500 flex items-center justify-center">
                         <i class="ph ph-plus-circle text-base"></i>
                     </div>
                     <div>
-                        <h3 class="font-display font-bold text-sm text-white">สร้างงานใหม่ (รับ Order จาก INT)</h3>
-                        <p class="text-[10px] text-zinc-500">กรอกข้อมูลลูกค้าและพิกัดสถานที่ติดตั้ง</p>
+                        <h3 class="font-display font-bold text-sm text-foreground">สร้างงานใหม่ (รับ Order จาก INT)</h3>
+                        <p class="text-[10px] text-muted-foreground">กรอกข้อมูลลูกค้าและพิกัดสถานที่ติดตั้ง</p>
                     </div>
                 </div>
-                <button onclick="app.hideModal('modal-create-job')" class="text-zinc-500 hover:text-zinc-300 p-1 rounded-lg hover:bg-white/[0.05] transition">
+                <button onclick="app.hideModal('modal-create-job')" class="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted transition">
                     <i class="ph ph-x text-base"></i>
                 </button>
             </div>
@@ -764,23 +795,23 @@
             <div class="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[11px] font-medium text-zinc-400 mb-1">ชื่อลูกค้า (First Name) *</label>
-                        <input type="text" id="cj-firstname" class="w-full bg-zinc-900 border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500" placeholder="สมชาย">
+                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">ชื่อลูกค้า *</label>
+                        <input type="text" id="cj-firstname" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="สมชาย">
                     </div>
                     <div>
-                        <label class="block text-[11px] font-medium text-zinc-400 mb-1">นามสกุล (Last Name) *</label>
-                        <input type="text" id="cj-lastname" class="w-full bg-zinc-900 border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500" placeholder="ใจดี">
+                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">นามสกุล *</label>
+                        <input type="text" id="cj-lastname" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="ใจดี">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[11px] font-medium text-zinc-400 mb-1">เบอร์โทรติดต่อ</label>
-                        <input type="text" id="cj-phone" class="w-full bg-zinc-900 border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500" placeholder="0812345678">
+                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">เบอร์โทรติดต่อ</label>
+                        <input type="text" id="cj-phone" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="0812345678">
                     </div>
                     <div>
-                        <label class="block text-[11px] font-medium text-zinc-400 mb-1">ประเภทบริการ</label>
-                        <select id="cj-service" class="w-full bg-zinc-900 border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">ประเภทบริการ</label>
+                        <select id="cj-service" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
                             <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
                             <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
                             <option value="Renovate ครัว">Renovate ครัว</option>
@@ -790,50 +821,50 @@
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-medium text-zinc-400 mb-1">ที่อยู่สถานที่ติดตั้ง</label>
-                    <textarea id="cj-address" class="w-full bg-zinc-900 border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500" rows="2" placeholder="123/45 ถนนพหลโยธิน แขวงสามเสนใน เขตพญาไท กทม."></textarea>
+                    <label class="block text-[11px] font-medium text-muted-foreground mb-1">ที่อยู่สถานที่ติดตั้ง</label>
+                    <textarea id="cj-address" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" rows="2" placeholder="123/45 ถนนพหลโยธิน แขวงสามเสนใน เขตพญาไท กทม."></textarea>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[11px] font-medium text-zinc-400 mb-1">พิกัด GPS Latitude</label>
-                        <input type="number" step="any" id="cj-lat" class="w-full bg-zinc-900 border border-white/[0.08] rounded-xl px-3 py-2 text-xs font-mono text-brand-300 focus:outline-none focus:border-brand-500" placeholder="13.7563">
+                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">พิกัด GPS Latitude</label>
+                        <input type="number" step="any" id="cj-lat" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs font-mono text-brand-500 focus:outline-none focus:border-brand-500" placeholder="13.7563">
                     </div>
                     <div>
-                        <label class="block text-[11px] font-medium text-zinc-400 mb-1">พิกัด GPS Longitude</label>
-                        <input type="number" step="any" id="cj-lng" class="w-full bg-zinc-900 border border-white/[0.08] rounded-xl px-3 py-2 text-xs font-mono text-brand-300 focus:outline-none focus:border-brand-500" placeholder="100.5018">
+                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">พิกัด GPS Longitude</label>
+                        <input type="number" step="any" id="cj-lng" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs font-mono text-brand-500 focus:outline-none focus:border-brand-500" placeholder="100.5018">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[11px] font-medium text-zinc-400 mb-1">ทีมช่างผู้รับผิดชอบ</label>
-                        <input type="text" id="cj-tech" class="w-full bg-zinc-900 border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500" placeholder="ทีมช่าง สมศักดิ์ (Team A)">
+                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">ทีมช่างผู้รับผิดชอบ</label>
+                        <input type="text" id="cj-tech" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="ทีมช่าง สมศักดิ์ (Team A)">
                     </div>
                     <div>
-                        <label class="block text-[11px] font-medium text-zinc-400 mb-1">วันนัดติดตั้ง</label>
-                        <input type="date" id="cj-date" value="2026-09-06" class="w-full bg-zinc-900 border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">วันนัดติดตั้ง</label>
+                        <input type="date" id="cj-date" value="2026-09-06" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
                     </div>
                 </div>
             </div>
 
-            <div class="p-4 border-t border-white/[0.08] flex justify-end gap-2.5 bg-white/[0.02]">
-                <button onclick="app.hideModal('modal-create-job')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs">ยกเลิก</button>
-                <button onclick="app.submitCreateJob()" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-medium">บันทึกสร้างงาน</button>
+            <div class="p-4 border-t border-border flex justify-end gap-2.5 bg-muted/30">
+                <button onclick="app.hideModal('modal-create-job')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs">ยกเลิก</button>
+                <button onclick="app.submitCreateJob()" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium">บันทึกสร้างงาน</button>
             </div>
         </div>
     </div>
 
     <!-- TOAST NOTIFICATION -->
-    <div id="toast" class="fixed bottom-6 right-6 bg-zinc-900/90 backdrop-blur-xl border border-white/[0.12] px-4 py-3 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
-        <div class="w-7 h-7 rounded-lg bg-brand-500/20 text-brand-400 flex items-center justify-center shrink-0">
+    <div id="toast" class="fixed bottom-6 right-6 bg-card border border-border px-4 py-3 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
+        <div class="w-7 h-7 rounded-lg bg-brand-500/15 text-brand-500 flex items-center justify-center shrink-0">
             <i class="ph ph-check-bold text-sm"></i>
         </div>
-        <div id="toast-msg" class="text-xs font-medium text-zinc-100">Toast notification message</div>
+        <div id="toast-msg" class="text-xs font-medium text-foreground">Toast notification message</div>
     </div>
 
 
-    <!-- APPLICATION SCRIPTS -->
+    <!-- APPLICATION JAVASCRIPT LOGIC -->
     <script>
         // Mock Database
         const DB = {
@@ -866,15 +897,37 @@
             },
 
             init() {
+                // Initialize theme
+                const savedTheme = localStorage.getItem('pmt-theme') || 'dark';
+                if(savedTheme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
                 this.navigate('dashboard');
             },
 
-            login(e) {
-                if(e) e.preventDefault();
-                document.getElementById('view-login').classList.add('hidden-view');
-                document.getElementById('view-app').classList.remove('hidden-view');
-                this.navigate('dashboard');
-                this.showToast('เข้าสู่ระบบสำเร็จ ยินดีต้อนรับสู่ PMT Flow');
+            toggleTheme() {
+                const isDark = document.documentElement.classList.toggle('dark');
+                localStorage.setItem('pmt-theme', isDark ? 'dark' : 'light');
+                this.updateCharts();
+                this.showToast(`Switched to ${isDark ? 'Dark' : 'Light'} Mode`);
+            },
+
+            toggleSidebar() {
+                const sb = document.getElementById('app-sidebar');
+                sb.classList.toggle('w-64');
+                sb.classList.toggle('w-16');
+            },
+
+            setTimeRange(range, btn) {
+                btn.parentElement.querySelectorAll('button').forEach(b => {
+                    b.classList.remove('bg-card', 'text-foreground', 'shadow-sm');
+                    b.classList.add('text-muted-foreground');
+                });
+                btn.classList.add('bg-card', 'text-foreground', 'shadow-sm');
+                btn.classList.remove('text-muted-foreground');
+                this.showToast(`Filtered data for period: ${range}`);
             },
 
             navigate(view, param = null) {
@@ -893,7 +946,7 @@
                     'dashboard': 'Dashboard',
                     'jobs': 'รายการงานทั้งหมด',
                     'job-detail': `รายละเอียดงาน ${param || ''}`,
-                    'gantt': 'Gantt Chart แผนงาน',
+                    'gantt': 'Gantt Timeline',
                     'qc': 'QC Inspection',
                     'csat': 'CSAT & After Sales',
                     'settings': 'ตั้งค่าระบบ'
@@ -913,7 +966,7 @@
                 if(view === 'jobs') this.renderJobs();
                 if(view === 'dashboard') {
                     this.renderDashboard();
-                    this.updateDashboardChart();
+                    setTimeout(() => this.updateCharts(), 50);
                 }
                 if(view === 'job-detail') {
                     this.state.currentJobId = param;
@@ -923,7 +976,6 @@
                 if(view === 'qc') this.renderQC();
                 if(view === 'csat') this.renderCSAT();
 
-                // Update sidebar count
                 document.getElementById('sidebar-job-count').innerText = DB.jobs.length;
             },
 
@@ -956,17 +1008,10 @@
                 }, 200);
             },
 
-            refreshData() {
-                this.renderDashboard();
-                this.updateDashboardChart();
-                this.showToast('อัปเดตข้อมูลล่าสุดเรียบร้อยแล้ว');
-            },
-
             handleGlobalSearch(e) {
                 const query = e.target.value.toLowerCase().trim();
                 if(e.key === 'Enter' && query) {
                     this.navigate('jobs');
-                    // filter
                     const filtered = DB.jobs.filter(j => 
                         j.id.toLowerCase().includes(query) || 
                         j.customer.toLowerCase().includes(query) || 
@@ -1014,7 +1059,6 @@
                 this.hideModal('modal-create-job');
                 this.showToast(`สร้างงาน ${newId} (ลูกค้า: ${fullName}) สำเร็จแล้ว`);
                 
-                // Clear fields
                 document.getElementById('cj-firstname').value = '';
                 document.getElementById('cj-lastname').value = '';
                 document.getElementById('cj-address').value = '';
@@ -1026,100 +1070,171 @@
             getStatusHtml(status) {
                 const s = status.toLowerCase().replace('_', '-');
                 const labelMap = {
-                    'DRAFT': 'Draft (เปิดงานใหม่)',
+                    'DRAFT': 'Draft',
                     'IN_PROGRESS': 'In Progress',
                     'QC_PENDING': 'QC Pending',
                     'QC_PASSED': 'QC Passed',
                     'AFTER_SALE': 'After Sale',
-                    'CLOSED': 'Closed (ปิดงาน)'
+                    'CLOSED': 'Closed'
                 };
                 return `<span class="status-pill status-${s}">${labelMap[status] || status}</span>`;
             },
 
             renderDashboard() {
-                document.getElementById('kpi-total').innerText = DB.jobs.length;
                 document.getElementById('kpi-progress').innerText = DB.jobs.filter(j => j.status==='IN_PROGRESS').length;
                 document.getElementById('kpi-qc').innerText = DB.jobs.filter(j => j.status==='QC_PASSED' || j.status==='AFTER_SALE' || j.status==='CLOSED').length;
                 
+                // Recent Jobs Table
+                const recentRows = DB.jobs.slice(0, 4).map(j => `
+                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer" onclick="app.navigate('job-detail', '${j.id}')">
+                        <td class="py-3 font-mono font-semibold text-brand-500">${j.id}</td>
+                        <td class="py-3 font-medium text-foreground">${j.customer}</td>
+                        <td class="py-3 text-muted-foreground">${j.service}</td>
+                        <td class="py-3">${this.getStatusHtml(j.status)}</td>
+                        <td class="py-3 text-right">
+                            <div class="inline-flex items-center gap-2">
+                                <span class="font-mono text-muted-foreground">${j.progress}%</span>
+                                <div class="w-16 bg-muted rounded-full h-1.5 overflow-hidden">
+                                    <div class="bg-brand-500 h-1.5 rounded-full" style="width: ${j.progress}%"></div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+                document.getElementById('dashboard-recent-jobs').innerHTML = recentRows;
+
+                // Alerts
                 const alerts = DB.jobs.filter(j => j.status !== 'CLOSED' && j.status !== 'QC_PASSED');
                 const alertsHtml = alerts.length ? alerts.map(j => `
-                    <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-brand-500/40 hover:bg-white/[0.05] transition-all cursor-pointer group" onclick="app.navigate('job-detail', '${j.id}')">
-                        <div class="flex items-center justify-between mb-1.5">
-                            <span class="font-mono text-[11px] font-semibold text-brand-400">${j.id}</span>
-                            <span class="text-[10px] text-zinc-500 font-mono flex items-center gap-1">
+                    <div class="p-3 rounded-xl bg-muted/40 border border-border hover:border-brand-500/40 transition-all cursor-pointer group" onclick="app.navigate('job-detail', '${j.id}')">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-mono text-[11px] font-semibold text-brand-500">${j.id}</span>
+                            <span class="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
                                 <i class="ph ph-clock"></i> ${j.date}
                             </span>
                         </div>
-                        <div class="text-xs font-medium text-white group-hover:text-brand-300 transition truncate">${j.customer}</div>
-                        <div class="flex items-center justify-between mt-2 pt-2 border-t border-white/[0.04]">
-                            <span class="text-[10px] text-zinc-400 truncate">${j.service}</span>
+                        <div class="text-xs font-medium text-foreground group-hover:text-brand-500 transition truncate">${j.customer}</div>
+                        <div class="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
+                            <span class="text-[10px] text-muted-foreground truncate">${j.service}</span>
                             ${this.getStatusHtml(j.status)}
                         </div>
                     </div>
-                `).join('') : '<div class="text-xs text-zinc-500 text-center py-6">ไม่มีงานที่ใกล้ครบกำหนดในขณะนี้</div>';
+                `).join('') : '<div class="text-xs text-muted-foreground text-center py-6">ไม่มีงานที่ใกล้ครบกำหนดในขณะนี้</div>';
                 
                 document.getElementById('dashboard-alerts').innerHTML = alertsHtml;
             },
 
-            updateDashboardChart() {
-                const ctx = document.getElementById('dashboardChart');
-                if(!ctx) return;
-                
-                let chartStatus = Chart.getChart("dashboardChart");
-                if (chartStatus != undefined) {
-                    chartStatus.destroy();
-                }
+            updateCharts() {
+                const isDark = document.documentElement.classList.contains('dark');
+                const textColor = isDark ? '#a1a1aa' : '#71717a';
+                const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
 
-                const draftCount = DB.jobs.filter(j => j.status === 'DRAFT').length;
-                const progressCount = DB.jobs.filter(j => j.status === 'IN_PROGRESS').length;
-                const qcPendingCount = DB.jobs.filter(j => j.status === 'QC_PENDING').length;
-                const qcPassedCount = DB.jobs.filter(j => j.status === 'QC_PASSED').length;
-                const afterSaleCount = DB.jobs.filter(j => j.status === 'AFTER_SALE' || j.status === 'CLOSED').length;
+                // 1. Performance Area Chart
+                const perfCtx = document.getElementById('performanceChart');
+                if(perfCtx) {
+                    let oldPerf = Chart.getChart("performanceChart");
+                    if(oldPerf) oldPerf.destroy();
 
-                new Chart(ctx.getContext('2d'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Draft', 'In Progress', 'QC Pending', 'QC Passed', 'After Sale & Closed'],
-                        datasets: [{
-                            data: [draftCount, progressCount, qcPendingCount, qcPassedCount, afterSaleCount],
-                            backgroundColor: [
-                                'rgba(113, 113, 122, 0.8)',
-                                'rgba(245, 158, 11, 0.85)',
-                                'rgba(139, 92, 246, 0.85)',
-                                'rgba(16, 185, 129, 0.85)',
-                                'rgba(14, 165, 233, 0.85)'
-                            ],
-                            borderColor: '#09090b',
-                            borderWidth: 2,
-                            hoverOffset: 6
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'right',
-                                labels: {
-                                    color: '#a1a1aa',
-                                    font: { family: 'Inter', size: 11 },
-                                    boxWidth: 12,
-                                    padding: 14
+                    new Chart(perfCtx.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8'],
+                            datasets: [
+                                {
+                                    label: 'งานที่ส่งมอบแล้ว (Current)',
+                                    data: [12, 19, 15, 26, 22, 30, 28, 35],
+                                    borderColor: '#8b5cf6',
+                                    backgroundColor: 'rgba(139, 92, 246, 0.12)',
+                                    fill: true,
+                                    tension: 0.4,
+                                    borderWidth: 2.5,
+                                    pointRadius: 3,
+                                    pointBackgroundColor: '#8b5cf6'
+                                },
+                                {
+                                    label: 'เป้าหมาย (Target)',
+                                    data: [10, 15, 18, 22, 25, 27, 30, 32],
+                                    borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+                                    borderDash: [5, 5],
+                                    fill: false,
+                                    tension: 0.4,
+                                    borderWidth: 1.5,
+                                    pointRadius: 0
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: isDark ? '#18181b' : '#ffffff',
+                                    titleColor: isDark ? '#f4f4f5' : '#09090b',
+                                    bodyColor: isDark ? '#a1a1aa' : '#71717a',
+                                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                                    borderWidth: 1,
+                                    cornerRadius: 8,
+                                    padding: 10
                                 }
                             },
-                            tooltip: {
-                                backgroundColor: '#18181b',
-                                titleColor: '#f4f4f5',
-                                bodyColor: '#a1a1aa',
-                                borderColor: 'rgba(255,255,255,0.1)',
-                                borderWidth: 1,
-                                padding: 10,
-                                cornerRadius: 8
+                            scales: {
+                                x: { grid: { color: gridColor }, ticks: { color: textColor, font: { family: 'Inter', size: 11 } } },
+                                y: { grid: { color: gridColor }, ticks: { color: textColor, font: { family: 'Inter', size: 11 } } }
                             }
+                        }
+                    });
+                }
+
+                // 2. Status Donut Chart
+                const ctx = document.getElementById('dashboardChart');
+                if(ctx) {
+                    let chartStatus = Chart.getChart("dashboardChart");
+                    if (chartStatus) chartStatus.destroy();
+
+                    const draftCount = DB.jobs.filter(j => j.status === 'DRAFT').length;
+                    const progressCount = DB.jobs.filter(j => j.status === 'IN_PROGRESS').length;
+                    const qcPendingCount = DB.jobs.filter(j => j.status === 'QC_PENDING').length;
+                    const qcPassedCount = DB.jobs.filter(j => j.status === 'QC_PASSED').length;
+                    const afterSaleCount = DB.jobs.filter(j => j.status === 'AFTER_SALE' || j.status === 'CLOSED').length;
+
+                    new Chart(ctx.getContext('2d'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Draft', 'In Progress', 'QC Pending', 'QC Passed', 'After Sale & Closed'],
+                            datasets: [{
+                                data: [draftCount, progressCount, qcPendingCount, qcPassedCount, afterSaleCount],
+                                backgroundColor: [
+                                    '#71717a',
+                                    '#f59e0b',
+                                    '#8b5cf6',
+                                    '#10b981',
+                                    '#0ea5e9'
+                                ],
+                                borderColor: isDark ? '#121215' : '#ffffff',
+                                borderWidth: 3,
+                                hoverOffset: 6
+                            }]
                         },
-                        cutout: '72%'
-                    }
-                });
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: isDark ? '#18181b' : '#ffffff',
+                                    titleColor: isDark ? '#f4f4f5' : '#09090b',
+                                    bodyColor: isDark ? '#a1a1aa' : '#71717a',
+                                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    cornerRadius: 8
+                                }
+                            },
+                            cutout: '72%'
+                        }
+                    });
+                }
             },
 
             renderJobs(jobList = null) {
@@ -1138,38 +1253,38 @@
                 }
 
                 const html = list.map(j => `
-                    <tr class="hover:bg-white/[0.03] transition-colors cursor-pointer group" onclick="app.navigate('job-detail', '${j.id}')">
-                        <td class="px-5 py-4 font-mono font-semibold text-brand-400">${j.id}</td>
+                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group" onclick="app.navigate('job-detail', '${j.id}')">
+                        <td class="px-5 py-4 font-mono font-semibold text-brand-500">${j.id}</td>
                         <td class="px-5 py-4">
-                            <div class="text-white font-medium group-hover:text-brand-300 transition">${j.customer}</div>
-                            <div class="text-[11px] text-zinc-500 font-mono">${j.phone}</div>
+                            <div class="text-foreground font-medium group-hover:text-brand-500 transition">${j.customer}</div>
+                            <div class="text-[11px] text-muted-foreground font-mono">${j.phone}</div>
                         </td>
-                        <td class="px-5 py-4 text-zinc-300">
+                        <td class="px-5 py-4 text-muted-foreground">
                             <span class="inline-flex items-center gap-1">
-                                <i class="ph ph-tag text-zinc-500"></i> ${j.service}
+                                <i class="ph ph-tag text-muted-foreground/60"></i> ${j.service}
                             </span>
                         </td>
-                        <td class="px-5 py-4 text-zinc-400">
+                        <td class="px-5 py-4 text-muted-foreground">
                             <span class="text-xs">${j.tech}</span>
                         </td>
                         <td class="px-5 py-4">${this.getStatusHtml(j.status)}</td>
                         <td class="px-5 py-4 w-40">
-                            <div class="flex items-center justify-between text-[11px] text-zinc-400 mb-1">
+                            <div class="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
                                 <span>${j.progress}%</span>
                             </div>
-                            <div class="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+                            <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                                 <div class="bg-gradient-to-r from-brand-600 to-indigo-500 h-1.5 rounded-full" style="width: ${j.progress}%"></div>
                             </div>
                         </td>
                         <td class="px-5 py-4 text-right">
-                            <button class="text-zinc-500 hover:text-white p-1 rounded hover:bg-white/[0.05] transition">
+                            <button class="text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted transition">
                                 <i class="ph ph-caret-right text-base"></i>
                             </button>
                         </td>
                     </tr>
                 `).join('');
 
-                document.getElementById('jobs-table-body').innerHTML = html || '<tr><td colspan="7" class="px-5 py-8 text-center text-zinc-500">ไม่พบรายการงานตามเงื่อนไข</td></tr>';
+                document.getElementById('jobs-table-body').innerHTML = html || '<tr><td colspan="7" class="px-5 py-8 text-center text-muted-foreground">ไม่พบรายการงานตามเงื่อนไข</td></tr>';
             },
 
             renderJobDetail() {
@@ -1177,17 +1292,17 @@
                 if(!job) return;
 
                 const html = `
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
                         <div class="flex items-center gap-3">
-                            <button onclick="app.navigate('jobs')" class="p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-white hover:bg-white/[0.08] transition">
+                            <button onclick="app.navigate('jobs')" class="p-2 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition">
                                 <i class="ph ph-arrow-left text-base"></i>
                             </button>
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <h2 class="font-display text-2xl font-bold text-white tracking-tight">${job.id}</h2>
-                                    <span class="text-sm text-zinc-400">/ ${job.customer}</span>
+                                    <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">${job.id}</h2>
+                                    <span class="text-sm text-muted-foreground">/ ${job.customer}</span>
                                 </div>
-                                <p class="text-xs text-zinc-500">นัดติดตั้ง: ${job.date} • ผู้รับผิดชอบ: ${job.tech}</p>
+                                <p class="text-xs text-muted-foreground">นัดติดตั้ง: ${job.date} • ผู้รับผิดชอบ: ${job.tech}</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-3">
@@ -1196,73 +1311,73 @@
                     </div>
 
                     <!-- Navigation Tabs -->
-                    <div class="flex gap-6 border-b border-white/[0.08]">
+                    <div class="flex gap-6 border-b border-border">
                         <button class="pb-3 text-xs font-semibold tab-item-active">ข้อมูลทั่วไป & แผนงาน</button>
-                        <button class="pb-3 text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition" onclick="app.showToast('เปิดแท็บ: รายการรูปถ่ายและเอกสาร Check-in')">Check-in & รูปภาพหน้างาน</button>
-                        <button class="pb-3 text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition" onclick="app.showToast('เปิดแท็บ: แบบงานแปลน & BOQ')">แบบติดตั้ง & BOQ</button>
+                        <button class="pb-3 text-xs font-semibold text-muted-foreground hover:text-foreground transition" onclick="app.showToast('เปิดแท็บ: รายการรูปถ่ายและเอกสาร Check-in')">Check-in & รูปภาพหน้างาน</button>
+                        <button class="pb-3 text-xs font-semibold text-muted-foreground hover:text-foreground transition" onclick="app.showToast('เปิดแท็บ: แบบงานแปลน & BOQ')">แบบติดตั้ง & BOQ</button>
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <!-- Left Info Card -->
-                        <div class="artifact-card rounded-2xl p-6 space-y-4">
-                            <h3 class="font-display font-semibold text-sm text-white pb-2 border-b border-white/[0.08] flex items-center gap-2">
-                                <i class="ph ph-user-circle text-brand-400"></i> ข้อมูลลูกค้าและสถานที่
+                        <div class="artifact-card p-6 space-y-4">
+                            <h3 class="font-display font-semibold text-sm text-foreground pb-2 border-b border-border flex items-center gap-2">
+                                <i class="ph ph-user-circle text-brand-500"></i> ข้อมูลลูกค้าและสถานที่
                             </h3>
                             
                             <div>
-                                <div class="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">ชื่อ - นามสกุล</div>
-                                <div class="text-xs text-white font-medium mt-0.5">${job.firstName || ''} ${job.lastName || ''} <span class="text-zinc-500">(${job.customer})</span></div>
+                                <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">ชื่อ - นามสกุล</div>
+                                <div class="text-xs text-foreground font-medium mt-0.5">${job.firstName || ''} ${job.lastName || ''} <span class="text-muted-foreground">(${job.customer})</span></div>
                             </div>
 
                             <div>
-                                <div class="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">พิกัด GPS (Lat, Lng)</div>
-                                <div class="flex items-center justify-between mt-1 bg-white/[0.03] border border-white/[0.06] rounded-lg p-2">
-                                    <span class="text-xs font-mono text-brand-300">📍 ${job.lat || 13.7563}, ${job.lng || 100.5018}</span>
-                                    <button class="text-[10px] text-zinc-400 hover:text-white" onclick="navigator.clipboard.writeText('${job.lat}, ${job.lng}'); app.showToast('คัดลอกพิกัด GPS เรียบร้อย');">Copy</button>
+                                <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">พิกัด GPS (Lat, Lng)</div>
+                                <div class="flex items-center justify-between mt-1 bg-muted/40 border border-border rounded-lg p-2">
+                                    <span class="text-xs font-mono text-brand-500">📍 ${job.lat || 13.7563}, ${job.lng || 100.5018}</span>
+                                    <button class="text-[10px] text-muted-foreground hover:text-foreground" onclick="navigator.clipboard.writeText('${job.lat}, ${job.lng}'); app.showToast('คัดลอกพิกัด GPS เรียบร้อย');">Copy</button>
                                 </div>
                             </div>
 
                             <div>
-                                <div class="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">ประเภทบริการ</div>
-                                <div class="text-xs text-white mt-0.5">${job.service}</div>
+                                <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">ประเภทบริการ</div>
+                                <div class="text-xs text-foreground mt-0.5">${job.service}</div>
                             </div>
 
                             <div>
-                                <div class="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">เบอร์โทรติดต่อ</div>
-                                <div class="text-xs text-white font-mono mt-0.5">${job.phone}</div>
+                                <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">เบอร์โทรติดต่อ</div>
+                                <div class="text-xs text-foreground font-mono mt-0.5">${job.phone}</div>
                             </div>
 
                             <div>
-                                <div class="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">ที่อยู่หน้างาน</div>
-                                <div class="text-xs text-zinc-300 mt-0.5 leading-relaxed">${job.address}</div>
+                                <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">ที่อยู่หน้างาน</div>
+                                <div class="text-xs text-muted-foreground mt-0.5 leading-relaxed">${job.address}</div>
                             </div>
 
                             <div>
-                                <div class="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">ทีมช่างผู้รับผิดชอบ</div>
-                                <div class="text-xs text-white mt-0.5">${job.tech}</div>
+                                <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">ทีมช่างผู้รับผิดชอบ</div>
+                                <div class="text-xs text-foreground mt-0.5">${job.tech}</div>
                             </div>
                         </div>
 
                         <!-- Right Actions & Timeline -->
-                        <div class="lg:col-span-2 artifact-card rounded-2xl p-6 space-y-6">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.08]">
-                                <h3 class="font-display font-semibold text-sm text-white flex items-center gap-2">
-                                    <i class="ph ph-lightning text-brand-400"></i> การดำเนินการด่วน (Quick Actions)
+                        <div class="lg:col-span-2 artifact-card p-6 space-y-6">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+                                <h3 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
+                                    <i class="ph ph-lightning text-brand-500"></i> การดำเนินการด่วน (Quick Actions)
                                 </h3>
-                                <span class="text-[11px] text-zinc-400">สถานะปัจจุบัน: <strong class="text-white">${job.status}</strong></span>
+                                <span class="text-[11px] text-muted-foreground">สถานะปัจจุบัน: <strong class="text-foreground">${job.status}</strong></span>
                             </div>
 
                             <!-- Action Buttons Toolbar -->
                             <div class="flex flex-wrap gap-2.5">
-                                <button class="btn-artifact-primary px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5" onclick="app.showToast('บันทึก GPS Check-in: ระยะห่าง 180 ม. (ผ่านเกณฑ์รัศมี 400 ม.)')">
+                                <button class="btn-artifact-primary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.showToast('บันทึก GPS Check-in: ระยะห่าง 180 ม. (ผ่านเกณฑ์รัศมี 400 ม.)')">
                                     <i class="ph ph-map-pin"></i>
                                     <span>ช่าง Check-in หน้างาน (GPS)</span>
                                 </button>
-                                <button class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5" onclick="app.showToast('อัปโหลดรูปหน้างานแล้ว 5/5 รูป')">
+                                <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.showToast('อัปโหลดรูปหน้างานแล้ว 5/5 รูป')">
                                     <i class="ph ph-camera"></i>
                                     <span>อัปโหลดรูปถ่าย (5 รูป)</span>
                                 </button>
-                                <button class="btn-artifact-outline px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5" onclick="app.completeJob()">
+                                <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.completeJob()">
                                     <i class="ph ph-check-circle"></i>
                                     <span>ส่งตรวจ QC (QC Inspection)</span>
                                 </button>
@@ -1270,27 +1385,27 @@
                             
                             <!-- Timeline Stepper -->
                             <div>
-                                <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4">ลำดับขั้นตอนการทำงาน (Workflow Timeline)</h4>
-                                <div class="space-y-4 border-l-2 border-zinc-800 ml-3 pl-4">
+                                <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">ลำดับขั้นตอนการทำงาน (Workflow Timeline)</h4>
+                                <div class="space-y-4 border-l-2 border-border ml-3 pl-4">
                                     <div class="relative">
-                                        <div class="absolute -left-[23px] top-0.5 w-3 h-3 bg-emerald-500 rounded-full ring-4 ring-zinc-950"></div>
-                                        <div class="text-xs font-semibold text-white">1. เปิดงานใหม่ (รับจากระบบ INT)</div>
-                                        <div class="text-[11px] text-zinc-500 mt-0.5">ระบบอัตโนมัติสร้าง Order • ${job.date}</div>
+                                        <div class="absolute -left-[23px] top-0.5 w-3 h-3 bg-emerald-500 rounded-full ring-4 ring-card"></div>
+                                        <div class="text-xs font-semibold text-foreground">1. เปิดงานใหม่ (รับจากระบบ INT)</div>
+                                        <div class="text-[11px] text-muted-foreground mt-0.5">ระบบอัตโนมัติสร้าง Order • ${job.date}</div>
                                     </div>
                                     <div class="relative">
-                                        <div class="absolute -left-[23px] top-0.5 w-3 h-3 bg-brand-500 rounded-full ring-4 ring-zinc-950 animate-pulse"></div>
-                                        <div class="text-xs font-semibold text-white">2. ช่าง Check-in ยืนยันพิกัด GPS</div>
-                                        <div class="text-[11px] text-zinc-400 mt-0.5">ช่างเข้าพื้นที่หน้างานและถ่ายรูปก่อนเริ่มติดตั้ง</div>
+                                        <div class="absolute -left-[23px] top-0.5 w-3 h-3 bg-brand-500 rounded-full ring-4 ring-card animate-pulse"></div>
+                                        <div class="text-xs font-semibold text-foreground">2. ช่าง Check-in ยืนยันพิกัด GPS</div>
+                                        <div class="text-[11px] text-muted-foreground mt-0.5">ช่างเข้าพื้นที่หน้างานและถ่ายรูปก่อนเริ่มติดตั้ง</div>
                                     </div>
                                     <div class="relative">
-                                        <div class="absolute -left-[23px] top-0.5 w-3 h-3 bg-zinc-700 rounded-full ring-4 ring-zinc-950"></div>
-                                        <div class="text-xs font-medium text-zinc-400">3. การตรวจรับรองคุณภาพ (QC Checklist)</div>
-                                        <div class="text-[11px] text-zinc-600 mt-0.5">ทีม QC ตรวจสอบความถูกต้องและส่งมอบ</div>
+                                        <div class="absolute -left-[23px] top-0.5 w-3 h-3 bg-muted-foreground/30 rounded-full ring-4 ring-card"></div>
+                                        <div class="text-xs font-medium text-muted-foreground">3. การตรวจรับรองคุณภาพ (QC Checklist)</div>
+                                        <div class="text-[11px] text-muted-foreground/60 mt-0.5">ทีม QC ตรวจสอบความถูกต้องและส่งมอบ</div>
                                     </div>
                                     <div class="relative">
-                                        <div class="absolute -left-[23px] top-0.5 w-3 h-3 bg-zinc-700 rounded-full ring-4 ring-zinc-950"></div>
-                                        <div class="text-xs font-medium text-zinc-400">4. สรุปผล CSAT และส่งปิดงาน (BMT System)</div>
-                                        <div class="text-[11px] text-zinc-600 mt-0.5">Contact Center โทรยืนยันความพึงพอใจ 5 ดาว</div>
+                                        <div class="absolute -left-[23px] top-0.5 w-3 h-3 bg-muted-foreground/30 rounded-full ring-4 ring-card"></div>
+                                        <div class="text-xs font-medium text-muted-foreground">4. สรุปผล CSAT และส่งปิดงาน (BMT System)</div>
+                                        <div class="text-[11px] text-muted-foreground/60 mt-0.5">Contact Center โทรยืนยันความพึงพอใจ 5 ดาว</div>
                                     </div>
                                 </div>
                             </div>
@@ -1312,21 +1427,21 @@
 
             renderGantt() {
                 const days = Array.from({length: 10}, (_, i) => i+1);
-                const headerHtml = days.map(d => `<div class="flex-1 text-center text-[11px] font-mono text-zinc-500 border-l border-white/[0.06] pb-2">Sep ${d}</div>`).join('');
+                const headerHtml = days.map(d => `<div class="flex-1 text-center text-[11px] font-mono text-muted-foreground border-l border-border pb-2">Sep ${d}</div>`).join('');
                 
                 const rowsHtml = DB.tasks.map(t => {
                     const startDay = parseInt(t.start.split('-')[2]);
                     const offsetPercent = ((startDay - 1) / 10) * 100;
                     const widthPercent = (t.days / 10) * 100;
                     
-                    let bgClass = 'bg-zinc-700/70 border-zinc-600';
-                    if(t.status === 'DONE') bgClass = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
-                    if(t.status === 'IN_PROGRESS') bgClass = 'bg-brand-500/30 text-brand-200 border-brand-500/50 shadow-glow-sm';
+                    let bgClass = 'bg-muted text-muted-foreground border-border';
+                    if(t.status === 'DONE') bgClass = 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30';
+                    if(t.status === 'IN_PROGRESS') bgClass = 'bg-brand-500/20 text-brand-600 dark:text-brand-200 border-brand-500/40 shadow-sm';
 
                     return `
-                    <div class="flex items-center border-t border-white/[0.06] py-2.5 relative h-12">
-                        <div class="w-48 shrink-0 text-xs font-medium text-white truncate pr-4">
-                            <span class="font-mono text-brand-400 mr-1.5">${t.jobId}</span> ${t.name}
+                    <div class="flex items-center border-t border-border py-2.5 relative h-12">
+                        <div class="w-48 shrink-0 text-xs font-medium text-foreground truncate pr-4">
+                            <span class="font-mono text-brand-500 mr-1.5">${t.jobId}</span> ${t.name}
                         </div>
                         <div class="flex-1 relative h-full flex items-center">
                             <div class="${bgClass} border absolute h-7 rounded-lg text-[11px] px-2.5 flex items-center justify-between truncate" style="left: ${offsetPercent}%; width: ${widthPercent}%;">
@@ -1338,8 +1453,8 @@
                 }).join('');
 
                 const html = `
-                    <div class="flex border-b border-white/[0.08] mb-2">
-                        <div class="w-48 shrink-0 text-xs font-semibold text-zinc-400">รายการงาน (Work Order)</div>
+                    <div class="flex border-b border-border mb-2">
+                        <div class="w-48 shrink-0 text-xs font-semibold text-muted-foreground">รายการงาน (Work Order)</div>
                         <div class="flex-1 flex">${headerHtml}</div>
                     </div>
                     ${rowsHtml}
@@ -1352,17 +1467,17 @@
                 document.getElementById('qc-queue-count').innerText = `${qcJobs.length} รายการ`;
 
                 const listHtml = qcJobs.map(j => `
-                    <div class="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-brand-500/40 hover:bg-white/[0.06] transition-all cursor-pointer group" onclick="app.selectQCJob('${j.id}')">
+                    <div class="p-3.5 rounded-xl bg-muted/40 border border-border hover:border-brand-500/40 transition-all cursor-pointer group" onclick="app.selectQCJob('${j.id}')">
                         <div class="flex items-center justify-between mb-1">
-                            <span class="font-mono text-xs font-bold text-brand-400">${j.id}</span>
-                            <span class="text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">รอตรวจ</span>
+                            <span class="font-mono text-xs font-bold text-brand-500">${j.id}</span>
+                            <span class="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">รอตรวจ</span>
                         </div>
-                        <div class="text-xs font-medium text-white group-hover:text-brand-300 transition">${j.customer}</div>
-                        <div class="text-[11px] text-zinc-500 mt-1">${j.service} • ${j.tech}</div>
+                        <div class="text-xs font-medium text-foreground group-hover:text-brand-500 transition">${j.customer}</div>
+                        <div class="text-[11px] text-muted-foreground mt-1">${j.service} • ${j.tech}</div>
                     </div>
                 `).join('');
 
-                document.getElementById('qc-queue-list').innerHTML = listHtml || '<div class="text-xs text-zinc-500 text-center py-8">ไม่มีรายการงานที่รอตรวจ QC ในขณะนี้</div>';
+                document.getElementById('qc-queue-list').innerHTML = listHtml || '<div class="text-xs text-muted-foreground text-center py-8">ไม่มีรายการงานที่รอตรวจ QC ในขณะนี้</div>';
             },
 
             selectQCJob(id) {
@@ -1370,12 +1485,12 @@
                 if(!job) return;
 
                 let formHtml = `
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-white/[0.08] mb-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-border mb-6">
                         <div>
                             <div class="flex items-center gap-2">
-                                <h3 class="font-display font-bold text-lg text-white">แบบฟอร์มตรวจสอบ QC: <span class="text-brand-400 font-mono">${id}</span></h3>
+                                <h3 class="font-display font-bold text-lg text-foreground">แบบฟอร์มตรวจสอบ QC: <span class="text-brand-500 font-mono">${id}</span></h3>
                             </div>
-                            <p class="text-xs text-zinc-400">ลูกค้า: ${job.customer} • บริการ: ${job.service}</p>
+                            <p class="text-xs text-muted-foreground">ลูกค้า: ${job.customer} • บริการ: ${job.service}</p>
                         </div>
                         <button class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5" onclick="app.showToast('เปิดหน้าต่างดูรูปถ่ายหน้างาน 5 รูป')">
                             <i class="ph ph-image text-sm"></i> ดูรูปภาพหน้างาน
@@ -1383,25 +1498,25 @@
                     </div>
 
                     <div class="space-y-3 mb-6">
-                        <div class="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">Checklist มาตรฐานความปลอดภัยและคุณภาพ</div>
+                        <div class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Checklist มาตรฐานความปลอดภัยและคุณภาพ</div>
                 `;
 
                 DB.qcChecklist.forEach(q => {
                     formHtml += `
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                            <div class="text-xs text-zinc-200">
-                                ${q.text} ${q.mandatory ? '<span class="text-rose-400 font-bold">*</span>' : ''}
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-muted/40 border border-border">
+                            <div class="text-xs text-foreground">
+                                ${q.text} ${q.mandatory ? '<span class="text-rose-500 font-bold">*</span>' : ''}
                             </div>
                             <div class="flex items-center gap-3 shrink-0">
-                                <label class="flex items-center gap-1.5 cursor-pointer text-emerald-400 text-xs bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 hover:bg-emerald-500/20 transition">
+                                <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600 dark:text-emerald-400 text-xs bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 hover:bg-emerald-500/20 transition">
                                     <input type="radio" name="${q.id}" value="PASS" class="accent-emerald-500" checked>
                                     <span>PASS</span>
                                 </label>
-                                <label class="flex items-center gap-1.5 cursor-pointer text-rose-400 text-xs bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20 hover:bg-rose-500/20 transition">
+                                <label class="flex items-center gap-1.5 cursor-pointer text-rose-600 dark:text-rose-400 text-xs bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20 hover:bg-rose-500/20 transition">
                                     <input type="radio" name="${q.id}" value="FAIL" class="accent-rose-500">
                                     <span>FAIL</span>
                                 </label>
-                                <label class="flex items-center gap-1.5 cursor-pointer text-zinc-400 text-xs bg-zinc-800/60 px-2.5 py-1 rounded-lg border border-zinc-700 hover:bg-zinc-800 transition">
+                                <label class="flex items-center gap-1.5 cursor-pointer text-muted-foreground text-xs bg-card px-2.5 py-1 rounded-lg border border-border hover:bg-muted transition">
                                     <input type="radio" name="${q.id}" value="NA" class="accent-zinc-500">
                                     <span>N/A</span>
                                 </label>
@@ -1413,14 +1528,14 @@
                 formHtml += `
                     </div>
 
-                    <div class="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] mb-6">
-                        <label class="block text-xs font-medium text-zinc-400 mb-1.5">หมายเหตุการตรวจ QC (Inspector Remarks)</label>
-                        <textarea class="w-full bg-zinc-900 border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500" rows="2" placeholder="ระบุความคิดเห็นหรือข้อสังเกตเพิ่มเติม..."></textarea>
+                    <div class="p-4 rounded-xl bg-muted/30 border border-border mb-6">
+                        <label class="block text-xs font-medium text-muted-foreground mb-1.5">หมายเหตุการตรวจ QC (Inspector Remarks)</label>
+                        <textarea class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" rows="2" placeholder="ระบุความคิดเห็นหรือข้อสังเกตเพิ่มเติม..."></textarea>
                     </div>
 
                     <div class="flex flex-wrap justify-end gap-3 pt-2">
-                        <button class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs text-rose-300 hover:text-rose-200 hover:bg-rose-500/10 border-rose-500/20" onclick="app.showToast('บันทึกผล QC: FAIL - ส่งเรื่องกลับให้ช่างแก้ไข')">FAIL - ส่งกลับแก้ไข (Rework)</button>
-                        <button class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-medium" onclick="app.passQC('${id}')">PASS - ผ่านเกณฑ์และส่งต่อ CSAT</button>
+                        <button class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs text-rose-500 hover:bg-rose-500/10 border-rose-500/20" onclick="app.showToast('บันทึกผล QC: FAIL - ส่งเรื่องกลับให้ช่างแก้ไข')">FAIL - ส่งกลับแก้ไข (Rework)</button>
+                        <button class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium" onclick="app.passQC('${id}')">PASS - ผ่านเกณฑ์และส่งต่อ CSAT</button>
                     </div>
                 `;
 
@@ -1435,11 +1550,11 @@
                     this.renderQC();
                     document.getElementById('qc-form-container').innerHTML = `
                         <div class="h-full flex flex-col items-center justify-center text-center p-8">
-                            <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-3">
+                            <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 mb-3">
                                 <i class="ph ph-check-circle text-2xl"></i>
                             </div>
-                            <h4 class="font-display font-medium text-white text-sm mb-1">บันทึกผล QC สำเร็จ</h4>
-                            <p class="text-xs text-zinc-500">เลือกรายการงานถัดไปจากคิวด้านซ้าย</p>
+                            <h4 class="font-display font-medium text-foreground text-sm mb-1">บันทึกผล QC สำเร็จ</h4>
+                            <p class="text-xs text-muted-foreground">เลือกรายการงานถัดไปจากคิวด้านซ้าย</p>
                         </div>
                     `;
                 }
@@ -1448,22 +1563,22 @@
             renderCSAT() {
                 const jobs = DB.jobs.filter(j => j.status === 'QC_PASSED' || j.status === 'AFTER_SALE' || j.status === 'CLOSED');
                 const html = jobs.map(j => `
-                    <tr class="hover:bg-white/[0.03] transition-colors">
-                        <td class="px-5 py-4 font-mono font-semibold text-brand-400">${j.id}</td>
+                    <tr class="hover:bg-muted/40 transition-colors">
+                        <td class="px-5 py-4 font-mono font-semibold text-brand-500">${j.id}</td>
                         <td class="px-5 py-4">
-                            <div class="text-white font-medium">${j.customer}</div>
-                            <div class="text-[11px] text-zinc-500 font-mono">${j.phone}</div>
+                            <div class="text-foreground font-medium">${j.customer}</div>
+                            <div class="text-[11px] text-muted-foreground font-mono">${j.phone}</div>
                         </td>
-                        <td class="px-5 py-4 text-zinc-300">${j.service}</td>
-                        <td class="px-5 py-4 text-zinc-400 font-mono">${j.date}</td>
+                        <td class="px-5 py-4 text-muted-foreground">${j.service}</td>
+                        <td class="px-5 py-4 text-muted-foreground font-mono">${j.date}</td>
                         <td class="px-5 py-4">
                             ${(j.status === 'AFTER_SALE' || j.status === 'CLOSED') ? 
                             '<div class="flex text-amber-400 text-sm gap-0.5"><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i></div>' : 
-                            '<span class="text-zinc-500 text-xs flex items-center gap-1"><i class="ph ph-phone"></i> รอโทรสัมภาษณ์</span>'}
+                            '<span class="text-muted-foreground text-xs flex items-center gap-1"><i class="ph ph-phone"></i> รอโทรสัมภาษณ์</span>'}
                         </td>
                         <td class="px-5 py-4 text-right">
                             ${j.status === 'CLOSED' ? 
-                            '<span class="text-emerald-400 text-xs font-medium"><i class="ph ph-check"></i> ปิดงานเรียบร้อย (BMT)</span>' :
+                            '<span class="text-emerald-500 text-xs font-medium"><i class="ph ph-check"></i> ปิดงานเรียบร้อย (BMT)</span>' :
                             (j.status === 'AFTER_SALE' ? 
                             '<button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs" onclick="app.closeJob(\''+j.id+'\')">Close & ส่ง BMT</button>' : 
                             '<button class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs" onclick="app.markCSAT(\''+j.id+'\')">บันทึกโทร (5 ดาว)</button>')
@@ -1472,7 +1587,7 @@
                     </tr>
                 `).join('');
                 
-                document.getElementById('csat-table-body').innerHTML = html || '<tr><td colspan="6" class="px-5 py-8 text-center text-zinc-500">ไม่มีรายการที่ต้องดำเนินการ</td></tr>';
+                document.getElementById('csat-table-body').innerHTML = html || '<tr><td colspan="6" class="px-5 py-8 text-center text-muted-foreground">ไม่มีรายการที่ต้องดำเนินการ</td></tr>';
             },
 
             markCSAT(id) {
