@@ -12,10 +12,32 @@ exports.JobStatus = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 const app = (0, express_1.default)();
-app.use((0, helmet_1.default)());
+app.use((0, helmet_1.default)({ contentSecurityPolicy: false }));
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
+// Serve static frontend files (index.html)
+app.use(express_1.default.static(path_1.default.join(__dirname, '../')));
+app.use(express_1.default.static(path_1.default.join(__dirname, './')));
+// Root Route Handler - Serve Frontend index.html
+app.get('/', (req, res) => {
+    const rootIndex = path_1.default.join(__dirname, '../index.html');
+    const localIndex = path_1.default.join(__dirname, './index.html');
+    if (fs_1.default.existsSync(rootIndex)) {
+        return res.sendFile(rootIndex);
+    }
+    else if (fs_1.default.existsSync(localIndex)) {
+        return res.sendFile(localIndex);
+    }
+    return res.json({
+        status: 'ONLINE',
+        message: '🚀 SPMT System Backend API is running',
+        version: '1.0.1',
+        timestamp: new Date().toISOString()
+    });
+});
 // =============================================================================
 // TYPES & INTERFACES
 // =============================================================================

@@ -7,11 +7,36 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import path from 'path';
+import fs from 'fs';
 
 const app = express();
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(express.json());
+
+// Serve static frontend files (index.html)
+app.use(express.static(path.join(__dirname, '../')));
+app.use(express.static(path.join(__dirname, './')));
+
+// Root Route Handler - Serve Frontend index.html
+app.get('/', (req: Request, res: Response) => {
+  const rootIndex = path.join(__dirname, '../index.html');
+  const localIndex = path.join(__dirname, './index.html');
+  
+  if (fs.existsSync(rootIndex)) {
+    return res.sendFile(rootIndex);
+  } else if (fs.existsSync(localIndex)) {
+    return res.sendFile(localIndex);
+  }
+  
+  return res.json({
+    status: 'ONLINE',
+    message: '🚀 SPMT System Backend API is running',
+    version: '1.0.1',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // =============================================================================
 // TYPES & INTERFACES
