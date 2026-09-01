@@ -124,8 +124,14 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
       });
     }
 
-    // Generate Job No (e.g., JOB-202609-0001)
-    const jobNo = `JOB-${new Date().toISOString().slice(0, 7).replace('-', '')}-${Math.floor(1000 + Math.random() * 9000)}`;
+    // Generate Job No format: ddmmyy + running(xxxxx) (e.g., 02092600001)
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yy = String(now.getFullYear()).slice(-2);
+    const runningSeq = Math.floor(1 + Math.random() * 99999);
+    const runningStr = String(runningSeq).padStart(5, '0');
+    const jobNo = `${dd}${mm}${yy}${runningStr}`;
 
     const newJob = {
       id: Date.now(),
@@ -335,7 +341,7 @@ app.post('/api/v1/jobs/:id/close-and-export-bmt', async (req: Request, res: Resp
 
     // Rule: Send ONLY QC-Passed Tasks to BMT System (OQ-A03)
     const bmtPayload = {
-      job_no: `JOB-202609-0001`,
+      job_no: `02092600001`,
       bmt_export_timestamp: new Date().toISOString(),
       customer: {
         name: 'นาย สมชาย ใจดี',

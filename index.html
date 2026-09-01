@@ -869,18 +869,18 @@
         // Mock Database
         const DB = {
             jobs: [
-                { id: 'JOB-001', firstName: 'ณวัฒน์', lastName: 'รักสงบ', customer: 'ณวัฒน์ รักสงบ', lat: 13.7563, lng: 100.5018, phone: '081-111-2222', service: 'Renovate ครัว', status: 'IN_PROGRESS', date: '2026-09-05', progress: 45, address: '99/1 Sukhumvit 55, Bangkok', tech: 'Team A (สมศักดิ์)' },
-                { id: 'JOB-002', firstName: 'สมศรี', lastName: 'สุขใจ', customer: 'สมศรี สุขใจ', lat: 13.7801, lng: 100.5432, phone: '082-222-3333', service: 'ปั้มแท็งก์', status: 'QC_PENDING', date: '2026-09-02', progress: 100, address: '12 Ari Samphan, Phaya Thai', tech: 'Team B (ประเสริฐ)' },
-                { id: 'JOB-003', firstName: 'เอนก', lastName: 'มั่งคั่ง', customer: 'เอนก มั่งคั่ง', lat: 13.7234, lng: 100.5289, phone: '083-333-4444', service: 'ติดตั้งเครื่องทำน้ำอุ่น', status: 'QC_PASSED', date: '2026-08-30', progress: 100, address: '45 Silom Rd, Bang Rak', tech: 'Team C (วิชัย)' },
-                { id: 'JOB-004', firstName: 'มาลี', lastName: 'มีโชค', customer: 'มาลี มีโชค', lat: 13.8056, lng: 100.5712, phone: '084-444-5555', service: 'สำรวจหน้างาน', status: 'DRAFT', date: '2026-09-10', progress: 0, address: '88 Ladprao 15, Chatuchak', tech: 'Team A (สมศักดิ์)' },
-                { id: 'JOB-005', firstName: 'ฉัตรชัย', lastName: 'เจริญวิทย์', customer: 'ฉัตรชัย เจริญวิทย์', lat: 13.7312, lng: 100.5823, phone: '085-555-6666', service: 'Renovate ครัว', status: 'AFTER_SALE', date: '2026-08-25', progress: 100, address: '22 Thong Lo 10, Watthana', tech: 'Team B (ประเสริฐ)' },
+                { id: '02092600001', firstName: 'ณวัฒน์', lastName: 'รักสงบ', customer: 'ณวัฒน์ รักสงบ', lat: 13.7563, lng: 100.5018, phone: '081-111-2222', service: 'Renovate ครัว', status: 'IN_PROGRESS', date: '2026-09-05', progress: 45, address: '99/1 Sukhumvit 55, Bangkok', tech: 'Team A (สมศักดิ์)' },
+                { id: '02092600002', firstName: 'สมศรี', lastName: 'สุขใจ', customer: 'สมศรี สุขใจ', lat: 13.7801, lng: 100.5432, phone: '082-222-3333', service: 'ปั้มแท็งก์', status: 'QC_PENDING', date: '2026-09-02', progress: 100, address: '12 Ari Samphan, Phaya Thai', tech: 'Team B (ประเสริฐ)' },
+                { id: '02092600003', firstName: 'เอนก', lastName: 'มั่งคั่ง', customer: 'เอนก มั่งคั่ง', lat: 13.7234, lng: 100.5289, phone: '083-333-4444', service: 'ติดตั้งเครื่องทำน้ำอุ่น', status: 'QC_PASSED', date: '2026-08-30', progress: 100, address: '45 Silom Rd, Bang Rak', tech: 'Team C (วิชัย)' },
+                { id: '02092600004', firstName: 'มาลี', lastName: 'มีโชค', customer: 'มาลี มีโชค', lat: 13.8056, lng: 100.5712, phone: '084-444-5555', service: 'สำรวจหน้างาน', status: 'DRAFT', date: '2026-09-10', progress: 0, address: '88 Ladprao 15, Chatuchak', tech: 'Team A (สมศักดิ์)' },
+                { id: '02092600005', firstName: 'ฉัตรชัย', lastName: 'เจริญวิทย์', customer: 'ฉัตรชัย เจริญวิทย์', lat: 13.7312, lng: 100.5823, phone: '085-555-6666', service: 'Renovate ครัว', status: 'AFTER_SALE', date: '2026-08-25', progress: 100, address: '22 Thong Lo 10, Watthana', tech: 'Team B (ประเสริฐ)' },
             ],
             tasks: [
-                { id: 'T1', jobId: 'JOB-001', name: 'รื้อถอนของเดิม', tech: 'Team A', start: '2026-09-01', days: 2, status: 'DONE' },
-                { id: 'T2', jobId: 'JOB-001', name: 'งานประปา/ไฟฟ้า', tech: 'Team A', start: '2026-09-03', days: 3, status: 'IN_PROGRESS' },
-                { id: 'T3', jobId: 'JOB-001', name: 'ติดตั้งตู้เคาน์เตอร์', tech: 'Team A', start: '2026-09-06', days: 4, status: 'PENDING' },
-                { id: 'T4', jobId: 'JOB-002', name: 'เตรียมหน้างาน', tech: 'Team B', start: '2026-09-01', days: 1, status: 'DONE' },
-                { id: 'T5', jobId: 'JOB-002', name: 'ติดตั้งปั้มและเดินท่อ', tech: 'Team B', start: '2026-09-02', days: 1, status: 'DONE' },
+                { id: 'T1', jobId: '02092600001', name: 'รื้อถอนของเดิม', tech: 'Team A', start: '2026-09-01', days: 2, status: 'DONE' },
+                { id: 'T2', jobId: '02092600001', name: 'งานประปา/ไฟฟ้า', tech: 'Team A', start: '2026-09-03', days: 3, status: 'IN_PROGRESS' },
+                { id: 'T3', jobId: '02092600001', name: 'ติดตั้งตู้เคาน์เตอร์', tech: 'Team A', start: '2026-09-06', days: 4, status: 'PENDING' },
+                { id: 'T4', jobId: '02092600002', name: 'เตรียมหน้างาน', tech: 'Team B', start: '2026-09-01', days: 1, status: 'DONE' },
+                { id: 'T5', jobId: '02092600002', name: 'ติดตั้งปั้มและเดินท่อ', tech: 'Team B', start: '2026-09-02', days: 1, status: 'DONE' },
             ],
             qcChecklist: [
                 { id: 'Q1', text: 'ความสะอาดพื้นที่หน้างาน (Site Cleanliness)', mandatory: true },
@@ -1037,7 +1037,12 @@
                     return this.showToast('กรุณากรอกชื่อและนามสกุลลูกค้า');
                 }
                 
-                const newId = 'JOB-00' + (DB.jobs.length + 1);
+                const now = new Date();
+                const dd = String(now.getDate()).padStart(2, '0');
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const yy = String(now.getFullYear()).slice(-2);
+                const runningStr = String(DB.jobs.length + 1).padStart(5, '0');
+                const newId = `${dd}${mm}${yy}${runningStr}`;
                 const fullName = `${firstName} ${lastName}`;
                 
                 DB.jobs.unshift({

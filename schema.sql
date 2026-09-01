@@ -155,7 +155,7 @@ CREATE TABLE t_integration_log (
 -- Main Job / Order
 CREATE TABLE t_job (
     id BIGSERIAL PRIMARY KEY,
-    job_no VARCHAR(30) UNIQUE NOT NULL, -- e.g. JOB-256909-0001
+    job_no VARCHAR(30) UNIQUE NOT NULL, -- Format: ddmmyy+running(xxxxx) e.g. 02092600001
     external_ref_id VARCHAR(100), -- Ref from INT system
     customer_id BIGINT NOT NULL REFERENCES m_customer(id),
     primary_service_id BIGINT REFERENCES m_service_type(id),

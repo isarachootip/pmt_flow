@@ -1,29 +1,3 @@
-# =============================================================================
-# SPMT System - Production Docker & Docker Compose Setup
-# =============================================================================
-
-# --- Dockerfile (Backend Service) ---
-# Save as: Dockerfile
-"""
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-FROM node:20-alpine AS runner
-WORKDIR /app
-ENV NODE_ENV=production
-COPY package*.json ./
-RUN npm ci --only=production
-COPY --from=builder /app/dist ./dist
-EXPOSE 3000
-CMD ["node", "dist/server.js"]
-"""
-
-# --- docker-compose.yml ---
-# Save as: docker-compose.yml
 version: '3.8'
 
 services:
@@ -33,14 +7,14 @@ services:
     container_name: spmt-postgres
     restart: always
     environment:
-      POSTGRES_DB: spmt_db
-      POSTGRES_USER: spmt_admin
-      POSTGRES_PASSWORD: SecretPassword123!
+      POSTGRES_DB: ${POSTGRES_DB:-spmt_db}
+      POSTGRES_USER: ${POSTGRES_USER:-spmt_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SecretPassword123!}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./spmt_schema.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./schema.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U spmt_admin -d spmt_db"]
       interval: 10s
@@ -75,19 +49,6 @@ services:
         condition: service_healthy
       redis-cache:
         condition: service_started
-
-  # 4. Web Frontend Service (Nginx)
-  web-frontend:
-    image: nginx:alpine
-    container_name: spmt-web
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./index.html:/usr/share/nginx/html/index.html
-    depends_on:
-      - backend-api
 
 volumes:
   postgres_data:
