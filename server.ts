@@ -527,6 +527,21 @@ export function convertStagingToCorePmt(stagingRecord: StagingSurveyReport): {
   }
 }
 
+// Configuration for Ingestion Processing Mode
+let autoConvertEnabled = true;
+
+app.get('/api/v1/staging/config', (req: Request, res: Response) => {
+  return res.json({ success: true, auto_convert_enabled: autoConvertEnabled });
+});
+
+app.post('/api/v1/staging/config/auto-convert', (req: Request, res: Response) => {
+  const { enabled } = req.body;
+  if (typeof enabled === 'boolean') {
+    autoConvertEnabled = enabled;
+  }
+  return res.json({ success: true, auto_convert_enabled: autoConvertEnabled });
+});
+
 // =============================================================================
 // 1.1 JOB SURVEY REPORT INGESTION & STAGING API
 // =============================================================================
@@ -587,8 +602,13 @@ app.post('/api/v1/jobs/survey-report', async (req: Request<{}, {}, JobSurveyPayl
 
     console.log(`[STAGING INGEST] Successfully saved raw payload in staging: #${stagingRecord.id} (Job: ${stagingRecord.job_number})`);
 
-    // 4. Auto-convert from Staging to Core PMT
-    const convertResult = convertStagingToCorePmt(stagingRecord);
+    // 4. Processing based on Auto-Convert Mode
+    const shouldAutoConvert = req.query.auto_convert !== 'false' && autoConvertEnabled;
+    let convertResult: { success: boolean; jobId?: number; errors?: string[] } = { success: false };
+
+    if (shouldAutoConvert) {
+      convertResult = convertStagingToCorePmt(stagingRecord);
+    }
 
     return res.status(201).json({
       success: true,
