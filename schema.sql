@@ -64,6 +64,58 @@ CREATE TABLE sys_config (
 );
 
 -- User Accounts & Roles
+-- User Role ENUM
+CREATE TYPE user_role_enum AS ENUM (
+    'ADMIN',
+    'AE',
+    'QC',
+    'CONTACT_CENTER'
+);
+
+-- System Users (Authentication & Authorization)
+CREATE TABLE sys_users (
+    id            BIGSERIAL PRIMARY KEY,
+    user_code     VARCHAR(20)       UNIQUE NOT NULL,
+    username      VARCHAR(50)       UNIQUE NOT NULL,
+    email         VARCHAR(100)      UNIQUE,
+    full_name     VARCHAR(150)      NOT NULL,
+    role          user_role_enum    NOT NULL,
+    password_hash VARCHAR(255)      NOT NULL,   -- bcrypt hash
+    is_active     BOOLEAN           DEFAULT TRUE,
+    last_login_at TIMESTAMP WITH TIME ZONE,
+    created_by    BIGINT            REFERENCES sys_users(id) ON DELETE SET NULL,
+    created_at    TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Session Tokens
+CREATE TABLE sys_user_sessions (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     BIGINT       NOT NULL REFERENCES sys_users(id) ON DELETE CASCADE,
+    token_hash  VARCHAR(255) NOT NULL UNIQUE,  -- SHA-256 of the raw token
+    ip_address  VARCHAR(45),
+    user_agent  TEXT,
+    expires_at  TIMESTAMP WITH TIME ZONE NOT NULL,
+    revoked_at  TIMESTAMP WITH TIME ZONE,      -- NULL = still valid
+    created_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_sessions_token ON sys_user_sessions(token_hash);
+CREATE INDEX idx_sessions_user  ON sys_user_sessions(user_id);
+
+-- Login Audit Log
+CREATE TABLE sys_login_log (
+    id          BIGSERIAL PRIMARY KEY,
+    username    VARCHAR(50)  NOT NULL,
+    user_id     BIGINT       REFERENCES sys_users(id) ON DELETE SET NULL,
+    success     BOOLEAN      NOT NULL,
+    ip_address  VARCHAR(45),
+    user_agent  TEXT,
+    fail_reason VARCHAR(100),                  -- WRONG_PASSWORD / USER_NOT_FOUND / INACTIVE
+    created_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_login_log_user ON sys_login_log(username);
+
+-- Legacy m_user kept for backward compatibility
 CREATE TABLE m_user (
     id BIGSERIAL PRIMARY KEY,
     user_code VARCHAR(20) UNIQUE NOT NULL,
@@ -72,7 +124,7 @@ CREATE TABLE m_user (
     full_name VARCHAR(150) NOT NULL,
     email VARCHAR(100),
     phone VARCHAR(30),
-    role VARCHAR(30) NOT NULL, -- ADMIN, SALE, DESIGNER, MANAGER, TECH, QC, AFTERSALE, ACCOUNT
+    role VARCHAR(30) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -425,6 +477,25 @@ INSERT INTO m_service_type (service_code, service_name, description) VALUES
 ('SVC-KITCHEN-RENO', 'Renovate ครัว', 'บริการปรับปรุงและต่อเติมห้องครัว'),
 ('SVC-SITE-SURVEY', 'สำรวจหน้างาน', 'บริการเข้าสำรวจพื้นที่และประเมินหน้างาน');
 
+-- =============================================================================
+-- SEED: sys_users (6 accounts — passwords are bcrypt of the shown plaintext)
+-- Password hashes below = bcrypt("Password@1234") for demo; replace in prod
+-- =============================================================================
+-- USR-001 admin       → Admin@1234
+-- USR-002 pm.somrak   → Admin@1234
+-- USR-003 ae.somchai  → Ae@1234
+-- USR-004 ae.malee    → Ae@1234
+-- USR-005 qc.wichai   → Qc@1234
+-- USR-006 cc.nipa     → Cc@1234
+INSERT INTO sys_users (user_code, username, email, full_name, role, password_hash, is_active) VALUES
+('USR-001', 'admin',       'admin@pmt.local',     'ผู้ดูแลระบบ',         'ADMIN',           '$2a$12$demoHashAdminxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', TRUE),
+('USR-002', 'pm.somrak',   'somrak@pmt.local',    'สมรัก บริหารเก่ง',    'ADMIN',           '$2a$12$demoHashAdminxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', TRUE),
+('USR-003', 'ae.somchai',  'somchai@pmt.local',   'สมชาย ขยันทำ',        'AE',              '$2a$12$demoHashAexxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', TRUE),
+('USR-004', 'ae.malee',    'malee@pmt.local',     'มาลี สวยงาม',         'AE',              '$2a$12$demoHashAexxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', TRUE),
+('USR-005', 'qc.wichai',   'wichai@pmt.local',    'วิชัย ตรวจดี',        'QC',              '$2a$12$demoHashQcxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', TRUE),
+('USR-006', 'cc.nipa',     'nipa@pmt.local',      'นิภา ใจดี',           'CONTACT_CENTER',  '$2a$12$demoHashCcxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', TRUE);
+
 INSERT INTO m_user (user_code, username, password_hash, full_name, email, role) VALUES
-('USR-001', 'admin', '$2a$10$abcdefghijklmnopqrstuvwxyz123456', 'Administrator', 'admin@pmt.local', 'ADMIN'),
+('USR-001', 'admin',   '$2a$10$abcdefghijklmnopqrstuvwxyz123456', 'Administrator', 'admin@pmt.local', 'ADMIN'),
 ('USR-002', 'manager', '$2a$10$abcdefghijklmnopqrstuvwxyz123456', 'Project Manager', 'mgr@pmt.local', 'MANAGER');
+

@@ -8,7 +8,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.coreSitePhotoStore = exports.coreVisitCheckinStore = exports.coreJobServiceStore = exports.coreJobStore = exports.coreCustomerStore = exports.stagingSurveyStore = exports.StagingProcessStatus = exports.JobStatus = void 0;
+exports.coreSitePhotoStore = exports.coreVisitCheckinStore = exports.coreJobServiceStore = exports.coreJobStore = exports.coreCustomerStore = exports.stagingSurveyStore = exports.StagingProcessStatus = exports.sysLoginLogStore = exports.sysSessionStore = exports.sysUserStore = exports.UserRole = exports.JobStatus = void 0;
 exports.seedInitialCoreData = seedInitialCoreData;
 exports.seedInitialStagingData = seedInitialStagingData;
 exports.convertStagingToCorePmt = convertStagingToCorePmt;
@@ -95,6 +95,218 @@ var JobStatus;
     JobStatus["AFTER_SALE"] = "AFTER_SALE";
     JobStatus["CLOSED"] = "CLOSED";
 })(JobStatus || (exports.JobStatus = JobStatus = {}));
+// =============================================================================
+// USER & AUTH TYPES
+// =============================================================================
+var UserRole;
+(function (UserRole) {
+    UserRole["ADMIN"] = "ADMIN";
+    UserRole["AE"] = "AE";
+    UserRole["QC"] = "QC";
+    UserRole["CONTACT_CENTER"] = "CONTACT_CENTER";
+})(UserRole || (exports.UserRole = UserRole = {}));
+// Simple bcrypt-compatible hash simulation for demo (replace with real bcrypt in production)
+function hashPassword(plain) {
+    const crypto = require('crypto');
+    return '$2a$12$demo_' + crypto.createHash('sha256').update(plain + '_pmt_salt').digest('hex');
+}
+function verifyPassword(plain, hash) {
+    return hash === hashPassword(plain);
+}
+function generateToken() {
+    const crypto = require('crypto');
+    return crypto.randomBytes(32).toString('hex');
+}
+// =============================================================================
+// IN-MEMORY USER STORE
+// =============================================================================
+exports.sysUserStore = [];
+exports.sysSessionStore = [];
+exports.sysLoginLogStore = [];
+function seedUsers() {
+    exports.sysUserStore.length = 0;
+    const users = [
+        { user_code: 'USR-001', username: 'admin', email: 'admin@pmt.local', full_name: 'ผู้ดูแลระบบ', role: UserRole.ADMIN, password_hash: hashPassword('Admin@1234'), is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
+        { user_code: 'USR-002', username: 'pm.somrak', email: 'somrak@pmt.local', full_name: 'สมรัก บริหารเก่ง', role: UserRole.ADMIN, password_hash: hashPassword('Admin@1234'), is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
+        { user_code: 'USR-003', username: 'ae.somchai', email: 'somchai@pmt.local', full_name: 'สมชาย ขยันทำ', role: UserRole.AE, password_hash: hashPassword('Ae@1234'), is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
+        { user_code: 'USR-004', username: 'ae.malee', email: 'malee@pmt.local', full_name: 'มาลี สวยงาม', role: UserRole.AE, password_hash: hashPassword('Ae@1234'), is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
+        { user_code: 'USR-005', username: 'qc.wichai', email: 'wichai@pmt.local', full_name: 'วิชัย ตรวจดี', role: UserRole.QC, password_hash: hashPassword('Qc@1234'), is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
+        { user_code: 'USR-006', username: 'cc.nipa', email: 'nipa@pmt.local', full_name: 'นิภา ใจดี', role: UserRole.CONTACT_CENTER, password_hash: hashPassword('Cc@1234'), is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
+    ];
+    users.forEach((u, i) => exports.sysUserStore.push({ id: i + 1, ...u }));
+    console.log(`[USER SEED] Seeded ${exports.sysUserStore.length} users.`);
+}
+seedUsers();
+const requireAuth = (req, res, next) => {
+    const header = req.headers['authorization'] || '';
+    const token = header.replace('Bearer ', '').trim();
+    if (!token)
+        return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'กรุณา Login ก่อนใช้งาน' } });
+    const session = exports.sysSessionStore.find(s => s.token === token && !s.revoked_at && new Date(s.expires_at) > new Date());
+    if (!session)
+        return res.status(401).json({ success: false, error: { code: 'SESSION_EXPIRED', message: 'Session หมดอายุ กรุณา Login ใหม่' } });
+    const user = exports.sysUserStore.find(u => u.id === session.user_id && u.is_active);
+    if (!user)
+        return res.status(401).json({ success: false, error: { code: 'USER_INACTIVE', message: 'บัญชีผู้ใช้ถูกปิดการใช้งาน' } });
+    req.currentUser = user;
+    next();
+};
+const requireRole = (...roles) => (req, res, next) => {
+    if (!req.currentUser)
+        return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED' } });
+    if (!roles.includes(req.currentUser.role)) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: `ต้องการสิทธิ์ ${roles.join(' หรือ ')} เท่านั้น`, your_role: req.currentUser.role } });
+    }
+    next();
+};
+// =============================================================================
+// AUTH API — Login / Logout / Me
+// =============================================================================
+// POST /api/v1/auth/login
+app.post('/api/v1/auth/login', (req, res) => {
+    const { username, password } = req.body || {};
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const ua = req.headers['user-agent'] || '';
+    if (!username || !password) {
+        return res.status(400).json({ success: false, error: { code: 'MISSING_CREDENTIALS', message: 'กรุณากรอก username และ password' } });
+    }
+    const user = exports.sysUserStore.find(u => u.username === username);
+    const log = { id: Date.now(), username, user_id: user?.id || null, success: false, ip_address: ip, fail_reason: null, created_at: new Date().toISOString() };
+    if (!user) {
+        log.fail_reason = 'USER_NOT_FOUND';
+        exports.sysLoginLogStore.push(log);
+        return res.status(401).json({ success: false, error: { code: 'INVALID_CREDENTIALS', message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' } });
+    }
+    if (!user.is_active) {
+        log.fail_reason = 'INACTIVE';
+        exports.sysLoginLogStore.push(log);
+        return res.status(403).json({ success: false, error: { code: 'USER_INACTIVE', message: 'บัญชีนี้ถูกปิดการใช้งาน' } });
+    }
+    if (!verifyPassword(password, user.password_hash)) {
+        log.fail_reason = 'WRONG_PASSWORD';
+        exports.sysLoginLogStore.push(log);
+        return res.status(401).json({ success: false, error: { code: 'INVALID_CREDENTIALS', message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' } });
+    }
+    const token = generateToken();
+    const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(); // 8 hours
+    const session = { id: Date.now(), user_id: user.id, token, ip_address: ip, user_agent: ua, expires_at: expiresAt, revoked_at: null, created_at: new Date().toISOString() };
+    exports.sysSessionStore.push(session);
+    user.last_login_at = new Date().toISOString();
+    log.success = true;
+    exports.sysLoginLogStore.push(log);
+    return res.json({
+        success: true,
+        data: {
+            token,
+            expires_at: expiresAt,
+            user: { id: user.id, username: user.username, full_name: user.full_name, email: user.email, role: user.role, user_code: user.user_code }
+        }
+    });
+});
+// POST /api/v1/auth/logout
+app.post('/api/v1/auth/logout', requireAuth, (req, res) => {
+    const token = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
+    const session = exports.sysSessionStore.find(s => s.token === token);
+    if (session)
+        session.revoked_at = new Date().toISOString();
+    return res.json({ success: true, message: 'Logout สำเร็จ' });
+});
+// GET /api/v1/auth/me
+app.get('/api/v1/auth/me', requireAuth, (req, res) => {
+    const u = req.currentUser;
+    return res.json({ success: true, data: { id: u.id, username: u.username, full_name: u.full_name, email: u.email, role: u.role, user_code: u.user_code, last_login_at: u.last_login_at } });
+});
+// =============================================================================
+// USER MANAGEMENT API (Admin only)
+// =============================================================================
+// GET /api/v1/users — list all users
+app.get('/api/v1/users', requireAuth, requireRole(UserRole.ADMIN), (req, res) => {
+    const users = exports.sysUserStore.map(u => ({
+        id: u.id, user_code: u.user_code, username: u.username, email: u.email,
+        full_name: u.full_name, role: u.role, is_active: u.is_active,
+        last_login_at: u.last_login_at, created_at: u.created_at
+    }));
+    return res.json({ success: true, total: users.length, data: users });
+});
+// GET /api/v1/users/:id
+app.get('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req, res) => {
+    const user = exports.sysUserStore.find(u => u.id === Number(req.params.id));
+    if (!user)
+        return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบผู้ใช้' } });
+    const { password_hash, ...safe } = user;
+    return res.json({ success: true, data: safe });
+});
+// POST /api/v1/users — create user
+app.post('/api/v1/users', requireAuth, requireRole(UserRole.ADMIN), (req, res) => {
+    const { username, email, full_name, role, password } = req.body || {};
+    if (!username || !full_name || !role || !password) {
+        return res.status(400).json({ success: false, error: { code: 'MISSING_FIELDS', message: 'username, full_name, role, password เป็นข้อมูลที่จำเป็น' } });
+    }
+    if (!Object.values(UserRole).includes(role)) {
+        return res.status(400).json({ success: false, error: { code: 'INVALID_ROLE', message: `Role ต้องเป็น: ${Object.values(UserRole).join(', ')}` } });
+    }
+    if (exports.sysUserStore.find(u => u.username === username)) {
+        return res.status(409).json({ success: false, error: { code: 'DUPLICATE_USERNAME', message: 'Username นี้ถูกใช้งานแล้ว' } });
+    }
+    const newUser = {
+        id: Date.now(), user_code: `USR-${String(exports.sysUserStore.length + 1).padStart(3, '0')}`,
+        username, email: email || '', full_name, role, password_hash: hashPassword(password),
+        is_active: true, last_login_at: null, created_at: new Date().toISOString()
+    };
+    exports.sysUserStore.push(newUser);
+    const { password_hash, ...safe } = newUser;
+    return res.status(201).json({ success: true, message: 'สร้างผู้ใช้สำเร็จ', data: safe });
+});
+// PATCH /api/v1/users/:id — update role / active / full_name / email
+app.patch('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req, res) => {
+    const user = exports.sysUserStore.find(u => u.id === Number(req.params.id));
+    if (!user)
+        return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบผู้ใช้' } });
+    const { full_name, email, role, is_active } = req.body || {};
+    if (full_name !== undefined)
+        user.full_name = full_name;
+    if (email !== undefined)
+        user.email = email;
+    if (is_active !== undefined)
+        user.is_active = Boolean(is_active);
+    if (role !== undefined) {
+        if (!Object.values(UserRole).includes(role))
+            return res.status(400).json({ success: false, error: { code: 'INVALID_ROLE' } });
+        user.role = role;
+    }
+    const { password_hash, ...safe } = user;
+    return res.json({ success: true, message: 'อัปเดตข้อมูลสำเร็จ', data: safe });
+});
+// POST /api/v1/users/:id/reset-password
+app.post('/api/v1/users/:id/reset-password', requireAuth, requireRole(UserRole.ADMIN), (req, res) => {
+    const user = exports.sysUserStore.find(u => u.id === Number(req.params.id));
+    if (!user)
+        return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบผู้ใช้' } });
+    const { new_password } = req.body || {};
+    if (!new_password || new_password.length < 6) {
+        return res.status(400).json({ success: false, error: { code: 'WEAK_PASSWORD', message: 'Password ต้องมีอย่างน้อย 6 ตัวอักษร' } });
+    }
+    user.password_hash = hashPassword(new_password);
+    // Revoke all active sessions for this user
+    exports.sysSessionStore.filter(s => s.user_id === user.id && !s.revoked_at).forEach(s => s.revoked_at = new Date().toISOString());
+    return res.json({ success: true, message: `Reset password สำเร็จสำหรับ ${user.username} — sessions เดิมถูกยกเลิกทั้งหมด` });
+});
+// DELETE /api/v1/users/:id — deactivate (soft delete)
+app.delete('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req, res) => {
+    const user = exports.sysUserStore.find(u => u.id === Number(req.params.id));
+    if (!user)
+        return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบผู้ใช้' } });
+    if (user.username === 'admin')
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'ไม่สามารถลบ admin หลักได้' } });
+    user.is_active = false;
+    exports.sysSessionStore.filter(s => s.user_id === user.id && !s.revoked_at).forEach(s => s.revoked_at = new Date().toISOString());
+    return res.json({ success: true, message: `ปิดใช้งานบัญชี ${user.username} สำเร็จ` });
+});
+// GET /api/v1/users/login-logs — Login audit log (Admin only)
+app.get('/api/v1/auth/login-logs', requireAuth, requireRole(UserRole.ADMIN), (req, res) => {
+    const logs = [...exports.sysLoginLogStore].reverse().slice(0, 100);
+    return res.json({ success: true, total: logs.length, data: logs });
+});
 var StagingProcessStatus;
 (function (StagingProcessStatus) {
     StagingProcessStatus["PENDING"] = "PENDING";

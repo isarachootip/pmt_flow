@@ -300,6 +300,13 @@
                             <i class="ph ph-gear text-base"></i>
                             <span>ตั้งค่าระบบ & API</span>
                         </a>
+                        <a href="#" id="nav-users" onclick="app.navigate('users')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" style="display:none!important">
+                            <div class="flex items-center gap-2.5">
+                                <i class="ph ph-users-three text-base text-rose-500"></i>
+                                <span>จัดการผู้ใช้งาน</span>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-500 font-mono font-medium">Admin</span>
+                        </a>
                     </nav>
                 </div>
             </div>
@@ -309,20 +316,21 @@
                 <div class="flex items-center justify-between p-2 rounded-xl bg-muted/50 border border-border">
                     <div class="flex items-center gap-2.5 min-w-0">
                         <div class="relative">
-                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" class="w-8 h-8 rounded-lg object-cover ring-1 ring-border" alt="Avatar">
+                            <div id="sidebar-avatar" class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-600 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">A</div>
                             <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card"></span>
                         </div>
                         <div class="truncate">
-                            <p class="text-xs font-semibold text-foreground truncate">Isara Admin</p>
-                            <p class="text-[10px] text-muted-foreground truncate">Lead Operations</p>
+                            <p class="text-xs font-semibold text-foreground truncate" id="sidebar-user-name">กำลังโหลด...</p>
+                            <p class="text-[10px] text-muted-foreground truncate" id="sidebar-user-role">-</p>
                         </div>
                     </div>
-                    <button onclick="app.showToast('Logged out successfully')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-card transition" title="Logout">
+                    <button onclick="app.logout()" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-card transition" title="Logout">
                         <i class="ph ph-sign-out text-base"></i>
                     </button>
                 </div>
             </div>
         </aside>
+
 
         <!-- MAIN CONTENT AREA -->
         <main class="flex-1 flex flex-col h-full overflow-hidden relative">
@@ -1656,5 +1664,431 @@
             app.init();
         });
     </script>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- LOGIN OVERLAY                                          -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="login-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm" style="display:none!important">
+        <div class="w-full max-w-sm mx-4">
+            <!-- Card -->
+            <div class="artifact-card p-8 space-y-6">
+                <!-- Logo -->
+                <div class="text-center space-y-2">
+                    <div class="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-500 items-center justify-center shadow-lg shadow-brand-500/30 mx-auto">
+                        <i class="ph ph-flow-arrow text-3xl text-white"></i>
+                    </div>
+                    <h1 class="text-xl font-bold font-display text-foreground">PMT Flow</h1>
+                    <p class="text-xs text-muted-foreground">Store Project Management Tool</p>
+                </div>
+
+                <!-- Form -->
+                <form id="login-form" onsubmit="auth.login(event)" class="space-y-4">
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-medium text-foreground">Username</label>
+                        <div class="relative">
+                            <i class="ph ph-user absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+                            <input id="login-username" type="text" placeholder="กรอก username" autocomplete="username"
+                                class="w-full bg-muted border border-border rounded-lg py-2.5 pl-9 pr-4 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+                        </div>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-medium text-foreground">Password</label>
+                        <div class="relative">
+                            <i class="ph ph-lock absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+                            <input id="login-password" type="password" placeholder="กรอก password" autocomplete="current-password"
+                                class="w-full bg-muted border border-border rounded-lg py-2.5 pl-9 pr-4 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+                        </div>
+                    </div>
+
+                    <!-- Error message -->
+                    <div id="login-error" class="hidden text-xs text-rose-500 bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2"></div>
+
+                    <button type="submit" id="login-btn" class="btn-artifact-primary w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2">
+                        <i class="ph ph-sign-in text-base"></i>
+                        <span id="login-btn-text">เข้าสู่ระบบ</span>
+                    </button>
+                </form>
+
+                <!-- Hint accounts -->
+                <div class="border-t border-border pt-4 space-y-1.5">
+                    <p class="text-[10px] text-muted-foreground font-medium uppercase tracking-wider text-center">Demo Accounts</p>
+                    <div class="grid grid-cols-2 gap-1.5 text-[10px]">
+                        <button onclick="auth.fillDemo('admin','Admin@1234')" class="text-left px-2 py-1.5 rounded-md bg-muted hover:bg-muted/80 border border-border transition">
+                            <span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1"></span>admin / Admin@1234
+                        </button>
+                        <button onclick="auth.fillDemo('ae.somchai','Ae@1234')" class="text-left px-2 py-1.5 rounded-md bg-muted hover:bg-muted/80 border border-border transition">
+                            <span class="inline-block w-2 h-2 rounded-full bg-blue-500 mr-1"></span>ae.somchai / Ae@1234
+                        </button>
+                        <button onclick="auth.fillDemo('qc.wichai','Qc@1234')" class="text-left px-2 py-1.5 rounded-md bg-muted hover:bg-muted/80 border border-border transition">
+                            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1"></span>qc.wichai / Qc@1234
+                        </button>
+                        <button onclick="auth.fillDemo('cc.nipa','Cc@1234')" class="text-left px-2 py-1.5 rounded-md bg-muted hover:bg-muted/80 border border-border transition">
+                            <span class="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1"></span>cc.nipa / Cc@1234
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- USER MANAGEMENT PAGE (injected into page-container)   -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <script>
+    // Inject User Management page into DOM after load
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('page-container');
+        if (!container) return;
+        const usersPage = document.createElement('div');
+        usersPage.id = 'page-users';
+        usersPage.className = 'page-view hidden-view space-y-6';
+        usersPage.innerHTML = `
+            <!-- Header -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-bold font-display text-foreground">จัดการผู้ใช้งาน (User Management)</h1>
+                    <p class="text-xs text-muted-foreground mt-0.5">เพิ่ม / แก้ไข / ปิดใช้งานบัญชีผู้ใช้สำหรับ QC, Contact Center และ Admin</p>
+                </div>
+                <button onclick="userMgmt.openCreate()" class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-2 font-medium">
+                    <i class="ph ph-plus-bold text-sm"></i>
+                    <span>เพิ่มผู้ใช้ใหม่</span>
+                </button>
+            </div>
+
+            <!-- Stats row -->
+            <div class="grid grid-cols-4 gap-4" id="user-stats-row">
+                <div class="artifact-card p-4 flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-rose-500/10 flex items-center justify-center"><i class="ph ph-shield-star text-rose-500 text-lg"></i></div>
+                    <div><p class="text-xs text-muted-foreground">Admin</p><p class="text-lg font-bold text-foreground" id="stat-admin">0</p></div>
+                </div>
+                <div class="artifact-card p-4 flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center"><i class="ph ph-briefcase text-blue-500 text-lg"></i></div>
+                    <div><p class="text-xs text-muted-foreground">AE</p><p class="text-lg font-bold text-foreground" id="stat-ae">0</p></div>
+                </div>
+                <div class="artifact-card p-4 flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center"><i class="ph ph-check-circle text-emerald-500 text-lg"></i></div>
+                    <div><p class="text-xs text-muted-foreground">QC</p><p class="text-lg font-bold text-foreground" id="stat-qc">0</p></div>
+                </div>
+                <div class="artifact-card p-4 flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center"><i class="ph ph-phone text-amber-500 text-lg"></i></div>
+                    <div><p class="text-xs text-muted-foreground">Contact Center</p><p class="text-lg font-bold text-foreground" id="stat-cc">0</p></div>
+                </div>
+            </div>
+
+            <!-- User Table -->
+            <div class="artifact-card overflow-hidden">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+                    <h2 class="text-sm font-semibold text-foreground">รายชื่อผู้ใช้งานทั้งหมด</h2>
+                    <div class="relative w-56">
+                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
+                        <input type="text" id="user-search" oninput="userMgmt.filterTable(this.value)" placeholder="ค้นหาชื่อ / username..."
+                            class="w-full bg-muted border border-border rounded-lg py-1.5 pl-8 pr-3 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-brand-500 transition">
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="border-b border-border bg-muted/30">
+                                <th class="px-5 py-3 text-left font-semibold text-muted-foreground">#</th>
+                                <th class="px-5 py-3 text-left font-semibold text-muted-foreground">ชื่อ-นามสกุล</th>
+                                <th class="px-5 py-3 text-left font-semibold text-muted-foreground">Username</th>
+                                <th class="px-5 py-3 text-left font-semibold text-muted-foreground">อีเมล</th>
+                                <th class="px-5 py-3 text-left font-semibold text-muted-foreground">Role</th>
+                                <th class="px-5 py-3 text-left font-semibold text-muted-foreground">สถานะ</th>
+                                <th class="px-5 py-3 text-left font-semibold text-muted-foreground">Login ล่าสุด</th>
+                                <th class="px-5 py-3 text-left font-semibold text-muted-foreground">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-table-body" class="divide-y divide-border"></tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+        container.appendChild(usersPage);
+    });
+    </script>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- AUTH + USER MANAGEMENT JAVASCRIPT                      -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <script>
+    // ─── Role Badge Helper ────────────────────────────────────
+    function roleBadge(role) {
+        const map = {
+            ADMIN:          { label:'Admin',          cls:'bg-rose-500/10 text-rose-500 border-rose-500/20' },
+            AE:             { label:'AE',             cls:'bg-blue-500/10 text-blue-500 border-blue-500/20' },
+            QC:             { label:'QC',             cls:'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
+            CONTACT_CENTER: { label:'Contact Center', cls:'bg-amber-500/10 text-amber-600 border-amber-500/20' },
+        };
+        const r = map[role] || { label: role, cls: 'bg-muted text-muted-foreground border-border' };
+        return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${r.cls}">${r.label}</span>`;
+    }
+
+    // ─── AUTH MODULE ─────────────────────────────────────────
+    const auth = {
+        token: null,
+        user:  null,
+
+        init() {
+            this.token = sessionStorage.getItem('pmt_token');
+            const userStr = sessionStorage.getItem('pmt_user');
+            if (this.token && userStr) {
+                try { this.user = JSON.parse(userStr); } catch(e) {}
+            }
+            if (this.user) {
+                this.onLogin();
+            } else {
+                this.showLoginOverlay();
+            }
+        },
+
+        showLoginOverlay() {
+            const overlay = document.getElementById('login-overlay');
+            if (overlay) overlay.style.display = 'flex';
+        },
+        hideLoginOverlay() {
+            const overlay = document.getElementById('login-overlay');
+            if (overlay) overlay.style.display = 'none';
+        },
+
+        fillDemo(username, password) {
+            document.getElementById('login-username').value = username;
+            document.getElementById('login-password').value = password;
+        },
+
+        async login(e) {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            const errEl    = document.getElementById('login-error');
+            const btnText  = document.getElementById('login-btn-text');
+
+            errEl.classList.add('hidden'); errEl.textContent = '';
+            btnText.textContent = 'กำลังเข้าสู่ระบบ...';
+
+            try {
+                const res  = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const json = await res.json();
+                if (!json.success) {
+                    errEl.textContent = json.error?.message || 'เข้าสู่ระบบไม่สำเร็จ';
+                    errEl.classList.remove('hidden');
+                    btnText.textContent = 'เข้าสู่ระบบ';
+                    return;
+                }
+                this.token = json.data.token;
+                this.user  = json.data.user;
+                sessionStorage.setItem('pmt_token', this.token);
+                sessionStorage.setItem('pmt_user', JSON.stringify(this.user));
+                this.onLogin();
+                btnText.textContent = 'เข้าสู่ระบบ';
+            } catch(err) {
+                errEl.textContent = 'ไม่สามารถเชื่อมต่อ Server ได้';
+                errEl.classList.remove('hidden');
+                btnText.textContent = 'เข้าสู่ระบบ';
+            }
+        },
+
+        onLogin() {
+            this.hideLoginOverlay();
+            this.updateUI();
+            if (typeof app !== 'undefined') app.navigate('dashboard');
+        },
+
+        updateUI() {
+            const u = this.user;
+            if (!u) return;
+            // Sidebar user info
+            const nameEl = document.getElementById('sidebar-user-name');
+            const roleEl = document.getElementById('sidebar-user-role');
+            const avatarEl = document.getElementById('sidebar-avatar');
+            if (nameEl) nameEl.textContent = u.full_name;
+            if (roleEl) roleEl.textContent = { ADMIN:'ผู้ดูแลระบบ', AE:'Account Executive', QC:'Quality Control', CONTACT_CENTER:'Contact Center' }[u.role] || u.role;
+            if (avatarEl) avatarEl.textContent = u.full_name.charAt(0);
+
+            // Show/hide Admin-only nav
+            const navUsers = document.getElementById('nav-users');
+            if (navUsers) navUsers.style.display = (u.role === 'ADMIN') ? 'flex' : 'none';
+        },
+
+        async logout() {
+            try {
+                await fetch('/api/v1/auth/logout', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + (this.token || '') }
+                });
+            } catch(e) {}
+            this.token = null; this.user = null;
+            sessionStorage.removeItem('pmt_token');
+            sessionStorage.removeItem('pmt_user');
+            this.showLoginOverlay();
+        },
+
+        getHeaders() {
+            return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (this.token || '') };
+        }
+    };
+
+    // ─── USER MANAGEMENT MODULE ──────────────────────────────
+    const userMgmt = {
+        users: [],
+        filtered: [],
+
+        async load() {
+            try {
+                const res  = await fetch('/api/v1/users', { headers: auth.getHeaders() });
+                const json = await res.json();
+                if (json.success) {
+                    this.users = json.data;
+                    this.filtered = [...this.users];
+                    this.render();
+                    this.renderStats();
+                }
+            } catch(e) { console.error('Failed to load users', e); }
+        },
+
+        renderStats() {
+            const counts = { ADMIN:0, AE:0, QC:0, CONTACT_CENTER:0 };
+            this.users.forEach(u => { if(counts[u.role] !== undefined) counts[u.role]++; });
+            ['admin','ae','qc','cc'].forEach((k,i) => {
+                const role = ['ADMIN','AE','QC','CONTACT_CENTER'][i];
+                const el = document.getElementById('stat-' + k);
+                if (el) el.textContent = counts[role];
+            });
+        },
+
+        filterTable(q) {
+            const query = q.toLowerCase();
+            this.filtered = this.users.filter(u =>
+                u.full_name.toLowerCase().includes(query) ||
+                u.username.toLowerCase().includes(query) ||
+                (u.email || '').toLowerCase().includes(query)
+            );
+            this.render();
+        },
+
+        render() {
+            const tbody = document.getElementById('user-table-body');
+            if (!tbody) return;
+            if (!this.filtered.length) {
+                tbody.innerHTML = `<tr><td colspan="8" class="px-5 py-10 text-center text-xs text-muted-foreground">ไม่พบข้อมูลผู้ใช้</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = this.filtered.map((u, i) => `
+                <tr class="hover:bg-muted/30 transition-colors ${!u.is_active ? 'opacity-50' : ''}">
+                    <td class="px-5 py-3 text-muted-foreground font-mono">${u.user_code}</td>
+                    <td class="px-5 py-3 font-medium text-foreground">${u.full_name}</td>
+                    <td class="px-5 py-3 font-mono text-muted-foreground">${u.username}</td>
+                    <td class="px-5 py-3 text-muted-foreground">${u.email || '-'}</td>
+                    <td class="px-5 py-3">${roleBadge(u.role)}</td>
+                    <td class="px-5 py-3">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${u.is_active ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-muted text-muted-foreground border-border'}">
+                            <span class="w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-emerald-500' : 'bg-muted-foreground'}"></span>
+                            ${u.is_active ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
+                        </span>
+                    </td>
+                    <td class="px-5 py-3 text-muted-foreground">${u.last_login_at ? new Date(u.last_login_at).toLocaleString('th-TH') : 'ยังไม่เคย Login'}</td>
+                    <td class="px-5 py-3">
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="userMgmt.openEdit(${u.id})" title="แก้ไข" class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition"><i class="ph ph-pencil-simple text-sm"></i></button>
+                            <button onclick="userMgmt.resetPassword(${u.id},'${u.full_name}')" title="Reset Password" class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-amber-500 transition"><i class="ph ph-key text-sm"></i></button>
+                            ${u.username !== 'admin' ? `<button onclick="userMgmt.toggleActive(${u.id},'${u.full_name}',${u.is_active})" title="${u.is_active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}" class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-rose-500 transition"><i class="ph ph-${u.is_active ? 'prohibit' : 'check-circle'} text-sm"></i></button>` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        },
+
+        openCreate() {
+            const name = prompt('ชื่อ-นามสกุล:');
+            if (!name) return;
+            const username = prompt('Username:');
+            if (!username) return;
+            const role = prompt('Role (ADMIN / AE / QC / CONTACT_CENTER):');
+            if (!role) return;
+            const email = prompt('Email (ไม่บังคับ):') || '';
+            const password = prompt('Password (อย่างน้อย 6 ตัวอักษร):');
+            if (!password) return;
+            this.createUser({ full_name:name, username, role:role.toUpperCase(), email, password });
+        },
+
+        async createUser(data) {
+            try {
+                const res  = await fetch('/api/v1/users', { method:'POST', headers: auth.getHeaders(), body: JSON.stringify(data) });
+                const json = await res.json();
+                if (json.success) { app.showToast('✅ สร้างผู้ใช้ ' + data.username + ' สำเร็จ'); this.load(); }
+                else app.showToast('❌ ' + (json.error?.message || 'เกิดข้อผิดพลาด'));
+            } catch(e) { app.showToast('❌ ไม่สามารถสร้างผู้ใช้ได้'); }
+        },
+
+        openEdit(id) {
+            const u = this.users.find(x => x.id === id);
+            if (!u) return;
+            const fullName = prompt('ชื่อ-นามสกุล:', u.full_name);
+            if (fullName === null) return;
+            const role = prompt('Role (ADMIN / AE / QC / CONTACT_CENTER):', u.role);
+            if (role === null) return;
+            this.updateUser(id, { full_name: fullName, role: role.toUpperCase() });
+        },
+
+        async updateUser(id, data) {
+            try {
+                const res  = await fetch('/api/v1/users/' + id, { method:'PATCH', headers: auth.getHeaders(), body: JSON.stringify(data) });
+                const json = await res.json();
+                if (json.success) { app.showToast('✅ อัปเดตข้อมูลสำเร็จ'); this.load(); }
+                else app.showToast('❌ ' + (json.error?.message || 'เกิดข้อผิดพลาด'));
+            } catch(e) { app.showToast('❌ ไม่สามารถอัปเดตข้อมูลได้'); }
+        },
+
+        async toggleActive(id, name, isActive) {
+            const action = isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน';
+            if (!confirm(`ต้องการ ${action} บัญชี "${name}" ใช่หรือไม่?`)) return;
+            if (isActive) {
+                const res  = await fetch('/api/v1/users/' + id, { method:'DELETE', headers: auth.getHeaders() });
+                const json = await res.json();
+                if (json.success) { app.showToast('✅ ' + json.message); this.load(); }
+            } else {
+                await this.updateUser(id, { is_active: true });
+            }
+        },
+
+        async resetPassword(id, name) {
+            const newPass = prompt(`Reset password สำหรับ "${name}"\n\nกรอก Password ใหม่ (อย่างน้อย 6 ตัวอักษร):`);
+            if (!newPass || newPass.length < 6) return;
+            try {
+                const res  = await fetch('/api/v1/users/' + id + '/reset-password', { method:'POST', headers: auth.getHeaders(), body: JSON.stringify({ new_password: newPass }) });
+                const json = await res.json();
+                if (json.success) app.showToast('✅ Reset password สำเร็จ');
+                else app.showToast('❌ ' + (json.error?.message || 'เกิดข้อผิดพลาด'));
+            } catch(e) { app.showToast('❌ ไม่สามารถ Reset password ได้'); }
+        }
+    };
+
+    // ─── HOOK INTO APP ───────────────────────────────────────
+    // Override app.navigate to trigger userMgmt.load on users page
+    const _origNavigate = app.navigate.bind(app);
+    app.navigate = function(view, param=null) {
+        _origNavigate(view, param);
+        if (view === 'users') {
+            userMgmt.load();
+            document.getElementById('topbar-breadcrumb').innerText = 'จัดการผู้ใช้งาน';
+        }
+    };
+
+    // Override app.logout
+    app.logout = () => auth.logout();
+
+    // Override app.init to require login first
+    const _origInit = app.init.bind(app);
+    app.init = function() {
+        _origInit();
+        // After original init, enforce login
+        setTimeout(() => auth.init(), 100);
+    };
+    </script>
+
 </body>
 </html>
