@@ -117,6 +117,77 @@ app.post('/api/v1/integration/orders', async (req, res) => {
     }
 });
 // =============================================================================
+// 1.1 JOB SURVEY REPORT SUBMISSION API
+// =============================================================================
+app.post('/api/v1/jobs/survey-report', async (req, res) => {
+    try {
+        const payload = req.body;
+        // 1. Validate Required Root Objects & Fields
+        if (!payload?.system?.job_id) {
+            return res.status(400).json({
+                success: false,
+                error: { code: 'INVALID_PAYLOAD', message: 'Field "system.job_id" is required' }
+            });
+        }
+        if (!payload?.job_info?.job_number) {
+            return res.status(400).json({
+                success: false,
+                error: { code: 'INVALID_PAYLOAD', message: 'Field "job_info.job_number" is required' }
+            });
+        }
+        if (!payload?.customer?.name || !payload?.customer?.mobile_no) {
+            return res.status(400).json({
+                success: false,
+                error: { code: 'INVALID_PAYLOAD', message: 'Customer name and mobile_no are required' }
+            });
+        }
+        if (!Array.isArray(payload.job_details) || payload.job_details.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: { code: 'INVALID_JOB_DETAILS', message: 'job_details must be a non-empty array' }
+            });
+        }
+        // 2. Validate Check-in & Check-out requirements
+        if (!payload.check_in?.date || !payload.check_out?.date) {
+            return res.status(400).json({
+                success: false,
+                error: { code: 'INVALID_CHECKIN_OUT', message: 'Both check_in and check_out data with timestamps are required' }
+            });
+        }
+        // 3. Process & Mock Persistence
+        const record = {
+            received_at: new Date().toISOString(),
+            job_id: payload.system.job_id,
+            job_number: payload.job_info.job_number,
+            booking_no: payload.job_info.booking_no,
+            status: payload.job_info.status,
+            customer_name: payload.customer.name,
+            agent_name: payload.agent?.name,
+            store_code: payload.store?.code,
+            item_count: payload.job_details.length,
+            photo_count: payload.site_photos?.length || 0,
+            approval_by: payload.approval?.approve_by,
+            summary: {
+                total_items: payload.job_details.reduce((sum, item) => sum + (item.product_quantity || 0), 0),
+                visit_results: payload.visit_results || []
+            }
+        };
+        console.log(`[SURVEY REPORT] Successfully ingested job: ${record.job_number} (${record.job_id})`);
+        return res.status(201).json({
+            success: true,
+            message: 'Job survey report received and processed successfully',
+            data: record
+        });
+    }
+    catch (err) {
+        console.error('Error processing survey report:', err);
+        return res.status(500).json({
+            success: false,
+            error: { code: 'INTERNAL_ERROR', message: err.message }
+        });
+    }
+});
+// =============================================================================
 // 2. CHECK-IN / SITE VISIT API (Req #2 & #3)
 // =============================================================================
 app.post('/api/v1/jobs/:id/checkin', async (req, res) => {

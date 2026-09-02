@@ -56,6 +56,44 @@ paths:
         '400':
           description: Invalid payload or missing Idempotency-Key
 
+  /jobs/survey-report:
+    post:
+      summary: Submit Job Survey Report
+      description: Ingest full job survey details, site photos, check-in/out records, customer info, and approval data.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [system, job_info, job_details, customer, check_in, check_out]
+              properties:
+                system:
+                  type: object
+                  properties:
+                    job_id: { type: string }
+                    created_at: { type: string }
+                job_info:
+                  type: object
+                  properties:
+                    job_number: { type: string }
+                    status: { type: string }
+                job_details:
+                  type: array
+                  items:
+                    type: object
+                customer:
+                  type: object
+                site_photos:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Job survey report received successfully
+        '400':
+          description: Invalid payload structure
+
   /jobs/{id}/checkin:
     post:
       summary: Mobile Site Check-in (Req #2 & #3)

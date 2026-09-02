@@ -83,6 +83,86 @@ export interface CheckinPayload {
   summary: string;
 }
 
+export interface LocationInfo {
+  latitude: number;
+  longitude: number;
+  address?: string;
+  google_map_url?: string;
+}
+
+export interface JobDetailItem {
+  job_type: string;
+  installation_detail: string;
+  product_quantity: number;
+  remark?: string;
+}
+
+export interface CheckInOutRecord {
+  date: string;
+  latitude: number;
+  longitude: number;
+  image: string;
+}
+
+export interface JobSurveyPayload {
+  system: {
+    job_id: string;
+    created_at: string;
+    created_by: string;
+    updated_at: string;
+  };
+  job_info: {
+    job_number: string;
+    booking_no: string;
+    ticket_no: string;
+    source_reference: string;
+    status: string;
+    stage: string;
+    property_type: string;
+    project_type: string;
+    project_sub_type: string;
+    file_int_image?: string;
+  };
+  job_details: JobDetailItem[];
+  customer: {
+    code: string;
+    name: string;
+    mobile_no: string;
+    location: LocationInfo;
+  };
+  agent: {
+    code: string;
+    name: string;
+    team: string;
+  };
+  store: {
+    code: string;
+    code3: string;
+    name: string;
+    location: LocationInfo;
+  };
+  schedule_plan: {
+    visit_date: string;
+    start_time: string;
+    end_time: string;
+    time_slot: string;
+    distance: number;
+  };
+  check_in: CheckInOutRecord;
+  check_out: CheckInOutRecord;
+  site_photos: string[];
+  approval: {
+    approve_by: string;
+    approve_date: string;
+    distance: number;
+  };
+  visit_results: string[];
+  remarks: {
+    comment: string;
+    note: string;
+  };
+}
+
 // =============================================================================
 // MIDDLEWARES
 // =============================================================================
@@ -152,6 +232,85 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+// =============================================================================
+// 1.1 JOB SURVEY REPORT SUBMISSION API
+// =============================================================================
+app.post('/api/v1/jobs/survey-report', async (req: Request<{}, {}, JobSurveyPayload>, res: Response) => {
+  try {
+    const payload = req.body;
+
+    // 1. Validate Required Root Objects & Fields
+    if (!payload?.system?.job_id) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_PAYLOAD', message: 'Field "system.job_id" is required' }
+      });
+    }
+
+    if (!payload?.job_info?.job_number) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_PAYLOAD', message: 'Field "job_info.job_number" is required' }
+      });
+    }
+
+    if (!payload?.customer?.name || !payload?.customer?.mobile_no) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_PAYLOAD', message: 'Customer name and mobile_no are required' }
+      });
+    }
+
+    if (!Array.isArray(payload.job_details) || payload.job_details.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_JOB_DETAILS', message: 'job_details must be a non-empty array' }
+      });
+    }
+
+    // 2. Validate Check-in & Check-out requirements
+    if (!payload.check_in?.date || !payload.check_out?.date) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_CHECKIN_OUT', message: 'Both check_in and check_out data with timestamps are required' }
+      });
+    }
+
+    // 3. Process & Mock Persistence
+    const record = {
+      received_at: new Date().toISOString(),
+      job_id: payload.system.job_id,
+      job_number: payload.job_info.job_number,
+      booking_no: payload.job_info.booking_no,
+      status: payload.job_info.status,
+      customer_name: payload.customer.name,
+      agent_name: payload.agent?.name,
+      store_code: payload.store?.code,
+      item_count: payload.job_details.length,
+      photo_count: payload.site_photos?.length || 0,
+      approval_by: payload.approval?.approve_by,
+      summary: {
+        total_items: payload.job_details.reduce((sum, item) => sum + (item.product_quantity || 0), 0),
+        visit_results: payload.visit_results || []
+      }
+    };
+
+    console.log(`[SURVEY REPORT] Successfully ingested job: ${record.job_number} (${record.job_id})`);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Job survey report received and processed successfully',
+      data: record
+    });
+  } catch (err: any) {
+    console.error('Error processing survey report:', err);
+    return res.status(500).json({
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: err.message }
+    });
   }
 });
 
