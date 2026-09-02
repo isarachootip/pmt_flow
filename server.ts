@@ -381,6 +381,207 @@ const coreJobServiceStore: CoreJobService[] = [];
 const coreVisitCheckinStore: CoreVisitCheckin[] = [];
 const coreSitePhotoStore: CoreSitePhoto[] = [];
 
+// Seed 5 Mock Survey Records for Staging Monitoring & Manual Conversion
+export function seedInitialStagingData() {
+  stagingSurveyStore.length = 0; // Reset
+
+  const mockRecords: StagingSurveyReport[] = [
+    {
+      id: 1001,
+      source_job_id: "031b0e16a-9a98-43bf-ae3e-b14e76b577f8",
+      job_number: "JOB202609001",
+      booking_no: "VFIX-260901-001",
+      ticket_no: "209051119",
+      source_reference: "REQ-PT2-2608220003",
+      customer_code: "18a9359a-4363-4dda-8fdb-5f541d8a4b64",
+      customer_name: "คุณ นภัสวรรณ มีศิริ",
+      customer_phone: "0812345678",
+      store_code: "60964",
+      agent_code: "87524b4a-8511-4a93-88fa-850c8d043868",
+      visit_date: "2026-09-05",
+      checkin_at: "2026-09-05T09:05:00Z",
+      checkout_at: "2026-09-05T11:45:00Z",
+      photo_count: 5,
+      process_status: StagingProcessStatus.PENDING,
+      retry_count: 0,
+      received_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+      raw_payload: {
+        system: { job_id: "031b0e16a-9a98-43bf-ae3e-b14e76b577f8", created_at: "2026-09-02T09:00:00Z", created_by: "system", updated_at: "2026-09-02T09:00:00Z" },
+        job_info: { job_number: "JOB202609001", booking_no: "VFIX-260901-001", ticket_no: "209051119", source_reference: "REQ-PT2-2608220003", status: "Approved", stage: "Completed", property_type: "บ้านเดี่ยว", project_type: "Renovate", project_sub_type: "งานกระเบื้องพื้น" },
+        job_details: [
+          { job_type: "ติดตั้งแอร์ (ส่งพร้อมติดตั้ง)", installation_detail: "R-ติดตั้ง แอร์ติดผนัง ขนาด 9000-17000 BTU พร้อมรื้อถอน", product_quantity: 2, remark: "ติดตั้งห้องนอนใหญ่และห้องรับแขก" },
+          { job_type: "ติดตั้งแอร์ (ส่งพร้อมติดตั้ง)", installation_detail: "R-ติดตั้ง แอร์ติดผนัง ขนาด 18000-24000 BTU พร้อมรื้อถอน", product_quantity: 1, remark: "ติดตั้งห้องโถงชั้นล่าง" }
+        ],
+        customer: { code: "18a9359a-4363-4dda-8fdb-5f541d8a4b64", name: "คุณ นภัสวรรณ มีศิริ", mobile_no: "0812345678", location: { latitude: 13.7563, longitude: 100.5018, address: "มาบยายเลีย 41 เมืองพัทยา อำเภอบางละมุง ชลบุรี 20150", google_map_url: "https://www.google.com/maps/search/?api=1&query=12.9326734,100.9239925" } },
+        agent: { code: "87524b4a-8511-4a93-88fa-850c8d043868", name: "สมเกียรติ มั่นคง", team: "QC RENOVATE & MENTAINANCE" },
+        store: { code: "60964", code3: "RA2", name: "RAMA2", location: { latitude: 13.652, longitude: 100.421 } },
+        schedule_plan: { visit_date: "2026-09-05", start_time: "09:00:00", end_time: "12:00:00", time_slot: "เช้า (09:00-12:00)", distance: 15.5 },
+        check_in: { date: "2026-09-05T09:05:00Z", latitude: 13.7563, longitude: 100.5018, image: "renovate/check_in/img1.jpg" },
+        check_out: { date: "2026-09-05T11:45:00Z", latitude: 13.7563, longitude: 100.5018, image: "renovate/check_out/img2.jpg" },
+        site_photos: ["renovate/site/photo1.jpg", "renovate/site/photo2.jpg", "renovate/site/photo3.jpg", "renovate/site/photo4.jpg", "renovate/site/photo5.jpg"],
+        approval: { approve_by: "Phinyo Phoaon", approve_date: "2026-09-05T12:00:00Z", distance: 15.5 },
+        visit_results: ["สำรวจตำแหน่งเดินท่อน้ำยาและจุดติดตั้งคอมเพรสเซอร์เรียบร้อย"],
+        remarks: { comment: "พื้นที่พร้อมติดตั้ง ท่อน้ำทิ้งสามารถต่อออกระเบียงได้", note: "ลูกค้าขอเข้าช่วงเช้า" }
+      }
+    },
+    {
+      id: 1002,
+      source_job_id: "c48d9102-12a4-49c8-99b3-76a89c910202",
+      job_number: "JOB202609002",
+      booking_no: "VFIX-260901-002",
+      ticket_no: "209051120",
+      source_reference: "REQ-PT2-2608220004",
+      customer_code: "CUST-99201",
+      customer_name: "คุณ กิตติศักดิ์ เจริญพร",
+      customer_phone: "0898765432",
+      store_code: "60964",
+      agent_code: "87524b4a-8511-4a93-88fa-850c8d043868",
+      visit_date: "2026-09-05",
+      checkin_at: "2026-09-05T13:10:00Z",
+      checkout_at: "2026-09-05T14:40:00Z",
+      photo_count: 5,
+      process_status: StagingProcessStatus.PENDING,
+      retry_count: 0,
+      received_at: new Date(Date.now() - 3600000 * 4).toISOString(),
+      raw_payload: {
+        system: { job_id: "c48d9102-12a4-49c8-99b3-76a89c910202", created_at: "2026-09-02T09:30:00Z", created_by: "system", updated_at: "2026-09-02T09:30:00Z" },
+        job_info: { job_number: "JOB202609002", booking_no: "VFIX-260901-002", ticket_no: "209051120", source_reference: "REQ-PT2-2608220004", status: "Approved", stage: "Completed", property_type: "ทาวน์โฮม", project_type: "Installation", project_sub_type: "งานปั้มแท็งก์" },
+        job_details: [
+          { job_type: "ติดตั้งปั้มแท็งก์", installation_detail: "ติดตั้งถังเก็บน้ำ DOS 1000L บนฐานปูน + ปั้มอัตโนมัติ Mitsubishi 250W", product_quantity: 1, remark: "รวมเดินท่อบายพาส" }
+        ],
+        customer: { code: "CUST-99201", name: "คุณ กิตติศักดิ์ เจริญพร", mobile_no: "0898765432", location: { latitude: 13.6800, longitude: 100.4500, address: "88/12 ถ.พระราม 2 ซอย 50 บางขุนเทียน กทม.", google_map_url: "https://www.google.com/maps" } },
+        agent: { code: "87524b4a-8511-4a93-88fa-850c8d043868", name: "สมเกียรติ มั่นคง", team: "QC RENOVATE & MENTAINANCE" },
+        store: { code: "60964", code3: "RA2", name: "RAMA2", location: { latitude: 13.652, longitude: 100.421 } },
+        schedule_plan: { visit_date: "2026-09-05", start_time: "13:00:00", end_time: "15:00:00", time_slot: "บ่าย (13:00-15:00)", distance: 8.2 },
+        check_in: { date: "2026-09-05T13:10:00Z", latitude: 13.6800, longitude: 100.4500, image: "pump/check_in/img1.jpg" },
+        check_out: { date: "2026-09-05T14:40:00Z", latitude: 13.6800, longitude: 100.4500, image: "pump/check_out/img2.jpg" },
+        site_photos: ["pump/site/p1.jpg", "pump/site/p2.jpg", "pump/site/p3.jpg", "pump/site/p4.jpg", "pump/site/p5.jpg"],
+        approval: { approve_by: "Phinyo Phoaon", approve_date: "2026-09-05T15:00:00Z", distance: 8.2 },
+        visit_results: ["ฐานปูนด้านหลังบ้านเทเสร็จเรียบร้อย มีปลั๊กไฟกันน้ำพร้อมเชื่อมต่อ"],
+        remarks: { comment: "จุดตั้งปั้มห่างจากตู้เมน 12 เมตร", note: "ลูกค้ารออยู่ที่บ้าน" }
+      }
+    },
+    {
+      id: 1003,
+      source_job_id: "e57f1203-34b5-41d9-aa4c-87b90d120303",
+      job_number: "JOB202609003",
+      booking_no: "VFIX-260901-003",
+      ticket_no: "209051121",
+      source_reference: "REQ-PT2-2608220005",
+      customer_code: "CUST-99202",
+      customer_name: "คุณ สิริกร วงศ์สุวรรณ",
+      customer_phone: "0865554321",
+      store_code: "60964",
+      agent_code: "87524b4a-8511-4a93-88fa-850c8d043868",
+      visit_date: "2026-09-06",
+      checkin_at: "2026-09-06T10:00:00Z",
+      checkout_at: "2026-09-06T11:15:00Z",
+      photo_count: 5,
+      process_status: StagingProcessStatus.PENDING,
+      retry_count: 0,
+      received_at: new Date(Date.now() - 3600000 * 3).toISOString(),
+      raw_payload: {
+        system: { job_id: "e57f1203-34b5-41d9-aa4c-87b90d120303", created_at: "2026-09-02T10:00:00Z", created_by: "system", updated_at: "2026-09-02T10:00:00Z" },
+        job_info: { job_number: "JOB202609003", booking_no: "VFIX-260901-003", ticket_no: "209051121", source_reference: "REQ-PT2-2608220005", status: "Approved", stage: "Completed", property_type: "คอนโดมิเนียม", project_type: "Installation", project_sub_type: "เครื่องทำน้ำอุ่น" },
+        job_details: [
+          { job_type: "ติดตั้งเครื่องทำน้ำอุ่น", installation_detail: "ติดตั้งเครื่องทำน้ำอุ่น Stiebel Eltron 4500W พร้อมเดินสายดินและเบรกเกอร์", product_quantity: 2, remark: "ห้องน้ำ 1 และ ห้องน้ำ 2" }
+        ],
+        customer: { code: "CUST-99202", name: "คุณ สิริกร วงศ์สุวรรณ", mobile_no: "0865554321", location: { latitude: 13.7200, longitude: 100.5300, address: "Condo Ideo สาทร-ท่าพระ ชั้น 18", google_map_url: "https://www.google.com/maps" } },
+        agent: { code: "87524b4a-8511-4a93-88fa-850c8d043868", name: "สมเกียรติ มั่นคง", team: "QC RENOVATE & MENTAINANCE" },
+        store: { code: "60964", code3: "RA2", name: "RAMA2", location: { latitude: 13.652, longitude: 100.421 } },
+        schedule_plan: { visit_date: "2026-09-06", start_time: "10:00:00", end_time: "12:00:00", time_slot: "เช้า (10:00-12:00)", distance: 11.0 },
+        check_in: { date: "2026-09-06T10:00:00Z", latitude: 13.7200, longitude: 100.5300, image: "heater/check_in/img1.jpg" },
+        check_out: { date: "2026-09-06T11:15:00Z", latitude: 13.7200, longitude: 100.5300, image: "heater/check_out/img2.jpg" },
+        site_photos: ["heater/site/h1.jpg", "heater/site/h2.jpg", "heater/site/h3.jpg", "heater/site/h4.jpg", "heater/site/h5.jpg"],
+        approval: { approve_by: "Phinyo Phoaon", approve_date: "2026-09-06T11:30:00Z", distance: 11.0 },
+        visit_results: ["มีท่อน้ำดีและสายไฟร้อยท่อฝังผนังไว้แล้ว เข้าติดตั้งได้ทันที"],
+        remarks: { comment: "นิติบุคคลคอนโดอนุญาตทำงาน 09:00-17:00", note: "ต้องแจ้งชื่อช่างล่วงหน้า" }
+      }
+    },
+    {
+      id: 1004,
+      source_job_id: "f68a2304-45c6-42ea-bb5d-98c01e230404",
+      job_number: "JOB202609004",
+      booking_no: "VFIX-260901-004",
+      ticket_no: "209051122",
+      source_reference: "REQ-PT2-2608220006",
+      customer_code: "CUST-99203",
+      customer_name: "คุณ ณัฐพงษ์ เตชะสกุล",
+      customer_phone: "0819998877",
+      store_code: "60964",
+      agent_code: "87524b4a-8511-4a93-88fa-850c8d043868",
+      visit_date: "2026-09-06",
+      checkin_at: "2026-09-06T13:30:00Z",
+      checkout_at: "2026-09-06T15:20:00Z",
+      photo_count: 6,
+      process_status: StagingProcessStatus.PENDING,
+      retry_count: 0,
+      received_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+      raw_payload: {
+        system: { job_id: "f68a2304-45c6-42ea-bb5d-98c01e230404", created_at: "2026-09-02T10:30:00Z", created_by: "system", updated_at: "2026-09-02T10:30:00Z" },
+        job_info: { job_number: "JOB202609004", booking_no: "VFIX-260901-004", ticket_no: "209051122", source_reference: "REQ-PT2-2608220006", status: "Approved", stage: "Completed", property_type: "บ้านเดี่ยว", project_type: "Renovate", project_sub_type: "งานกระเบื้องพื้น" },
+        job_details: [
+          { job_type: "ปูกระเบื้องพื้นห้องน้ำ", installation_detail: "รื้อกระเบื้องเดิม + ปูกระเบื้องแกรนิตโต้ 60x60 cm พื้นที่ 15 ตร.ม.", product_quantity: 15, remark: "รวมระบบกันซึม 3 ชั้น" }
+        ],
+        customer: { code: "CUST-99203", name: "คุณ ณัฐพงษ์ เตชะสกุล", mobile_no: "0819998877", location: { latitude: 13.7650, longitude: 100.4890, address: "99 หมู่บ้านเพอร์เฟค ราชพฤกษ์ นนทบุรี", google_map_url: "https://www.google.com/maps" } },
+        agent: { code: "87524b4a-8511-4a93-88fa-850c8d043868", name: "สมเกียรติ มั่นคง", team: "QC RENOVATE & MENTAINANCE" },
+        store: { code: "60964", code3: "RA2", name: "RAMA2", location: { latitude: 13.652, longitude: 100.421 } },
+        schedule_plan: { visit_date: "2026-09-06", start_time: "13:00:00", end_time: "16:00:00", time_slot: "บ่าย (13:00-16:00)", distance: 18.0 },
+        check_in: { date: "2026-09-06T13:30:00Z", latitude: 13.7650, longitude: 100.4890, image: "tile/check_in/img1.jpg" },
+        check_out: { date: "2026-09-06T15:20:00Z", latitude: 13.7650, longitude: 100.4890, image: "tile/check_out/img2.jpg" },
+        site_photos: ["tile/site/t1.jpg", "tile/site/t2.jpg", "tile/site/t3.jpg", "tile/site/t4.jpg", "tile/site/t5.jpg", "tile/site/t6.jpg"],
+        approval: { approve_by: "Phinyo Phoaon", approve_date: "2026-09-06T15:30:00Z", distance: 18.0 },
+        visit_results: ["วัดระดับ Slope ท่อระบายน้ำทิ้งเดิมเรียบร้อย ต้องเสริมกันซึมรอบท่อน้ำทิ้ง"],
+        remarks: { comment: "ลูกค้าเลือกกระเบื้องรหัส TILE-GR-6060 จากโฮมโปรแล้ว", note: "รอเริ่มงานสัปดาห์หน้า" }
+      }
+    },
+    {
+      id: 1005,
+      source_job_id: "a79b3405-56d7-43fb-cc6e-09d12f340505",
+      job_number: "JOB202609005",
+      booking_no: "VFIX-260901-005",
+      ticket_no: "209051123",
+      source_reference: "REQ-PT2-2608220007",
+      customer_code: "CUST-99204",
+      customer_name: "คุณ อรวรรณ จิตรสมบูรณ์",
+      customer_phone: "0831122334",
+      store_code: "60964",
+      agent_code: "87524b4a-8511-4a93-88fa-850c8d043868",
+      visit_date: "2026-09-07",
+      checkin_at: "2026-09-07T09:30:00Z",
+      checkout_at: "2026-09-07T11:00:00Z",
+      photo_count: 5,
+      process_status: StagingProcessStatus.PENDING,
+      retry_count: 0,
+      received_at: new Date(Date.now() - 3600000 * 1).toISOString(),
+      raw_payload: {
+        system: { job_id: "a79b3405-56d7-43fb-cc6e-09d12f340505", created_at: "2026-09-02T11:00:00Z", created_by: "system", updated_at: "2026-09-02T11:00:00Z" },
+        job_info: { job_number: "JOB202609005", booking_no: "VFIX-260901-005", ticket_no: "209051123", source_reference: "REQ-PT2-2608220007", status: "Approved", stage: "Completed", property_type: "อาคารพาณิชย์", project_type: "Renovate", project_sub_type: "สุขภัณฑ์และห้องน้ำ" },
+        job_details: [
+          { job_type: "ติดตั้งสุขภัณฑ์", installation_detail: "รื้อถอนโถสุขภัณฑ์เดิม + ติดตั้งโถสุขภัณฑ์ Kohler 2 ชิ้น พร้อมสายฉีดชำระ", product_quantity: 2, remark: "ชั้น 1 และ ชั้น 2" },
+          { job_type: "ติดตั้งฉากกั้นอาบน้ำ", installation_detail: "ติดตั้งฉากกั้นกระจกนิรภัย Tempered 10mm ขนาด 100x200 cm", product_quantity: 1, remark: "ชั้น 2" }
+        ],
+        customer: { code: "CUST-99204", name: "คุณ อรวรรณ จิตรสมบูรณ์", mobile_no: "0831122334", location: { latitude: 13.7340, longitude: 100.5670, address: "45/3 ซอยสุขุมวิท 39 คลองตันเหนือ วัฒนา กทม.", google_map_url: "https://www.google.com/maps" } },
+        agent: { code: "87524b4a-8511-4a93-88fa-850c8d043868", name: "สมเกียรติ มั่นคง", team: "QC RENOVATE & MENTAINANCE" },
+        store: { code: "60964", code3: "RA2", name: "RAMA2", location: { latitude: 13.652, longitude: 100.421 } },
+        schedule_plan: { visit_date: "2026-09-07", start_time: "09:00:00", end_time: "11:30:00", time_slot: "เช้า (09:00-11:30)", distance: 14.3 },
+        check_in: { date: "2026-09-07T09:30:00Z", latitude: 13.7340, longitude: 100.5670, image: "sanitary/check_in/img1.jpg" },
+        check_out: { date: "2026-09-07T11:00:00Z", latitude: 13.7340, longitude: 100.5670, image: "sanitary/check_out/img2.jpg" },
+        site_photos: ["sanitary/site/s1.jpg", "sanitary/site/s2.jpg", "sanitary/site/s3.jpg", "sanitary/site/s4.jpg", "sanitary/site/s5.jpg"],
+        approval: { approve_by: "Phinyo Phoaon", approve_date: "2026-09-07T11:15:00Z", distance: 14.3 },
+        visit_results: ["ระยะท่อชักโครก 30.5 cm ตรงตามมาตรฐาน พร้อมติดตั้งได้ทันที"],
+        remarks: { comment: "มีที่จอดรถหน้าอาคาร ช่างขนย้ายสินค้าสะดวก", note: "นัดหมายเรียบร้อย" }
+      }
+    }
+  ];
+
+  stagingSurveyStore.push(...mockRecords);
+  console.log(`[STAGING SEED] Seeded ${mockRecords.length} mock pending records in staging table.`);
+}
+
+// Initial Seed on Server Startup
+seedInitialStagingData();
+
 // =============================================================================
 // CONVERSION ENGINE (STAGING -> CORE PMT)
 // =============================================================================
@@ -700,6 +901,15 @@ app.post('/api/v1/staging/survey-reports/:id/convert', (req: Request, res: Respo
       converted_job_id: record.converted_job_id,
       validation_errors: record.validation_errors
     }
+  });
+});
+
+app.post('/api/v1/staging/seed', (req: Request, res: Response) => {
+  seedInitialStagingData();
+  return res.json({
+    success: true,
+    message: 'Seeded 5 mock survey reports into staging table successfully',
+    total_records: stagingSurveyStore.length
   });
 });
 
