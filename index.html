@@ -905,6 +905,32 @@
                     document.documentElement.classList.remove('dark');
                 }
                 this.navigate('dashboard');
+                this.fetchJobsFromApi();
+                // Polling sync every 3 seconds for live Swagger updates
+                setInterval(() => this.fetchJobsFromApi(), 3000);
+            },
+
+            async fetchJobsFromApi() {
+                try {
+                    const res = await fetch('/api/v1/jobs');
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+                            DB.jobs = json.data;
+                            if (this.state.currentView === 'jobs') this.renderJobs();
+                            if (this.state.currentView === 'dashboard') {
+                                this.renderDashboard();
+                            }
+                            if (this.state.currentView === 'gantt') this.renderGantt();
+                            if (this.state.currentView === 'qc') this.renderQC();
+                            if (this.state.currentView === 'csat') this.renderCSAT();
+                            const countEl = document.getElementById('sidebar-job-count');
+                            if (countEl) countEl.innerText = DB.jobs.length;
+                        }
+                    }
+                } catch (err) {
+                    console.log('Using local fallback state');
+                }
             },
 
             toggleTheme() {
@@ -1022,53 +1048,65 @@
                 }
             },
 
-            submitCreateJob() {
+            async submitCreateJob() {
                 const firstName = document.getElementById('cj-firstname').value.trim();
                 const lastName = document.getElementById('cj-lastname').value.trim();
                 const service = document.getElementById('cj-service').value;
-                const lat = document.getElementById('cj-lat').value || 13.7563;
-                const lng = document.getElementById('cj-lng').value || 100.5018;
+                const lat = parseFloat(document.getElementById('cj-lat').value) || 13.7563;
+                const lng = parseFloat(document.getElementById('cj-lng').value) || 100.5018;
                 const phone = document.getElementById('cj-phone').value || '089-000-0000';
                 const address = document.getElementById('cj-address').value || 'Bangkok, Thailand';
-                const tech = document.getElementById('cj-tech').value || 'Team A';
+                const tech = document.getElementById('cj-tech').value || 'Team A (สมศักดิ์)';
                 const date = document.getElementById('cj-date').value || '2026-09-06';
                 
                 if(!firstName || !lastName) {
                     return this.showToast('กรุณากรอกชื่อและนามสกุลลูกค้า');
                 }
                 
-                const now = new Date();
-                const yyyy = String(now.getFullYear());
-                const mm = String(now.getMonth() + 1).padStart(2, '0');
-                const runningStr = String(DB.jobs.length + 1).padStart(3, '0');
-                const newId = `JOB${yyyy}${mm}${runningStr}`;
-                const fullName = `${firstName} ${lastName}`;
-                
-                DB.jobs.unshift({
-                    id: newId,
-                    firstName: firstName,
-                    lastName: lastName,
-                    customer: fullName,
-                    lat: parseFloat(lat),
-                    lng: parseFloat(lng),
-                    phone: phone,
-                    service: service,
-                    status: 'DRAFT',
-                    date: date,
-                    progress: 0,
-                    address: address,
-                    tech: tech
-                });
-                
+                try {
+                    const res = await fetch('/api/v1/jobs', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ firstName, lastName, service, lat, lng, phone, address, tech, date })
+                    });
+                    if (res.ok) {
+                        const result = await res.json();
+                        this.showToast(`สร้างงาน ${result.data?.job_no || 'ใหม่'} (ลูกค้า: ${firstName} ${lastName}) สำเร็จแล้ว`);
+                        await this.fetchJobsFromApi();
+                    } else {
+                        throw new Error('API create failed');
+                    }
+                } catch (e) {
+                    const now = new Date();
+                    const yyyy = String(now.getFullYear());
+                    const mm = String(now.getMonth() + 1).padStart(2, '0');
+                    const runningStr = String(DB.jobs.length + 1).padStart(3, '0');
+                    const newId = `JOB${yyyy}${mm}${runningStr}`;
+                    const fullName = `${firstName} ${lastName}`;
+                    DB.jobs.unshift({
+                        id: newId,
+                        firstName: firstName,
+                        lastName: lastName,
+                        customer: fullName,
+                        lat: parseFloat(lat),
+                        lng: parseFloat(lng),
+                        phone: phone,
+                        service: service,
+                        status: 'DRAFT',
+                        date: date,
+                        progress: 0,
+                        address: address,
+                        tech: tech
+                    });
+                    this.showToast(`สร้างงาน ${newId} (ลูกค้า: ${fullName}) สำเร็จแล้ว`);
+                    if(this.state.currentView === 'jobs') this.renderJobs();
+                    if(this.state.currentView === 'dashboard') this.renderDashboard();
+                }
+
                 this.hideModal('modal-create-job');
-                this.showToast(`สร้างงาน ${newId} (ลูกค้า: ${fullName}) สำเร็จแล้ว`);
-                
                 document.getElementById('cj-firstname').value = '';
                 document.getElementById('cj-lastname').value = '';
                 document.getElementById('cj-address').value = '';
-
-                if(this.state.currentView === 'jobs') this.renderJobs();
-                if(this.state.currentView === 'dashboard') this.renderDashboard();
             },
 
             getStatusHtml(status) {

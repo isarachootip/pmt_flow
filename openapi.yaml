@@ -56,6 +56,44 @@ paths:
         '400':
           description: Invalid payload or missing Idempotency-Key
 
+  /jobs:
+    get:
+      summary: List All Active Jobs (Core PMT System)
+      description: Returns all active jobs currently in the system, synced live with Web Dashboard.
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [all, DRAFT, IN_PROGRESS, QC_PENDING, QC_PASSED, AFTER_SALE, CLOSED]
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of jobs returned successfully
+    post:
+      summary: Create New Job (Manual / Web Intake)
+      description: Create a new core project/job directly into PMT system.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [firstName, lastName, service]
+              properties:
+                firstName: { type: string, example: "สมชาย" }
+                lastName: { type: string, example: "ใจดี" }
+                phone: { type: string, example: "081-234-5678" }
+                service: { type: string, example: "ติดตั้งเครื่องทำน้ำอุ่น" }
+                address: { type: string, example: "123/45 ถนนพหลโยธิน กรุงเทพฯ" }
+                tech: { type: string, example: "Team A (สมศักดิ์)" }
+      responses:
+        '201':
+          description: Job created successfully
+
   /jobs/survey-report:
     post:
       summary: Submit Job Survey Report

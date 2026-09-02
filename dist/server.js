@@ -8,7 +8,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.StagingProcessStatus = exports.JobStatus = void 0;
+exports.coreSitePhotoStore = exports.coreVisitCheckinStore = exports.coreJobServiceStore = exports.coreJobStore = exports.coreCustomerStore = exports.stagingSurveyStore = exports.StagingProcessStatus = exports.JobStatus = void 0;
+exports.seedInitialCoreData = seedInitialCoreData;
 exports.seedInitialStagingData = seedInitialStagingData;
 exports.convertStagingToCorePmt = convertStagingToCorePmt;
 const express_1 = __importDefault(require("express"));
@@ -118,6 +119,38 @@ const idempotencyCheck = (req, res, next) => {
 };
 app.use(idempotencyCheck);
 // =============================================================================
+// IN-MEMORY STORAGE FOR STAGING & CORE PMT
+// =============================================================================
+exports.stagingSurveyStore = [];
+exports.coreCustomerStore = [];
+exports.coreJobStore = [];
+exports.coreJobServiceStore = [];
+exports.coreVisitCheckinStore = [];
+exports.coreSitePhotoStore = [];
+// Seed 5 Initial Core Jobs (Sync with UI Frontend)
+function seedInitialCoreData() {
+    exports.coreCustomerStore.length = 0;
+    exports.coreJobStore.length = 0;
+    exports.coreJobServiceStore.length = 0;
+    const mockCustomers = [
+        { id: 1, customer_code: 'CUST-001', first_name: 'ณวัฒน์', last_name: 'รักสงบ', phone: '081-111-2222', address: '99/1 Sukhumvit 55, Bangkok', lat: 13.7563, lng: 100.5018 },
+        { id: 2, customer_code: 'CUST-002', first_name: 'สมศรี', last_name: 'สุขใจ', phone: '082-222-3333', address: '12 Ari Samphan, Phaya Thai', lat: 13.7801, lng: 100.5432 },
+        { id: 3, customer_code: 'CUST-003', first_name: 'เอนก', last_name: 'มั่งคั่ง', phone: '083-333-4444', address: '45 Silom Rd, Bang Rak', lat: 13.7234, lng: 100.5289 },
+        { id: 4, customer_code: 'CUST-004', first_name: 'มาลี', last_name: 'มีโชค', phone: '084-444-5555', address: '88 Ladprao 15, Chatuchak', lat: 13.8056, lng: 100.5712 },
+        { id: 5, customer_code: 'CUST-005', first_name: 'ฉัตรชัย', last_name: 'เจริญวิทย์', phone: '085-555-6666', address: '22 Thong Lo 10, Watthana', lat: 13.7312, lng: 100.5823 },
+    ];
+    exports.coreCustomerStore.push(...mockCustomers);
+    const mockJobs = [
+        { id: 1, job_no: 'JOB202609001', external_ref_id: 'INT-2026-001', customer_id: 1, status: JobStatus.IN_PROGRESS, property_type: 'บ้านเดี่ยว', project_type: 'Renovate', project_sub_type: 'Renovate ครัว', assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-05', services: ['Renovate ครัว'], overall_progress: 45, created_at: '2026-09-01T08:00:00Z' },
+        { id: 2, job_no: 'JOB202609002', external_ref_id: 'INT-2026-002', customer_id: 2, status: JobStatus.QC_PENDING, property_type: 'ทาวน์โฮม', project_type: 'Installation', project_sub_type: 'ปั้มแท็งก์', assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-09-02', services: ['ปั้มแท็งก์'], overall_progress: 100, created_at: '2026-09-01T09:00:00Z' },
+        { id: 3, job_no: 'JOB202609003', external_ref_id: 'INT-2026-003', customer_id: 3, status: JobStatus.QC_PASSED, property_type: 'คอนโดมิเนียม', project_type: 'Installation', project_sub_type: 'ติดตั้งเครื่องทำน้ำอุ่น', assigned_tech: 'Team C (วิชัย)', plan_date: '2026-08-30', services: ['ติดตั้งเครื่องทำน้ำอุ่น'], overall_progress: 100, created_at: '2026-08-29T10:00:00Z' },
+        { id: 4, job_no: 'JOB202609004', external_ref_id: 'INT-2026-004', customer_id: 4, status: JobStatus.DRAFT, property_type: 'บ้านเดี่ยว', project_type: 'Survey', project_sub_type: 'สำรวจหน้างาน', assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-10', services: ['สำรวจหน้างาน'], overall_progress: 0, created_at: '2026-09-02T11:00:00Z' },
+        { id: 5, job_no: 'JOB202609005', external_ref_id: 'INT-2026-005', customer_id: 5, status: JobStatus.AFTER_SALE, property_type: 'บ้านเดี่ยว', project_type: 'Renovate', project_sub_type: 'Renovate ครัว', assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-08-25', services: ['Renovate ครัว'], overall_progress: 100, created_at: '2026-08-24T12:00:00Z' }
+    ];
+    exports.coreJobStore.push(...mockJobs);
+    console.log(`[CORE SEED] Seeded ${mockJobs.length} core jobs in coreJobStore.`);
+}
+// =============================================================================
 // 1. INT INBOUND INTEGRATION API (Req #1)
 // =============================================================================
 app.post('/api/v1/integration/orders', async (req, res) => {
@@ -136,6 +169,21 @@ app.post('/api/v1/integration/orders', async (req, res) => {
                 error: { code: 'INVALID_PAYLOAD', message: 'Customer first_name, last_name, phone, lat, lng, and external_ref_id are required' }
             });
         }
+        // Upsert customer in core customer store
+        let customer = exports.coreCustomerStore.find(c => c.phone === payload.customer.phone);
+        if (!customer) {
+            customer = {
+                id: Date.now() + Math.floor(Math.random() * 100),
+                customer_code: `CUST-${Date.now()}`,
+                first_name: payload.customer.first_name,
+                last_name: payload.customer.last_name,
+                phone: payload.customer.phone,
+                address: payload.customer.address || 'ไม่ระบุที่อยู่',
+                lat: payload.customer.lat,
+                lng: payload.customer.lng
+            };
+            exports.coreCustomerStore.push(customer);
+        }
         // Generate Job No format: JOBYYYYMMXXX (e.g., JOB202609001)
         const now = new Date();
         const yyyy = String(now.getFullYear());
@@ -147,35 +195,33 @@ app.post('/api/v1/integration/orders', async (req, res) => {
             id: Date.now(),
             job_no: jobNo,
             external_ref_id: payload.external_ref_id,
-            customer: payload.customer,
-            services: payload.services || [],
-            assigned_tech: payload.technician || null,
-            appointment: payload.appointment || null,
+            customer_id: customer.id,
+            services: payload.services || ['งานติดตั้ง'],
+            assigned_tech: payload.technician?.name || 'Team A (สมศักดิ์)',
+            plan_date: payload.appointment?.date || new Date().toISOString().split('T')[0],
             status: JobStatus.DRAFT,
+            overall_progress: 0,
             created_at: new Date().toISOString()
         };
+        exports.coreJobStore.unshift(newJob);
         return res.status(201).json({
             success: true,
-            data: newJob,
-            meta: { message: 'Order received successfully from INT system' }
+            data: {
+                ...newJob,
+                customer: payload.customer,
+                assigned_tech: payload.technician || null,
+                appointment: payload.appointment || null
+            },
+            meta: { message: 'Order received successfully from INT system and added to Core Jobs' }
         });
     }
     catch (err) {
         return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
     }
 });
-// =============================================================================
-// IN-MEMORY STORAGE FOR STAGING & CORE PMT
-// =============================================================================
-const stagingSurveyStore = [];
-const coreCustomerStore = [];
-const coreJobStore = [];
-const coreJobServiceStore = [];
-const coreVisitCheckinStore = [];
-const coreSitePhotoStore = [];
 // Seed 5 Mock Survey Records for Staging Monitoring & Manual Conversion
 function seedInitialStagingData() {
-    stagingSurveyStore.length = 0; // Reset
+    exports.stagingSurveyStore.length = 0; // Reset
     const mockRecords = [
         {
             id: 1001,
@@ -365,11 +411,12 @@ function seedInitialStagingData() {
             }
         }
     ];
-    stagingSurveyStore.push(...mockRecords);
+    exports.stagingSurveyStore.push(...mockRecords);
     console.log(`[STAGING SEED] Seeded ${mockRecords.length} mock pending records in staging table.`);
 }
 // Initial Seed on Server Startup
 seedInitialStagingData();
+seedInitialCoreData();
 // =============================================================================
 // CONVERSION ENGINE (STAGING -> CORE PMT)
 // =============================================================================
@@ -398,7 +445,7 @@ function convertStagingToCorePmt(stagingRecord) {
     stagingRecord.process_status = StagingProcessStatus.PROCESSING;
     try {
         // 1. Upsert Customer in Core Table
-        let customer = coreCustomerStore.find(c => c.phone === payload.customer.mobile_no || (payload.customer.code && c.customer_code === payload.customer.code));
+        let customer = exports.coreCustomerStore.find(c => c.phone === payload.customer.mobile_no || (payload.customer.code && c.customer_code === payload.customer.code));
         if (!customer) {
             const nameParts = payload.customer.name.trim().split(' ');
             const firstName = nameParts[0] || payload.customer.name;
@@ -414,7 +461,7 @@ function convertStagingToCorePmt(stagingRecord) {
                 lng: payload.customer.location?.longitude || 0,
                 google_map_url: payload.customer.location?.google_map_url
             };
-            coreCustomerStore.push(customer);
+            exports.coreCustomerStore.push(customer);
         }
         // 2. Insert Core Job (Req #1 & State Machine: SURVEYED)
         const jobId = Date.now() + Math.floor(Math.random() * 1000);
@@ -434,11 +481,11 @@ function convertStagingToCorePmt(stagingRecord) {
             overall_progress: 10,
             created_at: new Date().toISOString()
         };
-        coreJobStore.push(newCoreJob);
+        exports.coreJobStore.push(newCoreJob);
         // 3. Insert Job Services
         if (Array.isArray(payload.job_details)) {
             payload.job_details.forEach((item, idx) => {
-                coreJobServiceStore.push({
+                exports.coreJobServiceStore.push({
                     id: Date.now() + idx + Math.floor(Math.random() * 1000),
                     job_id: jobId,
                     job_type: item.job_type,
@@ -469,11 +516,11 @@ function convertStagingToCorePmt(stagingRecord) {
             approved_by: payload.approval?.approve_by,
             approved_at: payload.approval?.approve_date
         };
-        coreVisitCheckinStore.push(visitRecord);
+        exports.coreVisitCheckinStore.push(visitRecord);
         // 5. Insert Site Photos (Req #2)
         if (Array.isArray(payload.site_photos)) {
             payload.site_photos.forEach((photoPath, idx) => {
-                coreSitePhotoStore.push({
+                exports.coreSitePhotoStore.push({
                     id: Date.now() + idx + Math.floor(Math.random() * 1000),
                     job_id: jobId,
                     visit_checkin_id: visitCheckinId,
@@ -530,7 +577,7 @@ app.post('/api/v1/jobs/survey-report', async (req, res) => {
             });
         }
         // 2. Check Idempotency / Duplicate in Staging
-        const existing = stagingSurveyStore.find(s => s.source_job_id === payload.system.job_id);
+        const existing = exports.stagingSurveyStore.find(s => s.source_job_id === payload.system.job_id);
         if (existing) {
             return res.status(200).json({
                 success: true,
@@ -562,7 +609,7 @@ app.post('/api/v1/jobs/survey-report', async (req, res) => {
             retry_count: 0,
             received_at: new Date().toISOString()
         };
-        stagingSurveyStore.push(stagingRecord);
+        exports.stagingSurveyStore.push(stagingRecord);
         console.log(`[STAGING INGEST] Successfully saved raw payload in staging: #${stagingRecord.id} (Job: ${stagingRecord.job_number})`);
         // 4. Processing based on Auto-Convert Mode
         const shouldAutoConvert = req.query.auto_convert !== 'false' && autoConvertEnabled;
@@ -602,7 +649,7 @@ app.post('/api/v1/jobs/survey-report', async (req, res) => {
 // =============================================================================
 app.get('/api/v1/staging/survey-reports', (req, res) => {
     const { status, search } = req.query;
-    let results = [...stagingSurveyStore];
+    let results = [...exports.stagingSurveyStore];
     if (status) {
         results = results.filter(r => r.process_status === status);
     }
@@ -632,7 +679,7 @@ app.get('/api/v1/staging/survey-reports', (req, res) => {
 });
 app.get('/api/v1/staging/survey-reports/:id', (req, res) => {
     const id = Number(req.params.id);
-    const record = stagingSurveyStore.find(r => r.id === id);
+    const record = exports.stagingSurveyStore.find(r => r.id === id);
     if (!record) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Staging record not found' } });
     }
@@ -640,7 +687,7 @@ app.get('/api/v1/staging/survey-reports/:id', (req, res) => {
 });
 app.post('/api/v1/staging/survey-reports/:id/convert', (req, res) => {
     const id = Number(req.params.id);
-    const record = stagingSurveyStore.find(r => r.id === id);
+    const record = exports.stagingSurveyStore.find(r => r.id === id);
     if (!record) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Staging record not found' } });
     }
@@ -660,7 +707,143 @@ app.post('/api/v1/staging/seed', (req, res) => {
     return res.json({
         success: true,
         message: 'Seeded 5 mock survey reports into staging table successfully',
-        total_records: stagingSurveyStore.length
+        total_records: exports.stagingSurveyStore.length
+    });
+});
+// =============================================================================
+// 1.2 CORE JOBS APIS (List, Get, Create for Web Dashboard & Automation)
+app.get('/api/v1/jobs', (req, res) => {
+    const { status, service, search } = req.query;
+    let results = exports.coreJobStore.map(job => {
+        const cust = exports.coreCustomerStore.find(c => c.id === job.customer_id);
+        const customerFullName = cust ? `${cust.first_name || ''} ${cust.last_name || ''}`.trim() : 'ไม่ระบุชื่อ';
+        const primaryService = (job.services && job.services[0]) || job.project_sub_type || 'งานติดตั้ง';
+        return {
+            id: job.job_no || `JOB-${job.id}`,
+            jobId: job.id,
+            job_no: job.job_no,
+            external_ref_id: job.external_ref_id,
+            customer: customerFullName,
+            firstName: cust?.first_name || '',
+            lastName: cust?.last_name || '',
+            phone: cust?.phone || '',
+            address: cust?.address || '',
+            lat: cust?.lat || 13.7563,
+            lng: cust?.lng || 100.5018,
+            service: primaryService,
+            services: job.services || [primaryService],
+            status: job.status,
+            date: job.plan_date || (job.created_at ? job.created_at.split('T')[0] : '2026-09-05'),
+            progress: job.overall_progress || 0,
+            tech: job.assigned_tech || 'Team A (สมศักดิ์)',
+            created_at: job.created_at
+        };
+    });
+    if (status && status !== 'all') {
+        results = results.filter(j => j.status === status);
+    }
+    if (service && service !== 'all') {
+        results = results.filter(j => j.service === service || (j.services && j.services.includes(String(service))));
+    }
+    if (search) {
+        const q = String(search).toLowerCase();
+        results = results.filter(j => j.id.toLowerCase().includes(q) ||
+            j.customer.toLowerCase().includes(q) ||
+            j.phone.includes(q) ||
+            j.service.toLowerCase().includes(q));
+    }
+    return res.json({
+        success: true,
+        total: results.length,
+        data: results
+    });
+});
+app.get('/api/v1/jobs/:id', (req, res) => {
+    const param = req.params.id;
+    const numId = Number(param);
+    const job = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+    if (!job) {
+        return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
+    }
+    const cust = exports.coreCustomerStore.find(c => c.id === job.customer_id);
+    const primaryService = (job.services && job.services[0]) || job.project_sub_type || 'งานติดตั้ง';
+    return res.json({
+        success: true,
+        data: {
+            id: job.job_no || `JOB-${job.id}`,
+            jobId: job.id,
+            job_no: job.job_no,
+            external_ref_id: job.external_ref_id,
+            customer: cust ? `${cust.first_name} ${cust.last_name}`.trim() : 'ไม่ระบุชื่อ',
+            firstName: cust?.first_name || '',
+            lastName: cust?.last_name || '',
+            phone: cust?.phone || '',
+            address: cust?.address || '',
+            lat: cust?.lat || 13.7563,
+            lng: cust?.lng || 100.5018,
+            service: primaryService,
+            services: job.services || [primaryService],
+            status: job.status,
+            date: job.plan_date || (job.created_at ? job.created_at.split('T')[0] : '2026-09-05'),
+            progress: job.overall_progress || 0,
+            tech: job.assigned_tech || 'Team A (สมศักดิ์)',
+            created_at: job.created_at
+        }
+    });
+});
+app.post('/api/v1/jobs', (req, res) => {
+    try {
+        const { firstName, lastName, phone, address, lat, lng, service, tech, date } = req.body;
+        if (!firstName || !lastName) {
+            return res.status(400).json({ success: false, error: { code: 'INVALID_PAYLOAD', message: 'firstName and lastName are required' } });
+        }
+        const now = new Date();
+        const yyyy = String(now.getFullYear());
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const runningSeq = Math.floor(1 + Math.random() * 999);
+        const runningStr = String(runningSeq).padStart(3, '0');
+        const jobNo = `JOB${yyyy}${mm}${runningStr}`;
+        const customer = {
+            id: Date.now() + Math.floor(Math.random() * 100),
+            customer_code: `CUST-${Date.now()}`,
+            first_name: firstName,
+            last_name: lastName,
+            phone: phone || '089-000-0000',
+            address: address || 'Bangkok, Thailand',
+            lat: Number(lat) || 13.7563,
+            lng: Number(lng) || 100.5018
+        };
+        exports.coreCustomerStore.push(customer);
+        const newJob = {
+            id: Date.now(),
+            job_no: jobNo,
+            external_ref_id: `WEB-${Date.now()}`,
+            customer_id: customer.id,
+            services: [service || 'งานติดตั้ง'],
+            assigned_tech: tech || 'Team A (สมศักดิ์)',
+            plan_date: date || new Date().toISOString().split('T')[0],
+            status: JobStatus.DRAFT,
+            overall_progress: 0,
+            created_at: new Date().toISOString()
+        };
+        exports.coreJobStore.unshift(newJob);
+        return res.status(201).json({
+            success: true,
+            data: newJob,
+            meta: { message: 'Job created successfully' }
+        });
+    }
+    catch (err) {
+        return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+    }
+});
+app.post('/api/v1/jobs/reset', (req, res) => {
+    seedInitialCoreData();
+    seedInitialStagingData();
+    return res.json({
+        success: true,
+        message: 'Reset core jobs and staging records to initial dataset successfully',
+        total_jobs: exports.coreJobStore.length
     });
 });
 // =============================================================================
@@ -668,7 +851,8 @@ app.post('/api/v1/staging/seed', (req, res) => {
 // =============================================================================
 app.post('/api/v1/jobs/:id/checkin', async (req, res) => {
     try {
-        const jobId = Number(req.params.id);
+        const param = req.params.id;
+        const numId = Number(param);
         const { lat, lng, photos, summary } = req.body;
         // Rule: Minimum 5 site photos required (Req #2)
         if (!photos || photos.length < 5) {
@@ -682,16 +866,19 @@ app.post('/api/v1/jobs/:id/checkin', async (req, res) => {
                 }
             });
         }
+        // Update job status if present in coreJobStore
+        const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+        if (targetJob) {
+            targetJob.status = JobStatus.SURVEYED;
+            targetJob.overall_progress = Math.max(targetJob.overall_progress, 30);
+        }
         // Rule: Geo-fence Check (Default 400m - Configurable) (Req #2, OQ-A07)
         const configRadius = 400; // meters
-        const mockCustomerLat = 13.7563;
-        const mockCustomerLng = 100.5018;
-        // Haversine distance calculation (mocked distance for demonstration)
         const distanceMeters = 180; // Calculated distance
         const isInRadius = distanceMeters <= configRadius;
         const checkinLog = {
             id: Date.now(),
-            job_id: jobId,
+            job_id: targetJob ? targetJob.id : numId,
             checkin_at: new Date().toISOString(),
             lat,
             lng,
@@ -779,17 +966,24 @@ app.post('/api/v1/jobs/:id/tasks', async (req, res) => {
 // 5. QC INSPECTION & AFTER SALE CSAT API (Req #10 & #11)
 // =============================================================================
 app.post('/api/v1/jobs/:id/qc-inspection', async (req, res) => {
-    const jobId = Number(req.params.id);
+    const param = req.params.id;
+    const numId = Number(param);
     const { items, remarks } = req.body; // items: [{ item_id, result: 'PASS'|'FAIL', is_mandatory }]
     // Rule: Mandatory item failing triggers overall QC FAIL (Req #11)
-    const hasMandatoryFail = items.some((it) => it.is_mandatory && it.result === 'FAIL');
+    const hasMandatoryFail = Array.isArray(items) && items.some((it) => it.is_mandatory && it.result === 'FAIL');
     const overallResult = hasMandatoryFail ? 'FAIL' : 'PASS';
     const nextStatus = overallResult === 'PASS' ? JobStatus.QC_PASSED : JobStatus.IN_PROGRESS;
+    // Update target job in coreJobStore
+    const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+    if (targetJob) {
+        targetJob.status = nextStatus;
+        targetJob.overall_progress = overallResult === 'PASS' ? 100 : 80;
+    }
     return res.status(200).json({
         success: true,
         data: {
             inspection_id: Date.now(),
-            job_id: jobId,
+            job_id: targetJob ? targetJob.id : numId,
             overall_result: overallResult,
             is_rework_required: hasMandatoryFail,
             next_job_status: nextStatus,
@@ -801,15 +995,22 @@ app.post('/api/v1/jobs/:id/qc-inspection', async (req, res) => {
 });
 // After Sale CSAT Survey Logging (Req #11, OQ-A05)
 app.post('/api/v1/jobs/:id/after-sale/csat', async (req, res) => {
-    const jobId = Number(req.params.id);
+    const param = req.params.id;
+    const numId = Number(param);
     const { csat_score, customer_feedback } = req.body;
     const csatResult = csat_score >= 3 ? 'PASS' : 'FAIL';
     const nextStatus = csatResult === 'PASS' ? JobStatus.CLOSED : JobStatus.IN_PROGRESS;
+    const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+    if (targetJob) {
+        targetJob.status = nextStatus;
+        if (csatResult === 'PASS')
+            targetJob.overall_progress = 100;
+    }
     return res.status(200).json({
         success: true,
         data: {
             case_no: `AS-${Date.now()}`,
-            job_id: jobId,
+            job_id: targetJob ? targetJob.id : numId,
             csat_score,
             csat_result: csatResult,
             customer_feedback,
@@ -822,10 +1023,15 @@ app.post('/api/v1/jobs/:id/after-sale/csat', async (req, res) => {
 // =============================================================================
 app.post('/api/v1/jobs/:id/close-and-export-bmt', async (req, res) => {
     try {
-        const jobId = Number(req.params.id);
-        // Rule: Send ONLY QC-Passed Tasks to BMT System (OQ-A03)
+        const param = req.params.id;
+        const numId = Number(param);
+        const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+        if (targetJob) {
+            targetJob.status = JobStatus.CLOSED;
+            targetJob.overall_progress = 100;
+        }
         const bmtPayload = {
-            job_no: `JOB202609001`,
+            job_no: targetJob?.job_no || `JOB202609001`,
             bmt_export_timestamp: new Date().toISOString(),
             customer: {
                 name: 'นาย สมชาย ใจดี',
@@ -843,12 +1049,10 @@ app.post('/api/v1/jobs/:id/close-and-export-bmt', async (req, res) => {
             csat_result: 'PASS',
             status: 'CLOSED'
         };
-        // Simulate REST Call to BMT Endpoint (OQ-A02)
-        // await axios.post('https://bmt.system.local/api/v1/projects/close', bmtPayload);
         return res.status(200).json({
             success: true,
             data: {
-                job_id: jobId,
+                job_id: targetJob ? targetJob.id : numId,
                 status: JobStatus.CLOSED,
                 bmt_response_ref: `BMT-REF-${Math.floor(100000 + Math.random() * 900000)}`,
                 exported_payload: bmtPayload
