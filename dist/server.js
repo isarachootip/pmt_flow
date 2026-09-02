@@ -157,30 +157,42 @@ app.post('/api/v1/integration/orders', async (req, res) => {
     try {
         const payload = req.body;
         const idempotencyKey = req.headers['x-idempotency-key'];
-        // Validate payload
-        if (!payload.external_ref_id ||
-            !payload.customer?.first_name ||
-            !payload.customer?.last_name ||
-            !payload.customer?.phone ||
-            payload.customer?.lat === undefined ||
-            payload.customer?.lng === undefined) {
+        if (!payload.external_ref_id) {
             return res.status(400).json({
                 success: false,
-                error: { code: 'INVALID_PAYLOAD', message: 'Customer first_name, last_name, phone, lat, lng, and external_ref_id are required' }
+                error: { code: 'INVALID_PAYLOAD', message: 'Field "external_ref_id" is required' }
             });
         }
+        if (!payload.customer || (!payload.customer.first_name && !payload.customer.name)) {
+            return res.status(400).json({
+                success: false,
+                error: { code: 'INVALID_PAYLOAD', message: 'Customer name or first_name is required' }
+            });
+        }
+        // Support both customer.name (single string) and customer.first_name/last_name
+        let firstName = payload.customer.first_name || '';
+        let lastName = payload.customer.last_name || '';
+        if (!firstName && payload.customer.name) {
+            const parts = String(payload.customer.name).trim().split(' ');
+            firstName = parts[0] || 'ลูกค้า';
+            lastName = parts.slice(1).join(' ') || '-';
+        }
+        const phone = payload.customer.phone || '081-234-5678';
+        const address = payload.customer.address || 'ไม่ระบุที่อยู่';
+        const lat = Number(payload.customer.lat) || 13.7563;
+        const lng = Number(payload.customer.lng) || 100.5018;
         // Upsert customer in core customer store
-        let customer = exports.coreCustomerStore.find(c => c.phone === payload.customer.phone);
+        let customer = exports.coreCustomerStore.find(c => c.phone === phone);
         if (!customer) {
             customer = {
                 id: Date.now() + Math.floor(Math.random() * 100),
                 customer_code: `CUST-${Date.now()}`,
-                first_name: payload.customer.first_name,
-                last_name: payload.customer.last_name,
-                phone: payload.customer.phone,
-                address: payload.customer.address || 'ไม่ระบุที่อยู่',
-                lat: payload.customer.lat,
-                lng: payload.customer.lng
+                first_name: firstName,
+                last_name: lastName,
+                phone: phone,
+                address: address,
+                lat: lat,
+                lng: lng
             };
             exports.coreCustomerStore.push(customer);
         }
@@ -196,7 +208,7 @@ app.post('/api/v1/integration/orders', async (req, res) => {
             job_no: jobNo,
             external_ref_id: payload.external_ref_id,
             customer_id: customer.id,
-            services: payload.services || ['งานติดตั้ง'],
+            services: payload.services || ['ติดตั้งเครื่องทำน้ำอุ่น'],
             assigned_tech: payload.technician?.name || 'Team A (สมศักดิ์)',
             plan_date: payload.appointment?.date || new Date().toISOString().split('T')[0],
             status: JobStatus.DRAFT,
@@ -208,7 +220,14 @@ app.post('/api/v1/integration/orders', async (req, res) => {
             success: true,
             data: {
                 ...newJob,
-                customer: payload.customer,
+                customer: {
+                    first_name: firstName,
+                    last_name: lastName,
+                    phone: phone,
+                    address: address,
+                    lat: lat,
+                    lng: lng
+                },
                 assigned_tech: payload.technician || null,
                 appointment: payload.appointment || null
             },
