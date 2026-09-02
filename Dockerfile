@@ -12,6 +12,7 @@ COPY package*.json ./
 RUN npm ci --only=production
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/index.html ./index.html
+COPY --from=builder /app/openapi.yaml ./openapi.yaml
 
 EXPOSE 3000
 CMD ["node", "dist/server.js"]

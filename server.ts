@@ -38,6 +38,46 @@ app.get('/', (req: Request, res: Response) => {
   });
 });
 
+// Swagger Specification & Interactive UI (/docs and /api-docs)
+app.get('/openapi.yaml', (req: Request, res: Response) => {
+  const rootOpenapi = path.join(__dirname, '../openapi.yaml');
+  const localOpenapi = path.join(__dirname, './openapi.yaml');
+  res.setHeader('Content-Type', 'text/yaml; charset=utf-8');
+  if (fs.existsSync(rootOpenapi)) return res.sendFile(rootOpenapi);
+  if (fs.existsSync(localOpenapi)) return res.sendFile(localOpenapi);
+  return res.status(404).send('openapi.yaml not found');
+});
+
+const renderSwaggerDocs = (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>SPMT API Documentation (Swagger UI)</title>
+      <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+    </head>
+    <body>
+      <div id="swagger-ui"></div>
+      <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js" crossorigin></script>
+      <script>
+        window.onload = () => {
+          window.ui = SwaggerUIBundle({
+            url: '/openapi.yaml',
+            dom_id: '#swagger-ui',
+          });
+        };
+      </script>
+    </body>
+    </html>
+  `);
+};
+
+app.get('/docs', renderSwaggerDocs);
+app.get('/api-docs', renderSwaggerDocs);
+
 // =============================================================================
 // TYPES & INTERFACES
 // =============================================================================
@@ -163,6 +203,103 @@ export interface JobSurveyPayload {
   };
 }
 
+export enum StagingProcessStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  CONVERTED = 'CONVERTED',
+  VALIDATION_FAILED = 'VALIDATION_FAILED',
+  ERROR = 'ERROR'
+}
+
+export interface StagingSurveyReport {
+  id: number;
+  source_job_id: string;
+  job_number: string;
+  booking_no?: string;
+  ticket_no?: string;
+  source_reference?: string;
+  customer_code?: string;
+  customer_name: string;
+  customer_phone: string;
+  store_code?: string;
+  agent_code?: string;
+  visit_date?: string;
+  checkin_at?: string;
+  checkout_at?: string;
+  photo_count: number;
+  raw_payload: JobSurveyPayload;
+  process_status: StagingProcessStatus;
+  converted_job_id?: number;
+  validation_errors?: string[];
+  error_message?: string;
+  retry_count: number;
+  received_at: string;
+  processed_at?: string;
+}
+
+export interface CoreCustomer {
+  id: number;
+  customer_code: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  address: string;
+  lat: number;
+  lng: number;
+  google_map_url?: string;
+}
+
+export interface CoreJob {
+  id: number;
+  job_no: string;
+  external_ref_id: string;
+  booking_no: string;
+  ticket_no: string;
+  customer_id: number;
+  status: JobStatus;
+  property_type: string;
+  project_type: string;
+  project_sub_type: string;
+  store_code: string;
+  agent_name: string;
+  overall_progress: number;
+  created_at: string;
+}
+
+export interface CoreJobService {
+  id: number;
+  job_id: number;
+  job_type: string;
+  installation_detail: string;
+  quantity: number;
+  remark?: string;
+}
+
+export interface CoreVisitCheckin {
+  id: number;
+  job_id: number;
+  checkin_at: string;
+  checkout_at: string;
+  duration_minutes: number;
+  checkin_lat: number;
+  checkin_lng: number;
+  distance_km: number;
+  is_in_radius: boolean;
+  photo_count: number;
+  visit_results: string[];
+  remarks_comment?: string;
+  approved_by?: string;
+  approved_at?: string;
+}
+
+export interface CoreSitePhoto {
+  id: number;
+  job_id: number;
+  visit_checkin_id: number;
+  file_path: string;
+  taken_at: string;
+}
+
 // =============================================================================
 // MIDDLEWARES
 // =============================================================================
@@ -204,14 +341,13 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
       });
     }
 
-    // Generate Job No format: ddmmyy + running(xxxxx) (e.g., 02092600001)
+    // Generate Job No format: JOBYYYYMMXXX (e.g., JOB202609001)
     const now = new Date();
-    const dd = String(now.getDate()).padStart(2, '0');
+    const yyyy = String(now.getFullYear());
     const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const yy = String(now.getFullYear()).slice(-2);
-    const runningSeq = Math.floor(1 + Math.random() * 99999);
-    const runningStr = String(runningSeq).padStart(5, '0');
-    const jobNo = `${dd}${mm}${yy}${runningStr}`;
+    const runningSeq = Math.floor(1 + Math.random() * 999);
+    const runningStr = String(runningSeq).padStart(3, '0');
+    const jobNo = `JOB${yyyy}${mm}${runningStr}`;
 
     const newJob = {
       id: Date.now(),
@@ -236,7 +372,163 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
 });
 
 // =============================================================================
-// 1.1 JOB SURVEY REPORT SUBMISSION API
+// IN-MEMORY STORAGE FOR STAGING & CORE PMT
+// =============================================================================
+const stagingSurveyStore: StagingSurveyReport[] = [];
+const coreCustomerStore: CoreCustomer[] = [];
+const coreJobStore: CoreJob[] = [];
+const coreJobServiceStore: CoreJobService[] = [];
+const coreVisitCheckinStore: CoreVisitCheckin[] = [];
+const coreSitePhotoStore: CoreSitePhoto[] = [];
+
+// =============================================================================
+// CONVERSION ENGINE (STAGING -> CORE PMT)
+// =============================================================================
+export function convertStagingToCorePmt(stagingRecord: StagingSurveyReport): {
+  success: boolean;
+  jobId?: number;
+  errors?: string[];
+} {
+  const payload = stagingRecord.raw_payload;
+  const validationErrors: string[] = [];
+
+  // Validation 1: Site photos minimum 5 photos (Req #2)
+  const photoCount = payload.site_photos?.length || 0;
+  if (photoCount < 5) {
+    validationErrors.push(`จำนวนรูปถ่ายไม่ครบตามข้อกำหนด (พบ ${photoCount} รูป, ต้องมีอย่างน้อย 5 รูป)`);
+  }
+
+  // Validation 2: Customer Name & Mobile
+  if (!payload.customer?.name || !payload.customer?.mobile_no) {
+    validationErrors.push('ข้อมูลลูกค้าไม่ครบถ้วน (ชื่อหรือเบอร์โทรว่าง)');
+  }
+
+  // Validation 3: Checkin & Checkout timestamps (Req #2 & #3)
+  if (!payload.check_in?.date || !payload.check_out?.date) {
+    validationErrors.push('ข้อมูล Check-in หรือ Check-out ไม่ครบถ้วน');
+  }
+
+  if (validationErrors.length > 0) {
+    stagingRecord.process_status = StagingProcessStatus.VALIDATION_FAILED;
+    stagingRecord.validation_errors = validationErrors;
+    stagingRecord.processed_at = new Date().toISOString();
+    return { success: false, errors: validationErrors };
+  }
+
+  stagingRecord.process_status = StagingProcessStatus.PROCESSING;
+
+  try {
+    // 1. Upsert Customer in Core Table
+    let customer = coreCustomerStore.find(c => c.phone === payload.customer.mobile_no || (payload.customer.code && c.customer_code === payload.customer.code));
+    if (!customer) {
+      const nameParts = payload.customer.name.trim().split(' ');
+      const firstName = nameParts[0] || payload.customer.name;
+      const lastName = nameParts.slice(1).join(' ') || '-';
+
+      customer = {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        customer_code: payload.customer.code || `CUST-${Date.now()}`,
+        first_name: firstName,
+        last_name: lastName,
+        phone: payload.customer.mobile_no,
+        address: payload.customer.location?.address || 'ไม่ระบุที่อยู่',
+        lat: payload.customer.location?.latitude || 0,
+        lng: payload.customer.location?.longitude || 0,
+        google_map_url: payload.customer.location?.google_map_url
+      };
+      coreCustomerStore.push(customer);
+    }
+
+    // 2. Insert Core Job (Req #1 & State Machine: SURVEYED)
+    const jobId = Date.now() + Math.floor(Math.random() * 1000);
+    const newCoreJob: CoreJob = {
+      id: jobId,
+      job_no: payload.job_info?.job_number || stagingRecord.job_number,
+      external_ref_id: payload.job_info?.source_reference || stagingRecord.source_reference || '',
+      booking_no: payload.job_info?.booking_no || stagingRecord.booking_no || '',
+      ticket_no: payload.job_info?.ticket_no || stagingRecord.ticket_no || '',
+      customer_id: customer.id,
+      status: JobStatus.SURVEYED,
+      property_type: payload.job_info?.property_type || '',
+      project_type: payload.job_info?.project_type || '',
+      project_sub_type: payload.job_info?.project_sub_type || '',
+      store_code: payload.store?.code || '',
+      agent_name: payload.agent?.name || '',
+      overall_progress: 10,
+      created_at: new Date().toISOString()
+    };
+    coreJobStore.push(newCoreJob);
+
+    // 3. Insert Job Services
+    if (Array.isArray(payload.job_details)) {
+      payload.job_details.forEach((item, idx) => {
+        coreJobServiceStore.push({
+          id: Date.now() + idx + Math.floor(Math.random() * 1000),
+          job_id: jobId,
+          job_type: item.job_type,
+          installation_detail: item.installation_detail,
+          quantity: item.product_quantity || 1,
+          remark: item.remark
+        });
+      });
+    }
+
+    // 4. Insert Visit Checkin & Checkout record (Req #2 & #3)
+    const checkinTime = new Date(payload.check_in.date).getTime();
+    const checkoutTime = new Date(payload.check_out.date).getTime();
+    const durationMinutes = Math.max(0, Math.round((checkoutTime - checkinTime) / (1000 * 60)));
+
+    const visitCheckinId = Date.now() + Math.floor(Math.random() * 1000);
+    const visitRecord: CoreVisitCheckin = {
+      id: visitCheckinId,
+      job_id: jobId,
+      checkin_at: payload.check_in.date,
+      checkout_at: payload.check_out.date,
+      duration_minutes: durationMinutes,
+      checkin_lat: payload.check_in.latitude,
+      checkin_lng: payload.check_in.longitude,
+      distance_km: payload.schedule_plan?.distance || 0,
+      is_in_radius: true,
+      photo_count: photoCount,
+      visit_results: payload.visit_results || [],
+      remarks_comment: payload.remarks?.comment,
+      approved_by: payload.approval?.approve_by,
+      approved_at: payload.approval?.approve_date
+    };
+    coreVisitCheckinStore.push(visitRecord);
+
+    // 5. Insert Site Photos (Req #2)
+    if (Array.isArray(payload.site_photos)) {
+      payload.site_photos.forEach((photoPath, idx) => {
+        coreSitePhotoStore.push({
+          id: Date.now() + idx + Math.floor(Math.random() * 1000),
+          job_id: jobId,
+          visit_checkin_id: visitCheckinId,
+          file_path: photoPath,
+          taken_at: payload.check_in.date
+        });
+      });
+    }
+
+    // 6. Update Staging Record as CONVERTED
+    stagingRecord.process_status = StagingProcessStatus.CONVERTED;
+    stagingRecord.converted_job_id = jobId;
+    stagingRecord.processed_at = new Date().toISOString();
+    stagingRecord.validation_errors = undefined;
+
+    console.log(`[STAGING CONVERT] Successfully converted staging #${stagingRecord.id} -> Job #${jobId} (${newCoreJob.job_no})`);
+    return { success: true, jobId };
+  } catch (err: any) {
+    stagingRecord.process_status = StagingProcessStatus.ERROR;
+    stagingRecord.error_message = err.message;
+    stagingRecord.retry_count += 1;
+    stagingRecord.processed_at = new Date().toISOString();
+    return { success: false, errors: [err.message] };
+  }
+}
+
+// =============================================================================
+// 1.1 JOB SURVEY REPORT INGESTION & STAGING API
 // =============================================================================
 app.post('/api/v1/jobs/survey-report', async (req: Request<{}, {}, JobSurveyPayload>, res: Response) => {
   try {
@@ -257,53 +549,64 @@ app.post('/api/v1/jobs/survey-report', async (req: Request<{}, {}, JobSurveyPayl
       });
     }
 
-    if (!payload?.customer?.name || !payload?.customer?.mobile_no) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'INVALID_PAYLOAD', message: 'Customer name and mobile_no are required' }
+    // 2. Check Idempotency / Duplicate in Staging
+    const existing = stagingSurveyStore.find(s => s.source_job_id === payload.system.job_id);
+    if (existing) {
+      return res.status(200).json({
+        success: true,
+        message: 'Payload already ingested in staging',
+        staging_id: existing.id,
+        process_status: existing.process_status,
+        converted_job_id: existing.converted_job_id
       });
     }
 
-    if (!Array.isArray(payload.job_details) || payload.job_details.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'INVALID_JOB_DETAILS', message: 'job_details must be a non-empty array' }
-      });
-    }
-
-    // 2. Validate Check-in & Check-out requirements
-    if (!payload.check_in?.date || !payload.check_out?.date) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'INVALID_CHECKIN_OUT', message: 'Both check_in and check_out data with timestamps are required' }
-      });
-    }
-
-    // 3. Process & Mock Persistence
-    const record = {
-      received_at: new Date().toISOString(),
-      job_id: payload.system.job_id,
+    // 3. Ingest into Staging Record (t_staging_survey_report)
+    const stagingRecord: StagingSurveyReport = {
+      id: Date.now(),
+      source_job_id: payload.system.job_id,
       job_number: payload.job_info.job_number,
       booking_no: payload.job_info.booking_no,
-      status: payload.job_info.status,
-      customer_name: payload.customer.name,
-      agent_name: payload.agent?.name,
+      ticket_no: payload.job_info.ticket_no,
+      source_reference: payload.job_info.source_reference,
+      customer_code: payload.customer?.code,
+      customer_name: payload.customer?.name || '',
+      customer_phone: payload.customer?.mobile_no || '',
       store_code: payload.store?.code,
-      item_count: payload.job_details.length,
+      agent_code: payload.agent?.code,
+      visit_date: payload.schedule_plan?.visit_date,
+      checkin_at: payload.check_in?.date,
+      checkout_at: payload.check_out?.date,
       photo_count: payload.site_photos?.length || 0,
-      approval_by: payload.approval?.approve_by,
-      summary: {
-        total_items: payload.job_details.reduce((sum, item) => sum + (item.product_quantity || 0), 0),
-        visit_results: payload.visit_results || []
-      }
+      raw_payload: payload,
+      process_status: StagingProcessStatus.PENDING,
+      retry_count: 0,
+      received_at: new Date().toISOString()
     };
+    stagingSurveyStore.push(stagingRecord);
 
-    console.log(`[SURVEY REPORT] Successfully ingested job: ${record.job_number} (${record.job_id})`);
+    console.log(`[STAGING INGEST] Successfully saved raw payload in staging: #${stagingRecord.id} (Job: ${stagingRecord.job_number})`);
+
+    // 4. Auto-convert from Staging to Core PMT
+    const convertResult = convertStagingToCorePmt(stagingRecord);
 
     return res.status(201).json({
       success: true,
-      message: 'Job survey report received and processed successfully',
-      data: record
+      message: convertResult.success 
+        ? 'Job survey report ingested to Staging and converted to Core PMT successfully'
+        : 'Job survey report saved to Staging but requires review/fix before conversion',
+      data: {
+        staging_id: stagingRecord.id,
+        process_status: stagingRecord.process_status,
+        converted_job_id: stagingRecord.converted_job_id,
+        validation_errors: stagingRecord.validation_errors,
+        summary: {
+          job_number: stagingRecord.job_number,
+          customer_name: stagingRecord.customer_name,
+          photo_count: stagingRecord.photo_count,
+          service_count: payload.job_details?.length || 0
+        }
+      }
     });
   } catch (err: any) {
     console.error('Error processing survey report:', err);
@@ -312,6 +615,72 @@ app.post('/api/v1/jobs/survey-report', async (req: Request<{}, {}, JobSurveyPayl
       error: { code: 'INTERNAL_ERROR', message: err.message }
     });
   }
+});
+
+// =============================================================================
+// STAGING MANAGEMENT APIS (List, Get, Convert/Retry)
+// =============================================================================
+app.get('/api/v1/staging/survey-reports', (req: Request, res: Response) => {
+  const { status, search } = req.query;
+  let results = [...stagingSurveyStore];
+
+  if (status) {
+    results = results.filter(r => r.process_status === status);
+  }
+  if (search) {
+    const q = String(search).toLowerCase();
+    results = results.filter(r => 
+      r.job_number.toLowerCase().includes(q) ||
+      r.customer_name.toLowerCase().includes(q) ||
+      (r.booking_no && r.booking_no.toLowerCase().includes(q))
+    );
+  }
+
+  return res.json({
+    success: true,
+    total: results.length,
+    data: results.map(r => ({
+      id: r.id,
+      source_job_id: r.source_job_id,
+      job_number: r.job_number,
+      booking_no: r.booking_no,
+      customer_name: r.customer_name,
+      photo_count: r.photo_count,
+      process_status: r.process_status,
+      converted_job_id: r.converted_job_id,
+      validation_errors: r.validation_errors,
+      received_at: r.received_at,
+      processed_at: r.processed_at
+    }))
+  });
+});
+
+app.get('/api/v1/staging/survey-reports/:id', (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  const record = stagingSurveyStore.find(r => r.id === id);
+  if (!record) {
+    return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Staging record not found' } });
+  }
+  return res.json({ success: true, data: record });
+});
+
+app.post('/api/v1/staging/survey-reports/:id/convert', (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  const record = stagingSurveyStore.find(r => r.id === id);
+  if (!record) {
+    return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Staging record not found' } });
+  }
+
+  const result = convertStagingToCorePmt(record);
+  return res.json({
+    success: result.success,
+    data: {
+      staging_id: record.id,
+      process_status: record.process_status,
+      converted_job_id: record.converted_job_id,
+      validation_errors: record.validation_errors
+    }
+  });
 });
 
 // =============================================================================
@@ -500,7 +869,7 @@ app.post('/api/v1/jobs/:id/close-and-export-bmt', async (req: Request, res: Resp
 
     // Rule: Send ONLY QC-Passed Tasks to BMT System (OQ-A03)
     const bmtPayload = {
-      job_no: `02092600001`,
+      job_no: `JOB202609001`,
       bmt_export_timestamp: new Date().toISOString(),
       customer: {
         name: 'นาย สมชาย ใจดี',

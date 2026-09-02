@@ -1,0 +1,121 @@
+{
+  "info": {
+    "_postman_id": "8f5a4321-cba9-4f81-a320-pmt-int-api-v1",
+    "name": "SPMT - INT Integration API (Site Survey Ingestion)",
+    "description": "API Integration Specification for INT System pushing Site Survey & Job Execution Reports to SPMT System.\n\n### Authentication\nPass API Key in the Header:\n`Authorization: Bearer <API_KEY>` or `X-API-Key: <API_KEY>`\n\n### Idempotency\nEnsure `X-Idempotency-Key` is passed on all push requests to prevent duplicate processing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://vibepmt.online/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "pmt_sec_live_9876543210abcdef",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Submit Job Survey Report (Standard Success)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{api_key}}"
+          },
+          {
+            "key": "X-Idempotency-Key",
+            "value": "INT-REQ-20260902-001"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"system\": {\n    \"job_id\": \"031b0e16a-9a98-43bf-ae3e-b14e76b577f8\",\n    \"created_at\": \"2026-09-02T09:00:00Z\",\n    \"created_by\": \"system\",\n    \"updated_at\": \"2026-09-02T09:00:00Z\"\n  },\n  \"job_info\": {\n    \"job_number\": \"JOB202609001\",\n    \"booking_no\": \"VFIX-260901-001\",\n    \"ticket_no\": \"209051119\",\n    \"source_reference\": \"REQ-PT2-2608220003\",\n    \"status\": \"Approved\",\n    \"stage\": \"Completed\",\n    \"property_type\": \"บ้านเดี่ยว\",\n    \"project_type\": \"Renovate\",\n    \"project_sub_type\": \"งานกระเบื้องพื้น\",\n    \"file_int_image\": \"renovate/int/eee85115-24c5-4216-9744-60b86a8fbe23.jpg\"\n  },\n  \"job_details\": [\n    {\n      \"job_type\": \"ติดตั้งแอร์ (ส่งพร้อมติดตั้ง)\",\n      \"installation_detail\": \"R-ติดตั้ง แอร์ติดผนัง ขนาด 9000-17000 บีทียู ติดตั้งพร้อมรื้อถอน\",\n      \"product_quantity\": 2,\n      \"remark\": \"remark xxxx 500 char\"\n    },\n    {\n      \"job_type\": \"ติดตั้งแอร์ (ส่งพร้อมติดตั้ง)\",\n      \"installation_detail\": \"R-ติดตั้ง แอร์ติดผนัง ขนาด 18000-24000 บีทียู ติดตั้งพร้อมรื้อถอน\",\n      \"product_quantity\": 1,\n      \"remark\": \"remark xxxx 500 char\"\n    }\n  ],\n  \"customer\": {\n    \"code\": \"18a9359a-4363-4dda-8fdb-5f541d8a4b64\",\n    \"name\": \"นภัสวรรณ มีศิริ\",\n    \"mobile_no\": \"0812345678\",\n    \"location\": {\n      \"latitude\": 13.7563,\n      \"longitude\": 100.5018,\n      \"address\": \"มาบยายเลีย 41 เมืองพัทยา อำเภอบางละมุง ชลบุรี 20150\",\n      \"google_map_url\": \"https://www.google.com/maps/search/?api=1&query=12.9326734,100.9239925\"\n    }\n  },\n  \"agent\": {\n    \"code\": \"87524b4a-8511-4a93-88fa-850c8d043868\",\n    \"name\": \"Agent Name\",\n    \"team\": \"QC RENOVATE & MENTAINANCE\"\n  },\n  \"store\": {\n    \"code\": \"60964\",\n    \"code3\": \"RA2\",\n    \"name\": \"RAMA2\",\n    \"location\": {\n      \"latitude\": 13.652,\n      \"longitude\": 100.421,\n      \"google_map_url\": \"https://www.google.com/maps/search/?api=1&query=13.652,100.421\"\n    }\n  },\n  \"schedule_plan\": {\n    \"visit_date\": \"2026-09-05\",\n    \"start_time\": \"09:00:00\",\n    \"end_time\": \"12:00:00\",\n    \"time_slot\": \"เช้า (09:00-12:00)\",\n    \"distance\": 15.5\n  },\n  \"check_in\": {\n    \"date\": \"2026-09-05T09:05:00Z\",\n    \"latitude\": 13.7563,\n    \"longitude\": 100.5018,\n    \"image\": \"renovate/check_in/9cf4f37a-045a-4bfb-91ec-611370e2b5a2.jpg\"\n  },\n  \"check_out\": {\n    \"date\": \"2026-09-05T11:45:00Z\",\n    \"latitude\": 13.7563,\n    \"longitude\": 100.5018,\n    \"image\": \"renovate/check_out/9b5bb34f-51cc-4e38-b6f3-846666a89166.jpg\"\n  },\n  \"site_photos\": [\n    \"renovate/site/2a206a2e-6615-4b68-826e-520c170c15c0.jpg\",\n    \"renovate/site/6bf8a1b2-d1e2-49f1-a9b3-ffa6ea6e7005.jpg\",\n    \"renovate/site/900726c6-2c57-4e5e-9681-ec1e45700415.jpg\",\n    \"renovate/site/272395e6-763c-4a15-9fe4-aa7d94fb749e.jpg\",\n    \"renovate/site/a958108b-9bbf-4285-ab98-fd3bb220f923.jpg\"\n  ],\n  \"approval\": {\n    \"approve_by\": \"Phinyo Phoaon\",\n    \"approve_date\": \"2026-09-05T12:00:00Z\",\n    \"distance\": 15.5\n  },\n  \"visit_results\": [\n    \"พื้นที่ยังไม่พร้อมสำหรับการสำรวจ\",\n    \"ข้อมูลและขอบเขตงานไม่ครบถ้วน\"\n  ],\n  \"remarks\": {\n    \"comment\": \"Work completed successfully\",\n    \"note\": \"Customer requested callback before arrival\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/jobs/survey-report",
+          "host": ["{{base_url}}"],
+          "path": ["jobs", "survey-report"]
+        },
+        "description": "Endpoint for INT to submit site visit/survey report with minimum 5 site photos and check-in/out timestamps."
+      },
+      "response": []
+    },
+    {
+      "name": "2. Query Staging Ingestion List",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{api_key}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/staging/survey-reports?status=CONVERTED",
+          "host": ["{{base_url}}"],
+          "path": ["staging", "survey-reports"],
+          "query": [
+            {
+              "key": "status",
+              "value": "CONVERTED"
+            },
+            {
+              "key": "search",
+              "value": "JOB202609001",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "Check list of ingested payloads and their conversion status."
+      },
+      "response": []
+    },
+    {
+      "name": "3. Get Single Staging Record by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{api_key}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/staging/survey-reports/1725301234567",
+          "host": ["{{base_url}}"],
+          "path": ["staging", "survey-reports", "1725301234567"]
+        },
+        "description": "Fetch full raw payload and conversion details by Staging ID."
+      },
+      "response": []
+    },
+    {
+      "name": "4. Manual / Retry Convert Staging to Core",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{api_key}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/staging/survey-reports/1725301234567/convert",
+          "host": ["{{base_url}}"],
+          "path": ["staging", "survey-reports", "1725301234567", "convert"]
+        },
+        "description": "Retry converting a failed or pending staging record."
+      },
+      "response": []
+    }
+  ]
+}

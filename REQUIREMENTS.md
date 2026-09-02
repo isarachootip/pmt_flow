@@ -91,7 +91,7 @@ Body: {
   "technician": { "name": "สมศักดิ์", "phone": "0899999999" },
   "appointment": { "date": "2026-09-10", "time": "10:00" }
 }
-Response: { "success": true, "data": { "job_id": 101, "job_no": "02092600001", "status": "DRAFT" } }
+Response: { "success": true, "data": { "job_id": 101, "job_no": "JOB202609001", "status": "DRAFT" } }
 ```
 
 ---
@@ -425,7 +425,7 @@ erDiagram
 
     t_job {
         bigint id PK
-        varchar job_no "ddmmyy+running(xxxxx)"
+        varchar job_no "JOB+YYYYMM+running(xxx)"
         bigint customer_id FK
         bigint order_inbound_id FK
         varchar status "DRAFT→CLOSED"
@@ -559,7 +559,7 @@ stateDiagram-v2
 ```json
 // Payload ที่ส่งไป BMT (เสนอ)
 {
-  "job_no": "02092600001",
+  "job_no": "JOB202609001",
   "customer": { "name": "...", "phone": "...", "address": "..." },
   "services": ["ติดตั้งเครื่องทำน้ำอุ่น"],
   "tasks_qc_passed": [

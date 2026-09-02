@@ -148,6 +148,35 @@ CREATE TABLE t_integration_log (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Staging Table for Survey / Site Visit Reports before Core Conversion
+CREATE TABLE t_staging_survey_report (
+    id BIGSERIAL PRIMARY KEY,
+    source_job_id VARCHAR(100) NOT NULL,
+    job_number VARCHAR(50) NOT NULL,
+    booking_no VARCHAR(50),
+    ticket_no VARCHAR(50),
+    source_reference VARCHAR(100),
+    customer_code VARCHAR(100),
+    customer_name VARCHAR(150),
+    customer_phone VARCHAR(30),
+    store_code VARCHAR(30),
+    agent_code VARCHAR(100),
+    visit_date DATE,
+    checkin_at TIMESTAMP WITH TIME ZONE,
+    checkout_at TIMESTAMP WITH TIME ZONE,
+    photo_count INT DEFAULT 0,
+    raw_payload JSONB NOT NULL,
+    process_status VARCHAR(30) NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'PROCESSING', 'CONVERTED', 'VALIDATION_FAILED', 'ERROR'
+    converted_job_id BIGINT,
+    validation_errors JSONB,
+    error_message TEXT,
+    retry_count INT NOT NULL DEFAULT 0,
+    received_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- =============================================================================
 -- 3. CORE TRANSACTION TABLES (JOBS & VISITS)
 -- =============================================================================
@@ -155,7 +184,7 @@ CREATE TABLE t_integration_log (
 -- Main Job / Order
 CREATE TABLE t_job (
     id BIGSERIAL PRIMARY KEY,
-    job_no VARCHAR(30) UNIQUE NOT NULL, -- Format: ddmmyy+running(xxxxx) e.g. 02092600001
+    job_no VARCHAR(30) UNIQUE NOT NULL, -- Format: JOBYYYYMMXXX e.g. JOB202609001
     external_ref_id VARCHAR(100), -- Ref from INT system
     customer_id BIGINT NOT NULL REFERENCES m_customer(id),
     primary_service_id BIGINT REFERENCES m_service_type(id),
@@ -373,6 +402,11 @@ CREATE INDEX idx_t_task_dates ON t_task(plan_start_date, plan_end_date);
 CREATE INDEX idx_t_visit_checkin_job ON t_visit_checkin(job_id);
 CREATE INDEX idx_t_site_photo_job ON t_site_photo(job_id);
 CREATE INDEX idx_t_integration_idempotency ON t_integration_log(idempotency_key);
+CREATE UNIQUE INDEX idx_staging_source_job_id ON t_staging_survey_report(source_job_id);
+CREATE INDEX idx_staging_job_number ON t_staging_survey_report(job_number);
+CREATE INDEX idx_staging_booking_no ON t_staging_survey_report(booking_no);
+CREATE INDEX idx_staging_process_status ON t_staging_survey_report(process_status);
+CREATE INDEX idx_staging_raw_payload_gin ON t_staging_survey_report USING GIN (raw_payload);
 
 -- =============================================================================
 -- INITIAL DATA SEEDING

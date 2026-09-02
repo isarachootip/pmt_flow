@@ -4,8 +4,8 @@ info:
   description: Official Production API Specification for SPMT System - Connecting INT System, Mobile App, Web Admin, and BMT System.
   version: 1.0.0
 servers:
-  - url: https://api.spmt.local/api/v1
-    description: Production Server
+  - url: https://vibepmt.online/api/v1
+    description: Production Server (Hostinger)
   - url: http://localhost:3000/api/v1
     description: Local Development Server
 
@@ -90,9 +90,43 @@ paths:
                     type: string
       responses:
         '201':
-          description: Job survey report received successfully
+          description: Job survey report received in staging and processed
         '400':
           description: Invalid payload structure
+
+  /staging/survey-reports:
+    get:
+      summary: List Staging Survey Reports
+      description: Query raw survey reports in staging with filter by status or search keyword.
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [PENDING, PROCESSING, CONVERTED, VALIDATION_FAILED, ERROR]
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of staging records returned
+
+  /staging/survey-reports/{id}/convert:
+    post:
+      summary: Manual/Retry Staging to Core Conversion
+      description: Trigger conversion from staging table into PMT core tables.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Conversion processed
+        '404':
+          description: Staging record not found
 
   /jobs/{id}/checkin:
     post:
