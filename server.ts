@@ -623,15 +623,19 @@ export const coreVisitCheckinStore: CoreVisitCheckin[] = [];
 export const coreSitePhotoStore: CoreSitePhoto[] = [];
 export const coreTaskStore: CoreTask[] = [];
 
-// Seed 5 Initial Core Jobs (Sync with UI Frontend)
-export function seedInitialCoreData() {
+// Seed Initial Core Data (Empty by default, or with mock data if requested)
+export function seedInitialCoreData(populateMocks: boolean = false) {
   coreCustomerStore.length = 0;
   coreJobStore.length = 0;
   coreJobServiceStore.length = 0;
   coreTaskStore.length = 0;
 
+  if (!populateMocks) {
+    console.log('[CORE STORE] Initialized with empty core jobs store (Clean State).');
+    return;
+  }
+
   const mockTasks: CoreTask[] = [
-    { id: 'T1', job_id: 1, job_no: 'JOB202609001', task_name: 'รื้อถอนของเดิม', assigned_tech: 'Team A', assignees: ['Team A (สมศักดิ์)'], plan_start_date: '2026-09-01', plan_end_date: '2026-09-02', duration_days: 2, status: 'DONE', progress_percent: 100 },
     { id: 'T2', job_id: 1, job_no: 'JOB202609001', task_name: 'งานประปา/ไฟฟ้า', assigned_tech: 'Team A', assignees: ['Team A (สมศักดิ์)'], plan_start_date: '2026-09-03', plan_end_date: '2026-09-05', duration_days: 3, status: 'IN_PROGRESS', progress_percent: 60 },
     { id: 'T3', job_id: 1, job_no: 'JOB202609001', task_name: 'ติดตั้งตู้เคาน์เตอร์', assigned_tech: 'Team A', assignees: ['Team A (สมศักดิ์)'], plan_start_date: '2026-09-06', plan_end_date: '2026-09-09', duration_days: 4, status: 'PENDING', progress_percent: 0 },
     { id: 'T4', job_id: 2, job_no: 'JOB202609002', task_name: 'เตรียมหน้างาน', assigned_tech: 'Team B', assignees: ['Team B (ประเสริฐ)'], plan_start_date: '2026-09-01', plan_end_date: '2026-09-01', duration_days: 1, status: 'DONE', progress_percent: 100 },
@@ -1618,8 +1622,22 @@ app.post('/api/v1/jobs', (req: Request, res: Response) => {
   }
 });
 
+app.delete('/api/v1/jobs', (req: Request, res: Response) => {
+  coreJobStore.length = 0;
+  coreTaskStore.length = 0;
+  coreCustomerStore.length = 0;
+  coreJobServiceStore.length = 0;
+  coreVisitCheckinStore.length = 0;
+  coreSitePhotoStore.length = 0;
+  return res.json({
+    success: true,
+    message: 'ลบข้อมูลโครงการและรายการ Task ทั้งหมดเรียบร้อย',
+    total_jobs: 0
+  });
+});
+
 app.post('/api/v1/jobs/reset', (req: Request, res: Response) => {
-  seedInitialCoreData();
+  seedInitialCoreData(true);
   seedInitialStagingData();
   return res.json({
     success: true,

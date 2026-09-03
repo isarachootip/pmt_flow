@@ -625,6 +625,10 @@
                                 <option value="QC_PASSED">QC Passed (ผ่านแล้ว)</option>
                                 <option value="AFTER_SALE">After Sale (บริการหลังการขาย)</option>
                             </select>
+                            <button onclick="app.clearAllProjects()" class="btn-artifact-secondary text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer" title="ลบข้อมูลโครงการทั้งหมด">
+                                <i class="ph ph-trash"></i>
+                                <span>ล้างข้อมูลโครงการ</span>
+                            </button>
                             <button onclick="app.showModal('modal-create-job')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
                                 <i class="ph ph-plus-bold"></i>
                                 <span>สร้างงานใหม่</span>
@@ -726,6 +730,10 @@
                                     <option value="JOB202609005">JOB202609005 - คุณฉัตรชัย (Renovate ครัว)</option>
                                 </select>
                             </div>
+                            <button onclick="app.clearAllProjects()" class="btn-artifact-secondary text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="ลบข้อมูลโครงการและรายการแผนงานทั้งหมด">
+                                <i class="ph ph-trash"></i>
+                                <span>ลบข้อมูลโครงการทั้งหมด</span>
+                            </button>
                             <button onclick="app.openCurrentFilterJobBOQ()" class="btn-artifact-secondary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium text-brand-600 dark:text-brand-400 border border-brand-500/30 hover:bg-brand-500/10 cursor-pointer shadow-xs" title="คลิกเปิดดู Project Detail & รายการ BOQ ของโครงการนี้">
                                 <i class="ph ph-receipt text-sm"></i>
                                 <span>ดู Project Detail (BOQ)</span>
@@ -1923,213 +1931,11 @@
 
     <!-- APPLICATION JAVASCRIPT LOGIC -->
     <script>
-        // Mock Database
+        // Database
         const DB = {
-            jobs: [
-                { 
-                    id: 'JOB202609001', 
-                    firstName: 'ณวัฒน์', 
-                    lastName: 'รักสงบ', 
-                    customer: 'ณวัฒน์ รักสงบ', 
-                    lat: 13.7563, 
-                    lng: 100.5018, 
-                    phone: '081-111-2222', 
-                    service: 'Renovate ครัว', 
-                    status: 'IN_PROGRESS', 
-                    date: '2026-09-05', 
-                    progress: 45, 
-                    address: '99/1 Sukhumvit 55, Bangkok', 
-                    tech: 'Team A (สมศักดิ์)', 
-                    special_instructions: 'ระวังมีสุนัขในบ้าน, กรุณาโทรแจ้งลูกค้าล่วงหน้า 30 นาทีก่อนเข้าพื้นที่ และสวมถุงคลุมรองเท้าก่อนเข้าห้องนอน', 
-                    additional_notes: 'ตรวจสอบจุดเชื่อมต่อท่อน้ำทิ้งเดิม และระวังแนวท่อแอร์บนฝ้าเพดาน ลูกค้าเตรียมเต้ารับไฟฟ้าพร้อมแล้ว', 
-                    photos: [],
-                    boq_discount: 500,
-                    boq_items: [
-                        { name: 'ค่าแรงช่างติดตั้งเครื่องปรับอากาศ 18000 BTU', qty: 1, unit: 'งาน', price: 2500 },
-                        { name: 'ชุดท่อน้ำยาแอร์ทองแดงหนาพิเศษพร้อมฉนวนหุ้ม 4 ม.', qty: 1, unit: 'ชุด', price: 1800 },
-                        { name: 'รางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.', qty: 1, unit: 'ชุด', price: 950 },
-                        { name: 'ขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม', qty: 1, unit: 'ชุด', price: 650 },
-                        { name: 'ชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง', qty: 1, unit: 'ชุด', price: 500 }
-                    ]
-                },
-                { 
-                    id: 'JOB202609002', 
-                    firstName: 'สมศรี', 
-                    lastName: 'สุขใจ', 
-                    customer: 'สมศรี สุขใจ', 
-                    lat: 13.7801, 
-                    lng: 100.5432, 
-                    phone: '082-222-3333', 
-                    service: 'ปั้มแท็งก์', 
-                    status: 'QC_PENDING', 
-                    date: '2026-09-02', 
-                    progress: 100, 
-                    address: '12 Ari Samphan, Phaya Thai', 
-                    tech: 'Team B (ประเสริฐ)', 
-                    special_instructions: 'เข้าพื้นที่ได้หลังเวลา 10:00 น. เท่านั้น', 
-                    additional_notes: 'ติดตั้งบริเวณลานซักล้างหลังบ้าน ปลั๊กไฟกันน้ำพร้อมใช้งาน', 
-                    photos: [],
-                    boq_discount: 300,
-                    boq_items: [
-                        { name: 'ค่าแรงช่างติดตั้งปั๊มน้ำอัตโนมัติและถังเก็บน้ำ', qty: 1, unit: 'งาน', price: 2000 },
-                        { name: 'ชุดวาล์วบายพาสและท่อ PVC ตราช้าง 1 นิ้ว', qty: 1, unit: 'ชุด', price: 1200 },
-                        { name: 'ฐานรองปั๊มน้ำกันสะเทือนสำเร็จรูป', qty: 1, unit: 'ชุด', price: 450 }
-                    ]
-                },
-                { 
-                    id: 'JOB202609003', 
-                    firstName: 'เอนก', 
-                    lastName: 'มั่งคั่ง', 
-                    customer: 'เอนก มั่งคั่ง', 
-                    lat: 13.7234, 
-                    lng: 100.5289, 
-                    phone: '083-333-4444', 
-                    service: 'ติดตั้งเครื่องทำน้ำอุ่น', 
-                    status: 'QC_PASSED', 
-                    date: '2026-08-30', 
-                    progress: 100, 
-                    address: '45 Silom Rd, Bang Rak', 
-                    tech: 'Team C (วิชัย)', 
-                    special_instructions: 'นิติบุคคลคอนโดอนุญาตทำงานเฉพาะ จันทร์-ศุกร์ 09:00-17:00 น.', 
-                    additional_notes: 'ติดสติ๊กเกอร์เบรกเกอร์ ELCB พร้อมวัดสายดินเรียบร้อย', 
-                    photos: [],
-                    boq_discount: 0,
-                    boq_items: [
-                        { name: 'ค่าแรงช่างติดตั้งเครื่องทำน้ำอุ่นพร้อมเดินสายดิน', qty: 1, unit: 'งาน', price: 1200 },
-                        { name: 'สายไฟทองแดง THW 2x4 sq.mm. พร้อมท่อร้อยสาย', qty: 1, unit: 'ชุด', price: 650 },
-                        { name: 'เบรกเกอร์กันดูด ELCB 30A พร้อมกล่องกันน้ำ', qty: 1, unit: 'ชุด', price: 550 }
-                    ]
-                },
-                { 
-                    id: 'JOB202609004', 
-                    firstName: 'มาลี', 
-                    lastName: 'มีโชค', 
-                    customer: 'มาลี มีโชค', 
-                    lat: 13.8056, 
-                    lng: 100.5712, 
-                    phone: '084-444-5555', 
-                    service: 'สำรวจหน้างาน', 
-                    status: 'DRAFT', 
-                    date: '2026-09-10', 
-                    progress: 0, 
-                    address: '88 Ladprao 15, Chatuchak', 
-                    tech: 'Team A (สมศักดิ์)', 
-                    special_instructions: 'ลูกค้าขอช่างที่มีประสบการณ์งาน built-in', 
-                    additional_notes: '', 
-                    photos: [],
-                    boq_discount: 0,
-                    boq_items: [
-                        { name: 'ค่าบริการสำรวจและประเมินหน้างานจริง', qty: 1, unit: 'งาน', price: 500 }
-                    ]
-                },
-                { 
-                    id: 'JOB202609005', 
-                    firstName: 'ฉัตรชัย', 
-                    lastName: 'เจริญวิทย์', 
-                    customer: 'ฉัตรชัย เจริญวิทย์', 
-                    lat: 13.7312, 
-                    lng: 100.5823, 
-                    phone: '085-555-6666', 
-                    service: 'Renovate ครัว', 
-                    status: 'AFTER_SALE', 
-                    date: '2026-08-25', 
-                    progress: 100, 
-                    address: '22 Thong Lo 10, Watthana', 
-                    tech: 'Team B (ประเสริฐ)', 
-                    special_instructions: '', 
-                    additional_notes: 'บริการล้างเครื่องปรับอากาศประจำปีภายใต้ประกัน 1 ปี', 
-                    photos: [],
-                    boq_discount: 500,
-                    boq_items: [
-                        { name: 'ค่าแรงช่างติดตั้งเครื่องปรับอากาศ Inverter', qty: 1, unit: 'งาน', price: 2500 },
-                        { name: 'ชุดท่อน้ำยาแอร์และรางครอบท่อ 4 ม.', qty: 1, unit: 'ชุด', price: 1800 }
-                    ]
-                },
-            ],
-            blueprints: [
-                {
-                    id: 'BP001',
-                    jobId: 'JOB202609001',
-                    customer: 'ณวัฒน์ รักสงบ',
-                    service: 'Renovate ครัว',
-                    filename: 'Kitchen_Renovation_Layout_v3.pdf',
-                    version: 'v3 Final',
-                    isCurrent: true,
-                    size: '3.4 MB',
-                    date: '2026-09-02 09:15 น.',
-                    designer: 'คุณธนกฤต (Interior Architect)',
-                    previewImg: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&auto=format&fit=crop&q=80',
-                    notes: 'แบบแปลนผังเคาน์เตอร์ครัวและจุดต่อท่อน้ำดี/น้ำทิ้งฉบับสมบูรณ์'
-                },
-                {
-                    id: 'BP002',
-                    jobId: 'JOB202609002',
-                    customer: 'สมศรี สุขใจ',
-                    service: 'ปั้มแท็งก์',
-                    filename: 'Water_Pump_Tank_Diagram_v2.pdf',
-                    version: 'v2 Approved',
-                    isCurrent: true,
-                    size: '2.1 MB',
-                    date: '2026-09-01 14:30 น.',
-                    designer: 'คุณประสิทธิ์ (Systems Engineer)',
-                    previewImg: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80',
-                    notes: 'ไดอะแกรมระบบบายพาสปั๊มน้ำและฐานรากถังเก็บน้ำ 1000L'
-                },
-                {
-                    id: 'BP003',
-                    jobId: 'JOB202609003',
-                    customer: 'เอนก มั่งคั่ง',
-                    service: 'ติดตั้งเครื่องทำน้ำอุ่น',
-                    filename: 'Water_Heater_Electrical_Circuit_v2.pdf',
-                    version: 'v2 Final',
-                    isCurrent: true,
-                    size: '1.8 MB',
-                    date: '2026-08-29 11:00 น.',
-                    designer: 'คุณเกรียงไกร (Electrical Engineer)',
-                    previewImg: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80',
-                    notes: 'ผังวงจรสายดิน Breaker ELCB 30A และท่อน้ำร้อน PPR'
-                },
-                {
-                    id: 'BP004',
-                    jobId: 'JOB202609004',
-                    customer: 'มาลี มีโชค',
-                    service: 'สำรวจหน้างาน',
-                    filename: 'Site_Survey_Preliminary_FloorPlan_v1.pdf',
-                    version: 'v1 Draft',
-                    isCurrent: true,
-                    size: '4.2 MB',
-                    date: '2026-09-03 08:00 น.',
-                    designer: 'คุณธนกฤต (Designer)',
-                    previewImg: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600&auto=format&fit=crop&q=80',
-                    notes: 'ผังสำรวจพื้นที่โครงสร้างและระยะร่นรอบอาคาร'
-                },
-                {
-                    id: 'BP005',
-                    jobId: 'JOB202609005',
-                    customer: 'ฉัตรชัย เจริญวิทย์',
-                    service: 'Renovate ครัว',
-                    filename: 'Air_Installation_Layout_v2.pdf',
-                    version: 'v2 Current',
-                    isCurrent: true,
-                    size: '2.4 MB',
-                    date: '2026-08-24 16:20 น.',
-                    designer: 'คุณกนกวรรณ (CAD Specialist)',
-                    previewImg: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop&q=80',
-                    notes: 'ตำแหน่งยึดคอยล์เย็นและแนวกระเช้าแขวนคอยล์ร้อนภายนอก'
-                }
-            ],
-            tasks: [
-                { id: 'T1', jobId: 'JOB202609001', name: 'รื้อถอนของเดิม', tech: 'Team A (สมศักดิ์)', start: '2026-09-01', end: '2026-09-02', days: 2, status: 'DONE' },
-                { id: 'T2', jobId: 'JOB202609001', name: 'งานประปา/ไฟฟ้า', tech: 'Team A (สมศักดิ์)', start: '2026-09-03', end: '2026-09-05', days: 3, status: 'IN_PROGRESS' },
-                { id: 'T3', jobId: 'JOB202609001', name: 'ติดตั้งตู้เคาน์เตอร์', tech: 'Team A (สมศักดิ์)', start: '2026-09-06', end: '2026-09-09', days: 4, status: 'PENDING' },
-                { id: 'T4', jobId: 'JOB202609002', name: 'เตรียมหน้างาน', tech: 'Team B (ประเสริฐ)', start: '2026-09-01', end: '2026-09-01', days: 1, status: 'DONE' },
-                { id: 'T5', jobId: 'JOB202609002', name: 'ติดตั้งปั้มและเดินท่อ', tech: 'Team B (ประเสริฐ)', start: '2026-09-02', end: '2026-09-02', days: 1, status: 'DONE' },
-                { id: 'T6', jobId: 'JOB202609003', name: 'ติดตั้งเครื่องทำน้ำอุ่น & สายดิน', tech: 'Team C (วิชัย)', start: '2026-09-02', end: '2026-09-03', days: 2, status: 'DONE' },
-                { id: 'T7', jobId: 'JOB202609003', name: 'ติดตั้งเบรกเกอร์ ELCB', tech: 'Team C (วิชัย)', start: '2026-09-03', end: '2026-09-04', days: 2, status: 'DONE' },
-                { id: 'T8', jobId: 'JOB202609004', name: 'สำรวจและวัดขนาดพื้นที่หน้างาน', tech: 'Team A (สมศักดิ์)', start: '2026-09-10', end: '2026-09-10', days: 1, status: 'PENDING' },
-                { id: 'T9', jobId: 'JOB202609005', name: 'ติดตั้งเครื่องปรับอากาศ Inverter', tech: 'Team B (ประเสริฐ)', start: '2026-09-05', end: '2026-09-06', days: 2, status: 'DONE' },
-                { id: 'T10', jobId: 'JOB202609005', name: 'เดินระบบท่อน้ำยาแอร์และรางครอบ', tech: 'Team B (ประเสริฐ)', start: '2026-09-07', end: '2026-09-08', days: 2, status: 'DONE' },
-            ],
+            jobs: [],
+            blueprints: [],
+            tasks: [],
             qcChecklist: [
                 { id: 'Q1', text: 'ความสะอาดพื้นที่หน้างาน (Site Cleanliness)', mandatory: true },
                 { id: 'Q2', text: 'ระบบน้ำไม่รั่วซึม และแรงดันน้ำปกติ (Pressure Test)', mandatory: true },
@@ -2240,6 +2046,36 @@
                 } catch (e) {}
             },
 
+            async clearAllProjects(confirmAction = true) {
+                if (confirmAction && !confirm('คุณแน่ใจหรือไม่ที่จะลบข้อมูลโครงการและรายการแผนงานทั้งหมดออกจากระบบ?')) {
+                    return;
+                }
+                DB.jobs = [];
+                DB.tasks = [];
+                DB.blueprints = [];
+                try {
+                    localStorage.removeItem('pmt_jobs');
+                    localStorage.setItem('pmt_jobs_cleared_v3', 'true');
+                } catch (e) {}
+
+                try {
+                    await fetch('/api/v1/jobs', { method: 'DELETE' });
+                } catch (e) {}
+
+                this.persistJobs();
+                if (this.state.currentView === 'gantt') this.renderGantt();
+                if (this.state.currentView === 'jobs') this.renderJobs();
+                if (this.state.currentView === 'dashboard') this.renderDashboard();
+                if (this.state.currentView === 'blueprints') this.renderBlueprints();
+                if (this.state.currentView === 'qc') this.renderQC();
+                if (this.state.currentView === 'csat') this.renderCSAT();
+
+                const countEl = document.getElementById('sidebar-job-count');
+                if (countEl) countEl.innerText = '0';
+
+                this.showToast('🗑️ ลบข้อมูลโครงการและรายการแผนงานทั้งหมดออกจากระบบเรียบร้อย');
+            },
+
             init() {
                 // Initialize theme
                 const savedTheme = localStorage.getItem('pmt-theme') || 'dark';
@@ -2247,6 +2083,14 @@
                     document.documentElement.classList.add('dark');
                 } else {
                     document.documentElement.classList.remove('dark');
+                }
+
+                // Clear old legacy mock data from localStorage once
+                if (localStorage.getItem('pmt_jobs_cleared_v3') !== 'true') {
+                    try {
+                        localStorage.removeItem('pmt_jobs');
+                        localStorage.setItem('pmt_jobs_cleared_v3', 'true');
+                    } catch(e) {}
                 }
 
                 // Restore saved jobs from localStorage
@@ -2275,36 +2119,49 @@
                     const res = await fetch('/api/v1/jobs');
                     if (res.ok) {
                         const json = await res.json();
-                        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+                        if (json.success && Array.isArray(json.data)) {
+                            if (json.data.length === 0 && localStorage.getItem('pmt_jobs_cleared_v3') === 'true') {
+                                // If server is empty and client was cleared, maintain clean state unless user added local jobs
+                                if (DB.jobs.length === 0) {
+                                    this.persistJobs();
+                                    if (this.state.currentView === 'jobs') this.renderJobs();
+                                    if (this.state.currentView === 'dashboard') this.renderDashboard();
+                                    if (this.state.currentView === 'gantt') this.renderGantt();
+                                    const countEl = document.getElementById('sidebar-job-count');
+                                    if (countEl) countEl.innerText = '0';
+                                    return;
+                                }
+                            }
                             const remoteJobs = json.data;
-                            // Keep any locally created or modified jobs
-                            const localOnly = DB.jobs.filter(lj => !remoteJobs.some(rj => rj.id === lj.id));
-                            const mergedRemote = remoteJobs.map(rj => {
-                                const localMatch = DB.jobs.find(lj => lj.id === rj.id);
-                                if (!localMatch) return rj;
-                                const combinedPhotos = (localMatch.photos && localMatch.photos.length > 0) ? localMatch.photos : (rj.photos || []);
-                                return { 
-                                    ...rj, 
-                                    ...localMatch, 
-                                    special_instructions: localMatch.special_instructions !== undefined ? localMatch.special_instructions : (rj.special_instructions || ''),
-                                    additional_notes: localMatch.additional_notes !== undefined ? localMatch.additional_notes : (rj.additional_notes || ''),
-                                    photos: combinedPhotos
-                                };
-                            });
-                            DB.jobs = [...localOnly, ...mergedRemote];
-                            this.persistJobs();
-                            if (this.state.currentView === 'jobs') this.renderJobs();
-                            if (this.state.currentView === 'dashboard') this.renderDashboard();
-                            
-                            const activeEl = document.activeElement;
-                            const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
-                            if (this.state.currentView === 'job-detail' && !isEditing) this.renderJobDetail();
-                            
-                            if (this.state.currentView === 'gantt') this.renderGantt();
-                            if (this.state.currentView === 'qc') this.renderQC();
-                            if (this.state.currentView === 'csat') this.renderCSAT();
-                            const countEl = document.getElementById('sidebar-job-count');
-                            if (countEl) countEl.innerText = DB.jobs.length;
+                            if (remoteJobs.length > 0) {
+                                const localOnly = DB.jobs.filter(lj => !remoteJobs.some(rj => rj.id === lj.id));
+                                const mergedRemote = remoteJobs.map(rj => {
+                                    const localMatch = DB.jobs.find(lj => lj.id === rj.id);
+                                    if (!localMatch) return rj;
+                                    const combinedPhotos = (localMatch.photos && localMatch.photos.length > 0) ? localMatch.photos : (rj.photos || []);
+                                    return { 
+                                        ...rj, 
+                                        ...localMatch, 
+                                        special_instructions: localMatch.special_instructions !== undefined ? localMatch.special_instructions : (rj.special_instructions || ''),
+                                        additional_notes: localMatch.additional_notes !== undefined ? localMatch.additional_notes : (rj.additional_notes || ''),
+                                        photos: combinedPhotos
+                                    };
+                                });
+                                DB.jobs = [...localOnly, ...mergedRemote];
+                                this.persistJobs();
+                                if (this.state.currentView === 'jobs') this.renderJobs();
+                                if (this.state.currentView === 'dashboard') this.renderDashboard();
+                                
+                                const activeEl = document.activeElement;
+                                const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+                                if (this.state.currentView === 'job-detail' && !isEditing) this.renderJobDetail();
+                                
+                                if (this.state.currentView === 'gantt') this.renderGantt();
+                                if (this.state.currentView === 'qc') this.renderQC();
+                                if (this.state.currentView === 'csat') this.renderCSAT();
+                                const countEl = document.getElementById('sidebar-job-count');
+                                if (countEl) countEl.innerText = DB.jobs.length;
+                            }
                         }
                     }
                 } catch (err) {
@@ -2540,7 +2397,7 @@
                         </td>
                     </tr>
                 `).join('');
-                document.getElementById('dashboard-recent-jobs').innerHTML = recentRows;
+                document.getElementById('dashboard-recent-jobs').innerHTML = recentRows || '<tr><td colspan="5" class="py-6 text-center text-xs text-muted-foreground">ยังไม่มีรายการงานล่าสุดในระบบ</td></tr>';
 
                 // Alerts
                 const alerts = DB.jobs.filter(j => j.status !== 'CLOSED' && j.status !== 'QC_PASSED');
@@ -5306,9 +5163,33 @@
                 this.openJobDetailBOQ(targetJobId);
             },
 
+            renderGanttFilterOptions(selectedVal = 'all') {
+                const sel = document.getElementById('gantt-filter-job');
+                if (!sel) return;
+                let html = '<option value="all">ทุกโครงการ (All Jobs)</option>';
+                (DB.jobs || []).forEach(j => {
+                    const cust = j.customer || `${j.firstName || ''} ${j.lastName || ''}`.trim() || 'ลูกค้า';
+                    html += `<option value="${j.id}" ${selectedVal === j.id ? 'selected' : ''}>${j.id} - คุณ${cust} (${j.service || 'บริการ'})</option>`;
+                });
+                sel.innerHTML = html;
+            },
+
             renderGanttProjectsStrip(selectedFilter = 'all') {
                 const stripEl = document.getElementById('gantt-projects-strip');
                 if (!stripEl) return;
+
+                if (!DB.jobs || DB.jobs.length === 0) {
+                    stripEl.innerHTML = `
+                    <div class="col-span-full p-6 rounded-2xl border border-dashed border-border bg-card/50 text-center space-y-2">
+                        <div class="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center text-muted-foreground mx-auto">
+                            <i class="ph ph-folder-dashed text-xl"></i>
+                        </div>
+                        <p class="text-xs font-semibold text-foreground">ยังไม่มีข้อมูลโครงการในระบบ</p>
+                        <p class="text-[11px] text-muted-foreground">กดปุ่ม "รับ Order ใหม่ (INT)" ด้านบนขวา หรือ "สร้างงานใหม่" เพื่อเริ่มต้นโครงการ</p>
+                    </div>
+                    `;
+                    return;
+                }
 
                 const cardsHtml = DB.jobs.map(job => {
                     const isSelected = selectedFilter === job.id;
@@ -5353,7 +5234,10 @@
                 const jobFilterEl = document.getElementById('gantt-filter-job');
                 const selectedJobFilter = jobFilterEl ? jobFilterEl.value : 'all';
 
-                // Render 5 Projects quick access strip
+                // Populate filter options dynamically
+                this.renderGanttFilterOptions(selectedJobFilter);
+
+                // Render Projects quick access strip
                 this.renderGanttProjectsStrip(selectedJobFilter);
 
                 let tasks = DB.tasks || [];
