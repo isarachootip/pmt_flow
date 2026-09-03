@@ -19,6 +19,9 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <!-- SheetJS for Excel (.xlsx, .xls) Parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -4285,13 +4288,153 @@
                 const nameEl = document.getElementById('boq-file-name');
                 if (nameEl) nameEl.innerText = `📄 ไฟล์ที่เลือก: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
 
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const content = e.target.result;
-                    this.parsePastedBOQ(content);
-                    this.showToast(`อ่านไฟล์ "${file.name}" สำเร็จ (${this.state.pendingBOQItems.length} รายการ)`);
-                };
-                reader.readAsText(file);
+                const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.xlsm') || (file.type && (file.type.includes('spreadsheet') || file.type.includes('excel')));
+
+                if (isExcel && typeof XLSX !== 'undefined') {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const wb = XLSX.read(data, { type: 'array' });
+                            const parsed = this.parseVFixExcelWorkbook(wb);
+                            if (parsed && parsed.items && parsed.items.length > 0) {
+                                this.state.pendingBOQHeader = parsed.header || {};
+                                this.state.pendingBOQItems = parsed.items;
+                                this.renderBOQPreviewTable();
+                                if (nameEl) nameEl.innerHTML = `<span class="text-emerald-500 font-bold">✓ อ่านไฟล์สำเร็จ [Sheet: ${parsed.sheetName}] (${parsed.items.length} รายการ)</span>`;
+                                this.showToast(`📊 อ่านไฟล์ Excel "${file.name}" (Sheet: ${parsed.sheetName}) สำเร็จ (${parsed.items.length} รายการ)`);
+                            } else {
+                                this.showToast('⚠️ ไม่พบข้อมูลตาราง BOQ ในไฟล์ Excel กรุณาตรวจสอบ Sheet ภายในไฟล์');
+                            }
+                        } catch (err) {
+                            console.error('Excel parse error:', err);
+                            this.showToast(`⚠️ เกิดข้อผิดพลาดในการอ่านไฟล์ Excel: ${err.message}`);
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const content = e.target.result;
+                        this.parsePastedBOQ(content);
+                        this.showToast(`อ่านไฟล์ "${file.name}" สำเร็จ (${this.state.pendingBOQItems.length} รายการ)`);
+                    };
+                    reader.readAsText(file);
+                }
+            },
+
+            parseVFixExcelWorkbook(wb) {
+                if (!wb || !wb.SheetNames || wb.SheetNames.length === 0) return null;
+
+                // Priority sheet order: BOQ โครงการ, PT, สำหรับกรอก BOQ, BOQ, or other sheets except NOTE/Cover
+                const preferredSheets = wb.SheetNames.filter(s => 
+                    !s.includes('NOTE') && !s.includes('พรินท์_Cover') && !s.includes('แผนการทำงาน')
+                );
+                const candidateSheets = preferredSheets.length > 0 ? preferredSheets : wb.SheetNames;
+
+                let bestResult = null;
+
+                for (const sName of candidateSheets) {
+                    const ws = wb.Sheets[sName];
+                    if (!ws) continue;
+                    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+                    if (!rows || rows.length < 3) continue;
+
+                    let headerInfo = {};
+                    let items = [];
+                    let headerRowIdx = -1;
+
+                    for (let r = 0; r < rows.length; r++) {
+                        const row = rows[r];
+                        if (!row || row.length === 0) continue;
+
+                        // 1. Extract metadata from header lines
+                        for (let c = 0; c < row.length; c++) {
+                            const cell = String(row[c] || '').trim();
+                            if (cell.includes('เรียน') && row[c + 1]) {
+                                headerInfo.customer = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
+                            }
+                            if (cell.includes('ที่อยู่') && row[c + 1]) {
+                                headerInfo.address = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
+                            }
+                            if (cell.includes('Tel') && row[c + 1]) {
+                                headerInfo.phone = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
+                            }
+                            if (cell.includes('สาขา') && row[c + 1]) {
+                                headerInfo.branch = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
+                            }
+                            if (cell.includes('วันที่') && row[c + 1]) {
+                                headerInfo.date = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
+                            }
+                            if (cell.includes('เลขที่ใบเสร็จ') && row[c + 1]) {
+                                headerInfo.receipt_no = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
+                            }
+                        }
+
+                        // 2. Detect column headers row
+                        const rowStr = row.filter(Boolean).map(c => String(c).trim()).join(' ');
+                        if (rowStr.includes('ลำดับ') || rowStr.includes('รหัสสินค้า') || (rowStr.includes('Item') && rowStr.includes('Descriptions'))) {
+                            headerRowIdx = r;
+                            continue;
+                        }
+
+                        // 3. Parse line items
+                        if (headerRowIdx >= 0 && r > headerRowIdx) {
+                            if (rowStr.includes('รวมมูลค่า') || rowStr.includes('Total Amount') || rowStr.includes('ค่าดำเนินการ') || rowStr.includes('ส่วนลด') || rowStr.includes('Net Value') || rowStr.includes('หมายเหตุ :') || rowStr.includes('ผู้จัดทำ')) {
+                                continue;
+                            }
+
+                            const code = row[1] ? String(row[1]).trim() : '';
+                            const name = row[2] ? String(row[2]).trim() : '';
+                            const qty = row[3] !== null && row[3] !== undefined && !isNaN(Number(row[3])) ? Number(row[3]) : 0;
+                            const unit = row[4] ? String(row[4]).trim() : 'ชุด';
+                            const matPrice = row[5] !== null && row[5] !== undefined && !isNaN(Number(row[5])) ? Number(row[5]) : 0;
+                            const matAmount = row[6] !== null && row[6] !== undefined && !isNaN(Number(row[6])) ? Number(row[6]) : 0;
+                            const laborPrice = row[7] !== null && row[7] !== undefined && !isNaN(Number(row[7])) ? Number(row[7]) : 0;
+                            const laborAmount = row[8] !== null && row[8] !== undefined && !isNaN(Number(row[8])) ? Number(row[8]) : 0;
+                            const totalAmount = row[9] !== null && row[9] !== undefined && !isNaN(Number(row[9])) ? Number(row[9]) : 0;
+                            const remark = row[10] ? String(row[10]).trim() : '';
+
+                            // Project section / note
+                            if (name.startsWith('หมู่บ้าน') || name.startsWith('โครงที่')) {
+                                headerInfo.project_note = (headerInfo.project_note ? headerInfo.project_note + ' ' : '') + name.replace(/\r?\n/g, ' ');
+                                continue;
+                            }
+
+                            if (name && (qty > 0 || laborPrice > 0 || matPrice > 0 || totalAmount > 0)) {
+                                let unitPrice = 0;
+                                if (laborPrice > 0) unitPrice = laborPrice;
+                                else if (matPrice > 0) unitPrice = matPrice;
+                                else if (qty > 0 && totalAmount > 0) unitPrice = totalAmount / qty;
+
+                                items.push({
+                                    code: code || `SKU-${items.length + 1}`,
+                                    name: name,
+                                    qty: qty || 1,
+                                    unit: unit || 'ชุด',
+                                    mat_price: matPrice,
+                                    labor_price: laborPrice,
+                                    price: unitPrice,
+                                    remark: remark
+                                });
+                            }
+                        }
+                    }
+
+                    if (items.length > 0) {
+                        const isHighPrioritySheet = sName.includes('โครงการ') || sName.includes('PT') || sName.includes('สำหรับกรอก BOQ');
+                        if (!bestResult || items.length > bestResult.items.length || isHighPrioritySheet) {
+                            bestResult = {
+                                sheetName: sName,
+                                header: headerInfo,
+                                items: items
+                            };
+                            if (isHighPrioritySheet) break;
+                        }
+                    }
+                }
+
+                return bestResult;
             },
 
             parsePastedBOQ(text) {
@@ -4618,7 +4761,66 @@
                 const baseDate = job ? (job.date || '2026-09-05') : new Date().toISOString().slice(0, 10);
                 const defaultTech = job ? (job.tech || 'Team A (สมศักดิ์)') : 'Team A (สมศักดิ์)';
 
-                if (file.name.endsWith('.csv') || file.type.includes('csv') || file.type.includes('text')) {
+                const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.xlsm') || (file.type && (file.type.includes('spreadsheet') || file.type.includes('excel')));
+
+                if (isExcel && typeof XLSX !== 'undefined') {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const wb = XLSX.read(data, { type: 'array' });
+                            const parsed = this.parseVFixExcelWorkbook(wb);
+                            if (parsed && parsed.items && parsed.items.length > 0) {
+                                const isLaborItem = (item) => {
+                                    if (item.labor_price && Number(item.labor_price) > 0) return true;
+                                    if (item.mat_price && Number(item.mat_price) > 0 && (!item.labor_price || Number(item.labor_price) === 0)) {
+                                        const strongLabor = ['ค่าแรง', 'งานติดตั้ง', 'บริการ', 'สำรวจ', 'รื้อถอน', 'เดินท่อ', 'เดินสาย', 'เตรียมหน้างาน', 'ทดสอบระบบ', 'ล้าง', 'ซ่อม', 'ทาสี', 'ฉาบ'];
+                                        return strongLabor.some(kw => (item.name || '').includes(kw));
+                                    }
+                                    const name = item.name || '';
+                                    const laborKeywords = ['ค่าแรง', 'งาน', 'บริการ', 'ช่าง', 'ติดตั้ง', 'สำรวจ', 'รื้อถอน', 'เดินท่อ', 'เดินสาย', 'เตรียม', 'ประกอบ', 'ทดสอบ', 'ซ่อม', 'ล้าง', 'ทาสี', 'ฉาบ'];
+                                    const materialKeywords = ['ชุดท่อ', 'รางครอบ', 'ขาแขวน', 'เบรกเกอร์', 'ถังเก็บน้ำ', 'ปั๊มน้ำ', 'สายไฟ', 'วาล์ว', 'ฐานรอง', 'อุปกรณ์', 'อะไหล่', 'ทองแดง', 'สีขาว', 'แปรง'];
+                                    const hasLabor = laborKeywords.some(kw => name.includes(kw));
+                                    const hasMaterial = materialKeywords.some(kw => name.includes(kw));
+                                    if (hasLabor && !hasMaterial) return true;
+                                    if (name.startsWith('ค่าแรง') || name.startsWith('งาน') || name.startsWith('บริการ')) return true;
+                                    return hasLabor;
+                                };
+
+                                const laborItems = parsed.items.filter(isLaborItem);
+                                const targetItems = laborItems.length > 0 ? laborItems : parsed.items;
+
+                                this.state.convertTasks = targetItems.map((item, idx) => {
+                                    const d = new Date(baseDate);
+                                    d.setDate(d.getDate() + idx);
+                                    const dateStr = d.toISOString().slice(0, 10);
+                                    let cleanTaskName = item.name.replace(/^ค่าแรงช่าง/, 'งาน').replace(/^ค่าแรง/, 'งาน');
+                                    return {
+                                        selected: true,
+                                        name: cleanTaskName,
+                                        originalBoqName: item.name,
+                                        start: dateStr,
+                                        end: dateStr,
+                                        days: 1,
+                                        tech: defaultTech,
+                                        assignees: [defaultTech]
+                                    };
+                                });
+
+                                const ratioEl = document.getElementById('convert-labor-ratio');
+                                if (ratioEl) ratioEl.innerText = `${targetItems.length} จาก ${parsed.items.length} รายการ (Sheet: ${parsed.sheetName})`;
+                                this.sortConvertTasksByStartDate(false);
+                                this.showToast(`📥 แปลงรายการค่าแรงจาก Excel "${file.name}" เป็น ${targetItems.length} Tasks สำเร็จ`);
+                            } else {
+                                this.showToast('⚠️ ไม่พบข้อมูลตารางในไฟล์ Excel');
+                            }
+                        } catch (err) {
+                            console.error('Excel task convert error:', err);
+                            this.showToast(`⚠️ เกิดข้อผิดพลาดในการแปลงไฟล์: ${err.message}`);
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else if (file.name.endsWith('.csv') || file.type.includes('csv') || file.type.includes('text')) {
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         const content = e.target.result;
@@ -4708,19 +4910,6 @@
                         }
                     };
                     reader.readAsText(file);
-                } else {
-                    // Fallback for Excel files in demo (Labor tasks only)
-                    const mockTasks = [
-                        { selected: true, name: 'งานเตรียมพื้นที่และตรวจสอบโครงสร้างเดิม', start: '2026-09-02', end: '2026-09-03', days: 2, tech: defaultTech, assignees: [defaultTech] },
-                        { selected: true, name: 'งานติดตั้งท่อประปาและระบบระบายน้ำ', start: '2026-09-04', end: '2026-09-06', days: 3, tech: 'กิตติพงษ์ (ช่างไฟฟ้า)', assignees: ['กิตติพงษ์ (ช่างไฟฟ้า)'] },
-                        { selected: true, name: 'งานติดตั้งเคาน์เตอร์และเฟอร์นิเจอร์หลัก', start: '2026-09-07', end: '2026-09-09', days: 3, tech: defaultTech, assignees: [defaultTech] },
-                        { selected: true, name: 'งานติดตั้งเตาและระบบฮูดดูดควัน', start: '2026-09-10', end: '2026-09-11', days: 2, tech: 'ธนกฤต (ช่างแอร์)', assignees: ['ธนกฤต (ช่างแอร์)'] }
-                    ];
-                    this.state.convertTasks = mockTasks;
-                    const ratioEl = document.getElementById('convert-labor-ratio');
-                    if (ratioEl) ratioEl.innerText = `${mockTasks.length} รายการค่าแรง`;
-                    this.sortConvertTasksByStartDate(false);
-                    this.showToast(`📥 อ่านไฟล์ Excel "${file.name}" สำเร็จ (${mockTasks.length} รายการค่าแรง)`);
                 }
             },
 
