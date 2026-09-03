@@ -705,18 +705,46 @@
                 <div id="page-gantt" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">แผนงานติดตั้ง (Gantt Timeline)</h2>
-                            <p class="text-xs text-muted-foreground mt-0.5">วางแผนตารางเวลาทีมช่างและระยะเวลาดำเนินงานในแต่ละหมวดหมู่</p>
+                            <div class="flex items-center gap-2">
+                                <span class="text-2xl">📊</span>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">แผนงานติดตั้ง (Gantt Timeline)</h2>
+                            </div>
+                            <p class="text-xs text-muted-foreground mt-0.5">วางแผนตารางเวลาทีมช่างและระยะเวลาดำเนินงานในแต่ละโครงการ จัดเรียงตามวันเริ่มต้นอัตโนมัติ</p>
                         </div>
-                        <div class="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> เสร็จสิ้น</span>
-                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span> กำลังทำ</span>
-                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-zinc-500"></span> รอดำเนินการ</span>
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <div class="flex items-center gap-2 bg-card border border-border rounded-lg px-2.5 py-1 text-xs">
+                                <label for="gantt-filter-job" class="text-muted-foreground">โครงการ:</label>
+                                <select id="gantt-filter-job" onchange="app.renderGantt()" class="bg-transparent text-foreground font-medium focus:outline-none cursor-pointer">
+                                    <option value="all">ทุกโครงการ (All Jobs)</option>
+                                    <option value="JOB202609001">JOB202609001 - คุณณวัฒน์ (Renovate ครัว)</option>
+                                    <option value="JOB202609002">JOB202609002 - คุณสมศรี (ปั้มแท็งก์)</option>
+                                    <option value="JOB202609003">JOB202609003 - คุณเอนก (ติดตั้งเครื่องทำน้ำอุ่น)</option>
+                                    <option value="JOB202609004">JOB202609004 - คุณมาลี (สำรวจหน้างาน)</option>
+                                    <option value="JOB202609005">JOB202609005 - คุณฉัตรชัย (Renovate ครัว)</option>
+                                </select>
+                            </div>
+                            <button onclick="app.openConvertBOQToTasksModal()" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-sm bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-700 hover:to-brand-700 text-white cursor-pointer">
+                                <i class="ph ph-calendar-plus"></i>
+                                <span>⚡ แปลง BOQ เป็น Task</span>
+                            </button>
                         </div>
                     </div>
 
-                    <div class="artifact-card p-6 overflow-x-auto">
-                        <div id="gantt-container" class="min-w-[850px]">
+                    <div class="flex flex-wrap items-center justify-between gap-3 text-xs bg-muted/20 p-3 rounded-xl border border-border">
+                        <div class="flex items-center gap-4 text-xs">
+                            <span class="flex items-center gap-1.5 font-medium text-foreground"><i class="ph ph-chart-bar-horizontal text-brand-500"></i> รวม <span id="gantt-total-count" class="font-bold text-brand-500 font-mono">0</span> Tasks</span>
+                            <span class="text-muted-foreground">•</span>
+                            <span class="flex items-center gap-1.5 text-muted-foreground"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> เสร็จสิ้น</span>
+                            <span class="flex items-center gap-1.5 text-muted-foreground"><span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span> กำลังทำ</span>
+                            <span class="flex items-center gap-1.5 text-muted-foreground"><span class="w-2.5 h-2.5 rounded-full bg-zinc-500"></span> รอดำเนินการ</span>
+                        </div>
+                        <div class="text-[11px] text-muted-foreground font-mono" id="gantt-date-range-label">
+                            ช่วงเวลา: 01 ก.ย. 2026 - 15 ก.ย. 2026
+                        </div>
+                    </div>
+
+                    <div class="artifact-card p-6 overflow-x-auto shadow-sm">
+                        <div id="gantt-container" class="min-w-[900px]">
                             <!-- Custom rendered Gantt -->
                         </div>
                     </div>
@@ -1467,15 +1495,18 @@
 
     <!-- MODAL: CONVERT BOQ TO PROJECT TASKS -->
     <div id="modal-convert-boq-tasks" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
-        <div class="artifact-card rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-convert-boq-tasks-content">
+        <div class="artifact-card rounded-2xl w-full max-w-5xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-convert-boq-tasks-content">
             <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
-                        <i class="ph ph-calendar-plus text-lg"></i>
+                    <div class="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+                        <i class="ph ph-calendar-plus text-xl"></i>
                     </div>
                     <div>
-                        <h3 class="font-display font-bold text-sm text-foreground">⚡ วางแผนและแปลงรายการ BOQ เป็น Task ปฏิบัติงาน (Convert BOQ to Tasks)</h3>
-                        <p class="text-[10px] text-muted-foreground">กำหนดชื่องาน วันเริ่มต้น-สิ้นสุด และมอบหมายช่างเดี่ยวหรือทีมช่างหลายคน (Crew) เพื่อสร้าง Task เข้าสู่แผนงาน Gantt</p>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-display font-bold text-sm sm:text-base text-foreground">⚡ นำเข้า BOQ สู่ Project Tasks & แผนงาน Gantt</h3>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-semibold">Auto-Sort by Start Date</span>
+                        </div>
+                        <p class="text-[11px] text-muted-foreground mt-0.5">ดึงหรือนำเข้าไฟล์ BOQ แปลงเป็น Task พร้อมกำหนด <strong>Start Date</strong>, <strong>End Date</strong> และสามารถแทรกงานได้ (จัดเรียงตามวันเริ่มงานอัตโนมัติ)</p>
                     </div>
                 </div>
                 <button onclick="app.hideModal('modal-convert-boq-tasks')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition cursor-pointer">
@@ -1486,45 +1517,60 @@
             <div class="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
                 <!-- Job Header Info -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl bg-brand-500/5 border border-brand-500/20 text-xs gap-2">
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
                         <span class="font-mono font-bold text-brand-500" id="convert-job-id">JOB202609001</span>
                         <span class="text-muted-foreground">•</span>
                         <span class="font-medium text-foreground" id="convert-job-customer">ลูกค้า: คุณณวัฒน์ รักสงบ</span>
                         <span class="text-muted-foreground">•</span>
                         <span class="text-muted-foreground" id="convert-job-service">บริการ: Renovate ครัว</span>
                     </div>
-                    <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                        ดึงรายการจาก BOQ
-                    </span>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                            <i class="ph ph-check-circle"></i> จัดเรียงตามวันเริ่มต้น
+                        </span>
+                    </div>
                 </div>
 
-                <!-- Tasks Editor Table -->
+                <!-- Hidden file input for uploading BOQ directly into task converter -->
+                <input type="file" id="task-boq-file-input" accept=".xlsx,.xls,.csv" class="hidden" onchange="app.handleBOQFileForTasks(event)">
+
+                <!-- Tasks Editor Table Toolbar -->
                 <div class="space-y-2">
-                    <div class="flex items-center justify-between">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <span class="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                            <i class="ph ph-list-checks text-brand-500"></i> รายการ Task ปฏิบัติงานที่จะสร้าง (<span id="convert-task-count">0</span> งาน)
+                            <i class="ph ph-list-checks text-brand-500"></i> รายการ Project Tasks (<span id="convert-task-count">0</span> งานที่เลือก)
                         </span>
-                        <div class="flex items-center gap-2">
-                            <button type="button" onclick="app.resetConvertTasksFromBOQ()" class="text-[11px] text-brand-500 hover:underline flex items-center gap-1 cursor-pointer">
-                                <i class="ph ph-arrows-clockwise"></i> รีเซ็ตจาก BOQ
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button type="button" onclick="document.getElementById('task-boq-file-input').click()" class="text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/30 flex items-center gap-1 cursor-pointer font-medium">
+                                <i class="ph ph-file-arrow-up"></i> นำเข้าไฟล์ BOQ (.csv/.xlsx)
                             </button>
-                            <button type="button" onclick="app.addCustomConvertTaskRow()" class="text-[11px] bg-muted hover:bg-muted/80 text-foreground px-2.5 py-1 rounded-lg border border-border flex items-center gap-1 cursor-pointer">
-                                <i class="ph ph-plus"></i> เพิ่ม Task กำหนดเอง
+                            <button type="button" onclick="app.downloadTaskBOQTemplate()" class="text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-muted transition flex items-center gap-1 cursor-pointer" title="ดาวน์โหลด Template สำหรับนำเข้าไฟล์ Task">
+                                <i class="ph ph-download-simple"></i> Template
+                            </button>
+                            <button type="button" onclick="app.insertConvertTaskAt(-1)" class="text-[11px] bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 px-2.5 py-1 rounded-lg border border-purple-500/30 flex items-center gap-1 cursor-pointer font-medium">
+                                <i class="ph ph-plus"></i> + แทรกงานใหม่
+                            </button>
+                            <button type="button" onclick="app.sortConvertTasksByStartDate(true)" class="text-[11px] bg-muted hover:bg-muted/80 text-foreground px-2.5 py-1 rounded-lg border border-border flex items-center gap-1 cursor-pointer" title="จัดเรียงรายการ Task ตามวันเริ่มต้น">
+                                <i class="ph ph-arrows-down-up"></i> จัดเรียงตามวันเริ่มงาน
+                            </button>
+                            <button type="button" onclick="app.resetConvertTasksFromBOQ()" class="text-[11px] text-brand-500 hover:underline flex items-center gap-1 cursor-pointer ml-1">
+                                <i class="ph ph-arrows-clockwise"></i> รีเซ็ตจาก BOQ
                             </button>
                         </div>
                     </div>
 
-                    <div class="border border-border rounded-xl overflow-x-auto">
+                    <div class="border border-border rounded-xl overflow-x-auto shadow-xs">
                         <table class="w-full text-left text-xs">
                             <thead class="bg-muted/50 border-b border-border text-[11px] text-muted-foreground">
                                 <tr>
-                                    <th class="py-2.5 px-3 w-12 text-center">เลือก</th>
-                                    <th class="py-2.5 px-3 min-w-[200px]">ชื่อ Task งานติดตั้ง / บริการ</th>
-                                    <th class="py-2.5 px-3 w-36">วันเริ่มต้น (Start)</th>
-                                    <th class="py-2.5 px-3 w-36">วันสิ้นสุด (End)</th>
+                                    <th class="py-2.5 px-3 w-10 text-center">เลือก</th>
+                                    <th class="py-2.5 px-2 w-10 text-center">#</th>
+                                    <th class="py-2.5 px-3 min-w-[220px]">Task ตาม BOQ / ชื่องานปฏิบัติการ</th>
+                                    <th class="py-2.5 px-3 w-36">วันเริ่มต้น (Start Date)</th>
+                                    <th class="py-2.5 px-3 w-36">วันสิ้นสุด (End Date)</th>
                                     <th class="py-2.5 px-3 w-20 text-center">ระยะเวลา</th>
-                                    <th class="py-2.5 px-3 min-w-[220px]">ผู้รับผิดชอบ (ช่างเดี่ยว หรือ ทีมหลายคน)</th>
-                                    <th class="py-2.5 px-2 w-10 text-center">ลบ</th>
+                                    <th class="py-2.5 px-3 min-w-[220px]">ผู้รับผิดชอบ (ช่าง/Crew)</th>
+                                    <th class="py-2.5 px-2 w-28 text-center">การแทรก / ลบ</th>
                                 </tr>
                             </thead>
                             <tbody id="convert-tasks-tbody" class="divide-y divide-border bg-card">
@@ -1534,18 +1580,26 @@
                     </div>
                 </div>
 
-                <div class="p-3 rounded-xl bg-muted/30 border border-border text-[11px] text-muted-foreground flex items-start gap-2">
-                    <i class="ph ph-info text-base text-brand-500 shrink-0 mt-0.5"></i>
-                    <span><strong>หมายเหตุ:</strong> เมื่อกดยืนยัน รายการ Task จะถูกซิงค์ไปยัง <strong>แผนงาน (Gantt Timeline)</strong> และพร้อมสำหรับส่งข้อมูลไปจอง Slot ช่างกับระบบ INT</span>
+                <div class="p-3 rounded-xl bg-muted/30 border border-border text-[11px] text-muted-foreground flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <i class="ph ph-info text-base text-brand-500 shrink-0"></i>
+                        <span><strong>หมายเหตุ:</strong> ระบบจะจัดเรียงตาม <strong>Start Date</strong> อัตโนมัติเมื่อแทรกงานหรือแก้ไขวันเริ่มงาน และเมื่อกดยืนยันจะแปลงเป็น Gantt Timeline ทันที</span>
+                    </div>
+                    <span class="text-[10px] text-purple-600 dark:text-purple-400 font-medium">✨ สามารถกด "แทรกงานด้านล่าง" ในแต่ละแถวได้</span>
                 </div>
             </div>
 
             <!-- Modal Footer -->
             <div class="p-4 border-t border-border flex justify-between items-center bg-muted/30">
                 <button type="button" onclick="app.hideModal('modal-convert-boq-tasks')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs cursor-pointer">ยกเลิก</button>
-                <button type="button" onclick="app.confirmConvertBOQToTasks()" id="btn-confirm-convert-tasks" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-700 hover:to-brand-700 text-white cursor-pointer">
-                    <i class="ph ph-calendar-check text-sm"></i> ⚡ ยืนยันสร้าง Task & ซิงค์เข้า Gantt Timeline
-                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="app.sortConvertTasksByStartDate(true)" class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer">
+                        <i class="ph ph-arrows-down-up"></i> จัดเรียงตามวันเริ่มต้น
+                    </button>
+                    <button type="button" onclick="app.confirmConvertBOQToTasks()" id="btn-confirm-convert-tasks" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-700 hover:to-brand-700 text-white cursor-pointer">
+                        <i class="ph ph-calendar-check text-sm"></i> ⚡ ยืนยันสร้าง Task & ซิงค์เข้า Gantt Timeline
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1755,11 +1809,11 @@
                 }
             ],
             tasks: [
-                { id: 'T1', jobId: 'JOB202609001', name: 'รื้อถอนของเดิม', tech: 'Team A', start: '2026-09-01', days: 2, status: 'DONE' },
-                { id: 'T2', jobId: 'JOB202609001', name: 'งานประปา/ไฟฟ้า', tech: 'Team A', start: '2026-09-03', days: 3, status: 'IN_PROGRESS' },
-                { id: 'T3', jobId: 'JOB202609001', name: 'ติดตั้งตู้เคาน์เตอร์', tech: 'Team A', start: '2026-09-06', days: 4, status: 'PENDING' },
-                { id: 'T4', jobId: 'JOB202609002', name: 'เตรียมหน้างาน', tech: 'Team B', start: '2026-09-01', days: 1, status: 'DONE' },
-                { id: 'T5', jobId: 'JOB202609002', name: 'ติดตั้งปั้มและเดินท่อ', tech: 'Team B', start: '2026-09-02', days: 1, status: 'DONE' },
+                { id: 'T1', jobId: 'JOB202609001', name: 'รื้อถอนของเดิม', tech: 'Team A (สมศักดิ์)', start: '2026-09-01', end: '2026-09-02', days: 2, status: 'DONE' },
+                { id: 'T2', jobId: 'JOB202609001', name: 'งานประปา/ไฟฟ้า', tech: 'Team A (สมศักดิ์)', start: '2026-09-03', end: '2026-09-05', days: 3, status: 'IN_PROGRESS' },
+                { id: 'T3', jobId: 'JOB202609001', name: 'ติดตั้งตู้เคาน์เตอร์', tech: 'Team A (สมศักดิ์)', start: '2026-09-06', end: '2026-09-09', days: 4, status: 'PENDING' },
+                { id: 'T4', jobId: 'JOB202609002', name: 'เตรียมหน้างาน', tech: 'Team B (ประเสริฐ)', start: '2026-09-01', end: '2026-09-01', days: 1, status: 'DONE' },
+                { id: 'T5', jobId: 'JOB202609002', name: 'ติดตั้งปั้มและเดินท่อ', tech: 'Team B (ประเสริฐ)', start: '2026-09-02', end: '2026-09-02', days: 1, status: 'DONE' },
             ],
             qcChecklist: [
                 { id: 'Q1', text: 'ความสะอาดพื้นที่หน้างาน (Site Cleanliness)', mandatory: true },
@@ -3593,8 +3647,110 @@
                 this.showToast('📥 ดาวน์โหลด Template BOQ (.csv) เรียบร้อย');
             },
 
+            downloadTaskBOQTemplate() {
+                const csvContent = "\uFEFF" + "ลำดับ,ชื่อ Task ตาม BOQ,วันเริ่มต้น (Start Date YYYY-MM-DD),วันสิ้นสุด (End Date YYYY-MM-DD),จำนวนวัน,ผู้รับผิดชอบ\n" +
+                    "1,งานสำรวจและเตรียมพื้นที่หน้างาน,2026-09-01,2026-09-02,2,Team A (สมศักดิ์)\n" +
+                    "2,งานรื้อถอนและปรับระดับพื้นเดิม,2026-09-03,2026-09-04,2,Team A (สมศักดิ์)\n" +
+                    "3,งานเดินท่อประปาและระบบไฟฟ้าฝังผนัง,2026-09-05,2026-09-07,3,กิตติพงษ์ (ช่างไฟฟ้า)\n" +
+                    "4,งานติดตั้งเคาน์เตอร์ครัวและท็อปหิน,2026-09-08,2026-09-10,3,Team A (สมศักดิ์)\n" +
+                    "5,งานติดตั้งอุปกรณ์เตาอบและฮูดดูดควัน,2026-09-11,2026-09-12,2,ธนกฤต (ช่างแอร์)\n";
+                
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `PMT_Project_Tasks_Template_${new Date().toISOString().slice(0,10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                this.showToast('📥 ดาวน์โหลด Template Tasks สำหรับนำเข้าแผนงานเรียบร้อย');
+            },
+
+            handleBOQFileForTasks(event) {
+                const file = event.target.files && event.target.files[0];
+                if (!file) return;
+
+                const job = DB.jobs.find(j => j.id === this.state.convertJobId);
+                const baseDate = job ? (job.date || '2026-09-05') : new Date().toISOString().slice(0, 10);
+                const defaultTech = job ? (job.tech || 'Team A (สมศักดิ์)') : 'Team A (สมศักดิ์)';
+
+                if (file.name.endsWith('.csv') || file.type.includes('csv') || file.type.includes('text')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const content = e.target.result;
+                        const lines = (content || '').trim().split(/\r?\n/);
+                        const parsedTasks = [];
+
+                        lines.forEach((line, idx) => {
+                            if (!line.trim()) return;
+                            if (idx === 0 && (line.includes('ลำดับ') || line.includes('Task') || line.includes('รายการ'))) return;
+
+                            let parts = line.split('\t');
+                            if (parts.length === 1) parts = line.split(';');
+                            if (parts.length === 1) parts = line.split(',');
+                            parts = parts.map(p => p.trim().replace(/^"|"$/g, ''));
+
+                            // Remove sequence number if present
+                            if (parts.length >= 3 && /^\d+$/.test(parts[0])) {
+                                parts.shift();
+                            }
+
+                            const taskName = parts[0] || `งานติดตั้ง ${parsedTasks.length + 1}`;
+                            let startDate = parts[1] && /^\d{4}-\d{2}-\d{2}$/.test(parts[1]) ? parts[1] : '';
+                            let endDate = parts[2] && /^\d{4}-\d{2}-\d{2}$/.test(parts[2]) ? parts[2] : '';
+                            let days = parseInt(parts[3]) || 1;
+                            const tech = parts[4] || defaultTech;
+
+                            if (!startDate) {
+                                const d = new Date(baseDate);
+                                d.setDate(d.getDate() + Math.floor(parsedTasks.length / 2));
+                                startDate = d.toISOString().slice(0, 10);
+                            }
+                            if (!endDate) {
+                                const s = new Date(startDate);
+                                s.setDate(s.getDate() + (days - 1));
+                                endDate = s.toISOString().slice(0, 10);
+                            } else {
+                                const s = new Date(startDate);
+                                const en = new Date(endDate);
+                                days = Math.max(1, Math.round((en - s) / (1000 * 60 * 60 * 24)) + 1);
+                            }
+
+                            parsedTasks.push({
+                                selected: true,
+                                name: taskName,
+                                start: startDate,
+                                end: endDate,
+                                days: isNaN(days) ? 1 : days,
+                                tech: tech,
+                                assignees: [tech]
+                            });
+                        });
+
+                        if (parsedTasks.length > 0) {
+                            this.state.convertTasks = parsedTasks;
+                            this.sortConvertTasksByStartDate(false);
+                            this.showToast(`📥 นำเข้าไฟล์ ${file.name} สำเร็จ (${parsedTasks.length} งาน) และจัดเรียงตามวันเริ่มต้น`);
+                        }
+                    };
+                    reader.readAsText(file);
+                } else {
+                    // Fallback for Excel files in demo
+                    const mockTasks = [
+                        { selected: true, name: 'งานเตรียมพื้นที่และตรวจสอบโครงสร้างเดิม', start: '2026-09-02', end: '2026-09-03', days: 2, tech: defaultTech, assignees: [defaultTech] },
+                        { selected: true, name: 'งานติดตั้งท่อประปาและระบบระบายน้ำ', start: '2026-09-04', end: '2026-09-06', days: 3, tech: 'กิตติพงษ์ (ช่างไฟฟ้า)', assignees: ['กิตติพงษ์ (ช่างไฟฟ้า)'] },
+                        { selected: true, name: 'งานติดตั้งเคาน์เตอร์และเฟอร์นิเจอร์หลัก', start: '2026-09-07', end: '2026-09-09', days: 3, tech: defaultTech, assignees: [defaultTech] },
+                        { selected: true, name: 'งานติดตั้งเตาและระบบฮูดดูดควัน', start: '2026-09-10', end: '2026-09-11', days: 2, tech: 'ธนกฤต (ช่างแอร์)', assignees: ['ธนกฤต (ช่างแอร์)'] }
+                    ];
+                    this.state.convertTasks = mockTasks;
+                    this.sortConvertTasksByStartDate(false);
+                    this.showToast(`📥 อ่านไฟล์ Excel "${file.name}" สำเร็จ (${mockTasks.length} งาน) และจัดเรียงตามวันเริ่มต้น`);
+                }
+            },
+
             openConvertBOQToTasksModal(jobId) {
-                const targetJobId = jobId || this.state.currentJobId;
+                const targetJobId = jobId || this.state.currentJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
                 const job = DB.jobs.find(j => j.id === targetJobId);
                 if (!job) {
                     this.showToast('⚠️ ไม่พบข้อมูล Job');
@@ -3624,7 +3780,7 @@
                     ];
                 } else {
                     this.state.convertTasks = boqItems.map((item, idx) => {
-                        // Calculate staggered dates
+                        // Calculate staggered dates from baseDate
                         const d = new Date(baseDate);
                         d.setDate(d.getDate() + Math.floor(idx / 2));
                         const dateStr = d.toISOString().slice(0, 10);
@@ -3640,31 +3796,81 @@
                     });
                 }
 
-                this.renderConvertTasksRows();
+                this.sortConvertTasksByStartDate(false);
             },
 
-            addCustomConvertTaskRow() {
+            insertConvertTaskAt(idx) {
                 const job = DB.jobs.find(j => j.id === this.state.convertJobId);
-                const baseDate = job ? job.date || '2026-09-05' : '2026-09-05';
                 const defaultTech = job ? job.tech || 'Team A (สมศักดิ์)' : 'Team A (สมศักดิ์)';
+                const baseDate = job ? job.date || '2026-09-05' : '2026-09-05';
 
                 if (!this.state.convertTasks) this.state.convertTasks = [];
-                this.state.convertTasks.push({
+
+                let newStartDate = baseDate;
+                if (idx >= 0 && this.state.convertTasks[idx]) {
+                    const prevTask = this.state.convertTasks[idx];
+                    if (prevTask.end) {
+                        const d = new Date(prevTask.end);
+                        d.setDate(d.getDate() + 1);
+                        newStartDate = d.toISOString().slice(0, 10);
+                    } else if (prevTask.start) {
+                        newStartDate = prevTask.start;
+                    }
+                } else if (this.state.convertTasks.length > 0) {
+                    const lastTask = this.state.convertTasks[this.state.convertTasks.length - 1];
+                    if (lastTask && lastTask.end) {
+                        const d = new Date(lastTask.end);
+                        d.setDate(d.getDate() + 1);
+                        newStartDate = d.toISOString().slice(0, 10);
+                    }
+                }
+
+                const newTask = {
                     selected: true,
-                    name: 'งานติดตั้ง/ตรวจสอบระบบใหม่',
-                    start: baseDate,
-                    end: baseDate,
+                    name: 'งานแทรกติดตั้ง/ตรวจสอบเพิ่มเติม',
+                    start: newStartDate,
+                    end: newStartDate,
                     days: 1,
                     tech: defaultTech,
                     assignees: [defaultTech]
-                });
-                this.renderConvertTasksRows();
+                };
+
+                if (idx >= 0 && idx < this.state.convertTasks.length) {
+                    this.state.convertTasks.splice(idx + 1, 0, newTask);
+                } else {
+                    this.state.convertTasks.push(newTask);
+                }
+
+                // Automatically sort tasks by start date after insertion
+                this.sortConvertTasksByStartDate(false);
+                this.showToast('➕ แทรกงานใหม่เรียบร้อย (จัดเรียงตามวันเริ่มต้นอัตโนมัติ)');
+            },
+
+            addCustomConvertTaskRow() {
+                this.insertConvertTaskAt(-1);
             },
 
             removeConvertTaskRow(idx) {
                 if (!this.state.convertTasks) return;
                 this.state.convertTasks.splice(idx, 1);
                 this.renderConvertTasksRows();
+            },
+
+            sortConvertTasksByStartDate(showToast = false) {
+                if (!this.state.convertTasks) return;
+                this.state.convertTasks.sort((a, b) => {
+                    const da = new Date(a.start || '9999-12-31').getTime();
+                    const db = new Date(b.start || '9999-12-31').getTime();
+                    if (da !== db) return da - db;
+                    const ea = new Date(a.end || '9999-12-31').getTime();
+                    const eb = new Date(b.end || '9999-12-31').getTime();
+                    if (ea !== eb) return ea - eb;
+                    return (a.name || '').localeCompare(b.name || '');
+                });
+                this.renderConvertTasksRows();
+                if (showToast) {
+                    this.showToast('🔄 จัดเรียงรายการ Task ตามวันเริ่มต้น (Start Date) เรียบร้อย');
+                }
             },
 
             updateConvertTaskField(idx, field, value) {
@@ -3675,17 +3881,39 @@
                     task.selected = !!value;
                 } else if (field === 'name') {
                     task.name = value;
-                } else if (field === 'start' || field === 'end') {
-                    task[field] = value;
-                    if (task.start && task.end) {
-                        const s = new Date(task.start);
-                        const e = new Date(task.end);
-                        const diffTime = e - s;
-                        const diffDays = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1);
-                        task.days = isNaN(diffDays) ? 1 : diffDays;
-                        const daysEl = document.getElementById(`convert-days-${idx}`);
-                        if (daysEl) daysEl.innerText = `${task.days} วัน`;
+                } else if (field === 'start') {
+                    task.start = value;
+                    if (task.start) {
+                        if (!task.end || new Date(task.end) < new Date(task.start)) {
+                            // Automatically adjust end date to match duration
+                            const s = new Date(task.start);
+                            s.setDate(s.getDate() + ((task.days || 1) - 1));
+                            task.end = s.toISOString().slice(0, 10);
+                        } else {
+                            const s = new Date(task.start);
+                            const e = new Date(task.end);
+                            const diffDays = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1);
+                            task.days = isNaN(diffDays) ? 1 : diffDays;
+                        }
                     }
+                    // Auto-sort by start date when start date is modified
+                    this.sortConvertTasksByStartDate(false);
+                    return;
+                } else if (field === 'end') {
+                    task.end = value;
+                    if (task.start && task.end) {
+                        if (new Date(task.end) < new Date(task.start)) {
+                            task.start = task.end;
+                            task.days = 1;
+                        } else {
+                            const s = new Date(task.start);
+                            const e = new Date(task.end);
+                            const diffDays = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1);
+                            task.days = isNaN(diffDays) ? 1 : diffDays;
+                        }
+                    }
+                    const daysEl = document.getElementById(`convert-days-${idx}`);
+                    if (daysEl) daysEl.innerText = `${task.days} วัน`;
                 } else if (field === 'days') {
                     task.days = parseInt(value) || 1;
                     if (task.start) {
@@ -3735,7 +3963,7 @@
                 if (countEl) countEl.innerText = tasks.filter(t => t.selected).length;
 
                 if (tasks.length === 0) {
-                    if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-muted-foreground text-xs">ไม่มีรายการ Task กรุณากดปุ่ม "รีเซ็ตจาก BOQ" หรือ "เพิ่ม Task กำหนดเอง"</td></tr>`;
+                    if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-muted-foreground text-xs">ไม่มีรายการ Task กรุณากดปุ่ม "รีเซ็ตจาก BOQ" หรือ "+ แทรกงานใหม่" หรือ "นำเข้าไฟล์ BOQ"</td></tr>`;
                     return;
                 }
 
@@ -3756,17 +3984,22 @@
                         <td class="py-2.5 px-3 text-center">
                             <input type="checkbox" ${t.selected ? 'checked' : ''} onchange="app.updateConvertTaskField(${idx}, 'selected', this.checked)" class="accent-purple-600 rounded cursor-pointer">
                         </td>
-                        <td class="py-2.5 px-3">
-                            <input type="text" value="${t.name}" oninput="app.updateConvertTaskField(${idx}, 'name', this.value)" class="w-full bg-muted/30 hover:bg-muted/60 focus:bg-card border border-border focus:border-purple-500 rounded px-2.5 py-1.5 text-xs text-foreground font-medium transition focus:outline-none">
+                        <td class="py-2.5 px-2 text-center text-muted-foreground font-mono text-[11px] font-semibold">
+                            ${idx + 1}
                         </td>
                         <td class="py-2.5 px-3">
-                            <input type="date" value="${t.start}" onchange="app.updateConvertTaskField(${idx}, 'start', this.value)" class="w-full bg-muted/30 border border-border focus:border-purple-500 rounded px-2 py-1 text-xs text-foreground font-mono focus:outline-none cursor-pointer">
+                            <input type="text" value="${t.name}" oninput="app.updateConvertTaskField(${idx}, 'name', this.value)" placeholder="ระบุชื่องาน / บริการ" class="w-full bg-muted/30 hover:bg-muted/60 focus:bg-card border border-border focus:border-purple-500 rounded-lg px-2.5 py-1.5 text-xs text-foreground font-medium transition focus:outline-none">
                         </td>
                         <td class="py-2.5 px-3">
-                            <input type="date" id="convert-end-${idx}" value="${t.end}" onchange="app.updateConvertTaskField(${idx}, 'end', this.value)" class="w-full bg-muted/30 border border-border focus:border-purple-500 rounded px-2 py-1 text-xs text-foreground font-mono focus:outline-none cursor-pointer">
+                            <input type="date" value="${t.start}" onchange="app.updateConvertTaskField(${idx}, 'start', this.value)" class="w-full bg-muted/30 border border-border focus:border-purple-500 rounded-lg px-2 py-1.5 text-xs text-foreground font-mono focus:outline-none cursor-pointer">
                         </td>
-                        <td class="py-2.5 px-3 text-center font-mono text-foreground font-semibold" id="convert-days-${idx}">
-                            ${t.days || 1} วัน
+                        <td class="py-2.5 px-3">
+                            <input type="date" id="convert-end-${idx}" value="${t.end}" onchange="app.updateConvertTaskField(${idx}, 'end', this.value)" class="w-full bg-muted/30 border border-border focus:border-purple-500 rounded-lg px-2 py-1.5 text-xs text-foreground font-mono focus:outline-none cursor-pointer">
+                        </td>
+                        <td class="py-2.5 px-3 text-center" id="convert-days-${idx}">
+                            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                                ${t.days || 1} วัน
+                            </span>
                         </td>
                         <td class="py-2.5 px-3">
                             <div class="flex flex-wrap gap-1 max-w-[260px]">
@@ -3777,9 +4010,14 @@
                             </div>
                         </td>
                         <td class="py-2.5 px-2 text-center">
-                            <button type="button" onclick="app.removeConvertTaskRow(${idx})" class="p-1 text-muted-foreground hover:text-rose-500 rounded transition cursor-pointer" title="ลบ Task นี้">
-                                <i class="ph ph-trash text-sm"></i>
-                            </button>
+                            <div class="flex items-center justify-center gap-1">
+                                <button type="button" onclick="app.insertConvertTaskAt(${idx})" class="px-2 py-1 text-[11px] text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 rounded-md transition cursor-pointer flex items-center gap-0.5" title="แทรกงานด้านล่างแถวนี้">
+                                    <i class="ph ph-plus-circle text-xs"></i> แทรก
+                                </button>
+                                <button type="button" onclick="app.removeConvertTaskRow(${idx})" class="p-1 text-muted-foreground hover:text-rose-500 rounded transition cursor-pointer" title="ลบ Task นี้">
+                                    <i class="ph ph-trash text-sm"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     `;
@@ -3789,7 +4027,7 @@
             },
 
             confirmConvertBOQToTasks() {
-                const targetJobId = this.state.convertJobId || this.state.currentJobId;
+                const targetJobId = this.state.convertJobId || this.state.currentJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
                 const job = DB.jobs.find(j => j.id === targetJobId);
                 if (!job) {
                     this.showToast('⚠️ ไม่พบข้อมูล Job');
@@ -3801,6 +4039,14 @@
                     this.showToast('⚠️ กรุณาเลือกอย่างน้อย 1 Task เพื่อแปลงเป็นแผนงาน');
                     return;
                 }
+
+                // Ensure sorted by start date before saving
+                selectedTasks.sort((a, b) => {
+                    const da = new Date(a.start || '9999-12-31').getTime();
+                    const db = new Date(b.start || '9999-12-31').getTime();
+                    if (da !== db) return da - db;
+                    return (a.name || '').localeCompare(b.name || '');
+                });
 
                 // Remove existing tasks for this job from DB.tasks
                 if (!DB.tasks) DB.tasks = [];
@@ -3814,13 +4060,30 @@
                         name: st.name,
                         tech: st.tech || (st.assignees ? st.assignees.join(' + ') : 'Team A'),
                         start: st.start || '2026-09-05',
+                        end: st.end || st.start || '2026-09-05',
                         days: st.days || 1,
                         status: 'IN_PROGRESS'
                     });
                 });
 
+                // Sync with backend API in background
+                fetch(`/api/v1/jobs/${targetJobId}/tasks/import-boq`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items: selectedTasks.map(t => ({
+                            name: t.name,
+                            start_date: t.start,
+                            end_date: t.end,
+                            duration_days: t.days,
+                            assigned_tech: t.tech,
+                            assignees: t.assignees
+                        }))
+                    })
+                }).catch(err => console.log('Backend sync task notice:', err.message));
+
                 this.hideModal('modal-convert-boq-tasks');
-                this.showToast(`⚡ แปลง BOQ เป็น Task ปฏิบัติงาน ${selectedTasks.length} รายการ และซิงค์เข้า Gantt Timeline เรียบร้อย`);
+                this.showToast(`⚡ แปลง BOQ เป็น Task ปฏิบัติงาน ${selectedTasks.length} รายการ และจัดเรียงตามวันเริ่มงานเข้า Gantt Timeline เรียบร้อย`);
 
                 if (this.state.currentView === 'gantt') {
                     this.renderGantt();
@@ -3828,40 +4091,133 @@
             },
 
             renderGantt() {
-                const days = Array.from({length: 10}, (_, i) => i+1);
-                const headerHtml = days.map(d => `<div class="flex-1 text-center text-[11px] font-mono text-muted-foreground border-l border-border pb-2">Sep ${d}</div>`).join('');
-                
-                const rowsHtml = DB.tasks.map(t => {
-                    const startDay = parseInt(t.start.split('-')[2]);
-                    const offsetPercent = ((startDay - 1) / 10) * 100;
-                    const widthPercent = (t.days / 10) * 100;
-                    
+                const jobFilterEl = document.getElementById('gantt-filter-job');
+                const selectedJobFilter = jobFilterEl ? jobFilterEl.value : 'all';
+
+                let tasks = DB.tasks || [];
+                if (selectedJobFilter && selectedJobFilter !== 'all') {
+                    tasks = tasks.filter(t => t.jobId === selectedJobFilter);
+                }
+
+                // Update total count badge
+                const countEl = document.getElementById('gantt-total-count');
+                if (countEl) countEl.innerText = tasks.length;
+
+                const container = document.getElementById('gantt-container');
+                if (!container) return;
+
+                if (tasks.length === 0) {
+                    container.innerHTML = `
+                        <div class="py-12 text-center text-muted-foreground text-xs space-y-3">
+                            <div class="w-12 h-12 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground mx-auto">
+                                <i class="ph ph-calendar-blank text-2xl"></i>
+                            </div>
+                            <p class="font-medium text-foreground">ยังไม่มีรายการ Task ในแผนงาน ${selectedJobFilter !== 'all' ? `สำหรับ ${selectedJobFilter}` : ''}</p>
+                            <p class="text-[11px]">กดปุ่ม "⚡ แปลง BOQ เป็น Task" เพื่อนำเข้ารายการงานและสร้าง Gantt Timeline</p>
+                            <button onclick="app.openConvertBOQToTasksModal('${selectedJobFilter !== 'all' ? selectedJobFilter : 'JOB202609001'}')" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm bg-purple-600 hover:bg-purple-700 text-white cursor-pointer">
+                                <i class="ph ph-calendar-plus"></i> แปลง BOQ เป็น Task แผนงาน
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Calculate minimum start date and maximum end date
+                let minTimestamp = Infinity;
+                let maxTimestamp = -Infinity;
+
+                tasks.forEach(t => {
+                    const s = new Date(t.start || '2026-09-01').getTime();
+                    let e;
+                    if (t.end) {
+                        e = new Date(t.end).getTime();
+                    } else {
+                        const d = new Date(t.start || '2026-09-01');
+                        d.setDate(d.getDate() + (t.days || 1) - 1);
+                        e = d.getTime();
+                    }
+                    if (s < minTimestamp) minTimestamp = s;
+                    if (e > maxTimestamp) maxTimestamp = e;
+                });
+
+                if (minTimestamp === Infinity) {
+                    minTimestamp = new Date('2026-09-01').getTime();
+                    maxTimestamp = new Date('2026-09-10').getTime();
+                }
+
+                const oneDayMs = 1000 * 60 * 60 * 24;
+                const totalDays = Math.max(10, Math.round((maxTimestamp - minTimestamp) / oneDayMs) + 2);
+
+                const timelineDates = [];
+                const startDateObj = new Date(minTimestamp);
+
+                for (let i = 0; i < totalDays; i++) {
+                    const cur = new Date(startDateObj);
+                    cur.setDate(cur.getDate() + i);
+                    timelineDates.push(cur);
+                }
+
+                const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                const dayHeaderHtml = timelineDates.map(d => {
+                    const dayNum = String(d.getDate()).padStart(2, '0');
+                    const monthStr = monthNames[d.getMonth()];
+                    return `<div class="flex-1 text-center text-[10px] font-mono text-muted-foreground border-l border-border pb-1.5 px-0.5 truncate" title="${d.toISOString().slice(0, 10)}">${dayNum} ${monthStr}</div>`;
+                }).join('');
+
+                const dateRangeLabel = document.getElementById('gantt-date-range-label');
+                if (dateRangeLabel) {
+                    const firstD = timelineDates[0];
+                    const lastD = timelineDates[timelineDates.length - 1];
+                    dateRangeLabel.innerText = `ช่วงเวลา: ${String(firstD.getDate()).padStart(2, '0')} ${monthNames[firstD.getMonth()]} - ${String(lastD.getDate()).padStart(2, '0')} ${monthNames[lastD.getMonth()]} ${lastD.getFullYear()}`;
+                }
+
+                const rowsHtml = tasks.map((t, idx) => {
+                    const taskStart = new Date(t.start || '2026-09-01').getTime();
+                    let taskDays = t.days || 1;
+                    if (t.end && t.start) {
+                        const s = new Date(t.start);
+                        const e = new Date(t.end);
+                        taskDays = Math.max(1, Math.round((e - s) / oneDayMs) + 1);
+                    }
+
+                    const diffFromMin = Math.max(0, Math.round((taskStart - minTimestamp) / oneDayMs));
+                    const offsetPercent = Math.min(95, (diffFromMin / totalDays) * 100);
+                    const widthPercent = Math.max(4, Math.min(100 - offsetPercent, (taskDays / totalDays) * 100));
+
                     let bgClass = 'bg-muted text-muted-foreground border-border';
-                    if(t.status === 'DONE') bgClass = 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30';
-                    if(t.status === 'IN_PROGRESS') bgClass = 'bg-brand-500/20 text-brand-600 dark:text-brand-200 border-brand-500/40 shadow-sm';
+                    if (t.status === 'DONE') bgClass = 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 font-semibold';
+                    else if (t.status === 'IN_PROGRESS') bgClass = 'bg-gradient-to-r from-purple-500/20 to-brand-500/20 text-purple-700 dark:text-purple-300 border-purple-500/40 shadow-xs font-semibold';
+
+                    const endDateStr = t.end || t.start;
 
                     return `
-                    <div class="flex items-center border-t border-border py-2.5 relative h-12">
-                        <div class="w-48 shrink-0 text-xs font-medium text-foreground truncate pr-4">
-                            <span class="font-mono text-brand-500 mr-1.5">${t.jobId}</span> ${t.name}
+                    <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition">
+                        <div class="w-64 shrink-0 text-xs font-medium text-foreground truncate pr-4">
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-mono text-purple-600 dark:text-purple-400 font-bold">${t.jobId}</span>
+                                <span class="truncate font-medium text-foreground" title="${t.name}">${t.name}</span>
+                            </div>
+                            <div class="text-[10px] text-muted-foreground font-mono mt-0.5">
+                                📅 ${t.start} ถึง ${endDateStr} (${taskDays} วัน)
+                            </div>
                         </div>
                         <div class="flex-1 relative h-full flex items-center">
-                            <div class="${bgClass} border absolute h-7 rounded-lg text-[11px] px-2.5 flex items-center justify-between truncate" style="left: ${offsetPercent}%; width: ${widthPercent}%;">
-                                <span class="truncate font-medium">${t.tech}</span>
-                                <span class="text-[10px] opacity-75 ml-1">${t.days}d</span>
+                            <div class="${bgClass} border absolute h-8 rounded-lg text-[11px] px-2.5 flex items-center justify-between truncate shadow-xs transition hover:brightness-105" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 80px;" title="${t.name} (${t.start} ถึง ${endDateStr} - ${t.tech})">
+                                <span class="truncate font-medium flex items-center gap-1"><i class="ph ph-user text-[11px]"></i> ${t.tech}</span>
+                                <span class="text-[10px] opacity-90 ml-1 font-mono font-bold bg-card/60 px-1 py-0.5 rounded">${taskDays}d</span>
                             </div>
                         </div>
                     </div>`;
                 }).join('');
 
                 const html = `
-                    <div class="flex border-b border-border mb-2">
-                        <div class="w-48 shrink-0 text-xs font-semibold text-muted-foreground">รายการงาน (Work Order)</div>
-                        <div class="flex-1 flex">${headerHtml}</div>
+                    <div class="flex border-b border-border mb-2 pb-1">
+                        <div class="w-64 shrink-0 text-xs font-bold text-muted-foreground">รายการงาน & วันเริ่ม-สิ้นสุด</div>
+                        <div class="flex-1 flex">${dayHeaderHtml}</div>
                     </div>
                     ${rowsHtml}
                 `;
-                document.getElementById('gantt-container').innerHTML = html;
+                container.innerHTML = html;
             },
 
             renderQC() {

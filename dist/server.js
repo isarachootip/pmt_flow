@@ -8,7 +8,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.maRoundStore = exports.maContractStore = exports.maChecklistTemplateStore = exports.coreSitePhotoStore = exports.coreVisitCheckinStore = exports.coreJobServiceStore = exports.coreJobStore = exports.coreCustomerStore = exports.stagingSurveyStore = exports.StagingProcessStatus = exports.sysLoginLogStore = exports.sysSessionStore = exports.sysUserStore = exports.UserRole = exports.JobStatus = void 0;
+exports.maRoundStore = exports.maContractStore = exports.maChecklistTemplateStore = exports.coreTaskStore = exports.coreSitePhotoStore = exports.coreVisitCheckinStore = exports.coreJobServiceStore = exports.coreJobStore = exports.coreCustomerStore = exports.stagingSurveyStore = exports.StagingProcessStatus = exports.sysLoginLogStore = exports.sysSessionStore = exports.sysUserStore = exports.UserRole = exports.JobStatus = void 0;
 exports.seedInitialCoreData = seedInitialCoreData;
 exports.seedInitialStagingData = seedInitialStagingData;
 exports.convertStagingToCorePmt = convertStagingToCorePmt;
@@ -340,11 +340,21 @@ exports.coreJobStore = [];
 exports.coreJobServiceStore = [];
 exports.coreVisitCheckinStore = [];
 exports.coreSitePhotoStore = [];
+exports.coreTaskStore = [];
 // Seed 5 Initial Core Jobs (Sync with UI Frontend)
 function seedInitialCoreData() {
     exports.coreCustomerStore.length = 0;
     exports.coreJobStore.length = 0;
     exports.coreJobServiceStore.length = 0;
+    exports.coreTaskStore.length = 0;
+    const mockTasks = [
+        { id: 'T1', job_id: 1, job_no: 'JOB202609001', task_name: 'รื้อถอนของเดิม', assigned_tech: 'Team A', assignees: ['Team A (สมศักดิ์)'], plan_start_date: '2026-09-01', plan_end_date: '2026-09-02', duration_days: 2, status: 'DONE', progress_percent: 100 },
+        { id: 'T2', job_id: 1, job_no: 'JOB202609001', task_name: 'งานประปา/ไฟฟ้า', assigned_tech: 'Team A', assignees: ['Team A (สมศักดิ์)'], plan_start_date: '2026-09-03', plan_end_date: '2026-09-05', duration_days: 3, status: 'IN_PROGRESS', progress_percent: 60 },
+        { id: 'T3', job_id: 1, job_no: 'JOB202609001', task_name: 'ติดตั้งตู้เคาน์เตอร์', assigned_tech: 'Team A', assignees: ['Team A (สมศักดิ์)'], plan_start_date: '2026-09-06', plan_end_date: '2026-09-09', duration_days: 4, status: 'PENDING', progress_percent: 0 },
+        { id: 'T4', job_id: 2, job_no: 'JOB202609002', task_name: 'เตรียมหน้างาน', assigned_tech: 'Team B', assignees: ['Team B (ประเสริฐ)'], plan_start_date: '2026-09-01', plan_end_date: '2026-09-01', duration_days: 1, status: 'DONE', progress_percent: 100 },
+        { id: 'T5', job_id: 2, job_no: 'JOB202609002', task_name: 'ติดตั้งปั้มและเดินท่อ', assigned_tech: 'Team B', assignees: ['Team B (ประเสริฐ)'], plan_start_date: '2026-09-02', plan_end_date: '2026-09-02', duration_days: 1, status: 'DONE', progress_percent: 100 },
+    ];
+    exports.coreTaskStore.push(...mockTasks);
     const mockCustomers = [
         { id: 1, customer_code: 'CUST-001', first_name: 'ณวัฒน์', last_name: 'รักสงบ', phone: '081-111-2222', address: '99/1 Sukhumvit 55, Bangkok', lat: 13.7563, lng: 100.5018 },
         { id: 2, customer_code: 'CUST-002', first_name: 'สมศรี', last_name: 'สุขใจ', phone: '082-222-3333', address: '12 Ari Samphan, Phaya Thai', lat: 13.7801, lng: 100.5432 },
@@ -1357,25 +1367,173 @@ app.post('/api/v1/jobs/:id/boq', async (req, res) => {
 // =============================================================================
 // 4. TASK & GANTT SCHEDULING API (Req #7 & #8 - Independent Tasks)
 // =============================================================================
+// Helper: sort tasks by plan_start_date ascending
+function sortTasksByStartDate(tasks) {
+    return tasks.sort((a, b) => {
+        const da = new Date(a.plan_start_date).getTime();
+        const db = new Date(b.plan_start_date).getTime();
+        if (da !== db)
+            return da - db;
+        return (a.task_name || '').localeCompare(b.task_name || '');
+    });
+}
+// GET /api/v1/jobs/:id/tasks — Get all tasks for a job (sorted by start date)
+app.get('/api/v1/jobs/:id/tasks', async (req, res) => {
+    const param = req.params.id;
+    const numId = Number(param);
+    const tasks = exports.coreTaskStore.filter(t => t.job_id === numId || t.job_no === param || String(t.job_id) === param);
+    const sorted = sortTasksByStartDate([...tasks]);
+    return res.json({ success: true, total: sorted.length, data: sorted });
+});
+// POST /api/v1/jobs/:id/tasks/import-boq — Import/Convert BOQ items into Project Tasks with Start/End date & Auto-sort
+app.post('/api/v1/jobs/:id/tasks/import-boq', async (req, res) => {
+    const param = req.params.id;
+    const numId = isNaN(Number(param)) ? param : Number(param);
+    const { items, base_start_date, default_tech = 'Team A (สมศักดิ์)' } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ success: false, error: { code: 'EMPTY_ITEMS', message: 'รายการ BOQ ต้องไม่ว่างเปล่า' } });
+    }
+    // Remove existing tasks for this job if replacing
+    const isAppend = req.body.mode === 'append';
+    if (!isAppend) {
+        for (let i = exports.coreTaskStore.length - 1; i >= 0; i--) {
+            if (exports.coreTaskStore[i].job_id === numId || exports.coreTaskStore[i].job_no === param || String(exports.coreTaskStore[i].job_id) === param) {
+                exports.coreTaskStore.splice(i, 1);
+            }
+        }
+    }
+    const baseDate = base_start_date || new Date().toISOString().slice(0, 10);
+    const newTasks = items.map((item, idx) => {
+        let startStr = item.start_date || item.start;
+        let endStr = item.end_date || item.end;
+        let days = item.duration_days || item.days || 1;
+        if (!startStr) {
+            const d = new Date(baseDate);
+            d.setDate(d.getDate() + Math.floor(idx / 2));
+            startStr = d.toISOString().slice(0, 10);
+        }
+        if (!endStr) {
+            const s = new Date(startStr);
+            s.setDate(s.getDate() + (days - 1));
+            endStr = s.toISOString().slice(0, 10);
+        }
+        else {
+            const s = new Date(startStr);
+            const e = new Date(endStr);
+            days = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+        }
+        const techName = item.assigned_tech || item.tech || default_tech;
+        const assignees = item.assignees || [techName];
+        return {
+            id: `T_${param}_${Date.now()}_${idx + 1}`,
+            job_id: numId,
+            job_no: typeof param === 'string' && param.startsWith('JOB') ? param : `JOB20260900${numId}`,
+            task_name: item.task_name || item.name || `งานติดตั้ง ${idx + 1}`,
+            plan_start_date: startStr,
+            plan_end_date: endStr,
+            duration_days: days,
+            assigned_tech: techName,
+            assignees: assignees,
+            status: 'IN_PROGRESS',
+            progress_percent: 0,
+            source_boq_item: item.source_boq_item || item.name,
+            created_at: new Date().toISOString()
+        };
+    });
+    exports.coreTaskStore.push(...newTasks);
+    // Auto-sort all tasks for this job by start date
+    const jobTasks = exports.coreTaskStore.filter(t => t.job_id === numId || t.job_no === param || String(t.job_id) === param);
+    const sorted = sortTasksByStartDate(jobTasks);
+    return res.status(201).json({
+        success: true,
+        message: `นำเข้าและแปลง BOQ เป็น Task ปฏิบัติงาน ${newTasks.length} รายการ และจัดเรียงตามวันเริ่มงานเรียบร้อย`,
+        total: sorted.length,
+        data: sorted
+    });
+});
+// POST /api/v1/jobs/:id/tasks — Create / Insert Task into Job (with auto-sort by start date)
 app.post('/api/v1/jobs/:id/tasks', async (req, res) => {
-    const jobId = Number(req.params.id);
-    const { task_name, start_date, duration_days, assigned_tech } = req.body;
-    // Auto calculate end date if duration is provided (Req #7.1)
-    const start = new Date(start_date);
-    const end = new Date(start);
-    end.setDate(end.getDate() + (duration_days - 1));
+    const param = req.params.id;
+    const numId = isNaN(Number(param)) ? param : Number(param);
+    const { task_name, start_date, end_date, duration_days = 1, assigned_tech = 'Team A (สมศักดิ์)', assignees } = req.body;
+    if (!task_name) {
+        return res.status(400).json({ success: false, error: { code: 'MISSING_TASK_NAME', message: 'กรุณาระบุชื่อ Task' } });
+    }
+    const startStr = start_date || new Date().toISOString().slice(0, 10);
+    let endStr = end_date;
+    let days = duration_days;
+    if (!endStr) {
+        const start = new Date(startStr);
+        const end = new Date(start);
+        end.setDate(end.getDate() + (days - 1));
+        endStr = end.toISOString().slice(0, 10);
+    }
+    else {
+        const s = new Date(startStr);
+        const e = new Date(endStr);
+        days = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    }
+    const techList = assignees || [assigned_tech];
     const newTask = {
-        id: Date.now(),
-        job_id: jobId,
+        id: `T_${param}_${Date.now()}`,
+        job_id: numId,
+        job_no: typeof param === 'string' && param.startsWith('JOB') ? param : `JOB20260900${numId}`,
         task_name,
-        plan_start_date: start.toISOString().split('T')[0],
-        plan_end_date: end.toISOString().split('T')[0],
-        duration_days,
-        assigned_tech,
-        status: 'PENDING',
-        progress_percent: 0
+        plan_start_date: startStr,
+        plan_end_date: endStr,
+        duration_days: days,
+        assigned_tech: techList.join(' + '),
+        assignees: techList,
+        status: 'IN_PROGRESS',
+        progress_percent: 0,
+        created_at: new Date().toISOString()
     };
-    return res.status(201).json({ success: true, data: newTask });
+    exports.coreTaskStore.push(newTask);
+    // Auto-sort all tasks for this job by start date
+    const jobTasks = exports.coreTaskStore.filter(t => t.job_id === numId || t.job_no === param || String(t.job_id) === param);
+    const sorted = sortTasksByStartDate(jobTasks);
+    return res.status(201).json({
+        success: true,
+        message: 'สร้าง/แทรก Task และจัดเรียงตามวันเริ่มงานเรียบร้อย',
+        data: newTask,
+        sorted_tasks: sorted
+    });
+});
+// POST /api/v1/jobs/:id/tasks/reorder — Reorder/Auto-sort Tasks by Start Date
+app.post('/api/v1/jobs/:id/tasks/reorder', async (req, res) => {
+    const param = req.params.id;
+    const numId = isNaN(Number(param)) ? param : Number(param);
+    const jobTasks = exports.coreTaskStore.filter(t => t.job_id === numId || t.job_no === param || String(t.job_id) === param);
+    const sorted = sortTasksByStartDate(jobTasks);
+    return res.json({
+        success: true,
+        message: 'จัดเรียงรายการ Task ตามวันเริ่มต้นเรียบร้อย',
+        data: sorted
+    });
+});
+// DELETE /api/v1/jobs/:id/tasks/:taskId — Delete Task
+app.delete('/api/v1/jobs/:id/tasks/:taskId', async (req, res) => {
+    const { id, taskId } = req.params;
+    const idx = exports.coreTaskStore.findIndex(t => String(t.id) === taskId);
+    if (idx === -1) {
+        return res.status(404).json({ success: false, error: { code: 'TASK_NOT_FOUND', message: 'ไม่พบ Task' } });
+    }
+    exports.coreTaskStore.splice(idx, 1);
+    return res.json({ success: true, message: 'ลบ Task สำเร็จ' });
+});
+// GET /api/v1/tasks/gantt — Get all tasks structured for Gantt Timeline view
+app.get('/api/v1/tasks/gantt', async (req, res) => {
+    const jobId = req.query.job_id;
+    let tasks = exports.coreTaskStore;
+    if (jobId && jobId !== 'all') {
+        tasks = tasks.filter(t => t.job_no === jobId || String(t.job_id) === jobId);
+    }
+    const sorted = sortTasksByStartDate([...tasks]);
+    return res.json({
+        success: true,
+        total: sorted.length,
+        data: sorted
+    });
 });
 // =============================================================================
 // 5. QC INSPECTION & AFTER SALE CSAT API (Req #10 & #11)
