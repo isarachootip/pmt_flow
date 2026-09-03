@@ -309,6 +309,13 @@
                 <div>
                     <div class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">การตั้งค่าระบบ</div>
                     <nav class="space-y-1">
+                        <a href="#" onclick="app.navigate('faq')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-faq">
+                            <div class="flex items-center gap-2.5">
+                                <i class="ph ph-book-open text-base text-brand-500"></i>
+                                <span>คู่มือ & FAQ ระบบ</span>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-medium">8 Steps</span>
+                        </a>
                         <a href="#" onclick="app.navigate('settings')" class="nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
                             <i class="ph ph-gear text-base"></i>
                             <span>ตั้งค่าระบบ & API</span>
@@ -370,6 +377,12 @@
 
                 <!-- Right Actions -->
                 <div class="flex items-center gap-3">
+                    <!-- FAQ & Workflow Guide Button -->
+                    <button onclick="app.navigate('faq')" class="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition flex items-center gap-1 text-xs" title="คู่มือระบบ & FAQ ขั้นตอนการทำงาน">
+                        <i class="ph ph-question text-lg text-brand-500"></i>
+                        <span class="hidden sm:inline font-medium">FAQ & คู่มือ</span>
+                    </button>
+
                     <!-- Light / Dark Mode Switcher -->
                     <button onclick="app.toggleTheme()" class="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition" title="Toggle Theme">
                         <i class="ph ph-sun dark:hidden text-lg"></i>
@@ -951,6 +964,344 @@
 
                         <div class="pt-4 flex justify-end">
                             <button class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium" onclick="app.showToast('บันทึกการตั้งค่าระบบเรียบร้อยแล้ว')">บันทึกการตั้งค่า</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 8. FAQ & WORKFLOW GUIDE VIEW -->
+                <div id="page-faq" class="page-view hidden-view space-y-8 max-w-5xl">
+                    <!-- FAQ Header Banner -->
+                    <div class="artifact-card p-6 bg-gradient-to-r from-purple-500/10 via-brand-500/10 to-indigo-500/10 border-brand-500/30 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-brand-500/20 text-brand-500 flex items-center justify-center text-2xl shrink-0 border border-brand-500/30 shadow-inner">
+                                <i class="ph ph-book-open"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h2 class="font-display text-xl md:text-2xl font-bold text-foreground tracking-tight">คู่มือระบบ & ขั้นตอนการทำงาน (System Workflow & FAQ)</h2>
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/20 text-brand-600 dark:text-brand-400 border border-brand-500/30">PMT Flow Standard</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground mt-1 leading-relaxed">สรุปสถานะและกระบวนการทำงานแบบ End-to-End ตั้งแต่รับ Order จากระบบ INT จนถึงการตรวจ QC, ส่งต่อ CSAT และสร้างสัญญาบริการ MA หลังการขาย</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button onclick="app.navigate('dashboard')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 cursor-pointer">
+                                <i class="ph ph-squares-four"></i> กลับแดชบอร์ด
+                            </button>
+                            <button onclick="app.navigate('gantt')" class="btn-artifact-primary px-3.5 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 cursor-pointer">
+                                <i class="ph ph-chart-bar"></i> ดูแผนงาน Gantt
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step-by-Step Lifecycle Progression (8 Steps) -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-brand-500 animate-pulse"></span>
+                                <h3 class="font-display text-base font-bold text-foreground">ขั้นตอนและสถานะของระบบ (End-to-End Workflow: Step 1 - Step 8)</h3>
+                            </div>
+                            <span class="text-xs text-muted-foreground font-mono">Total: 8 Steps Process</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Step 1 -->
+                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-brand-500/50 transition-all space-y-3 relative group">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-8 h-8 rounded-xl bg-zinc-500/15 text-zinc-600 dark:text-zinc-300 font-mono font-bold text-xs flex items-center justify-center border border-zinc-500/20">01</div>
+                                        <h4 class="font-display font-bold text-sm text-foreground">รับ Order ขาเข้า & เปิดงานใหม่</h4>
+                                    </div>
+                                    <span class="status-pill status-draft font-mono text-[10px]">DRAFT (0%)</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground leading-relaxed">รับข้อมูลใบสั่งงานจากระบบ INT ผ่าน Inbound Integration API หรือทีม AE/ผู้ดูแลระบบกด "สร้างงานใหม่" บันทึกข้อมูลลูกค้า, พิกัด GPS, ทีมช่าง และวันนัดหมาย</p>
+                                <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
+                                    <span class="flex items-center gap-1"><i class="ph ph-user-circle text-brand-500"></i> ผู้รับผิดชอบ: INT / AE / Admin</span>
+                                    <span class="font-mono text-zinc-500">เริ่มต้น 0%</span>
+                                </div>
+                            </div>
+
+                            <!-- Step 2 -->
+                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-brand-500/50 transition-all space-y-3 relative group">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 font-mono font-bold text-xs flex items-center justify-center border border-sky-500/20">02</div>
+                                        <h4 class="font-display font-bold text-sm text-foreground">สำรวจหน้างาน & GPS Check-in</h4>
+                                    </div>
+                                    <span class="status-pill status-draft font-mono text-[10px] bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20">SURVEYED (15%)</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground leading-relaxed">ทีมช่างเข้าพื้นที่หน้างาน ทำการ Check-in ตรวจสอบพิกัด GPS (ต้องอยู่ภายในรัศมีไม่เกิน 400 เมตร) และถ่ายรูปภาพสำรวจหน้างานจริงอย่างน้อย 5 รูป พร้อมบันทึกคำสั่งพิเศษ</p>
+                                <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
+                                    <span class="flex items-center gap-1"><i class="ph ph-wrench text-sky-500"></i> ผู้รับผิดชอบ: ทีมช่างหน้างาน</span>
+                                    <span class="font-mono text-sky-600 dark:text-sky-400">รูปภาพ >= 5 รูป</span>
+                                </div>
+                            </div>
+
+                            <!-- Step 3 -->
+                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-brand-500/50 transition-all space-y-3 relative group">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-mono font-bold text-xs flex items-center justify-center border border-indigo-500/20">03</div>
+                                        <h4 class="font-display font-bold text-sm text-foreground">จัดทำแบบแปลนติดตั้ง (Blueprints)</h4>
+                                    </div>
+                                    <span class="status-pill status-draft font-mono text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">DESIGN (30%)</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground leading-relaxed">สถาปนิก/วิศวกรจัดทำและอัปโหลดแบบแปลนงานติดตั้ง (AutoCAD, PDF, Layout Image) พร้อมควบคุม Versioning (Draft, Approved, Final) ให้ช่างหน้างานเปิดดูแบบได้ Real-time</p>
+                                <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
+                                    <span class="flex items-center gap-1"><i class="ph ph-compass-tool text-indigo-500"></i> ผู้รับผิดชอบ: Designer / Engineer</span>
+                                    <span class="font-mono text-indigo-600 dark:text-indigo-400">CAD / PDF Layout</span>
+                                </div>
+                            </div>
+
+                            <!-- Step 4 -->
+                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-brand-500/50 transition-all space-y-3 relative group">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono font-bold text-xs flex items-center justify-center border border-purple-500/20">04</div>
+                                        <h4 class="font-display font-bold text-sm text-foreground">บันทึกรายการ BOQ & ใบเสนอราคา</h4>
+                                    </div>
+                                    <span class="status-pill status-draft font-mono text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">BOQ (45%)</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground leading-relaxed">นำเข้าไฟล์ใบเสนอราคา vFIX (.xlsx / .xls / .csv) สกัดรายการวัสดุและค่าแรงอัตโนมัติ คำนวณยอดรวม Subtotal, ส่วนลด และภาษีมูลค่าเพิ่ม VAT 7% บันทึกบนระบบ PMT</p>
+                                <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
+                                    <span class="flex items-center gap-1"><i class="ph ph-receipt text-purple-500"></i> ผู้รับผิดชอบ: PMT Coordinator / AE</span>
+                                    <span class="font-mono text-purple-600 dark:text-purple-400">vFIX Ingestion</span>
+                                </div>
+                            </div>
+
+                            <!-- Step 5 -->
+                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-brand-500/50 transition-all space-y-3 relative group">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold text-xs flex items-center justify-center border border-amber-500/20">05</div>
+                                        <h4 class="font-display font-bold text-sm text-foreground">จัดแผนงาน Gantt & วันเวลาเริ่ม-จบ</h4>
+                                    </div>
+                                    <span class="status-pill status-in-progress font-mono text-[10px]">IN_PROGRESS (60%)</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground leading-relaxed">แปลงเฉพาะรายการ <strong>"ค่าแรง/งานบริการ" (Labor Items Only)</strong> เข้าสู่แผนงาน Gantt Timeline อัตโนมัติ (คัดกรองค่าวัสดุออก) ระบุวันเวลาเริ่ม-สิ้นสุด และมอบหมายช่างผู้รับผิดชอบ</p>
+                                <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
+                                    <span class="flex items-center gap-1"><i class="ph ph-calendar-check text-amber-500"></i> ผู้รับผิดชอบ: Project Planner / หัวหน้าช่าง</span>
+                                    <span class="font-mono text-amber-600 dark:text-amber-400">Labor-to-Task Rule</span>
+                                </div>
+                            </div>
+
+                            <!-- Step 6 -->
+                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-brand-500/50 transition-all space-y-3 relative group">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold text-xs flex items-center justify-center border border-amber-500/20">06</div>
+                                        <h4 class="font-display font-bold text-sm text-foreground">ติดตั้งหน้างาน & ส่งตรวจรับงาน</h4>
+                                    </div>
+                                    <span class="status-pill status-qc-pending font-mono text-[10px]">QC_PENDING (85%)</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground leading-relaxed">ทีมช่างดำเนินการติดตั้งจริงตามแบบแปลนและมาตรฐานวิศวกรรม เมื่อติดตั้งเสร็จสิ้นจะทำการถ่ายภาพผลงานและส่งเรื่องขอยื่นตรวจรับคุณภาพ (QC Inspection Queue)</p>
+                                <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
+                                    <span class="flex items-center gap-1"><i class="ph ph-hammer text-amber-500"></i> ผู้รับผิดชอบ: ช่างติดตั้งหน้างาน</span>
+                                    <span class="font-mono text-amber-600 dark:text-amber-400">ยื่นรอตรวจ QC</span>
+                                </div>
+                            </div>
+
+                            <!-- Step 7 -->
+                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-brand-500/50 transition-all space-y-3 relative group">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono font-bold text-xs flex items-center justify-center border border-emerald-500/20">07</div>
+                                        <h4 class="font-display font-bold text-sm text-foreground">ตรวจประเมินคุณภาพ (QC Inspection)</h4>
+                                    </div>
+                                    <span class="status-pill status-qc-passed font-mono text-[10px]">QC_PASSED (100%)</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground leading-relaxed">ผู้ตรวจ QC ตรวจสอบตามเกณฑ์ความปลอดภัย 4 ด้าน (ความสะอาด, แรงดันน้ำ/ไฟ, ซิลิโคน, คู่มือ/ใบรับประกัน) หาก PASS จะส่งเรื่องต่อไปยัง Contact Center ทันที (หาก FAIL จะส่งกลับให้แก้ไข)</p>
+                                <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
+                                    <span class="flex items-center gap-1"><i class="ph ph-shield-check text-emerald-500"></i> ผู้รับผิดชอบ: เจ้าหน้าที่ QC Inspector</span>
+                                    <span class="font-mono text-emerald-600 dark:text-emerald-400">4-Point Safety Checklist</span>
+                                </div>
+                            </div>
+
+                            <!-- Step 8 -->
+                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-brand-500/50 transition-all space-y-3 relative group">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 font-mono font-bold text-xs flex items-center justify-center border border-blue-500/20">08</div>
+                                        <h4 class="font-display font-bold text-sm text-foreground">CSAT, ปิดงาน BMT & สัญญา MA</h4>
+                                    </div>
+                                    <span class="status-pill status-after-sale font-mono text-[10px]">AFTER_SALE / CLOSED</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground leading-relaxed">Contact Center สำรวจความพึงพอใจลูกค้า (CSAT), ส่งสัญญาณปิดงานไปยังระบบ BMT, และดูแลสัญญาบำรุงรักษาประจำปี (MA Contracts 3-4 รอบ/ปี) พร้อมแจ้งเตือนรอบบริการ</p>
+                                <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
+                                    <span class="flex items-center gap-1"><i class="ph ph-sparkle text-blue-500"></i> ผู้รับผิดชอบ: Contact Center & Service Team</span>
+                                    <span class="font-mono text-blue-600 dark:text-blue-400">BMT Handoff & MA</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status Transition Reference Table -->
+                    <div class="artifact-card p-6 space-y-4">
+                        <div class="flex items-center justify-between pb-3 border-b border-border">
+                            <div>
+                                <h3 class="font-display text-base font-bold text-foreground flex items-center gap-2">
+                                    <i class="ph ph-table text-brand-500"></i> ตารางสรุปสถานะของระบบ (Status Transition Reference Table)
+                                </h3>
+                                <p class="text-xs text-muted-foreground mt-0.5">รหัสสถานะในระบบ ความหมาย ความคืบหน้า และการดำเนินการในแต่ละขั้นตอน</p>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
+                                    <tr>
+                                        <th class="pb-3 px-3">รหัสสถานะ (Status Code)</th>
+                                        <th class="pb-3 px-3">ชื่อสถานะ</th>
+                                        <th class="pb-3 px-3 text-center">ความคืบหน้า</th>
+                                        <th class="pb-3 px-3">การดำเนินการถัดไป</th>
+                                        <th class="pb-3 px-3 text-right">ผู้รับผิดชอบหลัก</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border font-mono text-[11px]">
+                                    <tr class="hover:bg-muted/30">
+                                        <td class="py-3 px-3 font-bold text-foreground">DRAFT</td>
+                                        <td class="py-3 px-3"><span class="status-pill status-draft">Draft (เปิดงานใหม่)</span></td>
+                                        <td class="py-3 px-3 text-center font-bold text-muted-foreground">0%</td>
+                                        <td class="py-3 px-3 font-sans text-muted-foreground">มอบหมายช่าง, นัดหมายวันสำรวจหน้างาน</td>
+                                        <td class="py-3 px-3 text-right font-sans text-foreground">ระบบ INT / AE</td>
+                                    </tr>
+                                    <tr class="hover:bg-muted/30">
+                                        <td class="py-3 px-3 font-bold text-foreground">SURVEYED</td>
+                                        <td class="py-3 px-3"><span class="status-pill status-draft bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20">Surveyed (สำรวจแล้ว)</span></td>
+                                        <td class="py-3 px-3 text-center font-bold text-sky-600 dark:text-sky-400">15%</td>
+                                        <td class="py-3 px-3 font-sans text-muted-foreground">อัปโหลดแบบแปลน (Blueprints) & จัดทำ BOQ</td>
+                                        <td class="py-3 px-3 text-right font-sans text-foreground">ช่างสำรวจหน้างาน</td>
+                                    </tr>
+                                    <tr class="hover:bg-muted/30">
+                                        <td class="py-3 px-3 font-bold text-foreground">IN_PROGRESS</td>
+                                        <td class="py-3 px-3"><span class="status-pill status-in-progress">In Progress (กำลังทำ)</span></td>
+                                        <td class="py-3 px-3 text-center font-bold text-purple-600 dark:text-purple-400">45-60%</td>
+                                        <td class="py-3 px-3 font-sans text-muted-foreground">จัด Gantt Tasks, ลงมือติดตั้งจริงตามแผนงาน</td>
+                                        <td class="py-3 px-3 text-right font-sans text-foreground">ช่างติดตั้ง / Planner</td>
+                                    </tr>
+                                    <tr class="hover:bg-muted/30">
+                                        <td class="py-3 px-3 font-bold text-foreground">QC_PENDING</td>
+                                        <td class="py-3 px-3"><span class="status-pill status-qc-pending">QC Pending (รอตรวจ)</span></td>
+                                        <td class="py-3 px-3 text-center font-bold text-amber-600 dark:text-amber-400">85%</td>
+                                        <td class="py-3 px-3 font-sans text-muted-foreground">ตรวจสอบมาตรฐานความปลอดภัย & คุณภาพงาน</td>
+                                        <td class="py-3 px-3 text-right font-sans text-foreground">เจ้าหน้าที่ QC Inspector</td>
+                                    </tr>
+                                    <tr class="hover:bg-muted/30">
+                                        <td class="py-3 px-3 font-bold text-foreground">QC_PASSED</td>
+                                        <td class="py-3 px-3"><span class="status-pill status-qc-passed">QC Passed (ผ่านแล้ว)</span></td>
+                                        <td class="py-3 px-3 text-center font-bold text-emerald-600 dark:text-emerald-400">100%</td>
+                                        <td class="py-3 px-3 font-sans text-muted-foreground">ส่งต่องานให้ Contact Center โทรประเมิน CSAT</td>
+                                        <td class="py-3 px-3 text-right font-sans text-foreground">QC / Contact Center</td>
+                                    </tr>
+                                    <tr class="hover:bg-muted/30">
+                                        <td class="py-3 px-3 font-bold text-foreground">AFTER_SALE</td>
+                                        <td class="py-3 px-3"><span class="status-pill status-after-sale">After Sale (บริการหลังขาย)</span></td>
+                                        <td class="py-3 px-3 text-center font-bold text-blue-600 dark:text-blue-400">100%</td>
+                                        <td class="py-3 px-3 font-sans text-muted-foreground">ส่งสัญญาณปิดงานสู่ BMT และดูแลสัญญา MA ประจำปี</td>
+                                        <td class="py-3 px-3 text-right font-sans text-foreground">Contact Center / MA Team</td>
+                                    </tr>
+                                    <tr class="hover:bg-muted/30">
+                                        <td class="py-3 px-3 font-bold text-foreground">CLOSED</td>
+                                        <td class="py-3 px-3"><span class="status-pill status-closed">Closed (ปิดโครงการ)</span></td>
+                                        <td class="py-3 px-3 text-center font-bold text-zinc-500">100%</td>
+                                        <td class="py-3 px-3 font-sans text-muted-foreground">ส่งมอบงานสมบูรณ์ หมดระยะรับประกัน/บริการ</td>
+                                        <td class="py-3 px-3 text-right font-sans text-foreground">ระบบ PMT Flow</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- FAQ Interactive Accordion Section -->
+                    <div class="artifact-card p-6 space-y-4">
+                        <div class="flex items-center justify-between pb-3 border-b border-border">
+                            <div>
+                                <h3 class="font-display text-base font-bold text-foreground flex items-center gap-2">
+                                    <i class="ph ph-question text-brand-500"></i> คำถามที่พบบ่อย (Frequently Asked Questions - FAQ)
+                                </h3>
+                                <p class="text-xs text-muted-foreground mt-0.5">รวมคำตอบและแนวทางแก้ไขปัญหาสำหรับการใช้งานระบบ PMT Flow</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <!-- Q1 -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group" open>
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q1:</span>
+                                        <span>ทำไมรายการวัสดุ (Material Items) จึงไม่ถูกแปลงเป็น Task ในแผนงาน Gantt Timeline?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed">
+                                    <strong class="text-foreground">คำตอบ:</strong> ตามกฎเกณฑ์ทางธุรกิจของระบบ PMT (Labor-Only Rule) แผนงานติดตั้ง (Gantt Timeline) มีวัตถุประสงค์เพื่อกำหนดตารางเวลาและมอบหมายภาระงานให้ทีมช่าง ดังนั้นเฉพาะรายการที่เป็น <strong>"ค่าแรง หรือ งานบริการ"</strong> (เช่น งานติดตั้ง, งานรื้อถอน, งานเดินท่อ, งานทาสี) เท่านั้นที่จะถูกนำมาสร้างเป็น Task ดำเนินงาน ส่วนรายการ <strong>"วัสดุและอุปกรณ์"</strong> (เช่น ขาแขวน, ท่อทองแดง, เบรกเกอร์, สี) จะถูกจัดเก็บไว้ในตารางคำนวณราคาและ BOQ เพื่อใช้คิดเงินและตัดสต็อก แต่จะไม่ถูกนำไปรบกวนตารางเวลาการทำงานของช่าง
+                                </div>
+                            </details>
+
+                            <!-- Q2 -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q2:</span>
+                                        <span>เงื่อนไขและกฎเกณฑ์ในการ Check-in หน้างานของทีมช่างมีอะไรบ้าง?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed">
+                                    <strong class="text-foreground">คำตอบ:</strong> การ Check-in ต้องผ่าน 2 เงื่อนไขสำคัญ:
+                                    <ul class="list-disc list-inside mt-1 space-y-1 pl-1">
+                                        <li><strong>ระยะพิกัด GPS:</strong> พิกัดของช่างต้องอยู่ภายในรัศมีไม่เกิน 400 เมตรจากพิกัดสถานที่ติดตั้งของลูกค้า (หากเกิน 400 เมตร ระบบจะแจ้งเตือนระยะห่างและไม่อนุญาตให้บันทึก)</li>
+                                        <li><strong>รูปถ่ายหน้างาน:</strong> ต้องแนบภาพถ่ายหน้างานจริงอย่างน้อย 5 รูปขึ้นไป เพื่อเป็นหลักฐานยืนยันก่อนเริ่มงาน</li>
+                                    </ul>
+                                </div>
+                            </details>
+
+                            <!-- Q3 -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q3:</span>
+                                        <span>การนำเข้าไฟล์ใบเสนอราคา Excel (.xlsx, .xls) ทำงานอย่างไร และรองรับไฟล์แบบใด?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed">
+                                    <strong class="text-foreground">คำตอบ:</strong> ระบบเชื่อมต่อเอนจิน SheetJS ในการถอดรหัสไฟล์ Binary Excel (.xlsx/.xls) และมีฟังก์ชันสแกนหา Sheet ใบเสนอราคาอัตโนมัติ (เช่น Sheet <code class="bg-muted px-1.5 py-0.5 rounded font-mono text-[11px]">BOQ โครงการ...</code>, <code class="bg-muted px-1.5 py-0.5 rounded font-mono text-[11px]">PT...</code>, หรือ <code class="bg-muted px-1.5 py-0.5 rounded font-mono text-[11px]">สำหรับกรอก BOQ</code>) โดยระบบจะสกัดข้อมูลหัวเอกสาร (ชื่อลูกค้า, ที่อยู่, เบอร์โทร, วันที่, สาขา) และตารางรายการสินค้า ราคาต่อหน่วย และยอดรวมออกมาให้อัตโนมัติ 100% โดยไม่มีปัญหาตัวอักษรยึกยือ
+                                </div>
+                            </details>
+
+                            <!-- Q4 -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q4:</span>
+                                        <span>หากต้องการถอยสถานะของ Job หรือล้างข้อมูลโครงการทั้งหมด ต้องทำอย่างไร?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed">
+                                    <strong class="text-foreground">คำตอบ:</strong> 
+                                    <ul class="list-disc list-inside mt-1 space-y-1 pl-1">
+                                        <li><strong>ถอยสถานะทุกโครงการ:</strong> กดปุ่มสีส้ม <strong class="text-amber-500">"ถอยสถานะเป็น Draft"</strong> ที่แถบเครื่องมือของหน้าแผนงาน Gantt หรือหน้ารายการงาน เพื่อรีเซ็ตสถานะของทุกโครงการกลับเป็น Draft (0%) พร้อมกัน</li>
+                                        <li><strong>ปรับสถานะรายโครงการ:</strong> ในหน้า Project Detail ด้านบนขวา จะมีเมนู Dropdown <strong>"ปรับสถานะ"</strong> ให้เลือกเปลี่ยนสถานะกลับไปมาระหว่าง Draft, In Progress, QC Pending, QC Passed ได้ตลอดเวลา</li>
+                                        <li><strong>ล้างข้อมูลโครงการทั้งหมด:</strong> กดปุ่มสีแดง <strong class="text-rose-500">"ลบข้อมูลโครงการทั้งหมด"</strong> เพื่อรีเซ็ตฐานข้อมูลเป็นสถานะว่างเปล่า (0 โครงการ / 0 Tasks)</li>
+                                    </ul>
+                                </div>
+                            </details>
+
+                            <!-- Q5 -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q5:</span>
+                                        <span>ระบบสัญญาบริการ MA (Maintenance Agreement) หลังการขายทำงานอย่างไร?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed">
+                                    <strong class="text-foreground">คำตอบ:</strong> เมื่อโครงการผ่านการตรวจรับงาน QC และส่งมอบงานแล้ว ระบบสามารถสร้างสัญญา MA ดูแลรักษาต่อเนื่อง (เช่น ล้างแอร์หรือตรวจเช็คระบบน้ำทุก 3 เดือน รวม 4 รอบต่อปี) โดยระบบจะคำนวณตารางรอบการเข้าบริการล่วงหน้า (Service Schedule Timeline), ติดตามสถานะแต่ละรอบ (Completed / Pending), และส่งแจ้งเตือนเมื่อใกล้ถึงรอบเข้าบริการของลูกค้า
+                                </div>
+                            </details>
                         </div>
                     </div>
                 </div>
@@ -2259,6 +2610,7 @@
                     'ma-contracts': 'สัญญา MA',
                     'csat': 'CSAT & After Sales',
                     'settings': 'ตั้งค่าระบบ',
+                    'faq': 'คู่มือระบบ & คำถามที่พบบ่อย (Workflow Guide & FAQ)',
                     'users': 'จัดการผู้ใช้งาน'
                 };
                 document.getElementById('topbar-breadcrumb').innerText = breadcrumbMap[view] || view;
