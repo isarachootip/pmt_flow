@@ -2119,7 +2119,7 @@
 
             viewQCPhotos(id) {
                 this.selectJob(id);
-                this.switchJobTab('photos');
+                this.switchJobTab('general');
             },
 
             checkinJob(id) {
@@ -2217,396 +2217,7 @@
                 const isClosed = job.status === 'CLOSED';
 
                 let tabContent = '';
-                if (curTab === 'general') {
-                    let actionButtons = '';
-                    if (isDraft) {
-                        actionButtons = `
-                            <button class="btn-artifact-primary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm" onclick="app.acceptJobToPMT('${job.id}')">
-                                <i class="ph ph-check-circle text-sm"></i>
-                                <span>รับเข้าระบบ PMT</span>
-                            </button>
-                            <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.checkinJob('${job.id}')">
-                                <i class="ph ph-map-pin text-sm"></i>
-                                <span>ช่าง Check-in หน้างาน (GPS)</span>
-                            </button>
-                            <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.switchJobTab('photos')">
-                                <i class="ph ph-camera text-sm"></i>
-                                <span>ดูรูปถ่ายหน้างาน (${5 + (job.photos?.length || 0)} รูป)</span>
-                            </button>
-                        `;
-                    } else if (isInProgress) {
-                        actionButtons = `
-                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm" onclick="app.sendJobToQC('${job.id}')">
-                                <i class="ph ph-paper-plane-tilt text-sm"></i>
-                                <span>ส่งตรวจ QC (QC Inspection)</span>
-                            </button>
-                            <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.switchJobTab('photos')">
-                                <i class="ph ph-images text-sm"></i>
-                                <span>ดูรูปถ่ายหน้างาน (5 รูป)</span>
-                            </button>
-                            <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.switchJobTab('boq')">
-                                <i class="ph ph-file-text text-sm"></i>
-                                <span>ดูแบบ & BOQ</span>
-                            </button>
-                        `;
-                    } else if (isQcPending) {
-                        actionButtons = `
-                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm bg-amber-500 hover:bg-amber-600 text-white" onclick="app.goToQC('${job.id}')">
-                                <i class="ph ph-clipboard-text text-sm"></i>
-                                <span>เปิดหน้าตรวจคุณภาพ QC ทันที ➔</span>
-                            </button>
-                            <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.switchJobTab('photos')">
-                                <i class="ph ph-images text-sm"></i>
-                                <span>ดูรูปถ่ายหน้างาน</span>
-                            </button>
-                        `;
-                    } else if (isQcPassed) {
-                        actionButtons = `
-                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm" onclick="app.navigate('csat')">
-                                <i class="ph ph-phone-call text-sm"></i>
-                                <span>ไปหน้า CSAT & บริการหลังการขาย ➔</span>
-                            </button>
-                        `;
-                    } else if (isAfterSale) {
-                        actionButtons = `
-                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white" onclick="app.closeJob('${job.id}')">
-                                <i class="ph ph-check-square text-sm"></i>
-                                <span>Close Job & ส่งข้อมูลไประบบ BMT</span>
-                            </button>
-                        `;
-                    } else if (isClosed) {
-                        actionButtons = `
-                            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
-                                <i class="ph ph-seal-check text-base"></i>
-                                <span>ปิดงานและส่งข้อมูลเข้าสู่ระบบ BMT สำเร็จเรียบร้อย (${job.bmt_ref || 'BMT-REF-2026-99214'})</span>
-                            </div>
-                        `;
-                    }
-
-                    const step1Class = "w-3.5 h-3.5 bg-emerald-500 text-white flex items-center justify-center rounded-full ring-4 ring-card text-[9px] font-bold";
-                    const step2Dot = isDraft
-                        ? "w-3.5 h-3.5 bg-brand-500 rounded-full ring-4 ring-card animate-pulse"
-                        : "w-3.5 h-3.5 bg-emerald-500 text-white flex items-center justify-center rounded-full ring-4 ring-card text-[9px] font-bold";
-                    const step3Dot = (isDraft || isInProgress)
-                        ? (isInProgress ? "w-3.5 h-3.5 bg-brand-500 rounded-full ring-4 ring-card animate-pulse" : "w-3.5 h-3.5 bg-muted-foreground/30 rounded-full ring-4 ring-card")
-                        : (isQcPending ? "w-3.5 h-3.5 bg-amber-500 rounded-full ring-4 ring-card animate-pulse" : "w-3.5 h-3.5 bg-emerald-500 text-white flex items-center justify-center rounded-full ring-4 ring-card text-[9px] font-bold");
-                    const step4Dot = isClosed
-                        ? "w-3.5 h-3.5 bg-emerald-500 text-white flex items-center justify-center rounded-full ring-4 ring-card text-[9px] font-bold"
-                        : (isAfterSale ? "w-3.5 h-3.5 bg-brand-500 rounded-full ring-4 ring-card animate-pulse" : (isQcPassed ? "w-3.5 h-3.5 bg-brand-500 rounded-full ring-4 ring-card animate-pulse" : "w-3.5 h-3.5 bg-muted-foreground/30 rounded-full ring-4 ring-card"));
-
-                    tabContent = `
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <!-- Left Column: Customer & Site Info + Special Instructions & Additional Notes -->
-                        <div class="space-y-6">
-                            <!-- Customer Info Card -->
-                            <div class="artifact-card p-6 space-y-4">
-                                <h3 class="font-display font-semibold text-sm text-foreground pb-2 border-b border-border flex items-center gap-2">
-                                    <i class="ph ph-user-circle text-brand-500"></i> ข้อมูลลูกค้าและสถานที่
-                                </h3>
-                                
-                                <div>
-                                    <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">ชื่อ - นามสกุล</div>
-                                    <div class="text-xs text-foreground font-medium mt-0.5">${job.firstName || ''} ${job.lastName || ''} <span class="text-muted-foreground">(${job.customer})</span></div>
-                                </div>
-
-                                <div>
-                                    <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">พิกัด GPS (Lat, Lng)</div>
-                                    <div class="flex items-center justify-between mt-1 bg-muted/40 border border-border rounded-lg p-2">
-                                        <span class="text-xs font-mono text-brand-500">📍 ${job.lat || 13.7563}, ${job.lng || 100.5018}</span>
-                                        <button class="text-[10px] text-muted-foreground hover:text-foreground bg-card px-2 py-0.5 rounded border border-border" onclick="navigator.clipboard.writeText('${job.lat || 13.7563}, ${job.lng || 100.5018}'); app.showToast('คัดลอกพิกัด GPS เรียบร้อย');">Copy</button>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">ประเภทบริการ</div>
-                                    <div class="text-xs text-foreground mt-0.5 font-medium">${job.service}</div>
-                                </div>
-
-                                <div>
-                                    <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">เบอร์โทรติดต่อ</div>
-                                    <div class="text-xs text-foreground font-mono mt-0.5">${job.phone}</div>
-                                </div>
-
-                                <div>
-                                    <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">ที่อยู่หน้างาน</div>
-                                    <div class="text-xs text-muted-foreground mt-0.5 leading-relaxed">${job.address}</div>
-                                </div>
-
-                                <div>
-                                    <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">ทีมช่างผู้รับผิดชอบ</div>
-                                    <div class="text-xs text-foreground mt-0.5">${job.tech}</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Right Actions & Timeline -->
-                        <div class="lg:col-span-2 artifact-card p-6 space-y-6">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
-                                <h3 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
-                                    <i class="ph ph-lightning text-brand-500"></i> การดำเนินการด่วน (Quick Actions)
-                                </h3>
-                                <span class="text-[11px] text-muted-foreground">สถานะปัจจุบัน: <strong class="text-foreground">${job.status}</strong></span>
-                            </div>
-
-                            <!-- Action Buttons Toolbar -->
-                            <div class="flex flex-wrap gap-2.5">
-                                ${actionButtons}
-                            </div>
-                            
-                            <!-- Timeline Stepper -->
-                            <div>
-                                <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">ลำดับขั้นตอนการทำงาน (Workflow Timeline)</h4>
-                                <div class="space-y-4 border-l-2 border-border ml-3 pl-4">
-                                    <div class="relative">
-                                        <div class="absolute -left-[23px] top-0.5 ${step1Class}">✓</div>
-                                        <div class="text-xs font-semibold text-foreground">1. เปิดงานใหม่ (รับจากระบบ INT)</div>
-                                        <div class="text-[11px] text-muted-foreground mt-0.5">ระบบอัตโนมัติสร้าง Order • ${job.date}</div>
-                                    </div>
-                                    <div class="relative">
-                                        <div class="absolute -left-[23px] top-0.5 ${step2Dot}">${!isDraft ? '✓' : ''}</div>
-                                        <div class="text-xs font-semibold text-foreground">2. ช่าง Check-in ยืนยันพิกัด GPS</div>
-                                        <div class="text-[11px] text-muted-foreground mt-0.5">
-                                            ${!isDraft ? '<span class="text-emerald-500 font-medium">✓ Check-in แล้ว (GPS ห่าง 180 ม. อยู่ในเกณฑ์รัศมี 400 ม.)</span>' : 'ช่างเข้าพื้นที่หน้างานและถ่ายรูปก่อนเริ่มติดตั้ง'}
-                                        </div>
-                                    </div>
-                                    <div class="relative">
-                                        <div class="absolute -left-[23px] top-0.5 ${step3Dot}">${(isQcPassed || isAfterSale || isClosed) ? '✓' : ''}</div>
-                                        <div class="text-xs font-semibold text-foreground">3. การตรวจรับรองคุณภาพ (QC Checklist)</div>
-                                        <div class="text-[11px] text-muted-foreground mt-0.5">
-                                            ${isQcPassed || isAfterSale || isClosed ? '<span class="text-emerald-500 font-medium">✓ ตรวจรับรอง QC ผ่านเกณฑ์เรียบร้อย</span>' : (isQcPending ? '<span class="text-amber-500 font-medium">⏳ กำลังรอเจ้าหน้าที่ QC เข้าตรวจสอบ</span>' : 'ทีม QC ตรวจสอบความถูกต้องและส่งมอบ')}
-                                        </div>
-                                    </div>
-                                    <div class="relative">
-                                        <div class="absolute -left-[23px] top-0.5 ${step4Dot}">${isClosed ? '✓' : ''}</div>
-                                        <div class="text-xs font-semibold text-foreground">4. สรุปผล CSAT และส่งปิดงาน (BMT System)</div>
-                                        <div class="text-[11px] text-muted-foreground mt-0.5">
-                                            ${isClosed ? '<span class="text-emerald-500 font-medium">✓ ปิดงานสมบูรณ์ และส่งข้อมูลเข้าสู่ระบบ BMT เรียบร้อย</span>' : (isAfterSale ? '<span class="text-brand-500 font-medium">⭐ Contact Center สรุปผลประเมิน 5 ดาวแล้ว</span>' : 'Contact Center โทรยืนยันความพึงพอใจ 5 ดาว')}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    `;
-                } else if (curTab === 'photos') {
-                    const uploadedPhotos = job.photos || [];
-                    const totalPhotoCount = 5 + uploadedPhotos.length;
-
-                    // Standard baseline 5 photos
-                    const basePhotos = [
-                        { num: 1, icon: 'ph ph-house-line', file: 'IMG_SITE_01.JPG', title: 'สภาพพื้นที่ก่อนติดตั้ง', desc: 'มุมมองกว้างบริเวณผนังห้องนอน', preview: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop&q=80' },
-                        { num: 2, icon: 'ph ph-ruler', file: 'IMG_SITE_02.JPG', title: 'การวัดระดับและยึด Plate', desc: 'ระดับน้ำตรง แข็งแรงตามสเปก', preview: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80' },
-                        { num: 3, icon: 'ph ph-pipe', file: 'IMG_SITE_03.JPG', title: 'แนวท่อน้ำยาและรางครอบ', desc: 'เดินท่อเรียบร้อย ไม่รั่วซึม', preview: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&auto=format&fit=crop&q=80' },
-                        { num: 4, icon: 'ph ph-lightning', file: 'IMG_SITE_04.JPG', title: 'ระบบไฟฟ้าและสายดิน', desc: 'เบรกเกอร์แยกและวัดกราวด์ผ่าน', preview: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80' },
-                        { num: 5, icon: 'ph ph-check-circle', file: 'IMG_SITE_05.JPG', title: 'หลังติดตั้งและเก็บกวาด', desc: 'ทดสอบความเย็น 16°C ปกติ', preview: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=600&auto=format&fit=crop&q=80' },
-                    ];
-
-                    let extraPhotosHtml = '';
-                    if (uploadedPhotos.length > 0) {
-                        extraPhotosHtml = uploadedPhotos.map((p, idx) => {
-                            const photoNum = 5 + idx + 1;
-                            const uploadTime = p.uploaded_at ? new Date(p.uploaded_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : 'ล่าสุด';
-                            const displayImg = p.url || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=500&auto=format&fit=crop&q=80';
-                            return `
-                            <div class="artifact-card p-3 rounded-xl space-y-2 border border-brand-500/30 hover:border-brand-500 transition relative group">
-                                <div class="aspect-video bg-muted/60 rounded-lg flex flex-col items-center justify-center border border-dashed border-brand-500/40 relative overflow-hidden cursor-pointer" onclick="app.openUploadedPhotoLightbox('${job.id}', '${p.id}')">
-                                    <img src="${displayImg}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                                    <span class="absolute top-2 right-2 px-1.5 py-0.5 bg-brand-500 text-white rounded text-[9px] font-medium shadow-sm">รูปที่ ${photoNum}</span>
-                                    <span class="absolute top-2 left-2 px-1.5 py-0.5 bg-black/65 backdrop-blur-xs text-white rounded text-[8px] font-medium">${p.tag || 'เพิ่มเติม'}</span>
-                                    <div class="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                                        <span class="text-white text-xs font-semibold bg-black/60 px-2.5 py-1 rounded-lg flex items-center gap-1 shadow"><i class="ph ph-magnifying-glass-plus"></i> ขยายรูป</span>
-                                    </div>
-                                </div>
-                                <div class="flex items-start justify-between gap-1">
-                                    <div class="flex-1 min-w-0">
-                                        <div class="text-xs font-semibold text-foreground truncate" title="${p.title}">${p.title}</div>
-                                        <div class="text-[10px] text-muted-foreground truncate" title="${p.note || p.name || ''}">${p.note || p.name || 'รูปถ่ายเพิ่มเติมหน้างาน'}</div>
-                                    </div>
-                                    <button type="button" onclick="app.deletePhoto('${job.id}', '${p.id}')" title="ลบรูปนี้" class="p-1 text-muted-foreground hover:text-rose-500 rounded transition opacity-60 hover:opacity-100 cursor-pointer">
-                                        <i class="ph ph-trash text-sm"></i>
-                                    </button>
-                                </div>
-                                <div class="flex items-center justify-between text-[9px] font-mono pt-1 border-t border-border">
-                                    <span class="text-emerald-500 flex items-center gap-1"><i class="ph ph-check"></i> GPS Verified</span>
-                                    <span class="text-muted-foreground">${uploadTime}</span>
-                                </div>
-                            </div>
-                            `;
-                        }).join('');
-                    }
-
-                    tabContent = `
-                    <div class="space-y-6">
-                        <!-- Check-in GPS Summary Header -->
-                        <div class="artifact-card p-5 bg-gradient-to-r from-brand-500/5 to-transparent border border-brand-500/20">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-500">
-                                        <i class="ph ph-map-pin text-xl"></i>
-                                    </div>
-                                    <div>
-                                        <h4 class="font-display font-semibold text-sm text-foreground">บันทึกตำแหน่งหน้างาน (Geo-fence Verification)</h4>
-                                        <p class="text-xs text-muted-foreground mt-0.5">พิกัด GPS: <span class="font-mono text-brand-500">${job.lat || 13.7563}, ${job.lng || 100.5018}</span> • ระยะห่างจากบ้านลูกค้า: <strong class="text-emerald-500">180 เมตร (ผ่านเกณฑ์รัศมี 400 ม.)</strong></p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                                        <i class="ph ph-check mr-1"></i> ตรวจสอบพิกัดถูกต้อง
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Dedicated Section: Site Notes & Special Instructions (Requirement: บันทึกข้อมูลเพิ่มเติม คำสั่งพิเศษได้) -->
-                        <div class="artifact-card p-5 border border-brand-500/30 bg-card shadow-sm space-y-4">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border">
-                                <div class="flex items-center gap-2.5">
-                                    <div class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
-                                        <i class="ph ph-note-pencil text-lg"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
-                                            บันทึกข้อมูลเพิ่มเติม & คำสั่งพิเศษหน้างาน (QC Special Instructions & Notes)
-                                        </h3>
-                                        <p class="text-[11px] text-muted-foreground">บันทึกข้อกำหนดเฉพาะหน้างาน ข้อควรระวังความปลอดภัย และคำสั่งพิเศษโดยทีม QC (หลังจากรับข้อมูลจากระบบ AE)</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[10px] px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-semibold flex items-center gap-1">
-                                        <i class="ph ph-shield-check"></i> บันทึกโดยทีม QC
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <!-- Special Instructions -->
-                                <div class="space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <label class="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                            <i class="ph ph-warning-circle text-amber-500"></i> คำสั่งพิเศษ (Special Instructions)
-                                        </label>
-                                        <span class="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 font-medium">ข้อควรระวัง</span>
-                                    </div>
-                                    <textarea id="job-special-instructions" rows="3" class="w-full bg-muted/40 border border-border rounded-lg p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 transition resize-y" placeholder="ระบุคำสั่งพิเศษ เช่น ระวังหมาดุ, นัดเข้าหลัง 10:00 น., ให้สวมถุงคลุมรองเท้า...">${job.special_instructions || ''}</textarea>
-                                    
-                                    <!-- Quick Chips -->
-                                    <div class="flex flex-wrap gap-1.5 pt-0.5">
-                                        <span class="text-[10px] text-muted-foreground self-center">แท็กด่วน:</span>
-                                        <button type="button" onclick="app.appendInstruction('🐕 ระวังมีสุนัขในบ้าน')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ ระวังหมาดุ</button>
-                                        <button type="button" onclick="app.appendInstruction('⏰ โทรแจ้งก่อนเข้า 30 นาที')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ โทรแจ้งก่อน 30 น.</button>
-                                        <button type="button" onclick="app.appendInstruction('🚪 เข้าหลัง 10:00 น.')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ เข้าหลัง 10:00 น.</button>
-                                        <button type="button" onclick="app.appendInstruction('👟 สวมถุงคลุมรองเท้า')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ สวมถุงคลุมรองเท้า</button>
-                                        <button type="button" onclick="app.appendInstruction('⚡ เช็คสายดินก่อนเริ่ม')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ เช็คสายดิน</button>
-                                    </div>
-                                </div>
-
-                                <!-- Additional Notes -->
-                                <div class="space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <label class="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                            <i class="ph ph-notepad text-brand-500"></i> ข้อมูลเพิ่มเติม / หมายเหตุหน้างาน (Additional Notes)
-                                        </label>
-                                        <span class="text-[10px] text-brand-500 bg-brand-500/10 px-1.5 py-0.2 rounded border border-brand-500/20 font-medium">บันทึกหน้างาน</span>
-                                    </div>
-                                    <textarea id="job-additional-notes" rows="3" class="w-full bg-muted/40 border border-border rounded-lg p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 transition resize-y" placeholder="บันทึกข้อมูลเพิ่มเติมเกี่ยวกับสภาพหน้างานจริง วัสดุ หรือข้อสังเกตเพิ่มเติม...">${job.additional_notes || ''}</textarea>
-
-                                    <!-- Quick Chips for notes -->
-                                    <div class="flex flex-wrap gap-1.5 pt-0.5">
-                                        <span class="text-[10px] text-muted-foreground self-center">ข้อความแนะนำ:</span>
-                                        <button type="button" onclick="app.appendNote('✓ สภาพผนังและตำแหน่งติดตั้งพร้อมทำงาน')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ ผนังพร้อม</button>
-                                        <button type="button" onclick="app.appendNote('🔌 ลูกค้าเตรียมจุดจ่ายไฟฟ้าเรียบร้อยแล้ว')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ ปลั๊กไฟพร้อม</button>
-                                        <button type="button" onclick="app.appendNote('📏 เพิ่มความยาวรางครอบท่อตามหน้างานจริง')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ เพิ่มรางครอบ</button>
-                                        <button type="button" onclick="app.appendNote('💧 ทดสอบระบบท่อน้ำทิ้งระบายไหลสะดวก')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ น้ำทิ้งไหลสะดวก</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border">
-                                <div class="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                                    <i class="ph ph-info"></i> ข้อมูลนี้จะซิงค์ไปยังหน้ารายละเอียดทั่วไป และรายงานผลตรวจ QC อัตโนมัติ
-                                </div>
-                                <button type="button" onclick="app.saveJobNotes('${job.id}')" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 shadow-sm">
-                                    <i class="ph ph-floppy-disk text-base"></i>
-                                    <span>บันทึกข้อมูลเพิ่มเติม & คำสั่งพิเศษ</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Site Photos Section (Requirement: Upload รูปเพิ่มเติมได้) -->
-                        <div>
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                                <div>
-                                    <div class="flex items-center gap-2">
-                                        <h3 class="font-display font-semibold text-sm text-foreground">รูปถ่ายการปฏิบัติงานหน้างาน (Site Photos)</h3>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">รวม ${totalPhotoCount} รูป</span>
-                                    </div>
-                                    <p class="text-xs text-muted-foreground mt-0.5">บันทึกครบถ้วนตามข้อกำหนดอย่างน้อย 5 ภาพ (ปัจจุบันรวม ${totalPhotoCount} ภาพ)</p>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm font-medium" onclick="app.openPhotoUploadModal('${job.id}')">
-                                        <i class="ph ph-camera-plus text-sm"></i> ถ่ายภาพเพิ่มเติม / Upload รูป
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                                ${basePhotos.map(p => `
-                                <div class="artifact-card p-3 rounded-xl space-y-2 border border-border hover:border-brand-500/40 transition group cursor-pointer" onclick="app.openBasePhotoLightbox(${p.num})">
-                                    <div class="aspect-video bg-muted/60 rounded-lg flex flex-col items-center justify-center border border-dashed border-border relative overflow-hidden group">
-                                        <i class="${p.icon} text-3xl text-muted-foreground/60 mb-1 group-hover:scale-110 transition"></i>
-                                        <span class="text-[10px] text-muted-foreground font-mono">${p.file}</span>
-                                        <span class="absolute top-2 right-2 px-1.5 py-0.5 bg-emerald-500/80 text-white rounded text-[9px] font-medium">รูปที่ ${p.num}</span>
-                                        <div class="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                                            <span class="text-white text-[11px] font-medium bg-black/60 px-2 py-0.5 rounded flex items-center gap-1"><i class="ph ph-eye"></i> ดูตัวอย่าง</span>
-                                        </div>
-                                    </div>
-                                    <div class="text-xs font-medium text-foreground">${p.title}</div>
-                                    <div class="text-[10px] text-muted-foreground">${p.desc}</div>
-                                    <div class="text-[9px] font-mono text-emerald-500 flex items-center gap-1"><i class="ph ph-check"></i> GPS Verified</div>
-                                </div>
-                                `).join('')}
-
-                                ${extraPhotosHtml}
-
-                                <!-- Add Photo Quick Card -->
-                                <div onclick="app.openPhotoUploadModal('${job.id}')" class="artifact-card p-4 rounded-xl border-2 border-dashed border-brand-500/40 hover:border-brand-500 hover:bg-brand-500/5 transition cursor-pointer flex flex-col items-center justify-center min-h-[160px] gap-2 text-center group">
-                                    <div class="w-10 h-10 rounded-full bg-brand-500/10 text-brand-500 flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-500 group-hover:text-white transition">
-                                        <i class="ph ph-plus text-lg font-bold"></i>
-                                    </div>
-                                    <div class="text-xs font-semibold text-foreground group-hover:text-brand-500 transition">อัปโหลดรูปเพิ่มเติม</div>
-                                    <div class="text-[10px] text-muted-foreground">ถ่ายรูปจากกล้อง หรือเลือกไฟล์</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Footer Navigation -->
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-border">
-                            <button class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.switchJobTab('general')">
-                                <i class="ph ph-arrow-left"></i> กลับหน้าข้อมูลทั่วไป
-                            </button>
-                            <div class="flex items-center gap-2.5">
-                                ${job.pmt_accepted ? `
-                                <span class="text-xs text-emerald-500 font-semibold flex items-center gap-1.5 bg-emerald-500/10 px-3 py-2 rounded-lg border border-emerald-500/20">
-                                    <i class="ph ph-check-circle text-sm"></i> รับเข้าระบบ PMT แล้ว
-                                </span>
-                                <button class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.acceptJobToPMT('${job.id}')" title="กดเพื่ออัปเดตสถานะรับเข้าระบบ PMT อีกครั้ง">
-                                    <i class="ph ph-arrows-clockwise"></i> อัปเดตรับ PMT
-                                </button>
-                                <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-sm" onclick="app.switchJobTab('boq')">
-                                    <span>ไปหน้าแบบติดตั้ง & BOQ</span> <i class="ph ph-arrow-right"></i>
-                                </button>
-                                ` : `
-                                <button class="btn-artifact-primary px-5 py-2.5 rounded-lg text-xs flex items-center gap-2 font-semibold shadow-sm" onclick="app.acceptJobToPMT('${job.id}')">
-                                    <i class="ph ph-check-circle text-base"></i>
-                                    <span>รับเข้าระบบ PMT</span>
-                                    <i class="ph ph-arrow-right ml-0.5"></i>
-                                </button>
-                                `}
-                            </div>
-                        </div>
-                    </div>
-                    `;
-                } else if (curTab === 'boq') {
+                if (curTab === 'boq') {
                     tabContent = `
                     <div class="space-y-6">
                         <!-- Design Files Section (Requirement #5) -->
@@ -2756,7 +2367,7 @@
                         <!-- Footer Navigation -->
                         <div class="flex items-center justify-between pt-4 border-t border-border">
                             <button class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs" onclick="app.switchJobTab('general')">
-                                <i class="ph ph-arrow-left mr-1"></i> กลับหน้าข้อมูลทั่วไป
+                                <i class="ph ph-arrow-left mr-1"></i> กลับหน้าข้อมูลงาน & Check-in
                             </button>
                             <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs" onclick="app.sendJobToQC('${job.id}')">
                                 ส่งตรวจ QC (QC Inspection) <i class="ph ph-arrow-right ml-1"></i>
@@ -2764,8 +2375,377 @@
                         </div>
                     </div>
                     `;
+                } else {
+                    let actionButtons = '';
+                    if (isDraft) {
+                        actionButtons = `
+                            <button class="btn-artifact-primary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm" onclick="app.acceptJobToPMT('${job.id}')">
+                                <i class="ph ph-check-circle text-sm"></i>
+                                <span>รับเข้าระบบ PMT</span>
+                            </button>
+                            <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.checkinJob('${job.id}')">
+                                <i class="ph ph-map-pin text-sm"></i>
+                                <span>ช่าง Check-in หน้างาน (GPS)</span>
+                            </button>
+                        `;
+                    } else if (isInProgress) {
+                        actionButtons = `
+                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm" onclick="app.sendJobToQC('${job.id}')">
+                                <i class="ph ph-paper-plane-tilt text-sm"></i>
+                                <span>ส่งตรวจ QC (QC Inspection)</span>
+                            </button>
+                        `;
+                    } else if (isQcPending) {
+                        actionButtons = `
+                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm bg-amber-500 hover:bg-amber-600 text-white" onclick="app.goToQC('${job.id}')">
+                                <i class="ph ph-clipboard-text text-sm"></i>
+                                <span>เปิดหน้าตรวจคุณภาพ QC ทันที ➔</span>
+                            </button>
+                        `;
+                    } else if (isQcPassed) {
+                        actionButtons = `
+                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm" onclick="app.navigate('csat')">
+                                <i class="ph ph-phone-call text-sm"></i>
+                                <span>ไปหน้า CSAT & บริการหลังการขาย ➔</span>
+                            </button>
+                        `;
+                    } else if (isAfterSale) {
+                        actionButtons = `
+                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white" onclick="app.closeJob('${job.id}')">
+                                <i class="ph ph-check-square text-sm"></i>
+                                <span>Close Job & ส่งข้อมูลไประบบ BMT</span>
+                            </button>
+                        `;
+                    } else if (isClosed) {
+                        actionButtons = `
+                            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+                                <i class="ph ph-seal-check text-base"></i>
+                                <span>ปิดงานและส่งข้อมูลเข้าสู่ระบบ BMT สำเร็จเรียบร้อย (${job.bmt_ref || 'BMT-REF-2026-99214'})</span>
+                            </div>
+                        `;
+                    }
+
+                    const step1Class = "w-3.5 h-3.5 bg-emerald-500 text-white flex items-center justify-center rounded-full ring-4 ring-card text-[9px] font-bold";
+                    const step2Dot = isDraft
+                        ? "w-3.5 h-3.5 bg-brand-500 rounded-full ring-4 ring-card animate-pulse"
+                        : "w-3.5 h-3.5 bg-emerald-500 text-white flex items-center justify-center rounded-full ring-4 ring-card text-[9px] font-bold";
+                    const step3Dot = (isDraft || isInProgress)
+                        ? (isInProgress ? "w-3.5 h-3.5 bg-brand-500 rounded-full ring-4 ring-card animate-pulse" : "w-3.5 h-3.5 bg-muted-foreground/30 rounded-full ring-4 ring-card")
+                        : (isQcPending ? "w-3.5 h-3.5 bg-amber-500 rounded-full ring-4 ring-card animate-pulse" : "w-3.5 h-3.5 bg-emerald-500 text-white flex items-center justify-center rounded-full ring-4 ring-card text-[9px] font-bold");
+                    const step4Dot = isClosed
+                        ? "w-3.5 h-3.5 bg-emerald-500 text-white flex items-center justify-center rounded-full ring-4 ring-card text-[9px] font-bold"
+                        : (isAfterSale ? "w-3.5 h-3.5 bg-brand-500 rounded-full ring-4 ring-card animate-pulse" : (isQcPassed ? "w-3.5 h-3.5 bg-brand-500 rounded-full ring-4 ring-card animate-pulse" : "w-3.5 h-3.5 bg-muted-foreground/30 rounded-full ring-4 ring-card"));
+
+                    const uploadedPhotos = job.photos || [];
+                    const totalPhotoCount = 5 + uploadedPhotos.length;
+
+                    const basePhotos = [
+                        { num: 1, icon: 'ph ph-house-line', file: 'IMG_SITE_01.JPG', title: 'สภาพพื้นที่ก่อนติดตั้ง', desc: 'มุมมองกว้างบริเวณผนังห้องนอน', preview: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop&q=80' },
+                        { num: 2, icon: 'ph ph-ruler', file: 'IMG_SITE_02.JPG', title: 'การวัดระดับและยึด Plate', desc: 'ระดับน้ำตรง แข็งแรงตามสเปก', preview: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80' },
+                        { num: 3, icon: 'ph ph-pipe', file: 'IMG_SITE_03.JPG', title: 'แนวท่อน้ำยาและรางครอบ', desc: 'เดินท่อเรียบร้อย ไม่รั่วซึม', preview: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&auto=format&fit=crop&q=80' },
+                        { num: 4, icon: 'ph ph-lightning', file: 'IMG_SITE_04.JPG', title: 'ระบบไฟฟ้าและสายดิน', desc: 'เบรกเกอร์แยกและวัดกราวด์ผ่าน', preview: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80' },
+                        { num: 5, icon: 'ph ph-check-circle', file: 'IMG_SITE_05.JPG', title: 'หลังติดตั้งและเก็บกวาด', desc: 'ทดสอบความเย็น 16°C ปกติ', preview: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=600&auto=format&fit=crop&q=80' },
+                    ];
+
+                    let extraPhotosHtml = '';
+                    if (uploadedPhotos.length > 0) {
+                        extraPhotosHtml = uploadedPhotos.map((p, idx) => {
+                            const photoNum = 5 + idx + 1;
+                            const uploadTime = p.uploaded_at ? new Date(p.uploaded_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : 'ล่าสุด';
+                            const displayImg = p.url || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=500&auto=format&fit=crop&q=80';
+                            return `
+                            <div class="artifact-card p-3 rounded-xl space-y-2 border border-brand-500/30 hover:border-brand-500 transition relative group">
+                                <div class="aspect-video bg-muted/60 rounded-lg flex flex-col items-center justify-center border border-dashed border-brand-500/40 relative overflow-hidden cursor-pointer" onclick="app.openUploadedPhotoLightbox('${job.id}', '${p.id}')">
+                                    <img src="${displayImg}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                    <span class="absolute top-2 right-2 px-1.5 py-0.5 bg-brand-500 text-white rounded text-[9px] font-medium shadow-sm">รูปที่ ${photoNum}</span>
+                                    <span class="absolute top-2 left-2 px-1.5 py-0.5 bg-black/65 backdrop-blur-xs text-white rounded text-[8px] font-medium">${p.tag || 'เพิ่มเติม'}</span>
+                                    <div class="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                        <span class="text-white text-xs font-semibold bg-black/60 px-2.5 py-1 rounded-lg flex items-center gap-1 shadow"><i class="ph ph-magnifying-glass-plus"></i> ขยายรูป</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-start justify-between gap-1">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-xs font-semibold text-foreground truncate" title="${p.title}">${p.title}</div>
+                                        <div class="text-[10px] text-muted-foreground truncate" title="${p.note || p.name || ''}">${p.note || p.name || 'รูปถ่ายเพิ่มเติมหน้างาน'}</div>
+                                    </div>
+                                    <button type="button" onclick="app.deletePhoto('${job.id}', '${p.id}')" title="ลบรูปนี้" class="p-1 text-muted-foreground hover:text-rose-500 rounded transition opacity-60 hover:opacity-100 cursor-pointer">
+                                        <i class="ph ph-trash text-sm"></i>
+                                    </button>
+                                </div>
+                                <div class="flex items-center justify-between text-[9px] font-mono pt-1 border-t border-border">
+                                    <span class="text-emerald-500 flex items-center gap-1"><i class="ph ph-check"></i> GPS Verified</span>
+                                    <span class="text-muted-foreground">${uploadTime}</span>
+                                </div>
+                            </div>
+                            `;
+                        }).join('');
+                    }
+
+                    tabContent = `
+                    <div class="space-y-6">
+                        <!-- Top Summary Grid: Customer Info & Timeline Actions -->
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <!-- Left Column: Customer Info Card -->
+                            <div class="space-y-6">
+                                <div class="artifact-card p-6 space-y-4">
+                                    <h3 class="font-display font-semibold text-sm text-foreground pb-2 border-b border-border flex items-center gap-2">
+                                        <i class="ph ph-user-circle text-brand-500"></i> ข้อมูลลูกค้าและสถานที่
+                                    </h3>
+                                    
+                                    <div>
+                                        <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">ชื่อ - นามสกุล</div>
+                                        <div class="text-xs text-foreground font-medium mt-0.5">${job.firstName || ''} ${job.lastName || ''} <span class="text-muted-foreground">(${job.customer})</span></div>
+                                    </div>
+
+                                    <div>
+                                        <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">พิกัด GPS (Lat, Lng)</div>
+                                        <div class="flex items-center justify-between mt-1 bg-muted/40 border border-border rounded-lg p-2">
+                                            <span class="text-xs font-mono text-brand-500">📍 ${job.lat || 13.7563}, ${job.lng || 100.5018}</span>
+                                            <button class="text-[10px] text-muted-foreground hover:text-foreground bg-card px-2 py-0.5 rounded border border-border" onclick="navigator.clipboard.writeText('${job.lat || 13.7563}, ${job.lng || 100.5018}'); app.showToast('คัดลอกพิกัด GPS เรียบร้อย');">Copy</button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">ประเภทบริการ</div>
+                                        <div class="text-xs text-foreground mt-0.5 font-medium">${job.service}</div>
+                                    </div>
+
+                                    <div>
+                                        <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">เบอร์โทรติดต่อ</div>
+                                        <div class="text-xs text-foreground font-mono mt-0.5">${job.phone}</div>
+                                    </div>
+
+                                    <div>
+                                        <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">ที่อยู่หน้างาน</div>
+                                        <div class="text-xs text-muted-foreground mt-0.5 leading-relaxed">${job.address}</div>
+                                    </div>
+
+                                    <div>
+                                        <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">ทีมช่างผู้รับผิดชอบ</div>
+                                        <div class="text-xs text-foreground mt-0.5">${job.tech}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Actions & Timeline -->
+                            <div class="lg:col-span-2 artifact-card p-6 space-y-6">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+                                    <h3 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
+                                        <i class="ph ph-lightning text-brand-500"></i> การดำเนินการด่วน (Quick Actions)
+                                    </h3>
+                                    <span class="text-[11px] text-muted-foreground">สถานะปัจจุบัน: <strong class="text-foreground">${job.status}</strong></span>
+                                </div>
+
+                                <!-- Action Buttons Toolbar -->
+                                <div class="flex flex-wrap gap-2.5">
+                                    ${actionButtons}
+                                </div>
+                                
+                                <!-- Timeline Stepper -->
+                                <div>
+                                    <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">ลำดับขั้นตอนการทำงาน (Workflow Timeline)</h4>
+                                    <div class="space-y-4 border-l-2 border-border ml-3 pl-4">
+                                        <div class="relative">
+                                            <div class="absolute -left-[23px] top-0.5 ${step1Class}">✓</div>
+                                            <div class="text-xs font-semibold text-foreground">1. เปิดงานใหม่ (รับจากระบบ INT/AE)</div>
+                                            <div class="text-[11px] text-muted-foreground mt-0.5">ระบบอัตโนมัติสร้าง Order • ${job.date}</div>
+                                        </div>
+                                        <div class="relative">
+                                            <div class="absolute -left-[23px] top-0.5 ${step2Dot}">${!isDraft ? '✓' : ''}</div>
+                                            <div class="text-xs font-semibold text-foreground">2. ช่าง Check-in ยืนยันพิกัด GPS</div>
+                                            <div class="text-[11px] text-muted-foreground mt-0.5">
+                                                ${!isDraft ? '<span class="text-emerald-500 font-medium">✓ Check-in แล้ว (GPS ห่าง 180 ม. อยู่ในเกณฑ์รัศมี 400 ม.)</span>' : 'ช่างเข้าพื้นที่หน้างานและถ่ายรูปก่อนเริ่มติดตั้ง'}
+                                            </div>
+                                        </div>
+                                        <div class="relative">
+                                            <div class="absolute -left-[23px] top-0.5 ${step3Dot}">${(isQcPassed || isAfterSale || isClosed) ? '✓' : ''}</div>
+                                            <div class="text-xs font-semibold text-foreground">3. การตรวจรับรองคุณภาพ (QC Checklist)</div>
+                                            <div class="text-[11px] text-muted-foreground mt-0.5">
+                                                ${isQcPassed || isAfterSale || isClosed ? '<span class="text-emerald-500 font-medium">✓ ตรวจรับรอง QC ผ่านเกณฑ์เรียบร้อย</span>' : (isQcPending ? '<span class="text-amber-500 font-medium">⏳ กำลังรอเจ้าหน้าที่ QC เข้าตรวจสอบ</span>' : 'ทีม QC ตรวจสอบความถูกต้องและส่งมอบ')}
+                                            </div>
+                                        </div>
+                                        <div class="relative">
+                                            <div class="absolute -left-[23px] top-0.5 ${step4Dot}">${isClosed ? '✓' : ''}</div>
+                                            <div class="text-xs font-semibold text-foreground">4. สรุปผล CSAT และส่งปิดงาน (BMT System)</div>
+                                            <div class="text-[11px] text-muted-foreground mt-0.5">
+                                                ${isClosed ? '<span class="text-emerald-500 font-medium">✓ ปิดงานสมบูรณ์ และส่งข้อมูลเข้าสู่ระบบ BMT เรียบร้อย</span>' : (isAfterSale ? '<span class="text-brand-500 font-medium">⭐ Contact Center สรุปผลประเมิน 5 ดาวแล้ว</span>' : 'Contact Center โทรยืนยันความพึงพอใจ 5 ดาว')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Check-in GPS Summary Header -->
+                        <div class="artifact-card p-5 bg-gradient-to-r from-brand-500/5 to-transparent border border-brand-500/20">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-500">
+                                        <i class="ph ph-map-pin text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-display font-semibold text-sm text-foreground">บันทึกตำแหน่งหน้างาน (Geo-fence Verification)</h4>
+                                        <p class="text-xs text-muted-foreground mt-0.5">พิกัด GPS: <span class="font-mono text-brand-500">${job.lat || 13.7563}, ${job.lng || 100.5018}</span> • ระยะห่างจากบ้านลูกค้า: <strong class="text-emerald-500">180 เมตร (ผ่านเกณฑ์รัศมี 400 ม.)</strong></p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                                        <i class="ph ph-check mr-1"></i> ตรวจสอบพิกัดถูกต้อง
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dedicated Section: Site Notes & Special Instructions (QC Special Instructions & Notes) -->
+                        <div class="artifact-card p-5 border border-brand-500/30 bg-card shadow-sm space-y-4">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                                        <i class="ph ph-note-pencil text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
+                                            บันทึกข้อมูลเพิ่มเติม & คำสั่งพิเศษหน้างาน (QC Special Instructions & Notes)
+                                        </h3>
+                                        <p class="text-[11px] text-muted-foreground">บันทึกข้อกำหนดเฉพาะหน้างาน ข้อควรระวังความปลอดภัย และคำสั่งพิเศษโดยทีม QC (หลังจากรับข้อมูลจากระบบ AE)</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-semibold flex items-center gap-1">
+                                        <i class="ph ph-shield-check"></i> บันทึกโดยทีม QC
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Special Instructions -->
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <label class="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                            <i class="ph ph-warning-circle text-amber-500"></i> คำสั่งพิเศษ (Special Instructions)
+                                        </label>
+                                        <span class="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 font-medium">ข้อควรระวัง</span>
+                                    </div>
+                                    <textarea id="job-special-instructions" rows="3" class="w-full bg-muted/40 border border-border rounded-lg p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 transition resize-y" placeholder="ระบุคำสั่งพิเศษ เช่น ระวังหมาดุ, นัดเข้าหลัง 10:00 น., ให้สวมถุงคลุมรองเท้า...">${job.special_instructions || ''}</textarea>
+                                    
+                                    <!-- Quick Chips -->
+                                    <div class="flex flex-wrap gap-1.5 pt-0.5">
+                                        <span class="text-[10px] text-muted-foreground self-center">แท็กด่วน:</span>
+                                        <button type="button" onclick="app.appendInstruction('🐕 ระวังมีสุนัขในบ้าน')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ ระวังหมาดุ</button>
+                                        <button type="button" onclick="app.appendInstruction('⏰ โทรแจ้งก่อนเข้า 30 นาที')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ โทรแจ้งก่อน 30 น.</button>
+                                        <button type="button" onclick="app.appendInstruction('🚪 เข้าหลัง 10:00 น.')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ เข้าหลัง 10:00 น.</button>
+                                        <button type="button" onclick="app.appendInstruction('👟 สวมถุงคลุมรองเท้า')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ สวมถุงคลุมรองเท้า</button>
+                                        <button type="button" onclick="app.appendInstruction('⚡ เช็คสายดินก่อนเริ่ม')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ เช็คสายดิน</button>
+                                    </div>
+                                </div>
+
+                                <!-- Additional Notes -->
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <label class="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                            <i class="ph ph-notepad text-brand-500"></i> ข้อมูลเพิ่มเติม / หมายเหตุหน้างาน (Additional Notes)
+                                        </label>
+                                        <span class="text-[10px] text-brand-500 bg-brand-500/10 px-1.5 py-0.2 rounded border border-brand-500/20 font-medium">บันทึกหน้างาน</span>
+                                    </div>
+                                    <textarea id="job-additional-notes" rows="3" class="w-full bg-muted/40 border border-border rounded-lg p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 transition resize-y" placeholder="บันทึกข้อมูลเพิ่มเติมเกี่ยวกับสภาพหน้างานจริง วัสดุ หรือข้อสังเกตเพิ่มเติม...">${job.additional_notes || ''}</textarea>
+
+                                    <!-- Quick Chips for notes -->
+                                    <div class="flex flex-wrap gap-1.5 pt-0.5">
+                                        <span class="text-[10px] text-muted-foreground self-center">ข้อความแนะนำ:</span>
+                                        <button type="button" onclick="app.appendNote('✓ สภาพผนังและตำแหน่งติดตั้งพร้อมทำงาน')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ ผนังพร้อม</button>
+                                        <button type="button" onclick="app.appendNote('🔌 ลูกค้าเตรียมจุดจ่ายไฟฟ้าเรียบร้อยแล้ว')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ ปลั๊กไฟพร้อม</button>
+                                        <button type="button" onclick="app.appendNote('📏 เพิ่มความยาวรางครอบท่อตามหน้างานจริง')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ เพิ่มรางครอบ</button>
+                                        <button type="button" onclick="app.appendNote('💧 ทดสอบระบบท่อน้ำทิ้งระบายไหลสะดวก')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ น้ำทิ้งไหลสะดวก</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border">
+                                <div class="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                                    <i class="ph ph-info"></i> ข้อมูลนี้จะซิงค์ไปยังรายงานผลตรวจ QC อัตโนมัติ
+                                </div>
+                                <button type="button" onclick="app.saveJobNotes('${job.id}')" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 shadow-sm">
+                                    <i class="ph ph-floppy-disk text-base"></i>
+                                    <span>บันทึกข้อมูลเพิ่มเติม & คำสั่งพิเศษ</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Site Photos Section (Requirement: Upload รูปเพิ่มเติมได้) -->
+                        <div>
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="font-display font-semibold text-sm text-foreground">รูปถ่ายการปฏิบัติงานหน้างาน (Site Photos)</h3>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">รวม ${totalPhotoCount} รูป</span>
+                                    </div>
+                                    <p class="text-xs text-muted-foreground mt-0.5">บันทึกครบถ้วนตามข้อกำหนดอย่างน้อย 5 ภาพจากการ Check-in หน้างาน (สามารถถ่ายภาพเพิ่มเติมได้)</p>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm font-medium" onclick="app.openPhotoUploadModal('${job.id}')">
+                                        <i class="ph ph-camera-plus text-sm"></i> ถ่ายภาพเพิ่มเติม / Upload รูป
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                                ${basePhotos.map(p => `
+                                <div class="artifact-card p-3 rounded-xl space-y-2 border border-border hover:border-brand-500/40 transition group cursor-pointer" onclick="app.openBasePhotoLightbox(${p.num})">
+                                    <div class="aspect-video bg-muted/60 rounded-lg flex flex-col items-center justify-center border border-dashed border-border relative overflow-hidden group">
+                                        <i class="${p.icon} text-3xl text-muted-foreground/60 mb-1 group-hover:scale-110 transition"></i>
+                                        <span class="text-[10px] text-muted-foreground font-mono">${p.file}</span>
+                                        <span class="absolute top-2 right-2 px-1.5 py-0.5 bg-emerald-500/80 text-white rounded text-[9px] font-medium">รูปที่ ${p.num}</span>
+                                        <div class="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                            <span class="text-white text-[11px] font-medium bg-black/60 px-2 py-0.5 rounded flex items-center gap-1"><i class="ph ph-eye"></i> ดูตัวอย่าง</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-xs font-medium text-foreground">${p.title}</div>
+                                    <div class="text-[10px] text-muted-foreground">${p.desc}</div>
+                                    <div class="text-[9px] font-mono text-emerald-500 flex items-center gap-1"><i class="ph ph-check"></i> GPS Verified</div>
+                                </div>
+                                `).join('')}
+
+                                ${extraPhotosHtml}
+
+                                <!-- Add Photo Quick Card -->
+                                <div onclick="app.openPhotoUploadModal('${job.id}')" class="artifact-card p-4 rounded-xl border-2 border-dashed border-brand-500/40 hover:border-brand-500 hover:bg-brand-500/5 transition cursor-pointer flex flex-col items-center justify-center min-h-[160px] gap-2 text-center group">
+                                    <div class="w-10 h-10 rounded-full bg-brand-500/10 text-brand-500 flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-500 group-hover:text-white transition">
+                                        <i class="ph ph-plus text-lg font-bold"></i>
+                                    </div>
+                                    <div class="text-xs font-semibold text-foreground group-hover:text-brand-500 transition">อัปโหลดรูปเพิ่มเติม</div>
+                                    <div class="text-[10px] text-muted-foreground">ถ่ายรูปจากกล้อง หรือเลือกไฟล์</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer Navigation -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-border">
+                            <div></div>
+                            <div class="flex items-center gap-2.5">
+                                ${job.pmt_accepted ? `
+                                <span class="text-xs text-emerald-500 font-semibold flex items-center gap-1.5 bg-emerald-500/10 px-3 py-2 rounded-lg border border-emerald-500/20">
+                                    <i class="ph ph-check-circle text-sm"></i> รับเข้าระบบ PMT แล้ว
+                                </span>
+                                <button class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.acceptJobToPMT('${job.id}')" title="กดเพื่ออัปเดตสถานะรับเข้าระบบ PMT อีกครั้ง">
+                                    <i class="ph ph-arrows-clockwise"></i> อัปเดตรับ PMT
+                                </button>
+                                <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-sm" onclick="app.switchJobTab('boq')">
+                                    <span>ไปหน้าแบบติดตั้ง & BOQ</span> <i class="ph ph-arrow-right"></i>
+                                </button>
+                                ` : `
+                                <button class="btn-artifact-primary px-5 py-2.5 rounded-lg text-xs flex items-center gap-2 font-semibold shadow-sm" onclick="app.acceptJobToPMT('${job.id}')">
+                                    <i class="ph ph-check-circle text-base"></i>
+                                    <span>รับเข้าระบบ PMT</span>
+                                    <i class="ph ph-arrow-right ml-0.5"></i>
+                                </button>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                    `;
                 }
 
+                const totalPhotosCount = 5 + (job.photos?.length || 0);
                 const html = `
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
                         <div class="flex items-center gap-3">
@@ -2785,13 +2765,10 @@
                         </div>
                     </div>
 
-                    <!-- Navigation Tabs -->
+                    <!-- Navigation Tabs (2 Tabs) -->
                     <div class="flex gap-6 border-b border-border">
-                        <button onclick="app.switchJobTab('general')" class="pb-3 text-xs font-semibold transition ${curTab === 'general' ? 'tab-item-active' : 'text-muted-foreground hover:text-foreground'}">
-                            <i class="ph ph-info mr-1"></i> ข้อมูลทั่วไป & แผนงาน
-                        </button>
-                        <button onclick="app.switchJobTab('photos')" class="pb-3 text-xs font-semibold transition ${curTab === 'photos' ? 'tab-item-active' : 'text-muted-foreground hover:text-foreground'}">
-                            <i class="ph ph-camera mr-1"></i> Check-in & รูปภาพหน้างาน (${5 + (job.photos?.length || 0)} รูป)
+                        <button onclick="app.switchJobTab('general')" class="pb-3 text-xs font-semibold transition ${curTab !== 'boq' ? 'tab-item-active' : 'text-muted-foreground hover:text-foreground'}">
+                            <i class="ph ph-map-pin-line mr-1"></i> Check-in & ข้อมูลหน้างาน (${totalPhotosCount} รูป)
                         </button>
                         <button onclick="app.switchJobTab('boq')" class="pb-3 text-xs font-semibold transition ${curTab === 'boq' ? 'tab-item-active' : 'text-muted-foreground hover:text-foreground'}">
                             <i class="ph ph-receipt mr-1"></i> แบบติดตั้ง & BOQ
