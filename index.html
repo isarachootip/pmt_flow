@@ -1357,6 +1357,7 @@
     </div>
 
     <!-- MODAL: IMPORT BOQ (EXCEL / CSV / TEMPLATE) -->
+    <!-- MODAL: IMPORT BOQ VIA EXCEL / TEMPLATE -->
     <div id="modal-import-boq" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
         <div class="artifact-card rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-import-boq-content">
             <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
@@ -1365,85 +1366,43 @@
                         <i class="ph ph-file-arrow-up text-lg"></i>
                     </div>
                     <div>
-                        <h3 class="font-display font-bold text-sm text-foreground">📥 นำเข้าใบ BOQ (Import Excel / CSV)</h3>
-                        <p class="text-[10px] text-muted-foreground">นำเข้าข้อมูลรายการวัสดุและค่าแรงจากไฟล์ Excel (.xlsx, .csv) หรือ Template สำเร็จรูป</p>
+                        <h3 class="font-display font-bold text-sm text-foreground">📥 นำเข้าใบ BOQ จากไฟล์ Excel (Import BOQ)</h3>
+                        <p class="text-[10px] text-muted-foreground">ดาวน์โหลด Template Excel มาตรฐานเพื่อกรอกข้อมูล (Key ข้อมูล) หรืออัปโหลดไฟล์ Excel เพื่อนำเข้ารายการวัสดุ</p>
                     </div>
                 </div>
-                <button onclick="app.hideModal('modal-import-boq')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition">
+                <button onclick="app.hideModal('modal-import-boq')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition cursor-pointer">
                     <i class="ph ph-x text-base"></i>
                 </button>
             </div>
 
             <div class="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
-                <!-- Source Selection Tabs: Upload File / Quick Template / Paste Text -->
-                <div class="flex border-b border-border gap-4 text-xs font-semibold">
-                    <button type="button" onclick="app.switchBOQImportTab('file')" id="tab-boq-file" class="pb-2 tab-item-active cursor-pointer">
-                        <i class="ph ph-file-xls mr-1 text-emerald-500"></i> อัปโหลดไฟล์ Excel/CSV
-                    </button>
-                    <button type="button" onclick="app.switchBOQImportTab('template')" id="tab-boq-template" class="pb-2 text-muted-foreground hover:text-foreground cursor-pointer">
-                        <i class="ph ph-package mr-1 text-brand-500"></i> เลือกจากชุด Template มาตรฐาน
-                    </button>
-                    <button type="button" onclick="app.switchBOQImportTab('paste')" id="tab-boq-paste" class="pb-2 text-muted-foreground hover:text-foreground cursor-pointer">
-                        <i class="ph ph-clipboard-text mr-1 text-blue-500"></i> วางข้อความจากตาราง (Paste)
+                <!-- 1. Download Standard Excel Template Section -->
+                <div class="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-start gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl shrink-0">
+                            <i class="ph ph-file-xls"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-display font-bold text-xs text-foreground">1. ดาวน์โหลด Template ไฟล์ Excel มาตรฐาน</h4>
+                            <p class="text-[11px] text-muted-foreground mt-0.5">ใช้สำหรับกรอก (Key) รายการวัสดุ, จำนวน, หน่วย และราคาต่อหน่วยตามมาตรฐานระบบ PMT</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="app.downloadBOQTemplate()" class="btn-artifact-primary px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-sm">
+                        <i class="ph ph-download-simple text-sm"></i>
+                        <span>ดาวน์โหลด Template (.csv / .xlsx)</span>
                     </button>
                 </div>
 
-                <!-- 1. File Upload View -->
-                <div id="boq-import-file-view" class="space-y-3">
+                <!-- 2. Upload Filled Excel File Section -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-foreground">2. อัปโหลดไฟล์ Excel ที่กรอกข้อมูลแล้ว (Upload File):</label>
                     <div class="border-2 border-dashed border-border hover:border-emerald-500/50 rounded-xl p-6 text-center cursor-pointer bg-muted/20 hover:bg-emerald-500/5 transition relative" onclick="document.getElementById('boq-file-input').click()">
                         <input type="file" id="boq-file-input" accept=".xlsx,.xls,.csv" class="hidden" onchange="app.handleBOQFileSelect(event)">
-                        <i class="ph ph-file-xls text-3xl text-emerald-500 mb-2"></i>
+                        <i class="ph ph-cloud-arrow-up text-3xl text-emerald-500 mb-2"></i>
                         <div class="text-xs font-semibold text-foreground">ลากไฟล์ Excel / CSV มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
-                        <div class="text-[10px] text-muted-foreground mt-1">รองรับไฟล์ .xlsx, .xls, .csv (คอลัมน์: รายการ, จำนวน, หน่วย, ราคาต่อหน่วย)</div>
+                        <div class="text-[10px] text-muted-foreground mt-1">รองรับไฟล์ .xlsx, .xls, .csv (หัวคอลัมน์: ลำดับ, รายการ, จำนวน, หน่วย, ราคาต่อหน่วย)</div>
                         <div id="boq-file-name" class="mt-2 text-xs font-mono text-emerald-600 dark:text-emerald-400 font-semibold"></div>
                     </div>
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-muted-foreground gap-1">
-                        <span>ยังไม่มีไฟล์? ดาวน์โหลด Template มาตรฐานไปกรอกได้ทันที</span>
-                        <button type="button" onclick="app.downloadBOQTemplate()" class="text-brand-500 hover:underline flex items-center gap-1 font-medium cursor-pointer">
-                            <i class="ph ph-download-simple"></i> ดาวน์โหลด Template BOQ (.csv)
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 2. Preset Template View -->
-                <div id="boq-import-template-view" class="hidden space-y-3">
-                    <label class="block text-xs font-semibold text-foreground mb-1">เลือกชุดรายการมาตรฐานสำหรับประเภทงาน:</label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        <div onclick="app.loadBOQPreset('ac_18000')" class="p-3 rounded-xl border border-border hover:border-brand-500/50 bg-muted/30 hover:bg-muted/60 transition cursor-pointer space-y-1">
-                            <div class="text-xs font-bold text-foreground flex items-center justify-between">
-                                <span>❄️ ชุดติดตั้งแอร์ Inverter 18000 BTU</span>
-                                <span class="text-[10px] font-mono text-brand-500">5 รายการ</span>
-                            </div>
-                            <p class="text-[10px] text-muted-foreground">ท่อน้ำยา 4ม., รางครอบ, ขาแขวนกัลวาไนซ์, เบรกเกอร์</p>
-                        </div>
-                        <div onclick="app.loadBOQPreset('water_pump')" class="p-3 rounded-xl border border-border hover:border-brand-500/50 bg-muted/30 hover:bg-muted/60 transition cursor-pointer space-y-1">
-                            <div class="text-xs font-bold text-foreground flex items-center justify-between">
-                                <span>🚰 ชุดปั๊มน้ำอัตโนมัติ & ถัง 1000L</span>
-                                <span class="text-[10px] font-mono text-brand-500">4 รายการ</span>
-                            </div>
-                            <p class="text-[10px] text-muted-foreground">ปั๊มน้ำ, วาล์วบายพาส, ฐานรองกันสะเทือน, ท่อ PVC</p>
-                        </div>
-                        <div onclick="app.loadBOQPreset('water_heater')" class="p-3 rounded-xl border border-border hover:border-brand-500/50 bg-muted/30 hover:bg-muted/60 transition cursor-pointer space-y-1">
-                            <div class="text-xs font-bold text-foreground flex items-center justify-between">
-                                <span>🚿 ชุดติดตั้งเครื่องทำน้ำอุ่น & ELCB</span>
-                                <span class="text-[10px] font-mono text-brand-500">4 รายการ</span>
-                            </div>
-                            <p class="text-[10px] text-muted-foreground">ค่าแรง, สายไฟ THW 2x4, ท่อร้อยสาย, เบรกเกอร์ ELCB</p>
-                        </div>
-                        <div onclick="app.loadBOQPreset('kitchen_renovate')" class="p-3 rounded-xl border border-border hover:border-brand-500/50 bg-muted/30 hover:bg-muted/60 transition cursor-pointer space-y-1">
-                            <div class="text-xs font-bold text-foreground flex items-center justify-between">
-                                <span>🍳 ชุดงาน Renovate ครัวครบวงจร</span>
-                                <span class="text-[10px] font-mono text-brand-500">6 รายการ</span>
-                            </div>
-                            <p class="text-[10px] text-muted-foreground">รื้อถอน, ปูกระเบื้อง, ก่อเคาน์เตอร์, งานประปา/ไฟ</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3. Paste Table Data View -->
-                <div id="boq-import-paste-view" class="hidden space-y-2">
-                    <label class="block text-xs font-semibold text-foreground">วางข้อมูลจาก Excel (คั่นด้วย Tab หรือ Comma):</label>
-                    <textarea id="boq-paste-text" rows="4" oninput="app.parsePastedBOQ(this.value)" placeholder="เช่น:&#10;ค่าแรงช่างติดตั้ง	1	งาน	2500&#10;ชุดท่อน้ำยาแอร์ 4 ม.	1	ชุด	1800&#10;รางครอบท่อน้ำยา	1	ชุด	950" class="w-full bg-muted/40 border border-border rounded-lg p-2.5 text-xs text-foreground font-mono focus:outline-none focus:border-brand-500"></textarea>
                 </div>
 
                 <!-- Import Mode Selection -->
@@ -1451,11 +1410,11 @@
                     <span class="font-semibold text-foreground">รูปแบบการนำเข้า:</span>
                     <div class="flex items-center gap-4">
                         <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="radio" name="boq-import-mode" value="replace" checked class="accent-brand-500">
+                            <input type="radio" name="boq-import-mode" value="replace" checked class="accent-emerald-600">
                             <span>แทนที่รายการเดิมทั้งหมด</span>
                         </label>
                         <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="radio" name="boq-import-mode" value="append" class="accent-brand-500">
+                            <input type="radio" name="boq-import-mode" value="append" class="accent-emerald-600">
                             <span>เพิ่มต่อท้ายรายการเดิม</span>
                         </label>
                     </div>
@@ -1465,16 +1424,16 @@
                 <div class="space-y-2">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                            <i class="ph ph-eye text-brand-500"></i> ตัวอย่างรายการที่จะนำเข้า (<span id="boq-preview-count">0</span> รายการ)
+                            <i class="ph ph-eye text-emerald-500"></i> ตัวอย่างรายการที่จะนำเข้า (<span id="boq-preview-count">0</span> รายการ)
                         </span>
-                        <span class="text-xs font-mono font-bold text-brand-500" id="boq-preview-total">ยอดรวม: 0.00 ฿</span>
+                        <span class="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400" id="boq-preview-total">ยอดรวม: 0.00 ฿</span>
                     </div>
                     <div class="border border-border rounded-xl overflow-hidden max-h-48 overflow-y-auto">
                         <table class="w-full text-left text-xs">
                             <thead class="bg-muted/50 border-b border-border text-[11px] text-muted-foreground sticky top-0">
                                 <tr>
                                     <th class="py-2 px-3 w-10 text-center">#</th>
-                                    <th class="py-2 px-3">รายการวัสดุ/งานบริการ</th>
+                                    <th class="py-2 px-3">รายการวัสดุ / งานบริการ</th>
                                     <th class="py-2 px-3 w-16 text-center">จำนวน</th>
                                     <th class="py-2 px-3 w-16 text-center">หน่วย</th>
                                     <th class="py-2 px-3 w-24 text-right">ราคา (฿)</th>
@@ -1483,7 +1442,7 @@
                             </thead>
                             <tbody id="boq-preview-tbody" class="divide-y divide-border bg-card">
                                 <tr>
-                                    <td colspan="6" class="py-4 text-center text-muted-foreground text-xs">ยังไม่มีข้อมูลตัวอย่าง กรุณาเลือกไฟล์หรือชุด Template</td>
+                                    <td colspan="6" class="py-4 text-center text-muted-foreground text-xs">ยังไม่มีข้อมูลตัวอย่าง กรุณาเลือกไฟล์ Excel ที่กรอกข้อมูลแล้ว</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1493,12 +1452,12 @@
 
             <!-- Modal Footer -->
             <div class="p-4 border-t border-border flex justify-between items-center bg-muted/30">
-                <button type="button" onclick="app.downloadBOQTemplate()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
-                    <i class="ph ph-download-simple"></i> โหลดไฟล์ Template
+                <button type="button" onclick="app.downloadBOQTemplate()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer">
+                    <i class="ph ph-download-simple"></i> โหลด Template
                 </button>
                 <div class="flex items-center gap-2">
-                    <button type="button" onclick="app.hideModal('modal-import-boq')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs">ยกเลิก</button>
-                    <button type="button" onclick="app.confirmImportBOQ()" id="btn-confirm-import-boq" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-sm">
+                    <button type="button" onclick="app.hideModal('modal-import-boq')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs cursor-pointer">ยกเลิก</button>
+                    <button type="button" onclick="app.confirmImportBOQ()" id="btn-confirm-import-boq" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
                         <i class="ph ph-check-bold"></i> ยืนยันนำเข้ารายการ BOQ
                     </button>
                 </div>
@@ -3460,75 +3419,24 @@
             openImportBOQModal(jobId) {
                 const targetJobId = jobId || this.state.currentJobId;
                 this.state.importBOQJobId = targetJobId;
-                this.state.pendingBOQItems = [];
                 
-                // Reset form views
-                this.switchBOQImportTab('file');
+                // Reset file input and preview
                 const nameEl = document.getElementById('boq-file-name');
                 if (nameEl) nameEl.innerText = '';
                 const fileInp = document.getElementById('boq-file-input');
                 if (fileInp) fileInp.value = '';
-                const pasteEl = document.getElementById('boq-paste-text');
-                if (pasteEl) pasteEl.value = '';
 
-                // Load default preset into preview for quick start
-                this.loadBOQPreset('ac_18000');
+                // Default standard template items for initial preview
+                this.state.pendingBOQItems = [
+                    { name: 'ค่าแรงช่างติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU', qty: 1, unit: 'งาน', price: 2500 },
+                    { name: 'ชุดท่อน้ำยาแอร์ทองแดงหนาพิเศษพร้อมฉนวนหุ้ม 4 ม.', qty: 1, unit: 'ชุด', price: 1800 },
+                    { name: 'รางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.', qty: 1, unit: 'ชุด', price: 950 },
+                    { name: 'ขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม', qty: 1, unit: 'ชุด', price: 650 },
+                    { name: 'ชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง', qty: 1, unit: 'ชุด', price: 500 }
+                ];
+                this.renderBOQPreviewTable();
                 
                 this.showModal('modal-import-boq');
-            },
-
-            switchBOQImportTab(tab) {
-                const tabs = ['file', 'template', 'paste'];
-                tabs.forEach(t => {
-                    const btn = document.getElementById(`tab-boq-${t}`);
-                    const view = document.getElementById(`boq-import-${t}-view`);
-                    if (t === tab) {
-                        if (btn) {
-                            btn.className = 'pb-2 tab-item-active cursor-pointer font-bold';
-                        }
-                        if (view) view.classList.remove('hidden');
-                    } else {
-                        if (btn) {
-                            btn.className = 'pb-2 text-muted-foreground hover:text-foreground cursor-pointer font-medium';
-                        }
-                        if (view) view.classList.add('hidden');
-                    }
-                });
-            },
-
-            loadBOQPreset(presetKey) {
-                const presets = {
-                    ac_18000: [
-                        { name: 'ค่าแรงช่างติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU', qty: 1, unit: 'งาน', price: 2500 },
-                        { name: 'ชุดท่อน้ำยาแอร์ทองแดงหนาพิเศษพร้อมฉนวนหุ้ม 4 ม.', qty: 1, unit: 'ชุด', price: 1800 },
-                        { name: 'รางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.', qty: 1, unit: 'ชุด', price: 950 },
-                        { name: 'ขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม', qty: 1, unit: 'ชุด', price: 650 },
-                        { name: 'ชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง', qty: 1, unit: 'ชุด', price: 500 }
-                    ],
-                    water_pump: [
-                        { name: 'ค่าแรงช่างติดตั้งปั๊มน้ำอัตโนมัติและถังเก็บน้ำ 1000L', qty: 1, unit: 'งาน', price: 2000 },
-                        { name: 'ชุดวาล์วบายพาสและท่อ PVC ตราช้าง 1 นิ้ว พร้อมข้อต่อ', qty: 1, unit: 'ชุด', price: 1200 },
-                        { name: 'ฐานรองปั๊มน้ำกันสะเทือนสำเร็จรูป', qty: 1, unit: 'ชุด', price: 450 },
-                        { name: 'เช็ควาล์วทองเหลืองกันน้ำย้อน (Check Valve) 1 นิ้ว', qty: 1, unit: 'ชิ้น', price: 650 }
-                    ],
-                    water_heater: [
-                        { name: 'ค่าแรงช่างติดตั้งเครื่องทำน้ำอุ่นพร้อมเดินสายดิน', qty: 1, unit: 'งาน', price: 1200 },
-                        { name: 'สายไฟทองแดง THW 2x4 sq.mm. พร้อมท่อร้อยสาย 10 ม.', qty: 1, unit: 'ชุด', price: 650 },
-                        { name: 'เบรกเกอร์กันดูด ELCB 30A พร้อมกล่องกันน้ำ', qty: 1, unit: 'ชุด', price: 550 },
-                        { name: 'ชุดสายฝักบัวและสายน้ำดีสแตนเลสถัก 1/2 นิ้ว', qty: 1, unit: 'ชุด', price: 450 }
-                    ],
-                    kitchen_renovate: [
-                        { name: 'งานรื้อถอนเคาน์เตอร์และกระเบื้องเดิม พร้อมขนทิ้ง', qty: 1, unit: 'งาน', price: 3500 },
-                        { name: 'งานก่อเคาน์เตอร์ครัวปูนหล่อคอนกรีตเสริมเหล็ก', qty: 1, unit: 'งาน', price: 8500 },
-                        { name: 'งานปูกระเบื้องเคาน์เตอร์และผนังกันเปื้อน (Backsplash)', qty: 1, unit: 'งาน', price: 4200 },
-                        { name: 'งานเดินท่อน้ำดีและท่อน้ำทิ้งจุดอ่างล้างจานใหม่', qty: 1, unit: 'จุด', price: 2200 },
-                        { name: 'งานเดินสายไฟเต้ารับและสวิตช์เครื่องดูดควัน', qty: 1, unit: 'จุด', price: 1800 },
-                        { name: 'ติดตั้งซิงค์ล้างจานและเตาแก๊สฝังเคาน์เตอร์', qty: 1, unit: 'ชุด', price: 1500 }
-                    ]
-                };
-
-                this.state.pendingBOQItems = (presets[presetKey] || []).map(item => ({ ...item }));
-                this.renderBOQPreviewTable();
             },
 
             handleBOQFileSelect(event) {
