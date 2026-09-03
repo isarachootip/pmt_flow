@@ -1636,6 +1636,18 @@ app.delete('/api/v1/jobs', (req: Request, res: Response) => {
   });
 });
 
+app.post('/api/v1/jobs/reset-status', (req: Request, res: Response) => {
+  coreJobStore.forEach(j => {
+    j.status = JobStatus.DRAFT;
+    j.overall_progress = 0;
+  });
+  return res.json({
+    success: true,
+    message: 'ถอยสถานะของทุก Job กลับสู่จุดเริ่มต้น (DRAFT / 0%) เรียบร้อย',
+    total_jobs: coreJobStore.length
+  });
+});
+
 app.post('/api/v1/jobs/reset', (req: Request, res: Response) => {
   seedInitialCoreData(true);
   seedInitialStagingData();

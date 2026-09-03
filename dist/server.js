@@ -1278,6 +1278,17 @@ app.delete('/api/v1/jobs', (req, res) => {
         total_jobs: 0
     });
 });
+app.post('/api/v1/jobs/reset-status', (req, res) => {
+    exports.coreJobStore.forEach(j => {
+        j.status = JobStatus.DRAFT;
+        j.overall_progress = 0;
+    });
+    return res.json({
+        success: true,
+        message: 'ถอยสถานะของทุก Job กลับสู่จุดเริ่มต้น (DRAFT / 0%) เรียบร้อย',
+        total_jobs: exports.coreJobStore.length
+    });
+});
 app.post('/api/v1/jobs/reset', (req, res) => {
     seedInitialCoreData(true);
     seedInitialStagingData();

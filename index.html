@@ -625,6 +625,10 @@
                                 <option value="QC_PASSED">QC Passed (ผ่านแล้ว)</option>
                                 <option value="AFTER_SALE">After Sale (บริการหลังการขาย)</option>
                             </select>
+                            <button onclick="app.resetAllJobStatuses()" class="btn-artifact-secondary text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer" title="ถอยสถานะทุกโครงการกลับเป็น Draft (0%)">
+                                <i class="ph ph-arrow-counter-clockwise"></i>
+                                <span>ถอยสถานะเป็น Draft</span>
+                            </button>
                             <button onclick="app.clearAllProjects()" class="btn-artifact-secondary text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer" title="ลบข้อมูลโครงการทั้งหมด">
                                 <i class="ph ph-trash"></i>
                                 <span>ล้างข้อมูลโครงการ</span>
@@ -730,6 +734,10 @@
                                     <option value="JOB202609005">JOB202609005 - คุณฉัตรชัย (Renovate ครัว)</option>
                                 </select>
                             </div>
+                            <button onclick="app.resetAllJobStatuses()" class="btn-artifact-secondary text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="ถอยสถานะทุกโครงการกลับเป็น Draft (0%)">
+                                <i class="ph ph-arrow-counter-clockwise"></i>
+                                <span>ถอยสถานะเป็น Draft</span>
+                            </button>
                             <button onclick="app.clearAllProjects()" class="btn-artifact-secondary text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="ลบข้อมูลโครงการและรายการแผนงานทั้งหมด">
                                 <i class="ph ph-trash"></i>
                                 <span>ลบข้อมูลโครงการทั้งหมด</span>
@@ -2044,6 +2052,43 @@
                 try {
                     localStorage.setItem('pmt_jobs', JSON.stringify(DB.jobs));
                 } catch (e) {}
+            },
+
+            updateJobStatus(jobId, newStatus) {
+                const job = DB.jobs.find(j => j.id === jobId);
+                if (!job) return;
+                job.status = newStatus;
+                if (newStatus === 'DRAFT') {
+                    job.progress = 0;
+                } else if (newStatus === 'IN_PROGRESS' && job.progress === 0) {
+                    job.progress = 30;
+                } else if (newStatus === 'QC_PASSED' || newStatus === 'AFTER_SALE' || newStatus === 'CLOSED') {
+                    job.progress = 100;
+                }
+                this.persistJobs();
+                this.renderJobDetail();
+                this.showToast(`เปลี่ยนสถานะโครงการ ${job.id} เป็น ${newStatus} เรียบร้อย`);
+            },
+
+            async resetAllJobStatuses(confirmAction = true) {
+                if (confirmAction && !confirm('คุณแน่ใจหรือไม่ที่จะถอยสถานะของทุกโครงการกลับไปจุดเริ่มต้น (Draft / 0%)?')) {
+                    return;
+                }
+                DB.jobs.forEach(job => {
+                    job.status = 'DRAFT';
+                    job.progress = 0;
+                });
+                this.persistJobs();
+                try {
+                    await fetch('/api/v1/jobs/reset-status', { method: 'POST' });
+                } catch (e) {}
+                if (this.state.currentView === 'jobs') this.renderJobs();
+                if (this.state.currentView === 'dashboard') this.renderDashboard();
+                if (this.state.currentView === 'job-detail') this.renderJobDetail();
+                if (this.state.currentView === 'gantt') this.renderGantt();
+                if (this.state.currentView === 'qc') this.renderQC();
+                if (this.state.currentView === 'csat') this.renderCSAT();
+                this.showToast('🔄 ถอยสถานะโครงการทั้งหมดกลับสู่จุดเริ่มต้น (Draft / 0%) เรียบร้อยแล้ว');
             },
 
             async clearAllProjects(confirmAction = true) {
@@ -3430,7 +3475,18 @@
                                 <p class="text-xs text-muted-foreground">นัดติดตั้ง: <strong class="text-foreground font-medium">${job.date}</strong> ${job.start_time ? `<span class="text-brand-600 dark:text-brand-400 font-mono font-medium">(${job.start_time}${job.end_time ? ' - ' + job.end_time : ''} น.)</span>` : ''} • ผู้รับผิดชอบ: <strong class="text-foreground font-semibold">${job.tech}</strong></p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            <div class="flex items-center gap-2 bg-card border border-border rounded-lg px-2.5 py-1 text-xs">
+                                <label class="text-muted-foreground font-medium">ปรับสถานะ:</label>
+                                <select onchange="app.updateJobStatus('${job.id}', this.value)" class="bg-transparent text-foreground font-semibold focus:outline-none cursor-pointer">
+                                    <option value="DRAFT" ${job.status === 'DRAFT' ? 'selected' : ''}>📝 Draft (เปิดงานใหม่ / 0%)</option>
+                                    <option value="IN_PROGRESS" ${job.status === 'IN_PROGRESS' || job.status === 'SURVEYED' ? 'selected' : ''}>⚡ In Progress (กำลังดำเนินการ)</option>
+                                    <option value="QC_PENDING" ${job.status === 'QC_PENDING' ? 'selected' : ''}>🔍 QC Pending (รอตรวจ)</option>
+                                    <option value="QC_PASSED" ${job.status === 'QC_PASSED' ? 'selected' : ''}>✅ QC Passed (ผ่านเกณฑ์)</option>
+                                    <option value="AFTER_SALE" ${job.status === 'AFTER_SALE' ? 'selected' : ''}>🛡️ After Sale (บริการหลังการขาย)</option>
+                                    <option value="CLOSED" ${job.status === 'CLOSED' ? 'selected' : ''}>🔒 Closed (ปิดงาน)</option>
+                                </select>
+                            </div>
                             ${this.getStatusHtml(job.status)}
                         </div>
                     </div>
