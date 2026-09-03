@@ -3072,28 +3072,28 @@
                                             <div class="text-[11px] text-muted-foreground mt-0.5">
                                                  ${!isDraft ? '<span class="text-emerald-500 font-medium">✓ Check-in แล้ว (GPS ห่าง 180 ม. อยู่ในเกณฑ์รัศมี 400 ม.)</span>' : 'ช่างเข้าพื้นที่หน้างานและถ่ายรูปก่อนเริ่มติดตั้ง'}
                                             </div>
+
+                                            <!-- บันทึกตำแหน่งหน้างาน (Geo-fence Verification) ย้ายมาอยู่ใต้ข้อ 2 -->
+                                            <div class="mt-3 p-3.5 rounded-xl bg-gradient-to-r from-brand-500/5 to-transparent border border-brand-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-8 h-8 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-500 shrink-0">
+                                                        <i class="ph ph-map-pin text-lg"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="font-display font-semibold text-xs text-foreground">บันทึกตำแหน่งหน้างาน (Geo-fence Verification)</div>
+                                                        <div class="text-[11px] text-muted-foreground mt-0.5">
+                                                            พิกัด GPS: <span class="font-mono text-brand-500 font-medium">${job.lat || 13.7563}, ${job.lng || 100.5018}</span> • ระยะห่างจากบ้านลูกค้า: <strong class="text-emerald-500">180 เมตร (ผ่านเกณฑ์รัศมี 400 ม.)</strong>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-2 shrink-0">
+                                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center gap-1">
+                                                        <i class="ph ph-check"></i> ตรวจสอบพิกัดถูกต้อง
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Check-in GPS Summary Header -->
-                        <div class="artifact-card p-5 bg-gradient-to-r from-brand-500/5 to-transparent border border-brand-500/20">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-500">
-                                        <i class="ph ph-map-pin text-xl"></i>
-                                    </div>
-                                    <div>
-                                        <h4 class="font-display font-semibold text-sm text-foreground">บันทึกตำแหน่งหน้างาน (Geo-fence Verification)</h4>
-                                        <p class="text-xs text-muted-foreground mt-0.5">พิกัด GPS: <span class="font-mono text-brand-500">${job.lat || 13.7563}, ${job.lng || 100.5018}</span> • ระยะห่างจากบ้านลูกค้า: <strong class="text-emerald-500">180 เมตร (ผ่านเกณฑ์รัศมี 400 ม.)</strong></p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                                        <i class="ph ph-check mr-1"></i> ตรวจสอบพิกัดถูกต้อง
-                                    </span>
                                 </div>
                             </div>
                         </div>
