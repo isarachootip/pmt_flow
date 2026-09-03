@@ -499,3 +499,74 @@ INSERT INTO m_user (user_code, username, password_hash, full_name, email, role) 
 ('USR-001', 'admin',   '$2a$10$abcdefghijklmnopqrstuvwxyz123456', 'Administrator', 'admin@pmt.local', 'ADMIN'),
 ('USR-002', 'manager', '$2a$10$abcdefghijklmnopqrstuvwxyz123456', 'Project Manager', 'mgr@pmt.local', 'MANAGER');
 
+-- =============================================================================
+-- RECURRING MAINTENANCE / MA CONTRACTS (สัญญา MA)
+-- =============================================================================
+
+CREATE TYPE ma_contract_status_enum AS ENUM (
+    'Active',
+    'Completed',
+    'Cancelled'
+);
+
+CREATE TYPE ma_round_status_enum AS ENUM (
+    'Scheduled',
+    'InProgress',
+    'Completed',
+    'Rescheduled',
+    'Skipped'
+);
+
+CREATE TABLE ma_contracts (
+    id                  VARCHAR(64) PRIMARY KEY,
+    contract_no         VARCHAR(50) UNIQUE NOT NULL,
+    customer_id         BIGINT REFERENCES m_customer(id) ON DELETE SET NULL,
+    customer_site_id    BIGINT,
+    customer_name       VARCHAR(150),
+    customer_phone      VARCHAR(50),
+    site_name           VARCHAR(150),
+    site_address        TEXT,
+    service_type        VARCHAR(100) NOT NULL,
+    service_items       JSONB DEFAULT '[]'::jsonb,
+    frequency_months    INT NOT NULL DEFAULT 3,
+    total_rounds        INT NOT NULL DEFAULT 4,
+    contract_start_date DATE NOT NULL,
+    contract_end_date   DATE,
+    contract_value      NUMERIC(14,2) DEFAULT 0.00,
+    status              ma_contract_status_enum DEFAULT 'Active',
+    notes               TEXT,
+    created_by          VARCHAR(64),
+    created_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE ma_rounds (
+    id                  VARCHAR(64) PRIMARY KEY,
+    contract_id         VARCHAR(64) NOT NULL REFERENCES ma_contracts(id) ON DELETE CASCADE,
+    project_id          BIGINT REFERENCES t_job(id) ON DELETE SET NULL,
+    round_number        INT NOT NULL,
+    scheduled_date      DATE NOT NULL,
+    actual_date         DATE,
+    status              ma_round_status_enum DEFAULT 'Scheduled',
+    technician_id       BIGINT REFERENCES m_technician(id) ON DELETE SET NULL,
+    notes               TEXT,
+    created_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE ma_checklist_templates (
+    id                  VARCHAR(64) PRIMARY KEY,
+    service_type        VARCHAR(100) NOT NULL,
+    template_name       VARCHAR(200) NOT NULL,
+    checklist_items     JSONB NOT NULL DEFAULT '[]'::jsonb,
+    created_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_ma_contracts_status ON ma_contracts(status);
+CREATE INDEX idx_ma_contracts_customer ON ma_contracts(customer_id);
+CREATE INDEX idx_ma_rounds_contract ON ma_rounds(contract_id);
+CREATE INDEX idx_ma_rounds_scheduled_date ON ma_rounds(scheduled_date);
+CREATE INDEX idx_ma_rounds_status ON ma_rounds(status);
+
+

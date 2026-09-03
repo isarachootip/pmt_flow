@@ -1652,8 +1652,373 @@ app.post('/api/v1/jobs/:id/close-and-export-bmt', async (req: Request, res: Resp
   }
 });
 
+// =============================================================================
+// RECURRING MAINTENANCE / MA CONTRACTS API & STORE
+// =============================================================================
+
+export interface MAServiceItem {
+  id: string;
+  name: string;
+  brand?: string;
+  btu?: string;
+  location?: string;
+}
+
+export interface MARound {
+  id: string;
+  contract_id: string;
+  project_id?: string | null;
+  round_number: number;
+  scheduled_date: string;
+  actual_date?: string | null;
+  status: 'Scheduled' | 'InProgress' | 'Completed' | 'Rescheduled' | 'Skipped';
+  technician_id?: string | null;
+  technician_name?: string | null;
+  notes?: string | null;
+  created_at: string;
+  proj_id?: string | null;
+  proj_name?: string | null;
+  proj_status?: string | null;
+}
+
+export interface MAContract {
+  id: string;
+  contract_no: string;
+  customer_id?: string | null;
+  customer_site_id?: string | null;
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  site_name?: string | null;
+  site_address?: string | null;
+  service_type: string;
+  service_items: MAServiceItem[];
+  frequency_months: number;
+  total_rounds: number;
+  contract_start_date: string;
+  contract_end_date?: string;
+  contract_value: number | string;
+  status: 'Active' | 'Completed' | 'Cancelled';
+  notes?: string | null;
+  created_at: string;
+  created_by?: string;
+}
+
+export interface MAChecklistTemplate {
+  id: string;
+  service_type: string;
+  template_name: string;
+  checklist_items: {
+    id: string;
+    label: string;
+    required: boolean;
+  }[];
+  created_at: string;
+}
+
+export const maChecklistTemplateStore: MAChecklistTemplate[] = [
+  {
+    id: "mact_ac_wash",
+    service_type: "ล้างแอร์",
+    template_name: "Checklist ล้างแอร์มาตรฐาน",
+    checklist_items: [
+      { id: "ac1", label: "ถอดและทำความสะอาดแผ่นกรองอากาศ (Filter)", required: true },
+      { id: "ac2", label: "ล้างคอยล์เย็น (Evaporator Coil) ด้วยน้ำยาล้างคอยล์", required: true },
+      { id: "ac3", label: "ล้างและเป่าท่อระบายน้ำทิ้ง (Drain Pipe)", required: true },
+      { id: "ac4", label: "ล้างคอยล์ร้อน (Condensing Unit ภายนอก)", required: true },
+      { id: "ac5", label: "วัดแรงดันน้ำยาแอร์ (Refrigerant Pressure)", required: true },
+      { id: "ac6", label: "วัดกระแสไฟฟ้าคอมเพรสเซอร์ (Operating Current)", required: true },
+      { id: "ac7", label: "ทดสอบการทำงานระบบปรับอากาศและวัดอุณหภูมิลมออก", required: true },
+      { id: "ac8", label: "ถ่ายภาพ Before/After", required: true }
+    ],
+    created_at: "2026-08-25T09:49:27.566Z"
+  },
+  {
+    id: "mact_electrical",
+    service_type: "ตรวจระบบไฟฟ้า",
+    template_name: "Checklist ตรวจระบบไฟฟ้ามาตรฐาน",
+    checklist_items: [
+      { id: "el1", label: "ตรวจสภาพตู้ MDB / ตู้ควบคุมไฟหลัก", required: true },
+      { id: "el2", label: "วัดแรงดันไฟฟ้า (Voltage Check)", required: true },
+      { id: "el3", label: "ตรวจสายดิน (Ground/Earth Check)", required: true },
+      { id: "el4", label: "ทดสอบ RCD/ELCB (ตัดไฟรั่ว)", required: true },
+      { id: "el5", label: "ตรวจสภาพสายไฟและเต้ารับ", required: true },
+      { id: "el6", label: "ถ่ายภาพ Before/After", required: true }
+    ],
+    created_at: "2026-08-25T09:49:27.567Z"
+  },
+  {
+    id: "mact_plumbing",
+    service_type: "ตรวจระบบประปา",
+    template_name: "Checklist ตรวจระบบประปา",
+    checklist_items: [
+      { id: "pl1", label: "ตรวจท่อน้ำและข้อต่อ (หารอยรั่ว)", required: true },
+      { id: "pl2", label: "เช็คแรงดันน้ำ (Water Pressure)", required: true },
+      { id: "pl3", label: "ตรวจวาล์วปิด-เปิด (Shut-off Valves)", required: true },
+      { id: "pl4", label: "ตรวจถังแรงดันน้ำ (Pressure Tank)", required: false },
+      { id: "pl5", label: "ถ่ายภาพ Before/After", required: true }
+    ],
+    created_at: "2026-08-25T09:49:27.568Z"
+  },
+  {
+    id: "mact_cctv",
+    service_type: "ตรวจ CCTV",
+    template_name: "Checklist ตรวจระบบ CCTV",
+    checklist_items: [
+      { id: "cc1", label: "ตรวจสภาพกล้องและมุมมอง (Camera Position)", required: true },
+      { id: "cc2", label: "ทดสอบภาพ Daytime (ความชัดเจน)", required: true },
+      { id: "cc3", label: "ทดสอบ Night Vision / IR", required: true },
+      { id: "cc4", label: "เช็คพื้นที่จัดเก็บ HDD/NVR", required: true },
+      { id: "cc5", label: "ทดสอบการ Playback ย้อนหลัง", required: true },
+      { id: "cc6", label: "ถ่ายภาพ Before/After", required: true }
+    ],
+    created_at: "2026-08-25T09:49:27.569Z"
+  }
+];
+
+export const maContractStore: MAContract[] = [
+  {
+    id: "mac_1788397202685",
+    contract_no: "MAC-2026-0001",
+    customer_id: null,
+    customer_site_id: null,
+    service_type: "ล้างแอร์",
+    service_items: [
+      { id: "si_1", btu: "", name: "เครื่องที่ 1", brand: "", location: "" }
+    ],
+    frequency_months: 3,
+    total_rounds: 4,
+    contract_start_date: "2026-09-04",
+    contract_end_date: "2027-09-04",
+    contract_value: "12000",
+    status: "Active",
+    notes: "ลูกค้า: สมควร กระจ่าง\nโทร: 0896292111\nไซต์: dfdfsdfsfdsdf\nที่อยู่: 123/45 สุขุมวิท กรุงเทพฯ",
+    created_at: "2026-09-03T01:00:02.688Z",
+    created_by: "u4",
+    customer_name: "สมควร กระจ่าง",
+    customer_phone: "0896292111",
+    site_name: "dfdfsdfsfdsdf",
+    site_address: "123/45 สุขุมวิท กรุงเทพฯ"
+  }
+];
+
+export const maRoundStore: MARound[] = [
+  {
+    id: "mar_1788397202746",
+    contract_id: "mac_1788397202685",
+    project_id: null,
+    round_number: 1,
+    scheduled_date: "2026-09-04",
+    actual_date: null,
+    status: "Scheduled",
+    notes: null,
+    created_at: "2026-09-03T01:00:02.746Z"
+  },
+  {
+    id: "mar_1788397202801",
+    contract_id: "mac_1788397202685",
+    project_id: null,
+    round_number: 2,
+    scheduled_date: "2026-12-04",
+    actual_date: null,
+    status: "Scheduled",
+    notes: null,
+    created_at: "2026-09-03T01:00:02.802Z"
+  },
+  {
+    id: "mar_1788397202856",
+    contract_id: "mac_1788397202685",
+    project_id: null,
+    round_number: 3,
+    scheduled_date: "2027-03-04",
+    actual_date: null,
+    status: "Scheduled",
+    notes: null,
+    created_at: "2026-09-03T01:00:02.857Z"
+  },
+  {
+    id: "mar_1788397202908",
+    contract_id: "mac_1788397202685",
+    project_id: null,
+    round_number: 4,
+    scheduled_date: "2027-06-04",
+    actual_date: null,
+    status: "Scheduled",
+    notes: null,
+    created_at: "2026-09-03T01:00:02.908Z"
+  }
+];
+
+// Helper: Format contract with round counts
+function formatContractWithRounds(c: MAContract) {
+  const rounds = maRoundStore.filter(r => r.contract_id === c.id);
+  const totalRoundsCount = rounds.length > 0 ? rounds.length : (c.total_rounds || 0);
+  const completedRounds = rounds.filter(r => r.status === 'Completed').length;
+  return {
+    ...c,
+    total_rounds_count: totalRoundsCount,
+    completed_rounds: completedRounds
+  };
+}
+
+// 1. Get Checklist Templates
+app.get(['/api/ma-checklist-templates', '/api/v1/ma-checklist-templates'], (req: Request, res: Response) => {
+  return res.json(maChecklistTemplateStore);
+});
+
+// 2. Get All MA Contracts
+app.get(['/api/ma-contracts', '/api/v1/ma-contracts'], (req: Request, res: Response) => {
+  const formatted = maContractStore.map(formatContractWithRounds);
+  return res.json(formatted);
+});
+
+// 3. Get Single MA Contract by ID (with rounds)
+app.get(['/api/ma-contracts/:id', '/api/v1/ma-contracts/:id'], (req: Request, res: Response) => {
+  const contract = maContractStore.find(c => c.id === req.params.id);
+  if (!contract) {
+    return res.status(404).json({ error: 'ไม่พบสัญญา MA ที่ระบุ' });
+  }
+  const rounds = maRoundStore
+    .filter(r => r.contract_id === contract.id)
+    .sort((a, b) => a.round_number - b.round_number);
+  
+  return res.json({
+    ...formatContractWithRounds(contract),
+    rounds
+  });
+});
+
+// 4. Create New MA Contract
+app.post(['/api/ma-contracts', '/api/v1/ma-contracts'], (req: Request, res: Response) => {
+  try {
+    const body = req.body;
+    const year = new Date().getFullYear();
+    const count = maContractStore.length + 1;
+    const contractNo = body.contract_no || `MAC-${year}-${String(count).padStart(4, '0')}`;
+    const newId = `mac_${Date.now()}`;
+
+    // Extract customer and site names from notes if not directly provided
+    let customerName = body.customer_name;
+    let customerPhone = body.customer_phone;
+    let siteName = body.site_name;
+    let siteAddress = body.site_address;
+
+    if (body.notes && (!customerName || !siteName)) {
+      const lines = String(body.notes).split('\n');
+      for (const line of lines) {
+        if (line.startsWith('ลูกค้า:') && !customerName) customerName = line.replace('ลูกค้า:', '').trim();
+        if (line.startsWith('โทร:') && !customerPhone) customerPhone = line.replace('โทร:', '').trim();
+        if (line.startsWith('ไซต์:') && !siteName) siteName = line.replace('ไซต์:', '').trim();
+        if (line.startsWith('ที่อยู่:') && !siteAddress) siteAddress = line.replace('ที่อยู่:', '').trim();
+      }
+    }
+
+    const newContract: MAContract = {
+      id: newId,
+      contract_no: contractNo,
+      customer_id: body.customer_id || null,
+      customer_site_id: body.customer_site_id || null,
+      customer_name: customerName || null,
+      customer_phone: customerPhone || null,
+      site_name: siteName || null,
+      site_address: siteAddress || null,
+      service_type: body.service_type || 'ล้างแอร์',
+      service_items: Array.isArray(body.service_items) ? body.service_items : [],
+      frequency_months: Number(body.frequency_months) || 3,
+      total_rounds: Number(body.total_rounds) || 4,
+      contract_start_date: body.contract_start_date || new Date().toISOString().split('T')[0],
+      contract_end_date: body.contract_end_date || '',
+      contract_value: body.contract_value || 0,
+      status: body.status || 'Active',
+      notes: body.notes || '',
+      created_by: body.created_by || 'admin',
+      created_at: new Date().toISOString()
+    };
+
+    maContractStore.unshift(newContract);
+
+    // Auto generate rounds if not created externally
+    if (req.query.auto_rounds !== 'false' && newContract.total_rounds > 0) {
+      const startDate = new Date(newContract.contract_start_date);
+      for (let i = 1; i <= newContract.total_rounds; i++) {
+        const roundDate = new Date(startDate);
+        roundDate.setMonth(roundDate.getMonth() + (newContract.frequency_months * (i - 1)));
+        maRoundStore.push({
+          id: `mar_${Date.now()}_${i}`,
+          contract_id: newId,
+          project_id: null,
+          round_number: i,
+          scheduled_date: roundDate.toISOString().split('T')[0],
+          actual_date: null,
+          status: 'Scheduled',
+          notes: null,
+          created_at: new Date().toISOString()
+        });
+      }
+    }
+
+    return res.status(201).json(formatContractWithRounds(newContract));
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 5. Create MA Round
+app.post(['/api/ma-rounds', '/api/v1/ma-rounds'], (req: Request, res: Response) => {
+  try {
+    const { contract_id, round_number, scheduled_date, status, notes } = req.body;
+    if (!contract_id || !round_number || !scheduled_date) {
+      return res.status(400).json({ error: 'contract_id, round_number, and scheduled_date are required' });
+    }
+
+    const newRound: MARound = {
+      id: `mar_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      contract_id,
+      project_id: null,
+      round_number: Number(round_number),
+      scheduled_date,
+      actual_date: null,
+      status: status || 'Scheduled',
+      notes: notes || null,
+      created_at: new Date().toISOString()
+    };
+
+    maRoundStore.push(newRound);
+    return res.status(201).json(newRound);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 6. Update MA Round (Mark Completed or Reschedule)
+app.patch(['/api/ma-rounds/:id', '/api/v1/ma-rounds/:id'], (req: Request, res: Response) => {
+  try {
+    const round = maRoundStore.find(r => r.id === req.params.id);
+    if (!round) {
+      return res.status(404).json({ error: 'ไม่พบรอบบริการที่ระบุ' });
+    }
+
+    const { status, scheduled_date, actual_date, notes } = req.body;
+    if (status) round.status = status;
+    if (scheduled_date) round.scheduled_date = scheduled_date;
+    if (actual_date !== undefined) round.actual_date = actual_date;
+    if (notes !== undefined) round.notes = notes;
+
+    // If all rounds of contract are completed, mark contract completed
+    const contractRounds = maRoundStore.filter(r => r.contract_id === round.contract_id);
+    const contract = maContractStore.find(c => c.id === round.contract_id);
+    if (contract && contractRounds.length > 0 && contractRounds.every(r => r.status === 'Completed')) {
+      contract.status = 'Completed';
+    }
+
+    return res.json(round);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 SPMT Production REST API Server running on port ${PORT}`);
 });
+

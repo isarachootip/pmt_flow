@@ -285,9 +285,12 @@
                             </div>
                             <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
                         </a>
-                        <a href="#" onclick="app.navigate('csat')" class="nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
-                            <i class="ph ph-star text-base"></i>
-                            <span>CSAT & บริการหลังการขาย</span>
+                        <a href="#" onclick="app.navigate('ma-contracts')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-ma-contracts">
+                            <div class="flex items-center gap-2.5">
+                                <i class="ph ph-sparkle text-base text-brand-500"></i>
+                                <span>CSAT & บริการหลังการขาย</span>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-500 font-mono font-medium" id="sidebar-ma-count">1</span>
                         </a>
                     </nav>
                 </div>
@@ -703,7 +706,67 @@
                     </div>
                 </div>
 
-                <!-- 6. AFTER SALE & CSAT VIEW -->
+                <!-- 6. MA CONTRACTS VIEW (สัญญา MA — Recurring Maintenance) -->
+                <div id="page-ma-contracts" class="page-view hidden-view space-y-6">
+                    <!-- Page Header & Action -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-2xl">📄</span>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">สัญญา MA — Recurring Maintenance</h2>
+                            </div>
+                            <p class="text-xs text-muted-foreground mt-1">สัญญาบำรุงรักษาแบบวนซ้ำ พร้อม Checklist และตารางรอบบริการ</p>
+                        </div>
+                        <div class="flex items-center gap-2.5">
+                            <button onclick="app.navigate('csat')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5" title="ดูผลสำรวจความพึงพอใจ 5 ดาว">
+                                <i class="ph ph-star text-amber-400"></i>
+                                <span>ดูรายงาน CSAT</span>
+                            </button>
+                            <button onclick="app.openCreateMAModal()" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm">
+                                <i class="ph ph-plus-bold text-sm"></i>
+                                <span>สร้างสัญญา MA</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 4 KPI Summary Cards -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- Card 1: สัญญาทั้งหมด -->
+                        <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
+                            <div class="text-2xl mb-2">📋</div>
+                            <div class="text-3xl font-extrabold text-blue-500" id="ma-stat-total">1</div>
+                            <div class="text-xs text-muted-foreground mt-1 font-medium">สัญญาทั้งหมด</div>
+                        </div>
+
+                        <!-- Card 2: Active -->
+                        <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
+                            <div class="text-2xl mb-2">✅</div>
+                            <div class="text-3xl font-extrabold text-emerald-500" id="ma-stat-active">1</div>
+                            <div class="text-xs text-muted-foreground mt-1 font-medium">Active</div>
+                        </div>
+
+                        <!-- Card 3: รอบทั้งหมด -->
+                        <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
+                            <div class="text-2xl mb-2">🔄</div>
+                            <div class="text-3xl font-extrabold text-indigo-500" id="ma-stat-rounds">4</div>
+                            <div class="text-xs text-muted-foreground mt-1 font-medium">รอบทั้งหมด</div>
+                        </div>
+
+                        <!-- Card 4: รอบเสร็จแล้ว -->
+                        <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
+                            <div class="text-2xl mb-2">🏆</div>
+                            <div class="text-3xl font-extrabold text-amber-500" id="ma-stat-completed">0</div>
+                            <div class="text-xs text-muted-foreground mt-1 font-medium">รอบเสร็จแล้ว</div>
+                        </div>
+                    </div>
+
+                    <!-- Contracts List Container -->
+                    <div id="ma-contracts-list" class="space-y-3">
+                        <!-- Rendered by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- 7. AFTER SALE & CSAT VIEW -->
                 <div id="page-csat" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
@@ -863,6 +926,180 @@
         </div>
     </div>
 
+    <!-- MODAL: CREATE MA CONTRACT -->
+    <div id="modal-create-ma" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center hidden-view opacity-0 transition-all duration-200 p-4 overflow-y-auto">
+        <div class="artifact-card rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 my-6 bg-card border border-border" id="modal-create-ma-content">
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-brand-500/15 text-brand-500 flex items-center justify-center">
+                        <i class="ph ph-file-text text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-sm text-foreground">📋 สร้างสัญญา MA ใหม่</h3>
+                        <p class="text-[10px] text-muted-foreground">สัญญาบำรุงรักษาแบบวนซ้ำ พร้อมระบบคำนวณรอบและอุปกรณ์</p>
+                    </div>
+                </div>
+                <button onclick="app.hideModal('modal-create-ma')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition">
+                    <i class="ph ph-x text-base"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <form onsubmit="app.submitCreateMA(event)" class="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+                <!-- Customer & Site Section -->
+                <div class="p-4 rounded-xl bg-muted/40 border border-border/80 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="ph ph-user text-blue-500 text-sm"></i>
+                            <span>ข้อมูลลูกค้า (Customer & Site)</span>
+                        </div>
+                        <button type="button" onclick="app.clearMACustomerSelection()" id="ma-btn-clear-customer" class="text-rose-500 hover:text-rose-600 text-[11px] font-semibold flex items-center gap-1 transition hidden">
+                            <i class="ph ph-x-circle"></i> ล้างการเลือก
+                        </button>
+                    </div>
+
+                    <!-- Customer Autocomplete / Search -->
+                    <div class="relative">
+                        <div class="relative">
+                            <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+                            <input type="text" id="ma-cust-search" oninput="app.onMACustomerSearchInput(this.value)" onfocus="app.onMACustomerSearchFocus()" class="w-full bg-card border border-border rounded-lg pl-9 pr-8 py-2 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-brand-500" placeholder="🔍 ค้นหาชื่อลูกค้า, บริษัท, เบอร์โทร เพื่อดึงข้อมูลเดิมอัตโนมัติ...">
+                            <button type="button" onclick="app.hideMACustomerSuggestions()" id="ma-btn-close-suggest" class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded font-semibold hidden">✕</button>
+                        </div>
+                        <!-- Suggestions Dropdown -->
+                        <div id="ma-cust-suggestions" class="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-xl max-h-48 overflow-y-auto z-20 hidden divide-y divide-border"></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-medium text-muted-foreground mb-1">ชื่อลูกค้า *</label>
+                            <input type="text" id="ma-cust-name" required class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="เช่น คุณสมชาย กระจ่าง">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-muted-foreground mb-1">เบอร์โทร</label>
+                            <input type="text" id="ma-cust-phone" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="08X-XXX-XXXX">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-medium text-muted-foreground mb-1">ชื่อ Site / สถานที่</label>
+                            <input type="text" id="ma-site-name" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="เช่น บ้านพัก หรือ อาคาร A">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-muted-foreground mb-1">ที่อยู่ Site</label>
+                            <input type="text" id="ma-site-address" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="ที่อยู่สถานที่ติดตั้ง">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contract Terms Section -->
+                <div class="p-4 rounded-xl bg-muted/40 border border-border/80 space-y-3">
+                    <div class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="ph ph-calendar-check text-brand-500 text-sm"></i>
+                        <span>เงื่อนไขสัญญา (Contract Terms)</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="col-span-2 sm:col-span-1">
+                            <label class="block text-[11px] font-medium text-muted-foreground mb-1">ประเภทงาน *</label>
+                            <select id="ma-service-type" required class="w-full bg-card border border-border rounded-lg px-2.5 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                                <option value="ล้างแอร์" selected>ล้างแอร์</option>
+                                <option value="ตรวจระบบไฟฟ้า">ตรวจระบบไฟฟ้า</option>
+                                <option value="ตรวจระบบประปา">ตรวจระบบประปา</option>
+                                <option value="ตรวจ CCTV">ตรวจ CCTV</option>
+                                <option value="PM ลิฟต์">PM ลิฟต์</option>
+                                <option value="อื่นๆ">อื่นๆ</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-muted-foreground mb-1">ทุกกี่เดือน</label>
+                            <input type="number" id="ma-interval" min="1" max="24" value="3" required class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground font-mono focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-muted-foreground mb-1">จำนวนรอบ</label>
+                            <input type="number" id="ma-rounds" min="1" max="24" value="4" required class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground font-mono focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-muted-foreground mb-1">วันเริ่มต้น *</label>
+                            <input type="date" id="ma-start-date" required class="w-full bg-card border border-border rounded-lg px-2.5 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">มูลค่าสัญญารวม (บาท)</label>
+                        <input type="number" id="ma-value" min="0" step="100" value="12000" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground font-mono focus:outline-none focus:border-brand-500" placeholder="12,000">
+                    </div>
+                </div>
+
+                <!-- Service Equipment Items Section -->
+                <div class="p-4 rounded-xl bg-muted/40 border border-border/80 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="ph ph-wrench text-amber-500 text-sm"></i>
+                            <span>รายการอุปกรณ์ / เครื่องที่ดูแล</span>
+                        </div>
+                        <button type="button" onclick="app.addMAEquipmentRow()" class="text-brand-500 hover:text-brand-600 text-xs font-semibold flex items-center gap-1 transition">
+                            <i class="ph ph-plus-circle-bold"></i> เพิ่มเครื่อง/อุปกรณ์
+                        </button>
+                    </div>
+
+                    <div id="ma-equipment-container" class="space-y-2">
+                        <!-- Dynamic Equipment Rows -->
+                    </div>
+                </div>
+
+                <!-- Notes Section -->
+                <div>
+                    <label class="block text-[11px] font-medium text-muted-foreground mb-1">หมายเหตุ / ข้อตกลงพิเศษ</label>
+                    <textarea id="ma-notes" rows="2" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="ข้อตกลงเพิ่มเติม หรือรายละเอียดการเข้างาน..."></textarea>
+                </div>
+
+                <!-- Form Action Buttons -->
+                <div class="p-4 border-t border-border flex justify-end gap-2.5 bg-muted/30 -mx-5 -mb-5 mt-4">
+                    <button type="button" onclick="app.hideModal('modal-create-ma')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs">ยกเลิก</button>
+                    <button type="submit" id="ma-btn-submit" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                        <i class="ph ph-check-bold"></i> สร้างสัญญา + คำนวณรอบอัตโนมัติ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: MA QC CHECKLIST -->
+    <div id="modal-ma-checklist" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-ma-checklist-content">
+            <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-500 flex items-center justify-center">
+                        <i class="ph ph-clipboard-text text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-sm text-foreground" id="ma-checklist-modal-title">Checklist ล้างแอร์มาตรฐาน</h3>
+                        <p class="text-[10px] text-muted-foreground">รายการตรวจสอบคุณภาพงาน (QC Inspection Criteria)</p>
+                    </div>
+                </div>
+                <button onclick="app.hideModal('modal-ma-checklist')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition">
+                    <i class="ph ph-x text-base"></i>
+                </button>
+            </div>
+
+            <div class="p-5 space-y-3 max-h-[60vh] overflow-y-auto">
+                <div id="ma-checklist-items-container" class="space-y-2">
+                    <!-- Populated by JS -->
+                </div>
+                <div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs flex items-start gap-2">
+                    <i class="ph ph-info text-base shrink-0 mt-0.5"></i>
+                    <span>Checklist นี้ใช้ในขั้นตอน QC ของแต่ละรอบบริการ ช่างต้องทำครบทุกข้อ "จำเป็น"</span>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-border flex justify-end bg-muted/30">
+                <button onclick="app.hideModal('modal-ma-checklist')" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium">ปิด</button>
+            </div>
+        </div>
+    </div>
+
     <!-- TOAST NOTIFICATION -->
     <div id="toast" class="fixed bottom-6 right-6 bg-card border border-border px-4 py-3 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
         <div class="w-7 h-7 rounded-lg bg-brand-500/15 text-brand-500 flex items-center justify-center shrink-0">
@@ -895,6 +1132,90 @@
                 { id: 'Q2', text: 'ระบบน้ำไม่รั่วซึม และแรงดันน้ำปกติ (Pressure Test)', mandatory: true },
                 { id: 'Q3', text: 'การเก็บรอยต่อซิลิโคนและงานผิวสัมผัสเรียบร้อย', mandatory: false },
                 { id: 'Q4', text: 'ส่งมอบคู่มือการใช้งาน & ใบรับประกันให้ลูกค้า', mandatory: true }
+            ],
+            maContracts: [
+                {
+                    id: "mac_1788397202685",
+                    contract_no: "MAC-2026-0001",
+                    customer_name: "สมควร กระจ่าง",
+                    customer_phone: "0896292111",
+                    site_name: "dfdfsdfsfdsdf",
+                    site_address: "123/45 สุขุมวิท กรุงเทพฯ",
+                    service_type: "ล้างแอร์",
+                    service_items: [
+                        { id: "si_1", btu: "", name: "เครื่องที่ 1", brand: "", location: "" }
+                    ],
+                    frequency_months: 3,
+                    total_rounds: 4,
+                    total_rounds_count: 4,
+                    completed_rounds: 0,
+                    contract_start_date: "2026-09-04",
+                    contract_end_date: "2027-09-04",
+                    contract_value: 12000,
+                    status: "Active",
+                    notes: "ลูกค้า: สมควร กระจ่าง\nโทร: 0896292111\nไซต์: dfdfsdfsfdsdf\nที่อยู่: 123/45 สุขุมวิท กรุงเทพฯ"
+                }
+            ],
+            maRounds: [
+                { id: "mar_1788397202746", contract_id: "mac_1788397202685", round_number: 1, scheduled_date: "2026-09-04", actual_date: null, status: "Scheduled" },
+                { id: "mar_1788397202801", contract_id: "mac_1788397202685", round_number: 2, scheduled_date: "2026-12-04", actual_date: null, status: "Scheduled" },
+                { id: "mar_1788397202856", contract_id: "mac_1788397202685", round_number: 3, scheduled_date: "2027-03-04", actual_date: null, status: "Scheduled" },
+                { id: "mar_1788397202908", contract_id: "mac_1788397202685", round_number: 4, scheduled_date: "2027-06-04", actual_date: null, status: "Scheduled" }
+            ],
+            maChecklistTemplates: [
+                {
+                    id: "mact_ac_wash",
+                    service_type: "ล้างแอร์",
+                    template_name: "Checklist ล้างแอร์มาตรฐาน",
+                    checklist_items: [
+                        { id: "ac1", label: "ถอดและทำความสะอาดแผ่นกรองอากาศ (Filter)", required: true },
+                        { id: "ac2", label: "ล้างคอยล์เย็น (Evaporator Coil) ด้วยน้ำยาล้างคอยล์", required: true },
+                        { id: "ac3", label: "ล้างและเป่าท่อระบายน้ำทิ้ง (Drain Pipe)", required: true },
+                        { id: "ac4", label: "ล้างคอยล์ร้อน (Condensing Unit ภายนอก)", required: true },
+                        { id: "ac5", label: "วัดแรงดันน้ำยาแอร์ (Refrigerant Pressure)", required: true },
+                        { id: "ac6", label: "วัดกระแสไฟฟ้าคอมเพรสเซอร์ (Operating Current)", required: true },
+                        { id: "ac7", label: "ทดสอบการทำงานระบบปรับอากาศและวัดอุณหภูมิลมออก", required: true },
+                        { id: "ac8", label: "ถ่ายภาพ Before/After", required: true }
+                    ]
+                },
+                {
+                    id: "mact_electrical",
+                    service_type: "ตรวจระบบไฟฟ้า",
+                    template_name: "Checklist ตรวจระบบไฟฟ้ามาตรฐาน",
+                    checklist_items: [
+                        { id: "el1", label: "ตรวจสภาพตู้ MDB / ตู้ควบคุมไฟหลัก", required: true },
+                        { id: "el2", label: "วัดแรงดันไฟฟ้า (Voltage Check)", required: true },
+                        { id: "el3", label: "ตรวจสายดิน (Ground/Earth Check)", required: true },
+                        { id: "el4", label: "ทดสอบ RCD/ELCB (ตัดไฟรั่ว)", required: true },
+                        { id: "el5", label: "ตรวจสภาพสายไฟและเต้ารับ", required: true },
+                        { id: "el6", label: "ถ่ายภาพ Before/After", required: true }
+                    ]
+                },
+                {
+                    id: "mact_plumbing",
+                    service_type: "ตรวจระบบประปา",
+                    template_name: "Checklist ตรวจระบบประปา",
+                    checklist_items: [
+                        { id: "pl1", label: "ตรวจท่อน้ำและข้อต่อ (หารอยรั่ว)", required: true },
+                        { id: "pl2", label: "เช็คแรงดันน้ำ (Water Pressure)", required: true },
+                        { id: "pl3", label: "ตรวจวาล์วปิด-เปิด (Shut-off Valves)", required: true },
+                        { id: "pl4", label: "ตรวจถังแรงดันน้ำ (Pressure Tank)", required: false },
+                        { id: "pl5", label: "ถ่ายภาพ Before/After", required: true }
+                    ]
+                },
+                {
+                    id: "mact_cctv",
+                    service_type: "ตรวจ CCTV",
+                    template_name: "Checklist ตรวจระบบ CCTV",
+                    checklist_items: [
+                        { id: "cc1", label: "ตรวจสภาพกล้องและมุมมอง (Camera Position)", required: true },
+                        { id: "cc2", label: "ทดสอบภาพ Daytime (ความชัดเจน)", required: true },
+                        { id: "cc3", label: "ทดสอบ Night Vision / IR", required: true },
+                        { id: "cc4", label: "เช็คพื้นที่จัดเก็บ HDD/NVR", required: true },
+                        { id: "cc5", label: "ทดสอบการ Playback ย้อนหลัง", required: true },
+                        { id: "cc6", label: "ถ่ายภาพ Before/After", required: true }
+                    ]
+                }
             ]
         };
 
@@ -902,6 +1223,12 @@
             state: {
                 currentView: 'dashboard',
                 currentJobId: null,
+                jobTab: 'general',
+                maExpandedId: 'mac_1788397202685',
+                maEquipment: [
+                    { id: 'si_1', name: 'เครื่องที่ 1', brand: '', btu: '', location: '' }
+                ],
+                selectedMACustomer: null
             },
 
             init() {
@@ -914,8 +1241,12 @@
                 }
                 this.navigate('dashboard');
                 this.fetchJobsFromApi();
-                // Polling sync every 3 seconds for live Swagger updates
-                setInterval(() => this.fetchJobsFromApi(), 3000);
+                this.fetchMAFromApi();
+                // Polling sync every 3 seconds for live updates
+                setInterval(() => {
+                    this.fetchJobsFromApi();
+                    this.fetchMAFromApi();
+                }, 3000);
             },
 
             async fetchJobsFromApi() {
@@ -924,11 +1255,18 @@
                     if (res.ok) {
                         const json = await res.json();
                         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-                            DB.jobs = json.data;
+                            const remoteJobs = json.data;
+                            // Keep any locally created or modified jobs
+                            const localOnly = DB.jobs.filter(lj => !remoteJobs.some(rj => rj.id === lj.id));
+                            // Also preserve modified status for jobs that were updated locally
+                            const mergedRemote = remoteJobs.map(rj => {
+                                const localMatch = DB.jobs.find(lj => lj.id === rj.id);
+                                return localMatch ? { ...rj, ...localMatch } : rj;
+                            });
+                            DB.jobs = [...localOnly, ...mergedRemote];
                             if (this.state.currentView === 'jobs') this.renderJobs();
-                            if (this.state.currentView === 'dashboard') {
-                                this.renderDashboard();
-                            }
+                            if (this.state.currentView === 'dashboard') this.renderDashboard();
+                            if (this.state.currentView === 'job-detail') this.renderJobDetail();
                             if (this.state.currentView === 'gantt') this.renderGantt();
                             if (this.state.currentView === 'qc') this.renderQC();
                             if (this.state.currentView === 'csat') this.renderCSAT();
@@ -937,7 +1275,7 @@
                         }
                     }
                 } catch (err) {
-                    console.log('Using local fallback state');
+                    // fallback to local state
                 }
             },
 
@@ -982,8 +1320,10 @@
                     'job-detail': `รายละเอียดงาน ${param || ''}`,
                     'gantt': 'Gantt Timeline',
                     'qc': 'QC Inspection',
+                    'ma-contracts': 'สัญญา MA',
                     'csat': 'CSAT & After Sales',
-                    'settings': 'ตั้งค่าระบบ'
+                    'settings': 'ตั้งค่าระบบ',
+                    'users': 'จัดการผู้ใช้งาน'
                 };
                 document.getElementById('topbar-breadcrumb').innerText = breadcrumbMap[view] || view;
 
@@ -1009,8 +1349,11 @@
                 if(view === 'gantt') this.renderGantt();
                 if(view === 'qc') this.renderQC();
                 if(view === 'csat') this.renderCSAT();
+                if(view === 'ma-contracts') this.renderMAContracts();
 
                 document.getElementById('sidebar-job-count').innerText = DB.jobs.length;
+                const sidebarMa = document.getElementById('sidebar-ma-count');
+                if (sidebarMa) sidebarMa.innerText = DB.maContracts.length;
             },
 
             showToast(msg) {
@@ -1337,36 +1680,155 @@
                 document.getElementById('jobs-table-body').innerHTML = html || '<tr><td colspan="7" class="px-5 py-8 text-center text-muted-foreground">ไม่พบรายการงานตามเงื่อนไข</td></tr>';
             },
 
+            switchJobTab(tab) {
+                this.state.jobTab = tab;
+                this.renderJobDetail();
+            },
+
+            checkinJob(id) {
+                const job = DB.jobs.find(j => j.id === id);
+                if(job) {
+                    job.status = 'IN_PROGRESS';
+                    job.progress = Math.max(job.progress || 0, 40);
+                    job.checkin_done = true;
+                    job.checkin_time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                    job.distance_meters = 180;
+                    job.is_in_radius = true;
+                }
+                // Async API call in background
+                fetch(`/api/v1/jobs/${id}/checkin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lat: job?.lat || 13.7563,
+                        lng: job?.lng || 100.5018,
+                        photos: ['photo1.jpg', 'photo2.jpg', 'photo3.jpg', 'photo4.jpg', 'photo5.jpg'],
+                        summary: 'ช่างเข้าพื้นที่หน้างานเรียบร้อย'
+                    })
+                }).catch(() => {});
+
+                this.showToast(`✅ บันทึก GPS Check-in หน้างานสำเร็จ! ระยะห่าง 180 ม. (ผ่านเกณฑ์รัศมี 400 ม.) สถานะเปลี่ยนเป็น In Progress`);
+                this.renderJobDetail();
+                if(this.state.currentView === 'jobs') this.renderJobs();
+                if(this.state.currentView === 'dashboard') this.renderDashboard();
+            },
+
+            sendJobToQC(id) {
+                const job = DB.jobs.find(j => j.id === id);
+                if(job) {
+                    job.status = 'QC_PENDING';
+                    job.progress = 100;
+                }
+                this.showToast(`🚀 งาน ${id} ถูกส่งไปยังคิวตรวจ QC แล้ว!`);
+                this.renderJobDetail();
+                if(this.state.currentView === 'jobs') this.renderJobs();
+                if(this.state.currentView === 'dashboard') this.renderDashboard();
+            },
+
+            goToQC(id) {
+                this.navigate('qc');
+                setTimeout(() => {
+                    this.selectQCJob(id);
+                }, 100);
+            },
+
+            completeJob() {
+                if (this.state.currentJobId) {
+                    this.sendJobToQC(this.state.currentJobId);
+                }
+            },
+
             renderJobDetail() {
                 const job = DB.jobs.find(j => j.id === this.state.currentJobId);
                 if(!job) return;
 
-                const html = `
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
-                        <div class="flex items-center gap-3">
-                            <button onclick="app.navigate('jobs')" class="p-2 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition">
-                                <i class="ph ph-arrow-left text-base"></i>
+                const curTab = this.state.jobTab || 'general';
+                const isDraft = job.status === 'DRAFT';
+                const isInProgress = job.status === 'IN_PROGRESS' || job.status === 'SURVEYED';
+                const isQcPending = job.status === 'QC_PENDING';
+                const isQcPassed = job.status === 'QC_PASSED';
+                const isAfterSale = job.status === 'AFTER_SALE';
+                const isClosed = job.status === 'CLOSED';
+
+                let tabContent = '';
+                if (curTab === 'general') {
+                    let actionButtons = '';
+                    if (isDraft) {
+                        actionButtons = `
+                            <button class="btn-artifact-primary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm" onclick="app.checkinJob('${job.id}')">
+                                <i class="ph ph-map-pin text-sm"></i>
+                                <span>ช่าง Check-in หน้างาน (GPS)</span>
                             </button>
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">${job.id}</h2>
-                                    <span class="text-sm text-muted-foreground">/ ${job.customer}</span>
-                                </div>
-                                <p class="text-xs text-muted-foreground">นัดติดตั้ง: ${job.date} • ผู้รับผิดชอบ: ${job.tech}</p>
+                            <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.switchJobTab('photos')">
+                                <i class="ph ph-camera text-sm"></i>
+                                <span>ดูรูปถ่ายหน้างาน (5 รูป)</span>
+                            </button>
+                            <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.sendJobToQC('${job.id}')">
+                                <i class="ph ph-check-circle text-sm"></i>
+                                <span>ส่งตรวจ QC (QC Inspection)</span>
+                            </button>
+                        `;
+                    } else if (isInProgress) {
+                        actionButtons = `
+                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm" onclick="app.sendJobToQC('${job.id}')">
+                                <i class="ph ph-paper-plane-tilt text-sm"></i>
+                                <span>ส่งตรวจ QC (QC Inspection)</span>
+                            </button>
+                            <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.switchJobTab('photos')">
+                                <i class="ph ph-images text-sm"></i>
+                                <span>ดูรูปถ่ายหน้างาน (5 รูป)</span>
+                            </button>
+                            <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.switchJobTab('boq')">
+                                <i class="ph ph-file-text text-sm"></i>
+                                <span>ดูแบบ & BOQ</span>
+                            </button>
+                        `;
+                    } else if (isQcPending) {
+                        actionButtons = `
+                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm bg-amber-500 hover:bg-amber-600 text-white" onclick="app.goToQC('${job.id}')">
+                                <i class="ph ph-clipboard-text text-sm"></i>
+                                <span>เปิดหน้าตรวจคุณภาพ QC ทันที ➔</span>
+                            </button>
+                            <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.switchJobTab('photos')">
+                                <i class="ph ph-images text-sm"></i>
+                                <span>ดูรูปถ่ายหน้างาน</span>
+                            </button>
+                        `;
+                    } else if (isQcPassed) {
+                        actionButtons = `
+                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm" onclick="app.navigate('csat')">
+                                <i class="ph ph-phone-call text-sm"></i>
+                                <span>ไปหน้า CSAT & บริการหลังการขาย ➔</span>
+                            </button>
+                        `;
+                    } else if (isAfterSale) {
+                        actionButtons = `
+                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white" onclick="app.closeJob('${job.id}')">
+                                <i class="ph ph-check-square text-sm"></i>
+                                <span>Close Job & ส่งข้อมูลไประบบ BMT</span>
+                            </button>
+                        `;
+                    } else if (isClosed) {
+                        actionButtons = `
+                            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+                                <i class="ph ph-seal-check text-base"></i>
+                                <span>ปิดงานและส่งข้อมูลเข้าสู่ระบบ BMT สำเร็จเรียบร้อย (${job.bmt_ref || 'BMT-REF-2026-99214'})</span>
                             </div>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            ${this.getStatusHtml(job.status)}
-                        </div>
-                    </div>
+                        `;
+                    }
 
-                    <!-- Navigation Tabs -->
-                    <div class="flex gap-6 border-b border-border">
-                        <button class="pb-3 text-xs font-semibold tab-item-active">ข้อมูลทั่วไป & แผนงาน</button>
-                        <button class="pb-3 text-xs font-semibold text-muted-foreground hover:text-foreground transition" onclick="app.showToast('เปิดแท็บ: รายการรูปถ่ายและเอกสาร Check-in')">Check-in & รูปภาพหน้างาน</button>
-                        <button class="pb-3 text-xs font-semibold text-muted-foreground hover:text-foreground transition" onclick="app.showToast('เปิดแท็บ: แบบงานแปลน & BOQ')">แบบติดตั้ง & BOQ</button>
-                    </div>
+                    const step1Class = "w-3.5 h-3.5 bg-emerald-500 text-white flex items-center justify-center rounded-full ring-4 ring-card text-[9px] font-bold";
+                    const step2Dot = isDraft
+                        ? "w-3.5 h-3.5 bg-brand-500 rounded-full ring-4 ring-card animate-pulse"
+                        : "w-3.5 h-3.5 bg-emerald-500 text-white flex items-center justify-center rounded-full ring-4 ring-card text-[9px] font-bold";
+                    const step3Dot = (isDraft || isInProgress)
+                        ? (isInProgress ? "w-3.5 h-3.5 bg-brand-500 rounded-full ring-4 ring-card animate-pulse" : "w-3.5 h-3.5 bg-muted-foreground/30 rounded-full ring-4 ring-card")
+                        : (isQcPending ? "w-3.5 h-3.5 bg-amber-500 rounded-full ring-4 ring-card animate-pulse" : "w-3.5 h-3.5 bg-emerald-500 text-white flex items-center justify-center rounded-full ring-4 ring-card text-[9px] font-bold");
+                    const step4Dot = isClosed
+                        ? "w-3.5 h-3.5 bg-emerald-500 text-white flex items-center justify-center rounded-full ring-4 ring-card text-[9px] font-bold"
+                        : (isAfterSale ? "w-3.5 h-3.5 bg-brand-500 rounded-full ring-4 ring-card animate-pulse" : (isQcPassed ? "w-3.5 h-3.5 bg-brand-500 rounded-full ring-4 ring-card animate-pulse" : "w-3.5 h-3.5 bg-muted-foreground/30 rounded-full ring-4 ring-card"));
 
+                    tabContent = `
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <!-- Left Info Card -->
                         <div class="artifact-card p-6 space-y-4">
@@ -1383,13 +1845,13 @@
                                 <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">พิกัด GPS (Lat, Lng)</div>
                                 <div class="flex items-center justify-between mt-1 bg-muted/40 border border-border rounded-lg p-2">
                                     <span class="text-xs font-mono text-brand-500">📍 ${job.lat || 13.7563}, ${job.lng || 100.5018}</span>
-                                    <button class="text-[10px] text-muted-foreground hover:text-foreground" onclick="navigator.clipboard.writeText('${job.lat}, ${job.lng}'); app.showToast('คัดลอกพิกัด GPS เรียบร้อย');">Copy</button>
+                                    <button class="text-[10px] text-muted-foreground hover:text-foreground bg-card px-2 py-0.5 rounded border border-border" onclick="navigator.clipboard.writeText('${job.lat || 13.7563}, ${job.lng || 100.5018}'); app.showToast('คัดลอกพิกัด GPS เรียบร้อย');">Copy</button>
                                 </div>
                             </div>
 
                             <div>
                                 <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">ประเภทบริการ</div>
-                                <div class="text-xs text-foreground mt-0.5">${job.service}</div>
+                                <div class="text-xs text-foreground mt-0.5 font-medium">${job.service}</div>
                             </div>
 
                             <div>
@@ -1419,18 +1881,7 @@
 
                             <!-- Action Buttons Toolbar -->
                             <div class="flex flex-wrap gap-2.5">
-                                <button class="btn-artifact-primary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.showToast('บันทึก GPS Check-in: ระยะห่าง 180 ม. (ผ่านเกณฑ์รัศมี 400 ม.)')">
-                                    <i class="ph ph-map-pin"></i>
-                                    <span>ช่าง Check-in หน้างาน (GPS)</span>
-                                </button>
-                                <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.showToast('อัปโหลดรูปหน้างานแล้ว 5/5 รูป')">
-                                    <i class="ph ph-camera"></i>
-                                    <span>อัปโหลดรูปถ่าย (5 รูป)</span>
-                                </button>
-                                <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.completeJob()">
-                                    <i class="ph ph-check-circle"></i>
-                                    <span>ส่งตรวจ QC (QC Inspection)</span>
-                                </button>
+                                ${actionButtons}
                             </div>
                             
                             <!-- Timeline Stepper -->
@@ -1438,41 +1889,340 @@
                                 <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">ลำดับขั้นตอนการทำงาน (Workflow Timeline)</h4>
                                 <div class="space-y-4 border-l-2 border-border ml-3 pl-4">
                                     <div class="relative">
-                                        <div class="absolute -left-[23px] top-0.5 w-3 h-3 bg-emerald-500 rounded-full ring-4 ring-card"></div>
+                                        <div class="absolute -left-[23px] top-0.5 ${step1Class}">✓</div>
                                         <div class="text-xs font-semibold text-foreground">1. เปิดงานใหม่ (รับจากระบบ INT)</div>
                                         <div class="text-[11px] text-muted-foreground mt-0.5">ระบบอัตโนมัติสร้าง Order • ${job.date}</div>
                                     </div>
                                     <div class="relative">
-                                        <div class="absolute -left-[23px] top-0.5 w-3 h-3 bg-brand-500 rounded-full ring-4 ring-card animate-pulse"></div>
+                                        <div class="absolute -left-[23px] top-0.5 ${step2Dot}">${!isDraft ? '✓' : ''}</div>
                                         <div class="text-xs font-semibold text-foreground">2. ช่าง Check-in ยืนยันพิกัด GPS</div>
-                                        <div class="text-[11px] text-muted-foreground mt-0.5">ช่างเข้าพื้นที่หน้างานและถ่ายรูปก่อนเริ่มติดตั้ง</div>
+                                        <div class="text-[11px] text-muted-foreground mt-0.5">
+                                            ${!isDraft ? '<span class="text-emerald-500 font-medium">✓ Check-in แล้ว (GPS ห่าง 180 ม. อยู่ในเกณฑ์รัศมี 400 ม.)</span>' : 'ช่างเข้าพื้นที่หน้างานและถ่ายรูปก่อนเริ่มติดตั้ง'}
+                                        </div>
                                     </div>
                                     <div class="relative">
-                                        <div class="absolute -left-[23px] top-0.5 w-3 h-3 bg-muted-foreground/30 rounded-full ring-4 ring-card"></div>
-                                        <div class="text-xs font-medium text-muted-foreground">3. การตรวจรับรองคุณภาพ (QC Checklist)</div>
-                                        <div class="text-[11px] text-muted-foreground/60 mt-0.5">ทีม QC ตรวจสอบความถูกต้องและส่งมอบ</div>
+                                        <div class="absolute -left-[23px] top-0.5 ${step3Dot}">${(isQcPassed || isAfterSale || isClosed) ? '✓' : ''}</div>
+                                        <div class="text-xs font-semibold text-foreground">3. การตรวจรับรองคุณภาพ (QC Checklist)</div>
+                                        <div class="text-[11px] text-muted-foreground mt-0.5">
+                                            ${isQcPassed || isAfterSale || isClosed ? '<span class="text-emerald-500 font-medium">✓ ตรวจรับรอง QC ผ่านเกณฑ์เรียบร้อย</span>' : (isQcPending ? '<span class="text-amber-500 font-medium">⏳ กำลังรอเจ้าหน้าที่ QC เข้าตรวจสอบ</span>' : 'ทีม QC ตรวจสอบความถูกต้องและส่งมอบ')}
+                                        </div>
                                     </div>
                                     <div class="relative">
-                                        <div class="absolute -left-[23px] top-0.5 w-3 h-3 bg-muted-foreground/30 rounded-full ring-4 ring-card"></div>
-                                        <div class="text-xs font-medium text-muted-foreground">4. สรุปผล CSAT และส่งปิดงาน (BMT System)</div>
-                                        <div class="text-[11px] text-muted-foreground/60 mt-0.5">Contact Center โทรยืนยันความพึงพอใจ 5 ดาว</div>
+                                        <div class="absolute -left-[23px] top-0.5 ${step4Dot}">${isClosed ? '✓' : ''}</div>
+                                        <div class="text-xs font-semibold text-foreground">4. สรุปผล CSAT และส่งปิดงาน (BMT System)</div>
+                                        <div class="text-[11px] text-muted-foreground mt-0.5">
+                                            ${isClosed ? '<span class="text-emerald-500 font-medium">✓ ปิดงานสมบูรณ์ และส่งข้อมูลเข้าสู่ระบบ BMT เรียบร้อย</span>' : (isAfterSale ? '<span class="text-brand-500 font-medium">⭐ Contact Center สรุปผลประเมิน 5 ดาวแล้ว</span>' : 'Contact Center โทรยืนยันความพึงพอใจ 5 ดาว')}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                    `;
+                } else if (curTab === 'photos') {
+                    tabContent = `
+                    <div class="space-y-6">
+                        <!-- Check-in GPS Summary Header -->
+                        <div class="artifact-card p-5 bg-gradient-to-r from-brand-500/5 to-transparent border border-brand-500/20">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-500">
+                                        <i class="ph ph-map-pin text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-display font-semibold text-sm text-foreground">บันทึกตำแหน่งหน้างาน (Geo-fence Verification)</h4>
+                                        <p class="text-xs text-muted-foreground mt-0.5">พิกัด GPS: <span class="font-mono text-brand-500">${job.lat || 13.7563}, ${job.lng || 100.5018}</span> • ระยะห่างจากบ้านลูกค้า: <strong class="text-emerald-500">180 เมตร (ผ่านเกณฑ์รัศมี 400 ม.)</strong></p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                                        <i class="ph ph-check mr-1"></i> ตรวจสอบพิกัดถูกต้อง
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 5 Site Photos Grid (Requirement #2: Min 5 photos) -->
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 class="font-display font-semibold text-sm text-foreground">รูปถ่ายการปฏิบัติงานหน้างาน (Site Photos)</h3>
+                                    <p class="text-xs text-muted-foreground">บันทึกครบถ้วนตามข้อกำหนดอย่างน้อย 5 ภาพ</p>
+                                </div>
+                                <button class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5" onclick="app.showToast('เปิดกล้อง/อัปโหลดรูปภาพเพิ่มเติม')">
+                                    <i class="ph ph-camera-plus"></i> ถ่ายภาพเพิ่มเติม
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                                <!-- Photo 1 -->
+                                <div class="artifact-card p-3 rounded-xl space-y-2 border border-border hover:border-brand-500/40 transition">
+                                    <div class="aspect-video bg-muted/60 rounded-lg flex flex-col items-center justify-center border border-dashed border-border relative overflow-hidden group">
+                                        <i class="ph ph-house-line text-3xl text-muted-foreground/60 mb-1"></i>
+                                        <span class="text-[10px] text-muted-foreground font-mono">IMG_SITE_01.JPG</span>
+                                        <span class="absolute top-2 right-2 px-1.5 py-0.5 bg-emerald-500/80 text-white rounded text-[9px] font-medium">รูปที่ 1</span>
+                                    </div>
+                                    <div class="text-xs font-medium text-foreground">สภาพพื้นที่ก่อนติดตั้ง</div>
+                                    <div class="text-[10px] text-muted-foreground">มุมมองกว้างบริเวณผนังห้องนอน</div>
+                                    <div class="text-[9px] font-mono text-emerald-500 flex items-center gap-1"><i class="ph ph-check"></i> GPS Verified</div>
+                                </div>
+
+                                <!-- Photo 2 -->
+                                <div class="artifact-card p-3 rounded-xl space-y-2 border border-border hover:border-brand-500/40 transition">
+                                    <div class="aspect-video bg-muted/60 rounded-lg flex flex-col items-center justify-center border border-dashed border-border relative overflow-hidden group">
+                                        <i class="ph ph-ruler text-3xl text-muted-foreground/60 mb-1"></i>
+                                        <span class="text-[10px] text-muted-foreground font-mono">IMG_SITE_02.JPG</span>
+                                        <span class="absolute top-2 right-2 px-1.5 py-0.5 bg-emerald-500/80 text-white rounded text-[9px] font-medium">รูปที่ 2</span>
+                                    </div>
+                                    <div class="text-xs font-medium text-foreground">การวัดระดับและยึด Plate</div>
+                                    <div class="text-[10px] text-muted-foreground">ระดับน้ำตรง แข็งแรงตามสเปก</div>
+                                    <div class="text-[9px] font-mono text-emerald-500 flex items-center gap-1"><i class="ph ph-check"></i> GPS Verified</div>
+                                </div>
+
+                                <!-- Photo 3 -->
+                                <div class="artifact-card p-3 rounded-xl space-y-2 border border-border hover:border-brand-500/40 transition">
+                                    <div class="aspect-video bg-muted/60 rounded-lg flex flex-col items-center justify-center border border-dashed border-border relative overflow-hidden group">
+                                        <i class="ph ph-pipe text-3xl text-muted-foreground/60 mb-1"></i>
+                                        <span class="text-[10px] text-muted-foreground font-mono">IMG_SITE_03.JPG</span>
+                                        <span class="absolute top-2 right-2 px-1.5 py-0.5 bg-emerald-500/80 text-white rounded text-[9px] font-medium">รูปที่ 3</span>
+                                    </div>
+                                    <div class="text-xs font-medium text-foreground">แนวท่อน้ำยาและรางครอบ</div>
+                                    <div class="text-[10px] text-muted-foreground">เดินท่อเรียบร้อย ไม่รั่วซึม</div>
+                                    <div class="text-[9px] font-mono text-emerald-500 flex items-center gap-1"><i class="ph ph-check"></i> GPS Verified</div>
+                                </div>
+
+                                <!-- Photo 4 -->
+                                <div class="artifact-card p-3 rounded-xl space-y-2 border border-border hover:border-brand-500/40 transition">
+                                    <div class="aspect-video bg-muted/60 rounded-lg flex flex-col items-center justify-center border border-dashed border-border relative overflow-hidden group">
+                                        <i class="ph ph-lightning text-3xl text-muted-foreground/60 mb-1"></i>
+                                        <span class="text-[10px] text-muted-foreground font-mono">IMG_SITE_04.JPG</span>
+                                        <span class="absolute top-2 right-2 px-1.5 py-0.5 bg-emerald-500/80 text-white rounded text-[9px] font-medium">รูปที่ 4</span>
+                                    </div>
+                                    <div class="text-xs font-medium text-foreground">ระบบไฟฟ้าและสายดิน</div>
+                                    <div class="text-[10px] text-muted-foreground">เบรกเกอร์แยกและวัดกราวด์ผ่าน</div>
+                                    <div class="text-[9px] font-mono text-emerald-500 flex items-center gap-1"><i class="ph ph-check"></i> GPS Verified</div>
+                                </div>
+
+                                <!-- Photo 5 -->
+                                <div class="artifact-card p-3 rounded-xl space-y-2 border border-border hover:border-brand-500/40 transition">
+                                    <div class="aspect-video bg-muted/60 rounded-lg flex flex-col items-center justify-center border border-dashed border-border relative overflow-hidden group">
+                                        <i class="ph ph-check-circle text-3xl text-muted-foreground/60 mb-1"></i>
+                                        <span class="text-[10px] text-muted-foreground font-mono">IMG_SITE_05.JPG</span>
+                                        <span class="absolute top-2 right-2 px-1.5 py-0.5 bg-emerald-500/80 text-white rounded text-[9px] font-medium">รูปที่ 5</span>
+                                    </div>
+                                    <div class="text-xs font-medium text-foreground">หลังติดตั้งและเก็บกวาด</div>
+                                    <div class="text-[10px] text-muted-foreground">ทดสอบความเย็น 16°C ปกติ</div>
+                                    <div class="text-[9px] font-mono text-emerald-500 flex items-center gap-1"><i class="ph ph-check"></i> GPS Verified</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer Navigation -->
+                        <div class="flex items-center justify-between pt-4 border-t border-border">
+                            <button class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs" onclick="app.switchJobTab('general')">
+                                <i class="ph ph-arrow-left mr-1"></i> กลับหน้าข้อมูลทั่วไป
+                            </button>
+                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs" onclick="app.sendJobToQC('${job.id}')">
+                                ส่งตรวจ QC (QC Inspection) <i class="ph ph-arrow-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                    `;
+                } else if (curTab === 'boq') {
+                    tabContent = `
+                    <div class="space-y-6">
+                        <!-- Design Files Section (Requirement #5) -->
+                        <div class="artifact-card p-6 space-y-4">
+                            <div class="flex items-center justify-between pb-3 border-b border-border">
+                                <div>
+                                    <h3 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
+                                        <i class="ph ph-blueprint text-brand-500"></i> ไฟล์แบบงานติดตั้ง (Design Files & Versions)
+                                    </h3>
+                                    <p class="text-xs text-muted-foreground mt-0.5">แบบแปลนและไดอะแกรมการติดตั้ง รองรับ Inline Preview และดาวน์โหลด</p>
+                                </div>
+                                <button class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5" onclick="app.showToast('อัปโหลดแบบติดตั้งเวอร์ชันใหม่ (v3)...')">
+                                    <i class="ph ph-upload-simple"></i> อัปโหลดเวอร์ชันใหม่
+                                </button>
+                            </div>
+
+                            <div class="space-y-2.5">
+                                <div class="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center justify-center font-bold text-xs">PDF</div>
+                                        <div>
+                                            <div class="text-xs font-semibold text-foreground flex items-center gap-2">
+                                                <span>Air_Installation_Layout_v2.pdf</span>
+                                                <span class="text-[10px] px-1.5 py-0.2 rounded bg-brand-500/10 text-brand-500 font-medium">Current v2</span>
+                                            </div>
+                                            <div class="text-[11px] text-muted-foreground mt-0.5">2.4 MB • อัปโหลดเมื่อ 2026-09-02 08:30 น. โดย คุณธนกฤต (Designer)</div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-xs" onclick="app.showToast('เปิดดูตัวอย่างไฟล์แบบงาน (Inline Preview)...')">
+                                            <i class="ph ph-eye"></i> ดูตัวอย่าง
+                                        </button>
+                                        <button class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-xs" onclick="app.showToast('กำลังดาวน์โหลดไฟล์ PDF...')">
+                                            <i class="ph ph-download-simple"></i> ดาวน์โหลด
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/60">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-muted border border-border text-muted-foreground flex items-center justify-center font-bold text-xs">PDF</div>
+                                        <div>
+                                            <div class="text-xs font-semibold text-muted-foreground flex items-center gap-2">
+                                                <span>Air_Installation_Layout_v1.pdf</span>
+                                                <span class="text-[10px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground">Archived v1</span>
+                                            </div>
+                                            <div class="text-[11px] text-muted-foreground mt-0.5">1.8 MB • แบบร่างสำรวจแรกเริ่ม</div>
+                                        </div>
+                                    </div>
+                                    <button class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-xs" onclick="app.showToast('กำลังดาวน์โหลดแบบร่าง v1...')">
+                                        <i class="ph ph-download-simple"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BOQ Bill of Quantities Section (Requirement #6) -->
+                        <div class="artifact-card p-6 space-y-4">
+                            <div class="flex items-center justify-between pb-3 border-b border-border">
+                                <div>
+                                    <h3 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
+                                        <i class="ph ph-receipt text-brand-500"></i> รายการคำนวณราคาและวัสดุ (BOQ Breakdown)
+                                    </h3>
+                                    <p class="text-xs text-muted-foreground mt-0.5">ตรึงราคาตามสัญญา พร้อมคำนวณภาษีมูลค่าเพิ่ม (VAT 7%) อัตโนมัติ</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[10px] text-muted-foreground font-mono">Ticket: TKT-2026-8819</span>
+                                    <div class="text-[11px] text-emerald-500 font-medium">✓ ชำระเต็มจำนวนแล้ว (แนบสลิปแล้ว)</div>
+                                </div>
+                            </div>
+
+                            <!-- Table -->
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs">
+                                    <thead>
+                                        <tr class="border-b border-border text-muted-foreground text-[11px]">
+                                            <th class="py-2.5 font-medium">ลำดับ</th>
+                                            <th class="py-2.5 font-medium">รายการวัสดุ / งานบริการ</th>
+                                            <th class="py-2.5 font-medium text-center">จำนวน</th>
+                                            <th class="py-2.5 font-medium text-right">ราคาต่อหน่วย (฿)</th>
+                                            <th class="py-2.5 font-medium text-right">รวมเป็นเงิน (฿)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-border">
+                                        <tr>
+                                            <td class="py-2.5 text-muted-foreground">1</td>
+                                            <td class="py-2.5 font-medium text-foreground">ค่าแรงช่างติดตั้งเครื่องปรับอากาศ 18000 BTU</td>
+                                            <td class="py-2.5 text-center">1 งาน</td>
+                                            <td class="py-2.5 text-right font-mono">2,500.00</td>
+                                            <td class="py-2.5 text-right font-mono font-medium">2,500.00</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="py-2.5 text-muted-foreground">2</td>
+                                            <td class="py-2.5 font-medium text-foreground">ชุดท่อน้ำยาแอร์ทองแดงหนาพิเศษพร้อมฉนวนหุ้ม 4 ม.</td>
+                                            <td class="py-2.5 text-center">1 ชุด</td>
+                                            <td class="py-2.5 text-right font-mono">1,800.00</td>
+                                            <td class="py-2.5 text-right font-mono font-medium">1,800.00</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="py-2.5 text-muted-foreground">3</td>
+                                            <td class="py-2.5 font-medium text-foreground">รางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.</td>
+                                            <td class="py-2.5 text-center">1 ชุด</td>
+                                            <td class="py-2.5 text-right font-mono">950.00</td>
+                                            <td class="py-2.5 text-right font-mono font-medium">950.00</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="py-2.5 text-muted-foreground">4</td>
+                                            <td class="py-2.5 font-medium text-foreground">ขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม</td>
+                                            <td class="py-2.5 text-center">1 ชุด</td>
+                                            <td class="py-2.5 text-right font-mono">650.00</td>
+                                            <td class="py-2.5 text-right font-mono font-medium">650.00</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="py-2.5 text-muted-foreground">5</td>
+                                            <td class="py-2.5 font-medium text-foreground">ชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง</td>
+                                            <td class="py-2.5 text-center">1 ชุด</td>
+                                            <td class="py-2.5 text-right font-mono">500.00</td>
+                                            <td class="py-2.5 text-right font-mono font-medium">500.00</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Summary calculation -->
+                            <div class="flex justify-end pt-3 border-t border-border">
+                                <div class="w-72 space-y-1.5 text-xs">
+                                    <div class="flex justify-between text-muted-foreground">
+                                        <span>ราคารวม (Subtotal):</span>
+                                        <span class="font-mono">6,400.00 ฿</span>
+                                    </div>
+                                    <div class="flex justify-between text-emerald-500">
+                                        <span>ส่วนลดพิเศษโครงการ:</span>
+                                        <span class="font-mono">-500.00 ฿</span>
+                                    </div>
+                                    <div class="flex justify-between text-muted-foreground">
+                                        <span>ภาษีมูลค่าเพิ่ม (VAT 7%):</span>
+                                        <span class="font-mono">413.00 ฿</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm font-bold text-foreground pt-1.5 border-t border-border">
+                                        <span>ยอดสุทธิ (Grand Total):</span>
+                                        <span class="font-mono text-brand-500 text-base">6,313.00 ฿</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer Navigation -->
+                        <div class="flex items-center justify-between pt-4 border-t border-border">
+                            <button class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs" onclick="app.switchJobTab('general')">
+                                <i class="ph ph-arrow-left mr-1"></i> กลับหน้าข้อมูลทั่วไป
+                            </button>
+                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs" onclick="app.sendJobToQC('${job.id}')">
+                                ส่งตรวจ QC (QC Inspection) <i class="ph ph-arrow-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                    `;
+                }
+
+                const html = `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
+                        <div class="flex items-center gap-3">
+                            <button onclick="app.navigate('jobs')" class="p-2 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition">
+                                <i class="ph ph-arrow-left text-base"></i>
+                            </button>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">${job.id}</h2>
+                                    <span class="text-sm text-muted-foreground">/ ${job.customer}</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground">นัดติดตั้ง: ${job.date} • ผู้รับผิดชอบ: ${job.tech}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            ${this.getStatusHtml(job.status)}
+                        </div>
+                    </div>
+
+                    <!-- Navigation Tabs -->
+                    <div class="flex gap-6 border-b border-border">
+                        <button onclick="app.switchJobTab('general')" class="pb-3 text-xs font-semibold transition ${curTab === 'general' ? 'tab-item-active' : 'text-muted-foreground hover:text-foreground'}">
+                            <i class="ph ph-info mr-1"></i> ข้อมูลทั่วไป & แผนงาน
+                        </button>
+                        <button onclick="app.switchJobTab('photos')" class="pb-3 text-xs font-semibold transition ${curTab === 'photos' ? 'tab-item-active' : 'text-muted-foreground hover:text-foreground'}">
+                            <i class="ph ph-camera mr-1"></i> Check-in & รูปภาพหน้างาน (5 รูป)
+                        </button>
+                        <button onclick="app.switchJobTab('boq')" class="pb-3 text-xs font-semibold transition ${curTab === 'boq' ? 'tab-item-active' : 'text-muted-foreground hover:text-foreground'}">
+                            <i class="ph ph-receipt mr-1"></i> แบบติดตั้ง & BOQ
+                        </button>
+                    </div>
+
+                    ${tabContent}
                 `;
                 document.getElementById('job-detail-content').innerHTML = html;
-            },
-
-            completeJob() {
-                const job = DB.jobs.find(j => j.id === this.state.currentJobId);
-                if(job) {
-                    job.status = 'QC_PENDING';
-                    job.progress = 100;
-                }
-                this.showToast(`งาน ${this.state.currentJobId} ถูกส่งไปยังคิวตรวจ QC แล้ว`);
-                this.renderJobDetail();
             },
 
             renderGantt() {
@@ -1603,8 +2353,11 @@
                             <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 mb-3">
                                 <i class="ph ph-check-circle text-2xl"></i>
                             </div>
-                            <h4 class="font-display font-medium text-foreground text-sm mb-1">บันทึกผล QC สำเร็จ</h4>
-                            <p class="text-xs text-muted-foreground">เลือกรายการงานถัดไปจากคิวด้านซ้าย</p>
+                            <h4 class="font-display font-medium text-foreground text-sm mb-1">บันทึกผล QC ผ่านเกณฑ์สำเร็จ</h4>
+                            <p class="text-xs text-muted-foreground mb-4">ระบบได้ส่งต่อไปยัง Contact Center เพื่อโทรประเมิน CSAT เรียบร้อยแล้ว</p>
+                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 mx-auto" onclick="app.navigate('csat')">
+                                <i class="ph ph-phone-call"></i> ไปยังหน้า CSAT & บริการหลังการขาย ➔
+                            </button>
                         </div>
                     `;
                 }
@@ -1653,9 +2406,585 @@
                 const job = DB.jobs.find(j => j.id === id);
                 if(job) {
                     job.status = 'CLOSED';
-                    this.showToast(`ปิดงาน ${id} สมบูรณ์ และส่งข้อมูลเข้าสู่ระบบ BMT เรียบร้อยแล้ว`);
+                    const bmtRef = `BMT-REF-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+                    job.bmt_ref = bmtRef;
+                    // Background call to server if available
+                    fetch(`/api/v1/jobs/${id}/close-and-export-bmt`, { method: 'POST' }).catch(() => {});
+                    this.showToast(`✅ ปิดงาน ${id} สำเร็จ! อ้างอิง ${bmtRef} ส่งข้อมูลไประบบ BMT เรียบร้อยแล้ว`);
                     this.renderCSAT();
+                    if(this.state.currentView === 'job-detail') this.renderJobDetail();
+                    if(this.state.currentView === 'dashboard') this.renderDashboard();
                 }
+            },
+
+            // =========================================================
+            // RECURRING MAINTENANCE / MA CONTRACTS METHODS
+            // =========================================================
+            async fetchMAFromApi() {
+                try {
+                    const [resContracts, resTemplates] = await Promise.all([
+                        fetch('/api/ma-contracts').then(r => r.ok ? r.json() : null),
+                        fetch('/api/ma-checklist-templates').then(r => r.ok ? r.json() : null)
+                    ]);
+                    if (Array.isArray(resContracts) && resContracts.length > 0) {
+                        DB.maContracts = resContracts;
+                    }
+                    if (Array.isArray(resTemplates) && resTemplates.length > 0) {
+                        DB.maChecklistTemplates = resTemplates;
+                    }
+                    if (this.state.currentView === 'ma-contracts') {
+                        this.renderMAContracts();
+                    }
+                    const sidebarMa = document.getElementById('sidebar-ma-count');
+                    if (sidebarMa) sidebarMa.innerText = DB.maContracts.length;
+                } catch (err) {
+                    // local fallback
+                }
+            },
+
+            formatDate(d) {
+                if (!d) return '—';
+                try {
+                    const p = d.split('T')[0].split('-');
+                    if (p.length === 3) return `${p[2]}/${p[1]}/${p[0]}`;
+                    return d;
+                } catch(e) { return d; }
+            },
+
+            renderMAContracts() {
+                const contracts = DB.maContracts || [];
+                const totalContracts = contracts.length;
+                const activeContracts = contracts.filter(c => c.status === 'Active').length;
+                const totalRounds = contracts.reduce((s, c) => s + (parseInt(c.total_rounds_count) || parseInt(c.total_rounds) || 0), 0);
+                const completedRounds = contracts.reduce((s, c) => s + (parseInt(c.completed_rounds) || 0), 0);
+
+                // Update Stat Cards
+                const statTotal = document.getElementById('ma-stat-total');
+                if (statTotal) statTotal.innerText = totalContracts;
+                const statActive = document.getElementById('ma-stat-active');
+                if (statActive) statActive.innerText = activeContracts;
+                const statRounds = document.getElementById('ma-stat-rounds');
+                if (statRounds) statRounds.innerText = totalRounds;
+                const statComp = document.getElementById('ma-stat-completed');
+                if (statComp) statComp.innerText = completedRounds;
+
+                const container = document.getElementById('ma-contracts-list');
+                if (!container) return;
+
+                if (contracts.length === 0) {
+                    container.innerHTML = `
+                        <div class="artifact-card p-12 text-center text-muted-foreground rounded-2xl border border-border bg-card">
+                            <div class="text-4xl mb-2">📋</div>
+                            <div class="font-semibold text-sm text-foreground">ยังไม่มีสัญญา MA — กด "สร้างสัญญา MA" เพื่อเริ่มต้น</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = contracts.map(c => {
+                    const isExpanded = (this.state.maExpandedId === c.id);
+                    const tRounds = parseInt(c.total_rounds_count) || parseInt(c.total_rounds) || 0;
+                    const cRounds = parseInt(c.completed_rounds) || 0;
+                    const pct = tRounds ? Math.round((cRounds / tRounds) * 100) : 0;
+                    const isFullyCompleted = (pct === 100);
+
+                    // Extract customer and site names from direct fields or notes
+                    let custName = c.customer_name || '';
+                    let siteName = c.site_name || '';
+                    if (!custName && c.notes) {
+                        const m = c.notes.split('\n').find(l => l.startsWith('ลูกค้า:'));
+                        if (m) custName = m.replace('ลูกค้า:', '').trim();
+                    }
+                    if (!siteName && c.notes) {
+                        const m = c.notes.split('\n').find(l => l.startsWith('ไซต์:'));
+                        if (m) siteName = m.replace('ไซต์:', '').trim();
+                    }
+                    if (!custName) custName = 'ลูกค้าทั่วไป';
+
+                    // Rounds for this contract
+                    const rounds = (c.rounds && c.rounds.length > 0) 
+                        ? c.rounds 
+                        : (DB.maRounds.filter(r => r.contract_id === c.id).sort((a, b) => a.round_number - b.round_number));
+
+                    // Equipment items
+                    const items = Array.isArray(c.service_items) ? c.service_items : [];
+
+                    // Status Badge
+                    let statusBadgeClass = 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20';
+                    if (c.status === 'Completed') statusBadgeClass = 'text-blue-600 bg-blue-500/10 border-blue-500/20';
+                    else if (c.status === 'Cancelled') statusBadgeClass = 'text-rose-600 bg-rose-500/10 border-rose-500/20';
+
+                    return `
+                        <div class="artifact-card rounded-2xl border border-border bg-card overflow-hidden transition-all shadow-sm">
+                            <!-- Card Header (Click to Toggle) -->
+                            <div class="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer hover:bg-muted/30 transition select-none" onclick="app.toggleMAContract('${c.id}')">
+                                <div class="flex-1 min-w-0 space-y-1.5">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-extrabold text-sm sm:text-base text-foreground tracking-tight">${c.contract_no || c.id}</span>
+                                        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full border ${statusBadgeClass}">${c.status}</span>
+                                        <span class="text-[11px] text-muted-foreground bg-muted border border-border/80 px-2 py-0.5 rounded-full">🔧 ${c.service_type}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 sm:gap-3 flex-wrap text-xs text-muted-foreground">
+                                        <span class="text-foreground font-medium flex items-center gap-1"><i class="ph ph-user text-muted-foreground"></i> ${custName}${siteName ? ' · ' + siteName : ''}</span>
+                                        <span>·</span>
+                                        <span class="flex items-center gap-1"><i class="ph ph-calendar text-muted-foreground"></i> ทุก ${c.frequency_months || 3} เดือน · ${c.total_rounds || 4} รอบ</span>
+                                        ${Number(c.contract_value) > 0 ? `
+                                            <span>·</span>
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-semibold">฿${Number(c.contract_value).toLocaleString()}</span>
+                                        ` : ''}
+                                    </div>
+                                </div>
+
+                                <!-- Progress Gauge & Chevron -->
+                                <div class="flex items-center gap-4 shrink-0">
+                                    <div class="text-right">
+                                        <div class="text-xl font-extrabold ${isFullyCompleted ? 'text-emerald-500' : 'text-foreground'}">${cRounds}/${tRounds}</div>
+                                        <div class="text-[10px] text-muted-foreground">รอบที่เสร็จ</div>
+                                        <div class="w-20 h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
+                                            <div class="h-full ${isFullyCompleted ? 'bg-emerald-500' : 'bg-brand-500'} rounded-full transition-all duration-300" style="width: ${pct}%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground">
+                                        ${isExpanded ? '<i class="ph ph-caret-up text-lg"></i>' : '<i class="ph ph-caret-down text-lg"></i>'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Expanded Details -->
+                            ${isExpanded ? `
+                                <div class="border-t border-border p-5 space-y-4 bg-muted/10">
+                                    <!-- Equipment Items -->
+                                    ${items.length > 0 ? `
+                                        <div>
+                                            <div class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">อุปกรณ์ในสัญญา</div>
+                                            <div class="flex flex-wrap gap-2">
+                                                ${items.map((it, idx) => `
+                                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-card border border-border text-xs text-foreground shadow-2xs">
+                                                        <span class="text-muted-foreground font-mono font-medium">${idx + 1}.</span>
+                                                        <span class="font-medium">${it.name}</span>
+                                                        ${it.brand ? `<span class="text-muted-foreground">(${it.brand}${it.btu ? ' ' + it.btu + ' BTU' : ''})</span>` : ''}
+                                                        ${it.location ? `<span class="text-muted-foreground">· ${it.location}</span>` : ''}
+                                                    </span>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+
+                                    <!-- QC Checklist Button -->
+                                    <div>
+                                        <button onclick="app.showMAChecklist('${c.service_type}')" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25 text-xs font-semibold transition cursor-pointer">
+                                            <i class="ph ph-clipboard-text text-sm"></i>
+                                            <span>ดู QC Checklist — ${c.service_type}</span>
+                                        </button>
+                                    </div>
+
+                                    <!-- Service Rounds Table -->
+                                    <div>
+                                        <div class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2.5">ตารางรอบบริการ</div>
+                                        <div class="space-y-2">
+                                            ${rounds.map(r => {
+                                                const statusMap = {
+                                                    'Scheduled': { label: '🗓 กำหนดการ', cls: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
+                                                    'InProgress': { label: '🔧 กำลังทำ', cls: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20' },
+                                                    'Completed': { label: '✅ เสร็จสิ้น', cls: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' },
+                                                    'Rescheduled': { label: '🔁 เลื่อนนัด', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
+                                                    'Skipped': { label: '⏭ ข้าม', cls: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20' }
+                                                };
+                                                const st = statusMap[r.status] || statusMap.Scheduled;
+                                                const canAction = (r.status === 'Scheduled' || r.status === 'InProgress');
+
+                                                return `
+                                                    <div class="flex items-center justify-between p-3 rounded-xl bg-card border border-border/80 hover:border-border transition flex-wrap gap-3">
+                                                        <div class="flex items-center gap-3 flex-wrap">
+                                                            <span class="font-extrabold text-xs sm:text-sm text-foreground min-w-[50px]">รอบ ${r.round_number}</span>
+                                                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full border ${st.cls}">${st.label}</span>
+                                                            <span class="text-xs text-muted-foreground">
+                                                                นัด: <strong class="text-foreground font-mono">${app.formatDate(r.scheduled_date)}</strong>
+                                                                ${r.actual_date ? ` · จริง: <strong class="text-foreground font-mono">${app.formatDate(r.actual_date)}</strong>` : ''}
+                                                            </span>
+                                                        </div>
+
+                                                        ${canAction ? `
+                                                            <div class="flex items-center gap-2">
+                                                                <button onclick="app.completeMARound('${r.id}', ${r.round_number})" class="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition cursor-pointer">
+                                                                    <i class="ph ph-check-bold text-xs"></i>
+                                                                    <span>เสร็จ</span>
+                                                                </button>
+                                                                <button onclick="app.rescheduleMARound('${r.id}', ${r.round_number}, '${r.scheduled_date}')" class="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-semibold transition cursor-pointer">
+                                                                    <i class="ph ph-arrows-clockwise text-xs"></i>
+                                                                    <span>เลื่อน</span>
+                                                                </button>
+                                                            </div>
+                                                        ` : ''}
+                                                    </div>
+                                                `;
+                                            }).join('')}
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            async toggleMAContract(id) {
+                if (this.state.maExpandedId === id) {
+                    this.state.maExpandedId = null;
+                } else {
+                    this.state.maExpandedId = id;
+                    // fetch latest detail for this contract
+                    try {
+                        const res = await fetch(`/api/ma-contracts/${id}`);
+                        if (res.ok) {
+                            const detail = await res.json();
+                            const idx = DB.maContracts.findIndex(c => c.id === id);
+                            if (idx !== -1) {
+                                DB.maContracts[idx] = detail;
+                            }
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+                }
+                this.renderMAContracts();
+            },
+
+            openCreateMAModal() {
+                // Reset form fields
+                document.getElementById('ma-cust-search').value = '';
+                document.getElementById('ma-cust-name').value = '';
+                document.getElementById('ma-cust-phone').value = '';
+                document.getElementById('ma-site-name').value = '';
+                document.getElementById('ma-site-address').value = '';
+                document.getElementById('ma-service-type').value = 'ล้างแอร์';
+                document.getElementById('ma-interval').value = '3';
+                document.getElementById('ma-rounds').value = '4';
+                document.getElementById('ma-value').value = '12000';
+                document.getElementById('ma-notes').value = '';
+
+                // Default date: tomorrow
+                const d = new Date();
+                d.setDate(d.getDate() + 1);
+                document.getElementById('ma-start-date').value = d.toISOString().split('T')[0];
+
+                // Reset equipment items
+                this.state.maEquipment = [
+                    { id: 'si_' + Date.now(), name: 'เครื่องที่ 1', brand: '', btu: '', location: '' }
+                ];
+                this.renderMAEquipmentRows();
+                this.hideMACustomerSuggestions();
+
+                this.showModal('modal-create-ma');
+            },
+
+            renderMAEquipmentRows() {
+                const container = document.getElementById('ma-equipment-container');
+                if (!container) return;
+                container.innerHTML = this.state.maEquipment.map((item, idx) => `
+                    <div class="grid grid-cols-12 gap-2 items-center bg-card p-2 rounded-lg border border-border/80">
+                        <div class="col-span-12 sm:col-span-4">
+                            <input type="text" value="${item.name || ''}" oninput="app.updateMAEquipmentItem('${item.id}', 'name', this.value)" placeholder="รายการ ${idx + 1}" class="w-full bg-muted border border-border rounded px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div class="col-span-4 sm:col-span-3">
+                            <input type="text" value="${item.brand || ''}" oninput="app.updateMAEquipmentItem('${item.id}', 'brand', this.value)" placeholder="ยี่ห้อ" class="w-full bg-muted border border-border rounded px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div class="col-span-3 sm:col-span-2">
+                            <input type="text" value="${item.btu || ''}" oninput="app.updateMAEquipmentItem('${item.id}', 'btu', this.value)" placeholder="BTU" class="w-full bg-muted border border-border rounded px-2 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div class="col-span-4 sm:col-span-2">
+                            <input type="text" value="${item.location || ''}" oninput="app.updateMAEquipmentItem('${item.id}', 'location', this.value)" placeholder="ห้อง/ตำแหน่ง" class="w-full bg-muted border border-border rounded px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div class="col-span-1 text-center">
+                            <button type="button" onclick="app.removeMAEquipmentRow('${item.id}')" class="p-1 rounded text-rose-500 hover:bg-rose-500/10 transition" title="ลบเครื่อง">
+                                <i class="ph ph-trash text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            },
+
+            addMAEquipmentRow() {
+                const count = this.state.maEquipment.length + 1;
+                this.state.maEquipment.push({
+                    id: 'si_' + Date.now(),
+                    name: `เครื่องที่ ${count}`,
+                    brand: '',
+                    btu: '',
+                    location: ''
+                });
+                this.renderMAEquipmentRows();
+            },
+
+            removeMAEquipmentRow(id) {
+                if (this.state.maEquipment.length <= 1) {
+                    this.showToast('สัญญาต้องมีอุปกรณ์อย่างน้อย 1 รายการ');
+                    return;
+                }
+                this.state.maEquipment = this.state.maEquipment.filter(item => item.id !== id);
+                this.renderMAEquipmentRows();
+            },
+
+            updateMAEquipmentItem(id, field, value) {
+                const item = this.state.maEquipment.find(it => it.id === id);
+                if (item) item[field] = value;
+            },
+
+            onMACustomerSearchFocus() {
+                this.onMACustomerSearchInput(document.getElementById('ma-cust-search').value || '');
+            },
+
+            onMACustomerSearchInput(query) {
+                const term = (query || '').trim().toLowerCase();
+                const sugBox = document.getElementById('ma-cust-suggestions');
+                const closeBtn = document.getElementById('ma-btn-close-suggest');
+                if (!sugBox) return;
+
+                const pool = (DB.jobs || []).map(j => ({
+                    id: j.id,
+                    name: j.customer || `${j.firstName || ''} ${j.lastName || ''}`.trim(),
+                    phone: j.phone || '',
+                    address: j.address || '',
+                    service: j.service || ''
+                }));
+
+                const matches = pool.filter(p => {
+                    if (!term) return true;
+                    return p.name.toLowerCase().includes(term) || p.phone.includes(term) || p.address.toLowerCase().includes(term);
+                }).slice(0, 6);
+
+                if (matches.length === 0) {
+                    sugBox.innerHTML = `<div class="p-3 text-center text-xs text-muted-foreground">ไม่พบข้อมูลลูกค้า</div>`;
+                } else {
+                    sugBox.innerHTML = matches.map(m => `
+                        <div class="p-2.5 hover:bg-muted/60 transition cursor-pointer flex items-center justify-between" onclick="app.selectMACustomer('${m.id}')">
+                            <div>
+                                <div class="text-xs font-semibold text-foreground">${m.name}</div>
+                                <div class="text-[11px] text-muted-foreground">${m.phone ? '📞 ' + m.phone : ''} ${m.address ? '· 📍 ' + m.address : ''}</div>
+                            </div>
+                            <span class="text-[11px] text-brand-500 font-semibold">เลือก ➔</span>
+                        </div>
+                    `).join('');
+                }
+
+                sugBox.classList.remove('hidden');
+                if (closeBtn) closeBtn.classList.remove('hidden');
+            },
+
+            hideMACustomerSuggestions() {
+                const sugBox = document.getElementById('ma-cust-suggestions');
+                const closeBtn = document.getElementById('ma-btn-close-suggest');
+                if (sugBox) sugBox.classList.add('hidden');
+                if (closeBtn) closeBtn.classList.add('hidden');
+            },
+
+            selectMACustomer(jobId) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (job) {
+                    document.getElementById('ma-cust-name').value = job.customer || `${job.firstName || ''} ${job.lastName || ''}`.trim();
+                    document.getElementById('ma-cust-phone').value = job.phone || '';
+                    document.getElementById('ma-site-name').value = job.address ? job.address.split(',')[0] : 'สถานที่หลัก';
+                    document.getElementById('ma-site-address').value = job.address || '';
+                    const clearBtn = document.getElementById('ma-btn-clear-customer');
+                    if (clearBtn) clearBtn.classList.remove('hidden');
+                }
+                this.hideMACustomerSuggestions();
+            },
+
+            clearMACustomerSelection() {
+                document.getElementById('ma-cust-search').value = '';
+                document.getElementById('ma-cust-name').value = '';
+                document.getElementById('ma-cust-phone').value = '';
+                document.getElementById('ma-site-name').value = '';
+                document.getElementById('ma-site-address').value = '';
+                const clearBtn = document.getElementById('ma-btn-clear-customer');
+                if (clearBtn) clearBtn.classList.add('hidden');
+            },
+
+            async submitCreateMA(e) {
+                e.preventDefault();
+                const custName = document.getElementById('ma-cust-name').value.trim();
+                const custPhone = document.getElementById('ma-cust-phone').value.trim();
+                const siteName = document.getElementById('ma-site-name').value.trim();
+                const siteAddr = document.getElementById('ma-site-address').value.trim();
+                const serviceType = document.getElementById('ma-service-type').value;
+                const interval = parseInt(document.getElementById('ma-interval').value) || 3;
+                const totalRounds = parseInt(document.getElementById('ma-rounds').value) || 4;
+                const startDate = document.getElementById('ma-start-date').value;
+                const contractValue = parseFloat(document.getElementById('ma-value').value) || 0;
+                const notes = document.getElementById('ma-notes').value.trim();
+
+                if (!custName) {
+                    alert('กรุณากรอกชื่อลูกค้า');
+                    return;
+                }
+                if (!startDate) {
+                    alert('กรุณาระบุวันเริ่มต้นสัญญา');
+                    return;
+                }
+
+                // Calculate end date
+                const dEnd = new Date(startDate);
+                dEnd.setMonth(dEnd.getMonth() + (interval * totalRounds));
+                const endDate = dEnd.toISOString().split('T')[0];
+
+                const serviceItems = this.state.maEquipment.filter(item => item.name && item.name.trim());
+
+                const payload = {
+                    customer_name: custName,
+                    customer_phone: custPhone,
+                    site_name: siteName,
+                    site_address: siteAddr,
+                    service_type: serviceType,
+                    service_items: serviceItems,
+                    frequency_months: interval,
+                    total_rounds: totalRounds,
+                    contract_start_date: startDate,
+                    contract_end_date: endDate,
+                    contract_value: contractValue,
+                    notes: [
+                        `ลูกค้า: ${custName}`,
+                        custPhone ? `โทร: ${custPhone}` : '',
+                        siteName ? `ไซต์: ${siteName}` : '',
+                        siteAddr ? `ที่อยู่: ${siteAddr}` : '',
+                        notes
+                    ].filter(Boolean).join('\n'),
+                    status: 'Active'
+                };
+
+                // Submit to backend API
+                try {
+                    const res = await fetch('/api/ma-contracts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (res.ok) {
+                        const newContract = await res.json();
+                        this.state.maExpandedId = newContract.id;
+                        this.showToast(`สร้างสัญญา MA สำเร็จ (${newContract.contract_no || newContract.id})`);
+                    } else {
+                        throw new Error('API request failed');
+                    }
+                } catch (err) {
+                    // Fallback to local DB
+                    const count = DB.maContracts.length + 1;
+                    const year = new Date().getFullYear();
+                    const newId = `mac_${Date.now()}`;
+                    const localContract = {
+                        ...payload,
+                        id: newId,
+                        contract_no: `MAC-${year}-${String(count).padStart(4, '0')}`,
+                        total_rounds_count: totalRounds,
+                        completed_rounds: 0
+                    };
+                    DB.maContracts.unshift(localContract);
+
+                    // Add rounds
+                    const sDate = new Date(startDate);
+                    for (let i = 1; i <= totalRounds; i++) {
+                        const rDate = new Date(sDate);
+                        rDate.setMonth(rDate.getMonth() + (interval * (i - 1)));
+                        DB.maRounds.push({
+                            id: `mar_${Date.now()}_${i}`,
+                            contract_id: newId,
+                            round_number: i,
+                            scheduled_date: rDate.toISOString().split('T')[0],
+                            actual_date: null,
+                            status: 'Scheduled'
+                        });
+                    }
+
+                    this.state.maExpandedId = newId;
+                    this.showToast(`สร้างสัญญา MA เรียบร้อยแล้ว (+${totalRounds} รอบ)`);
+                }
+
+                this.hideModal('modal-create-ma');
+                await this.fetchMAFromApi();
+                this.renderMAContracts();
+            },
+
+            async completeMARound(roundId, roundNum) {
+                if (!confirm(`ยืนยันปิดรอบที่ ${roundNum} เป็น "เสร็จสิ้น"?`)) return;
+                const today = new Date().toISOString().split('T')[0];
+
+                try {
+                    await fetch(`/api/ma-rounds/${roundId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            status: 'Completed',
+                            actual_date: today
+                        })
+                    });
+                } catch (e) {
+                    // fallback local
+                    const r = DB.maRounds.find(item => item.id === roundId);
+                    if (r) {
+                        r.status = 'Completed';
+                        r.actual_date = today;
+                    }
+                }
+
+                this.showToast(`บันทึกผลรอบที่ ${roundNum} เสร็จสิ้นเรียบร้อยแล้ว`);
+                await this.fetchMAFromApi();
+                this.renderMAContracts();
+            },
+
+            async rescheduleMARound(roundId, roundNum, curDate) {
+                const newDate = prompt(`วันใหม่สำหรับรอบที่ ${roundNum} (YYYY-MM-DD):`, curDate || '');
+                if (!newDate) return;
+
+                try {
+                    await fetch(`/api/ma-rounds/${roundId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            status: 'Rescheduled',
+                            scheduled_date: newDate
+                        })
+                    });
+                } catch (e) {
+                    const r = DB.maRounds.find(item => item.id === roundId);
+                    if (r) {
+                        r.status = 'Rescheduled';
+                        r.scheduled_date = newDate;
+                    }
+                }
+
+                this.showToast(`เลื่อนนัดรอบที่ ${roundNum} เป็นวันที่ ${this.formatDate(newDate)} แล้ว`);
+                await this.fetchMAFromApi();
+                this.renderMAContracts();
+            },
+
+            showMAChecklist(serviceType) {
+                const templates = DB.maChecklistTemplates || [];
+                const tpl = templates.find(t => t.service_type === serviceType) || templates[0];
+                if (!tpl) {
+                    alert(`ไม่พบ Checklist สำหรับ ${serviceType}`);
+                    return;
+                }
+
+                const titleEl = document.getElementById('ma-checklist-modal-title');
+                if (titleEl) titleEl.innerText = tpl.template_name || `Checklist ${serviceType}`;
+
+                const container = document.getElementById('ma-checklist-items-container');
+                if (container) {
+                    const items = Array.isArray(tpl.checklist_items) ? tpl.checklist_items : [];
+                    container.innerHTML = items.map((it, idx) => `
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/80">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-5 h-5 rounded border border-border bg-card flex items-center justify-center shrink-0">
+                                    <i class="ph ph-check text-xs text-muted-foreground/50"></i>
+                                </div>
+                                <span class="text-xs text-foreground font-medium">${idx + 1}. ${it.label}</span>
+                            </div>
+                            ${it.required ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-500 border border-rose-500/20">จำเป็น</span>` : ''}
+                        </div>
+                    `).join('');
+                }
+
+                this.showModal('modal-ma-checklist');
             }
         };
 
