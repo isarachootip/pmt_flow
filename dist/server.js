@@ -20,7 +20,8 @@ const fs_1 = __importDefault(require("fs"));
 const app = (0, express_1.default)();
 app.use((0, helmet_1.default)({ contentSecurityPolicy: false }));
 app.use((0, cors_1.default)());
-app.use(express_1.default.json());
+app.use(express_1.default.json({ limit: '50mb' }));
+app.use(express_1.default.urlencoded({ limit: '50mb', extended: true }));
 // Serve static frontend files (index.html)
 app.use(express_1.default.static(path_1.default.join(__dirname, '../')));
 app.use(express_1.default.static(path_1.default.join(__dirname, './')));
@@ -353,11 +354,96 @@ function seedInitialCoreData() {
     ];
     exports.coreCustomerStore.push(...mockCustomers);
     const mockJobs = [
-        { id: 1, job_no: 'JOB202609001', external_ref_id: 'INT-2026-001', customer_id: 1, status: JobStatus.IN_PROGRESS, property_type: 'บ้านเดี่ยว', project_type: 'Renovate', project_sub_type: 'Renovate ครัว', assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-05', services: ['Renovate ครัว'], overall_progress: 45, created_at: '2026-09-01T08:00:00Z' },
-        { id: 2, job_no: 'JOB202609002', external_ref_id: 'INT-2026-002', customer_id: 2, status: JobStatus.QC_PENDING, property_type: 'ทาวน์โฮม', project_type: 'Installation', project_sub_type: 'ปั้มแท็งก์', assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-09-02', services: ['ปั้มแท็งก์'], overall_progress: 100, created_at: '2026-09-01T09:00:00Z' },
-        { id: 3, job_no: 'JOB202609003', external_ref_id: 'INT-2026-003', customer_id: 3, status: JobStatus.QC_PASSED, property_type: 'คอนโดมิเนียม', project_type: 'Installation', project_sub_type: 'ติดตั้งเครื่องทำน้ำอุ่น', assigned_tech: 'Team C (วิชัย)', plan_date: '2026-08-30', services: ['ติดตั้งเครื่องทำน้ำอุ่น'], overall_progress: 100, created_at: '2026-08-29T10:00:00Z' },
-        { id: 4, job_no: 'JOB202609004', external_ref_id: 'INT-2026-004', customer_id: 4, status: JobStatus.DRAFT, property_type: 'บ้านเดี่ยว', project_type: 'Survey', project_sub_type: 'สำรวจหน้างาน', assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-10', services: ['สำรวจหน้างาน'], overall_progress: 0, created_at: '2026-09-02T11:00:00Z' },
-        { id: 5, job_no: 'JOB202609005', external_ref_id: 'INT-2026-005', customer_id: 5, status: JobStatus.AFTER_SALE, property_type: 'บ้านเดี่ยว', project_type: 'Renovate', project_sub_type: 'Renovate ครัว', assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-08-25', services: ['Renovate ครัว'], overall_progress: 100, created_at: '2026-08-24T12:00:00Z' }
+        {
+            id: 1,
+            job_no: 'JOB202609001',
+            external_ref_id: 'INT-2026-001',
+            customer_id: 1,
+            status: JobStatus.IN_PROGRESS,
+            property_type: 'บ้านเดี่ยว',
+            project_type: 'Renovate',
+            project_sub_type: 'Renovate ครัว',
+            assigned_tech: 'Team A (สมศักดิ์)',
+            plan_date: '2026-09-05',
+            services: ['Renovate ครัว'],
+            overall_progress: 45,
+            special_instructions: 'ระวังมีสุนัขในบ้าน, กรุณาโทรแจ้งลูกค้าล่วงหน้า 30 นาทีก่อนเข้าพื้นที่ และสวมถุงคลุมรองเท้าก่อนเข้าห้องนอน',
+            additional_notes: 'ตรวจสอบจุดเชื่อมต่อท่อน้ำทิ้งเดิม และระวังแนวท่อแอร์บนฝ้าเพดาน ลูกค้าเตรียมเต้ารับไฟฟ้าพร้อมแล้ว',
+            photos: [],
+            created_at: '2026-09-01T08:00:00Z'
+        },
+        {
+            id: 2,
+            job_no: 'JOB202609002',
+            external_ref_id: 'INT-2026-002',
+            customer_id: 2,
+            status: JobStatus.QC_PENDING,
+            property_type: 'ทาวน์โฮม',
+            project_type: 'Installation',
+            project_sub_type: 'ปั้มแท็งก์',
+            assigned_tech: 'Team B (ประเสริฐ)',
+            plan_date: '2026-09-02',
+            services: ['ปั้มแท็งก์'],
+            overall_progress: 100,
+            special_instructions: 'เข้าพื้นที่ได้หลังเวลา 10:00 น. เท่านั้น',
+            additional_notes: 'ติดตั้งบริเวณลานซักล้างหลังบ้าน ปลั๊กไฟกันน้ำพร้อมใช้งาน',
+            photos: [],
+            created_at: '2026-09-01T09:00:00Z'
+        },
+        {
+            id: 3,
+            job_no: 'JOB202609003',
+            external_ref_id: 'INT-2026-003',
+            customer_id: 3,
+            status: JobStatus.QC_PASSED,
+            property_type: 'คอนโดมิเนียม',
+            project_type: 'Installation',
+            project_sub_type: 'ติดตั้งเครื่องทำน้ำอุ่น',
+            assigned_tech: 'Team C (วิชัย)',
+            plan_date: '2026-08-30',
+            services: ['ติดตั้งเครื่องทำน้ำอุ่น'],
+            overall_progress: 100,
+            special_instructions: 'นิติบุคคลคอนโดอนุญาตทำงานเฉพาะ จันทร์-ศุกร์ 09:00-17:00 น.',
+            additional_notes: 'ติดสติ๊กเกอร์เบรกเกอร์ ELCB พร้อมวัดสายดินเรียบร้อย',
+            photos: [],
+            created_at: '2026-08-29T10:00:00Z'
+        },
+        {
+            id: 4,
+            job_no: 'JOB202609004',
+            external_ref_id: 'INT-2026-004',
+            customer_id: 4,
+            status: JobStatus.DRAFT,
+            property_type: 'บ้านเดี่ยว',
+            project_type: 'Survey',
+            project_sub_type: 'สำรวจหน้างาน',
+            assigned_tech: 'Team A (สมศักดิ์)',
+            plan_date: '2026-09-10',
+            services: ['สำรวจหน้างาน'],
+            overall_progress: 0,
+            special_instructions: 'ลูกค้าขอช่างที่มีประสบการณ์งาน built-in',
+            additional_notes: '',
+            photos: [],
+            created_at: '2026-09-02T11:00:00Z'
+        },
+        {
+            id: 5,
+            job_no: 'JOB202609005',
+            external_ref_id: 'INT-2026-005',
+            customer_id: 5,
+            status: JobStatus.AFTER_SALE,
+            property_type: 'บ้านเดี่ยว',
+            project_type: 'Renovate',
+            project_sub_type: 'Renovate ครัว',
+            assigned_tech: 'Team B (ประเสริฐ)',
+            plan_date: '2026-08-25',
+            services: ['Renovate ครัว'],
+            overall_progress: 100,
+            special_instructions: '',
+            additional_notes: 'บริการล้างเครื่องปรับอากาศประจำปีภายใต้ประกัน 1 ปี',
+            photos: [],
+            created_at: '2026-08-24T12:00:00Z'
+        }
     ];
     exports.coreJobStore.push(...mockJobs);
     console.log(`[CORE SEED] Seeded ${mockJobs.length} core jobs in coreJobStore.`);
@@ -967,6 +1053,9 @@ app.get('/api/v1/jobs', (req, res) => {
             date: job.plan_date || (job.created_at ? job.created_at.split('T')[0] : '2026-09-05'),
             progress: job.overall_progress || 0,
             tech: job.assigned_tech || 'Team A (สมศักดิ์)',
+            special_instructions: job.special_instructions || '',
+            additional_notes: job.additional_notes || '',
+            photos: job.photos || [],
             created_at: job.created_at
         };
     });
@@ -1018,8 +1107,103 @@ app.get('/api/v1/jobs/:id', (req, res) => {
             date: job.plan_date || (job.created_at ? job.created_at.split('T')[0] : '2026-09-05'),
             progress: job.overall_progress || 0,
             tech: job.assigned_tech || 'Team A (สมศักดิ์)',
+            special_instructions: job.special_instructions || '',
+            additional_notes: job.additional_notes || '',
+            photos: job.photos || [],
             created_at: job.created_at
         }
+    });
+});
+// Update Job Details (Special Instructions, Additional Notes, Tech, etc.)
+app.patch('/api/v1/jobs/:id', (req, res) => {
+    const param = req.params.id;
+    const numId = Number(param);
+    const job = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+    if (!job) {
+        return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
+    }
+    const { special_instructions, additional_notes, assigned_tech, plan_date, status, overall_progress, photos, pmt_accepted, pmt_accepted_at } = req.body;
+    if (special_instructions !== undefined)
+        job.special_instructions = special_instructions;
+    if (additional_notes !== undefined)
+        job.additional_notes = additional_notes;
+    if (assigned_tech !== undefined)
+        job.assigned_tech = assigned_tech;
+    if (plan_date !== undefined)
+        job.plan_date = plan_date;
+    if (status !== undefined)
+        job.status = status;
+    if (overall_progress !== undefined)
+        job.overall_progress = overall_progress;
+    if (photos !== undefined)
+        job.photos = photos;
+    if (pmt_accepted !== undefined)
+        job.pmt_accepted = pmt_accepted;
+    if (pmt_accepted_at !== undefined)
+        job.pmt_accepted_at = pmt_accepted_at;
+    return res.json({
+        success: true,
+        data: {
+            id: job.job_no || `JOB-${job.id}`,
+            special_instructions: job.special_instructions,
+            additional_notes: job.additional_notes,
+            photos: job.photos || [],
+            status: job.status,
+            pmt_accepted: job.pmt_accepted
+        },
+        message: 'บันทึกข้อมูลงานเรียบร้อยแล้ว'
+    });
+});
+// Upload Additional Site Photo
+app.post('/api/v1/jobs/:id/photos', (req, res) => {
+    const param = req.params.id;
+    const numId = Number(param);
+    const job = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+    if (!job) {
+        return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
+    }
+    const { title, name, dataUrl, url, tag, note, lat, lng } = req.body;
+    if (!dataUrl && !url) {
+        return res.status(400).json({ success: false, error: { code: 'MISSING_PHOTO', message: 'Photo dataUrl or url is required' } });
+    }
+    if (!job.photos)
+        job.photos = [];
+    const newPhoto = {
+        id: 'PHT-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+        title: title || name || `รูปหน้างานเพิ่มเติม #${job.photos.length + 1}`,
+        name: name || `IMG_SITE_ADD_${Date.now().toString().slice(-4)}.JPG`,
+        url: dataUrl || url,
+        tag: tag || 'ภาพเพิ่มเติม',
+        note: note || '',
+        lat: lat || 13.7563,
+        lng: lng || 100.5018,
+        gps_verified: true,
+        uploaded_at: new Date().toISOString()
+    };
+    job.photos.push(newPhoto);
+    return res.status(201).json({
+        success: true,
+        data: newPhoto,
+        total_photos: job.photos.length,
+        message: 'อัปโหลดรูปภาพเพิ่มเติมสำเร็จ'
+    });
+});
+// Delete Site Photo
+app.delete('/api/v1/jobs/:id/photos/:photoId', (req, res) => {
+    const param = req.params.id;
+    const photoId = req.params.photoId;
+    const numId = Number(param);
+    const job = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+    if (!job) {
+        return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
+    }
+    if (job.photos) {
+        job.photos = job.photos.filter((p) => p.id !== photoId);
+    }
+    return res.json({
+        success: true,
+        total_photos: job.photos ? job.photos.length : 0,
+        message: 'ลบรูปภาพเรียบร้อยแล้ว'
     });
 });
 app.post('/api/v1/jobs', (req, res) => {

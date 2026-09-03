@@ -250,6 +250,8 @@ CREATE TABLE t_job (
     bmt_export_ref VARCHAR(100),
     bmt_exported_at TIMESTAMP WITH TIME ZONE,
     closed_at TIMESTAMP WITH TIME ZONE,
+    special_instructions TEXT, -- คำสั่งพิเศษ (Special Instructions)
+    additional_notes TEXT, -- ข้อมูลเพิ่มเติม / หมายเหตุหน้างาน (Additional Notes)
     created_by BIGINT REFERENCES m_user(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
