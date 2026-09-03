@@ -3500,20 +3500,24 @@
                     </div>
                     `;
                 } else {
+                    const checkinBadge = `
+                        <span class="text-xs text-emerald-500 font-semibold flex items-center gap-1.5 bg-emerald-500/10 px-3 py-2 rounded-lg border border-emerald-500/20">
+                            <i class="ph ph-check-circle text-sm"></i> ช่าง Check-in หน้างาน (GPS) แล้ว
+                        </span>
+                    `;
+
                     let actionButtons = '';
-                    if (isDraft) {
+                    if (isDraft || !job.pmt_accepted) {
                         actionButtons = `
-                            <button class="btn-artifact-primary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm" onclick="app.acceptJobToPMT('${job.id}')">
+                            ${checkinBadge}
+                            <button class="btn-artifact-primary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm font-semibold cursor-pointer" onclick="app.acceptJobToPMT('${job.id}')">
                                 <i class="ph ph-check-circle text-sm"></i>
                                 <span>รับเข้าระบบ PMT</span>
-                            </button>
-                            <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.checkinJob('${job.id}')">
-                                <i class="ph ph-map-pin text-sm"></i>
-                                <span>ช่าง Check-in หน้างาน (GPS)</span>
                             </button>
                         `;
                     } else if (isClosed) {
                         actionButtons = `
+                            ${checkinBadge}
                             <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
                                 <i class="ph ph-seal-check text-base"></i>
                                 <span>ปิดงานและส่งข้อมูลเข้าสู่ระบบ BMT สำเร็จเรียบร้อย (${job.bmt_ref || 'BMT-REF-2026-99214'})</span>
@@ -3521,20 +3525,15 @@
                         `;
                     } else {
                         actionButtons = `
+                            ${checkinBadge}
                             <span class="text-xs text-emerald-500 font-semibold flex items-center gap-1.5 bg-emerald-500/10 px-3 py-2 rounded-lg border border-emerald-500/20">
                                 <i class="ph ph-check-circle text-sm"></i> รับเข้าระบบ PMT แล้ว
                             </span>
-                            <button class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.checkinJob('${job.id}')">
-                                <i class="ph ph-map-pin text-sm"></i>
-                                <span>Check-in หน้างาน (GPS)</span>
-                            </button>
                         `;
                     }
 
                     const step1Class = "w-3.5 h-3.5 bg-emerald-500 text-white flex items-center justify-center rounded-full ring-4 ring-card text-[9px] font-bold";
-                    const step2Dot = isDraft
-                        ? "w-3.5 h-3.5 bg-brand-500 rounded-full ring-4 ring-card animate-pulse"
-                        : "w-3.5 h-3.5 bg-emerald-500 text-white flex items-center justify-center rounded-full ring-4 ring-card text-[9px] font-bold";
+                    const step2Dot = "w-3.5 h-3.5 bg-emerald-500 text-white flex items-center justify-center rounded-full ring-4 ring-card text-[9px] font-bold";
 
                     const uploadedPhotos = job.photos || [];
                     const totalPhotoCount = 5 + uploadedPhotos.length;
@@ -3651,10 +3650,10 @@
                                             <div class="text-[11px] text-muted-foreground mt-0.5">ระบบอัตโนมัติสร้าง Order • ${job.date}</div>
                                         </div>
                                         <div class="relative">
-                                            <div class="absolute -left-[23px] top-0.5 ${step2Dot}">${!isDraft ? '✓' : ''}</div>
-                                            <div class="text-xs font-semibold text-foreground">2. ช่าง Check-in ยืนยันพิกัด GPS</div>
+                                            <div class="absolute -left-[23px] top-0.5 ${step2Dot}">✓</div>
+                                            <div class="text-xs font-semibold text-foreground">2. ช่าง Check-in ยืนยันพิกัด GPS (จากระบบ AE)</div>
                                             <div class="text-[11px] text-muted-foreground mt-0.5">
-                                                 ${!isDraft ? '<span class="text-emerald-500 font-medium">✓ Check-in แล้ว (GPS ห่าง 180 ม. อยู่ในเกณฑ์รัศมี 400 ม.)</span>' : 'ช่างเข้าพื้นที่หน้างานและถ่ายรูปก่อนเริ่มติดตั้ง'}
+                                                 <span class="text-emerald-500 font-medium">✓ Check-in แล้ว (GPS ห่าง 180 ม. อยู่ในเกณฑ์รัศมี 400 ม.)</span>
                                             </div>
 
                                             <!-- บันทึกตำแหน่งหน้างาน (Geo-fence Verification) ย้ายมาอยู่ใต้ข้อ 2 -->
