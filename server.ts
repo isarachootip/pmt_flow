@@ -844,9 +844,14 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
   }
 });
 
-// Seed 5 Mock Survey Records for Staging Monitoring & Manual Conversion
-export function seedInitialStagingData() {
+// Seed Mock Survey Records for Staging Monitoring & Manual Conversion (Empty by default)
+export function seedInitialStagingData(populateMocks: boolean = false) {
   stagingSurveyStore.length = 0; // Reset
+
+  if (!populateMocks) {
+    console.log('[STAGING STORE] Initialized with empty staging survey store (Clean State).');
+    return;
+  }
 
   const mockRecords: StagingSurveyReport[] = [
     {
@@ -1042,9 +1047,9 @@ export function seedInitialStagingData() {
   console.log(`[STAGING SEED] Seeded ${mockRecords.length} mock pending records in staging table.`);
 }
 
-// Initial Seed on Server Startup
-seedInitialStagingData();
-seedInitialCoreData();
+// Initial Seed on Server Startup (Clean state by default)
+seedInitialStagingData(false);
+seedInitialCoreData(false);
 
 // =============================================================================
 // CONVERSION ENGINE (STAGING -> CORE PMT)
@@ -1381,57 +1386,61 @@ app.post('/api/v1/staging/seed', (req: Request, res: Response) => {
 // 1.2 CORE JOBS APIS (List, Get, Create for Web Dashboard & Automation)
 app.get('/api/v1/jobs', (req: Request, res: Response) => {
   const { status, service, search } = req.query;
-  let results = coreJobStore.map(job => {
-    const cust = coreCustomerStore.find(c => c.id === job.customer_id);
-    const customerFullName = cust ? `${cust.first_name || ''} ${cust.last_name || ''}`.trim() : 'ไม่ระบุชื่อ';
-    const primaryService = (job.services && job.services[0]) || job.project_sub_type || 'งานติดตั้ง';
+  try {
+    let results = coreJobStore.map(job => {
+      const cust = coreCustomerStore.find(c => c.id === job.customer_id);
+      const customerFullName = cust ? `${cust.first_name || ''} ${cust.last_name || ''}`.trim() : 'ไม่ระบุชื่อ';
+      const primaryService = (job.services && job.services[0]) || job.project_sub_type || 'งานติดตั้ง';
 
-    return {
-      id: job.job_no || `JOB-${job.id}`,
-      jobId: job.id,
-      job_no: job.job_no,
-      external_ref_id: job.external_ref_id,
-      customer: customerFullName,
-      firstName: cust?.first_name || '',
-      lastName: cust?.last_name || '',
-      phone: cust?.phone || '',
-      address: cust?.address || '',
-      lat: cust?.lat || 13.7563,
-      lng: cust?.lng || 100.5018,
-      service: primaryService,
-      services: job.services || [primaryService],
-      status: job.status,
-      date: job.plan_date || (job.created_at ? job.created_at.split('T')[0] : '2026-09-05'),
-      progress: job.overall_progress || 0,
-      tech: job.assigned_tech || 'Team A (สมศักดิ์)',
-      special_instructions: job.special_instructions || '',
-      additional_notes: job.additional_notes || '',
-      photos: job.photos || [],
-      created_at: job.created_at
-    };
-  });
+      return {
+        id: job.job_no || `JOB-${job.id}`,
+        jobId: job.id,
+        job_no: job.job_no,
+        external_ref_id: job.external_ref_id,
+        customer: customerFullName,
+        firstName: cust?.first_name || '',
+        lastName: cust?.last_name || '',
+        phone: cust?.phone || '',
+        address: cust?.address || '',
+        lat: cust?.lat || 13.7563,
+        lng: cust?.lng || 100.5018,
+        service: primaryService,
+        services: job.services || [primaryService],
+        status: job.status,
+        date: job.plan_date || (job.created_at ? job.created_at.split('T')[0] : '2026-09-05'),
+        progress: job.overall_progress || 0,
+        tech: job.assigned_tech || 'Team A (สมศักดิ์)',
+        special_instructions: job.special_instructions || '',
+        additional_notes: job.additional_notes || '',
+        photos: job.photos || [],
+        created_at: job.created_at
+      };
+    });
 
-  if (status && status !== 'all') {
-    results = results.filter(j => j.status === status);
-  }
-  if (service && service !== 'all') {
-    results = results.filter(j => j.service === service || (j.services && j.services.includes(String(service))));
-  }
-  if (search) {
-    const q = String(search).toLowerCase();
-    results = results.filter(j => 
-      j.id.toLowerCase().includes(q) ||
-      j.customer.toLowerCase().includes(q) ||
-      j.phone.includes(q) ||
-      j.service.toLowerCase().includes(q)
-    );
-  }
+    if (status && status !== 'all') {
+      results = results.filter(j => j.status === status);
+    }
+    if (service && service !== 'all') {
+      results = results.filter(j => j.service === service || (j.services && j.services.includes(String(service))));
+    }
+    if (search) {
+      const q = String(search).toLowerCase();
+      results = results.filter(j => 
+        j.id.toLowerCase().includes(q) ||
+        j.customer.toLowerCase().includes(q) ||
+        j.phone.includes(q) ||
+        j.service.toLowerCase().includes(q)
+      );
+    }
 
-  return res.json({
-    success: true,
-    total: results.length,
-    data: results
-  });
+    return res.json({
+      success: true,
+      total: results.length,
+      data: results
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
 });
 
 app.get('/api/v1/jobs/:id', (req: Request, res: Response) => {

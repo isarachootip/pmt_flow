@@ -2481,11 +2481,14 @@
                     document.documentElement.classList.remove('dark');
                 }
 
-                // Clear old legacy mock data from localStorage once
-                if (localStorage.getItem('pmt_jobs_cleared_v3') !== 'true') {
+                // Clear old legacy mock data from localStorage once (Clean state for new testing)
+                if (localStorage.getItem('pmt_jobs_cleared_v4') !== 'true') {
                     try {
                         localStorage.removeItem('pmt_jobs');
-                        localStorage.setItem('pmt_jobs_cleared_v3', 'true');
+                        localStorage.setItem('pmt_jobs_cleared_v4', 'true');
+                        DB.jobs = [];
+                        DB.tasks = [];
+                        DB.blueprints = [];
                     } catch(e) {}
                 }
 
@@ -2516,17 +2519,20 @@
                     if (res.ok) {
                         const json = await res.json();
                         if (json.success && Array.isArray(json.data)) {
-                            if (json.data.length === 0 && localStorage.getItem('pmt_jobs_cleared_v3') === 'true') {
-                                // If server is empty and client was cleared, maintain clean state unless user added local jobs
-                                if (DB.jobs.length === 0) {
-                                    this.persistJobs();
-                                    if (this.state.currentView === 'jobs') this.renderJobs();
-                                    if (this.state.currentView === 'dashboard') this.renderDashboard();
-                                    if (this.state.currentView === 'gantt') this.renderGantt();
-                                    const countEl = document.getElementById('sidebar-job-count');
-                                    if (countEl) countEl.innerText = '0';
-                                    return;
-                                }
+                            if (json.data.length === 0) {
+                                DB.jobs = [];
+                                DB.tasks = [];
+                                DB.blueprints = [];
+                                this.persistJobs();
+                                if (this.state.currentView === 'jobs') this.renderJobs();
+                                if (this.state.currentView === 'dashboard') this.renderDashboard();
+                                if (this.state.currentView === 'gantt') this.renderGantt();
+                                if (this.state.currentView === 'qc') this.renderQC();
+                                if (this.state.currentView === 'csat') this.renderCSAT();
+                                if (this.state.currentView === 'blueprints') this.renderBlueprints();
+                                const countEl = document.getElementById('sidebar-job-count');
+                                if (countEl) countEl.innerText = '0';
+                                return;
                             }
                             const remoteJobs = json.data;
                             if (remoteJobs.length > 0) {
