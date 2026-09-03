@@ -267,6 +267,13 @@
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono" id="sidebar-job-count">5</span>
                         </a>
+                        <a href="#" onclick="app.navigate('blueprints')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-blueprints">
+                            <div class="flex items-center gap-2.5">
+                                <i class="ph ph-blueprint text-base text-brand-500"></i>
+                                <span>แบบติดตั้ง (Blueprints)</span>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-500 font-mono font-medium" id="sidebar-blueprint-count">5</span>
+                        </a>
                         <a href="#" onclick="app.navigate('gantt')" class="nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
                             <i class="ph ph-chart-bar text-base"></i>
                             <span>แผนงาน (Gantt Timeline)</span>
@@ -647,6 +654,49 @@
                 <!-- 3. JOB DETAIL VIEW -->
                 <div id="page-job-detail" class="page-view hidden-view space-y-6">
                     <div id="job-detail-content">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+                </div>
+
+                <!-- 3.5 BLUEPRINTS & DESIGN FILES CENTER -->
+                <div id="page-blueprints" class="page-view hidden-view space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-2xl">📐</span>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">ศูนย์รวมแบบติดตั้ง (Installation Blueprints & CAD/PDF)</h2>
+                            </div>
+                            <p class="text-xs text-muted-foreground mt-1">คลังไฟล์แบบแปลน ไดอะแกรมงานติดตั้ง CAD/PDF และประวัติเวอร์ชันทุกโครงการ</p>
+                        </div>
+                        <div class="flex items-center gap-2.5">
+                            <button onclick="app.openUploadBlueprintModal()" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm">
+                                <i class="ph ph-upload-simple text-sm"></i>
+                                <span>อัปโหลดแบบแปลนใหม่</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search & Filter Card -->
+                    <div class="artifact-card p-4">
+                        <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
+                            <div class="relative flex-1 w-full">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+                                <input type="text" id="blueprint-search" oninput="app.filterBlueprints()" placeholder="ค้นหาตามรหัสงาน (JOB ID), ชื่อลูกค้า, หรือชื่อไฟล์แบบงาน..." class="w-full bg-card border border-border rounded-lg pl-9 pr-4 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500">
+                            </div>
+                            <div class="flex items-center gap-2 w-full sm:w-auto">
+                                <select id="blueprint-filter-service" onchange="app.filterBlueprints()" class="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                                    <option value="all">ทุกประเภทบริการ</option>
+                                    <option value="Renovate ครัว">Renovate ครัว</option>
+                                    <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
+                                    <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                                    <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Blueprints Grid List Container -->
+                    <div id="blueprints-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <!-- Populated dynamically by JS -->
                     </div>
                 </div>
@@ -1241,6 +1291,70 @@
             </div>
         </div>
     </div>
+
+    <!-- MODAL: UPLOAD BLUEPRINT -->
+    <div id="modal-upload-blueprint" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-upload-blueprint-content">
+            <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-brand-500/15 text-brand-500 flex items-center justify-center font-bold">
+                        <i class="ph ph-blueprint text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-sm text-foreground">📐 อัปโหลดแบบติดตั้ง / ไดอะแกรม</h3>
+                        <p class="text-[10px] text-muted-foreground">แนบไฟล์แบบแปลนงานติดตั้ง (PDF, CAD, DWG) สำหรับโครงการ</p>
+                    </div>
+                </div>
+                <button onclick="app.hideModal('modal-upload-blueprint')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition">
+                    <i class="ph ph-x text-base"></i>
+                </button>
+            </div>
+
+            <form onsubmit="app.submitUploadBlueprint(event)" class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-foreground mb-1">เลือกงาน / โครงการ *</label>
+                    <select id="upload-bp-jobid" required class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-foreground mb-1">ชื่อไฟล์แบบแปลน *</label>
+                    <input type="text" id="upload-bp-filename" required placeholder="เช่น Air_Installation_Layout_v3.pdf" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-foreground mb-1">เวอร์ชันแบบ</label>
+                        <input type="text" id="upload-bp-version" placeholder="v3 Final" value="v3 Final" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-foreground mb-1">ผู้ออกแบบ / สถาปนิก</label>
+                        <input type="text" id="upload-bp-designer" placeholder="คุณธนกฤต (Designer)" value="คุณธนกฤต (Designer)" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-foreground mb-1">หมายเหตุ / รายละเอียดแบบ</label>
+                    <textarea id="upload-bp-notes" rows="2" placeholder="ระบุรายละเอียดเพิ่มเติมเกี่ยวกับแบบติดตั้งฉบับนี้..." class="w-full bg-muted/40 border border-border rounded-lg p-2.5 text-xs text-foreground focus:outline-none focus:border-brand-500"></textarea>
+                </div>
+
+                <!-- Drag & drop mock -->
+                <div class="border-2 border-dashed border-border hover:border-brand-500/50 rounded-xl p-4 text-center cursor-pointer bg-muted/20">
+                    <i class="ph ph-file-arrow-up text-2xl text-brand-500 mb-1"></i>
+                    <div class="text-xs font-medium text-foreground">ลากไฟล์ PDF / CAD หรือคลิกเพื่อเลือกไฟล์</div>
+                    <div class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์ขนาดสูงสุด 50 MB</div>
+                </div>
+
+                <div class="pt-3 border-t border-border flex justify-end gap-2">
+                    <button type="button" onclick="app.hideModal('modal-upload-blueprint')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs">ยกเลิก</button>
+                    <button type="submit" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-sm">
+                        <i class="ph ph-upload-simple"></i> บันทึกแบบแปลน
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
     <div id="toast" class="fixed bottom-6 right-6 bg-card border border-border px-4 py-3 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
         <div class="w-7 h-7 rounded-lg bg-brand-500/15 text-brand-500 flex items-center justify-center shrink-0">
             <i class="ph ph-check-bold text-sm"></i>
@@ -1254,11 +1368,197 @@
         // Mock Database
         const DB = {
             jobs: [
-                { id: 'JOB202609001', firstName: 'ณวัฒน์', lastName: 'รักสงบ', customer: 'ณวัฒน์ รักสงบ', lat: 13.7563, lng: 100.5018, phone: '081-111-2222', service: 'Renovate ครัว', status: 'IN_PROGRESS', date: '2026-09-05', progress: 45, address: '99/1 Sukhumvit 55, Bangkok', tech: 'Team A (สมศักดิ์)', special_instructions: 'ระวังมีสุนัขในบ้าน, กรุณาโทรแจ้งลูกค้าล่วงหน้า 30 นาทีก่อนเข้าพื้นที่ และสวมถุงคลุมรองเท้าก่อนเข้าห้องนอน', additional_notes: 'ตรวจสอบจุดเชื่อมต่อท่อน้ำทิ้งเดิม และระวังแนวท่อแอร์บนฝ้าเพดาน ลูกค้าเตรียมเต้ารับไฟฟ้าพร้อมแล้ว', photos: [] },
-                { id: 'JOB202609002', firstName: 'สมศรี', lastName: 'สุขใจ', customer: 'สมศรี สุขใจ', lat: 13.7801, lng: 100.5432, phone: '082-222-3333', service: 'ปั้มแท็งก์', status: 'QC_PENDING', date: '2026-09-02', progress: 100, address: '12 Ari Samphan, Phaya Thai', tech: 'Team B (ประเสริฐ)', special_instructions: 'เข้าพื้นที่ได้หลังเวลา 10:00 น. เท่านั้น', additional_notes: 'ติดตั้งบริเวณลานซักล้างหลังบ้าน ปลั๊กไฟกันน้ำพร้อมใช้งาน', photos: [] },
-                { id: 'JOB202609003', firstName: 'เอนก', lastName: 'มั่งคั่ง', customer: 'เอนก มั่งคั่ง', lat: 13.7234, lng: 100.5289, phone: '083-333-4444', service: 'ติดตั้งเครื่องทำน้ำอุ่น', status: 'QC_PASSED', date: '2026-08-30', progress: 100, address: '45 Silom Rd, Bang Rak', tech: 'Team C (วิชัย)', special_instructions: 'นิติบุคคลคอนโดอนุญาตทำงานเฉพาะ จันทร์-ศุกร์ 09:00-17:00 น.', additional_notes: 'ติดสติ๊กเกอร์เบรกเกอร์ ELCB พร้อมวัดสายดินเรียบร้อย', photos: [] },
-                { id: 'JOB202609004', firstName: 'มาลี', lastName: 'มีโชค', customer: 'มาลี มีโชค', lat: 13.8056, lng: 100.5712, phone: '084-444-5555', service: 'สำรวจหน้างาน', status: 'DRAFT', date: '2026-09-10', progress: 0, address: '88 Ladprao 15, Chatuchak', tech: 'Team A (สมศักดิ์)', special_instructions: 'ลูกค้าขอช่างที่มีประสบการณ์งาน built-in', additional_notes: '', photos: [] },
-                { id: 'JOB202609005', firstName: 'ฉัตรชัย', lastName: 'เจริญวิทย์', customer: 'ฉัตรชัย เจริญวิทย์', lat: 13.7312, lng: 100.5823, phone: '085-555-6666', service: 'Renovate ครัว', status: 'AFTER_SALE', date: '2026-08-25', progress: 100, address: '22 Thong Lo 10, Watthana', tech: 'Team B (ประเสริฐ)', special_instructions: '', additional_notes: 'บริการล้างเครื่องปรับอากาศประจำปีภายใต้ประกัน 1 ปี', photos: [] },
+                { 
+                    id: 'JOB202609001', 
+                    firstName: 'ณวัฒน์', 
+                    lastName: 'รักสงบ', 
+                    customer: 'ณวัฒน์ รักสงบ', 
+                    lat: 13.7563, 
+                    lng: 100.5018, 
+                    phone: '081-111-2222', 
+                    service: 'Renovate ครัว', 
+                    status: 'IN_PROGRESS', 
+                    date: '2026-09-05', 
+                    progress: 45, 
+                    address: '99/1 Sukhumvit 55, Bangkok', 
+                    tech: 'Team A (สมศักดิ์)', 
+                    special_instructions: 'ระวังมีสุนัขในบ้าน, กรุณาโทรแจ้งลูกค้าล่วงหน้า 30 นาทีก่อนเข้าพื้นที่ และสวมถุงคลุมรองเท้าก่อนเข้าห้องนอน', 
+                    additional_notes: 'ตรวจสอบจุดเชื่อมต่อท่อน้ำทิ้งเดิม และระวังแนวท่อแอร์บนฝ้าเพดาน ลูกค้าเตรียมเต้ารับไฟฟ้าพร้อมแล้ว', 
+                    photos: [],
+                    boq_discount: 500,
+                    boq_items: [
+                        { name: 'ค่าแรงช่างติดตั้งเครื่องปรับอากาศ 18000 BTU', qty: 1, unit: 'งาน', price: 2500 },
+                        { name: 'ชุดท่อน้ำยาแอร์ทองแดงหนาพิเศษพร้อมฉนวนหุ้ม 4 ม.', qty: 1, unit: 'ชุด', price: 1800 },
+                        { name: 'รางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.', qty: 1, unit: 'ชุด', price: 950 },
+                        { name: 'ขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม', qty: 1, unit: 'ชุด', price: 650 },
+                        { name: 'ชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง', qty: 1, unit: 'ชุด', price: 500 }
+                    ]
+                },
+                { 
+                    id: 'JOB202609002', 
+                    firstName: 'สมศรี', 
+                    lastName: 'สุขใจ', 
+                    customer: 'สมศรี สุขใจ', 
+                    lat: 13.7801, 
+                    lng: 100.5432, 
+                    phone: '082-222-3333', 
+                    service: 'ปั้มแท็งก์', 
+                    status: 'QC_PENDING', 
+                    date: '2026-09-02', 
+                    progress: 100, 
+                    address: '12 Ari Samphan, Phaya Thai', 
+                    tech: 'Team B (ประเสริฐ)', 
+                    special_instructions: 'เข้าพื้นที่ได้หลังเวลา 10:00 น. เท่านั้น', 
+                    additional_notes: 'ติดตั้งบริเวณลานซักล้างหลังบ้าน ปลั๊กไฟกันน้ำพร้อมใช้งาน', 
+                    photos: [],
+                    boq_discount: 300,
+                    boq_items: [
+                        { name: 'ค่าแรงช่างติดตั้งปั๊มน้ำอัตโนมัติและถังเก็บน้ำ', qty: 1, unit: 'งาน', price: 2000 },
+                        { name: 'ชุดวาล์วบายพาสและท่อ PVC ตราช้าง 1 นิ้ว', qty: 1, unit: 'ชุด', price: 1200 },
+                        { name: 'ฐานรองปั๊มน้ำกันสะเทือนสำเร็จรูป', qty: 1, unit: 'ชุด', price: 450 }
+                    ]
+                },
+                { 
+                    id: 'JOB202609003', 
+                    firstName: 'เอนก', 
+                    lastName: 'มั่งคั่ง', 
+                    customer: 'เอนก มั่งคั่ง', 
+                    lat: 13.7234, 
+                    lng: 100.5289, 
+                    phone: '083-333-4444', 
+                    service: 'ติดตั้งเครื่องทำน้ำอุ่น', 
+                    status: 'QC_PASSED', 
+                    date: '2026-08-30', 
+                    progress: 100, 
+                    address: '45 Silom Rd, Bang Rak', 
+                    tech: 'Team C (วิชัย)', 
+                    special_instructions: 'นิติบุคคลคอนโดอนุญาตทำงานเฉพาะ จันทร์-ศุกร์ 09:00-17:00 น.', 
+                    additional_notes: 'ติดสติ๊กเกอร์เบรกเกอร์ ELCB พร้อมวัดสายดินเรียบร้อย', 
+                    photos: [],
+                    boq_discount: 0,
+                    boq_items: [
+                        { name: 'ค่าแรงช่างติดตั้งเครื่องทำน้ำอุ่นพร้อมเดินสายดิน', qty: 1, unit: 'งาน', price: 1200 },
+                        { name: 'สายไฟทองแดง THW 2x4 sq.mm. พร้อมท่อร้อยสาย', qty: 1, unit: 'ชุด', price: 650 },
+                        { name: 'เบรกเกอร์กันดูด ELCB 30A พร้อมกล่องกันน้ำ', qty: 1, unit: 'ชุด', price: 550 }
+                    ]
+                },
+                { 
+                    id: 'JOB202609004', 
+                    firstName: 'มาลี', 
+                    lastName: 'มีโชค', 
+                    customer: 'มาลี มีโชค', 
+                    lat: 13.8056, 
+                    lng: 100.5712, 
+                    phone: '084-444-5555', 
+                    service: 'สำรวจหน้างาน', 
+                    status: 'DRAFT', 
+                    date: '2026-09-10', 
+                    progress: 0, 
+                    address: '88 Ladprao 15, Chatuchak', 
+                    tech: 'Team A (สมศักดิ์)', 
+                    special_instructions: 'ลูกค้าขอช่างที่มีประสบการณ์งาน built-in', 
+                    additional_notes: '', 
+                    photos: [],
+                    boq_discount: 0,
+                    boq_items: [
+                        { name: 'ค่าบริการสำรวจและประเมินหน้างานจริง', qty: 1, unit: 'งาน', price: 500 }
+                    ]
+                },
+                { 
+                    id: 'JOB202609005', 
+                    firstName: 'ฉัตรชัย', 
+                    lastName: 'เจริญวิทย์', 
+                    customer: 'ฉัตรชัย เจริญวิทย์', 
+                    lat: 13.7312, 
+                    lng: 100.5823, 
+                    phone: '085-555-6666', 
+                    service: 'Renovate ครัว', 
+                    status: 'AFTER_SALE', 
+                    date: '2026-08-25', 
+                    progress: 100, 
+                    address: '22 Thong Lo 10, Watthana', 
+                    tech: 'Team B (ประเสริฐ)', 
+                    special_instructions: '', 
+                    additional_notes: 'บริการล้างเครื่องปรับอากาศประจำปีภายใต้ประกัน 1 ปี', 
+                    photos: [],
+                    boq_discount: 500,
+                    boq_items: [
+                        { name: 'ค่าแรงช่างติดตั้งเครื่องปรับอากาศ Inverter', qty: 1, unit: 'งาน', price: 2500 },
+                        { name: 'ชุดท่อน้ำยาแอร์และรางครอบท่อ 4 ม.', qty: 1, unit: 'ชุด', price: 1800 }
+                    ]
+                },
+            ],
+            blueprints: [
+                {
+                    id: 'BP001',
+                    jobId: 'JOB202609001',
+                    customer: 'ณวัฒน์ รักสงบ',
+                    service: 'Renovate ครัว',
+                    filename: 'Kitchen_Renovation_Layout_v3.pdf',
+                    version: 'v3 Final',
+                    isCurrent: true,
+                    size: '3.4 MB',
+                    date: '2026-09-02 09:15 น.',
+                    designer: 'คุณธนกฤต (Interior Architect)',
+                    previewImg: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&auto=format&fit=crop&q=80',
+                    notes: 'แบบแปลนผังเคาน์เตอร์ครัวและจุดต่อท่อน้ำดี/น้ำทิ้งฉบับสมบูรณ์'
+                },
+                {
+                    id: 'BP002',
+                    jobId: 'JOB202609002',
+                    customer: 'สมศรี สุขใจ',
+                    service: 'ปั้มแท็งก์',
+                    filename: 'Water_Pump_Tank_Diagram_v2.pdf',
+                    version: 'v2 Approved',
+                    isCurrent: true,
+                    size: '2.1 MB',
+                    date: '2026-09-01 14:30 น.',
+                    designer: 'คุณประสิทธิ์ (Systems Engineer)',
+                    previewImg: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80',
+                    notes: 'ไดอะแกรมระบบบายพาสปั๊มน้ำและฐานรากถังเก็บน้ำ 1000L'
+                },
+                {
+                    id: 'BP003',
+                    jobId: 'JOB202609003',
+                    customer: 'เอนก มั่งคั่ง',
+                    service: 'ติดตั้งเครื่องทำน้ำอุ่น',
+                    filename: 'Water_Heater_Electrical_Circuit_v2.pdf',
+                    version: 'v2 Final',
+                    isCurrent: true,
+                    size: '1.8 MB',
+                    date: '2026-08-29 11:00 น.',
+                    designer: 'คุณเกรียงไกร (Electrical Engineer)',
+                    previewImg: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80',
+                    notes: 'ผังวงจรสายดิน Breaker ELCB 30A และท่อน้ำร้อน PPR'
+                },
+                {
+                    id: 'BP004',
+                    jobId: 'JOB202609004',
+                    customer: 'มาลี มีโชค',
+                    service: 'สำรวจหน้างาน',
+                    filename: 'Site_Survey_Preliminary_FloorPlan_v1.pdf',
+                    version: 'v1 Draft',
+                    isCurrent: true,
+                    size: '4.2 MB',
+                    date: '2026-09-03 08:00 น.',
+                    designer: 'คุณธนกฤต (Designer)',
+                    previewImg: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600&auto=format&fit=crop&q=80',
+                    notes: 'ผังสำรวจพื้นที่โครงสร้างและระยะร่นรอบอาคาร'
+                },
+                {
+                    id: 'BP005',
+                    jobId: 'JOB202609005',
+                    customer: 'ฉัตรชัย เจริญวิทย์',
+                    service: 'Renovate ครัว',
+                    filename: 'Air_Installation_Layout_v2.pdf',
+                    version: 'v2 Current',
+                    isCurrent: true,
+                    size: '2.4 MB',
+                    date: '2026-08-24 16:20 น.',
+                    designer: 'คุณกนกวรรณ (CAD Specialist)',
+                    previewImg: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop&q=80',
+                    notes: 'ตำแหน่งยึดคอยล์เย็นและแนวกระเช้าแขวนคอยล์ร้อนภายนอก'
+                }
             ],
             tasks: [
                 { id: 'T1', jobId: 'JOB202609001', name: 'รื้อถอนของเดิม', tech: 'Team A', start: '2026-09-01', days: 2, status: 'DONE' },
@@ -1488,6 +1788,7 @@
                     'dashboard': 'Dashboard',
                     'jobs': 'รายการงานทั้งหมด',
                     'job-detail': `รายละเอียดงาน ${param || ''}`,
+                    'blueprints': 'ศูนย์รวมแบบติดตั้ง (Blueprints & CAD/PDF)',
                     'gantt': 'Gantt Timeline',
                     'qc': 'QC Inspection',
                     'ma-contracts': 'สัญญา MA',
@@ -1508,6 +1809,7 @@
 
                 // Page specific renders
                 if(view === 'jobs') this.renderJobs();
+                if(view === 'blueprints') this.renderBlueprints();
                 if(view === 'dashboard') {
                     this.renderDashboard();
                     setTimeout(() => this.updateCharts(), 50);
@@ -1524,6 +1826,8 @@
                 document.getElementById('sidebar-job-count').innerText = DB.jobs.length;
                 const sidebarMa = document.getElementById('sidebar-ma-count');
                 if (sidebarMa) sidebarMa.innerText = DB.maContracts.length;
+                const sidebarBp = document.getElementById('sidebar-blueprint-count');
+                if (sidebarBp && DB.blueprints) sidebarBp.innerText = DB.blueprints.length;
             },
 
             showToast(msg) {
@@ -2218,147 +2522,137 @@
 
                 let tabContent = '';
                 if (curTab === 'boq') {
+                    const boqItems = job.boq_items || [
+                        { name: 'ค่าแรงช่างติดตั้งเครื่องปรับอากาศ 18000 BTU', qty: 1, unit: 'งาน', price: 2500 },
+                        { name: 'ชุดท่อน้ำยาแอร์ทองแดงหนาพิเศษพร้อมฉนวนหุ้ม 4 ม.', qty: 1, unit: 'ชุด', price: 1800 },
+                        { name: 'รางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.', qty: 1, unit: 'ชุด', price: 950 },
+                        { name: 'ขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม', qty: 1, unit: 'ชุด', price: 650 },
+                        { name: 'ชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง', qty: 1, unit: 'ชุด', price: 500 }
+                    ];
+                    if (!job.boq_items) job.boq_items = boqItems;
+
+                    const subtotal = boqItems.reduce((acc, item) => acc + ((item.qty || 0) * (item.price || 0)), 0);
+                    const discount = job.boq_discount !== undefined ? job.boq_discount : 500;
+                    const taxable = Math.max(0, subtotal - discount);
+                    const vat = taxable * 0.07;
+                    const grandTotal = taxable + vat;
+
                     tabContent = `
                     <div class="space-y-6">
-                        <!-- Design Files Section (Requirement #5) -->
-                        <div class="artifact-card p-6 space-y-4">
-                            <div class="flex items-center justify-between pb-3 border-b border-border">
+                        <!-- PMT-Native BOQ System Banner -->
+                        <div class="artifact-card p-5 bg-brand-500/5 border-brand-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-brand-500/15 text-brand-500 flex items-center justify-center text-xl shrink-0">
+                                    <i class="ph ph-receipt"></i>
+                                </div>
                                 <div>
-                                    <h3 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
-                                        <i class="ph ph-blueprint text-brand-500"></i> ไฟล์แบบงานติดตั้ง (Design Files & Versions)
-                                    </h3>
-                                    <p class="text-xs text-muted-foreground mt-0.5">แบบแปลนและไดอะแกรมการติดตั้ง รองรับ Inline Preview และดาวน์โหลด</p>
-                                </div>
-                                <button class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5" onclick="app.showToast('อัปโหลดแบบติดตั้งเวอร์ชันใหม่ (v3)...')">
-                                    <i class="ph ph-upload-simple"></i> อัปโหลดเวอร์ชันใหม่
-                                </button>
-                            </div>
-
-                            <div class="space-y-2.5">
-                                <div class="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center justify-center font-bold text-xs">PDF</div>
-                                        <div>
-                                            <div class="text-xs font-semibold text-foreground flex items-center gap-2">
-                                                <span>Air_Installation_Layout_v2.pdf</span>
-                                                <span class="text-[10px] px-1.5 py-0.2 rounded bg-brand-500/10 text-brand-500 font-medium">Current v2</span>
-                                            </div>
-                                            <div class="text-[11px] text-muted-foreground mt-0.5">2.4 MB • อัปโหลดเมื่อ 2026-09-02 08:30 น. โดย คุณธนกฤต (Designer)</div>
-                                        </div>
-                                    </div>
                                     <div class="flex items-center gap-2">
-                                        <button class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-xs" onclick="app.showToast('เปิดดูตัวอย่างไฟล์แบบงาน (Inline Preview)...')">
-                                            <i class="ph ph-eye"></i> ดูตัวอย่าง
-                                        </button>
-                                        <button class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-xs" onclick="app.showToast('กำลังดาวน์โหลดไฟล์ PDF...')">
-                                            <i class="ph ph-download-simple"></i> ดาวน์โหลด
-                                        </button>
+                                        <h3 class="font-display font-bold text-sm text-foreground">บันทึกรายการ BOQ & ค่าวัสดุ (PMT-Native BOQ)</h3>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">บันทึกบนระบบ PMT</span>
                                     </div>
+                                    <p class="text-xs text-muted-foreground mt-0.5">หลังจากรับงานเข้าสู่ระบบ PMT แล้ว ขั้นตอนการบันทึก/ปรับปรุงรายการ BOQ จะถูกดำเนินการบนระบบ PMT</p>
                                 </div>
-
-                                <div class="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/60">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-lg bg-muted border border-border text-muted-foreground flex items-center justify-center font-bold text-xs">PDF</div>
-                                        <div>
-                                            <div class="text-xs font-semibold text-muted-foreground flex items-center gap-2">
-                                                <span>Air_Installation_Layout_v1.pdf</span>
-                                                <span class="text-[10px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground">Archived v1</span>
-                                            </div>
-                                            <div class="text-[11px] text-muted-foreground mt-0.5">1.8 MB • แบบร่างสำรวจแรกเริ่ม</div>
-                                        </div>
-                                    </div>
-                                    <button class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-xs" onclick="app.showToast('กำลังดาวน์โหลดแบบร่าง v1...')">
-                                        <i class="ph ph-download-simple"></i>
-                                    </button>
-                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button class="btn-artifact-secondary px-3 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.navigate('blueprints')" title="เปิดดูแบบแปลนติดตั้งในศูนย์รวมแบบแปลน">
+                                    <i class="ph ph-blueprint text-brand-500"></i> ดูแบบติดตั้ง (Blueprints)
+                                </button>
+                                <button class="btn-artifact-primary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-sm" onclick="app.addBOQItem('${job.id}')">
+                                    <i class="ph ph-plus-circle text-sm"></i> เพิ่มรายการวัสดุ/ค่าแรง
+                                </button>
                             </div>
                         </div>
 
-                        <!-- BOQ Bill of Quantities Section (Requirement #6) -->
+                        <!-- BOQ Bill of Quantities Interactive Form Card -->
                         <div class="artifact-card p-6 space-y-4">
                             <div class="flex items-center justify-between pb-3 border-b border-border">
                                 <div>
-                                    <h3 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
-                                        <i class="ph ph-receipt text-brand-500"></i> รายการคำนวณราคาและวัสดุ (BOQ Breakdown)
-                                    </h3>
-                                    <p class="text-xs text-muted-foreground mt-0.5">ตรึงราคาตามสัญญา พร้อมคำนวณภาษีมูลค่าเพิ่ม (VAT 7%) อัตโนมัติ</p>
+                                    <h4 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
+                                        <i class="ph ph-list-numbers text-brand-500"></i> ตารางรายการคำนวณราคาและวัสดุ
+                                    </h4>
+                                    <p class="text-xs text-muted-foreground mt-0.5">แก้ไขจำนวนหรือราคาได้โดยตรง ระบบจะคำนวณยอดรวมและภาษีมูลค่าเพิ่มให้อัตโนมัติ</p>
                                 </div>
                                 <div class="text-right">
-                                    <span class="text-[10px] text-muted-foreground font-mono">Ticket: TKT-2026-8819</span>
-                                    <div class="text-[11px] text-emerald-500 font-medium">✓ ชำระเต็มจำนวนแล้ว (แนบสลิปแล้ว)</div>
+                                    <span class="text-[10px] text-muted-foreground font-mono">Job Ref: ${job.id}</span>
+                                    <div class="text-[11px] text-emerald-500 font-medium flex items-center gap-1 justify-end">
+                                        <i class="ph ph-check-circle"></i> สถานะ: พร้อมส่งต่อ QC
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Table -->
+                            <!-- Interactive Table -->
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-xs">
                                     <thead>
                                         <tr class="border-b border-border text-muted-foreground text-[11px]">
-                                            <th class="py-2.5 font-medium">ลำดับ</th>
+                                            <th class="py-2.5 font-medium w-12 text-center">ลำดับ</th>
                                             <th class="py-2.5 font-medium">รายการวัสดุ / งานบริการ</th>
-                                            <th class="py-2.5 font-medium text-center">จำนวน</th>
-                                            <th class="py-2.5 font-medium text-right">ราคาต่อหน่วย (฿)</th>
-                                            <th class="py-2.5 font-medium text-right">รวมเป็นเงิน (฿)</th>
+                                            <th class="py-2.5 font-medium w-24 text-center">จำนวน</th>
+                                            <th class="py-2.5 font-medium w-24 text-center">หน่วย</th>
+                                            <th class="py-2.5 font-medium w-36 text-right">ราคาต่อหน่วย (฿)</th>
+                                            <th class="py-2.5 font-medium w-36 text-right">รวมเป็นเงิน (฿)</th>
+                                            <th class="py-2.5 font-medium w-12 text-center">ลบ</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-border">
-                                        <tr>
-                                            <td class="py-2.5 text-muted-foreground">1</td>
-                                            <td class="py-2.5 font-medium text-foreground">ค่าแรงช่างติดตั้งเครื่องปรับอากาศ 18000 BTU</td>
-                                            <td class="py-2.5 text-center">1 งาน</td>
-                                            <td class="py-2.5 text-right font-mono">2,500.00</td>
-                                            <td class="py-2.5 text-right font-mono font-medium">2,500.00</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-2.5 text-muted-foreground">2</td>
-                                            <td class="py-2.5 font-medium text-foreground">ชุดท่อน้ำยาแอร์ทองแดงหนาพิเศษพร้อมฉนวนหุ้ม 4 ม.</td>
-                                            <td class="py-2.5 text-center">1 ชุด</td>
-                                            <td class="py-2.5 text-right font-mono">1,800.00</td>
-                                            <td class="py-2.5 text-right font-mono font-medium">1,800.00</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-2.5 text-muted-foreground">3</td>
-                                            <td class="py-2.5 font-medium text-foreground">รางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.</td>
-                                            <td class="py-2.5 text-center">1 ชุด</td>
-                                            <td class="py-2.5 text-right font-mono">950.00</td>
-                                            <td class="py-2.5 text-right font-mono font-medium">950.00</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-2.5 text-muted-foreground">4</td>
-                                            <td class="py-2.5 font-medium text-foreground">ขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม</td>
-                                            <td class="py-2.5 text-center">1 ชุด</td>
-                                            <td class="py-2.5 text-right font-mono">650.00</td>
-                                            <td class="py-2.5 text-right font-mono font-medium">650.00</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-2.5 text-muted-foreground">5</td>
-                                            <td class="py-2.5 font-medium text-foreground">ชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง</td>
-                                            <td class="py-2.5 text-center">1 ชุด</td>
-                                            <td class="py-2.5 text-right font-mono">500.00</td>
-                                            <td class="py-2.5 text-right font-mono font-medium">500.00</td>
-                                        </tr>
+                                        ${boqItems.map((item, idx) => {
+                                            const itemTotal = (item.qty || 0) * (item.price || 0);
+                                            return `
+                                            <tr class="hover:bg-muted/30 transition">
+                                                <td class="py-2.5 text-center text-muted-foreground font-mono">${idx + 1}</td>
+                                                <td class="py-2.5">
+                                                    <input type="text" value="${item.name}" oninput="app.updateBOQItem('${job.id}', ${idx}, 'name', this.value)" class="w-full bg-transparent hover:bg-muted/50 focus:bg-card border border-transparent hover:border-border focus:border-brand-500 rounded px-2 py-1 text-xs text-foreground font-medium transition focus:outline-none">
+                                                </td>
+                                                <td class="py-2.5 text-center">
+                                                    <input type="number" min="1" step="1" value="${item.qty}" oninput="app.updateBOQItem('${job.id}', ${idx}, 'qty', this.value)" class="w-20 text-center bg-muted/30 border border-border focus:border-brand-500 rounded px-2 py-1 text-xs text-foreground font-mono transition focus:outline-none">
+                                                </td>
+                                                <td class="py-2.5 text-center">
+                                                    <input type="text" value="${item.unit || 'ชุด'}" oninput="app.updateBOQItem('${job.id}', ${idx}, 'unit', this.value)" class="w-16 text-center bg-muted/30 border border-border focus:border-brand-500 rounded px-1.5 py-1 text-xs text-foreground transition focus:outline-none">
+                                                </td>
+                                                <td class="py-2.5 text-right">
+                                                    <input type="number" min="0" step="50" value="${item.price}" oninput="app.updateBOQItem('${job.id}', ${idx}, 'price', this.value)" class="w-28 text-right bg-muted/30 border border-border focus:border-brand-500 rounded px-2 py-1 text-xs text-foreground font-mono transition focus:outline-none">
+                                                </td>
+                                                <td class="py-2.5 text-right font-mono font-semibold text-foreground" id="boq-item-total-${idx}">
+                                                    ${itemTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </td>
+                                                <td class="py-2.5 text-center">
+                                                    <button type="button" onclick="app.removeBOQItem('${job.id}', ${idx})" class="p-1 text-muted-foreground hover:text-rose-500 rounded transition" title="ลบรายการนี้">
+                                                        <i class="ph ph-trash text-sm"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            `;
+                                        }).join('')}
                                     </tbody>
                                 </table>
                             </div>
 
                             <!-- Summary calculation -->
-                            <div class="flex justify-end pt-3 border-t border-border">
-                                <div class="w-72 space-y-1.5 text-xs">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-4 border-t border-border gap-4">
+                                <div class="flex items-center gap-2">
+                                    <button onclick="app.addBOQItem('${job.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1">
+                                        <i class="ph ph-plus"></i> เพิ่มแถวรายการใหม่
+                                    </button>
+                                    <button onclick="app.saveBOQ('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow-sm font-medium">
+                                        <i class="ph ph-floppy-disk"></i> บันทึกข้อมูล BOQ
+                                    </button>
+                                </div>
+                                <div class="w-full sm:w-80 space-y-1.5 text-xs bg-muted/20 p-4 rounded-xl border border-border">
                                     <div class="flex justify-between text-muted-foreground">
                                         <span>ราคารวม (Subtotal):</span>
-                                        <span class="font-mono">6,400.00 ฿</span>
+                                        <span class="font-mono font-medium text-foreground" id="boq-subtotal-val">${subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿</span>
                                     </div>
                                     <div class="flex justify-between text-emerald-500">
                                         <span>ส่วนลดพิเศษโครงการ:</span>
-                                        <span class="font-mono">-500.00 ฿</span>
+                                        <span class="font-mono font-medium">-${discount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿</span>
                                     </div>
                                     <div class="flex justify-between text-muted-foreground">
                                         <span>ภาษีมูลค่าเพิ่ม (VAT 7%):</span>
-                                        <span class="font-mono">413.00 ฿</span>
+                                        <span class="font-mono font-medium text-foreground" id="boq-vat-val">${vat.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿</span>
                                     </div>
-                                    <div class="flex justify-between text-sm font-bold text-foreground pt-1.5 border-t border-border">
+                                    <div class="flex justify-between text-sm font-bold text-foreground pt-2 border-t border-border">
                                         <span>ยอดสุทธิ (Grand Total):</span>
-                                        <span class="font-mono text-brand-500 text-base">6,313.00 ฿</span>
+                                        <span class="font-mono text-brand-500 text-base font-bold" id="boq-grandtotal-val">${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿</span>
                                     </div>
                                 </div>
                             </div>
@@ -2366,12 +2660,17 @@
 
                         <!-- Footer Navigation -->
                         <div class="flex items-center justify-between pt-4 border-t border-border">
-                            <button class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs" onclick="app.switchJobTab('general')">
-                                <i class="ph ph-arrow-left mr-1"></i> กลับหน้าข้อมูลงาน & Check-in
+                            <button class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.switchJobTab('general')">
+                                <i class="ph ph-arrow-left"></i> กลับหน้าข้อมูลงาน & Check-in
                             </button>
-                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs" onclick="app.sendJobToQC('${job.id}')">
-                                ส่งตรวจ QC (QC Inspection) <i class="ph ph-arrow-right ml-1"></i>
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-sm" onclick="app.saveBOQ('${job.id}')">
+                                    <i class="ph ph-check"></i> บันทึก BOQ ในระบบ PMT
+                                </button>
+                                <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700" onclick="app.sendJobToQC('${job.id}')">
+                                    <span>ส่งตรวจ QC</span> <i class="ph ph-arrow-right"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     `;
@@ -2730,7 +3029,7 @@
                                     <i class="ph ph-arrows-clockwise"></i> อัปเดตรับ PMT
                                 </button>
                                 <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-sm" onclick="app.switchJobTab('boq')">
-                                    <span>ไปหน้าแบบติดตั้ง & BOQ</span> <i class="ph ph-arrow-right"></i>
+                                    <span>ไปหน้าบันทึก BOQ (PMT)</span> <i class="ph ph-arrow-right"></i>
                                 </button>
                                 ` : `
                                 <button class="btn-artifact-primary px-5 py-2.5 rounded-lg text-xs flex items-center gap-2 font-semibold shadow-sm" onclick="app.acceptJobToPMT('${job.id}')">
@@ -2771,13 +3070,207 @@
                             <i class="ph ph-map-pin-line mr-1"></i> Check-in & ข้อมูลหน้างาน (${totalPhotosCount} รูป)
                         </button>
                         <button onclick="app.switchJobTab('boq')" class="pb-3 text-xs font-semibold transition ${curTab === 'boq' ? 'tab-item-active' : 'text-muted-foreground hover:text-foreground'}">
-                            <i class="ph ph-receipt mr-1"></i> แบบติดตั้ง & BOQ
+                            <i class="ph ph-receipt mr-1"></i> บันทึกรายการ BOQ (PMT)
                         </button>
                     </div>
 
                     ${tabContent}
                 `;
                 document.getElementById('job-detail-content').innerHTML = html;
+            },
+
+            renderBlueprints(searchQuery = '', serviceFilter = 'all') {
+                const searchEl = document.getElementById('blueprint-search');
+                const serviceEl = document.getElementById('blueprint-filter-service');
+                const q = (searchQuery || (searchEl ? searchEl.value : '')).toLowerCase().trim();
+                const sFilter = serviceFilter !== 'all' ? serviceFilter : (serviceEl ? serviceEl.value : 'all');
+
+                let blueprints = DB.blueprints || [];
+                if (q) {
+                    blueprints = blueprints.filter(b => 
+                        b.id.toLowerCase().includes(q) ||
+                        b.jobId.toLowerCase().includes(q) ||
+                        b.customer.toLowerCase().includes(q) ||
+                        b.filename.toLowerCase().includes(q) ||
+                        (b.designer && b.designer.toLowerCase().includes(q))
+                    );
+                }
+                if (sFilter && sFilter !== 'all') {
+                    blueprints = blueprints.filter(b => b.service === sFilter);
+                }
+
+                const container = document.getElementById('blueprints-list-container');
+                if (!container) return;
+
+                if (blueprints.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full artifact-card p-12 text-center text-muted-foreground">
+                            <i class="ph ph-file-dashed text-4xl mb-2 text-muted-foreground/50"></i>
+                            <h4 class="font-display font-medium text-foreground text-sm">ไม่พบไฟล์แบบแปลนที่ตรงกับเงื่อนไข</h4>
+                            <p class="text-xs text-muted-foreground mt-1">ลองเปลี่ยนคำค้นหา หรือกดปุ่ม "อัปโหลดแบบแปลนใหม่"</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const html = blueprints.map(b => {
+                    return `
+                    <div class="artifact-card p-5 rounded-2xl space-y-4 border border-border hover:border-brand-500/40 transition group">
+                        <!-- Card Top: Thumbnail & Version -->
+                        <div class="aspect-video bg-muted/60 rounded-xl overflow-hidden relative border border-border group-hover:border-brand-500/30 transition">
+                            <img src="${b.previewImg}" alt="${b.filename}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                            <div class="absolute top-3 right-3 flex items-center gap-1.5">
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-brand-500 text-white shadow-sm">${b.version}</span>
+                            </div>
+                            <div class="absolute top-3 left-3">
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-black/60 backdrop-blur-xs text-white">${b.jobId}</span>
+                            </div>
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                                <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow" onclick="app.openBasePhotoLightbox(1)">
+                                    <i class="ph ph-eye"></i> ดูตัวอย่างแบบ
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Card Info -->
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between gap-2">
+                                <h4 class="font-display font-bold text-sm text-foreground truncate" title="${b.filename}">${b.filename}</h4>
+                                <span class="text-[10px] font-mono text-muted-foreground shrink-0">${b.size}</span>
+                            </div>
+                            <div class="text-xs text-muted-foreground flex items-center gap-1.5">
+                                <i class="ph ph-user text-xs"></i> <span>${b.customer}</span> • <span class="text-brand-500 font-medium">${b.service}</span>
+                            </div>
+                            <p class="text-[11px] text-muted-foreground/90 line-clamp-2">${b.notes || 'แบบแปลนและผังงานติดตั้งฉบับมาตรฐาน'}</p>
+                        </div>
+
+                        <!-- Card Footer -->
+                        <div class="pt-3 border-t border-border flex items-center justify-between text-[10px] text-muted-foreground">
+                            <div>
+                                <div>${b.designer || 'Designer'}</div>
+                                <div class="text-[9px] font-mono opacity-75">${b.date}</div>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <button class="btn-artifact-secondary p-1.5 rounded-lg text-xs" title="ดาวน์โหลดไฟล์ PDF" onclick="app.showToast('กำลังดาวน์โหลด ${b.filename}...')">
+                                    <i class="ph ph-download-simple"></i>
+                                </button>
+                                <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium" onclick="app.navigate('job-detail', '${b.jobId}')">
+                                    <span>เปิดดูงาน</span> <i class="ph ph-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+
+                container.innerHTML = html;
+            },
+
+            filterBlueprints() {
+                this.renderBlueprints();
+            },
+
+            openUploadBlueprintModal() {
+                const selectJob = document.getElementById('upload-bp-jobid');
+                if (selectJob) {
+                    selectJob.innerHTML = DB.jobs.map(j => `<option value="${j.id}">${j.id} - ${j.customer} (${j.service})</option>`).join('');
+                }
+                this.showModal('modal-upload-blueprint');
+            },
+
+            submitUploadBlueprint(event) {
+                event.preventDefault();
+                const jobId = document.getElementById('upload-bp-jobid').value;
+                const filename = document.getElementById('upload-bp-filename').value.trim();
+                const version = document.getElementById('upload-bp-version').value.trim() || 'v2 Final';
+                const designer = document.getElementById('upload-bp-designer').value.trim() || 'คุณธนกฤต (Designer)';
+                const notes = document.getElementById('upload-bp-notes').value.trim();
+
+                const job = DB.jobs.find(j => j.id === jobId);
+                const newBp = {
+                    id: 'BP' + String((DB.blueprints ? DB.blueprints.length : 0) + 1).padStart(3, '0'),
+                    jobId: jobId,
+                    customer: job ? job.customer : 'ลูกค้าทั่วไป',
+                    service: job ? job.service : 'งานบริการ',
+                    filename: filename,
+                    version: version,
+                    isCurrent: true,
+                    size: '2.5 MB',
+                    date: new Date().toLocaleDateString('th-TH') + ' ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+                    designer: designer,
+                    previewImg: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600&auto=format&fit=crop&q=80',
+                    notes: notes
+                };
+
+                if (!DB.blueprints) DB.blueprints = [];
+                DB.blueprints.unshift(newBp);
+
+                const sbBp = document.getElementById('sidebar-blueprint-count');
+                if (sbBp) sbBp.innerText = DB.blueprints.length;
+
+                this.hideModal('modal-upload-blueprint');
+                this.showToast(`✅ อัปโหลดแบบติดตั้ง "${filename}" สำเร็จ`);
+                if (this.state.currentView === 'blueprints') {
+                    this.renderBlueprints();
+                }
+            },
+
+            addBOQItem(jobId) {
+                const job = DB.jobs.find(j => j.id === jobId);
+                if (!job) return;
+                if (!job.boq_items) job.boq_items = [];
+                job.boq_items.push({
+                    name: 'รายการวัสดุ/ค่าแรงใหม่',
+                    qty: 1,
+                    unit: 'ชุด',
+                    price: 500
+                });
+                this.renderJobDetail();
+                this.showToast('เพิ่มแถวรายการ BOQ เรียบร้อย (บันทึกใน PMT)');
+            },
+
+            removeBOQItem(jobId, index) {
+                const job = DB.jobs.find(j => j.id === jobId);
+                if (!job || !job.boq_items) return;
+                job.boq_items.splice(index, 1);
+                this.renderJobDetail();
+                this.showToast('ลบรายการ BOQ เรียบร้อย');
+            },
+
+            updateBOQItem(jobId, index, field, value) {
+                const job = DB.jobs.find(j => j.id === jobId);
+                if (!job || !job.boq_items || !job.boq_items[index]) return;
+                if (field === 'qty' || field === 'price') {
+                    job.boq_items[index][field] = parseFloat(value) || 0;
+                } else {
+                    job.boq_items[index][field] = value;
+                }
+                
+                // update line total
+                const lineTotal = (job.boq_items[index].qty || 0) * (job.boq_items[index].price || 0);
+                const lineEl = document.getElementById(`boq-item-total-${index}`);
+                if (lineEl) {
+                    lineEl.innerText = lineTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+
+                // update summary calculation
+                const items = job.boq_items || [];
+                const subtotal = items.reduce((sum, item) => sum + ((item.qty || 0) * (item.price || 0)), 0);
+                const discount = job.boq_discount !== undefined ? job.boq_discount : 500;
+                const taxable = Math.max(0, subtotal - discount);
+                const vat = taxable * 0.07;
+                const grandTotal = taxable + vat;
+
+                const subtotalEl = document.getElementById('boq-subtotal-val');
+                const vatEl = document.getElementById('boq-vat-val');
+                const grandTotalEl = document.getElementById('boq-grandtotal-val');
+                if (subtotalEl) subtotalEl.innerText = subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
+                if (vatEl) vatEl.innerText = vat.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
+                if (grandTotalEl) grandTotalEl.innerText = grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
+            },
+
+            saveBOQ(jobId) {
+                this.showToast('💾 บันทึกรายการ BOQ เข้าระบบ PMT เรียบร้อย');
             },
 
             renderGantt() {
