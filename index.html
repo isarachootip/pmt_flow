@@ -3098,81 +3098,6 @@
                             </div>
                         </div>
 
-                        <!-- Dedicated Section: Site Notes & Special Instructions (QC Special Instructions & Notes) -->
-                        <div class="artifact-card p-5 border border-brand-500/30 bg-card shadow-sm space-y-4">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border">
-                                <div class="flex items-center gap-2.5">
-                                    <div class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
-                                        <i class="ph ph-note-pencil text-lg"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
-                                            บันทึกข้อมูลเพิ่มเติม & คำสั่งพิเศษหน้างาน (QC Special Instructions & Notes)
-                                        </h3>
-                                        <p class="text-[11px] text-muted-foreground">บันทึกข้อกำหนดเฉพาะหน้างาน ข้อควรระวังความปลอดภัย และคำสั่งพิเศษโดยทีม QC (หลังจากรับข้อมูลจากระบบ AE)</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[10px] px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-semibold flex items-center gap-1">
-                                        <i class="ph ph-shield-check"></i> บันทึกโดยทีม QC
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <!-- Special Instructions -->
-                                <div class="space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <label class="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                            <i class="ph ph-warning-circle text-amber-500"></i> คำสั่งพิเศษ (Special Instructions)
-                                        </label>
-                                        <span class="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 font-medium">ข้อควรระวัง</span>
-                                    </div>
-                                    <textarea id="job-special-instructions" rows="3" class="w-full bg-muted/40 border border-border rounded-lg p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 transition resize-y" placeholder="ระบุคำสั่งพิเศษ เช่น ระวังหมาดุ, นัดเข้าหลัง 10:00 น., ให้สวมถุงคลุมรองเท้า...">${job.special_instructions || ''}</textarea>
-                                    
-                                    <!-- Quick Chips -->
-                                    <div class="flex flex-wrap gap-1.5 pt-0.5">
-                                        <span class="text-[10px] text-muted-foreground self-center">แท็กด่วน:</span>
-                                        <button type="button" onclick="app.appendInstruction('🐕 ระวังมีสุนัขในบ้าน')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ ระวังหมาดุ</button>
-                                        <button type="button" onclick="app.appendInstruction('⏰ โทรแจ้งก่อนเข้า 30 นาที')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ โทรแจ้งก่อน 30 น.</button>
-                                        <button type="button" onclick="app.appendInstruction('🚪 เข้าหลัง 10:00 น.')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ เข้าหลัง 10:00 น.</button>
-                                        <button type="button" onclick="app.appendInstruction('👟 สวมถุงคลุมรองเท้า')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ สวมถุงคลุมรองเท้า</button>
-                                        <button type="button" onclick="app.appendInstruction('⚡ เช็คสายดินก่อนเริ่ม')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ เช็คสายดิน</button>
-                                    </div>
-                                </div>
-
-                                <!-- Additional Notes -->
-                                <div class="space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <label class="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                            <i class="ph ph-notepad text-brand-500"></i> ข้อมูลเพิ่มเติม / หมายเหตุหน้างาน (Additional Notes)
-                                        </label>
-                                        <span class="text-[10px] text-brand-500 bg-brand-500/10 px-1.5 py-0.2 rounded border border-brand-500/20 font-medium">บันทึกหน้างาน</span>
-                                    </div>
-                                    <textarea id="job-additional-notes" rows="3" class="w-full bg-muted/40 border border-border rounded-lg p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 transition resize-y" placeholder="บันทึกข้อมูลเพิ่มเติมเกี่ยวกับสภาพหน้างานจริง วัสดุ หรือข้อสังเกตเพิ่มเติม...">${job.additional_notes || ''}</textarea>
-
-                                    <!-- Quick Chips for notes -->
-                                    <div class="flex flex-wrap gap-1.5 pt-0.5">
-                                        <span class="text-[10px] text-muted-foreground self-center">ข้อความแนะนำ:</span>
-                                        <button type="button" onclick="app.appendNote('✓ สภาพผนังและตำแหน่งติดตั้งพร้อมทำงาน')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ ผนังพร้อม</button>
-                                        <button type="button" onclick="app.appendNote('🔌 ลูกค้าเตรียมจุดจ่ายไฟฟ้าเรียบร้อยแล้ว')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ ปลั๊กไฟพร้อม</button>
-                                        <button type="button" onclick="app.appendNote('📏 เพิ่มความยาวรางครอบท่อตามหน้างานจริง')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ เพิ่มรางครอบ</button>
-                                        <button type="button" onclick="app.appendNote('💧 ทดสอบระบบท่อน้ำทิ้งระบายไหลสะดวก')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ น้ำทิ้งไหลสะดวก</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border">
-                                <div class="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                                    <i class="ph ph-info"></i> ข้อมูลนี้จะซิงค์ไปยังรายงานผลตรวจ QC อัตโนมัติ
-                                </div>
-                                <button type="button" onclick="app.saveJobNotes('${job.id}')" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 shadow-sm">
-                                    <i class="ph ph-floppy-disk text-base"></i>
-                                    <span>บันทึกข้อมูลเพิ่มเติม & คำสั่งพิเศษ</span>
-                                </button>
-                            </div>
-                        </div>
-
                         <!-- Site Photos Section (Requirement: Upload รูปเพิ่มเติมได้) -->
                         <div>
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
@@ -3184,7 +3109,7 @@
                                     <p class="text-xs text-muted-foreground mt-0.5">บันทึกครบถ้วนตามข้อกำหนดอย่างน้อย 5 ภาพจากการ Check-in หน้างาน (สามารถถ่ายภาพเพิ่มเติมได้)</p>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm font-medium" onclick="app.openPhotoUploadModal('${job.id}')">
+                                    <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm font-medium cursor-pointer" onclick="app.openPhotoUploadModal('${job.id}')">
                                         <i class="ph ph-camera-plus text-sm"></i> ถ่ายภาพเพิ่มเติม / Upload รูป
                                     </button>
                                 </div>
@@ -3217,6 +3142,62 @@
                                     <div class="text-xs font-semibold text-foreground group-hover:text-brand-500 transition">อัปโหลดรูปเพิ่มเติม</div>
                                     <div class="text-[10px] text-muted-foreground">ถ่ายรูปจากกล้อง หรือเลือกไฟล์</div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Dedicated Section: Site Notes & Special Instructions (วางไว้ท้ายสุดต่อจากรูปภาพ โดยพิมพ์ข้อความเอง ไม่ต้องมี tag) -->
+                        <div class="artifact-card p-5 border border-brand-500/30 bg-card shadow-sm space-y-4">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                                        <i class="ph ph-note-pencil text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
+                                            บันทึกข้อมูลเพิ่มเติม & คำสั่งพิเศษหน้างาน (QC Special Instructions & Notes)
+                                        </h3>
+                                        <p class="text-[11px] text-muted-foreground">บันทึกข้อกำหนดเฉพาะหน้างาน ข้อควรระวังความปลอดภัย และคำสั่งพิเศษโดยทีม QC (หลังจากรับข้อมูลจากระบบ AE)</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-semibold flex items-center gap-1">
+                                        <i class="ph ph-shield-check"></i> บันทึกโดยทีม QC
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Special Instructions -->
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <label class="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                            <i class="ph ph-warning-circle text-amber-500"></i> คำสั่งพิเศษ (Special Instructions)
+                                        </label>
+                                        <span class="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 font-medium">ข้อควรระวัง</span>
+                                    </div>
+                                    <textarea id="job-special-instructions" rows="4" class="w-full bg-muted/40 border border-border rounded-lg p-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 transition resize-y" placeholder="พิมพ์คำสั่งพิเศษ เช่น ระวังหมาดุ, นัดเข้าหลัง 10:00 น., ให้สวมถุงคลุมรองเท้า...">${job.special_instructions || ''}</textarea>
+                                </div>
+
+                                <!-- Additional Notes -->
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <label class="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                            <i class="ph ph-notepad text-brand-500"></i> ข้อมูลเพิ่มเติม / หมายเหตุหน้างาน (Additional Notes)
+                                        </label>
+                                        <span class="text-[10px] text-brand-500 bg-brand-500/10 px-1.5 py-0.2 rounded border border-brand-500/20 font-medium">บันทึกหน้างาน</span>
+                                    </div>
+                                    <textarea id="job-additional-notes" rows="4" class="w-full bg-muted/40 border border-border rounded-lg p-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 transition resize-y" placeholder="พิมพ์บันทึกข้อมูลเพิ่มเติมเกี่ยวกับสภาพหน้างานจริง วัสดุ หรือข้อสังเกตเพิ่มเติม...">${job.additional_notes || ''}</textarea>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border">
+                                <div class="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                                    <i class="ph ph-info"></i> ข้อมูลนี้จะซิงค์ไปยังรายงานผลตรวจ QC อัตโนมัติ
+                                </div>
+                                <button type="button" onclick="app.saveJobNotes('${job.id}')" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 shadow-sm cursor-pointer">
+                                    <i class="ph ph-floppy-disk text-base"></i>
+                                    <span>บันทึกข้อมูลเพิ่มเติม & คำสั่งพิเศษ</span>
+                                </button>
                             </div>
                         </div>
 
