@@ -2337,54 +2337,6 @@
                                     <div class="text-xs text-foreground mt-0.5">${job.tech}</div>
                                 </div>
                             </div>
-
-                            <!-- Special Instructions & Additional Notes Card (Recorded by QC after AE Entry) -->
-                            <div class="artifact-card p-6 space-y-4 border border-brand-500/20 bg-card shadow-xs">
-                                <div class="flex items-center justify-between pb-2 border-b border-border">
-                                    <h3 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
-                                        <i class="ph ph-warning-circle text-amber-500 text-lg"></i> คำสั่งพิเศษและข้อมูลเพิ่มเติม
-                                    </h3>
-                                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold border border-purple-500/20 flex items-center gap-1">
-                                        <i class="ph ph-shield-check"></i> บันทึกโดยทีม QC (จากระบบ AE)
-                                    </span>
-                                </div>
-
-                                <!-- Special Instructions Field -->
-                                <div class="space-y-1.5">
-                                    <label class="block text-xs font-semibold text-foreground flex items-center justify-between">
-                                        <span class="flex items-center gap-1.5"><i class="ph ph-megaphone-simple text-amber-500"></i> คำสั่งพิเศษ (Special Instructions)</span>
-                                        <span class="text-[10px] text-muted-foreground font-normal">คำสั่งเฉพาะหน้างานโดย QC</span>
-                                    </label>
-                                    <textarea id="job-special-instructions" rows="2" class="w-full bg-muted/40 border border-border rounded-lg p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 transition resize-y" placeholder="ระบุคำสั่งพิเศษ เช่น ระวังหมาดุ, เข้าหน้างานหลัง 10:00 น., ให้สวมถุงคลุมรองเท้า...">${job.special_instructions || ''}</textarea>
-                                    
-                                    <!-- Quick Tags -->
-                                    <div class="flex flex-wrap gap-1.5 pt-1">
-                                        <span class="text-[10px] text-muted-foreground self-center">แท็กด่วน:</span>
-                                        <button type="button" onclick="app.appendInstruction('🐕 ระวังมีสุนัขในบ้าน')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ ระวังหมาดุ</button>
-                                        <button type="button" onclick="app.appendInstruction('⏰ โทรแจ้งก่อนเข้า 30 นาที')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ โทรแจ้งก่อน 30 น.</button>
-                                        <button type="button" onclick="app.appendInstruction('🚪 เข้าหลัง 10:00 น.')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ เข้าหลัง 10:00 น.</button>
-                                        <button type="button" onclick="app.appendInstruction('👟 สวมถุงคลุมรองเท้า')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ สวมถุงคลุมรองเท้า</button>
-                                        <button type="button" onclick="app.appendInstruction('⚡ เช็คสายดินก่อนเริ่ม')" class="px-2 py-0.5 rounded bg-muted hover:bg-brand-500/10 hover:text-brand-500 border border-border text-[10px] text-muted-foreground transition cursor-pointer">+ เช็คสายดิน</button>
-                                    </div>
-                                </div>
-
-                                <!-- Additional Notes Field -->
-                                <div class="space-y-1.5 pt-2 border-t border-border">
-                                    <label class="block text-xs font-semibold text-foreground flex items-center justify-between">
-                                        <span class="flex items-center gap-1.5"><i class="ph ph-notepad text-brand-500"></i> ข้อมูลเพิ่มเติม / หมายเหตุหน้างาน (Additional Notes)</span>
-                                        <span class="text-[10px] text-muted-foreground font-normal">บันทึกข้อสังเกต</span>
-                                    </label>
-                                    <textarea id="job-additional-notes" rows="3" class="w-full bg-muted/40 border border-border rounded-lg p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 transition resize-y" placeholder="บันทึกข้อมูลเพิ่มเติมเกี่ยวกับสภาพหน้างาน ความต้องการลูกค้า หรือหมายเหตุประสานงาน...">${job.additional_notes || ''}</textarea>
-                                </div>
-
-                                <!-- Save Button -->
-                                <div class="flex justify-end pt-1">
-                                    <button type="button" onclick="app.saveJobNotes('${job.id}')" class="btn-artifact-primary w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm">
-                                        <i class="ph ph-floppy-disk text-sm"></i>
-                                        <span>บันทึกข้อมูลเพิ่มเติม & คำสั่งพิเศษ</span>
-                                    </button>
-                                </div>
-                            </div>
                         </div>
 
                         <!-- Right Actions & Timeline -->
@@ -2580,20 +2532,15 @@
                             </div>
                         </div>
 
-                        <!-- Site Photos Section (Requirement: Upload รูปเพิ่มเติมได้) -->
+                        <!-- Site Photos Section (5 Standard Photos) -->
                         <div>
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                                 <div>
                                     <div class="flex items-center gap-2">
                                         <h3 class="font-display font-semibold text-sm text-foreground">รูปถ่ายการปฏิบัติงานหน้างาน (Site Photos)</h3>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">รวม ${totalPhotoCount} รูป</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">5 ภาพมาตรฐาน</span>
                                     </div>
-                                    <p class="text-xs text-muted-foreground mt-0.5">บันทึกครบถ้วนตามข้อกำหนดอย่างน้อย 5 ภาพ (ปัจจุบันรวม ${totalPhotoCount} ภาพ)</p>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm font-medium" onclick="app.openPhotoUploadModal('${job.id}')">
-                                        <i class="ph ph-camera-plus text-sm"></i> ถ่ายภาพเพิ่มเติม / Upload รูป
-                                    </button>
+                                    <p class="text-xs text-muted-foreground mt-0.5">บันทึกครบถ้วนตามข้อกำหนดอย่างน้อย 5 ภาพจากการ Check-in หน้างาน</p>
                                 </div>
                             </div>
 
@@ -2613,17 +2560,6 @@
                                     <div class="text-[9px] font-mono text-emerald-500 flex items-center gap-1"><i class="ph ph-check"></i> GPS Verified</div>
                                 </div>
                                 `).join('')}
-
-                                ${extraPhotosHtml}
-
-                                <!-- Add Photo Quick Card -->
-                                <div onclick="app.openPhotoUploadModal('${job.id}')" class="artifact-card p-4 rounded-xl border-2 border-dashed border-brand-500/40 hover:border-brand-500 hover:bg-brand-500/5 transition cursor-pointer flex flex-col items-center justify-center min-h-[160px] gap-2 text-center group">
-                                    <div class="w-10 h-10 rounded-full bg-brand-500/10 text-brand-500 flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-500 group-hover:text-white transition">
-                                        <i class="ph ph-plus text-lg font-bold"></i>
-                                    </div>
-                                    <div class="text-xs font-semibold text-foreground group-hover:text-brand-500 transition">อัปโหลดรูปเพิ่มเติม</div>
-                                    <div class="text-[10px] text-muted-foreground">ถ่ายรูปจากกล้อง หรือเลือกไฟล์</div>
-                                </div>
                             </div>
                         </div>
 
