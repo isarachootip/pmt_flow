@@ -2976,14 +2976,9 @@
                             </div>
                         </td>
                         <td class="px-5 py-4 text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <button onclick="event.stopPropagation(); app.openJobDetailBOQ('${j.id}')" class="px-2 py-1 rounded-md text-[11px] font-medium bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500/20 border border-brand-500/20 transition flex items-center gap-1 cursor-pointer" title="ดูรายละเอียด BOQ ของโครงการนี้">
-                                    <i class="ph ph-receipt"></i> BOQ
-                                </button>
-                                <button class="text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted transition">
-                                    <i class="ph ph-caret-right text-base"></i>
-                                </button>
-                            </div>
+                            <button class="text-muted-foreground group-hover:text-brand-500 p-1 rounded hover:bg-muted transition">
+                                <i class="ph ph-caret-right text-base"></i>
+                            </button>
                         </td>
                     </tr>
                 `).join('');
