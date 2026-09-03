@@ -2947,17 +2947,11 @@
 
                 let tabContent = '';
                 if (curTab === 'boq') {
-                    const boqItems = job.boq_items || [
-                        { name: 'ค่าแรงช่างติดตั้งเครื่องปรับอากาศ 18000 BTU', qty: 1, unit: 'งาน', price: 2500 },
-                        { name: 'ชุดท่อน้ำยาแอร์ทองแดงหนาพิเศษพร้อมฉนวนหุ้ม 4 ม.', qty: 1, unit: 'ชุด', price: 1800 },
-                        { name: 'รางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.', qty: 1, unit: 'ชุด', price: 950 },
-                        { name: 'ขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม', qty: 1, unit: 'ชุด', price: 650 },
-                        { name: 'ชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง', qty: 1, unit: 'ชุด', price: 500 }
-                    ];
-                    if (!job.boq_items) job.boq_items = boqItems;
+                    const boqItems = job.boq_items || [];
+                    if (!job.boq_items) job.boq_items = [];
 
                     const subtotal = boqItems.reduce((acc, item) => acc + ((item.qty || 0) * (item.price || 0)), 0);
-                    const discount = job.boq_discount !== undefined ? job.boq_discount : 500;
+                    const discount = job.boq_discount !== undefined ? job.boq_discount : 0;
                     const taxable = Math.max(0, subtotal - discount);
                     const vat = taxable * 0.07;
                     const grandTotal = taxable + vat;
@@ -2981,6 +2975,9 @@
                             <div class="flex items-center gap-2 shrink-0 flex-wrap">
                                 <button class="btn-artifact-secondary px-3 py-2 rounded-lg text-xs flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 cursor-pointer" onclick="app.openImportBOQModal('${job.id}')" title="นำเข้ารายการวัสดุและราคาจาก Excel หรือ Template">
                                     <i class="ph ph-file-arrow-up text-sm"></i> นำเข้าใบ BOQ (Import)
+                                </button>
+                                <button class="btn-artifact-secondary text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3 py-2 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer" onclick="app.clearJobBOQ('${job.id}')" title="ลบรายการ BOQ ทั้งหมดของโครงการนี้">
+                                    <i class="ph ph-trash"></i> ลบรายการ BOQ
                                 </button>
                                 <button class="btn-artifact-secondary px-3 py-2 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer" onclick="app.navigate('blueprints')" title="เปิดดูแบบแปลนติดตั้งในศูนย์รวมแบบแปลน">
                                     <i class="ph ph-blueprint text-brand-500"></i> ดูแบบติดตั้ง (Blueprints)
@@ -3643,6 +3640,18 @@
                 if (grandTotalEl) grandTotalEl.innerText = grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
             },
 
+            clearJobBOQ(jobId) {
+                const targetJobId = jobId || this.state.currentJobId;
+                const job = DB.jobs.find(j => j.id === targetJobId);
+                if (!job) return;
+                if (!confirm(`คุณแน่ใจหรือไม่ที่จะลบรายการ BOQ ทั้งหมดของโครงการ ${job.id}?`)) return;
+                job.boq_items = [];
+                job.boq_discount = 0;
+                this.persistJobs();
+                this.renderJobDetail();
+                this.showToast(`🗑️ ลบรายการ BOQ ทั้งหมดของ ${job.id} เรียบร้อย`);
+            },
+
             saveBOQ(jobId) {
                 this.openSaveBOQModal(jobId);
             },
@@ -3666,13 +3675,7 @@
                 if (servEl) servEl.innerText = `บริการ: ${job.service}`;
 
                 // Get current BOQ items
-                const items = job.boq_items && job.boq_items.length > 0 ? JSON.parse(JSON.stringify(job.boq_items)) : [
-                    { name: 'ค่าแรงช่างติดตั้งเครื่องปรับอากาศ 18000 BTU', qty: 1, unit: 'งาน', price: 2500 },
-                    { name: 'ชุดท่อน้ำยาแอร์ทองแดงหนาพิเศษพร้อมฉนวนหุ้ม 4 ม.', qty: 1, unit: 'ชุด', price: 1800 },
-                    { name: 'รางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.', qty: 1, unit: 'ชุด', price: 950 },
-                    { name: 'ขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม', qty: 1, unit: 'ชุด', price: 650 },
-                    { name: 'ชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง', qty: 1, unit: 'ชุด', price: 500 }
-                ];
+                const items = job.boq_items && job.boq_items.length > 0 ? JSON.parse(JSON.stringify(job.boq_items)) : [];
 
                 // Determine start & end datetime defaults
                 const today = new Date().toISOString().slice(0, 10);
@@ -4052,21 +4055,9 @@
 
                 this.switchBOQImportTab('file');
 
-                // Default standard template items for initial preview
-                this.state.pendingBOQHeader = {
-                    customer: 'นภัสวรรณ มีศิริ',
-                    phone: '0922795574',
-                    branch: 'พัทยาใต้',
-                    date: '25/8/69',
-                    address: 'หมู่บ้านพัทยารุ่งเรือง ซอยระหว่างมาบยายเลีย ตำบลหนองปรือ อำเภอบางละมุง จังหวัดชลบุรี 20150'
-                };
-                this.state.pendingBOQItems = [
-                    { code: 'SKU-AC-INV18', name: 'ค่าแรงช่างติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU', qty: 1, unit: 'งาน', mat_price: 0, labor_price: 2500, price: 2500, remark: 'รวมชุดเบรกเกอร์' },
-                    { code: 'MAT-PIPE-04', name: 'ชุดท่อน้ำยาแอร์ทองแดงหนาพิเศษพร้อมฉนวนหุ้ม 4 ม.', qty: 1, unit: 'ชุด', mat_price: 1800, labor_price: 0, price: 1800, remark: 'ท่อทองแดง 0.7 มม.' },
-                    { code: 'MAT-DUCT-04', name: 'รางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.', qty: 1, unit: 'ชุด', mat_price: 950, labor_price: 0, price: 950, remark: 'สีครีมมาตรฐาน' },
-                    { code: 'MAT-BRACKET', name: 'ขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม', qty: 1, unit: 'ชุด', mat_price: 650, labor_price: 0, price: 650, remark: 'แบบหนาพิเศษ' },
-                    { code: 'MAT-SW-30A', name: 'ชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง', qty: 1, unit: 'ชุด', mat_price: 500, labor_price: 0, price: 500, remark: 'มอก. แท้' }
-                ];
+                // Start with empty pending BOQ
+                this.state.pendingBOQHeader = null;
+                this.state.pendingBOQItems = [];
                 this.renderBOQPreviewTable();
                 
                 this.showModal('modal-import-boq');
