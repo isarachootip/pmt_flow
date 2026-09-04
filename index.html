@@ -12110,8 +12110,12 @@
             if (this.token && userStr) {
                 try { this.user = JSON.parse(userStr); } catch(e) {}
             }
-            if (!this.user) {
-                this.user = { ...this.defaultUser };
+            if (!this.user || !this.token) {
+                this.user = null;
+                this.token = null;
+                this.showLoginOverlay();
+            } else {
+                this.hideLoginOverlay();
             }
             this.updateUI();
         },
@@ -12181,9 +12185,14 @@
         },
 
         updateUI() {
-            const u = this.user || this.defaultUser;
+            const u = this.user;
             if (!u) {
                 document.body.classList.remove('superadmin-allowed');
+                document.querySelectorAll('.superadmin-only-btn').forEach(btn => {
+                    btn.setAttribute('disabled', 'disabled');
+                    btn.disabled = true;
+                    btn.title = '🔒 กรุณาเข้าสู่ระบบ';
+                });
                 return;
             }
             // Sidebar user info
