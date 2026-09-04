@@ -138,23 +138,23 @@ const app = {
                     },
                     {
                         stepNumber: 3,
-                        name: 'บันทึก Ticket และแนบใบเสร็จ',
-                        category: 'Step 3: Tickets & Receipt Slips',
-                        timestamp: ts.step3_ticket_at || (tkt ? (tkt.created_at || '2026-09-04T10:15:40.000Z') : null),
-                        isDone: !!(ts.step3_ticket_at || tkt),
-                        statusLabel: (ts.step3_ticket_at || tkt) ? 'ออก Ticket & สลิปแล้ว' : 'รอยืนยันการชำระเงิน',
-                        reference: tkt ? `Ticket: ${tkt.ticket_no} • ใบเสร็จ: ${tkt.receipt_no || '-'}` : 'ยังไม่มี Ticket',
-                        detail: tkt ? `ยอดเงิน: ${Number(tkt.amount || 0).toLocaleString()} ฿ (${tkt.payment_method})` : 'รอลูกค้าชำระเงินมัดจำ/แนบสลิป'
+                        name: 'นำBOQ เข้าระบบ & ประมาณการราคา',
+                        category: 'Step 3: นำBOQ เข้าระบบ (BOQ Ingestion)',
+                        timestamp: ts.step3_boq_at || ts.step4_boq_at || (boqCount > 0 ? '2026-09-04T11:05:12.000Z' : null),
+                        isDone: !!(ts.step3_boq_at || ts.step4_boq_at || boqCount > 0),
+                        statusLabel: (ts.step3_boq_at || ts.step4_boq_at || boqCount > 0) ? `บันทึกแล้ว (${boqCount} รายการ)` : 'รอจัดทำ BOQ',
+                        reference: boqCount > 0 ? `ยอดรวม BOQ: ${(Number(job.boq_grand_total || 0)).toLocaleString()} ฿` : 'ยังไม่มี BOQ',
+                        detail: boqCount > 0 ? `รายการวัสดุและค่าแรง ${boqCount} รายการ (บันทึกบน PMT)` : 'รอจัดทำหรือนำเข้าไฟล์ BOQ (Excel / vFIX)'
                     },
                     {
                         stepNumber: 4,
-                        name: 'นำBOQ เข้าระบบ',
-                        category: 'Step 4: นำBOQ เข้าระบบ (BOQ Ingestion)',
-                        timestamp: ts.step4_boq_at || (boqCount > 0 ? '2026-09-04T11:05:12.000Z' : null),
-                        isDone: !!(ts.step4_boq_at || boqCount > 0),
-                        statusLabel: (ts.step4_boq_at || boqCount > 0) ? `บันทึกแล้ว (${boqCount} รายการ)` : 'รอจัดทำ BOQ',
-                        reference: boqCount > 0 ? `ยอดรวม BOQ: ${(Number(job.boq_grand_total || 0)).toLocaleString()} ฿` : 'ยังไม่มี BOQ',
-                        detail: boqCount > 0 ? `รายการวัสดุและค่าแรง ${boqCount} รายการ (บันทึกบน PMT)` : 'รอจัดทำหรือนำเข้าไฟล์ BOQ (Excel / vFIX)'
+                        name: 'บันทึก Ticket และแนบใบเสร็จ',
+                        category: 'Step 4: Tickets & Receipt Slips',
+                        timestamp: ts.step4_ticket_at || ts.step3_ticket_at || (tkt ? (tkt.created_at || '2026-09-04T10:15:40.000Z') : null),
+                        isDone: !!(ts.step4_ticket_at || ts.step3_ticket_at || tkt),
+                        statusLabel: (ts.step4_ticket_at || ts.step3_ticket_at || tkt) ? 'ออก Ticket & สลิปแล้ว' : 'รอยืนยันการชำระเงิน',
+                        reference: tkt ? `Ticket: ${tkt.ticket_no} • ใบเสร็จ: ${tkt.receipt_no || '-'}` : 'ยังไม่มี Ticket',
+                        detail: tkt ? `ยอดเงิน: ${Number(tkt.amount || 0).toLocaleString()} ฿ (${tkt.payment_method})` : 'รอลูกค้าชำระเงินมัดจำ/แนบสลิป'
                     },
                     {
                         stepNumber: 5,
@@ -374,8 +374,8 @@ const app = {
                     'สถานะปัจจุบัน',
                     'Step 1: วัน-เวลารับ Order (Order_At)',
                     'Step 2: วัน-เวลาบันทึก Design (Design_At)',
-                    'Step 3: วัน-เวลาบันทึก Ticket & ใบเสร็จ (Ticket_At)',
-                    'Step 4: วัน-เวลานำBOQ เข้าระบบ (BOQ_At)',
+                    'Step 3: วัน-เวลานำBOQ เข้าระบบ (BOQ_At)',
+                    'Step 4: วัน-เวลาบันทึก Ticket & ใบเสร็จ (Ticket_At)',
                     'Step 5: วัน-เวลาบันทึกเข้า Project (Project_At)',
                     'จำนวนขั้นตอนที่เสร็จสิ้น'
                 ];
@@ -393,8 +393,8 @@ const app = {
                         `"${j.status || ''}"`,
                         `"${this.formatTimestamp(ts.step1_order_at)}"`,
                         `"${this.formatTimestamp(ts.step2_design_at)}"`,
-                        `"${this.formatTimestamp(ts.step3_ticket_at)}"`,
-                        `"${this.formatTimestamp(ts.step4_boq_at)}"`,
+                        `"${this.formatTimestamp(ts.step3_boq_at || ts.step4_boq_at)}"`,
+                        `"${this.formatTimestamp(ts.step4_ticket_at || ts.step3_ticket_at)}"`,
                         `"${this.formatTimestamp(ts.step5_project_at)}"`,
                         `"${r ? r.completedCount : 0}/5"`
                     ].join(',');
@@ -519,8 +519,10 @@ const app = {
                         step_timestamps: {
                             step1_order_at: "2026-09-04T08:30:15.000Z",
                             step2_design_at: "2026-09-04T09:45:22.000Z",
-                            step3_ticket_at: "2026-09-04T10:15:40.000Z",
-                            step4_boq_at: "2026-09-04T11:05:12.000Z",
+                            step3_boq_at: "2026-09-04T10:15:40.000Z",
+                            step4_ticket_at: "2026-09-04T11:05:12.000Z",
+                            step3_ticket_at: "2026-09-04T11:05:12.000Z",
+                            step4_boq_at: "2026-09-04T10:15:40.000Z",
                             step5_project_at: "2026-09-04T13:20:05.000Z"
                         }
                     },
@@ -545,7 +547,8 @@ const app = {
                         step_timestamps: {
                             step1_order_at: "2026-09-04T08:45:00.000Z",
                             step2_design_at: "2026-09-04T11:15:00.000Z",
-                            step3_ticket_at: "2026-09-04T11:40:00.000Z"
+                            step3_ticket_at: "2026-09-04T11:40:00.000Z",
+                            step4_ticket_at: "2026-09-04T11:40:00.000Z"
                         }
                     },
                     {
@@ -568,7 +571,8 @@ const app = {
                         boq_discount: 0,
                         step_timestamps: {
                             step1_order_at: "2026-09-04T09:00:00.000Z",
-                            step3_ticket_at: "2026-09-04T09:50:00.000Z"
+                            step3_ticket_at: "2026-09-04T09:50:00.000Z",
+                            step4_ticket_at: "2026-09-04T09:50:00.000Z"
                         }
                     },
                     {
@@ -591,7 +595,8 @@ const app = {
                         boq_discount: 0,
                         step_timestamps: {
                             step1_order_at: "2026-09-04T09:15:00.000Z",
-                            step3_ticket_at: "2026-09-04T10:00:00.000Z"
+                            step3_ticket_at: "2026-09-04T10:00:00.000Z",
+                            step4_ticket_at: "2026-09-04T10:00:00.000Z"
                         }
                     },
                     {
@@ -614,7 +619,8 @@ const app = {
                         boq_discount: 0,
                         step_timestamps: {
                             step1_order_at: "2026-09-04T09:30:00.000Z",
-                            step3_ticket_at: "2026-09-04T10:20:00.000Z"
+                            step3_ticket_at: "2026-09-04T10:20:00.000Z",
+                            step4_ticket_at: "2026-09-04T10:20:00.000Z"
                         }
                     },
                     {
@@ -886,12 +892,22 @@ const app = {
                         if (hasBp && !j.step_timestamps.step2_design_at) {
                             j.step_timestamps.step2_design_at = hasBp.recorded_at || "2026-09-04T09:45:22.000Z";
                         }
-                        const hasTkt = (DB.tickets || []).find(t => t.job_id === j.id);
-                        if (hasTkt && !j.step_timestamps.step3_ticket_at) {
-                            j.step_timestamps.step3_ticket_at = hasTkt.created_at || "2026-09-04T10:15:40.000Z";
+                        if (j.boq_items && j.boq_items.length > 0) {
+                            if (!j.step_timestamps.step3_boq_at) {
+                                j.step_timestamps.step3_boq_at = j.step_timestamps.step4_boq_at || "2026-09-04T10:15:40.000Z";
+                            }
+                            if (!j.step_timestamps.step4_boq_at) {
+                                j.step_timestamps.step4_boq_at = j.step_timestamps.step3_boq_at;
+                            }
                         }
-                        if (j.boq_items && j.boq_items.length > 0 && !j.step_timestamps.step4_boq_at) {
-                            j.step_timestamps.step4_boq_at = "2026-09-04T11:05:12.000Z";
+                        const hasTkt = (DB.tickets || []).find(t => t.job_id === j.id);
+                        if (hasTkt) {
+                            if (!j.step_timestamps.step4_ticket_at) {
+                                j.step_timestamps.step4_ticket_at = j.step_timestamps.step3_ticket_at || hasTkt.created_at || "2026-09-04T11:05:12.000Z";
+                            }
+                            if (!j.step_timestamps.step3_ticket_at) {
+                                j.step_timestamps.step3_ticket_at = j.step_timestamps.step4_ticket_at;
+                            }
                         }
                         const hasTasks = (DB.tasks || []).some(t => t.jobId === j.id);
                         if (hasTasks && !j.step_timestamps.step5_project_at) {
@@ -1059,8 +1075,8 @@ const app = {
                     'jobs': 'Step 1: บันทึกงาน & รับ Order ใหม่ (All Work Orders)',
                     'job-detail': `รายละเอียดงาน ${param || ''}`,
                     'blueprints': 'Step 2: บันทึก Design & แบบแปลนติดตั้ง (Blueprints & CAD)',
-                    'tickets': 'Step 3: บันทึก Ticket & แนบใบเสร็จ (Tickets & Receipts)',
-                    'boq': 'Step 4: นำBOQ เข้าระบบ & ประมาณการราคา (Bill of Quantities)',
+                    'boq': 'Step 3: นำBOQ เข้าระบบ & ประมาณการราคา (Bill of Quantities)',
+                    'tickets': 'Step 4: บันทึก Ticket & แนบใบเสร็จ (Tickets & Receipts)',
                     'project-conversion': 'Step 5: บันทึก BOQ เข้า Project (Labor-to-Task & Gantt)',
                     'gantt': 'แผนงาน Gantt เต็มรูป (Gantt Timeline)',
                     'qc': 'QC Inspection (ตรวจคุณภาพ)',
@@ -3512,6 +3528,7 @@ const app = {
                     });
                 });
 
+                this.recordStepTimestamp(data.jobId, 'step3_boq_at', new Date().toISOString(), 'บันทึก BOQ & กำหนดวันปฏิบัติงาน');
                 this.recordStepTimestamp(data.jobId, 'step4_boq_at', new Date().toISOString(), 'บันทึก BOQ & กำหนดวันปฏิบัติงาน');
                 this.persistJobs();
 
@@ -4138,6 +4155,7 @@ const app = {
                     if (header.date) job.date = header.date;
                 }
 
+                this.recordStepTimestamp(targetJobId, 'step3_boq_at', new Date().toISOString(), `นำเข้า BOQ ${newItems.length} รายการ`);
                 this.recordStepTimestamp(targetJobId, 'step4_boq_at', new Date().toISOString(), `นำเข้า BOQ ${newItems.length} รายการ`);
                 this.persistJobs();
                 this.hideModal('modal-import-boq');
@@ -4919,7 +4937,7 @@ const app = {
                 ];
             },
 
-            // ─── STEP 3: TICKETS & RECEIPTS METHODS ─────────────────────
+            // ─── STEP 4: TICKETS & RECEIPTS METHODS ─────────────────────
             renderTickets() {
                 const searchInput = document.getElementById('ticket-search');
                 const statusFilter = document.getElementById('ticket-filter-status');
@@ -5060,7 +5078,7 @@ const app = {
                         </td>
                         <td class="px-5 py-3.5 text-right">
                             <div class="flex items-center justify-end gap-1.5">
-                                <button type="button" onclick="app.openBOQForJob('${t.job_id}')" class="btn-artifact-primary px-2.5 py-1 rounded-lg text-[11px] bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1 cursor-pointer font-medium shadow-xs" title="ไปจัดทำ BOQ (Step 4) สำหรับงานนี้">
+                                <button type="button" onclick="app.openBOQForJob('${t.job_id}')" class="btn-artifact-primary px-2.5 py-1 rounded-lg text-[11px] bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1 cursor-pointer font-medium shadow-xs" title="ไปจัดทำ BOQ (Step 3) สำหรับงานนี้">
                                     <span>BOQ</span> <i class="ph ph-arrow-right"></i>
                                 </button>
                                 <button type="button" onclick="app.openTicketSlipLightbox('${t.id}')" class="p-1.5 rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-muted transition cursor-pointer" title="ดูสลิปและสัญญาจ้าง">
@@ -5249,7 +5267,8 @@ const app = {
                 DB.tickets.unshift(newTicket);
                 this.persistTickets();
 
-                // Step 3 Timestamp Recording
+                // Step 4 Timestamp Recording
+                this.recordStepTimestamp(jobId, 'step4_ticket_at', newTicket.created_at, `บันทึก Ticket ${ticketNo} ใบเสร็จ ${receiptNo || '-'} สัญญา ${contractNo || '-'}`);
                 this.recordStepTimestamp(jobId, 'step3_ticket_at', newTicket.created_at, `บันทึก Ticket ${ticketNo} ใบเสร็จ ${receiptNo || '-'} สัญญา ${contractNo || '-'}`);
                 this.hideModal('modal-create-ticket');
                 this.renderTickets();
@@ -5418,7 +5437,7 @@ const app = {
                 this.navigate('boq', jobId);
             },
 
-            // ─── STEP 4: BOQ MANAGEMENT METHODS ─────────────────────────
+            // ─── STEP 3: BOQ MANAGEMENT METHODS ─────────────────────────
             renderBOQPage(jobId = null) {
                 const targetJobId = jobId || this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
                 this.state.boqSelectedJobId = targetJobId;
@@ -5664,6 +5683,7 @@ const app = {
 
             saveBOQPage() {
                 const targetJobId = this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
+                this.recordStepTimestamp(targetJobId, 'step3_boq_at', new Date().toISOString(), 'บันทึกรายการ BOQ ในระบบ PMT');
                 this.recordStepTimestamp(targetJobId, 'step4_boq_at', new Date().toISOString(), 'บันทึกรายการ BOQ ในระบบ PMT');
                 this.persistJobs();
                 this.showToast(`💾 บันทึกรายการ BOQ โครงการ ${targetJobId} เรียบร้อย (บันทึก Timestamp แล้ว)`);
@@ -5719,11 +5739,11 @@ const app = {
                                 </div>
                                 <div>
                                     <h4 class="font-bold text-foreground">โครงการนี้ยังไม่มีรายการ BOQ</h4>
-                                    <p class="text-muted-foreground text-[11px]">กรุณากลับไป Step 4: นำBOQ เข้าระบบ หรือกดปุ่มนำเข้าไฟล์ Excel ก่อนเพื่อสกัดรายการค่าแรง</p>
+                                    <p class="text-muted-foreground text-[11px]">กรุณากลับไป Step 3: นำBOQ เข้าระบบ หรือกดปุ่มนำเข้าไฟล์ Excel ก่อนเพื่อสกัดรายการค่าแรง</p>
                                 </div>
                             </div>
                             <button onclick="app.navigate('boq', '${targetJobId}')" class="btn-artifact-secondary px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer shrink-0">
-                                ➔ ไปหน้า Step 4: นำBOQ เข้าระบบ
+                                ➔ ไปหน้า Step 3: นำBOQ เข้าระบบ
                             </button>
                         `;
                     } else if (jobTasks.length === 0) {

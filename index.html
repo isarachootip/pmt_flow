@@ -162,21 +162,21 @@
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono font-medium shrink-0" id="sidebar-blueprint-count">5</span>
                         </a>
-                        <!-- Step 3 -->
-                        <a href="#" onclick="app.navigate('tickets')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-tickets">
-                            <div class="flex items-center gap-2.5">
-                                <span class="w-5 h-5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-bold flex items-center justify-center border border-emerald-500/30 shrink-0">3</span>
-                                <span class="truncate">Step 3: บันทึก Ticket & ใบเสร็จ</span>
-                            </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-medium shrink-0" id="sidebar-ticket-count">5</span>
-                        </a>
-                        <!-- Step 4 -->
+                        <!-- Step 3: นำBOQ เข้าระบบ -->
                         <a href="#" onclick="app.navigate('boq')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-boq">
                             <div class="flex items-center gap-2.5">
-                                <span class="w-5 h-5 rounded-md bg-purple-500/15 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-bold flex items-center justify-center border border-purple-500/30 shrink-0">4</span>
-                                <span class="truncate">Step 4: นำBOQ เข้าระบบ</span>
+                                <span class="w-5 h-5 rounded-md bg-purple-500/15 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-bold flex items-center justify-center border border-purple-500/30 shrink-0">3</span>
+                                <span class="truncate">Step 3: นำBOQ เข้าระบบ</span>
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono font-medium shrink-0" id="sidebar-boq-count">5</span>
+                        </a>
+                        <!-- Step 4: บันทึก Ticket & ใบเสร็จ -->
+                        <a href="#" onclick="app.navigate('tickets')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-tickets">
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-5 h-5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-bold flex items-center justify-center border border-emerald-500/30 shrink-0">4</span>
+                                <span class="truncate">Step 4: บันทึก Ticket & ใบเสร็จ</span>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-medium shrink-0" id="sidebar-ticket-count">5</span>
                         </a>
                         <!-- Step 5 -->
                         <a href="#" onclick="app.navigate('project-conversion')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-project-conversion">
@@ -751,16 +751,16 @@
                     </div>
                 </div>
 
-                <!-- STEP 3: TICKETS & RECEIPTS VIEW -->
+                <!-- STEP 4: TICKETS & RECEIPTS VIEW -->
                 <div id="page-tickets" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">Step 3</span>
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">Step 4</span>
                                 <span class="text-2xl">🧾</span>
                                 <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">บันทึก Ticket & แนบใบเสร็จ (Tickets & Receipts)</h2>
                             </div>
-                            <p class="text-xs text-muted-foreground mt-1">บันทึกหมายเลข Ticket ชำระเงิน แนบไฟล์/สลิปใบเสร็จรับเงิน และตรวจสอบหลักฐานการจ่ายเงินก่อนจัดทำ BOQ</p>
+                            <p class="text-xs text-muted-foreground mt-1">บันทึกหมายเลข Ticket ชำระเงิน แนบไฟล์/สลิปใบเสร็จรับเงิน และตรวจสอบหลักฐานการจ่ายเงินพร้อมสัญญาการทำงาน</p>
                         </div>
                         <div class="flex items-center gap-2.5">
                             <button onclick="app.openCreateTicketModal()" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
@@ -853,12 +853,12 @@
                     </div>
                 </div>
 
-                <!-- STEP 4: BOQ MANAGEMENT VIEW -->
+                <!-- STEP 3: BOQ MANAGEMENT VIEW -->
                 <div id="page-boq" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30">Step 4</span>
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30">Step 3</span>
                                 <span class="text-2xl">📋</span>
                                 <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">นำBOQ เข้าระบบ & ประมาณการราคา (Bill of Quantities)</h2>
                             </div>
@@ -2394,7 +2394,7 @@
         </div>
     </div>
 
-    <!-- MODAL: CREATE TICKET & RECEIPT (STEP 3) -->
+    <!-- MODAL: CREATE TICKET & RECEIPT (STEP 4) -->
     <div id="modal-create-ticket" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
         <div class="artifact-card rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-create-ticket-content">
             <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
@@ -2403,7 +2403,7 @@
                         <i class="ph ph-receipt text-lg"></i>
                     </div>
                     <div>
-                        <h3 class="font-display font-bold text-sm text-foreground">บันทึก Ticket & แนบใบเสร็จ พร้อมสัญญาการทำงาน (Step 3)</h3>
+                        <h3 class="font-display font-bold text-sm text-foreground">บันทึก Ticket & แนบใบเสร็จ พร้อมสัญญาการทำงาน (Step 4)</h3>
                         <p class="text-[11px] text-muted-foreground">บันทึกเลขที่ Ticket, ใบเสร็จรับเงิน, สัญญาจ้างงาน และแนบสลิป/เอกสารหลักฐาน</p>
                     </div>
                 </div>
