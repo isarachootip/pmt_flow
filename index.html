@@ -307,17 +307,24 @@
                 <div>
                     <div class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">การควบคุมคุณภาพ</div>
                     <nav class="space-y-1">
-                        <a href="#" onclick="app.navigate('qc')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
+                        <a href="#" onclick="app.navigate('qc')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-qc">
                             <div class="flex items-center gap-2.5">
                                 <i class="ph ph-check-circle text-base"></i>
                                 <span>ตรวจคุณภาพ (QC)</span>
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-500 font-mono font-medium" id="sidebar-qc-count">0</span>
                         </a>
+                        <a href="#" onclick="app.navigate('csat')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-csat">
+                            <div class="flex items-center gap-2.5">
+                                <i class="ph ph-star text-base text-amber-500"></i>
+                                <span>ความพึงพอใจลูกค้า (CSAT)</span>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono font-medium" id="sidebar-csat-count">0</span>
+                        </a>
                         <a href="#" onclick="app.navigate('ma-contracts')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-ma-contracts">
                             <div class="flex items-center gap-2.5">
-                                <i class="ph ph-sparkle text-base text-brand-500"></i>
-                                <span>CSAT & บริการหลังการขาย</span>
+                                <i class="ph ph-wrench text-base text-brand-500"></i>
+                                <span>บริการหลังการขาย</span>
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-500 font-mono font-medium" id="sidebar-ma-count">1</span>
                         </a>
@@ -894,21 +901,21 @@
                     </div>
                 </div>
 
-                <!-- 6. MA CONTRACTS VIEW (สัญญา MA — Recurring Maintenance) -->
+                <!-- 6. AFTER SALE & MA CONTRACTS VIEW (บริการหลังการขาย & สัญญา MA) -->
                 <div id="page-ma-contracts" class="page-view hidden-view space-y-6">
                     <!-- Page Header & Action -->
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="text-2xl">📄</span>
-                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">สัญญา MA — Recurring Maintenance</h2>
+                                <span class="text-2xl">🛡️</span>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">บริการหลังการขาย & สัญญา MA</h2>
                             </div>
-                            <p class="text-xs text-muted-foreground mt-1">สัญญาบำรุงรักษาแบบวนซ้ำ พร้อม Checklist และตารางรอบบริการ</p>
+                            <p class="text-xs text-muted-foreground mt-1">สัญญาบำรุงรักษาแบบวนซ้ำ (MA Contracts) พร้อม Checklist ตารางรอบบริการ และงานส่งมอบหลังการขาย</p>
                         </div>
                         <div class="flex items-center gap-2.5">
-                            <button onclick="app.navigate('csat')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5" title="ดูผลสำรวจความพึงพอใจ 5 ดาว">
+                            <button onclick="app.navigate('csat')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5" title="ไปยังแบบสำรวจ CSAT">
                                 <i class="ph ph-star text-amber-400"></i>
-                                <span>ดูรายงาน CSAT</span>
+                                <span>แบบสำรวจ CSAT</span>
                             </button>
                             <button onclick="app.openCreateMAModal()" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm">
                                 <i class="ph ph-plus-bold text-sm"></i>
@@ -917,51 +924,142 @@
                         </div>
                     </div>
 
-                    <!-- 4 KPI Summary Cards -->
-                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <!-- Card 1: สัญญาทั้งหมด -->
-                        <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
-                            <div class="text-2xl mb-2">📋</div>
-                            <div class="text-3xl font-extrabold text-blue-500" id="ma-stat-total">1</div>
-                            <div class="text-xs text-muted-foreground mt-1 font-medium">สัญญาทั้งหมด</div>
-                        </div>
-
-                        <!-- Card 2: Active -->
-                        <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
-                            <div class="text-2xl mb-2">✅</div>
-                            <div class="text-3xl font-extrabold text-emerald-500" id="ma-stat-active">1</div>
-                            <div class="text-xs text-muted-foreground mt-1 font-medium">Active</div>
-                        </div>
-
-                        <!-- Card 3: รอบทั้งหมด -->
-                        <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
-                            <div class="text-2xl mb-2">🔄</div>
-                            <div class="text-3xl font-extrabold text-indigo-500" id="ma-stat-rounds">4</div>
-                            <div class="text-xs text-muted-foreground mt-1 font-medium">รอบทั้งหมด</div>
-                        </div>
-
-                        <!-- Card 4: รอบเสร็จแล้ว -->
-                        <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
-                            <div class="text-2xl mb-2">🏆</div>
-                            <div class="text-3xl font-extrabold text-amber-500" id="ma-stat-completed">0</div>
-                            <div class="text-xs text-muted-foreground mt-1 font-medium">รอบเสร็จแล้ว</div>
+                    <!-- Sub Tabs: สัญญา MA vs งานส่งมอบหลังการขาย -->
+                    <div class="flex items-center justify-between gap-3 border-b border-border pb-3">
+                        <div class="flex items-center gap-1.5 bg-muted p-1 rounded-xl border border-border/60">
+                            <button type="button" id="ma-tab-btn-contracts" onclick="app.setMATab('contracts')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-card text-foreground shadow-sm flex items-center gap-1.5">
+                                <i class="ph ph-file-text"></i>
+                                <span>สัญญาบำรุงรักษา MA</span>
+                            </button>
+                            <button type="button" id="ma-tab-btn-aftersale" onclick="app.setMATab('aftersale')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground flex items-center gap-1.5">
+                                <i class="ph ph-shield-check"></i>
+                                <span>งานส่งมอบหลังการขาย & ประกัน</span>
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Contracts List Container -->
-                    <div id="ma-contracts-list" class="space-y-3">
-                        <!-- Rendered by JavaScript -->
+                    <!-- Section 1: Contracts -->
+                    <div id="ma-section-contracts" class="space-y-6">
+                        <!-- 4 KPI Summary Cards -->
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <!-- Card 1: สัญญาทั้งหมด -->
+                            <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
+                                <div class="text-2xl mb-2">📋</div>
+                                <div class="text-3xl font-extrabold text-blue-500" id="ma-stat-total">1</div>
+                                <div class="text-xs text-muted-foreground mt-1 font-medium">สัญญาทั้งหมด</div>
+                            </div>
+
+                            <!-- Card 2: Active -->
+                            <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
+                                <div class="text-2xl mb-2">✅</div>
+                                <div class="text-3xl font-extrabold text-emerald-500" id="ma-stat-active">1</div>
+                                <div class="text-xs text-muted-foreground mt-1 font-medium">Active</div>
+                            </div>
+
+                            <!-- Card 3: รอบทั้งหมด -->
+                            <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
+                                <div class="text-2xl mb-2">🔄</div>
+                                <div class="text-3xl font-extrabold text-indigo-500" id="ma-stat-rounds">4</div>
+                                <div class="text-xs text-muted-foreground mt-1 font-medium">รอบทั้งหมด</div>
+                            </div>
+
+                            <!-- Card 4: รอบเสร็จแล้ว -->
+                            <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
+                                <div class="text-2xl mb-2">🏆</div>
+                                <div class="text-3xl font-extrabold text-amber-500" id="ma-stat-completed">0</div>
+                                <div class="text-xs text-muted-foreground mt-1 font-medium">รอบเสร็จแล้ว</div>
+                            </div>
+                        </div>
+
+                        <!-- Contracts List Container -->
+                        <div id="ma-contracts-list" class="space-y-3">
+                            <!-- Rendered by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Section 2: After-Sale Jobs & Warranty -->
+                    <div id="ma-section-aftersale" class="space-y-6 hidden">
+                        <!-- After Sale KPI Cards -->
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
+                                <div class="text-2xl mb-2">🛡️</div>
+                                <div class="text-3xl font-extrabold text-brand-500" id="as-stat-total">0</div>
+                                <div class="text-xs text-muted-foreground mt-1 font-medium">งานหลังส่งมอบทั้งหมด</div>
+                            </div>
+                            <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
+                                <div class="text-2xl mb-2">⏳</div>
+                                <div class="text-3xl font-extrabold text-amber-500" id="as-stat-pending">0</div>
+                                <div class="text-xs text-muted-foreground mt-1 font-medium">รอส่ง BMT</div>
+                            </div>
+                            <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
+                                <div class="text-2xl mb-2">✅</div>
+                                <div class="text-3xl font-extrabold text-emerald-500" id="as-stat-closed">0</div>
+                                <div class="text-xs text-muted-foreground mt-1 font-medium">ส่งปิด BMT แล้ว</div>
+                            </div>
+                            <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
+                                <div class="text-2xl mb-2">🤝</div>
+                                <div class="text-3xl font-extrabold text-indigo-500" id="as-stat-csat">5.0 ★</div>
+                                <div class="text-xs text-muted-foreground mt-1 font-medium">CSAT คะแนนเฉลี่ย</div>
+                            </div>
+                        </div>
+
+                        <!-- After Sale Jobs Container -->
+                        <div id="ma-aftersale-container" class="space-y-3">
+                            <!-- Rendered by JavaScript -->
+                        </div>
                     </div>
                 </div>
 
-                <!-- 7. AFTER SALE & CSAT VIEW -->
+                <!-- 7. CSAT SURVEY VIEW (ความพึงพอใจลูกค้า CSAT) -->
                 <div id="page-csat" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">บริการหลังการขาย & CSAT</h2>
-                            <p class="text-xs text-muted-foreground mt-0.5">Contact Center โทรสอบถามความพึงพอใจ 5 ดาว และส่งปิดงานไปยังระบบ BMT</p>
+                            <div class="flex items-center gap-2">
+                                <span class="text-2xl">⭐</span>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">ความพึงพอใจลูกค้า (CSAT Survey)</h2>
+                            </div>
+                            <p class="text-xs text-muted-foreground mt-1">Contact Center โทรสอบถามประเมินผลความพึงพอใจ 5 ดาว หลังงานผ่าน QC และส่งต่อเข้าสู่บริการหลังการขาย</p>
                         </div>
-                        <div class="text-xs text-muted-foreground">เฉลี่ย CSAT: <strong class="text-foreground">4.92 / 5.0</strong></div>
+                        <div class="flex items-center gap-2.5">
+                            <button onclick="app.navigate('ma-contracts')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5" title="ไปยังบริการหลังการขาย">
+                                <i class="ph ph-shield-check text-indigo-500"></i>
+                                <span>ไปยังบริการหลังการขาย ➔</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 4 CSAT KPI Cards -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
+                            <div class="text-2xl mb-2">⭐️</div>
+                            <div class="text-3xl font-extrabold text-amber-500" id="csat-stat-avg">4.92</div>
+                            <div class="text-xs text-muted-foreground mt-1 font-medium">คะแนนเฉลี่ย CSAT (/ 5.0)</div>
+                        </div>
+                        <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
+                            <div class="text-2xl mb-2">📞</div>
+                            <div class="text-3xl font-extrabold text-brand-500" id="csat-stat-pending">0</div>
+                            <div class="text-xs text-muted-foreground mt-1 font-medium">รอโทรประเมิน</div>
+                        </div>
+                        <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
+                            <div class="text-2xl mb-2">✅</div>
+                            <div class="text-3xl font-extrabold text-emerald-500" id="csat-stat-completed">0</div>
+                            <div class="text-xs text-muted-foreground mt-1 font-medium">ประเมินเสร็จแล้ว</div>
+                        </div>
+                        <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col justify-between shadow-sm">
+                            <div class="text-2xl mb-2">📊</div>
+                            <div class="text-3xl font-extrabold text-indigo-500">100%</div>
+                            <div class="text-xs text-muted-foreground mt-1 font-medium">อัตราการตอบกลับ (Response Rate)</div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Tabs -->
+                    <div class="flex items-center justify-between gap-3 border-b border-border pb-3">
+                        <div class="flex items-center gap-1.5 bg-muted p-1 rounded-xl border border-border/60">
+                            <button type="button" id="csat-tab-all" onclick="app.setCSATFilter('all')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-card text-foreground shadow-sm">ทั้งหมด</button>
+                            <button type="button" id="csat-tab-pending" onclick="app.setCSATFilter('pending')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground">รอโทรประเมิน</button>
+                            <button type="button" id="csat-tab-completed" onclick="app.setCSATFilter('completed')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground">ประเมินแล้ว</button>
+                        </div>
+                        <span class="text-xs text-muted-foreground" id="csat-count-summary"></span>
                     </div>
 
                     <div class="artifact-card overflow-hidden shadow-sm">
@@ -3577,6 +3675,11 @@
                                 if (this.state.currentView === 'csat') this.renderCSAT();
                                 const countEl = document.getElementById('sidebar-job-count');
                                 if (countEl) countEl.innerText = DB.jobs.length;
+                                const sbCsat = document.getElementById('sidebar-csat-count');
+                                if (sbCsat) {
+                                    const pCount = (DB.jobs || []).filter(j => j.status === 'QC_PASSED').length;
+                                    sbCsat.innerText = pCount;
+                                }
                             }
                         }
                     }
@@ -3626,9 +3729,9 @@
                     'job-detail': `รายละเอียดงาน ${param || ''}`,
                     'blueprints': 'ศูนย์รวมแบบติดตั้ง (Blueprints & CAD/PDF)',
                     'gantt': 'Gantt Timeline',
-                    'qc': 'QC Inspection',
-                    'ma-contracts': 'สัญญา MA',
-                    'csat': 'CSAT & After Sales',
+                    'qc': 'QC Inspection (ตรวจคุณภาพ)',
+                    'csat': 'ความพึงพอใจลูกค้า (CSAT Survey)',
+                    'ma-contracts': 'บริการหลังการขาย & สัญญา MA',
                     'settings': 'ตั้งค่าระบบ',
                     'faq': 'คู่มือระบบ & คำถามที่พบบ่อย (Workflow Guide & FAQ)',
                     'users': 'จัดการผู้ใช้งาน'
@@ -3668,6 +3771,11 @@
                 if (sidebarMa) sidebarMa.innerText = DB.maContracts.length;
                 const sidebarBp = document.getElementById('sidebar-blueprint-count');
                 if (sidebarBp && DB.blueprints) sidebarBp.innerText = DB.blueprints.length;
+                const sidebarCsat = document.getElementById('sidebar-csat-count');
+                if (sidebarCsat) {
+                    const csatPending = (DB.jobs || []).filter(j => j.status === 'QC_PASSED').length;
+                    sidebarCsat.innerText = csatPending;
+                }
             },
 
             showToast(msg) {
@@ -8383,51 +8491,107 @@
                                 <i class="ph ph-check-circle text-2xl"></i>
                             </div>
                             <h4 class="font-display font-medium text-foreground text-sm mb-1">บันทึกผล QC ผ่านเกณฑ์สำเร็จ</h4>
-                            <p class="text-xs text-muted-foreground mb-4">ระบบได้ส่งต่อไปยัง Contact Center เพื่อโทรประเมิน CSAT เรียบร้อยแล้ว</p>
+                            <p class="text-xs text-muted-foreground mb-4">ระบบได้ส่งต่อไปยัง Contact Center เพื่อโทรประเมินความพึงพอใจ (CSAT) เรียบร้อยแล้ว</p>
                             <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 mx-auto" onclick="app.navigate('csat')">
-                                <i class="ph ph-phone-call"></i> ไปยังหน้า CSAT & บริการหลังการขาย ➔
+                                <i class="ph ph-star"></i> ไปยังหน้าความพึงพอใจลูกค้า (CSAT) ➔
                             </button>
                         </div>
                     `;
                 }
             },
 
+            setCSATFilter(filter) {
+                this.state.csatFilter = filter;
+                ['all', 'pending', 'completed'].forEach(f => {
+                    const btn = document.getElementById(`csat-tab-${f}`);
+                    if (btn) {
+                        if (f === filter) {
+                            btn.classList.add('bg-card', 'text-foreground', 'shadow-sm');
+                            btn.classList.remove('text-muted-foreground');
+                        } else {
+                            btn.classList.remove('bg-card', 'text-foreground', 'shadow-sm');
+                            btn.classList.add('text-muted-foreground');
+                        }
+                    }
+                });
+                this.renderCSAT();
+            },
+
             renderCSAT() {
-                const jobs = DB.jobs.filter(j => j.status === 'QC_PASSED' || j.status === 'AFTER_SALE' || j.status === 'CLOSED');
-                const html = jobs.map(j => `
-                    <tr class="hover:bg-muted/40 transition-colors">
-                        <td class="px-5 py-4 font-mono font-semibold text-brand-500">${j.id}</td>
-                        <td class="px-5 py-4">
-                            <div class="text-foreground font-medium">${j.customer}</div>
-                            <div class="text-[11px] text-muted-foreground font-mono">${j.phone}</div>
-                        </td>
-                        <td class="px-5 py-4 text-muted-foreground">${j.service}</td>
-                        <td class="px-5 py-4 text-muted-foreground font-mono">${j.date}</td>
-                        <td class="px-5 py-4">
-                            ${(j.status === 'AFTER_SALE' || j.status === 'CLOSED') ? 
-                            '<div class="flex text-amber-400 text-sm gap-0.5"><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i></div>' : 
-                            '<span class="text-muted-foreground text-xs flex items-center gap-1"><i class="ph ph-phone"></i> รอโทรสัมภาษณ์</span>'}
-                        </td>
-                        <td class="px-5 py-4 text-right">
-                            ${j.status === 'CLOSED' ? 
-                            '<span class="text-emerald-500 text-xs font-medium"><i class="ph ph-check"></i> ปิดงานเรียบร้อย (BMT)</span>' :
-                            (j.status === 'AFTER_SALE' ? 
-                            '<button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs" onclick="app.closeJob(\''+j.id+'\')">Close & ส่ง BMT</button>' : 
-                            '<button class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs" onclick="app.markCSAT(\''+j.id+'\')">บันทึกโทร (5 ดาว)</button>')
-                            }
-                        </td>
-                    </tr>
-                `).join('');
-                
-                document.getElementById('csat-table-body').innerHTML = html || '<tr><td colspan="6" class="px-5 py-8 text-center text-muted-foreground">ไม่มีรายการที่ต้องดำเนินการ</td></tr>';
+                const allEligible = (DB.jobs || []).filter(j => j.status === 'QC_PASSED' || j.status === 'AFTER_SALE' || j.status === 'CLOSED');
+                const pendingJobs = (DB.jobs || []).filter(j => j.status === 'QC_PASSED');
+                const completedJobs = (DB.jobs || []).filter(j => j.status === 'AFTER_SALE' || j.status === 'CLOSED');
+
+                // Update KPI stats on CSAT page
+                const elPending = document.getElementById('csat-stat-pending');
+                if (elPending) elPending.innerText = pendingJobs.length;
+                const elCompleted = document.getElementById('csat-stat-completed');
+                if (elCompleted) elCompleted.innerText = completedJobs.length;
+                const elAvg = document.getElementById('csat-stat-avg');
+                if (elAvg) elAvg.innerText = '4.92';
+
+                // Update sidebar badge
+                const sidebarCsat = document.getElementById('sidebar-csat-count');
+                if (sidebarCsat) {
+                    sidebarCsat.innerText = pendingJobs.length;
+                    sidebarCsat.style.display = pendingJobs.length > 0 ? '' : 'none';
+                }
+
+                const curFilter = this.state.csatFilter || 'all';
+                let filtered = allEligible;
+                if (curFilter === 'pending') filtered = pendingJobs;
+                else if (curFilter === 'completed') filtered = completedJobs;
+
+                const summaryEl = document.getElementById('csat-count-summary');
+                if (summaryEl) {
+                    summaryEl.innerText = `แสดง ${filtered.length} รายการ (รอโทรประเมิน ${pendingJobs.length} งาน)`;
+                }
+
+                const container = document.getElementById('csat-table-body');
+                if (!container) return;
+
+                if (filtered.length === 0) {
+                    container.innerHTML = '<tr><td colspan="6" class="px-5 py-8 text-center text-muted-foreground">ไม่มีรายการในหมวดนี้</td></tr>';
+                    return;
+                }
+
+                container.innerHTML = filtered.map(j => {
+                    const isEvaluated = (j.status === 'AFTER_SALE' || j.status === 'CLOSED');
+                    return `
+                        <tr class="hover:bg-muted/40 transition-colors">
+                            <td class="px-5 py-4 font-mono font-semibold text-brand-500 cursor-pointer" onclick="app.navigate('job-detail', '${j.id}')">${j.id}</td>
+                            <td class="px-5 py-4">
+                                <div class="text-foreground font-medium">${j.customer}</div>
+                                <div class="text-[11px] text-muted-foreground font-mono">${j.phone}</div>
+                            </td>
+                            <td class="px-5 py-4 text-muted-foreground">${j.service}</td>
+                            <td class="px-5 py-4 text-muted-foreground font-mono">${j.date}</td>
+                            <td class="px-5 py-4">
+                                ${isEvaluated ? 
+                                '<div class="flex items-center gap-1.5"><div class="flex text-amber-400 text-sm gap-0.5"><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i></div><span class="text-[11px] font-bold text-amber-500 font-mono">5.0</span></div>' : 
+                                '<span class="text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded text-[11px] font-medium inline-flex items-center gap-1"><i class="ph ph-phone"></i> รอโทรสัมภาษณ์</span>'}
+                            </td>
+                            <td class="px-5 py-4 text-right">
+                                ${j.status === 'CLOSED' ? 
+                                '<div class="flex items-center justify-end gap-2"><span class="text-emerald-500 text-xs font-medium"><i class="ph ph-check"></i> ปิดงาน (BMT)</span><button class="btn-artifact-secondary px-2.5 py-1 text-[11px] rounded" onclick="app.navigate(\'ma-contracts\')">บริการหลังการขาย ➔</button></div>' :
+                                (j.status === 'AFTER_SALE' ? 
+                                '<div class="flex items-center justify-end gap-2"><button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs" onclick="app.closeJob(\''+j.id+'\')">Close & ส่ง BMT</button><button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs" onclick="app.navigate(\'ma-contracts\')">บริการหลังการขาย ➔</button></div>' : 
+                                '<button class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 ml-auto font-medium" onclick="app.markCSAT(\''+j.id+'\')"><i class="ph ph-phone-call"></i> บันทึกโทร (5 ดาว)</button>')
+                                }
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
             },
 
             markCSAT(id) {
                 const job = DB.jobs.find(j => j.id === id);
                 if(job) {
                     job.status = 'AFTER_SALE';
-                    this.showToast(`บันทึกผลการประเมิน CSAT 5 ดาว สำหรับ ${id} แล้ว`);
+                    this.showToast(`บันทึกผลการประเมิน CSAT 5 ดาว สำหรับ ${id} แล้ว ส่งต่องานเข้าสู่บริการหลังการขาย`);
                     this.renderCSAT();
+                    if(this.state.currentView === 'job-detail') this.renderJobDetail();
+                    if(this.state.currentView === 'dashboard') this.renderDashboard();
                 }
             },
 
@@ -8445,6 +8609,131 @@
                     if(this.state.currentView === 'dashboard') this.renderDashboard();
                 }
             },
+
+            setMATab(tab) {
+                this.state.maTab = tab;
+                const tabContractsBtn = document.getElementById('ma-tab-btn-contracts');
+                const tabAfterSaleBtn = document.getElementById('ma-tab-btn-aftersale');
+                const sectionContracts = document.getElementById('ma-section-contracts');
+                const sectionAfterSale = document.getElementById('ma-section-aftersale');
+                
+                if (tab === 'aftersale') {
+                    if (tabContractsBtn) {
+                        tabContractsBtn.classList.remove('bg-card', 'text-foreground', 'shadow-sm');
+                        tabContractsBtn.classList.add('text-muted-foreground');
+                    }
+                    if (tabAfterSaleBtn) {
+                        tabAfterSaleBtn.classList.add('bg-card', 'text-foreground', 'shadow-sm');
+                        tabAfterSaleBtn.classList.remove('text-muted-foreground');
+                    }
+                    if (sectionContracts) sectionContracts.classList.add('hidden');
+                    if (sectionAfterSale) sectionAfterSale.classList.remove('hidden');
+                    this.renderAfterSaleJobs();
+                } else {
+                    if (tabContractsBtn) {
+                        tabContractsBtn.classList.add('bg-card', 'text-foreground', 'shadow-sm');
+                        tabContractsBtn.classList.remove('text-muted-foreground');
+                    }
+                    if (tabAfterSaleBtn) {
+                        tabAfterSaleBtn.classList.remove('bg-card', 'text-foreground', 'shadow-sm');
+                        tabAfterSaleBtn.classList.add('text-muted-foreground');
+                    }
+                    if (sectionContracts) sectionContracts.classList.remove('hidden');
+                    if (sectionAfterSale) sectionAfterSale.classList.add('hidden');
+                    this.renderMAContracts();
+                }
+            },
+
+            renderAfterSaleJobs() {
+                const afterSaleJobs = (DB.jobs || []).filter(j => j.status === 'AFTER_SALE' || j.status === 'CLOSED');
+                const pendingBMT = afterSaleJobs.filter(j => j.status === 'AFTER_SALE').length;
+                const closedBMT = afterSaleJobs.filter(j => j.status === 'CLOSED').length;
+
+                // Update After-Sale Stats
+                const asTotal = document.getElementById('as-stat-total');
+                if (asTotal) asTotal.innerText = afterSaleJobs.length;
+                const asPending = document.getElementById('as-stat-pending');
+                if (asPending) asPending.innerText = pendingBMT;
+                const asClosed = document.getElementById('as-stat-closed');
+                if (asClosed) asClosed.innerText = closedBMT;
+
+                const container = document.getElementById('ma-aftersale-container');
+                if (!container) return;
+
+                if (afterSaleJobs.length === 0) {
+                    container.innerHTML = `
+                        <div class="artifact-card p-12 text-center text-muted-foreground rounded-2xl border border-border bg-card">
+                            <div class="text-4xl mb-2">🛡️</div>
+                            <div class="font-semibold text-sm text-foreground">ยังไม่มีรายการงานในสถานะบริการหลังการขาย</div>
+                            <p class="text-xs text-muted-foreground mt-1">งานที่ผ่านการประเมิน CSAT แล้วจะปรากฏที่นี่ เพื่อติดตามการรับประกัน หรือเปิดสัญญาบำรุงรักษา MA ต่อเนื่อง</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = afterSaleJobs.map(j => {
+                    const isClosed = j.status === 'CLOSED';
+                    return `
+                        <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:border-brand-500/40 transition">
+                            <div class="space-y-1.5 flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-mono font-bold text-sm text-brand-500 cursor-pointer" onclick="app.navigate('job-detail', '${j.id}')">${j.id}</span>
+                                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-full border ${isClosed ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20' : 'text-sky-600 bg-sky-500/10 border-sky-500/20'}">
+                                        ${isClosed ? 'Closed & ส่ง BMT แล้ว' : 'บริการหลังการขาย (After Sale)'}
+                                    </span>
+                                    ${j.bmt_ref ? '<span class="text-[10px] font-mono px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border">Ref: ' + j.bmt_ref + '</span>' : ''}
+                                </div>
+                                <div class="text-xs text-foreground font-medium flex items-center gap-2">
+                                    <span><i class="ph ph-user text-muted-foreground"></i> ${j.customer}</span>
+                                    <span class="text-muted-foreground font-mono text-[11px]">(${j.phone})</span>
+                                </div>
+                                <div class="text-xs text-muted-foreground flex items-center gap-3 flex-wrap">
+                                    <span><i class="ph ph-wrench text-muted-foreground"></i> ${j.service}</span>
+                                    <span>·</span>
+                                    <span><i class="ph ph-calendar text-muted-foreground"></i> ส่งมอบ: ${j.date}</span>
+                                    <span>·</span>
+                                    <span class="text-amber-500 font-medium inline-flex items-center gap-0.5">
+                                        <i class="ph ph-star-fill text-xs"></i> CSAT: 5.0
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                                ${!isClosed ? `
+                                    <button class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs" onclick="app.closeJob('${j.id}')">
+                                        Close & ส่ง BMT
+                                    </button>
+                                ` : ''}
+                                <button class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-sm" onclick="app.openCreateMAForJob('${j.id}')">
+                                    <i class="ph ph-plus-circle"></i>
+                                    <span>เปิดสัญญา MA</span>
+                                </button>
+                                <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs" onclick="app.navigate('job-detail', '${j.id}')" title="ดูข้อมูลงาน">
+                                    <i class="ph ph-arrow-square-out"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            openCreateMAForJob(jobId) {
+                const job = DB.jobs.find(j => j.id === jobId);
+                this.openCreateMAModal();
+                if (job) {
+                    const custName = document.getElementById('ma-cust-name');
+                    if (custName) custName.value = job.customer || '';
+                    const custPhone = document.getElementById('ma-cust-phone');
+                    if (custPhone) custPhone.value = job.phone || '';
+                    const siteAddr = document.getElementById('ma-site-address');
+                    if (siteAddr) siteAddr.value = job.location || '';
+                    const servType = document.getElementById('ma-service-type');
+                    if (servType) servType.value = (job.service && job.service.includes('แอร์')) ? 'ล้างแอร์' : 'บำรุงรักษาทั่วไป';
+                    const notes = document.getElementById('ma-notes');
+                    if (notes) notes.value = `อ้างอิงงานติดตั้ง: ${job.id}\nบริการเดิม: ${job.service || ''}\nCSAT: 5 ดาว`;
+                    this.showToast(`ดึงข้อมูลจากงาน ${job.id} มาสร้างสัญญา MA แล้ว`);
+                }
+            },
+
 
             // =========================================================
             // RECURRING MAINTENANCE / MA CONTRACTS METHODS
@@ -8496,6 +8785,8 @@
                 if (statRounds) statRounds.innerText = totalRounds;
                 const statComp = document.getElementById('ma-stat-completed');
                 if (statComp) statComp.innerText = completedRounds;
+
+                this.renderAfterSaleJobs();
 
                 const container = document.getElementById('ma-contracts-list');
                 if (!container) return;
