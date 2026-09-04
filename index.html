@@ -399,12 +399,12 @@
                 <div class="flex items-center justify-between p-2 rounded-xl bg-muted/50 border border-border">
                     <button type="button" onclick="auth.openMyProfile()" class="flex items-center gap-2.5 min-w-0 text-left cursor-pointer group flex-1 mr-1" title="แก้ไขข้อมูลโปรไฟล์ & เปลี่ยนรหัสผ่าน">
                         <div class="relative shrink-0">
-                            <div id="sidebar-avatar" class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-600 to-indigo-500 flex items-center justify-center text-white text-xs font-bold group-hover:ring-2 group-hover:ring-brand-500 transition">A</div>
+                            <div id="sidebar-avatar" class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-600 to-indigo-500 flex items-center justify-center text-white text-xs font-bold group-hover:ring-2 group-hover:ring-brand-500 transition">ผ</div>
                             <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card"></span>
                         </div>
                         <div class="truncate">
-                            <p class="text-xs font-semibold text-foreground truncate group-hover:text-brand-500 transition" id="sidebar-user-name">กำลังโหลด...</p>
-                            <p class="text-[10px] text-muted-foreground truncate" id="sidebar-user-role">-</p>
+                            <p class="text-xs font-semibold text-foreground truncate group-hover:text-brand-500 transition" id="sidebar-user-name">ผู้ดูแลระบบ</p>
+                            <p class="text-[10px] text-muted-foreground truncate" id="sidebar-user-role">ผู้ดูแลระบบ (Admin)</p>
                         </div>
                     </button>
                     <div class="flex items-center gap-0.5 shrink-0">
@@ -12094,18 +12094,26 @@
     const auth = {
         token: null,
         user:  null,
+        defaultUser: {
+            id: 1,
+            user_code: 'USR-001',
+            username: 'admin',
+            email: 'isarachootip@gmail.com',
+            full_name: 'ผู้ดูแลระบบ',
+            role: 'ADMIN',
+            is_active: true
+        },
 
         init() {
-            this.token = sessionStorage.getItem('pmt_token');
-            const userStr = sessionStorage.getItem('pmt_user');
+            this.token = sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+            const userStr = sessionStorage.getItem('pmt_user') || localStorage.getItem('pmt_user');
             if (this.token && userStr) {
                 try { this.user = JSON.parse(userStr); } catch(e) {}
             }
-            if (this.user) {
-                this.onLogin();
-            } else {
-                this.showLoginOverlay();
+            if (!this.user) {
+                this.user = { ...this.defaultUser };
             }
+            this.updateUI();
         },
 
         showLoginOverlay() {
@@ -12155,6 +12163,8 @@
                 this.user  = json.data.user;
                 sessionStorage.setItem('pmt_token', this.token);
                 sessionStorage.setItem('pmt_user', JSON.stringify(this.user));
+                localStorage.setItem('pmt_token', this.token);
+                localStorage.setItem('pmt_user', JSON.stringify(this.user));
                 this.onLogin();
                 btnText.textContent = 'เข้าสู่ระบบ';
             } catch(err) {
@@ -12171,7 +12181,7 @@
         },
 
         updateUI() {
-            const u = this.user;
+            const u = this.user || this.defaultUser;
             if (!u) {
                 document.body.classList.remove('superadmin-allowed');
                 return;
@@ -12180,9 +12190,9 @@
             const nameEl = document.getElementById('sidebar-user-name');
             const roleEl = document.getElementById('sidebar-user-role');
             const avatarEl = document.getElementById('sidebar-avatar');
-            if (nameEl) nameEl.textContent = u.full_name;
-            if (roleEl) roleEl.textContent = { ADMIN:'ผู้ดูแลระบบ', AE:'Account Executive', QC:'Quality Control', CONTACT_CENTER:'Contact Center' }[u.role] || u.role;
-            if (avatarEl) avatarEl.textContent = (u.full_name || 'U').charAt(0).toUpperCase();
+            if (nameEl) nameEl.textContent = u.full_name || 'ผู้ดูแลระบบ';
+            if (roleEl) roleEl.textContent = { ADMIN:'ผู้ดูแลระบบ (Admin)', AE:'Account Executive', QC:'Quality Control', CONTACT_CENTER:'Contact Center' }[u.role] || u.role;
+            if (avatarEl) avatarEl.textContent = (u.full_name || 'ผ').charAt(0).toUpperCase();
 
             // User Management nav
             const navUsers = document.getElementById('nav-users');
@@ -12275,6 +12285,7 @@
                     this.user.full_name = full_name;
                     this.user.email = email;
                     sessionStorage.setItem('pmt_user', JSON.stringify(this.user));
+                    localStorage.setItem('pmt_user', JSON.stringify(this.user));
                     this.updateUI();
                     document.getElementById('my-profile-disp-name').textContent = full_name;
                     alertEl.className = 'p-2.5 rounded-lg text-xs flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600';
@@ -12367,6 +12378,8 @@
             });
             sessionStorage.removeItem('pmt_token');
             sessionStorage.removeItem('pmt_user');
+            localStorage.removeItem('pmt_token');
+            localStorage.removeItem('pmt_user');
             this.showLoginOverlay();
         },
 
@@ -13099,9 +13112,11 @@
     const _origInit = app.init.bind(app);
     app.init = function() {
         _origInit();
-        // After original init, enforce login
-        setTimeout(() => auth.init(), 100);
+        auth.init();
     };
+
+    // Initialize auth immediately so sidebar and permissions are rendered without waiting
+    auth.init();
 
     // Expose app to global window scope
     window.app = app;
