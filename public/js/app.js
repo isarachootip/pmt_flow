@@ -1601,7 +1601,11 @@ const app = {
             },
 
             switchJobTab(tab) {
-                this.state.jobTab = tab;
+                if (tab === 'boq') {
+                    this.navigate('boq', this.state.currentJobId);
+                    return;
+                }
+                this.state.jobTab = 'general';
                 this.renderJobDetail();
             },
 
@@ -1979,7 +1983,8 @@ const app = {
                 const job = DB.jobs.find(j => j.id === this.state.currentJobId);
                 if(!job) return;
 
-                const curTab = this.state.jobTab || 'general';
+                this.state.jobTab = 'general';
+                const curTab = 'general';
                 const isDraft = job.status === 'DRAFT';
                 const isInProgress = job.status === 'IN_PROGRESS' || job.status === 'SURVEYED';
                 const isQcPending = job.status === 'QC_PENDING';
@@ -2529,14 +2534,11 @@ const app = {
                         </div>
                     </div>
 
-                    <!-- Navigation Tabs (2 Tabs) -->
+                    <!-- Navigation Tab (Check-in & ข้อมูลหน้างาน) -->
                     <div class="flex gap-4 border-b border-border">
-                        <button onclick="app.switchJobTab('general')" class="pb-2 text-xs font-semibold transition cursor-pointer ${curTab !== 'boq' ? 'tab-item-active' : 'text-muted-foreground hover:text-foreground'}">
+                        <div class="pb-2 text-xs font-semibold tab-item-active flex items-center">
                             <i class="ph ph-map-pin-line mr-1"></i> Check-in & ข้อมูลหน้างาน (${totalPhotosCount} รูป)
-                        </button>
-                        <button onclick="app.switchJobTab('boq')" class="pb-2 text-xs font-semibold transition cursor-pointer ${curTab === 'boq' ? 'tab-item-active' : 'text-muted-foreground hover:text-foreground'}">
-                            <i class="ph ph-receipt mr-1"></i> บันทึกรายการ BOQ (PMT)
-                        </button>
+                        </div>
                     </div>
 
                     ${tabContent}
@@ -4964,11 +4966,10 @@ const app = {
 
             openJobDetailBOQ(jobId) {
                 if (!jobId) return;
-                this.state.jobTab = 'boq';
-                this.navigate('job-detail', jobId);
+                this.navigate('boq', jobId);
                 const job = DB.jobs.find(j => j.id === jobId);
                 const jobName = job ? `${job.id} (${job.customer})` : jobId;
-                this.showToast(`📋 เปิด Project Detail หน้าบันทึก BOQ ของ ${jobName}`);
+                this.showToast(`📋 เปิดหน้า Step 3: นำBOQ เข้าระบบ ของ ${jobName}`);
             },
 
             getDefaultMockTickets() {
