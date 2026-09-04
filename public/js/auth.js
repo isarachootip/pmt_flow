@@ -34,6 +34,12 @@ window.auth =  {
                 overlay.style.setProperty('display', 'flex', 'important');
                 overlay.classList.remove('hidden');
             }
+            const sidebar = document.getElementById('app-sidebar');
+            const pageContainer = document.getElementById('page-container');
+            const topbar = document.querySelector('header');
+            if (sidebar) sidebar.style.setProperty('display', 'none', 'important');
+            if (pageContainer) pageContainer.style.setProperty('display', 'none', 'important');
+            if (topbar) topbar.style.setProperty('display', 'none', 'important');
         },
         hideLoginOverlay() {
             const overlay = document.getElementById('login-overlay');
@@ -41,6 +47,12 @@ window.auth =  {
                 overlay.style.setProperty('display', 'none', 'important');
                 overlay.classList.add('hidden');
             }
+            const sidebar = document.getElementById('app-sidebar');
+            const pageContainer = document.getElementById('page-container');
+            const topbar = document.querySelector('header');
+            if (sidebar) sidebar.style.removeProperty('display');
+            if (pageContainer) pageContainer.style.removeProperty('display');
+            if (topbar) topbar.style.removeProperty('display');
         },
 
         fillDemo(username, password) {
@@ -297,7 +309,7 @@ window.auth =  {
             if (tok) {
                 fetch('/api/v1/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok } }).catch(() => {});
             }
-            window.location.reload();
+            window.location.href = '/?logout=' + Date.now();
         },
 
         getHeaders() {

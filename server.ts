@@ -16,6 +16,14 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Global No-Cache Middleware for Production Browser Anti-Caching
+app.use((req: Request, res: Response, next: NextFunction) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+
 // Serve static frontend files (index.html)
 app.use(express.static(path.join(__dirname, '../')));
 app.use(express.static(path.join(__dirname, './')));

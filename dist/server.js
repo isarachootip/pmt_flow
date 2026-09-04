@@ -25,6 +25,13 @@ app.use((0, helmet_1.default)({ contentSecurityPolicy: false }));
 app.use((0, cors_1.default)());
 app.use(express_1.default.json({ limit: '50mb' }));
 app.use(express_1.default.urlencoded({ limit: '50mb', extended: true }));
+// Global No-Cache Middleware for Production Browser Anti-Caching
+app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next();
+});
 // Serve static frontend files (index.html)
 app.use(express_1.default.static(path_1.default.join(__dirname, '../')));
 app.use(express_1.default.static(path_1.default.join(__dirname, './')));
