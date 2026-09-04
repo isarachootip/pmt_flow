@@ -2156,23 +2156,6 @@ const app = {
                                         ${actionButtons}
                                     </div>
                                 </div>
-
-                                <!-- 5-Step Workflow Timestamps Quick Header -->
-                                <div class="p-2 rounded-xl bg-purple-500/5 border border-purple-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-7 h-7 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center text-sm shrink-0">
-                                            <i class="ph ph-clock-counter-clockwise"></i>
-                                        </div>
-                                        <div>
-                                            <div class="font-bold text-foreground text-[11px]">Workflow Step Timestamps Audit</div>
-                                            <div class="text-[10px] text-muted-foreground">บันทึกเวลาประทับทุกขั้นตอนเพื่อทำ Report</div>
-                                        </div>
-                                    </div>
-                                    <button type="button" onclick="app.openStepAuditReportModal('${job.id}')" class="btn-artifact-primary px-3 py-1 rounded-lg text-xs bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer">
-                                        <i class="ph ph-file-text"></i>
-                                        <span>เปิด Audit Report</span>
-                                    </button>
-                                </div>
                             </div>
                         </div>
 
