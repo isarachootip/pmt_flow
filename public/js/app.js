@@ -2654,7 +2654,6 @@ const app = {
                                     </thead>
                                     <tbody class="divide-y divide-border">
                                         ${pendingDesignJobs.map(job => {
-                                            const jobSiteImg = (job.photos && job.photos[0] && job.photos[0].url) || 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=300&auto=format&fit=crop&q=80';
                                             return `
                                             <tr class="hover:bg-muted/30 transition">
                                                 <td class="py-3 px-4 font-mono font-bold text-foreground">
@@ -2665,20 +2664,8 @@ const app = {
                                                 <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${job.date || '-'}</td>
                                                 <td class="py-3 px-4 font-medium text-foreground">${job.customer}</td>
                                                 <td class="py-3 px-4">
-                                                    <div class="flex items-center gap-2.5">
-                                                        <div class="w-10 h-10 rounded-lg overflow-hidden border border-border shrink-0 bg-muted/60 relative group/thumb cursor-pointer shadow-2xs" onclick="app.openJobPhotoPreview('${job.id}')" title="คลิกดูภาพสำรวจหน้างานจริง">
-                                                            <img src="${jobSiteImg}" alt="Site Photo" class="w-full h-full object-cover group-hover/thumb:scale-110 transition duration-300">
-                                                            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover/thumb:opacity-100 transition flex items-center justify-center">
-                                                                <i class="ph ph-magnifying-glass-plus text-white text-xs"></i>
-                                                            </div>
-                                                        </div>
-                                                        <div class="min-w-0">
-                                                            <div class="text-brand-600 dark:text-brand-400 font-semibold truncate max-w-[200px]" title="${job.service}">${job.service}</div>
-                                                            <div class="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                                                                <i class="ph ph-camera text-xs text-indigo-500"></i>
-                                                                <span>ภาพหน้างาน Step 1</span>
-                                                            </div>
-                                                        </div>
+                                                    <div class="font-semibold text-brand-600 dark:text-brand-400 truncate max-w-[240px]" title="${job.service}">
+                                                        ${job.service}
                                                     </div>
                                                 </td>
                                                 <td class="py-3 px-4 text-muted-foreground text-[11px] max-w-[180px] truncate" title="${job.address || '-'}">
@@ -2719,16 +2706,12 @@ const app = {
                         `;
                     } else {
                         pendingContainer.innerHTML = pendingDesignJobs.map(job => {
-                            const jobSiteImg = (job.photos && job.photos[0] && job.photos[0].url) || 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=300&auto=format&fit=crop&q=80';
                             return `
                             <div class="artifact-card p-5 rounded-2xl border border-border hover:border-indigo-500/50 transition duration-200 space-y-3.5 bg-card group shadow-xs">
                                 <div class="flex items-start justify-between gap-2">
                                     <div class="flex items-start gap-3 min-w-0">
-                                        <div class="w-12 h-12 rounded-xl overflow-hidden border border-border shrink-0 bg-muted/60 relative group/thumb cursor-pointer shadow-2xs" onclick="app.openJobPhotoPreview('${job.id}')" title="คลิกดูภาพสำรวจหน้างาน">
-                                            <img src="${jobSiteImg}" alt="Site Photo" class="w-full h-full object-cover group-hover/thumb:scale-110 transition duration-300">
-                                            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover/thumb:opacity-100 transition flex items-center justify-center">
-                                                <i class="ph ph-magnifying-glass-plus text-white text-xs"></i>
-                                            </div>
+                                        <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                                            <i class="ph ph-blueprint text-xl"></i>
                                         </div>
                                         <div class="min-w-0">
                                             <div class="flex items-center gap-2">
