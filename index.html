@@ -757,7 +757,19 @@
                             </div>
                             <p class="text-xs text-muted-foreground mt-0.5">วางแผนตารางเวลาทีมช่างและระยะเวลาดำเนินงานในแต่ละโครงการ (เลือกโครงการเพื่อดูและจัดการ Task แผนงานช่าง)</p>
                         </div>
-                        <div class="flex items-center gap-2.5">
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <!-- View Mode Switcher: Gantt Chart vs List View -->
+                            <div class="inline-flex p-1 bg-muted/60 border border-border rounded-xl text-xs">
+                                <button type="button" id="btn-gantt-mode-timeline" onclick="app.setGanttViewMode('gantt')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs" title="สลับเป็นมุมมองแผนภูมิแท่ง Gantt Chart">
+                                    <i class="ph ph-chart-bar-horizontal text-brand-500 text-sm"></i>
+                                    <span>Gantt Chart</span>
+                                </button>
+                                <button type="button" id="btn-gantt-mode-list" onclick="app.setGanttViewMode('list')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground" title="สลับเป็นมุมมองตารางรายการ List View">
+                                    <i class="ph ph-list-bullets text-sm"></i>
+                                    <span>List View</span>
+                                </button>
+                            </div>
+
                             <div class="flex items-center gap-2 bg-card border border-border rounded-xl px-3 py-1.5 text-xs shadow-xs">
                                 <i class="ph ph-folders text-brand-500 text-sm"></i>
                                 <label for="gantt-filter-job" class="text-muted-foreground font-medium">โครงการ:</label>
@@ -3042,6 +3054,9 @@
                 currentView: 'dashboard',
                 currentJobId: null,
                 jobTab: 'general',
+                ganttViewMode: (function() {
+                    try { return localStorage.getItem('pmt_gantt_view_mode') || 'gantt'; } catch (e) { return 'gantt'; }
+                })(),
                 maExpandedId: 'mac_1788397202685',
                 maEquipment: [
                     { id: 'si_1', name: 'เครื่องที่ 1', brand: '', btu: '', location: '' }
@@ -6573,6 +6588,37 @@
                 stripEl.innerHTML = cardsHtml;
             },
 
+            setGanttViewMode(mode) {
+                this.state.ganttViewMode = mode;
+                try { localStorage.setItem('pmt_gantt_view_mode', mode); } catch (e) {}
+                this.updateGanttViewModeButtons();
+                this.renderGantt();
+            },
+
+            updateGanttViewModeButtons() {
+                const mode = this.state.ganttViewMode || 'gantt';
+                const btnGantt = document.getElementById('btn-gantt-mode-timeline');
+                const btnList = document.getElementById('btn-gantt-mode-list');
+                if (btnGantt && btnList) {
+                    if (mode === 'gantt') {
+                        btnGantt.className = 'px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs';
+                        btnList.className = 'px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground';
+                    } else {
+                        btnList.className = 'px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs';
+                        btnGantt.className = 'px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground';
+                    }
+                }
+            },
+
+            filterGanttListTable(query) {
+                const q = (query || '').toLowerCase().trim();
+                const rows = document.querySelectorAll('.gantt-list-row');
+                rows.forEach(row => {
+                    const text = row.innerText.toLowerCase();
+                    row.style.display = (!q || text.includes(q)) ? '' : 'none';
+                });
+            },
+
             selectGanttJob(jobId) {
                 const sel = document.getElementById('gantt-filter-job');
                 if (sel && sel.value !== jobId) sel.value = jobId;
@@ -6785,6 +6831,10 @@
                 // Render Projects quick access strip
                 this.renderGanttProjectsStrip(selectedJobFilter);
 
+                // Update view mode toggle active styling
+                this.updateGanttViewModeButtons();
+
+                const isListView = (this.state.ganttViewMode === 'list');
                 const container = document.getElementById('gantt-container');
                 if (!container) return;
 
@@ -6798,7 +6848,9 @@
                     'ช่างสมชาย (งานทั่วไป)'
                 ];
 
-                // Case: Single Project Selected
+                // ----------------------------------------------------
+                // CASE 1: SINGLE PROJECT SELECTED
+                // ----------------------------------------------------
                 if (selectedJobFilter && selectedJobFilter !== 'all') {
                     const targetJob = (DB.jobs || []).find(j => j.id === selectedJobFilter);
                     if (!targetJob) {
@@ -6851,7 +6903,7 @@
                     const countEl = document.getElementById('gantt-total-count');
                     if (countEl) countEl.innerText = jobTasks.length;
 
-                    // Build Task Rows for Scheduler Table
+                    // Build Task Rows for Table
                     const taskRowsHtml = jobTasks.map((t, idx) => {
                         const s = new Date(t.start || '2026-09-01');
                         const e = new Date(t.end || t.start || '2026-09-01');
@@ -6866,7 +6918,7 @@
                         const cleanName = (t.name || '').replace(/"/g, '&quot;');
 
                         return `
-                        <tr class="hover:bg-muted/20 transition">
+                        <tr class="hover:bg-muted/20 transition gantt-list-row">
                             <td class="py-2.5 px-3 text-center font-mono text-muted-foreground font-semibold text-xs">${idx + 1}</td>
                             <td class="py-2.5 px-3">
                                 <input type="text" value="${cleanName}" onchange="app.updateGanttTaskField('${t.id}', 'name', this.value)" class="w-full bg-card/60 hover:bg-card focus:bg-card border border-border/60 focus:border-brand-500 rounded-lg px-2.5 py-1.5 text-xs font-medium text-foreground transition focus:outline-none" placeholder="ชื่องานบริการ / Task">
@@ -6903,6 +6955,80 @@
                         `;
                     }).join('');
 
+                    // --- IF LIST VIEW MODE ---
+                    if (isListView) {
+                        const doneCount = jobTasks.filter(t => t.status === 'DONE').length;
+                        const inProgCount = jobTasks.filter(t => t.status === 'IN_PROGRESS').length;
+
+                        container.innerHTML = `
+                            <div class="space-y-4">
+                                <!-- List View Header Toolbar -->
+                                <div class="p-4 rounded-2xl bg-card border border-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="font-mono text-sm font-bold text-brand-500">${targetJob.id}</span>
+                                            <span class="text-xs font-bold text-foreground">${targetJob.customer}</span>
+                                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium border border-emerald-500/20">✓ นำเข้า BOQ แล้ว (${targetJob.boq_items.length} รายการ)</span>
+                                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold border border-purple-500/20">${jobTasks.length} Tasks</span>
+                                        </div>
+                                        <p class="text-[11px] text-muted-foreground mt-1">${targetJob.service} • มุมมองตารางรายการ (List View) สามารถกำหนดวันเริ่ม-สิ้นสุด และเลือกช่างได้โดยตรง</p>
+                                    </div>
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        <button type="button" onclick="app.addGanttTask('${selectedJobFilter}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-700 hover:to-brand-700 text-white cursor-pointer">
+                                            <i class="ph ph-plus-circle text-sm"></i>
+                                            <span>+ แทรก Task งาน</span>
+                                        </button>
+                                        <button type="button" onclick="app.resetGanttTasksFromBOQ('${selectedJobFilter}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer" title="ดึงรายการค่าแรงจาก BOQ มาสร้าง Task ใหม่">
+                                            <i class="ph ph-arrows-clockwise text-sm"></i>
+                                            <span>รีเซ็ตจาก BOQ</span>
+                                        </button>
+                                        <button type="button" onclick="app.setGanttViewMode('gantt')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-600 dark:text-brand-400 border border-brand-500/20 hover:bg-brand-500/10 cursor-pointer" title="สลับเป็นแผนภูมิแท่ง Gantt Chart">
+                                            <i class="ph ph-chart-bar-horizontal text-sm"></i>
+                                            <span>ดูกราฟ Gantt</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Full-Width List View Table -->
+                                <div class="overflow-x-auto rounded-2xl border border-border bg-card shadow-xs">
+                                    <table class="w-full text-left text-xs">
+                                        <thead class="bg-muted/40 text-muted-foreground text-[11px] uppercase tracking-wider border-b border-border">
+                                            <tr>
+                                                <th class="py-3 px-3.5 w-12 text-center font-bold">#</th>
+                                                <th class="py-3 px-3.5 min-w-[220px] font-bold">ชื่องานบริการ / Task</th>
+                                                <th class="py-3 px-3.5 w-40 font-bold">วันเริ่มงาน (Start Date)</th>
+                                                <th class="py-3 px-3.5 w-40 font-bold">วันสิ้นสุด (End Date)</th>
+                                                <th class="py-3 px-2.5 text-center w-24 font-bold">ระยะเวลา</th>
+                                                <th class="py-3 px-3.5 w-52 font-bold">ช่างผู้รับผิดชอบ</th>
+                                                <th class="py-3 px-3.5 w-32 font-bold">สถานะ</th>
+                                                <th class="py-3 px-2.5 w-12 text-center font-bold">ลบ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-border">
+                                            ${taskRowsHtml || '<tr><td colspan="8" class="py-8 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- List Summary Bar -->
+                                <div class="flex items-center justify-between text-xs text-muted-foreground px-2 pt-1">
+                                    <div class="flex items-center gap-3">
+                                        <span>รวมทั้งหมด <strong class="text-foreground">${jobTasks.length}</strong> งาน</span>
+                                        <span>•</span>
+                                        <span class="text-emerald-600 dark:text-emerald-400 font-medium">เสร็จสิ้น ${doneCount} งาน</span>
+                                        <span>•</span>
+                                        <span class="text-brand-500 font-medium">กำลังทำ ${inProgCount} งาน</span>
+                                    </div>
+                                    <div>
+                                        <span>ช่างรับผิดชอบหลัก: <strong class="text-foreground">${targetJob.tech || 'Team A'}</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    // --- IF GANTT TIMELINE MODE ---
                     // Calculate timeline dates for Gantt Bars
                     let minTimestamp = Infinity;
                     let maxTimestamp = -Infinity;
@@ -6999,9 +7125,9 @@
                                         <i class="ph ph-arrows-clockwise text-sm"></i>
                                         <span>รีเซ็ตจาก BOQ</span>
                                     </button>
-                                    <button type="button" onclick="app.openJobDetailBOQ('${selectedJobFilter}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-600 dark:text-brand-400 border border-brand-500/20 hover:bg-brand-500/10 cursor-pointer" title="เปิดดูรายการ BOQ ฉบับเต็ม">
-                                        <i class="ph ph-receipt text-sm"></i>
-                                        <span>ดูตาราง BOQ</span>
+                                    <button type="button" onclick="app.setGanttViewMode('list')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-600 dark:text-brand-400 border border-brand-500/20 hover:bg-brand-500/10 cursor-pointer" title="สลับเป็นมุมมองตาราง List View">
+                                        <i class="ph ph-list-bullets text-sm"></i>
+                                        <span>สลับเป็น List View</span>
                                     </button>
                                 </div>
                             </div>
@@ -7046,7 +7172,9 @@
                     return;
                 }
 
-                // Case: All Jobs View
+                // ----------------------------------------------------
+                // CASE 2: ALL JOBS VIEW
+                // ----------------------------------------------------
                 let tasks = DB.tasks || [];
                 const countEl = document.getElementById('gantt-total-count');
                 if (countEl) countEl.innerText = tasks.length;
@@ -7075,6 +7203,132 @@
                     return;
                 }
 
+                // --- ALL JOBS: IF LIST VIEW MODE ---
+                if (isListView) {
+                    const doneCount = tasks.filter(t => t.status === 'DONE').length;
+                    const inProgCount = tasks.filter(t => t.status === 'IN_PROGRESS').length;
+                    const todoCount = tasks.filter(t => t.status === 'TODO' || !t.status).length;
+
+                    const allRowsHtml = tasks.map((t, idx) => {
+                        const targetJob = (DB.jobs || []).find(j => j.id === t.jobId) || {};
+                        const s = new Date(t.start || '2026-09-01');
+                        const e = new Date(t.end || t.start || '2026-09-01');
+                        const taskDays = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+                        const curTech = t.tech || targetJob.tech || 'Team A (สมศักดิ์)';
+
+                        let techOpts = availableTechs.map(tc => `<option value="${tc}" ${tc === curTech ? 'selected' : ''}>${tc}</option>`).join('');
+                        if (!availableTechs.includes(curTech)) {
+                            techOpts += `<option value="${curTech}" selected>${curTech}</option>`;
+                        }
+
+                        const cleanName = (t.name || '').replace(/"/g, '&quot;');
+                        const custName = targetJob.customer || 'ลูกค้า';
+
+                        return `
+                        <tr class="hover:bg-muted/20 transition gantt-list-row">
+                            <td class="py-2.5 px-3 text-center font-mono text-muted-foreground font-semibold text-xs">${idx + 1}</td>
+                            <td class="py-2.5 px-3">
+                                <button type="button" onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-600 dark:text-purple-400 font-bold px-2 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-xs transition cursor-pointer flex items-center gap-1 inline-flex" title="คลิกเพื่อเลือกโครงการ ${t.jobId}">
+                                    <i class="ph ph-folder text-xs"></i> ${t.jobId}
+                                </button>
+                                <div class="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[140px]" title="${custName}">คุณ${custName}</div>
+                            </td>
+                            <td class="py-2.5 px-3">
+                                <input type="text" value="${cleanName}" onchange="app.updateGanttTaskField('${t.id}', 'name', this.value)" class="w-full bg-card/60 hover:bg-card focus:bg-card border border-border/60 focus:border-brand-500 rounded-lg px-2.5 py-1.5 text-xs font-medium text-foreground transition focus:outline-none" placeholder="ชื่องานบริการ / Task">
+                            </td>
+                            <td class="py-2.5 px-3">
+                                <input type="date" value="${t.start || '2026-09-05'}" onchange="app.updateGanttTaskField('${t.id}', 'start', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                            </td>
+                            <td class="py-2.5 px-3">
+                                <input type="date" value="${t.end || t.start || '2026-09-05'}" onchange="app.updateGanttTaskField('${t.id}', 'end', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                            </td>
+                            <td class="py-2.5 px-2 text-center">
+                                <span class="px-2 py-1 rounded text-[11px] font-mono font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                                    ${taskDays} วัน
+                                </span>
+                            </td>
+                            <td class="py-2.5 px-3">
+                                <select onchange="app.updateGanttTaskField('${t.id}', 'tech', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-xs text-foreground font-medium focus:outline-none cursor-pointer">
+                                    ${techOpts}
+                                </select>
+                            </td>
+                            <td class="py-2.5 px-3">
+                                <select onchange="app.updateGanttTaskField('${t.id}', 'status', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-[11px] font-medium focus:outline-none cursor-pointer">
+                                    <option value="IN_PROGRESS" ${t.status === 'IN_PROGRESS' ? 'selected' : ''}>กำลังทำ</option>
+                                    <option value="DONE" ${t.status === 'DONE' ? 'selected' : ''}>เสร็จสิ้น</option>
+                                    <option value="TODO" ${t.status === 'TODO' ? 'selected' : ''}>รอดำเนินการ</option>
+                                </select>
+                            </td>
+                            <td class="py-2.5 px-2 text-center">
+                                <button type="button" onclick="app.deleteGanttTask('${t.id}')" class="p-1.5 text-muted-foreground hover:text-rose-500 rounded-lg hover:bg-rose-500/10 transition cursor-pointer" title="ลบ Task นี้">
+                                    <i class="ph ph-trash text-sm"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        `;
+                    }).join('');
+
+                    container.innerHTML = `
+                        <div class="space-y-4">
+                            <!-- All Jobs List View Toolbar -->
+                            <div class="p-4 rounded-2xl bg-card border border-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-500 flex items-center justify-center text-lg font-bold">
+                                        <i class="ph ph-list-bullets"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h3 class="font-display font-bold text-sm text-foreground">รายการแผนงานติดตั้งทั้งหมด (All Tasks List View)</h3>
+                                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-brand-500/10 text-brand-600 dark:text-brand-400 font-bold">${tasks.length} Tasks</span>
+                                        </div>
+                                        <div class="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">✓ เสร็จสิ้น ${doneCount}</span>
+                                            <span>•</span>
+                                            <span class="text-brand-500 font-medium">⚡ กำลังทำ ${inProgCount}</span>
+                                            <span>•</span>
+                                            <span>⏳ รอดำเนินการ ${todoCount}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="relative w-56">
+                                        <i class="ph ph-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
+                                        <input type="text" oninput="app.filterGanttListTable(this.value)" placeholder="ค้นหางาน, โครงการ, ช่าง..." class="w-full bg-muted/40 border border-border focus:border-brand-500 rounded-xl pl-7 pr-3 py-1.5 text-xs text-foreground focus:outline-none transition">
+                                    </div>
+                                    <button type="button" onclick="app.setGanttViewMode('gantt')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-600 dark:text-brand-400 border border-brand-500/20 hover:bg-brand-500/10 cursor-pointer" title="สลับเป็นแผนภูมิแท่ง Gantt Chart">
+                                        <i class="ph ph-chart-bar-horizontal text-sm"></i>
+                                        <span>ดูกราฟ Gantt</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Master Tasks Table -->
+                            <div class="overflow-x-auto rounded-2xl border border-border bg-card shadow-xs">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-muted/40 text-muted-foreground text-[11px] uppercase tracking-wider border-b border-border">
+                                        <tr>
+                                            <th class="py-3 px-3 w-10 text-center font-bold">#</th>
+                                            <th class="py-3 px-3 w-36 font-bold">โครงการ</th>
+                                            <th class="py-3 px-3 min-w-[200px] font-bold">ชื่องานบริการ / Task</th>
+                                            <th class="py-3 px-3 w-36 font-bold">วันเริ่ม (Start)</th>
+                                            <th class="py-3 px-3 w-36 font-bold">วันสิ้นสุด (End)</th>
+                                            <th class="py-3 px-2 text-center w-20 font-bold">ระยะเวลา</th>
+                                            <th class="py-3 px-3 w-48 font-bold">ช่างผู้รับผิดชอบ</th>
+                                            <th class="py-3 px-3 w-28 font-bold">สถานะ</th>
+                                            <th class="py-3 px-2 w-10 text-center font-bold">ลบ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-border">
+                                        ${allRowsHtml}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // --- ALL JOBS: IF GANTT TIMELINE MODE ---
                 // Calculate timeline dates for All Jobs
                 let minTimestamp = Infinity;
                 let maxTimestamp = -Infinity;
