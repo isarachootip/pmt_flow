@@ -1426,11 +1426,11 @@ export function convertStagingToCorePmt(stagingRecord: StagingSurveyReport): {
 // Configuration for Ingestion Processing Mode
 let autoConvertEnabled = true;
 
-app.get('/api/v1/staging/config', (req: Request, res: Response) => {
+app.get('/api/v1/staging/config', requireAuth, (req: Request, res: Response) => {
   return res.json({ success: true, auto_convert_enabled: autoConvertEnabled });
 });
 
-app.post('/api/v1/staging/config/auto-convert', (req: Request, res: Response) => {
+app.post('/api/v1/staging/config/auto-convert', requireAuth, (req: Request, res: Response) => {
   const { enabled } = req.body;
   if (typeof enabled === 'boolean') {
     autoConvertEnabled = enabled;
@@ -1441,7 +1441,7 @@ app.post('/api/v1/staging/config/auto-convert', (req: Request, res: Response) =>
 // =============================================================================
 // 1.1 JOB SURVEY REPORT INGESTION & STAGING API
 // =============================================================================
-app.post('/api/v1/jobs/survey-report', async (req: Request<{}, {}, JobSurveyPayload>, res: Response) => {
+app.post('/api/v1/jobs/survey-report', requireAuth, async (req: Request<{}, {}, JobSurveyPayload>, res: Response) => {
   try {
     const payload = req.body;
 
@@ -1536,7 +1536,7 @@ app.post('/api/v1/jobs/survey-report', async (req: Request<{}, {}, JobSurveyPayl
 // =============================================================================
 // STAGING MANAGEMENT APIS (List, Get, Convert/Retry)
 // =============================================================================
-app.get('/api/v1/staging/survey-reports', (req: Request, res: Response) => {
+app.get('/api/v1/staging/survey-reports', requireAuth, (req: Request, res: Response) => {
   const { status, search } = req.query;
   let results = [...stagingSurveyStore];
 
@@ -1571,7 +1571,7 @@ app.get('/api/v1/staging/survey-reports', (req: Request, res: Response) => {
   });
 });
 
-app.get('/api/v1/staging/survey-reports/:id', (req: Request, res: Response) => {
+app.get('/api/v1/staging/survey-reports/:id', requireAuth, (req: Request, res: Response) => {
   const id = Number(req.params.id);
   const record = stagingSurveyStore.find(r => r.id === id);
   if (!record) {
@@ -1580,7 +1580,7 @@ app.get('/api/v1/staging/survey-reports/:id', (req: Request, res: Response) => {
   return res.json({ success: true, data: record });
 });
 
-app.post('/api/v1/staging/survey-reports/:id/convert', (req: Request, res: Response) => {
+app.post('/api/v1/staging/survey-reports/:id/convert', requireAuth, (req: Request, res: Response) => {
   const id = Number(req.params.id);
   const record = stagingSurveyStore.find(r => r.id === id);
   if (!record) {
@@ -1599,7 +1599,7 @@ app.post('/api/v1/staging/survey-reports/:id/convert', (req: Request, res: Respo
   });
 });
 
-app.post('/api/v1/staging/seed', (req: Request, res: Response) => {
+app.post('/api/v1/staging/seed', requireAuth, (req: Request, res: Response) => {
   seedInitialStagingData();
   return res.json({
     success: true,
@@ -1610,7 +1610,7 @@ app.post('/api/v1/staging/seed', (req: Request, res: Response) => {
 
 // =============================================================================
 // 1.2 CORE JOBS APIS (List, Get, Create for Web Dashboard & Automation)
-app.get('/api/v1/jobs', (req: Request, res: Response) => {
+app.get('/api/v1/jobs', requireAuth, (req: Request, res: Response) => {
   const { status, service, search } = req.query;
   try {
     let results = coreJobStore.map(job => {
@@ -1669,7 +1669,7 @@ app.get('/api/v1/jobs', (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/v1/jobs/:id', (req: Request, res: Response) => {
+app.get('/api/v1/jobs/:id', requireAuth, (req: Request, res: Response) => {
   const param = req.params.id;
   const numId = Number(param);
   const job = coreJobStore.find(j => j.id === numId || j.job_no === param);
@@ -1710,7 +1710,7 @@ app.get('/api/v1/jobs/:id', (req: Request, res: Response) => {
 });
 
 // Update Job Details (Special Instructions, Additional Notes, Tech, etc.)
-app.patch('/api/v1/jobs/:id', (req: Request, res: Response) => {
+app.patch('/api/v1/jobs/:id', requireAuth, (req: Request, res: Response) => {
   const param = req.params.id;
   const numId = Number(param);
   const job = coreJobStore.find(j => j.id === numId || j.job_no === param);
@@ -1746,7 +1746,7 @@ app.patch('/api/v1/jobs/:id', (req: Request, res: Response) => {
 });
 
 // Upload Additional Site Photo
-app.post('/api/v1/jobs/:id/photos', (req: Request, res: Response) => {
+app.post('/api/v1/jobs/:id/photos', requireAuth, (req: Request, res: Response) => {
   const param = req.params.id;
   const numId = Number(param);
   const job = coreJobStore.find(j => j.id === numId || j.job_no === param);
@@ -1786,7 +1786,7 @@ app.post('/api/v1/jobs/:id/photos', (req: Request, res: Response) => {
 });
 
 // Delete Site Photo
-app.delete('/api/v1/jobs/:id/photos/:photoId', (req: Request, res: Response) => {
+app.delete('/api/v1/jobs/:id/photos/:photoId', requireAuth, (req: Request, res: Response) => {
   const param = req.params.id;
   const photoId = req.params.photoId;
   const numId = Number(param);
@@ -1807,7 +1807,7 @@ app.delete('/api/v1/jobs/:id/photos/:photoId', (req: Request, res: Response) => 
   });
 });
 
-app.post('/api/v1/jobs', (req: Request, res: Response) => {
+app.post('/api/v1/jobs', requireAuth, (req: Request, res: Response) => {
   try {
     const { firstName, lastName, phone, address, lat, lng, service, tech, date } = req.body;
     if (!firstName || !lastName) {
@@ -1857,7 +1857,7 @@ app.post('/api/v1/jobs', (req: Request, res: Response) => {
   }
 });
 
-app.delete('/api/v1/jobs', (req: Request, res: Response) => {
+app.delete('/api/v1/jobs', requireAuth, (req: Request, res: Response) => {
   coreJobStore.length = 0;
   coreTaskStore.length = 0;
   coreCustomerStore.length = 0;
@@ -1871,7 +1871,7 @@ app.delete('/api/v1/jobs', (req: Request, res: Response) => {
   });
 });
 
-app.post('/api/v1/jobs/reset-status', (req: Request, res: Response) => {
+app.post('/api/v1/jobs/reset-status', requireAuth, (req: Request, res: Response) => {
   coreJobStore.forEach(j => {
     j.status = JobStatus.DRAFT;
     j.overall_progress = 0;
@@ -1883,7 +1883,7 @@ app.post('/api/v1/jobs/reset-status', (req: Request, res: Response) => {
   });
 });
 
-app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], (req: Request, res: Response) => {
+app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], requireAuth, (req: Request, res: Response) => {
   seedInitialCoreData(true);
   seedInitialStagingData();
   return res.json({
@@ -1896,7 +1896,7 @@ app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], (req: Request, res
 // =============================================================================
 // 2. CHECK-IN / SITE VISIT API (Req #2 & #3)
 // =============================================================================
-app.post('/api/v1/jobs/:id/checkin', async (req: Request, res: Response) => {
+app.post('/api/v1/jobs/:id/checkin', requireAuth, async (req: Request, res: Response) => {
   try {
     const param = req.params.id;
     const numId = Number(param);
@@ -1955,7 +1955,7 @@ app.post('/api/v1/jobs/:id/checkin', async (req: Request, res: Response) => {
 // =============================================================================
 // 3. DESIGN & BOQ API (Req #5 & #6)
 // =============================================================================
-app.post('/api/v1/jobs/:id/designs', async (req: Request, res: Response) => {
+app.post('/api/v1/jobs/:id/designs', requireAuth, async (req: Request, res: Response) => {
   const jobId = Number(req.params.id);
   const { file_name, file_type, file_path, remark } = req.body;
 
@@ -1974,7 +1974,7 @@ app.post('/api/v1/jobs/:id/designs', async (req: Request, res: Response) => {
   return res.status(201).json({ success: true, data: designFile });
 });
 
-app.post('/api/v1/jobs/:id/boq', async (req: Request, res: Response) => {
+app.post('/api/v1/jobs/:id/boq', requireAuth, async (req: Request, res: Response) => {
   const jobId = Number(req.params.id);
   const { items, discount_amount = 0 } = req.body;
 
@@ -2022,7 +2022,7 @@ function sortTasksByStartDate(tasks: CoreTask[]): CoreTask[] {
 }
 
 // GET /api/v1/jobs/:id/tasks — Get all tasks for a job (sorted by start date)
-app.get('/api/v1/jobs/:id/tasks', async (req: Request, res: Response) => {
+app.get('/api/v1/jobs/:id/tasks', requireAuth, async (req: Request, res: Response) => {
   const param = req.params.id;
   const numId = Number(param);
   const tasks = coreTaskStore.filter(t => t.job_id === numId || t.job_no === param || String(t.job_id) === param);
@@ -2031,7 +2031,7 @@ app.get('/api/v1/jobs/:id/tasks', async (req: Request, res: Response) => {
 });
 
 // POST /api/v1/jobs/:id/tasks/import-boq — Import/Convert BOQ items into Project Tasks with Start/End date & Auto-sort
-app.post('/api/v1/jobs/:id/tasks/import-boq', async (req: Request, res: Response) => {
+app.post('/api/v1/jobs/:id/tasks/import-boq', requireAuth, async (req: Request, res: Response) => {
   const param = req.params.id;
   const numId = isNaN(Number(param)) ? param : Number(param);
   const { items, base_start_date, default_tech = 'Team A (สมศักดิ์)' } = req.body;
@@ -2121,7 +2121,7 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', async (req: Request, res: Response
 });
 
 // POST /api/v1/jobs/:id/tasks — Create / Insert Task into Job (with auto-sort by start date)
-app.post('/api/v1/jobs/:id/tasks', async (req: Request, res: Response) => {
+app.post('/api/v1/jobs/:id/tasks', requireAuth, async (req: Request, res: Response) => {
   const param = req.params.id;
   const numId = isNaN(Number(param)) ? param : Number(param);
   const { task_name, start_date, end_date, duration_days = 1, assigned_tech = 'Team A (สมศักดิ์)', assignees, allow_bypass = false } = req.body;
@@ -2191,7 +2191,7 @@ app.post('/api/v1/jobs/:id/tasks', async (req: Request, res: Response) => {
 });
 
 // POST /api/v1/jobs/:id/tasks/reorder — Reorder/Auto-sort Tasks by Start Date
-app.post('/api/v1/jobs/:id/tasks/reorder', async (req: Request, res: Response) => {
+app.post('/api/v1/jobs/:id/tasks/reorder', requireAuth, async (req: Request, res: Response) => {
   const param = req.params.id;
   const numId = isNaN(Number(param)) ? param : Number(param);
   const jobTasks = coreTaskStore.filter(t => t.job_id === numId || t.job_no === param || String(t.job_id) === param);
@@ -2205,7 +2205,7 @@ app.post('/api/v1/jobs/:id/tasks/reorder', async (req: Request, res: Response) =
 });
 
 // PUT /api/v1/jobs/:id/tasks/:taskId — Update Task (Start Date, End Date, Technician, Status, etc.)
-app.put('/api/v1/jobs/:id/tasks/:taskId', async (req: Request, res: Response) => {
+app.put('/api/v1/jobs/:id/tasks/:taskId', requireAuth, async (req: Request, res: Response) => {
   const { id, taskId } = req.params;
   const task = coreTaskStore.find(t => String(t.id) === taskId);
   if (!task) {
@@ -2234,7 +2234,7 @@ app.put('/api/v1/jobs/:id/tasks/:taskId', async (req: Request, res: Response) =>
 });
 
 // DELETE /api/v1/jobs/:id/tasks/:taskId — Delete Task
-app.delete('/api/v1/jobs/:id/tasks/:taskId', async (req: Request, res: Response) => {
+app.delete('/api/v1/jobs/:id/tasks/:taskId', requireAuth, async (req: Request, res: Response) => {
   const { id, taskId } = req.params;
   const idx = coreTaskStore.findIndex(t => String(t.id) === taskId);
   if (idx === -1) {
@@ -2246,7 +2246,7 @@ app.delete('/api/v1/jobs/:id/tasks/:taskId', async (req: Request, res: Response)
 });
 
 // GET /api/v1/tasks/gantt — Get all tasks structured for Gantt Timeline view
-app.get('/api/v1/tasks/gantt', async (req: Request, res: Response) => {
+app.get('/api/v1/tasks/gantt', requireAuth, async (req: Request, res: Response) => {
   const jobId = req.query.job_id as string;
   let tasks = coreTaskStore;
   if (jobId && jobId !== 'all') {
@@ -2265,7 +2265,7 @@ app.get('/api/v1/tasks/gantt', async (req: Request, res: Response) => {
 // =============================================================================
 
 // GET /api/v1/qc/bookings — List all QC Bookings (filter by job_id, status)
-app.get('/api/v1/qc/bookings', async (req: Request, res: Response) => {
+app.get('/api/v1/qc/bookings', requireAuth, async (req: Request, res: Response) => {
   const { job_id, status } = req.query;
   let list = coreQCBookingStore;
   if (job_id && job_id !== 'all') {
@@ -2278,7 +2278,7 @@ app.get('/api/v1/qc/bookings', async (req: Request, res: Response) => {
 });
 
 // PUT /api/v1/qc/bookings/:id/confirm — Confirm QC Technician Booking
-app.put('/api/v1/qc/bookings/:id/confirm', async (req: Request, res: Response) => {
+app.put('/api/v1/qc/bookings/:id/confirm', requireAuth, async (req: Request, res: Response) => {
   const { id } = req.params;
   const { qc_tech, confirmed_by, remarks } = req.body;
   const booking = coreQCBookingStore.find(b => b.id === id || String(b.task_id) === id);
@@ -2299,7 +2299,7 @@ app.put('/api/v1/qc/bookings/:id/confirm', async (req: Request, res: Response) =
 });
 
 // PUT /api/v1/qc/bookings/:id — Update QC Booking (Change QC tech, date, remarks, status)
-app.put('/api/v1/qc/bookings/:id', async (req: Request, res: Response) => {
+app.put('/api/v1/qc/bookings/:id', requireAuth, async (req: Request, res: Response) => {
   const { id } = req.params;
   const booking = coreQCBookingStore.find(b => b.id === id || String(b.task_id) === id);
   if (!booking) {
@@ -2315,7 +2315,7 @@ app.put('/api/v1/qc/bookings/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/v1/qc/bookings/sync-all — Sync QC bookings from all existing tasks
-app.post('/api/v1/qc/bookings/sync-all', async (req: Request, res: Response) => {
+app.post('/api/v1/qc/bookings/sync-all', requireAuth, async (req: Request, res: Response) => {
   coreTaskStore.forEach(task => syncQCBookingForTask(task));
   return res.json({
     success: true,
@@ -2328,7 +2328,7 @@ app.post('/api/v1/qc/bookings/sync-all', async (req: Request, res: Response) => 
 // =============================================================================
 // 5. QC INSPECTION & AFTER SALE CSAT API (Req #10 & #11)
 // =============================================================================
-app.post('/api/v1/jobs/:id/qc-inspection', async (req: Request, res: Response) => {
+app.post('/api/v1/jobs/:id/qc-inspection', requireAuth, async (req: Request, res: Response) => {
   const param = req.params.id;
   const numId = Number(param);
   const { items, remarks } = req.body; // items: [{ item_id, result: 'PASS'|'FAIL', is_mandatory }]
@@ -2362,7 +2362,7 @@ app.post('/api/v1/jobs/:id/qc-inspection', async (req: Request, res: Response) =
 });
 
 // After Sale CSAT Survey Logging (Req #11, OQ-A05)
-app.post('/api/v1/jobs/:id/after-sale/csat', async (req: Request, res: Response) => {
+app.post('/api/v1/jobs/:id/after-sale/csat', requireAuth, async (req: Request, res: Response) => {
   const param = req.params.id;
   const numId = Number(param);
   const { csat_score, customer_feedback } = req.body;
@@ -2392,7 +2392,7 @@ app.post('/api/v1/jobs/:id/after-sale/csat', async (req: Request, res: Response)
 // =============================================================================
 // 6. BMT OUTBOUND REST INTEGRATION API (Req #12, OQ-A02, OQ-A03)
 // =============================================================================
-app.post('/api/v1/jobs/:id/close-and-export-bmt', async (req: Request, res: Response) => {
+app.post('/api/v1/jobs/:id/close-and-export-bmt', requireAuth, async (req: Request, res: Response) => {
   try {
     const param = req.params.id;
     const numId = Number(param);
@@ -2646,18 +2646,18 @@ function formatContractWithRounds(c: MAContract) {
 }
 
 // 1. Get Checklist Templates
-app.get(['/api/ma-checklist-templates', '/api/v1/ma-checklist-templates'], (req: Request, res: Response) => {
+app.get(['/api/ma-checklist-templates', '/api/v1/ma-checklist-templates'], requireAuth, (req: Request, res: Response) => {
   return res.json(maChecklistTemplateStore);
 });
 
 // 2. Get All MA Contracts
-app.get(['/api/ma-contracts', '/api/v1/ma-contracts'], (req: Request, res: Response) => {
+app.get(['/api/ma-contracts', '/api/v1/ma-contracts'], requireAuth, (req: Request, res: Response) => {
   const formatted = maContractStore.map(formatContractWithRounds);
   return res.json(formatted);
 });
 
 // 3. Get Single MA Contract by ID (with rounds)
-app.get(['/api/ma-contracts/:id', '/api/v1/ma-contracts/:id'], (req: Request, res: Response) => {
+app.get(['/api/ma-contracts/:id', '/api/v1/ma-contracts/:id'], requireAuth, (req: Request, res: Response) => {
   const contract = maContractStore.find(c => c.id === req.params.id);
   if (!contract) {
     return res.status(404).json({ error: 'ไม่พบสัญญา MA ที่ระบุ' });
@@ -2673,7 +2673,7 @@ app.get(['/api/ma-contracts/:id', '/api/v1/ma-contracts/:id'], (req: Request, re
 });
 
 // 4. Create New MA Contract
-app.post(['/api/ma-contracts', '/api/v1/ma-contracts'], (req: Request, res: Response) => {
+app.post(['/api/ma-contracts', '/api/v1/ma-contracts'], requireAuth, (req: Request, res: Response) => {
   try {
     const body = req.body;
     const year = new Date().getFullYear();
@@ -2748,7 +2748,7 @@ app.post(['/api/ma-contracts', '/api/v1/ma-contracts'], (req: Request, res: Resp
 });
 
 // 5. Create MA Round
-app.post(['/api/ma-rounds', '/api/v1/ma-rounds'], (req: Request, res: Response) => {
+app.post(['/api/ma-rounds', '/api/v1/ma-rounds'], requireAuth, (req: Request, res: Response) => {
   try {
     const { contract_id, round_number, scheduled_date, status, notes } = req.body;
     if (!contract_id || !round_number || !scheduled_date) {
@@ -2775,7 +2775,7 @@ app.post(['/api/ma-rounds', '/api/v1/ma-rounds'], (req: Request, res: Response) 
 });
 
 // 6. Update MA Round (Mark Completed or Reschedule)
-app.patch(['/api/ma-rounds/:id', '/api/v1/ma-rounds/:id'], (req: Request, res: Response) => {
+app.patch(['/api/ma-rounds/:id', '/api/v1/ma-rounds/:id'], requireAuth, (req: Request, res: Response) => {
   try {
     const round = maRoundStore.find(r => r.id === req.params.id);
     if (!round) {
