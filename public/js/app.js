@@ -2366,17 +2366,25 @@ const app = {
 
                             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
                                 ${basePhotos.map(p => `
-                                <div class="artifact-card p-1.5 rounded-lg space-y-1 border border-border hover:border-brand-500/40 transition group cursor-pointer" onclick="app.openBasePhotoLightbox(${p.num})">
-                                    <div class="aspect-[16/10] bg-muted/60 rounded flex flex-col items-center justify-center border border-dashed border-border relative overflow-hidden group">
-                                        <i class="${p.icon} text-xl text-muted-foreground/60 group-hover:scale-110 transition"></i>
-                                        <span class="absolute top-1 right-1 px-1 py-0.2 bg-emerald-500/90 text-white rounded text-[8px] font-medium leading-tight">รูปที่ ${p.num}</span>
-                                        <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                                            <span class="text-white text-[9px] font-medium bg-black/70 px-1.5 py-0.5 rounded flex items-center gap-0.5"><i class="ph ph-eye"></i> ดูรูป</span>
+                                <div class="artifact-card p-1.5 rounded-lg space-y-1 border border-border hover:border-brand-500/50 hover:shadow-md transition duration-200 group cursor-pointer" onclick="app.openBasePhotoLightbox(${p.num})" title="คลิกเพื่อขยายดูรูปภาพเต็ม">
+                                    <div class="aspect-[16/10] bg-muted/60 rounded overflow-hidden relative group border border-border/80">
+                                        <img src="${p.preview}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                        <div class="hidden w-full h-full flex-col items-center justify-center bg-muted/80 text-muted-foreground">
+                                            <i class="${p.icon} text-xl mb-0.5"></i>
+                                            <span class="text-[8px]">รูปภาพหน้างาน</span>
+                                        </div>
+                                        <span class="absolute top-1 right-1 px-1.5 py-0.5 bg-emerald-600/90 text-white rounded text-[8px] font-bold shadow-xs leading-tight backdrop-blur-xs">รูปที่ ${p.num}</span>
+                                        <span class="absolute top-1 left-1 px-1.5 py-0.5 bg-black/60 text-white rounded text-[7px] font-medium leading-tight backdrop-blur-xs">สำรวจหน้างาน</span>
+                                        <div class="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition duration-200 flex items-center justify-center">
+                                            <span class="text-white text-[9px] font-semibold bg-black/70 backdrop-blur-xs px-2 py-0.5 rounded flex items-center gap-1 shadow-sm">
+                                                <i class="ph ph-magnifying-glass-plus"></i> ขยายดูรูป
+                                            </span>
                                         </div>
                                     </div>
-                                    <div class="text-[11px] font-semibold text-foreground truncate leading-tight" title="${p.title}">${p.title}</div>
+                                    <div class="text-[11px] font-semibold text-foreground truncate leading-tight mt-0.5" title="${p.title}">${p.title}</div>
                                     <div class="flex items-center justify-between text-[8px] text-muted-foreground leading-tight">
-                                        <span class="text-emerald-500 font-mono flex items-center gap-0.5"><i class="ph ph-check"></i> GPS Verified</span>
+                                        <span class="text-emerald-500 font-mono flex items-center gap-0.5 font-medium"><i class="ph ph-check-circle-fill"></i> GPS Verified</span>
+                                        <span class="text-[8px] text-muted-foreground font-mono">10:30 น.</span>
                                     </div>
                                 </div>
                                 `).join('')}
