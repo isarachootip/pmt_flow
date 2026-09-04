@@ -26,6 +26,16 @@ const app = {
                 selectedQCBookingId: null
             },
 
+            logout() {
+                if (window.auth && typeof window.auth.logout === 'function') {
+                    window.auth.logout();
+                } else {
+                    try { localStorage.clear(); } catch(e) {}
+                    try { sessionStorage.clear(); } catch(e) {}
+                    window.location.href = '/';
+                }
+            },
+
             persistJobs() {
                 try {
                     localStorage.setItem('pmt_jobs', JSON.stringify(DB.jobs));

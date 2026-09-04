@@ -280,15 +280,19 @@ window.auth =  {
         },
 
         async logout() {
-            // Fire-and-forget the server logout
             const tok = this.token;
+            this.token = null;
+            this.user = null;
+            try { sessionStorage.removeItem('pmt_token'); } catch(e) {}
+            try { sessionStorage.removeItem('pmt_user'); } catch(e) {}
+            try { localStorage.removeItem('pmt_token'); } catch(e) {}
+            try { localStorage.removeItem('pmt_user'); } catch(e) {}
+            try { localStorage.clear(); } catch(e) {}
+            try { sessionStorage.clear(); } catch(e) {}
+            this.showLoginOverlay();
             if (tok) {
                 fetch('/api/v1/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok } }).catch(() => {});
             }
-            // Wipe ALL storage (most reliable way)
-            try { localStorage.clear(); } catch(e) {}
-            try { sessionStorage.clear(); } catch(e) {}
-            // Hard navigate — browser will fetch fresh page, auth.init() will find no token → show Login
             window.location.href = '/';
         },
 
