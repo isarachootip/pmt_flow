@@ -1121,9 +1121,15 @@ const app = {
 
             toggleTheme() {
                 const isDark = document.documentElement.classList.toggle('dark');
-                localStorage.setItem('pmt-theme', isDark ? 'dark' : 'light');
-                this.updateCharts();
-                this.showToast(`Switched to ${isDark ? 'Dark' : 'Light'} Mode`);
+                try {
+                    localStorage.setItem('pmt-theme', isDark ? 'dark' : 'light');
+                } catch(e) {}
+                try {
+                    this.updateCharts();
+                } catch(err) {
+                    console.warn('Charts update warning:', err);
+                }
+                this.showToast(`เปลี่ยนเป็น ${isDark ? 'โหมดมืด (Dark Mode)' : 'โหมดสว่าง (Light Mode)'} เรียบร้อยแล้ว`);
             },
 
             toggleSidebar() {
@@ -4957,14 +4963,6 @@ const app = {
                 this.showToast(`📋 เปิด Project Detail หน้าบันทึก BOQ ของ ${jobName}`);
             },
 
-            getDefaultMockTickets() {
-                return [
-                    {
-                        id: "TKT-202609-001",
-                        ticket_no: "209051119",
-                        receipt_no: "RC-VFIX-260901-001",
-                        contract_no: "CTR-202609-001",
-                        job_id: "JOB202609001",
             getDefaultMockTickets() {
                 return [];
             },

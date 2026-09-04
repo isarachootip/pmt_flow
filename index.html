@@ -6,6 +6,20 @@
     <meta name="format-detection" content="telephone=no">
     <title>PMT Flow — Artifact Next.js + Shadcn UI Kit</title>
     
+    <!-- Immediate Theme Initialization (Prevents light/dark flash) -->
+    <script>
+        (function() {
+            try {
+                var theme = localStorage.getItem('pmt-theme');
+                if (theme === 'light') {
+                    document.documentElement.classList.remove('dark');
+                } else if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch(e) {}
+        })();
+    </script>
+    
     <!-- Fonts: Inter & Geist Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
