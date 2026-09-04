@@ -127,7 +127,8 @@ exports.sysLoginLogStore = [];
 function seedUsers() {
     exports.sysUserStore.length = 0;
     const users = [
-        { user_code: 'USR-001', username: 'admin', email: 'admin@pmt.local', full_name: 'ผู้ดูแลระบบ', role: UserRole.ADMIN, password_hash: hashPassword('Admin@1234'), is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
+        { user_code: 'USR-001', username: 'admin', email: 'isarachootip@gmail.com', full_name: 'ผู้ดูแลระบบ', role: UserRole.ADMIN, password_hash: hashPassword('Admin@1234'), is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
+        { user_code: 'USR-001B', username: 'isarachootip@gmail.com', email: 'isarachootip@gmail.com', full_name: 'Isara Chootip', role: UserRole.ADMIN, password_hash: hashPassword('Admin@1234'), is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
         { user_code: 'USR-002', username: 'pm.somrak', email: 'somrak@pmt.local', full_name: 'สมรัก บริหารเก่ง', role: UserRole.ADMIN, password_hash: hashPassword('Admin@1234'), is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
         { user_code: 'USR-003', username: 'ae.somchai', email: 'somchai@pmt.local', full_name: 'สมชาย ขยันทำ', role: UserRole.AE, password_hash: hashPassword('Ae@1234'), is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
         { user_code: 'USR-004', username: 'ae.malee', email: 'malee@pmt.local', full_name: 'มาลี สวยงาม', role: UserRole.AE, password_hash: hashPassword('Ae@1234'), is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
@@ -171,7 +172,7 @@ app.post('/api/v1/auth/login', (req, res) => {
     if (!username || !password) {
         return res.status(400).json({ success: false, error: { code: 'MISSING_CREDENTIALS', message: 'กรุณากรอก username และ password' } });
     }
-    const user = exports.sysUserStore.find(u => u.username === username);
+    const user = exports.sysUserStore.find(u => u.username === username || u.email === username);
     const log = { id: Date.now(), username, user_id: user?.id || null, success: false, ip_address: ip, fail_reason: null, created_at: new Date().toISOString() };
     if (!user) {
         log.fail_reason = 'USER_NOT_FOUND';
@@ -359,11 +360,16 @@ function seedInitialCoreData(populateMocks = false) {
     ];
     exports.coreTaskStore.push(...mockTasks);
     const mockCustomers = [
-        { id: 1, customer_code: 'CUST-001', first_name: 'ณวัฒน์', last_name: 'รักสงบ', phone: '081-111-2222', address: '99/1 Sukhumvit 55, Bangkok', lat: 13.7563, lng: 100.5018 },
-        { id: 2, customer_code: 'CUST-002', first_name: 'สมศรี', last_name: 'สุขใจ', phone: '082-222-3333', address: '12 Ari Samphan, Phaya Thai', lat: 13.7801, lng: 100.5432 },
-        { id: 3, customer_code: 'CUST-003', first_name: 'เอนก', last_name: 'มั่งคั่ง', phone: '083-333-4444', address: '45 Silom Rd, Bang Rak', lat: 13.7234, lng: 100.5289 },
-        { id: 4, customer_code: 'CUST-004', first_name: 'มาลี', last_name: 'มีโชค', phone: '084-444-5555', address: '88 Ladprao 15, Chatuchak', lat: 13.8056, lng: 100.5712 },
-        { id: 5, customer_code: 'CUST-005', first_name: 'ฉัตรชัย', last_name: 'เจริญวิทย์', phone: '085-555-6666', address: '22 Thong Lo 10, Watthana', lat: 13.7312, lng: 100.5823 },
+        { id: 1, customer_code: 'CUST-001', first_name: 'ณวัฒน์', last_name: 'รักสงบ', phone: '081-111-2222', address: '99/1 ซอยสุขุมวิท 55 แขวงคลองตันเหนือ เขตวัฒนา กรุงเทพฯ 10110', lat: 13.7563, lng: 100.5018 },
+        { id: 2, customer_code: 'CUST-002', first_name: 'สมศรี', last_name: 'สุขใจ', phone: '082-222-3333', address: '12 ซอยอารีย์สัมพันธ์ แขวงพญาไท เขตพญาไท กรุงเทพฯ 10400', lat: 13.7801, lng: 100.5432 },
+        { id: 3, customer_code: 'CUST-003', first_name: 'เอนก', last_name: 'มั่งคั่ง', phone: '083-333-4444', address: '45 ถนนสีลม แขวงสีลม เขตบางรัก กรุงเทพฯ 10500', lat: 13.7234, lng: 100.5289 },
+        { id: 4, customer_code: 'CUST-004', first_name: 'มาลี', last_name: 'มีโชค', phone: '084-444-5555', address: '88 ซอยลาดพร้าว 15 แขวงจอมพล เขตจตุจักร กรุงเทพฯ 10900', lat: 13.8056, lng: 100.5712 },
+        { id: 5, customer_code: 'CUST-005', first_name: 'ฉัตรชัย', last_name: 'เจริญวิทย์', phone: '085-555-6666', address: '22 ซอยทองหล่อ 10 แขวงคลองตันเหนือ เขตวัฒนา กรุงเทพฯ 10110', lat: 13.7312, lng: 100.5823 },
+        { id: 6, customer_code: 'CUST-006', first_name: 'วิภาดา', last_name: 'รัตนกุล', phone: '086-666-7777', address: '105/3 ถนนราชพฤกษ์ แขวงบางเชือกหนัง เขตตลิ่งชัน กรุงเทพฯ 10170', lat: 13.7485, lng: 100.4491 },
+        { id: 7, customer_code: 'CUST-007', first_name: 'ธีรเดช', last_name: 'สุวรรณภูมิ', phone: '087-777-8888', address: '345 หมู่บ้านมัณฑนา บางนา-ตราด กม.7 บางแก้ว บางพลี สมุทรปราการ 10540', lat: 13.6521, lng: 100.6654 },
+        { id: 8, customer_code: 'CUST-008', first_name: 'กัญญารัตน์', last_name: 'วงศ์สว่าง', phone: '088-888-9999', address: '56/8 ซอยวงศ์สว่าง 19 แขวงวงศ์สว่าง เขตบางซื่อ กรุงเทพฯ 10800', lat: 13.8291, lng: 100.5255 },
+        { id: 9, customer_code: 'CUST-009', first_name: 'พงศกร', last_name: 'เลิศอนันต์', phone: '089-999-1010', address: '78/12 ถนนพระราม 9 แขวงห้วยขวาง เขตห้วยขวาง กรุงเทพฯ 10310', lat: 13.7542, lng: 100.5741 },
+        { id: 10, customer_code: 'CUST-010', first_name: 'นภัสวรรณ', last_name: 'มีศิริ', phone: '092-279-5574', address: '189/45 ซอยมาบยายเลีย 41 ตำบลหนองปรือ อำเภอบางละมุง ชลบุรี 20150', lat: 12.9327, lng: 100.9240 }
     ];
     exports.coreCustomerStore.push(...mockCustomers);
     const mockJobs = [
@@ -374,11 +380,11 @@ function seedInitialCoreData(populateMocks = false) {
             customer_id: 1,
             status: JobStatus.IN_PROGRESS,
             property_type: 'บ้านเดี่ยว',
-            project_type: 'Renovate',
-            project_sub_type: 'Renovate ครัว',
+            project_type: 'Installation',
+            project_sub_type: 'ติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU',
             assigned_tech: 'Team A (สมศักดิ์)',
             plan_date: '2026-09-05',
-            services: ['Renovate ครัว'],
+            services: ['ติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU'],
             overall_progress: 45,
             special_instructions: 'ระวังมีสุนัขในบ้าน, กรุณาโทรแจ้งลูกค้าล่วงหน้า 30 นาทีก่อนเข้าพื้นที่ และสวมถุงคลุมรองเท้าก่อนเข้าห้องนอน',
             additional_notes: 'ตรวจสอบจุดเชื่อมต่อท่อน้ำทิ้งเดิม และระวังแนวท่อแอร์บนฝ้าเพดาน ลูกค้าเตรียมเต้ารับไฟฟ้าพร้อมแล้ว',
@@ -390,16 +396,16 @@ function seedInitialCoreData(populateMocks = false) {
             job_no: 'JOB202609002',
             external_ref_id: 'INT-2026-002',
             customer_id: 2,
-            status: JobStatus.QC_PENDING,
+            status: JobStatus.DRAFT,
             property_type: 'ทาวน์โฮม',
-            project_type: 'Installation',
-            project_sub_type: 'ปั้มแท็งก์',
+            project_type: 'Renovate',
+            project_sub_type: 'Renovate ห้องครัว Built-in & งานระบบประปา',
             assigned_tech: 'Team B (ประเสริฐ)',
-            plan_date: '2026-09-02',
-            services: ['ปั้มแท็งก์'],
-            overall_progress: 100,
-            special_instructions: 'เข้าพื้นที่ได้หลังเวลา 10:00 น. เท่านั้น',
-            additional_notes: 'ติดตั้งบริเวณลานซักล้างหลังบ้าน ปลั๊กไฟกันน้ำพร้อมใช้งาน',
+            plan_date: '2026-09-06',
+            services: ['Renovate ห้องครัว Built-in & งานระบบประปา'],
+            overall_progress: 0,
+            special_instructions: 'เข้าพื้นที่ได้หลัง 10:00 น. นิติบุคคลคอนโดจำกัดเวลาเสียงดัง',
+            additional_notes: 'ติดตั้งเคาน์เตอร์และเดินท่อน้ำทิ้งใหม่',
             photos: [],
             created_at: '2026-09-01T09:00:00Z'
         },
@@ -408,18 +414,18 @@ function seedInitialCoreData(populateMocks = false) {
             job_no: 'JOB202609003',
             external_ref_id: 'INT-2026-003',
             customer_id: 3,
-            status: JobStatus.QC_PASSED,
-            property_type: 'คอนโดมิเนียม',
+            status: JobStatus.DRAFT,
+            property_type: 'บ้านเดี่ยว',
             project_type: 'Installation',
-            project_sub_type: 'ติดตั้งเครื่องทำน้ำอุ่น',
+            project_sub_type: 'ติดตั้งระบบโซลาร์เซลล์ Solar Rooftop On-Grid 5kW',
             assigned_tech: 'Team C (วิชัย)',
-            plan_date: '2026-08-30',
-            services: ['ติดตั้งเครื่องทำน้ำอุ่น'],
-            overall_progress: 100,
-            special_instructions: 'นิติบุคคลคอนโดอนุญาตทำงานเฉพาะ จันทร์-ศุกร์ 09:00-17:00 น.',
-            additional_notes: 'ติดสติ๊กเกอร์เบรกเกอร์ ELCB พร้อมวัดสายดินเรียบร้อย',
+            plan_date: '2026-09-07',
+            services: ['ติดตั้งระบบโซลาร์เซลล์ Solar Rooftop On-Grid 5kW'],
+            overall_progress: 0,
+            special_instructions: 'สำรวจโครงสร้างหลังคาซีแพคโมเนียก่อนติดตั้งแผงโซลาร์เซลล์',
+            additional_notes: 'เตรียมกล่องอินเวอร์เตอร์และเบรกเกอร์ DC/AC Protection',
             photos: [],
-            created_at: '2026-08-29T10:00:00Z'
+            created_at: '2026-09-02T10:00:00Z'
         },
         {
             id: 4,
@@ -428,14 +434,14 @@ function seedInitialCoreData(populateMocks = false) {
             customer_id: 4,
             status: JobStatus.DRAFT,
             property_type: 'บ้านเดี่ยว',
-            project_type: 'Survey',
-            project_sub_type: 'สำรวจหน้างาน',
+            project_type: 'Renovate',
+            project_sub_type: 'ปูกระเบื้องแกรนิตโต้ 60x60 ซม. และสุขภัณฑ์ห้องน้ำ',
             assigned_tech: 'Team A (สมศักดิ์)',
-            plan_date: '2026-09-10',
-            services: ['สำรวจหน้างาน'],
+            plan_date: '2026-09-08',
+            services: ['ปูกระเบื้องแกรนิตโต้ 60x60 ซม. และสุขภัณฑ์ห้องน้ำ'],
             overall_progress: 0,
-            special_instructions: 'ลูกค้าขอช่างที่มีประสบการณ์งาน built-in',
-            additional_notes: '',
+            special_instructions: 'ลูกค้าเตรียมกระเบื้องไว้ที่ชั้น 1 ต้องขนขึ้นชั้น 2 อย่างระมัดระวัง',
+            additional_notes: 'ปรับระดับพื้นและลงน้ำยากันซึมก่อนปูกระเบื้อง',
             photos: [],
             created_at: '2026-09-02T11:00:00Z'
         },
@@ -444,18 +450,108 @@ function seedInitialCoreData(populateMocks = false) {
             job_no: 'JOB202609005',
             external_ref_id: 'INT-2026-005',
             customer_id: 5,
-            status: JobStatus.AFTER_SALE,
+            status: JobStatus.DRAFT,
+            property_type: 'คอนโดมิเนียม',
+            project_type: 'Installation',
+            project_sub_type: 'ติดตั้งเครื่องทำน้ำอุ่น 4500W พร้อมเดินระบบสายดิน Safe-T-Cut',
+            assigned_tech: 'Team D (กิตติศักดิ์)',
+            plan_date: '2026-09-09',
+            services: ['ติดตั้งเครื่องทำน้ำอุ่น 4500W พร้อมเดินระบบสายดิน Safe-T-Cut'],
+            overall_progress: 0,
+            special_instructions: 'ทดสอบระบบไฟและตัดไฟรั่ว ELCB ก่อนส่งมอบงาน',
+            additional_notes: 'เช็คเบรกเกอร์ลูกย่อยในตู้ Consumer Unit',
+            photos: [],
+            created_at: '2026-09-03T08:30:00Z'
+        },
+        {
+            id: 6,
+            job_no: 'JOB202609006',
+            external_ref_id: 'INT-2026-006',
+            customer_id: 6,
+            status: JobStatus.DRAFT,
             property_type: 'บ้านเดี่ยว',
             project_type: 'Renovate',
-            project_sub_type: 'Renovate ครัว',
+            project_sub_type: 'งานทาสีภายนอกและภายในบ้านเดี่ยว 2 ชั้น (TOA Supershield)',
             assigned_tech: 'Team B (ประเสริฐ)',
-            plan_date: '2026-08-25',
-            services: ['Renovate ครัว'],
-            overall_progress: 100,
-            special_instructions: '',
-            additional_notes: 'บริการล้างเครื่องปรับอากาศประจำปีภายใต้ประกัน 1 ปี',
+            plan_date: '2026-09-10',
+            services: ['งานทาสีภายนอกและภายในบ้านเดี่ยว 2 ชั้น (TOA Supershield)'],
+            overall_progress: 0,
+            special_instructions: 'ปูพลาสติกคลุมเฟอร์นิเจอร์และพื้นไม้ปาร์เกต์อย่างมิดชิด',
+            additional_notes: 'ล้างผนังเก่าด้วยเครื่องฉีดน้ำแรงดันสูงก่อนลงน้ำยารองพื้นปูนเก่า',
             photos: [],
-            created_at: '2026-08-24T12:00:00Z'
+            created_at: '2026-09-03T09:15:00Z'
+        },
+        {
+            id: 7,
+            job_no: 'JOB202609007',
+            external_ref_id: 'INT-2026-007',
+            customer_id: 7,
+            status: JobStatus.DRAFT,
+            property_type: 'บ้านเดี่ยว',
+            project_type: 'Installation',
+            project_sub_type: 'ติดตั้ง Digital Door Lock & กล้องวงจรปิด CCTV Smart IP 4 จุด',
+            assigned_tech: 'Team C (วิชัย)',
+            plan_date: '2026-09-11',
+            services: ['ติดตั้ง Digital Door Lock & กล้องวงจรปิด CCTV Smart IP 4 จุด'],
+            overall_progress: 0,
+            special_instructions: 'แนะนำการใช้งาน App บนมือถือและบันทึกรหัสผ่าน Master ให้ลูกค้า',
+            additional_notes: 'เดินสาย LAN Cat6 เข้าตู้ NVR พร้อมตั้งค่า Wi-Fi Router',
+            photos: [],
+            created_at: '2026-09-03T11:00:00Z'
+        },
+        {
+            id: 8,
+            job_no: 'JOB202609008',
+            external_ref_id: 'INT-2026-008',
+            customer_id: 8,
+            status: JobStatus.DRAFT,
+            property_type: 'บ้านเดี่ยว',
+            project_type: 'Installation',
+            project_sub_type: 'ติดตั้งปั๊มน้ำอัตโนมัติ Mitsubishi Inverter และถังเก็บน้ำ DOS 1000L',
+            assigned_tech: 'Team D (กิตติศักดิ์)',
+            plan_date: '2026-09-12',
+            services: ['ติดตั้งปั๊มน้ำอัตโนมัติ Mitsubishi Inverter และถังเก็บน้ำ DOS 1000L'],
+            overall_progress: 0,
+            special_instructions: 'ติดตั้ง Bypass Valve ระบบประปาคู่ขนาน และเทฐานปูนรองรับถังน้ำ',
+            additional_notes: 'ตรวจสอบแรงดันน้ำทุกก๊อกหลังติดตั้งเสร็จ',
+            photos: [],
+            created_at: '2026-09-03T14:20:00Z'
+        },
+        {
+            id: 9,
+            job_no: 'JOB202609009',
+            external_ref_id: 'INT-2026-009',
+            customer_id: 9,
+            status: JobStatus.DRAFT,
+            property_type: 'คอนโดมิเนียม',
+            project_type: 'Renovate',
+            project_sub_type: 'ติดตั้งฉากกั้นห้องกระจกบานเลื่อน อลูมิเนียมอบดำ Powder Coat',
+            assigned_tech: 'Team A (สมศักดิ์)',
+            plan_date: '2026-09-13',
+            services: ['ติดตั้งฉากกั้นห้องกระจกบานเลื่อน อลูมิเนียมอบดำ Powder Coat'],
+            overall_progress: 0,
+            special_instructions: 'ตรวจเช็คแนวระดับด้วยเลเซอร์ และซีลซิลิโคนกันเสียงรบกวน',
+            additional_notes: 'ใช้กระจกลามิเนตหนา 6+6 มม. กันกระแทก',
+            photos: [],
+            created_at: '2026-09-04T07:00:00Z'
+        },
+        {
+            id: 10,
+            job_no: 'JOB202609010',
+            external_ref_id: 'INT-2026-010',
+            customer_id: 10,
+            status: JobStatus.DRAFT,
+            property_type: 'บ้านเดี่ยว',
+            project_type: 'Installation',
+            project_sub_type: 'ติดตั้งเครื่องปรับอากาศและงานเดินระบบท่อเหนือฝ้าเพดาน',
+            assigned_tech: 'Team A (สมศักดิ์)',
+            plan_date: '2026-09-14',
+            services: ['ติดตั้งเครื่องปรับอากาศและงานเดินระบบท่อเหนือฝ้าเพดาน'],
+            overall_progress: 0,
+            special_instructions: 'สาขาพัทยาใต้ — นัดหมายช่วงเช้า ตรวจสอบเบรกเกอร์แอร์เดิม',
+            additional_notes: 'เดินท่อน้ำทิ้ง PVC หุ้มฉนวน Armaflex ป้องกันหยดน้ำเกาะฝ้า',
+            photos: [],
+            created_at: '2026-09-04T07:30:00Z'
         }
     ];
     exports.coreJobStore.push(...mockJobs);
@@ -748,9 +844,9 @@ function seedInitialStagingData(populateMocks = false) {
     exports.stagingSurveyStore.push(...mockRecords);
     console.log(`[STAGING SEED] Seeded ${mockRecords.length} mock pending records in staging table.`);
 }
-// Initial Seed on Server Startup (Clean state by default)
+// Initial Seed on Server Startup (Pre-populate with 10 INT inbound jobs)
 seedInitialStagingData(false);
-seedInitialCoreData(false);
+seedInitialCoreData(true);
 // =============================================================================
 // CONVERSION ENGINE (STAGING -> CORE PMT)
 // =============================================================================
@@ -1398,6 +1494,14 @@ app.post('/api/v1/jobs/:id/boq', async (req, res) => {
         items,
         created_at: new Date().toISOString()
     };
+    const targetJob = exports.coreJobStore.find(j => j.id === jobId || j.job_no === String(req.params.id) || String(j.id) === String(req.params.id));
+    if (targetJob) {
+        targetJob.boq_items = items;
+        targetJob.boq_subtotal = subtotal;
+        targetJob.boq_discount = discount_amount;
+        targetJob.boq_grand_total = grandTotal;
+        targetJob.status = JobStatus.BOQ;
+    }
     return res.status(201).json({ success: true, data: boq });
 });
 // =============================================================================
@@ -1477,6 +1581,19 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', async (req, res) => {
         };
     });
     exports.coreTaskStore.push(...newTasks);
+    // Sync to coreJobStore
+    const targetJobForBOQ = exports.coreJobStore.find(j => j.id === numId || j.job_no === param || String(j.id) === param);
+    if (targetJobForBOQ) {
+        if (!targetJobForBOQ.boq_items || targetJobForBOQ.boq_items.length === 0) {
+            targetJobForBOQ.boq_items = items.map((it) => ({
+                name: it.task_name || it.name,
+                qty: it.qty || 1,
+                unit: it.unit || 'งาน',
+                price: it.price || 0,
+                labor_price: it.labor_price || it.price || 0
+            }));
+        }
+    }
     // Auto-sort all tasks for this job by start date
     const jobTasks = exports.coreTaskStore.filter(t => t.job_id === numId || t.job_no === param || String(t.job_id) === param);
     const sorted = sortTasksByStartDate(jobTasks);
@@ -1491,9 +1608,20 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', async (req, res) => {
 app.post('/api/v1/jobs/:id/tasks', async (req, res) => {
     const param = req.params.id;
     const numId = isNaN(Number(param)) ? param : Number(param);
-    const { task_name, start_date, end_date, duration_days = 1, assigned_tech = 'Team A (สมศักดิ์)', assignees } = req.body;
+    const { task_name, start_date, end_date, duration_days = 1, assigned_tech = 'Team A (สมศักดิ์)', assignees, allow_bypass = false } = req.body;
     if (!task_name) {
         return res.status(400).json({ success: false, error: { code: 'MISSING_TASK_NAME', message: 'กรุณาระบุชื่อ Task' } });
+    }
+    // Check Business Rule: แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart
+    const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param || String(j.id) === param);
+    if (targetJob && (!targetJob.boq_items || targetJob.boq_items.length === 0) && !allow_bypass) {
+        return res.status(400).json({
+            success: false,
+            error: {
+                code: 'BOQ_REQUIRED',
+                message: 'แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart นะครับ'
+            }
+        });
     }
     const startStr = start_date || new Date().toISOString().slice(0, 10);
     let endStr = end_date;

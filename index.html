@@ -167,6 +167,25 @@
             border-color: rgba(139, 92, 246, 0.4);
         }
 
+        /* Superadmin Only Controls - Disabled for non-superadmin */
+        .superadmin-only-btn {
+            display: inline-flex !important;
+            transition: all 0.2s ease;
+        }
+        body:not(.superadmin-allowed) .superadmin-only-btn,
+        .superadmin-only-btn:disabled {
+            opacity: 0.35 !important;
+            cursor: not-allowed !important;
+            pointer-events: none !important;
+            filter: grayscale(0.7) !important;
+        }
+        body.superadmin-allowed .superadmin-only-btn:not(:disabled) {
+            opacity: 1 !important;
+            cursor: pointer !important;
+            pointer-events: auto !important;
+            filter: none !important;
+        }
+
         /* Status Pills */
         .status-pill {
             display: inline-flex;
@@ -395,7 +414,11 @@
                         <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-500 rounded-full ring-2 ring-card"></span>
                     </button>
 
-                    <div class="h-4 w-px bg-border"></div>
+                    <!-- Simulate 10 INT Orders Quick Button (Superadmin Only: isarachootip@gmail.com) -->
+                    <button onclick="app.simulateINT10Orders(false)" class="superadmin-only-btn btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 font-medium text-purple-600 dark:text-purple-400 border border-purple-500/30 hover:bg-purple-500/10 cursor-pointer shadow-xs" title="จำลองรับคำสั่งซื้อใหม่ 10 งานจากระบบ INT เข้าสู่ PMT">
+                        <i class="ph ph-lightning text-amber-500"></i>
+                        <span>จำลอง 10 งาน (INT)</span>
+                    </button>
 
                     <!-- Primary Action Button -->
                     <button onclick="app.showModal('modal-create-job')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-2 font-medium">
@@ -638,13 +661,17 @@
                                 <option value="QC_PASSED">QC Passed (ผ่านแล้ว)</option>
                                 <option value="AFTER_SALE">After Sale (บริการหลังการขาย)</option>
                             </select>
-                            <button onclick="app.resetAllJobStatuses()" class="btn-artifact-secondary text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer" title="ถอยสถานะทุกโครงการกลับเป็น Draft (0%)">
+                            <button onclick="app.resetAllJobStatuses()" class="superadmin-only-btn btn-artifact-secondary text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer" title="ถอยสถานะทุกโครงการกลับเป็น Draft (0%)">
                                 <i class="ph ph-arrow-counter-clockwise"></i>
                                 <span>ถอยสถานะเป็น Draft</span>
                             </button>
-                            <button onclick="app.clearAllProjects()" class="btn-artifact-secondary text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer" title="ลบข้อมูลโครงการทั้งหมด">
+                            <button onclick="app.clearAllProjects()" class="superadmin-only-btn btn-artifact-secondary text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer" title="ลบข้อมูลโครงการทั้งหมด">
                                 <i class="ph ph-trash"></i>
                                 <span>ล้างข้อมูลโครงการ</span>
+                            </button>
+                            <button onclick="app.simulateINT10Orders(false)" class="superadmin-only-btn btn-artifact-secondary text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer shadow-xs" title="จำลองรับคำสั่งซื้อใหม่ 10 งานจากระบบ INT เข้าสู่ PMT">
+                                <i class="ph ph-lightning text-amber-500"></i>
+                                <span>จำลอง 10 งาน (INT)</span>
                             </button>
                             <button onclick="app.showModal('modal-create-job')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
                                 <i class="ph ph-plus-bold"></i>
@@ -747,11 +774,11 @@
                                     <option value="JOB202609005">JOB202609005 - คุณฉัตรชัย (Renovate ครัว)</option>
                                 </select>
                             </div>
-                            <button onclick="app.resetAllJobStatuses()" class="btn-artifact-secondary text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="ถอยสถานะทุกโครงการกลับเป็น Draft (0%)">
+                            <button onclick="app.resetAllJobStatuses()" class="superadmin-only-btn btn-artifact-secondary text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer shadow-xs" title="ถอยสถานะทุกโครงการกลับเป็น Draft (0%)">
                                 <i class="ph ph-arrow-counter-clockwise"></i>
                                 <span>ถอยสถานะเป็น Draft</span>
                             </button>
-                            <button onclick="app.clearAllProjects()" class="btn-artifact-secondary text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="ลบข้อมูลโครงการและรายการแผนงานทั้งหมด">
+                            <button onclick="app.clearAllProjects()" class="superadmin-only-btn btn-artifact-secondary text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer shadow-xs" title="ลบข้อมูลโครงการและรายการแผนงานทั้งหมด">
                                 <i class="ph ph-trash"></i>
                                 <span>ลบข้อมูลโครงการทั้งหมด</span>
                             </button>
@@ -1306,6 +1333,162 @@
                     </div>
                 </div>
 
+                <!-- USER MANAGEMENT PAGE -->
+                <div id="page-users" class="page-view hidden-view space-y-6">
+                    <!-- Header -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
+                                    <i class="ph ph-users-three text-xl"></i>
+                                </div>
+                                <div>
+                                    <h1 class="text-xl font-bold font-display text-foreground">จัดการผู้ใช้งาน (User Management)</h1>
+                                    <p class="text-xs text-muted-foreground mt-0.5">เพิ่ม / แก้ไขข้อมูล / กำหนดสิทธิ์ และรีเซ็ตรหัสผ่านสำหรับ QC, Contact Center, AE และ Admin</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            <button onclick="userMgmt.openAuditLogs()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 cursor-pointer hover:border-brand-500/40 transition">
+                                <i class="ph ph-clock-counter-clockwise text-sm text-brand-500"></i>
+                                <span>ประวัติ Login (Audit Logs)</span>
+                            </button>
+                            <button onclick="userMgmt.openCreate()" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-md cursor-pointer">
+                                <i class="ph ph-plus-bold text-sm"></i>
+                                <span>เพิ่มผู้ใช้ใหม่</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Stats row (Clickable to filter) -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="user-stats-row">
+                        <div onclick="userMgmt.setRoleFilter('ADMIN')" class="user-stat-card artifact-card p-4 flex items-center justify-between cursor-pointer hover:border-rose-500/50 hover:bg-rose-500/5 transition group" id="stat-card-ADMIN">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-rose-500/10 group-hover:bg-rose-500/20 text-rose-500 flex items-center justify-center transition">
+                                    <i class="ph ph-shield-star text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-muted-foreground">Admin</p>
+                                    <p class="text-xl font-bold font-display text-foreground" id="stat-admin">0</p>
+                                </div>
+                            </div>
+                            <span class="text-[11px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 font-medium border border-rose-500/20">ผู้ดูแลระบบ</span>
+                        </div>
+
+                        <div onclick="userMgmt.setRoleFilter('AE')" class="user-stat-card artifact-card p-4 flex items-center justify-between cursor-pointer hover:border-blue-500/50 hover:bg-blue-500/5 transition group" id="stat-card-AE">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 text-blue-500 flex items-center justify-center transition">
+                                    <i class="ph ph-briefcase text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-muted-foreground">AE</p>
+                                    <p class="text-xl font-bold font-display text-foreground" id="stat-ae">0</p>
+                                </div>
+                            </div>
+                            <span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-medium border border-blue-500/20">ฝ่ายขาย</span>
+                        </div>
+
+                        <div onclick="userMgmt.setRoleFilter('QC')" class="user-stat-card artifact-card p-4 flex items-center justify-between cursor-pointer hover:border-emerald-500/50 hover:bg-emerald-500/5 transition group" id="stat-card-QC">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 group-hover:bg-emerald-500/20 text-emerald-500 flex items-center justify-center transition">
+                                    <i class="ph ph-check-circle text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-muted-foreground">QC</p>
+                                    <p class="text-xl font-bold font-display text-foreground" id="stat-qc">0</p>
+                                </div>
+                            </div>
+                            <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-medium border border-emerald-500/20">ตรวจคุณภาพ</span>
+                        </div>
+
+                        <div onclick="userMgmt.setRoleFilter('CONTACT_CENTER')" class="user-stat-card artifact-card p-4 flex items-center justify-between cursor-pointer hover:border-amber-500/50 hover:bg-amber-500/5 transition group" id="stat-card-CONTACT_CENTER">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-amber-500/10 group-hover:bg-amber-500/20 text-amber-500 flex items-center justify-center transition">
+                                    <i class="ph ph-phone text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-muted-foreground">Contact Center</p>
+                                    <p class="text-xl font-bold font-display text-foreground" id="stat-cc">0</p>
+                                </div>
+                            </div>
+                            <span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-medium border border-amber-500/20">บริการลูกค้า</span>
+                        </div>
+                    </div>
+
+                    <!-- Main Table Card -->
+                    <div class="artifact-card overflow-hidden">
+                        <!-- Toolbar -->
+                        <div class="p-4 border-b border-border space-y-3 bg-muted/20">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                <!-- Search -->
+                                <div class="relative w-full md:w-80">
+                                    <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+                                    <input type="text" id="user-search" oninput="userMgmt.handleSearch(this.value)" placeholder="ค้นหาชื่อ, username, อีเมล..."
+                                        class="w-full bg-card border border-border rounded-xl py-2 pl-9 pr-8 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-brand-500 transition shadow-sm">
+                                    <button id="user-search-clear" onclick="userMgmt.clearSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                                        <i class="ph ph-x-circle text-sm"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Filters and Refresh -->
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <!-- Status Filter -->
+                                    <div class="flex items-center gap-1.5 bg-card border border-border rounded-xl px-2.5 py-1 text-xs shadow-sm">
+                                        <span class="text-muted-foreground text-[11px] font-medium">สถานะ:</span>
+                                        <select id="user-status-filter" onchange="userMgmt.setStatusFilter(this.value)" class="bg-transparent text-foreground text-xs focus:outline-none cursor-pointer pr-1">
+                                            <option value="ALL">ทั้งหมด</option>
+                                            <option value="ACTIVE">ใช้งานอยู่ (Active)</option>
+                                            <option value="INACTIVE">ปิดใช้งาน (Inactive)</option>
+                                        </select>
+                                    </div>
+
+                                    <button onclick="userMgmt.load()" class="btn-artifact-secondary p-2 rounded-xl text-xs flex items-center gap-1.5 hover:text-foreground" title="รีเฟรชข้อมูล">
+                                        <i class="ph ph-arrows-clockwise text-sm" id="user-refresh-icon"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Role Tabs -->
+                            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 scrollbar-none text-xs">
+                                <button onclick="userMgmt.setRoleFilter('ALL')" id="role-pill-ALL" class="user-role-pill px-3 py-1.5 rounded-lg font-medium transition bg-brand-500/10 text-brand-500 border border-brand-500/20 shadow-xs cursor-pointer">
+                                    ทั้งหมด (<span id="count-role-all">0</span>)
+                                </button>
+                                <button onclick="userMgmt.setRoleFilter('ADMIN')" id="role-pill-ADMIN" class="user-role-pill px-3 py-1.5 rounded-lg font-medium transition text-muted-foreground hover:bg-muted border border-transparent cursor-pointer">
+                                    Admin (<span id="count-role-admin">0</span>)
+                                </button>
+                                <button onclick="userMgmt.setRoleFilter('AE')" id="role-pill-AE" class="user-role-pill px-3 py-1.5 rounded-lg font-medium transition text-muted-foreground hover:bg-muted border border-transparent cursor-pointer">
+                                    AE (<span id="count-role-ae">0</span>)
+                                </button>
+                                <button onclick="userMgmt.setRoleFilter('QC')" id="role-pill-QC" class="user-role-pill px-3 py-1.5 rounded-lg font-medium transition text-muted-foreground hover:bg-muted border border-transparent cursor-pointer">
+                                    QC (<span id="count-role-qc">0</span>)
+                                </button>
+                                <button onclick="userMgmt.setRoleFilter('CONTACT_CENTER')" id="role-pill-CONTACT_CENTER" class="user-role-pill px-3 py-1.5 rounded-lg font-medium transition text-muted-foreground hover:bg-muted border border-transparent cursor-pointer">
+                                    Contact Center (<span id="count-role-cc">0</span>)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Table -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs">
+                                <thead>
+                                    <tr class="border-b border-border bg-muted/40 text-muted-foreground">
+                                        <th class="px-5 py-3 text-left font-semibold"># รหัสผู้ใช้</th>
+                                        <th class="px-5 py-3 text-left font-semibold">ชื่อ-นามสกุล</th>
+                                        <th class="px-5 py-3 text-left font-semibold">Username</th>
+                                        <th class="px-5 py-3 text-left font-semibold">อีเมล</th>
+                                        <th class="px-5 py-3 text-left font-semibold">Role</th>
+                                        <th class="px-5 py-3 text-left font-semibold">สถานะ</th>
+                                        <th class="px-5 py-3 text-left font-semibold">เข้าสู่ระบบล่าสุด</th>
+                                        <th class="px-5 py-3 text-right font-semibold">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="user-table-body" class="divide-y divide-border"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </main>
     </div>
@@ -1394,9 +1577,14 @@
                 </div>
             </div>
 
-            <div class="p-4 border-t border-border flex justify-end gap-2.5 bg-muted/30">
-                <button onclick="app.hideModal('modal-create-job')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs">ยกเลิก</button>
-                <button onclick="app.submitCreateJob()" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium">บันทึกสร้างงาน</button>
+            <div class="p-4 border-t border-border flex justify-between items-center bg-muted/30">
+                <button onclick="app.simulateINT10Orders(false); app.hideModal('modal-create-job')" class="superadmin-only-btn btn-artifact-secondary text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/10 px-3 py-2 rounded-lg text-xs items-center gap-1.5 cursor-pointer">
+                    <i class="ph ph-lightning text-amber-500"></i> จำลอง 10 งานจาก INT ทันที
+                </button>
+                <div class="flex items-center gap-2">
+                    <button onclick="app.hideModal('modal-create-job')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs">ยกเลิก</button>
+                    <button onclick="app.submitCreateJob()" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium">บันทึกสร้างงาน</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2280,6 +2468,367 @@
         </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- MODAL: USER FORM (CREATE & EDIT USER)                   -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="modal-user-form" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-user-form-content">
+            <!-- Header -->
+            <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
+                <div class="flex items-center gap-3">
+                    <div id="user-form-icon-bg" class="w-9 h-9 rounded-xl bg-brand-500/15 text-brand-500 flex items-center justify-center shrink-0">
+                        <i id="user-form-icon" class="ph ph-user-plus text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-sm text-foreground" id="user-form-title">เพิ่มผู้ใช้งานใหม่</h3>
+                        <p class="text-[11px] text-muted-foreground" id="user-form-subtitle">สร้างบัญชีผู้ใช้งานและกำหนดบทบาทในระบบ PMT Flow</p>
+                    </div>
+                </div>
+                <button onclick="app.hideModal('modal-user-form')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition cursor-pointer">
+                    <i class="ph ph-x text-base"></i>
+                </button>
+            </div>
+
+            <!-- Form Body -->
+            <form onsubmit="userMgmt.submitForm(event)" class="p-5 space-y-4 max-h-[78vh] overflow-y-auto">
+                <input type="hidden" id="user-form-id">
+                <input type="hidden" id="user-form-mode" value="create">
+                <input type="hidden" id="user-form-role" value="AE">
+
+                <!-- Error Alert Box -->
+                <div id="user-form-error" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs flex items-center gap-2">
+                    <i class="ph ph-warning-circle text-base shrink-0"></i>
+                    <span id="user-form-error-msg">เกิดข้อผิดพลาด</span>
+                </div>
+
+                <!-- Basic Info Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                        <label class="block text-[11px] font-medium text-foreground mb-1">ชื่อ-นามสกุล <span class="text-rose-500">*</span></label>
+                        <input type="text" id="user-form-fullname" required placeholder="เช่น สมเกียรติ มั่นคง"
+                            class="w-full bg-muted/50 border border-border rounded-xl px-3 py-2 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-brand-500 focus:bg-card transition">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-foreground mb-1">Username <span class="text-rose-500">*</span></label>
+                        <input type="text" id="user-form-username" required placeholder="เช่น ae.somkiat"
+                            class="w-full bg-muted/50 border border-border rounded-xl px-3 py-2 text-xs font-mono text-foreground placeholder-muted-foreground focus:outline-none focus:border-brand-500 focus:bg-card transition">
+                        <p id="user-form-username-help" class="text-[10px] text-muted-foreground mt-0.5">ใช้ตัวอักษรภาษาอังกฤษหรือจุด (.)</p>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-medium text-foreground mb-1">อีเมล (Email) <span class="text-muted-foreground text-[10px]">(ไม่บังคับ)</span></label>
+                    <input type="email" id="user-form-email" placeholder="user@pmt.local หรือ email@company.com"
+                        class="w-full bg-muted/50 border border-border rounded-xl px-3 py-2 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-brand-500 focus:bg-card transition">
+                </div>
+
+                <!-- Password Field (Required on create, hidden/optional on edit) -->
+                <div id="user-form-password-wrapper">
+                    <label class="block text-[11px] font-medium text-foreground mb-1">รหัสผ่าน (Password) <span class="text-rose-500">*</span></label>
+                    <div class="relative">
+                        <input type="password" id="user-form-password" placeholder="อย่างน้อย 6 ตัวอักษร"
+                            class="w-full bg-muted/50 border border-border rounded-xl px-3 py-2 pr-10 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-brand-500 focus:bg-card transition">
+                        <button type="button" onclick="userMgmt.togglePasswordVisibility('user-form-password', 'user-form-pwd-eye')" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
+                            <i id="user-form-pwd-eye" class="ph ph-eye text-sm"></i>
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-muted-foreground mt-0.5">ความยาวอย่างน้อย 6 ตัวอักษร แนะนำให้มีตัวอักษรและตัวเลขผสมกัน</p>
+                </div>
+
+                <!-- Role Selection Cards -->
+                <div>
+                    <label class="block text-[11px] font-medium text-foreground mb-2">บทบาทและสิทธิ์การใช้งาน (Role) <span class="text-rose-500">*</span></label>
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <!-- Admin Card -->
+                        <div onclick="userMgmt.selectRole('ADMIN')" id="role-card-ADMIN" class="user-role-card p-3 rounded-xl border border-border hover:border-rose-500/50 bg-card cursor-pointer transition flex items-start gap-2.5 group">
+                            <div class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0 mt-0.5">
+                                <i class="ph ph-shield-star text-sm"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                    <span>Admin</span>
+                                    <span class="text-[9px] px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-500 font-normal">สิทธิ์เต็ม</span>
+                                </p>
+                                <p class="text-[10px] text-muted-foreground mt-0.5 leading-snug">ดูแลระบบ จัดการผู้ใช้ ตั้งค่า API และดู Audit Log</p>
+                            </div>
+                        </div>
+
+                        <!-- AE Card -->
+                        <div onclick="userMgmt.selectRole('AE')" id="role-card-AE" class="user-role-card p-3 rounded-xl border border-border hover:border-blue-500/50 bg-card cursor-pointer transition flex items-start gap-2.5 group">
+                            <div class="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0 mt-0.5">
+                                <i class="ph ph-briefcase text-sm"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                    <span>AE</span>
+                                    <span class="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-500 font-normal">ฝ่ายขาย</span>
+                                </p>
+                                <p class="text-[10px] text-muted-foreground mt-0.5 leading-snug">รับ Order INT, จัดการแบบแปลน, ปรับสถานะงาน</p>
+                            </div>
+                        </div>
+
+                        <!-- QC Card -->
+                        <div onclick="userMgmt.selectRole('QC')" id="role-card-QC" class="user-role-card p-3 rounded-xl border border-border hover:border-emerald-500/50 bg-card cursor-pointer transition flex items-start gap-2.5 group">
+                            <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 mt-0.5">
+                                <i class="ph ph-check-circle text-sm"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                    <span>QC</span>
+                                    <span class="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 font-normal">ตรวจคุณภาพ</span>
+                                </p>
+                                <p class="text-[10px] text-muted-foreground mt-0.5 leading-snug">ตรวจรับงาน Inspection, ตรวจรูปภาพหน้างาน, อนุมัติ QC</p>
+                            </div>
+                        </div>
+
+                        <!-- Contact Center Card -->
+                        <div onclick="userMgmt.selectRole('CONTACT_CENTER')" id="role-card-CONTACT_CENTER" class="user-role-card p-3 rounded-xl border border-border hover:border-amber-500/50 bg-card cursor-pointer transition flex items-start gap-2.5 group">
+                            <div class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 mt-0.5">
+                                <i class="ph ph-phone text-sm"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                    <span>Contact Center</span>
+                                    <span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 font-normal">บริการลูกค้า</span>
+                                </p>
+                                <p class="text-[10px] text-muted-foreground mt-0.5 leading-snug">บริการลูกค้า, สัญญา MA หลังการขาย และผลคะแนน CSAT</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Toggle (Shown only in edit mode) -->
+                <div id="user-form-status-wrapper" class="hidden p-3.5 rounded-xl bg-muted/30 border border-border flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-foreground">สถานะบัญชีผู้ใช้</p>
+                        <p class="text-[10px] text-muted-foreground mt-0.5" id="user-form-status-desc">เปิดใช้งานอยู่ (ผู้ใช้สามารถเข้าสู่ระบบได้ตามปกติ)</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="user-form-status" checked onchange="userMgmt.handleStatusCheckboxChange(this)" class="sr-only peer">
+                        <div class="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                </div>
+
+                <!-- Footer Buttons -->
+                <div class="pt-3 border-t border-border flex justify-end items-center gap-2.5">
+                    <button type="button" onclick="app.hideModal('modal-user-form')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs cursor-pointer">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" id="user-form-submit-btn" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-md cursor-pointer">
+                        <i class="ph ph-floppy-disk text-sm"></i>
+                        <span id="user-form-submit-text">บันทึกข้อมูล</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- MODAL: RESET PASSWORD                                   -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="modal-user-reset-pwd" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-md shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-user-reset-pwd-content">
+            <!-- Header -->
+            <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center shrink-0">
+                        <i class="ph ph-key text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-sm text-foreground">รีเซ็ตรหัสผ่าน (Reset Password)</h3>
+                        <p class="text-[11px] text-muted-foreground">ตั้งค่ารหัสผ่านใหม่สำหรับผู้ใช้งาน</p>
+                    </div>
+                </div>
+                <button onclick="app.hideModal('modal-user-reset-pwd')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition cursor-pointer">
+                    <i class="ph ph-x text-base"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <form onsubmit="userMgmt.submitResetPassword(event)" class="p-5 space-y-4">
+                <input type="hidden" id="user-reset-pwd-id">
+
+                <!-- Target User Box -->
+                <div id="user-reset-pwd-userbox" class="p-3 rounded-xl bg-muted/30 border border-border flex items-center gap-3">
+                    <div id="user-reset-pwd-avatar" class="w-9 h-9 rounded-xl bg-brand-500/15 text-brand-500 flex items-center justify-center font-bold text-sm">
+                        U
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p id="user-reset-pwd-name" class="text-xs font-semibold text-foreground truncate">ชื่อผู้ใช้งาน</p>
+                        <p id="user-reset-pwd-username" class="text-[11px] font-mono text-muted-foreground truncate">username</p>
+                    </div>
+                    <div id="user-reset-pwd-role"></div>
+                </div>
+
+                <!-- Error Alert Box -->
+                <div id="user-reset-pwd-error" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs flex items-center gap-2">
+                    <i class="ph ph-warning-circle text-base shrink-0"></i>
+                    <span id="user-reset-pwd-error-msg">เกิดข้อผิดพลาด</span>
+                </div>
+
+                <!-- New Password -->
+                <div>
+                    <label class="block text-[11px] font-medium text-foreground mb-1">รหัสผ่านใหม่ <span class="text-rose-500">*</span></label>
+                    <div class="relative">
+                        <input type="password" id="user-reset-pwd-new" required placeholder="อย่างน้อย 6 ตัวอักษร"
+                            class="w-full bg-muted/50 border border-border rounded-xl px-3 py-2 pr-10 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-brand-500 focus:bg-card transition">
+                        <button type="button" onclick="userMgmt.togglePasswordVisibility('user-reset-pwd-new', 'user-reset-pwd-eye1')" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
+                            <i id="user-reset-pwd-eye1" class="ph ph-eye text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Confirm New Password -->
+                <div>
+                    <label class="block text-[11px] font-medium text-foreground mb-1">ยืนยันรหัสผ่านใหม่ <span class="text-rose-500">*</span></label>
+                    <div class="relative">
+                        <input type="password" id="user-reset-pwd-confirm" required placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+                            class="w-full bg-muted/50 border border-border rounded-xl px-3 py-2 pr-10 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-brand-500 focus:bg-card transition">
+                        <button type="button" onclick="userMgmt.togglePasswordVisibility('user-reset-pwd-confirm', 'user-reset-pwd-eye2')" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
+                            <i id="user-reset-pwd-eye2" class="ph ph-eye text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Notice -->
+                <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-[11px] flex items-start gap-2">
+                    <i class="ph ph-warning text-sm mt-0.5 shrink-0"></i>
+                    <span>การรีเซ็ตรหัสผ่านจะมีผลทันที และระบบจะยกเลิก Session ที่กำลังใช้งานอยู่ทั้งหมดของผู้ใช้นี้ เพื่อความปลอดภัย</span>
+                </div>
+
+                <!-- Footer Buttons -->
+                <div class="pt-3 border-t border-border flex justify-end items-center gap-2.5">
+                    <button type="button" onclick="app.hideModal('modal-user-reset-pwd')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs cursor-pointer">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" id="user-reset-pwd-submit-btn" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-md cursor-pointer bg-amber-500 hover:bg-amber-600 text-white">
+                        <i class="ph ph-check-bold text-sm"></i>
+                        <span>ยืนยันรีเซ็ตรหัสผ่าน</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- MODAL: TOGGLE ACTIVE / DEACTIVATE CONFIRMATION          -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="modal-user-toggle-status" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-md shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-user-toggle-status-content">
+            <!-- Header -->
+            <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
+                <div class="flex items-center gap-3">
+                    <div id="user-toggle-icon-bg" class="w-9 h-9 rounded-xl bg-rose-500/15 text-rose-500 flex items-center justify-center shrink-0">
+                        <i id="user-toggle-icon" class="ph ph-prohibit text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-sm text-foreground" id="user-toggle-status-title">ยืนยันการปิดใช้งานบัญชี</h3>
+                        <p class="text-[11px] text-muted-foreground" id="user-toggle-status-subtitle">ตรวจสอบข้อมูลก่อนดำเนินการ</p>
+                    </div>
+                </div>
+                <button onclick="app.hideModal('modal-user-toggle-status')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition cursor-pointer">
+                    <i class="ph ph-x text-base"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-5 space-y-4">
+                <input type="hidden" id="user-toggle-id">
+                <input type="hidden" id="user-toggle-action">
+
+                <!-- Target User Box -->
+                <div class="p-3.5 rounded-xl bg-muted/30 border border-border flex items-center gap-3">
+                    <div id="user-toggle-avatar" class="w-10 h-10 rounded-xl bg-brand-500/15 text-brand-500 flex items-center justify-center font-bold text-base">
+                        U
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p id="user-toggle-fullname" class="text-xs font-semibold text-foreground truncate">ชื่อผู้ใช้งาน</p>
+                        <p id="user-toggle-username" class="text-[11px] font-mono text-muted-foreground truncate">username</p>
+                    </div>
+                    <div id="user-toggle-role"></div>
+                </div>
+
+                <div id="user-toggle-message-box" class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 text-xs flex items-start gap-2.5">
+                    <i class="ph ph-warning-circle text-base mt-0.5 shrink-0"></i>
+                    <p id="user-toggle-message" class="leading-relaxed">คุณต้องการปิดใช้งานบัญชีนี้ใช่หรือไม่? ผู้ใช้จะไม่สามารถ Login เข้าสู่ระบบได้ และ Session ปัจจุบันจะถูกยกเลิกทันที</p>
+                </div>
+
+                <!-- Footer Buttons -->
+                <div class="pt-3 border-t border-border flex justify-end items-center gap-2.5">
+                    <button type="button" onclick="app.hideModal('modal-user-toggle-status')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs cursor-pointer">
+                        ยกเลิก
+                    </button>
+                    <button type="button" id="user-toggle-submit-btn" onclick="userMgmt.confirmToggleActive()" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-md cursor-pointer bg-rose-500 hover:bg-rose-600 text-white">
+                        <i id="user-toggle-submit-icon" class="ph ph-check-bold text-sm"></i>
+                        <span id="user-toggle-submit-text">ยืนยันปิดใช้งาน</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- MODAL: LOGIN AUDIT LOGS                                 -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="modal-user-login-logs" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-user-login-logs-content">
+            <!-- Header -->
+            <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-brand-500/15 text-brand-500 flex items-center justify-center shrink-0">
+                        <i class="ph ph-clock-counter-clockwise text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-sm text-foreground">ประวัติการเข้าสู่ระบบ (Login Audit Logs)</h3>
+                        <p class="text-[11px] text-muted-foreground">บันทึกประวัติการพยายาม Login 100 รายการล่าสุด สำหรับการตรวจสอบความปลอดภัย</p>
+                    </div>
+                </div>
+                <button onclick="app.hideModal('modal-user-login-logs')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition cursor-pointer">
+                    <i class="ph ph-x text-base"></i>
+                </button>
+            </div>
+
+            <!-- Toolbar inside modal -->
+            <div class="p-4 border-b border-border bg-muted/10 flex items-center justify-between gap-3 shrink-0">
+                <div class="relative w-full sm:w-72">
+                    <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
+                    <input type="text" id="user-logs-search" oninput="userMgmt.filterLogs(this.value)" placeholder="ค้นหา username, IP หรือผลลัพธ์..."
+                        class="w-full bg-card border border-border rounded-xl py-1.5 pl-8 pr-3 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-brand-500 transition">
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="userMgmt.loadLoginLogs()" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer">
+                        <i class="ph ph-arrows-clockwise text-xs"></i>
+                        <span>รีเฟรช</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Logs Table -->
+            <div class="overflow-y-auto flex-1 p-0">
+                <table class="w-full text-xs">
+                    <thead class="sticky top-0 bg-muted/80 backdrop-blur-sm border-b border-border text-muted-foreground">
+                        <tr>
+                            <th class="px-5 py-3 text-left font-semibold">วัน-เวลา</th>
+                            <th class="px-5 py-3 text-left font-semibold">Username / ชื่อผู้ใช้</th>
+                            <th class="px-5 py-3 text-left font-semibold">IP Address</th>
+                            <th class="px-5 py-3 text-left font-semibold">อุปกรณ์ / Browser</th>
+                            <th class="px-5 py-3 text-right font-semibold">ผลลัพธ์</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-logs-table-body" class="divide-y divide-border"></tbody>
+                </table>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-border flex justify-between items-center bg-muted/20 shrink-0 text-xs text-muted-foreground">
+                <span id="user-logs-count-info">แสดงรายการบันทึกทั้งหมด</span>
+                <button type="button" onclick="app.hideModal('modal-user-login-logs')" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" class="fixed bottom-6 right-6 bg-card border border-border px-4 py-3 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
         <div class="w-7 h-7 rounded-lg bg-brand-500/15 text-brand-500 flex items-center justify-center shrink-0">
             <i class="ph ph-check-bold text-sm"></i>
@@ -2402,6 +2951,7 @@
             persistJobs() {
                 try {
                     localStorage.setItem('pmt_jobs', JSON.stringify(DB.jobs));
+                    localStorage.setItem('pmt_tasks', JSON.stringify(DB.tasks || []));
                 } catch (e) {}
             },
 
@@ -2422,6 +2972,11 @@
             },
 
             async resetAllJobStatuses(confirmAction = true) {
+                const userEmail = (typeof auth !== 'undefined' && auth.user ? (auth.user.email || auth.user.username) : '').toLowerCase();
+                if (userEmail !== 'isarachootip@gmail.com') {
+                    alert('ขออภัย เฉพาะผู้ใช้ isarachootip@gmail.com เท่านั้นที่สามารถถอยสถานะโครงการได้');
+                    return;
+                }
                 if (confirmAction && !confirm('คุณแน่ใจหรือไม่ที่จะถอยสถานะของทุกโครงการกลับไปจุดเริ่มต้น (Draft / 0%)?')) {
                     return;
                 }
@@ -2443,6 +2998,11 @@
             },
 
             async clearAllProjects(confirmAction = true) {
+                const userEmail = (typeof auth !== 'undefined' && auth.user ? (auth.user.email || auth.user.username) : '').toLowerCase();
+                if (userEmail !== 'isarachootip@gmail.com') {
+                    alert('ขออภัย เฉพาะผู้ใช้ isarachootip@gmail.com เท่านั้นที่สามารถล้างข้อมูลโครงการได้');
+                    return;
+                }
                 if (confirmAction && !confirm('คุณแน่ใจหรือไม่ที่จะลบข้อมูลโครงการและรายการแผนงานทั้งหมดออกจากระบบ?')) {
                     return;
                 }
@@ -2451,6 +3011,7 @@
                 DB.blueprints = [];
                 try {
                     localStorage.removeItem('pmt_jobs');
+                    localStorage.removeItem('pmt_tasks');
                     localStorage.setItem('pmt_jobs_cleared_v3', 'true');
                 } catch (e) {}
 
@@ -2472,6 +3033,232 @@
                 this.showToast('🗑️ ลบข้อมูลโครงการและรายการแผนงานทั้งหมดออกจากระบบเรียบร้อย');
             },
 
+            getINTMockOrders() {
+                return [
+                    {
+                        id: 'JOB202609001',
+                        job_no: 'JOB202609001',
+                        external_ref_id: 'INT-2026-001',
+                        customer: 'คุณณวัฒน์ รักสงบ',
+                        phone: '081-111-2222',
+                        service: 'ติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU',
+                        services: ['ติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU'],
+                        status: 'IN_PROGRESS',
+                        date: '2026-09-05',
+                        progress: 45,
+                        address: '99/1 ซอยสุขุมวิท 55 แขวงคลองตันเหนือ เขตวัฒนา กรุงเทพฯ 10110',
+                        tech: 'Team A (สมศักดิ์)',
+                        special_instructions: 'ระวังมีสุนัขในบ้าน, กรุณาโทรแจ้งลูกค้าล่วงหน้า 30 นาทีก่อนเข้าพื้นที่ และสวมถุงคลุมรองเท้าก่อนเข้าห้องนอน',
+                        additional_notes: 'ตรวจสอบจุดเชื่อมต่อท่อน้ำทิ้งเดิม และระวังแนวท่อแอร์บนฝ้าเพดาน ลูกค้าเตรียมเต้ารับไฟฟ้าพร้อมแล้ว',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0
+                    },
+                    {
+                        id: 'JOB202609002',
+                        job_no: 'JOB202609002',
+                        external_ref_id: 'INT-2026-002',
+                        customer: 'คุณสมศรี สุขใจ',
+                        phone: '082-222-3333',
+                        service: 'Renovate ห้องครัว Built-in & งานระบบประปา',
+                        services: ['Renovate ห้องครัว Built-in & งานระบบประปา'],
+                        status: 'DRAFT',
+                        date: '2026-09-06',
+                        progress: 0,
+                        address: '12 ซอยอารีย์สัมพันธ์ แขวงพญาไท เขตพญาไท กรุงเทพฯ 10400',
+                        tech: 'Team B (ประเสริฐ)',
+                        special_instructions: 'เข้าพื้นที่ได้หลัง 10:00 น. นิติบุคคลคอนโดจำกัดเวลาเสียงดัง',
+                        additional_notes: 'ติดตั้งเคาน์เตอร์และเดินท่อน้ำทิ้งใหม่',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0
+                    },
+                    {
+                        id: 'JOB202609003',
+                        job_no: 'JOB202609003',
+                        external_ref_id: 'INT-2026-003',
+                        customer: 'คุณเอนก มั่งคั่ง',
+                        phone: '083-333-4444',
+                        service: 'ติดตั้งระบบโซลาร์เซลล์ Solar Rooftop On-Grid 5kW',
+                        services: ['ติดตั้งระบบโซลาร์เซลล์ Solar Rooftop On-Grid 5kW'],
+                        status: 'DRAFT',
+                        date: '2026-09-07',
+                        progress: 0,
+                        address: '45 ถนนสีลม แขวงสีลม เขตบางรัก กรุงเทพฯ 10500',
+                        tech: 'Team C (วิชัย)',
+                        special_instructions: 'สำรวจโครงสร้างหลังคาซีแพคโมเนียก่อนติดตั้งแผงโซลาร์เซลล์',
+                        additional_notes: 'เตรียมกล่องอินเวอร์เตอร์และเบรกเกอร์ DC/AC Protection',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0
+                    },
+                    {
+                        id: 'JOB202609004',
+                        job_no: 'JOB202609004',
+                        external_ref_id: 'INT-2026-004',
+                        customer: 'คุณมาลี มีโชค',
+                        phone: '084-444-5555',
+                        service: 'ปูกระเบื้องแกรนิตโต้ 60x60 ซม. และสุขภัณฑ์ห้องน้ำ',
+                        services: ['ปูกระเบื้องแกรนิตโต้ 60x60 ซม. และสุขภัณฑ์ห้องน้ำ'],
+                        status: 'DRAFT',
+                        date: '2026-09-08',
+                        progress: 0,
+                        address: '88 ซอยลาดพร้าว 15 แขวงจอมพล เขตจตุจักร กรุงเทพฯ 10900',
+                        tech: 'Team A (สมศักดิ์)',
+                        special_instructions: 'ลูกค้าเตรียมกระเบื้องไว้ที่ชั้น 1 ต้องขนขึ้นชั้น 2 อย่างระมัดระวัง',
+                        additional_notes: 'ปรับระดับพื้นและลงน้ำยากันซึมก่อนปูกระเบื้อง',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0
+                    },
+                    {
+                        id: 'JOB202609005',
+                        job_no: 'JOB202609005',
+                        external_ref_id: 'INT-2026-005',
+                        customer: 'คุณฉัตรชัย เจริญวิทย์',
+                        phone: '085-555-6666',
+                        service: 'ติดตั้งเครื่องทำน้ำอุ่น 4500W พร้อมเดินระบบสายดิน Safe-T-Cut',
+                        services: ['ติดตั้งเครื่องทำน้ำอุ่น 4500W พร้อมเดินระบบสายดิน Safe-T-Cut'],
+                        status: 'DRAFT',
+                        date: '2026-09-09',
+                        progress: 0,
+                        address: '22 ซอยทองหล่อ 10 แขวงคลองตันเหนือ เขตวัฒนา กรุงเทพฯ 10110',
+                        tech: 'Team D (กิตติศักดิ์)',
+                        special_instructions: 'ทดสอบระบบไฟและตัดไฟรั่ว ELCB ก่อนส่งมอบงาน',
+                        additional_notes: 'เช็คเบรกเกอร์ลูกย่อยในตู้ Consumer Unit',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0
+                    },
+                    {
+                        id: 'JOB202609006',
+                        job_no: 'JOB202609006',
+                        external_ref_id: 'INT-2026-006',
+                        customer: 'คุณวิภาดา รัตนกุล',
+                        phone: '086-666-7777',
+                        service: 'งานทาสีภายนอกและภายในบ้านเดี่ยว 2 ชั้น (TOA Supershield)',
+                        services: ['งานทาสีภายนอกและภายในบ้านเดี่ยว 2 ชั้น (TOA Supershield)'],
+                        status: 'DRAFT',
+                        date: '2026-09-10',
+                        progress: 0,
+                        address: '105/3 ถนนราชพฤกษ์ แขวงบางเชือกหนัง เขตตลิ่งชัน กรุงเทพฯ 10170',
+                        tech: 'Team B (ประเสริฐ)',
+                        special_instructions: 'ปูพลาสติกคลุมเฟอร์นิเจอร์และพื้นไม้ปาร์เกต์อย่างมิดชิด',
+                        additional_notes: 'ล้างผนังเก่าด้วยเครื่องฉีดน้ำแรงดันสูงก่อนลงน้ำยารองพื้นปูนเก่า',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0
+                    },
+                    {
+                        id: 'JOB202609007',
+                        job_no: 'JOB202609007',
+                        external_ref_id: 'INT-2026-007',
+                        customer: 'คุณธีรเดช สุวรรณภูมิ',
+                        phone: '087-777-8888',
+                        service: 'ติดตั้ง Digital Door Lock & กล้องวงจรปิด CCTV Smart IP 4 จุด',
+                        services: ['ติดตั้ง Digital Door Lock & กล้องวงจรปิด CCTV Smart IP 4 จุด'],
+                        status: 'DRAFT',
+                        date: '2026-09-11',
+                        progress: 0,
+                        address: '345 หมู่บ้านมัณฑนา บางนา-ตราด กม.7 บางแก้ว บางพลี สมุทรปราการ 10540',
+                        tech: 'Team C (วิชัย)',
+                        special_instructions: 'แนะนำการใช้งาน App บนมือถือและบันทึกรหัสผ่าน Master ให้ลูกค้า',
+                        additional_notes: 'เดินสาย LAN Cat6 เข้าตู้ NVR พร้อมตั้งค่า Wi-Fi Router',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0
+                    },
+                    {
+                        id: 'JOB202609008',
+                        job_no: 'JOB202609008',
+                        external_ref_id: 'INT-2026-008',
+                        customer: 'คุณกัญญารัตน์ วงศ์สว่าง',
+                        phone: '088-888-9999',
+                        service: 'ติดตั้งปั๊มน้ำอัตโนมัติ Mitsubishi Inverter และถังเก็บน้ำ DOS 1000L',
+                        services: ['ติดตั้งปั๊มน้ำอัตโนมัติ Mitsubishi Inverter และถังเก็บน้ำ DOS 1000L'],
+                        status: 'DRAFT',
+                        date: '2026-09-12',
+                        progress: 0,
+                        address: '56/8 ซอยวงศ์สว่าง 19 แขวงวงศ์สว่าง เขตบางซื่อ กรุงเทพฯ 10800',
+                        tech: 'Team D (กิตติศักดิ์)',
+                        special_instructions: 'ติดตั้ง Bypass Valve ระบบประปาคู่ขนาน และเทฐานปูนรองรับถังน้ำ',
+                        additional_notes: 'ตรวจสอบแรงดันน้ำทุกก๊อกหลังติดตั้งเสร็จ',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0
+                    },
+                    {
+                        id: 'JOB202609009',
+                        job_no: 'JOB202609009',
+                        external_ref_id: 'INT-2026-009',
+                        customer: 'คุณพงศกร เลิศอนันต์',
+                        phone: '089-999-1010',
+                        service: 'ติดตั้งฉากกั้นห้องกระจกบานเลื่อน อลูมิเนียมอบดำ Powder Coat',
+                        services: ['ติดตั้งฉากกั้นห้องกระจกบานเลื่อน อลูมิเนียมอบดำ Powder Coat'],
+                        status: 'DRAFT',
+                        date: '2026-09-13',
+                        progress: 0,
+                        address: '78/12 ถนนพระราม 9 แขวงห้วยขวาง เขตห้วยขวาง กรุงเทพฯ 10310',
+                        tech: 'Team A (สมศักดิ์)',
+                        special_instructions: 'ตรวจเช็คแนวระดับด้วยเลเซอร์ และซีลซิลิโคนกันเสียงรบกวน',
+                        additional_notes: 'ใช้กระจกลามิเนตหนา 6+6 มม. กันกระแทก',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0
+                    },
+                    {
+                        id: 'JOB202609010',
+                        job_no: 'JOB202609010',
+                        external_ref_id: 'INT-2026-010',
+                        customer: 'คุณนภัสวรรณ มีศิริ',
+                        phone: '092-279-5574',
+                        service: 'ติดตั้งเครื่องปรับอากาศและงานเดินระบบท่อเหนือฝ้าเพดาน',
+                        services: ['ติดตั้งเครื่องปรับอากาศและงานเดินระบบท่อเหนือฝ้าเพดาน'],
+                        status: 'DRAFT',
+                        date: '2026-09-14',
+                        progress: 0,
+                        address: '189/45 ซอยมาบยายเลีย 41 ตำบลหนองปรือ อำเภอบางละมุง ชลบุรี 20150',
+                        tech: 'Team A (สมศักดิ์)',
+                        special_instructions: 'สาขาพัทยาใต้ — นัดหมายช่วงเช้า ตรวจสอบเบรกเกอร์แอร์เดิม',
+                        additional_notes: 'เดินท่อน้ำทิ้ง PVC หุ้มฉนวน Armaflex ป้องกันหยดน้ำเกาะฝ้า',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0
+                    }
+                ];
+            },
+
+            async simulateINT10Orders(confirmAction = true) {
+                const userEmail = (typeof auth !== 'undefined' && auth.user ? (auth.user.email || auth.user.username) : '').toLowerCase();
+                if (userEmail !== 'isarachootip@gmail.com') {
+                    alert('ขออภัย เฉพาะผู้ใช้ isarachootip@gmail.com เท่านั้นที่สามารถใช้ฟังก์ชันจำลองรับ 10 งานจาก INT ได้');
+                    return;
+                }
+                if (confirmAction && !confirm('คุณต้องการจำลองรับข้อมูลงานใหม่จากระบบ INT จำนวน 10 รายการ เข้าสู่ PMT ใช่หรือไม่?')) {
+                    return;
+                }
+                const mockOrders = this.getINTMockOrders();
+                DB.jobs = JSON.parse(JSON.stringify(mockOrders));
+                // Clear tasks since newly imported INT orders do NOT have BOQ yet
+                DB.tasks = [];
+                this.persistJobs();
+
+                try {
+                    localStorage.setItem('pmt_int_mock_10jobs_v3', 'true');
+                } catch(e) {}
+
+                if (this.state.currentView === 'jobs') this.renderJobs();
+                if (this.state.currentView === 'dashboard') this.renderDashboard();
+                if (this.state.currentView === 'gantt') this.renderGantt();
+                if (this.state.currentView === 'qc') this.renderQC();
+                if (this.state.currentView === 'csat') this.renderCSAT();
+
+                const countEl = document.getElementById('sidebar-job-count');
+                if (countEl) countEl.innerText = DB.jobs.length;
+
+                this.showToast(`📥 จำลองรับ Order จาก INT System สำเร็จ ${DB.jobs.length} งาน (BOQ ว่างเปล่า รอการนำเข้าเพื่อสร้าง Task ใน Gantt)`);
+            },
+
             init() {
                 // Initialize theme
                 const savedTheme = localStorage.getItem('pmt-theme') || 'dark';
@@ -2481,26 +3268,57 @@
                     document.documentElement.classList.remove('dark');
                 }
 
-                // Clear old legacy mock data from localStorage once (Clean state for new testing)
-                if (localStorage.getItem('pmt_jobs_cleared_v4') !== 'true') {
-                    try {
-                        localStorage.removeItem('pmt_jobs');
-                        localStorage.setItem('pmt_jobs_cleared_v4', 'true');
-                        DB.jobs = [];
-                        DB.tasks = [];
-                        DB.blueprints = [];
-                    } catch(e) {}
-                }
-
-                // Restore saved jobs from localStorage
+                // Restore saved jobs or seed with 10 INT mock jobs
                 const savedJobs = localStorage.getItem('pmt_jobs');
                 if (savedJobs) {
                     try {
                         const parsed = JSON.parse(savedJobs);
                         if (Array.isArray(parsed) && parsed.length > 0) {
                             DB.jobs = parsed;
+                        } else {
+                            DB.jobs = this.getINTMockOrders();
+                            this.persistJobs();
+                        }
+                    } catch (e) {
+                        DB.jobs = this.getINTMockOrders();
+                        this.persistJobs();
+                    }
+                } else {
+                    DB.jobs = this.getINTMockOrders();
+                    this.persistJobs();
+                }
+
+                // Initial seed of 10 INT orders if not seeded yet
+                if (localStorage.getItem('pmt_int_mock_10jobs_v3') !== 'true') {
+                    try {
+                        localStorage.setItem('pmt_int_mock_10jobs_v3', 'true');
+                        DB.jobs = this.getINTMockOrders();
+                        this.persistJobs();
+                    } catch(e) {}
+                }
+
+                // Restore saved tasks
+                const savedTasks = localStorage.getItem('pmt_tasks');
+                if (savedTasks) {
+                    try {
+                        const parsedTasks = JSON.parse(savedTasks);
+                        if (Array.isArray(parsedTasks)) {
+                            DB.tasks = parsedTasks;
                         }
                     } catch (e) {}
+                }
+
+                // Rule Enforcement: แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart
+                // Filter out any tasks whose jobs do not have BOQ items
+                if (Array.isArray(DB.jobs)) {
+                    DB.jobs.forEach(j => {
+                        if (!j.boq_items) j.boq_items = [];
+                        if (j.boq_discount === undefined) j.boq_discount = 0;
+                    });
+                    const jobsWithBOQ = new Set(DB.jobs.filter(j => j.boq_items && j.boq_items.length > 0).map(j => j.id));
+                    if (Array.isArray(DB.tasks)) {
+                        DB.tasks = DB.tasks.filter(t => jobsWithBOQ.has(t.jobId));
+                    }
                 }
 
                 this.navigate('dashboard');
@@ -2645,6 +3463,9 @@
                 if(view === 'qc') this.renderQC();
                 if(view === 'csat') this.renderCSAT();
                 if(view === 'ma-contracts') this.renderMAContracts();
+                if(view === 'users') {
+                    if (typeof userMgmt !== 'undefined') userMgmt.load();
+                }
 
                 document.getElementById('sidebar-job-count').innerText = DB.jobs.length;
                 const sidebarMa = document.getElementById('sidebar-ma-count');
@@ -3383,6 +4204,45 @@
                             </div>
                         </div>
 
+                        <!-- Rule Banner: แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ -->
+                        ${boqItems.length === 0 ? `
+                        <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-800 dark:text-amber-200">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                                    <i class="ph ph-warning-circle text-lg"></i>
+                                </div>
+                                <div>
+                                    <div class="font-bold flex items-center gap-1.5 text-foreground">
+                                        <span>ยังไม่มีการนำเข้า BOQ</span>
+                                        <span class="px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-mono">Gantt Tasks Locked</span>
+                                    </div>
+                                    <p class="text-muted-foreground mt-0.5">📌 <strong>กฎเกณฑ์ระบบ:</strong> แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart นะครับ</p>
+                                </div>
+                            </div>
+                            <button onclick="app.openImportBOQModal('${job.id}')" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm">
+                                <i class="ph ph-file-arrow-up"></i> 📥 นำเข้าไฟล์ BOQ เดี๋ยวนี้
+                            </button>
+                        </div>
+                        ` : `
+                        <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-800 dark:text-emerald-200">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                    <i class="ph ph-check-circle text-lg"></i>
+                                </div>
+                                <div>
+                                    <div class="font-bold flex items-center gap-1.5 text-foreground">
+                                        <span>นำเข้า BOQ เรียบร้อยแล้ว (${boqItems.length} รายการ)</span>
+                                        <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-mono">Ready for Gantt</span>
+                                    </div>
+                                    <p class="text-muted-foreground mt-0.5">สามารถสร้างหรือแปลงรายการค่าแรงเป็น Task ในแผนงาน Gantt Timeline ได้ทันที</p>
+                                </div>
+                            </div>
+                            <button onclick="app.openConvertBOQToTasksModal('${job.id}')" class="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium text-xs flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm">
+                                <i class="ph ph-calendar-plus"></i> ⚡ แปลง BOQ เป็น Task ใน Gantt
+                            </button>
+                        </div>
+                        `}
+
                         <!-- BOQ Bill of Quantities Interactive Form Card -->
                         <div class="artifact-card p-6 space-y-4">
                             <div class="flex items-center justify-between pb-3 border-b border-border">
@@ -3415,7 +4275,16 @@
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-border">
-                                        ${boqItems.map((item, idx) => {
+                                        ${boqItems.length === 0 ? `
+                                        <tr>
+                                            <td colspan="7" class="py-8 text-center text-muted-foreground">
+                                                <div class="flex flex-col items-center justify-center gap-1.5 py-2">
+                                                    <i class="ph ph-receipt text-2xl text-muted-foreground/50"></i>
+                                                    <span class="text-xs text-muted-foreground font-medium">ยังไม่มีรายการ BOQ สำหรับงานนี้</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        ` : boqItems.map((item, idx) => {
                                             const itemTotal = (item.qty || 0) * (item.price || 0);
                                             return `
                                             <tr class="hover:bg-muted/30 transition">
@@ -4283,6 +5152,12 @@
                     return;
                 }
 
+                // Rule Enforcement: แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart
+                if (!data.items || data.items.length === 0) {
+                    this.showToast('⚠️ ไม่สามารถบันทึกแผนงาน Task ได้: แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart นะครับ');
+                    return;
+                }
+
                 // Update job in mock DB
                 job.boq_items = JSON.parse(JSON.stringify(data.items));
                 job.start_datetime = startDatetime;
@@ -4862,9 +5737,19 @@
                     if (header.date) job.date = header.date;
                 }
 
+                this.persistJobs();
                 this.hideModal('modal-import-boq');
                 this.renderJobDetail();
-                this.showToast(`✅ นำเข้ารายการ BOQ ${newItems.length} รายการ และซิงค์ข้อมูล vFIX เข้าระบบ PMT เรียบร้อย`);
+                if (this.state.currentView === 'gantt') this.renderGantt();
+                if (this.state.currentView === 'jobs') this.renderJobs();
+                if (this.state.currentView === 'dashboard') this.renderDashboard();
+
+                this.showToast(`✅ นำเข้า BOQ ${newItems.length} รายการ เรียบร้อย! ระบบกำลังเปิดหน้าต่างสร้าง Task ใน Gantt Chart...`);
+
+                // Seamlessly trigger: แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart
+                setTimeout(() => {
+                    this.openConvertBOQToTasksModal(targetJobId);
+                }, 350);
             },
 
             downloadVFixBOQTemplate() {
@@ -5102,6 +5987,19 @@
                     return;
                 }
 
+                // Rule Enforcement: แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart
+                const boqItems = job.boq_items || [];
+                if (boqItems.length === 0) {
+                    const jobName = `${job.id} (${job.customer || 'ลูกค้า'})`;
+                    const proceed = confirm(`⚠️ ไม่สามารถสร้างแผนงาน (Task) ได้ในขณะนี้\n\nโครงการ: ${jobName}\n\n📌 กฎเกณฑ์ระบบ:\n"แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart นะครับ"\n\nโครงการนี้ยังไม่มีข้อมูล BOQ\nคุณต้องการเปิดหน้าต่าง "นำเข้าไฟล์ BOQ (Import)" เพื่อเริ่มต้นนำเข้า BOQ เดี๋ยวนี้เลยหรือไม่?`);
+                    if (proceed) {
+                        this.openImportBOQModal(targetJobId);
+                    } else {
+                        this.showToast('⚠️ กรุณานำเข้า BOQ ก่อน จึงจะสามารถสร้าง Task ใน Gantt Chart ได้');
+                    }
+                    return;
+                }
+
                 this.state.convertJobId = targetJobId;
                 document.getElementById('convert-job-id').innerText = job.id;
                 document.getElementById('convert-job-customer').innerText = `ลูกค้า: ${job.customer}`;
@@ -5147,10 +6045,13 @@
                 }
 
                 if (laborItems.length === 0) {
-                    // If no explicit labor line was found, fallback to main service installation task
-                    this.state.convertTasks = [
-                        { selected: true, name: `งานติดตั้งและบริการ ${job.service}`, start: baseDate, end: baseDate, days: 1, tech: defaultTech, assignees: [defaultTech] }
-                    ];
+                    if (boqItems.length > 0) {
+                        this.state.convertTasks = [
+                            { selected: true, name: `งานติดตั้งและบริการ ${job.service}`, start: baseDate, end: baseDate, days: 1, tech: defaultTech, assignees: [defaultTech] }
+                        ];
+                    } else {
+                        this.state.convertTasks = [];
+                    }
                 } else {
                     this.state.convertTasks = laborItems.map((item, idx) => {
                         const d = new Date(baseDate);
@@ -5463,6 +6364,7 @@
                     })
                 }).catch(err => console.log('Backend sync task notice:', err.message));
 
+                this.persistJobs();
                 this.hideModal('modal-convert-boq-tasks');
                 this.showToast(`⚡ แปลง BOQ เป็น Task ปฏิบัติงาน ${selectedTasks.length} รายการ และจัดเรียงตามวันเริ่มงานเข้า Gantt Timeline เรียบร้อย`);
 
@@ -5493,7 +6395,9 @@
                 let html = '<option value="all">ทุกโครงการ (All Jobs)</option>';
                 (DB.jobs || []).forEach(j => {
                     const cust = j.customer || `${j.firstName || ''} ${j.lastName || ''}`.trim() || 'ลูกค้า';
-                    html += `<option value="${j.id}" ${selectedVal === j.id ? 'selected' : ''}>${j.id} - คุณ${cust} (${j.service || 'บริการ'})</option>`;
+                    const boqCount = (j.boq_items || []).length;
+                    const boqTag = boqCount > 0 ? `[BOQ: ${boqCount}]` : '[ยังไม่มี BOQ]';
+                    html += `<option value="${j.id}" ${selectedVal === j.id ? 'selected' : ''}>${j.id} - คุณ${cust} (${j.service || 'บริการ'}) ${boqTag}</option>`;
                 });
                 sel.innerHTML = html;
             },
@@ -5518,9 +6422,11 @@
                 const cardsHtml = DB.jobs.map(job => {
                     const isSelected = selectedFilter === job.id;
                     const boqCount = (job.boq_items || []).length;
+                    const taskCount = (DB.tasks || []).filter(t => t.jobId === job.id).length;
                     const boqSum = (job.boq_items || []).reduce((acc, it) => acc + ((it.qty || 0) * (it.price || 0)), 0);
                     const discount = job.boq_discount !== undefined ? job.boq_discount : 500;
                     const grandTotal = Math.max(0, boqSum - discount) * 1.07;
+                    const hasBOQ = boqCount > 0;
                     
                     return `
                     <div onclick="app.openJobDetailBOQ('${job.id}')" 
@@ -5536,16 +6442,28 @@
                             ${job.customer}
                         </div>
                         <div class="mt-2 pt-2 border-t border-border flex items-center justify-between text-[10px]">
-                            <span class="text-muted-foreground flex items-center gap-1 font-mono">
-                                <i class="ph ph-receipt text-xs text-brand-500"></i> ${boqCount} รายการ BOQ
+                            <span class="flex items-center gap-1 font-mono ${hasBOQ ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-amber-600 dark:text-amber-400 font-medium'}">
+                                <i class="ph ${hasBOQ ? 'ph-check-circle text-emerald-500' : 'ph-warning-circle text-amber-500'}"></i> ${hasBOQ ? `${boqCount} รายการ BOQ` : 'ยังไม่มี BOQ'}
                             </span>
                             <span class="font-mono font-bold text-brand-600 dark:text-brand-400">
-                                ฿${Math.round(grandTotal).toLocaleString('th-TH')}
+                                ${hasBOQ ? `฿${Math.round(grandTotal).toLocaleString('th-TH')}` : '฿0'}
                             </span>
                         </div>
-                        <div class="mt-2 pt-1 flex items-center justify-between text-[10px] text-brand-500 font-medium group-hover:underline">
-                            <span>เปิด Project Detail (BOQ)</span>
-                            <i class="ph ph-arrow-right text-xs group-hover:translate-x-0.5 transition-transform"></i>
+                        <div class="mt-2 pt-1 flex items-center justify-between text-[10px]">
+                            ${hasBOQ ? `
+                                <span class="text-purple-600 dark:text-purple-400 font-mono font-semibold flex items-center gap-1">
+                                    <i class="ph ph-chart-bar-horizontal"></i> ${taskCount} Tasks
+                                </span>
+                                <span class="text-brand-500 font-medium group-hover:underline flex items-center gap-0.5">
+                                    <span>ดู BOQ / Task</span>
+                                    <i class="ph ph-arrow-right text-xs group-hover:translate-x-0.5 transition-transform"></i>
+                                </span>
+                            ` : `
+                                <span class="text-amber-600 dark:text-amber-400 text-[10px] font-medium">รอการนำเข้า BOQ</span>
+                                <button onclick="event.stopPropagation(); app.openImportBOQModal('${job.id}')" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-medium cursor-pointer shadow-xs flex items-center gap-1">
+                                    <i class="ph ph-file-arrow-up"></i> นำเข้า BOQ
+                                </button>
+                            `}
                         </div>
                     </div>
                     `;
@@ -5577,24 +6495,83 @@
                 if (!container) return;
 
                 if (tasks.length === 0) {
-                    container.innerHTML = `
-                        <div class="py-12 text-center text-muted-foreground text-xs space-y-3">
-                            <div class="w-12 h-12 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground mx-auto">
-                                <i class="ph ph-calendar-blank text-2xl"></i>
+                    if (selectedJobFilter && selectedJobFilter !== 'all') {
+                        const targetJob = DB.jobs.find(j => j.id === selectedJobFilter);
+                        const hasBOQ = targetJob && Array.isArray(targetJob.boq_items) && targetJob.boq_items.length > 0;
+                        if (!hasBOQ) {
+                            container.innerHTML = `
+                                <div class="py-12 text-center text-muted-foreground text-xs space-y-4">
+                                    <div class="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 mx-auto text-3xl">
+                                        <i class="ph ph-warning-circle"></i>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <h3 class="font-display font-bold text-base text-foreground">ยังไม่มีรายการ Task ในแผนงานสำหรับ ${selectedJobFilter}</h3>
+                                        <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">⚠️ โครงการนี้ยังไม่มีการนำเข้า BOQ</p>
+                                    </div>
+                                    <div class="max-w-md mx-auto p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-left space-y-2 text-xs text-amber-800 dark:text-amber-200">
+                                        <div class="font-bold flex items-center gap-1.5">
+                                            <i class="ph ph-info text-base"></i> กฎเกณฑ์ระบบ (Business Rule):
+                                        </div>
+                                        <p class="font-semibold text-foreground">"แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart นะครับ"</p>
+                                        <p class="text-[11px] text-muted-foreground">ระบบจะดึงเฉพาะรายการค่าแรงและงานบริการติดตั้งจาก BOQ มากำหนดช่วงเวลาและทีมช่างเพื่อแสดงบน Gantt Timeline ดังนั้นจึงต้องมีรายการ BOQ ในระบบก่อนเสมอ</p>
+                                    </div>
+                                    <div class="flex items-center justify-center gap-2 pt-2">
+                                        <button onclick="app.openImportBOQModal('${selectedJobFilter}')" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
+                                            <i class="ph ph-file-arrow-up text-sm"></i> 📥 นำเข้าไฟล์ BOQ เดี๋ยวนี้
+                                        </button>
+                                        <button onclick="app.openJobDetailBOQ('${selectedJobFilter}')" class="btn-artifact-secondary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer">
+                                            <i class="ph ph-receipt text-sm"></i> เปิดหน้า BOQ ของโครงการ
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                            return;
+                        } else {
+                            container.innerHTML = `
+                                <div class="py-12 text-center text-muted-foreground text-xs space-y-4">
+                                    <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 mx-auto text-3xl">
+                                        <i class="ph ph-check-circle"></i>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <h3 class="font-display font-bold text-base text-foreground">นำเข้า BOQ แล้ว (${targetJob.boq_items.length} รายการ)</h3>
+                                        <p class="text-xs text-muted-foreground">ยังไม่ได้สร้าง Task แผนงานเข้า Gantt Timeline</p>
+                                    </div>
+                                    <p class="text-xs text-muted-foreground max-w-md mx-auto">กดปุ่มด้านล่างเพื่อดึงรายการค่าแรงจาก BOQ มาสร้างเป็น Task มอบหมายทีมช่าง และจัดเรียงเข้า Gantt Timeline</p>
+                                    <div class="flex items-center justify-center gap-2 pt-2">
+                                        <button onclick="app.openConvertBOQToTasksModal('${selectedJobFilter}')" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm bg-purple-600 hover:bg-purple-700 text-white cursor-pointer">
+                                            <i class="ph ph-calendar-plus text-sm"></i> ⚡ แปลง BOQ เป็น Task แผนงาน
+                                        </button>
+                                        <button onclick="app.openJobDetailBOQ('${selectedJobFilter}')" class="btn-artifact-secondary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer">
+                                            <i class="ph ph-receipt text-sm"></i> ตรวจสอบตาราง BOQ
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                            return;
+                        }
+                    } else {
+                        container.innerHTML = `
+                            <div class="py-12 text-center text-muted-foreground text-xs space-y-4">
+                                <div class="w-16 h-16 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground mx-auto text-3xl">
+                                    <i class="ph ph-calendar-blank"></i>
+                                </div>
+                                <div class="space-y-1">
+                                    <h3 class="font-display font-bold text-base text-foreground">ยังไม่มีรายการ Task ในแผนงาน Gantt Timeline</h3>
+                                    <p class="text-xs text-muted-foreground">📌 แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart นะครับ</p>
+                                </div>
+                                <p class="text-[11px] text-muted-foreground max-w-lg mx-auto">เลือกโครงการจากแถบด้านบน หรือคลิกปุ่มด้านล่างเพื่อนำเข้า BOQ และเริ่มสร้างแผนงาน Task</p>
+                                <div class="flex items-center justify-center gap-2 pt-2">
+                                    <button onclick="app.openImportBOQModal('JOB202609001')" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
+                                        <i class="ph ph-file-arrow-up text-sm"></i> 📥 นำเข้าไฟล์ BOQ (JOB202609001)
+                                    </button>
+                                    <button onclick="app.navigate('jobs')" class="btn-artifact-secondary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer">
+                                        <i class="ph ph-list-dashes text-sm"></i> ไปที่รายการงานทั้งหมด
+                                    </button>
+                                </div>
                             </div>
-                            <p class="font-medium text-foreground">ยังไม่มีรายการ Task ในแผนงาน ${selectedJobFilter !== 'all' ? `สำหรับ ${selectedJobFilter}` : ''}</p>
-                            <p class="text-[11px]">กดปุ่ม "⚡ แปลง BOQ เป็น Task" เพื่อนำเข้ารายการงานและสร้าง Gantt Timeline หรือคลิกเปิดดู BOQ</p>
-                            <div class="flex items-center justify-center gap-2 pt-1">
-                                <button onclick="app.openConvertBOQToTasksModal('${selectedJobFilter !== 'all' ? selectedJobFilter : 'JOB202609001'}')" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm bg-purple-600 hover:bg-purple-700 text-white cursor-pointer">
-                                    <i class="ph ph-calendar-plus"></i> แปลง BOQ เป็น Task แผนงาน
-                                </button>
-                                <button onclick="app.openJobDetailBOQ('${selectedJobFilter !== 'all' ? selectedJobFilter : 'JOB202609001'}')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer">
-                                    <i class="ph ph-receipt"></i> ดู Project Detail ตาม BOQ
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    return;
+                        `;
+                        return;
+                    }
                 }
 
                 // Calculate minimum start date and maximum end date
@@ -6497,83 +7474,6 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- USER MANAGEMENT PAGE (injected into page-container)   -->
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <script>
-    // Inject User Management page into DOM after load
-    document.addEventListener('DOMContentLoaded', () => {
-        const container = document.getElementById('page-container');
-        if (!container) return;
-        const usersPage = document.createElement('div');
-        usersPage.id = 'page-users';
-        usersPage.className = 'page-view hidden-view space-y-6';
-        usersPage.innerHTML = `
-            <!-- Header -->
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-xl font-bold font-display text-foreground">จัดการผู้ใช้งาน (User Management)</h1>
-                    <p class="text-xs text-muted-foreground mt-0.5">เพิ่ม / แก้ไข / ปิดใช้งานบัญชีผู้ใช้สำหรับ QC, Contact Center และ Admin</p>
-                </div>
-                <button onclick="userMgmt.openCreate()" class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-2 font-medium">
-                    <i class="ph ph-plus-bold text-sm"></i>
-                    <span>เพิ่มผู้ใช้ใหม่</span>
-                </button>
-            </div>
-
-            <!-- Stats row -->
-            <div class="grid grid-cols-4 gap-4" id="user-stats-row">
-                <div class="artifact-card p-4 flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-rose-500/10 flex items-center justify-center"><i class="ph ph-shield-star text-rose-500 text-lg"></i></div>
-                    <div><p class="text-xs text-muted-foreground">Admin</p><p class="text-lg font-bold text-foreground" id="stat-admin">0</p></div>
-                </div>
-                <div class="artifact-card p-4 flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center"><i class="ph ph-briefcase text-blue-500 text-lg"></i></div>
-                    <div><p class="text-xs text-muted-foreground">AE</p><p class="text-lg font-bold text-foreground" id="stat-ae">0</p></div>
-                </div>
-                <div class="artifact-card p-4 flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center"><i class="ph ph-check-circle text-emerald-500 text-lg"></i></div>
-                    <div><p class="text-xs text-muted-foreground">QC</p><p class="text-lg font-bold text-foreground" id="stat-qc">0</p></div>
-                </div>
-                <div class="artifact-card p-4 flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center"><i class="ph ph-phone text-amber-500 text-lg"></i></div>
-                    <div><p class="text-xs text-muted-foreground">Contact Center</p><p class="text-lg font-bold text-foreground" id="stat-cc">0</p></div>
-                </div>
-            </div>
-
-            <!-- User Table -->
-            <div class="artifact-card overflow-hidden">
-                <div class="flex items-center justify-between px-5 py-4 border-b border-border">
-                    <h2 class="text-sm font-semibold text-foreground">รายชื่อผู้ใช้งานทั้งหมด</h2>
-                    <div class="relative w-56">
-                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
-                        <input type="text" id="user-search" oninput="userMgmt.filterTable(this.value)" placeholder="ค้นหาชื่อ / username..."
-                            class="w-full bg-muted border border-border rounded-lg py-1.5 pl-8 pr-3 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-brand-500 transition">
-                    </div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs">
-                        <thead>
-                            <tr class="border-b border-border bg-muted/30">
-                                <th class="px-5 py-3 text-left font-semibold text-muted-foreground">#</th>
-                                <th class="px-5 py-3 text-left font-semibold text-muted-foreground">ชื่อ-นามสกุล</th>
-                                <th class="px-5 py-3 text-left font-semibold text-muted-foreground">Username</th>
-                                <th class="px-5 py-3 text-left font-semibold text-muted-foreground">อีเมล</th>
-                                <th class="px-5 py-3 text-left font-semibold text-muted-foreground">Role</th>
-                                <th class="px-5 py-3 text-left font-semibold text-muted-foreground">สถานะ</th>
-                                <th class="px-5 py-3 text-left font-semibold text-muted-foreground">Login ล่าสุด</th>
-                                <th class="px-5 py-3 text-left font-semibold text-muted-foreground">จัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody id="user-table-body" class="divide-y divide-border"></tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-        container.appendChild(usersPage);
-    });
-    </script>
-
-    <!-- ═══════════════════════════════════════════════════════ -->
     <!-- AUTH + USER MANAGEMENT JAVASCRIPT                      -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <script>
@@ -6582,7 +7482,7 @@
         const map = {
             ADMIN:          { label:'Admin',          cls:'bg-rose-500/10 text-rose-500 border-rose-500/20' },
             AE:             { label:'AE',             cls:'bg-blue-500/10 text-blue-500 border-blue-500/20' },
-            QC:             { label:'QC',             cls:'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
+            QC:             { label:'QC',             cls:'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' },
             CONTACT_CENTER: { label:'Contact Center', cls:'bg-amber-500/10 text-amber-600 border-amber-500/20' },
         };
         const r = map[role] || { label: role, cls: 'bg-muted text-muted-foreground border-border' };
@@ -6665,7 +7565,10 @@
 
         updateUI() {
             const u = this.user;
-            if (!u) return;
+            if (!u) {
+                document.body.classList.remove('superadmin-allowed');
+                return;
+            }
             // Sidebar user info
             const nameEl = document.getElementById('sidebar-user-name');
             const roleEl = document.getElementById('sidebar-user-role');
@@ -6677,6 +7580,28 @@
             // Show/hide Admin-only nav
             const navUsers = document.getElementById('nav-users');
             if (navUsers) navUsers.style.display = (u.role === 'ADMIN') ? 'flex' : 'none';
+
+            // Enable / Disable superadmin buttons (only enabled for isarachootip@gmail.com)
+            const isSuperUser = (
+                (u.email && u.email.toLowerCase() === 'isarachootip@gmail.com') ||
+                (u.username && u.username.toLowerCase() === 'isarachootip@gmail.com')
+            );
+            if (isSuperUser) {
+                document.body.classList.add('superadmin-allowed');
+            } else {
+                document.body.classList.remove('superadmin-allowed');
+            }
+
+            document.querySelectorAll('.superadmin-only-btn').forEach(btn => {
+                if (isSuperUser) {
+                    btn.removeAttribute('disabled');
+                    btn.disabled = false;
+                } else {
+                    btn.setAttribute('disabled', 'disabled');
+                    btn.disabled = true;
+                    btn.title = '🔒 ฟังก์ชันนี้เฉพาะผู้ใช้ isarachootip@gmail.com เท่านั้น (Disabled)';
+                }
+            });
         },
 
         async logout() {
@@ -6687,6 +7612,12 @@
                 });
             } catch(e) {}
             this.token = null; this.user = null;
+            document.body.classList.remove('superadmin-allowed');
+            document.querySelectorAll('.superadmin-only-btn').forEach(btn => {
+                btn.setAttribute('disabled', 'disabled');
+                btn.disabled = true;
+                btn.title = '🔒 ฟังก์ชันนี้เฉพาะผู้ใช้ isarachootip@gmail.com เท่านั้น (Disabled)';
+            });
             sessionStorage.removeItem('pmt_token');
             sessionStorage.removeItem('pmt_user');
             this.showLoginOverlay();
@@ -6701,134 +7632,695 @@
     const userMgmt = {
         users: [],
         filtered: [],
+        roleFilter: 'ALL',
+        statusFilter: 'ALL',
+        searchQuery: '',
+        loginLogs: [],
+        filteredLogs: [],
+        selectedRole: 'AE',
+        selectedUserForToggle: null,
 
         async load() {
+            const refreshIcon = document.getElementById('user-refresh-icon');
+            if (refreshIcon) refreshIcon.classList.add('animate-spin');
             try {
                 const res  = await fetch('/api/v1/users', { headers: auth.getHeaders() });
                 const json = await res.json();
                 if (json.success) {
                     this.users = json.data;
-                    this.filtered = [...this.users];
-                    this.render();
+                    this.applyFilters();
                     this.renderStats();
                 }
-            } catch(e) { console.error('Failed to load users', e); }
+            } catch(e) {
+                console.error('Failed to load users', e);
+            } finally {
+                if (refreshIcon) {
+                    setTimeout(() => refreshIcon.classList.remove('animate-spin'), 350);
+                }
+            }
         },
 
         renderStats() {
-            const counts = { ADMIN:0, AE:0, QC:0, CONTACT_CENTER:0 };
-            this.users.forEach(u => { if(counts[u.role] !== undefined) counts[u.role]++; });
-            ['admin','ae','qc','cc'].forEach((k,i) => {
-                const role = ['ADMIN','AE','QC','CONTACT_CENTER'][i];
-                const el = document.getElementById('stat-' + k);
-                if (el) el.textContent = counts[role];
+            const counts = { ADMIN: 0, AE: 0, QC: 0, CONTACT_CENTER: 0 };
+            this.users.forEach(u => {
+                if (counts[u.role] !== undefined) counts[u.role]++;
             });
+            const statAdmin = document.getElementById('stat-admin');
+            const statAe = document.getElementById('stat-ae');
+            const statQc = document.getElementById('stat-qc');
+            const statCc = document.getElementById('stat-cc');
+            if (statAdmin) statAdmin.textContent = counts.ADMIN;
+            if (statAe) statAe.textContent = counts.AE;
+            if (statQc) statQc.textContent = counts.QC;
+            if (statCc) statCc.textContent = counts.CONTACT_CENTER;
+
+            // Update role pill counts
+            const countAll = document.getElementById('count-role-all');
+            const countAdmin = document.getElementById('count-role-admin');
+            const countAe = document.getElementById('count-role-ae');
+            const countQc = document.getElementById('count-role-qc');
+            const countCc = document.getElementById('count-role-cc');
+            if (countAll) countAll.textContent = this.users.length;
+            if (countAdmin) countAdmin.textContent = counts.ADMIN;
+            if (countAe) countAe.textContent = counts.AE;
+            if (countQc) countQc.textContent = counts.QC;
+            if (countCc) countCc.textContent = counts.CONTACT_CENTER;
         },
 
-        filterTable(q) {
-            const query = q.toLowerCase();
-            this.filtered = this.users.filter(u =>
-                u.full_name.toLowerCase().includes(query) ||
-                u.username.toLowerCase().includes(query) ||
-                (u.email || '').toLowerCase().includes(query)
-            );
+        handleSearch(q) {
+            this.searchQuery = (q || '').trim();
+            const clearBtn = document.getElementById('user-search-clear');
+            if (clearBtn) {
+                if (this.searchQuery) clearBtn.classList.remove('hidden');
+                else clearBtn.classList.add('hidden');
+            }
+            this.applyFilters();
+        },
+
+        clearSearch() {
+            const searchInput = document.getElementById('user-search');
+            if (searchInput) searchInput.value = '';
+            this.handleSearch('');
+        },
+
+        setRoleFilter(role) {
+            this.roleFilter = role;
+            // Update active pill UI
+            document.querySelectorAll('.user-role-pill').forEach(btn => {
+                btn.className = 'user-role-pill px-3 py-1.5 rounded-lg font-medium transition text-muted-foreground hover:bg-muted border border-transparent cursor-pointer';
+            });
+            const activeBtn = document.getElementById('role-pill-' + role);
+            if (activeBtn) {
+                activeBtn.className = 'user-role-pill px-3 py-1.5 rounded-lg font-medium transition bg-brand-500/10 text-brand-500 border border-brand-500/20 shadow-xs cursor-pointer';
+            }
+
+            // Update stat cards border highlight
+            document.querySelectorAll('.user-stat-card').forEach(card => {
+                card.classList.remove('ring-2', 'ring-brand-500');
+            });
+            if (role !== 'ALL') {
+                const activeCard = document.getElementById('stat-card-' + role);
+                if (activeCard) activeCard.classList.add('ring-2', 'ring-brand-500');
+            }
+
+            this.applyFilters();
+        },
+
+        setStatusFilter(status) {
+            this.statusFilter = status;
+            this.applyFilters();
+        },
+
+        applyFilters() {
+            const q = this.searchQuery.toLowerCase();
+            this.filtered = this.users.filter(u => {
+                // Role filter
+                if (this.roleFilter !== 'ALL' && u.role !== this.roleFilter) return false;
+
+                // Status filter
+                if (this.statusFilter === 'ACTIVE' && !u.is_active) return false;
+                if (this.statusFilter === 'INACTIVE' && u.is_active) return false;
+
+                // Search query
+                if (q) {
+                    const matchName = (u.full_name || '').toLowerCase().includes(q);
+                    const matchUser = (u.username || '').toLowerCase().includes(q);
+                    const matchEmail = (u.email || '').toLowerCase().includes(q);
+                    const matchCode = (u.user_code || '').toLowerCase().includes(q);
+                    if (!matchName && !matchUser && !matchEmail && !matchCode) return false;
+                }
+
+                return true;
+            });
+
             this.render();
         },
 
         render() {
             const tbody = document.getElementById('user-table-body');
             if (!tbody) return;
+
             if (!this.filtered.length) {
-                tbody.innerHTML = `<tr><td colspan="8" class="px-5 py-10 text-center text-xs text-muted-foreground">ไม่พบข้อมูลผู้ใช้</td></tr>`;
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="px-5 py-16 text-center">
+                            <div class="max-w-xs mx-auto space-y-3">
+                                <div class="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto text-muted-foreground">
+                                    <i class="ph ph-user-circle-gear text-2xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold text-foreground">ไม่พบข้อมูลผู้ใช้งาน</p>
+                                    <p class="text-[11px] text-muted-foreground mt-0.5">ลองปรับคำค้นหาหรือเปลี่ยนตัวกรองบทบาทและสถานะ</p>
+                                </div>
+                                <button onclick="userMgmt.resetFilters()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs cursor-pointer">
+                                    ล้างตัวกรองทั้งหมด
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
                 return;
             }
-            tbody.innerHTML = this.filtered.map((u, i) => `
-                <tr class="hover:bg-muted/30 transition-colors ${!u.is_active ? 'opacity-50' : ''}">
-                    <td class="px-5 py-3 text-muted-foreground font-mono">${u.user_code}</td>
-                    <td class="px-5 py-3 font-medium text-foreground">${u.full_name}</td>
-                    <td class="px-5 py-3 font-mono text-muted-foreground">${u.username}</td>
-                    <td class="px-5 py-3 text-muted-foreground">${u.email || '-'}</td>
-                    <td class="px-5 py-3">${roleBadge(u.role)}</td>
-                    <td class="px-5 py-3">
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${u.is_active ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-muted text-muted-foreground border-border'}">
-                            <span class="w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-emerald-500' : 'bg-muted-foreground'}"></span>
-                            ${u.is_active ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
-                        </span>
-                    </td>
-                    <td class="px-5 py-3 text-muted-foreground">${u.last_login_at ? new Date(u.last_login_at).toLocaleString('th-TH') : 'ยังไม่เคย Login'}</td>
-                    <td class="px-5 py-3">
-                        <div class="flex items-center gap-1.5">
-                            <button onclick="userMgmt.openEdit(${u.id})" title="แก้ไข" class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition"><i class="ph ph-pencil-simple text-sm"></i></button>
-                            <button onclick="userMgmt.resetPassword(${u.id},'${u.full_name}')" title="Reset Password" class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-amber-500 transition"><i class="ph ph-key text-sm"></i></button>
-                            ${u.username !== 'admin' ? `<button onclick="userMgmt.toggleActive(${u.id},'${u.full_name}',${u.is_active})" title="${u.is_active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}" class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-rose-500 transition"><i class="ph ph-${u.is_active ? 'prohibit' : 'check-circle'} text-sm"></i></button>` : ''}
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
+
+            tbody.innerHTML = this.filtered.map(u => {
+                const avatarBgMap = {
+                    ADMIN: 'bg-rose-500/10 text-rose-500',
+                    AE: 'bg-blue-500/10 text-blue-500',
+                    QC: 'bg-emerald-500/10 text-emerald-600',
+                    CONTACT_CENTER: 'bg-amber-500/10 text-amber-600'
+                };
+                const avatarCls = avatarBgMap[u.role] || 'bg-muted text-muted-foreground';
+                const initial = (u.full_name || u.username || 'U').trim().charAt(0).toUpperCase();
+                const lastLogin = u.last_login_at ? new Date(u.last_login_at).toLocaleString('th-TH', {
+                    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                }) : 'ยังไม่เคยเข้าสู่ระบบ';
+
+                return `
+                    <tr class="hover:bg-muted/30 transition-colors ${!u.is_active ? 'opacity-50' : ''}">
+                        <td class="px-5 py-3.5 text-muted-foreground font-mono text-[11px] font-medium">${u.user_code}</td>
+                        <td class="px-5 py-3.5">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg ${avatarCls} font-bold text-xs flex items-center justify-center shrink-0">
+                                    ${initial}
+                                </div>
+                                <div>
+                                    <p class="font-medium text-foreground text-xs leading-none">${u.full_name}</p>
+                                    <p class="text-[10px] text-muted-foreground font-mono mt-1">${u.username}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-5 py-3.5">
+                            <span class="inline-block px-2 py-0.5 rounded-md bg-muted/70 text-foreground font-mono text-[11px] border border-border/60">
+                                ${u.username}
+                            </span>
+                        </td>
+                        <td class="px-5 py-3.5 text-muted-foreground text-xs">${u.email || '-'}</td>
+                        <td class="px-5 py-3.5">${roleBadge(u.role)}</td>
+                        <td class="px-5 py-3.5">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium border ${u.is_active ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-muted text-muted-foreground border-border'}">
+                                <span class="w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'}"></span>
+                                ${u.is_active ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
+                            </span>
+                        </td>
+                        <td class="px-5 py-3.5 text-muted-foreground text-[11px]">${lastLogin}</td>
+                        <td class="px-5 py-3.5 text-right">
+                            <div class="flex items-center justify-end gap-1">
+                                <button onclick="userMgmt.openEdit(${u.id})" title="แก้ไขข้อมูล" class="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-brand-500 transition cursor-pointer">
+                                    <i class="ph ph-pencil-simple text-sm"></i>
+                                </button>
+                                <button onclick="userMgmt.openResetPassword(${u.id})" title="รีเซ็ตรหัสผ่าน" class="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-amber-500 transition cursor-pointer">
+                                    <i class="ph ph-key text-sm"></i>
+                                </button>
+                                ${u.username !== 'admin' ? `
+                                    <button onclick="userMgmt.openToggleActive(${u.id})" title="${u.is_active ? 'ปิดใช้งานบัญชี' : 'เปิดใช้งานบัญชี'}" class="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-rose-500 transition cursor-pointer">
+                                        <i class="ph ph-${u.is_active ? 'prohibit' : 'check-circle'} text-sm"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        },
+
+        resetFilters() {
+            this.searchQuery = '';
+            const searchInput = document.getElementById('user-search');
+            if (searchInput) searchInput.value = '';
+            const statusSelect = document.getElementById('user-status-filter');
+            if (statusSelect) statusSelect.value = 'ALL';
+            this.statusFilter = 'ALL';
+            this.setRoleFilter('ALL');
+        },
+
+        selectRole(role) {
+            this.selectedRole = role;
+            const roleInput = document.getElementById('user-form-role');
+            if (roleInput) roleInput.value = role;
+
+            document.querySelectorAll('.user-role-card').forEach(card => {
+                card.classList.remove('ring-2', 'ring-brand-500', 'border-transparent', 'bg-brand-500/5');
+            });
+            const activeCard = document.getElementById('role-card-' + role);
+            if (activeCard) {
+                activeCard.classList.add('ring-2', 'ring-brand-500', 'bg-brand-500/5');
+            }
         },
 
         openCreate() {
-            const name = prompt('ชื่อ-นามสกุล:');
-            if (!name) return;
-            const username = prompt('Username:');
-            if (!username) return;
-            const role = prompt('Role (ADMIN / AE / QC / CONTACT_CENTER):');
-            if (!role) return;
-            const email = prompt('Email (ไม่บังคับ):') || '';
-            const password = prompt('Password (อย่างน้อย 6 ตัวอักษร):');
-            if (!password) return;
-            this.createUser({ full_name:name, username, role:role.toUpperCase(), email, password });
-        },
+            const form = document.querySelector('#modal-user-form form');
+            if (form) form.reset();
 
-        async createUser(data) {
-            try {
-                const res  = await fetch('/api/v1/users', { method:'POST', headers: auth.getHeaders(), body: JSON.stringify(data) });
-                const json = await res.json();
-                if (json.success) { app.showToast('✅ สร้างผู้ใช้ ' + data.username + ' สำเร็จ'); this.load(); }
-                else app.showToast('❌ ' + (json.error?.message || 'เกิดข้อผิดพลาด'));
-            } catch(e) { app.showToast('❌ ไม่สามารถสร้างผู้ใช้ได้'); }
+            document.getElementById('user-form-id').value = '';
+            document.getElementById('user-form-mode').value = 'create';
+            document.getElementById('user-form-title').innerText = 'เพิ่มผู้ใช้งานใหม่';
+            document.getElementById('user-form-subtitle').innerText = 'สร้างบัญชีผู้ใช้งานและกำหนดบทบาทในระบบ PMT Flow';
+            document.getElementById('user-form-submit-text').innerText = 'บันทึกข้อมูล';
+
+            const iconBg = document.getElementById('user-form-icon-bg');
+            const icon = document.getElementById('user-form-icon');
+            if (iconBg) iconBg.className = 'w-9 h-9 rounded-xl bg-brand-500/15 text-brand-500 flex items-center justify-center shrink-0';
+            if (icon) icon.className = 'ph ph-user-plus text-lg';
+
+            // Username field
+            const usernameInput = document.getElementById('user-form-username');
+            usernameInput.disabled = false;
+            usernameInput.readOnly = false;
+            usernameInput.classList.remove('opacity-60', 'bg-muted');
+            usernameInput.classList.add('bg-muted/50');
+            document.getElementById('user-form-username-help').innerText = 'ใช้ตัวอักษรภาษาอังกฤษหรือจุด (.)';
+
+            // Password field (visible and required)
+            const pwdWrapper = document.getElementById('user-form-password-wrapper');
+            pwdWrapper.classList.remove('hidden');
+            const pwdInput = document.getElementById('user-form-password');
+            pwdInput.required = true;
+            pwdInput.value = '';
+
+            // Status wrapper (hidden on create)
+            document.getElementById('user-form-status-wrapper').classList.add('hidden');
+
+            // Hide error alert
+            document.getElementById('user-form-error').classList.add('hidden');
+
+            // Default role: AE
+            this.selectRole('AE');
+
+            app.showModal('modal-user-form');
+            setTimeout(() => document.getElementById('user-form-fullname').focus(), 100);
         },
 
         openEdit(id) {
             const u = this.users.find(x => x.id === id);
             if (!u) return;
-            const fullName = prompt('ชื่อ-นามสกุล:', u.full_name);
-            if (fullName === null) return;
-            const role = prompt('Role (ADMIN / AE / QC / CONTACT_CENTER):', u.role);
-            if (role === null) return;
-            this.updateUser(id, { full_name: fullName, role: role.toUpperCase() });
-        },
 
-        async updateUser(id, data) {
-            try {
-                const res  = await fetch('/api/v1/users/' + id, { method:'PATCH', headers: auth.getHeaders(), body: JSON.stringify(data) });
-                const json = await res.json();
-                if (json.success) { app.showToast('✅ อัปเดตข้อมูลสำเร็จ'); this.load(); }
-                else app.showToast('❌ ' + (json.error?.message || 'เกิดข้อผิดพลาด'));
-            } catch(e) { app.showToast('❌ ไม่สามารถอัปเดตข้อมูลได้'); }
-        },
+            document.getElementById('user-form-id').value = u.id;
+            document.getElementById('user-form-mode').value = 'edit';
+            document.getElementById('user-form-title').innerText = 'แก้ไขข้อมูลผู้ใช้งาน';
+            document.getElementById('user-form-subtitle').innerText = `แก้ไขข้อมูลสำหรับบัญชี ${u.username} (${u.user_code})`;
+            document.getElementById('user-form-submit-text').innerText = 'บันทึกการแก้ไข';
 
-        async toggleActive(id, name, isActive) {
-            const action = isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน';
-            if (!confirm(`ต้องการ ${action} บัญชี "${name}" ใช่หรือไม่?`)) return;
-            if (isActive) {
-                const res  = await fetch('/api/v1/users/' + id, { method:'DELETE', headers: auth.getHeaders() });
-                const json = await res.json();
-                if (json.success) { app.showToast('✅ ' + json.message); this.load(); }
+            const iconBg = document.getElementById('user-form-icon-bg');
+            const icon = document.getElementById('user-form-icon');
+            if (iconBg) iconBg.className = 'w-9 h-9 rounded-xl bg-blue-500/15 text-blue-500 flex items-center justify-center shrink-0';
+            if (icon) icon.className = 'ph ph-pencil-simple text-lg';
+
+            // Populate fields
+            document.getElementById('user-form-fullname').value = u.full_name || '';
+            const usernameInput = document.getElementById('user-form-username');
+            usernameInput.value = u.username || '';
+            usernameInput.disabled = true;
+            usernameInput.readOnly = true;
+            usernameInput.classList.add('opacity-60', 'bg-muted');
+            usernameInput.classList.remove('bg-muted/50');
+            document.getElementById('user-form-username-help').innerText = 'ไม่สามารถแก้ไข Username ได้';
+
+            document.getElementById('user-form-email').value = u.email || '';
+
+            // Password hidden in edit mode (dedicated reset password modal is available)
+            const pwdWrapper = document.getElementById('user-form-password-wrapper');
+            pwdWrapper.classList.add('hidden');
+            const pwdInput = document.getElementById('user-form-password');
+            pwdInput.required = false;
+
+            // Status wrapper
+            const statusWrapper = document.getElementById('user-form-status-wrapper');
+            statusWrapper.classList.remove('hidden');
+            const statusCheckbox = document.getElementById('user-form-status');
+            statusCheckbox.checked = Boolean(u.is_active);
+            if (u.username === 'admin') {
+                statusCheckbox.disabled = true;
+                document.getElementById('user-form-status-desc').innerText = 'บัญชี Admin หลักไม่สามารถปิดใช้งานได้';
             } else {
-                await this.updateUser(id, { is_active: true });
+                statusCheckbox.disabled = false;
+                this.handleStatusCheckboxChange(statusCheckbox);
+            }
+
+            // Role selection
+            this.selectRole(u.role);
+
+            // Hide error alert
+            document.getElementById('user-form-error').classList.add('hidden');
+
+            app.showModal('modal-user-form');
+        },
+
+        handleStatusCheckboxChange(el) {
+            const desc = document.getElementById('user-form-status-desc');
+            if (el.checked) {
+                desc.innerText = 'เปิดใช้งานอยู่ (ผู้ใช้สามารถเข้าสู่ระบบได้ตามปกติ)';
+            } else {
+                desc.innerText = 'ปิดใช้งาน (ผู้ใช้จะไม่สามารถเข้าสู่ระบบได้)';
             }
         },
 
-        async resetPassword(id, name) {
-            const newPass = prompt(`Reset password สำหรับ "${name}"\n\nกรอก Password ใหม่ (อย่างน้อย 6 ตัวอักษร):`);
-            if (!newPass || newPass.length < 6) return;
+        togglePasswordVisibility(inputId, eyeId) {
+            const input = document.getElementById(inputId);
+            const eye = document.getElementById(eyeId);
+            if (!input || !eye) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                eye.className = 'ph ph-eye-slash text-sm';
+            } else {
+                input.type = 'password';
+                eye.className = 'ph ph-eye text-sm';
+            }
+        },
+
+        async submitForm(e) {
+            if (e) e.preventDefault();
+            const mode = document.getElementById('user-form-mode').value;
+            const id = document.getElementById('user-form-id').value;
+            const full_name = document.getElementById('user-form-fullname').value.trim();
+            const username = document.getElementById('user-form-username').value.trim();
+            const email = document.getElementById('user-form-email').value.trim();
+            const role = document.getElementById('user-form-role').value;
+            const errBox = document.getElementById('user-form-error');
+            const errMsg = document.getElementById('user-form-error-msg');
+            const submitBtn = document.getElementById('user-form-submit-btn');
+
+            errBox.classList.add('hidden');
+
+            if (!full_name) {
+                errMsg.innerText = 'กรุณากรอกชื่อ-นามสกุล';
+                errBox.classList.remove('hidden');
+                return;
+            }
+
+            if (mode === 'create') {
+                if (!username) {
+                    errMsg.innerText = 'กรุณากรอก Username';
+                    errBox.classList.remove('hidden');
+                    return;
+                }
+                const password = document.getElementById('user-form-password').value;
+                if (!password || password.length < 6) {
+                    errMsg.innerText = 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร';
+                    errBox.classList.remove('hidden');
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-70');
+
+                try {
+                    const res = await fetch('/api/v1/users', {
+                        method: 'POST',
+                        headers: auth.getHeaders(),
+                        body: JSON.stringify({ full_name, username, email, role, password })
+                    });
+                    const json = await res.json();
+                    if (json.success) {
+                        app.showToast(`✅ สร้างผู้ใช้งาน ${username} สำเร็จ`);
+                        app.hideModal('modal-user-form');
+                        this.load();
+                    } else {
+                        errMsg.innerText = json.error?.message || 'ไม่สามารถสร้างผู้ใช้งานได้';
+                        errBox.classList.remove('hidden');
+                    }
+                } catch(err) {
+                    errMsg.innerText = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+                    errBox.classList.remove('hidden');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('opacity-70');
+                }
+            } else {
+                // Edit mode
+                const is_active = document.getElementById('user-form-status').checked;
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-70');
+
+                try {
+                    const res = await fetch('/api/v1/users/' + id, {
+                        method: 'PATCH',
+                        headers: auth.getHeaders(),
+                        body: JSON.stringify({ full_name, email, role, is_active })
+                    });
+                    const json = await res.json();
+                    if (json.success) {
+                        app.showToast('✅ บันทึกการแก้ไขข้อมูลสำเร็จ');
+                        app.hideModal('modal-user-form');
+                        this.load();
+                    } else {
+                        errMsg.innerText = json.error?.message || 'ไม่สามารถอัปเดตข้อมูลได้';
+                        errBox.classList.remove('hidden');
+                    }
+                } catch(err) {
+                    errMsg.innerText = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+                    errBox.classList.remove('hidden');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('opacity-70');
+                }
+            }
+        },
+
+        openResetPassword(id) {
+            const u = this.users.find(x => x.id === id);
+            if (!u) return;
+
+            document.getElementById('user-reset-pwd-id').value = u.id;
+            document.getElementById('user-reset-pwd-name').innerText = u.full_name;
+            document.getElementById('user-reset-pwd-username').innerText = u.username;
+            document.getElementById('user-reset-pwd-role').innerHTML = roleBadge(u.role);
+            document.getElementById('user-reset-pwd-avatar').innerText = (u.full_name || 'U').charAt(0).toUpperCase();
+
+            document.getElementById('user-reset-pwd-new').value = '';
+            document.getElementById('user-reset-pwd-confirm').value = '';
+            document.getElementById('user-reset-pwd-error').classList.add('hidden');
+
+            app.showModal('modal-user-reset-pwd');
+            setTimeout(() => document.getElementById('user-reset-pwd-new').focus(), 100);
+        },
+
+        async submitResetPassword(e) {
+            if (e) e.preventDefault();
+            const id = document.getElementById('user-reset-pwd-id').value;
+            const newPwd = document.getElementById('user-reset-pwd-new').value;
+            const confirmPwd = document.getElementById('user-reset-pwd-confirm').value;
+            const errBox = document.getElementById('user-reset-pwd-error');
+            const errMsg = document.getElementById('user-reset-pwd-error-msg');
+            const submitBtn = document.getElementById('user-reset-pwd-submit-btn');
+
+            errBox.classList.add('hidden');
+
+            if (!newPwd || newPwd.length < 6) {
+                errMsg.innerText = 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร';
+                errBox.classList.remove('hidden');
+                return;
+            }
+
+            if (newPwd !== confirmPwd) {
+                errMsg.innerText = 'การยืนยันรหัสผ่านไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง';
+                errBox.classList.remove('hidden');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-70');
+
             try {
-                const res  = await fetch('/api/v1/users/' + id + '/reset-password', { method:'POST', headers: auth.getHeaders(), body: JSON.stringify({ new_password: newPass }) });
+                const res = await fetch(`/api/v1/users/${id}/reset-password`, {
+                    method: 'POST',
+                    headers: auth.getHeaders(),
+                    body: JSON.stringify({ new_password: newPwd })
+                });
                 const json = await res.json();
-                if (json.success) app.showToast('✅ Reset password สำเร็จ');
-                else app.showToast('❌ ' + (json.error?.message || 'เกิดข้อผิดพลาด'));
-            } catch(e) { app.showToast('❌ ไม่สามารถ Reset password ได้'); }
+                if (json.success) {
+                    app.showToast('✅ ' + (json.message || 'รีเซ็ตรหัสผ่านสำเร็จ'));
+                    app.hideModal('modal-user-reset-pwd');
+                } else {
+                    errMsg.innerText = json.error?.message || 'ไม่สามารถรีเซ็ตรหัสผ่านได้';
+                    errBox.classList.remove('hidden');
+                }
+            } catch(err) {
+                errMsg.innerText = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+                errBox.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-70');
+            }
+        },
+
+        openToggleActive(id) {
+            const u = this.users.find(x => x.id === id);
+            if (!u) return;
+
+            this.selectedUserForToggle = u;
+            document.getElementById('user-toggle-id').value = u.id;
+            document.getElementById('user-toggle-fullname').innerText = u.full_name;
+            document.getElementById('user-toggle-username').innerText = u.username;
+            document.getElementById('user-toggle-role').innerHTML = roleBadge(u.role);
+            document.getElementById('user-toggle-avatar').innerText = (u.full_name || 'U').charAt(0).toUpperCase();
+
+            const isDeactivating = u.is_active;
+            document.getElementById('user-toggle-action').value = isDeactivating ? 'deactivate' : 'activate';
+
+            const title = document.getElementById('user-toggle-status-title');
+            const iconBg = document.getElementById('user-toggle-icon-bg');
+            const icon = document.getElementById('user-toggle-icon');
+            const messageBox = document.getElementById('user-toggle-message-box');
+            const message = document.getElementById('user-toggle-message');
+            const submitBtn = document.getElementById('user-toggle-submit-btn');
+            const submitText = document.getElementById('user-toggle-submit-text');
+            const submitIcon = document.getElementById('user-toggle-submit-icon');
+
+            if (isDeactivating) {
+                title.innerText = 'ยืนยันการปิดใช้งานบัญชี';
+                iconBg.className = 'w-9 h-9 rounded-xl bg-rose-500/15 text-rose-500 flex items-center justify-center shrink-0';
+                icon.className = 'ph ph-prohibit text-lg';
+                messageBox.className = 'p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 text-xs flex items-start gap-2.5';
+                message.innerText = `คุณต้องการปิดใช้งานบัญชี "${u.full_name}" (@${u.username}) ใช่หรือไม่? ผู้ใช้จะไม่สามารถ Login เข้าสู่ระบบได้ และ Session ปัจจุบันจะถูกยกเลิกทันที`;
+                submitBtn.className = 'btn-artifact-primary px-5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-md cursor-pointer bg-rose-500 hover:bg-rose-600 text-white';
+                submitText.innerText = 'ยืนยันปิดใช้งาน';
+                submitIcon.className = 'ph ph-prohibit text-sm';
+            } else {
+                title.innerText = 'ยืนยันการเปิดใช้งานบัญชี';
+                iconBg.className = 'w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0';
+                icon.className = 'ph ph-check-circle text-lg';
+                messageBox.className = 'p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs flex items-start gap-2.5';
+                message.innerText = `คุณต้องการเปิดใช้งานบัญชี "${u.full_name}" (@${u.username}) ใช่หรือไม่? ผู้ใช้จะสามารถ Login เข้าสู่ระบบและใช้งานได้ตามสิทธิ์ของ Role ทันที`;
+                submitBtn.className = 'btn-artifact-primary px-5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-md cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white';
+                submitText.innerText = 'ยืนยันเปิดใช้งาน';
+                submitIcon.className = 'ph ph-check-circle text-sm';
+            }
+
+            app.showModal('modal-user-toggle-status');
+        },
+
+        async confirmToggleActive() {
+            const u = this.selectedUserForToggle;
+            if (!u) return;
+            const isDeactivating = u.is_active;
+            const submitBtn = document.getElementById('user-toggle-submit-btn');
+
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-70');
+
+            try {
+                if (isDeactivating) {
+                    const res = await fetch('/api/v1/users/' + u.id, {
+                        method: 'DELETE',
+                        headers: auth.getHeaders()
+                    });
+                    const json = await res.json();
+                    if (json.success) {
+                        app.showToast('✅ ' + (json.message || 'ปิดใช้งานบัญชีสำเร็จ'));
+                        app.hideModal('modal-user-toggle-status');
+                        this.load();
+                    } else {
+                        app.showToast('❌ ' + (json.error?.message || 'เกิดข้อผิดพลาด'));
+                    }
+                } else {
+                    const res = await fetch('/api/v1/users/' + u.id, {
+                        method: 'PATCH',
+                        headers: auth.getHeaders(),
+                        body: JSON.stringify({ is_active: true })
+                    });
+                    const json = await res.json();
+                    if (json.success) {
+                        app.showToast('✅ เปิดใช้งานบัญชีสำเร็จ');
+                        app.hideModal('modal-user-toggle-status');
+                        this.load();
+                    } else {
+                        app.showToast('❌ ' + (json.error?.message || 'เกิดข้อผิดพลาด'));
+                    }
+                }
+            } catch(err) {
+                app.showToast('❌ เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-70');
+            }
+        },
+
+        async openAuditLogs() {
+            app.showModal('modal-user-login-logs');
+            await this.loadLoginLogs();
+        },
+
+        async loadLoginLogs() {
+            const tbody = document.getElementById('user-logs-table-body');
+            const info = document.getElementById('user-logs-count-info');
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-5 py-10 text-center text-muted-foreground text-xs">กำลังโหลดบันทึกประวัติการเข้าสู่ระบบ...</td></tr>`;
+            }
+
+            try {
+                const res = await fetch('/api/v1/auth/login-logs', { headers: auth.getHeaders() });
+                const json = await res.json();
+                if (json.success) {
+                    this.loginLogs = json.data || [];
+                    this.filteredLogs = [...this.loginLogs];
+                    this.renderLogs();
+                } else {
+                    if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="px-5 py-10 text-center text-rose-500 text-xs">ไม่สามารถโหลดประวัติได้: ${json.error?.message || ''}</td></tr>`;
+                }
+            } catch(err) {
+                if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="px-5 py-10 text-center text-rose-500 text-xs">เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์</td></tr>`;
+            }
+        },
+
+        filterLogs(q) {
+            const query = (q || '').trim().toLowerCase();
+            if (!query) {
+                this.filteredLogs = [...this.loginLogs];
+            } else {
+                this.filteredLogs = this.loginLogs.filter(log =>
+                    (log.username || '').toLowerCase().includes(query) ||
+                    (log.full_name || '').toLowerCase().includes(query) ||
+                    (log.ip || log.ip_address || '').toLowerCase().includes(query) ||
+                    (log.status || (log.success ? 'success' : 'failed')).toLowerCase().includes(query) ||
+                    (log.reason || log.fail_reason || '').toLowerCase().includes(query)
+                );
+            }
+            this.renderLogs();
+        },
+
+        renderLogs() {
+            const tbody = document.getElementById('user-logs-table-body');
+            const info = document.getElementById('user-logs-count-info');
+            if (!tbody) return;
+
+            if (!this.filteredLogs.length) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-5 py-10 text-center text-muted-foreground text-xs">ไม่พบบันทึกประวัติการเข้าสู่ระบบ</td></tr>`;
+                if (info) info.innerText = '0 รายการ';
+                return;
+            }
+
+            if (info) info.innerText = `แสดง ${this.filteredLogs.length} จากทั้งหมด ${this.loginLogs.length} รายการ`;
+
+            tbody.innerHTML = this.filteredLogs.map(log => {
+                const isSuccess = log.success === true || log.status === 'SUCCESS';
+                const dateVal = log.created_at || log.timestamp;
+                const time = dateVal ? new Date(dateVal).toLocaleString('th-TH', {
+                    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
+                }) : '-';
+                const ipVal = log.ip_address || log.ip || '-';
+                const reasonVal = log.fail_reason || log.reason || '';
+
+                return `
+                    <tr class="hover:bg-muted/30 transition-colors">
+                        <td class="px-5 py-3 text-muted-foreground font-mono text-[11px] whitespace-nowrap">${time}</td>
+                        <td class="px-5 py-3">
+                            <div>
+                                <p class="font-medium text-foreground text-xs">${log.full_name || log.username}</p>
+                                <p class="text-[10px] text-muted-foreground font-mono">@${log.username}</p>
+                            </div>
+                        </td>
+                        <td class="px-5 py-3 font-mono text-muted-foreground text-[11px]">${ipVal}</td>
+                        <td class="px-5 py-3 text-muted-foreground text-[11px] max-w-xs truncate" title="${log.user_agent || ''}">${log.user_agent || '-'}</td>
+                        <td class="px-5 py-3 text-right">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${isSuccess ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'}">
+                                <span class="w-1.5 h-1.5 rounded-full ${isSuccess ? 'bg-emerald-500' : 'bg-rose-500'}"></span>
+                                ${isSuccess ? 'สำเร็จ (Success)' : 'ล้มเหลว (Failed)'}
+                            </span>
+                            ${reasonVal ? `<p class="text-[9px] text-rose-500 mt-0.5">${reasonVal}</p>` : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
     };
 
