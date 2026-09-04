@@ -269,6 +269,30 @@ app.get('/api/v1/auth/me', requireAuth, (req: AuthRequest, res: Response) => {
   return res.json({ success: true, data: { id: u.id, username: u.username, full_name: u.full_name, email: u.email, role: u.role, user_code: u.user_code, last_login_at: u.last_login_at } });
 });
 
+// PATCH /api/v1/auth/profile — Update logged-in user profile (full_name, email)
+app.patch('/api/v1/auth/profile', requireAuth, (req: AuthRequest, res: Response) => {
+  const u = req.currentUser!;
+  const { full_name, email } = req.body || {};
+  if (full_name && typeof full_name === 'string') u.full_name = full_name.trim();
+  if (email !== undefined && typeof email === 'string') u.email = email.trim();
+  const { password_hash, ...safe } = u;
+  return res.json({ success: true, message: 'อัปเดตข้อมูลส่วนตัวสำเร็จ', data: safe });
+});
+
+// POST /api/v1/auth/change-password — Change own password
+app.post('/api/v1/auth/change-password', requireAuth, (req: AuthRequest, res: Response) => {
+  const u = req.currentUser!;
+  const { current_password, new_password } = req.body || {};
+  if (!new_password || new_password.length < 6) {
+    return res.status(400).json({ success: false, error: { code: 'WEAK_PASSWORD', message: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร' } });
+  }
+  if (current_password && !verifyPassword(current_password, u.password_hash)) {
+    return res.status(400).json({ success: false, error: { code: 'WRONG_CURRENT_PASSWORD', message: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' } });
+  }
+  u.password_hash = hashPassword(new_password);
+  return res.json({ success: true, message: 'เปลี่ยนรหัสผ่านสำเร็จเรียบร้อย' });
+});
+
 // =============================================================================
 // USER MANAGEMENT API (Admin only)
 // =============================================================================
@@ -2575,6 +2599,14 @@ app.patch(['/api/ma-rounds/:id', '/api/v1/ma-rounds/:id'], (req: Request, res: R
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
+});
+
+// Global error protection
+process.on('uncaughtException', (err) => {
+  console.error('[UNCAUGHT EXCEPTION]', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[UNHANDLED REJECTION]', reason);
 });
 
 // Start Server
