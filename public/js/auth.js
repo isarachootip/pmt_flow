@@ -283,17 +283,21 @@ window.auth =  {
             const tok = this.token;
             this.token = null;
             this.user = null;
+            const currentTheme = localStorage.getItem('pmt-theme');
             try { sessionStorage.removeItem('pmt_token'); } catch(e) {}
             try { sessionStorage.removeItem('pmt_user'); } catch(e) {}
             try { localStorage.removeItem('pmt_token'); } catch(e) {}
             try { localStorage.removeItem('pmt_user'); } catch(e) {}
             try { localStorage.clear(); } catch(e) {}
             try { sessionStorage.clear(); } catch(e) {}
+            if (currentTheme) {
+                try { localStorage.setItem('pmt-theme', currentTheme); } catch(e) {}
+            }
             this.showLoginOverlay();
             if (tok) {
                 fetch('/api/v1/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok } }).catch(() => {});
             }
-            window.location.href = '/';
+            window.location.reload();
         },
 
         getHeaders() {
