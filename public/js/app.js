@@ -2407,58 +2407,6 @@ const app = {
                             </div>
                         </div>
 
-                        <!-- Step 2: Blueprint & Design Files Section in Job Detail -->
-                        ${(() => {
-                            const bp = (DB.blueprints || []).find(b => b.jobId === job.id);
-                            if (bp) {
-                                return `
-                                <div class="artifact-card p-3.5 rounded-xl border border-indigo-500/30 bg-indigo-500/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-                                    <div class="flex items-center gap-3 min-w-0">
-                                        <div class="w-16 h-12 rounded-lg overflow-hidden border border-indigo-500/30 bg-card shrink-0 cursor-pointer relative group/bp" onclick="app.openBlueprintLightbox('${bp.id}')" title="คลิกดูภาพแบบแปลนขนาดเต็ม">
-                                            <img src="${bp.previewImg}" alt="${bp.filename}" class="w-full h-full object-cover group-hover/bp:scale-105 transition duration-300">
-                                            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover/bp:opacity-100 transition flex items-center justify-center">
-                                                <i class="ph ph-magnifying-glass-plus text-white text-xs"></i>
-                                            </div>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <div class="flex items-center gap-2 flex-wrap">
-                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-600 text-white font-mono">${bp.id}</span>
-                                                <span class="font-display font-bold text-xs text-foreground truncate max-w-[240px]" title="${bp.filename}">${bp.filename}</span>
-                                                <span class="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">${bp.version}</span>
-                                            </div>
-                                            <div class="text-[10px] text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
-                                                <span>ผู้ออกแบบ: <strong class="text-foreground font-medium">${bp.designer}</strong></span>
-                                                <span>•</span>
-                                                <span>ขนาด: <strong class="font-mono text-foreground">${bp.size}</strong></span>
-                                                <span>•</span>
-                                                <span class="font-mono">${bp.date}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                                        <button type="button" onclick="app.openBlueprintLightbox('${bp.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow cursor-pointer">
-                                            <i class="ph ph-eye"></i> <span>ดูภาพแบบแปลน</span>
-                                        </button>
-                                        <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer" title="อัปโหลดแบบแปลนเวอร์ชันใหม่">
-                                            <i class="ph ph-arrows-clockwise"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                `;
-                            } else {
-                                return `
-                                <div class="artifact-card p-3 rounded-xl border border-dashed border-border bg-muted/20 flex items-center justify-between gap-3">
-                                    <div class="flex items-center gap-2.5 text-xs text-muted-foreground">
-                                        <i class="ph ph-blueprint text-lg text-indigo-500"></i>
-                                        <span>ยังไม่ได้แนบแบบแปลนติดตั้ง (Step 2 Design)</span>
-                                    </div>
-                                    <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 cursor-pointer font-medium">
-                                        <i class="ph ph-upload-simple"></i> <span>อัปโหลด Design</span>
-                                    </button>
-                                </div>
-                                `;
-                            }
-                        })()}
 
                         <!-- Dedicated Section: Site Notes & Special Instructions + Integrated Bottom Action Bar -->
                         <div class="artifact-card p-3 border border-brand-500/30 bg-card shadow-sm space-y-2">
