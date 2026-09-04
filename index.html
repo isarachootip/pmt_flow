@@ -5457,8 +5457,8 @@
                                         <span>บันทึกหมายเหตุ & คำสั่งพิเศษ</span>
                                     </button>
                                     ${job.pmt_accepted ? `
-                                    <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-sm cursor-pointer" onclick="app.switchJobTab('boq')">
-                                        <span>ไปหน้าบันทึก BOQ (PMT)</span> <i class="ph ph-arrow-right text-xs"></i>
+                                    <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-sm cursor-pointer" onclick="app.navigate('blueprints')">
+                                        <span>ไปหน้าบันทึก Design (Step 2)</span> <i class="ph ph-arrow-right text-xs"></i>
                                     </button>
                                     ` : `
                                     <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-semibold shadow-sm cursor-pointer" onclick="app.acceptJobToPMT('${job.id}')">
