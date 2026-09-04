@@ -4555,10 +4555,9 @@
                     if (isDraft || !job.pmt_accepted) {
                         actionButtons = `
                             ${checkinBadge}
-                            <button class="btn-artifact-primary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm font-semibold cursor-pointer" onclick="app.acceptJobToPMT('${job.id}')">
-                                <i class="ph ph-check-circle text-sm"></i>
-                                <span>รับเข้าระบบ PMT</span>
-                            </button>
+                            <span class="text-xs text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5 bg-amber-500/10 px-3 py-2 rounded-lg border border-amber-500/20">
+                                <i class="ph ph-hourglass-medium text-sm"></i> รอนำเข้า PMT
+                            </span>
                         `;
                     } else if (isClosed) {
                         actionButtons = `
@@ -4806,17 +4805,6 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <div class="flex items-center gap-1.5 bg-card border border-border rounded-lg px-2 py-0.5 text-xs">
-                                <label class="text-muted-foreground text-[11px] font-medium">สถานะ:</label>
-                                <select onchange="app.updateJobStatus('${job.id}', this.value)" class="bg-transparent text-foreground font-semibold focus:outline-none cursor-pointer text-xs">
-                                    <option value="DRAFT" ${job.status === 'DRAFT' ? 'selected' : ''}>📝 Draft (เปิดงานใหม่ / 0%)</option>
-                                    <option value="IN_PROGRESS" ${job.status === 'IN_PROGRESS' || job.status === 'SURVEYED' ? 'selected' : ''}>⚡ In Progress (กำลังดำเนินการ)</option>
-                                    <option value="QC_PENDING" ${job.status === 'QC_PENDING' ? 'selected' : ''}>🔍 QC Pending (รอตรวจ)</option>
-                                    <option value="QC_PASSED" ${job.status === 'QC_PASSED' ? 'selected' : ''}>✅ QC Passed (ผ่านเกณฑ์)</option>
-                                    <option value="AFTER_SALE" ${job.status === 'AFTER_SALE' ? 'selected' : ''}>🛡️ After Sale (บริการหลังการขาย)</option>
-                                    <option value="CLOSED" ${job.status === 'CLOSED' ? 'selected' : ''}>🔒 Closed (ปิดงาน)</option>
-                                </select>
-                            </div>
                             ${this.getStatusHtml(job.status)}
                         </div>
                     </div>
