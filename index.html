@@ -702,6 +702,10 @@
                                 <span>ล้างข้อมูลโครงการ</span>
                             </button>
                             <div class="flex items-center gap-2 shrink-0">
+                                <button onclick="app.exportAllJobsAuditCSV()" class="btn-artifact-secondary text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="ดาวน์โหลดรายงานสรุปเวลา Timestamp ทุก Step ของทุกโครงการเพื่อนำไปทำ Report">
+                                    <i class="ph ph-file-csv text-emerald-500 text-sm"></i>
+                                    <span>Export รายงาน Timestamps</span>
+                                </button>
                                 <button onclick="app.simulateINT10Orders(false)" class="superadmin-only-btn btn-artifact-secondary text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer shadow-xs" title="จำลองรับคำสั่งซื้อใหม่ 10 งานจากระบบ INT เข้าสู่ PMT">
                                     <i class="ph ph-lightning text-amber-500"></i>
                                     <span>จำลอง 10 งาน (INT)</span>
@@ -3688,6 +3692,54 @@
         </div>
     </div>
 
+    <!-- MODAL: STEP AUDIT REPORT (TIMESTAMPS FOR REPORTING) -->
+    <div id="modal-step-audit-report" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-step-audit-report-content">
+            <!-- Header -->
+            <div class="p-5 border-b border-border flex justify-between items-center bg-muted/20 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl shrink-0">
+                        <i class="ph ph-clock-counter-clockwise"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-display font-bold text-base text-foreground">รายงานบันทึกเวลาตามขั้นตอนปฏิบัติงาน (Workflow Step Timestamps Audit)</h3>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Audit Trail</span>
+                        </div>
+                        <p class="text-xs text-muted-foreground mt-0.5">บันทึกเวลาประทับ (Timestamp) ทุกขั้นตอนอย่างละเอียดสำหรับจัดทำรายงานสรุป Audit และประเมิน KPI / SLA</p>
+                    </div>
+                </div>
+                <button type="button" onclick="app.hideModal('modal-step-audit-report')" class="text-muted-foreground hover:text-foreground text-lg p-1 rounded-lg hover:bg-muted transition cursor-pointer">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+
+            <!-- Body (Scrollable) -->
+            <div class="p-6 overflow-y-auto space-y-6 flex-1 text-xs" id="step-audit-report-body">
+                <!-- Populated dynamically by app.openStepAuditReportModal() -->
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="p-4 border-t border-border flex flex-wrap justify-between items-center gap-3 bg-muted/20 shrink-0">
+                <div class="text-[11px] text-muted-foreground flex items-center gap-2">
+                    <i class="ph ph-info text-brand-500"></i>
+                    <span>ระบบบันทึกเวลามาตรฐาน ISO 8601 สำหรับตรวจสอบย้อนหลังทุกขั้นตอน</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="app.exportSingleJobAuditCSV()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10">
+                        <i class="ph ph-file-csv text-sm"></i> Export CSV
+                    </button>
+                    <button type="button" onclick="window.print()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+                        <i class="ph ph-printer text-sm"></i> พิมพ์รายงาน (Print)
+                    </button>
+                    <button type="button" onclick="app.hideModal('modal-step-audit-report')" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-semibold cursor-pointer">
+                        ปิดหน้าต่าง
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" class="fixed bottom-6 right-6 bg-card border border-border px-4 py-3 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
         <div class="w-7 h-7 rounded-lg bg-brand-500/15 text-brand-500 flex items-center justify-center shrink-0">
             <i class="ph ph-check-bold text-sm"></i>
@@ -3842,6 +3894,361 @@
                 } catch (e) {}
             },
 
+            // ─── STEP TIMESTAMPS & AUDIT REPORT ENGINE ──────────────────
+            recordStepTimestamp(jobId, stepKey, isoString = null, note = '') {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return null;
+                if (!job.step_timestamps) job.step_timestamps = {};
+                const ts = isoString || new Date().toISOString();
+                job.step_timestamps[stepKey] = ts;
+                
+                if (!job.step_timestamps_history) job.step_timestamps_history = [];
+                job.step_timestamps_history.push({
+                    stepKey: stepKey,
+                    timestamp: ts,
+                    note: note || '',
+                    recorded_at: new Date().toISOString()
+                });
+                
+                this.persistJobs();
+
+                // Background API sync if available
+                fetch(`/api/v1/jobs/${jobId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        step_timestamps: job.step_timestamps
+                    })
+                }).catch(() => {});
+
+                return ts;
+            },
+
+            formatTimestamp(isoString, withSeconds = true) {
+                if (!isoString) return '-';
+                try {
+                    const d = new Date(isoString);
+                    if (isNaN(d.getTime())) return isoString;
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const year = d.getFullYear() + 543;
+                    const hours = String(d.getHours()).padStart(2, '0');
+                    const minutes = String(d.getMinutes()).padStart(2, '0');
+                    const seconds = String(d.getSeconds()).padStart(2, '0');
+                    return withSeconds 
+                        ? `${day}/${month}/${year} ${hours}:${minutes}:${seconds} น.`
+                        : `${day}/${month}/${year} ${hours}:${minutes} น.`;
+                } catch(e) {
+                    return isoString;
+                }
+            },
+
+            getJobStepAuditReportData(jobId) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return null;
+                const ts = job.step_timestamps || {};
+                const bp = (DB.blueprints || []).find(b => b.jobId === job.id);
+                const tkt = (DB.tickets || []).find(t => t.job_id === job.id);
+                const boqCount = (job.boq_items || []).length;
+                const tasks = (DB.tasks || []).filter(t => t.jobId === job.id);
+
+                const steps = [
+                    {
+                        stepNumber: 1,
+                        name: 'บันทึกงาน / รับ Order ใหม่',
+                        category: 'Step 1: Jobs & INT Order',
+                        timestamp: ts.step1_order_at || (job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : '2026-09-04T08:30:15.000Z')),
+                        isDone: true,
+                        statusLabel: 'บันทึกเรียบร้อย',
+                        reference: `Ref ID: ${job.external_ref_id || job.id}`,
+                        detail: `ลูกค้า: ${job.customer} • บริการ: ${job.service} • เบอร์: ${job.phone}`
+                    },
+                    {
+                        stepNumber: 2,
+                        name: 'บันทึก Design / แบบแปลน',
+                        category: 'Step 2: Design & CAD Blueprints',
+                        timestamp: ts.step2_design_at || (bp ? (bp.recorded_at || '2026-09-04T09:45:22.000Z') : null),
+                        isDone: !!(ts.step2_design_at || bp),
+                        statusLabel: (ts.step2_design_at || bp) ? 'แนบแบบแปลนแล้ว' : 'รอจัดทำ/แนบแบบแปลน',
+                        reference: bp ? `แบบแปลน: ${bp.filename} (${bp.version})` : 'ยังไม่ได้อัปโหลดแบบ',
+                        detail: bp ? `ผู้ออกแบบ: ${bp.designer || 'HVAC Designer'} • ขนาด: ${bp.size}` : 'รอสถาปนิก/วิศวกรแนบแบบแปลน'
+                    },
+                    {
+                        stepNumber: 3,
+                        name: 'บันทึก Ticket และแนบใบเสร็จ',
+                        category: 'Step 3: Tickets & Receipt Slips',
+                        timestamp: ts.step3_ticket_at || (tkt ? (tkt.created_at || '2026-09-04T10:15:40.000Z') : null),
+                        isDone: !!(ts.step3_ticket_at || tkt),
+                        statusLabel: (ts.step3_ticket_at || tkt) ? 'ออก Ticket & สลิปแล้ว' : 'รอยืนยันการชำระเงิน',
+                        reference: tkt ? `Ticket: ${tkt.ticket_no} • ใบเสร็จ: ${tkt.receipt_no || '-'}` : 'ยังไม่มี Ticket',
+                        detail: tkt ? `ยอดเงิน: ${Number(tkt.amount || 0).toLocaleString()} ฿ (${tkt.payment_method})` : 'รอลูกค้าชำระเงินมัดจำ/แนบสลิป'
+                    },
+                    {
+                        stepNumber: 4,
+                        name: 'จัดทำ & บันทึกรายการ BOQ',
+                        category: 'Step 4: BOQ Management',
+                        timestamp: ts.step4_boq_at || (boqCount > 0 ? '2026-09-04T11:05:12.000Z' : null),
+                        isDone: !!(ts.step4_boq_at || boqCount > 0),
+                        statusLabel: (ts.step4_boq_at || boqCount > 0) ? `บันทึกแล้ว (${boqCount} รายการ)` : 'รอจัดทำ BOQ',
+                        reference: boqCount > 0 ? `ยอดรวม BOQ: ${(Number(job.boq_grand_total || 0)).toLocaleString()} ฿` : 'ยังไม่มี BOQ',
+                        detail: boqCount > 0 ? `รายการวัสดุและค่าแรง ${boqCount} รายการ (บันทึกบน PMT)` : 'รอจัดทำหรือนำเข้าไฟล์ BOQ (Excel / vFIX)'
+                    },
+                    {
+                        stepNumber: 5,
+                        name: 'บันทึก BOQ เข้า Project (Gantt Tasks)',
+                        category: 'Step 5: Project Conversion & Gantt',
+                        timestamp: ts.step5_project_at || (tasks.length > 0 ? '2026-09-04T13:20:05.000Z' : null),
+                        isDone: !!(ts.step5_project_at || tasks.length > 0),
+                        statusLabel: (ts.step5_project_at || tasks.length > 0) ? `สร้างแล้ว (${tasks.length} Tasks)` : 'รอแปลงเข้า Project',
+                        reference: tasks.length > 0 ? `แผนงาน Gantt: ${tasks.length} กิจกรรม` : 'ยังไม่มี Task ใน Gantt',
+                        detail: tasks.length > 0 ? `กำหนดช่าง (${job.tech}) และช่วงวันปฏิบัติงานเรียบร้อย` : 'รอกดแปลงรายการค่าแรงเป็น Task ในแผนงาน'
+                    }
+                ];
+
+                // Calculate duration / lead time between steps
+                for (let i = 0; i < steps.length; i++) {
+                    if (i === 0) {
+                        steps[i].leadTime = 'เริ่มต้นกระบวนการ';
+                    } else {
+                        const prevTs = steps[i - 1].timestamp;
+                        const currTs = steps[i].timestamp;
+                        if (prevTs && currTs) {
+                            try {
+                                const diffMs = Math.abs(new Date(currTs) - new Date(prevTs));
+                                const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+                                const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                                if (diffHrs > 24) {
+                                    const diffDays = Math.floor(diffHrs / 24);
+                                    steps[i].leadTime = `+${diffDays} วัน ${diffHrs % 24} ชม.`;
+                                } else if (diffHrs > 0) {
+                                    steps[i].leadTime = `+${diffHrs} ชม. ${diffMins} นาที`;
+                                } else {
+                                    steps[i].leadTime = `+${diffMins} นาที`;
+                                }
+                            } catch(e) {
+                                steps[i].leadTime = '-';
+                            }
+                        } else {
+                            steps[i].leadTime = '-';
+                        }
+                    }
+                }
+
+                return {
+                    job,
+                    steps,
+                    completedCount: steps.filter(s => s.isDone).length,
+                    totalCount: steps.length
+                };
+            },
+
+            openStepAuditReportModal(jobId = null) {
+                const targetJobId = jobId || this.state.currentJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
+                const data = this.getJobStepAuditReportData(targetJobId);
+                if (!data) return;
+
+                const job = data.job;
+                const steps = data.steps;
+                this.state.auditReportTargetJobId = targetJobId;
+
+                const bodyEl = document.getElementById('step-audit-report-body');
+                if (!bodyEl) return;
+
+                bodyEl.innerHTML = `
+                    <!-- Project Info Banner -->
+                    <div class="p-4 rounded-xl bg-muted/40 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono font-bold text-sm text-brand-600 dark:text-brand-400">${job.id}</span>
+                                <span class="text-muted-foreground">•</span>
+                                <span class="font-semibold text-foreground text-sm">${job.customer}</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted text-foreground border border-border">${job.external_ref_id || 'INT-Order'}</span>
+                            </div>
+                            <div class="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+                                <span><i class="ph ph-phone"></i> ${job.phone}</span>
+                                <span>•</span>
+                                <span><i class="ph ph-wrench"></i> ${job.service}</span>
+                                <span>•</span>
+                                <span><i class="ph ph-user-gear"></i> ${job.tech}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <div class="text-right">
+                                <div class="text-[10px] text-muted-foreground">ความคืบหน้าภาพรวม</div>
+                                <div class="font-bold text-sm text-emerald-600 dark:text-emerald-400 font-mono">${data.completedCount} / 5 ขั้นตอน (${Math.round((data.completedCount / 5) * 100)}%)</div>
+                            </div>
+                            <div class="w-10 h-10 rounded-full border-4 border-emerald-500 flex items-center justify-center font-mono font-bold text-xs text-foreground">
+                                ${data.completedCount}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5 Steps Timeline Table -->
+                    <div class="rounded-xl border border-border overflow-hidden shadow-xs">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-muted/60 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
+                                <tr>
+                                    <th class="px-4 py-3 w-14 text-center">Step</th>
+                                    <th class="px-4 py-3">ขั้นตอนการปฏิบัติงาน (Workflow Step)</th>
+                                    <th class="px-4 py-3">สถานะ (Status)</th>
+                                    <th class="px-4 py-3">วันและเวลาที่บันทึก (Timestamp)</th>
+                                    <th class="px-4 py-3 text-center">ระยะเวลาห่าง (Lead Time)</th>
+                                    <th class="px-4 py-3">ข้อมูลอ้างอิง & รายละเอียด (Audit Note)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border">
+                                ${steps.map(s => {
+                                    const isDone = s.isDone;
+                                    const tsFormatted = s.timestamp ? this.formatTimestamp(s.timestamp) : '<span class="text-muted-foreground/60 italic text-[11px]">- ยังไม่ดำเนินการ -</span>';
+                                    const statusPill = isDone
+                                        ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 inline-flex items-center gap-1"><i class="ph ph-check-circle-bold"></i> บันทึกแล้ว</span>'
+                                        : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25 inline-flex items-center gap-1"><i class="ph ph-hourglass-bold"></i> รอดำเนินการ</span>';
+
+                                    return `
+                                    <tr class="hover:bg-muted/30 transition ${isDone ? '' : 'opacity-70'}">
+                                        <td class="px-4 py-3.5 text-center">
+                                            <span class="w-6 h-6 rounded-full inline-flex items-center justify-center font-bold text-xs font-mono ${isDone ? 'bg-emerald-500 text-white shadow-xs' : 'bg-muted text-muted-foreground border border-border'}">
+                                                ${s.stepNumber}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3.5">
+                                            <div class="font-bold text-foreground text-xs">${s.name}</div>
+                                            <div class="text-[10px] text-muted-foreground">${s.category}</div>
+                                        </td>
+                                        <td class="px-4 py-3.5 whitespace-nowrap">
+                                            ${statusPill}
+                                        </td>
+                                        <td class="px-4 py-3.5 whitespace-nowrap">
+                                            <div class="font-mono font-semibold text-foreground flex items-center gap-1.5">
+                                                <i class="ph ph-clock text-xs text-brand-500"></i>
+                                                <span>${tsFormatted}</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-center whitespace-nowrap font-mono text-[11px] text-muted-foreground font-medium">
+                                            ${s.leadTime}
+                                        </td>
+                                        <td class="px-4 py-3.5">
+                                            <div class="font-semibold text-foreground text-xs">${s.reference}</div>
+                                            <div class="text-[10px] text-muted-foreground line-clamp-1" title="${s.detail}">${s.detail}</div>
+                                        </td>
+                                    </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- SLA & KPI Summary Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="p-3.5 rounded-xl bg-purple-500/5 border border-purple-500/20 space-y-1">
+                            <div class="text-[10px] text-purple-600 dark:text-purple-400 font-semibold uppercase">จุดเริ่มต้นกระบวนการ (Step 1)</div>
+                            <div class="font-mono font-bold text-foreground text-xs">${steps[0].timestamp ? this.formatTimestamp(steps[0].timestamp, false) : '-'}</div>
+                            <div class="text-[10px] text-muted-foreground">Order เข้าระบบ PMT</div>
+                        </div>
+                        <div class="p-3.5 rounded-xl bg-indigo-500/5 border border-indigo-500/20 space-y-1">
+                            <div class="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold uppercase">จุดแปลงเข้าแผนงาน (Step 5)</div>
+                            <div class="font-mono font-bold text-foreground text-xs">${steps[4].timestamp ? this.formatTimestamp(steps[4].timestamp, false) : 'กำลังดำเนินการ'}</div>
+                            <div class="text-[10px] text-muted-foreground">พร้อมเริ่มงานติดตั้งจริงในผัง Gantt</div>
+                        </div>
+                        <div class="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-1">
+                            <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase">ความสมบูรณ์ของข้อมูล Audit</div>
+                            <div class="font-bold text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-1">
+                                <i class="ph ph-seal-check text-sm"></i>
+                                <span>${data.completedCount === 5 ? 'ครบถ้วนสมบูรณ์ 100%' : `ดำเนินการแล้ว ${Math.round((data.completedCount / 5) * 100)}%`}</span>
+                            </div>
+                            <div class="text-[10px] text-muted-foreground">ระบบบันทึก Timestamp ทุกขั้นตอนเพื่อ Report</div>
+                        </div>
+                    </div>
+                `;
+
+                this.showModal('modal-step-audit-report');
+            },
+
+            exportSingleJobAuditCSV(jobId = null) {
+                const targetJobId = jobId || this.state.auditReportTargetJobId || this.state.currentJobId;
+                const data = this.getJobStepAuditReportData(targetJobId);
+                if (!data) return;
+
+                const headers = ['Step', 'Workflow_Step_Name', 'Status', 'Recorded_Timestamp', 'Lead_Time', 'Reference', 'Detail'];
+                const rows = data.steps.map(s => [
+                    `"Step ${s.stepNumber}"`,
+                    `"${s.name}"`,
+                    `"${s.isDone ? 'COMPLETED' : 'PENDING'}"`,
+                    `"${s.timestamp ? this.formatTimestamp(s.timestamp) : '-'}"`,
+                    `"${s.leadTime}"`,
+                    `"${s.reference}"`,
+                    `"${s.detail}"`
+                ].join(','));
+
+                const csvContent = '\uFEFF' + [
+                    `"Project Audit Report: ${data.job.id} - ${data.job.customer}"`,
+                    `"Service: ${data.job.service} | Tech: ${data.job.tech}"`,
+                    `"Export Date: ${this.formatTimestamp(new Date().toISOString())}"`,
+                    '',
+                    headers.join(','),
+                    ...rows
+                ].join('\r\n');
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', `Audit_Report_${data.job.id}_${new Date().toISOString().slice(0, 10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                this.showToast(`📥 ดาวน์โหลดรายงาน Audit CSV ของ ${data.job.id} เรียบร้อย`);
+            },
+
+            exportAllJobsAuditCSV() {
+                const headers = [
+                    'Job ID',
+                    'เลขที่อ้างอิง INT',
+                    'ชื่อลูกค้า',
+                    'เบอร์โทรศัพท์',
+                    'ประเภทงานบริการ',
+                    'ช่างผู้รับผิดชอบ',
+                    'สถานะปัจจุบัน',
+                    'Step 1: วัน-เวลารับ Order (Order_At)',
+                    'Step 2: วัน-เวลาบันทึก Design (Design_At)',
+                    'Step 3: วัน-เวลาบันทึก Ticket & ใบเสร็จ (Ticket_At)',
+                    'Step 4: วัน-เวลาจัดทำ BOQ (BOQ_At)',
+                    'Step 5: วัน-เวลาบันทึกเข้า Project (Project_At)',
+                    'จำนวนขั้นตอนที่เสร็จสิ้น'
+                ];
+
+                const rows = (DB.jobs || []).map(j => {
+                    const r = this.getJobStepAuditReportData(j.id);
+                    const ts = j.step_timestamps || {};
+                    return [
+                        `"${j.id}"`,
+                        `"${j.external_ref_id || '-'}"`,
+                        `"${j.customer || ''}"`,
+                        `"${j.phone || ''}"`,
+                        `"${j.service || ''}"`,
+                        `"${j.tech || ''}"`,
+                        `"${j.status || ''}"`,
+                        `"${this.formatTimestamp(ts.step1_order_at)}"`,
+                        `"${this.formatTimestamp(ts.step2_design_at)}"`,
+                        `"${this.formatTimestamp(ts.step3_ticket_at)}"`,
+                        `"${this.formatTimestamp(ts.step4_boq_at)}"`,
+                        `"${this.formatTimestamp(ts.step5_project_at)}"`,
+                        `"${r ? r.completedCount : 0}/5"`
+                    ].join(',');
+                });
+
+                const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', `PMT_Workflow_Step_Timestamps_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                this.showToast('📥 ส่งออกไฟล์ CSV รายงาน Timestamps ทุกขั้นตอนเรียบร้อย');
+            },
+
             updateJobStatus(jobId, newStatus) {
                 const job = DB.jobs.find(j => j.id === jobId);
                 if (!job) return;
@@ -3938,8 +4345,21 @@
                         special_instructions: 'ระวังมีสุนัขในบ้าน, กรุณาโทรแจ้งลูกค้าล่วงหน้า 30 นาทีก่อนเข้าพื้นที่ และสวมถุงคลุมรองเท้าก่อนเข้าห้องนอน',
                         additional_notes: 'ตรวจสอบจุดเชื่อมต่อท่อน้ำทิ้งเดิม และระวังแนวท่อแอร์บนฝ้าเพดาน ลูกค้าเตรียมเต้ารับไฟฟ้าพร้อมแล้ว',
                         photos: [],
-                        boq_items: [],
-                        boq_discount: 0
+                        boq_items: [
+                            { name: 'เครื่องปรับอากาศ Daikin Inverter 18000 BTU', qty: 1, unit: 'ชุด', price: 24500, labor_price: 0, mat_price: 24500 },
+                            { name: 'ค่าแรงติดตั้งเครื่องปรับอากาศพร้อมขาแขวนคอมเพรสเซอร์', qty: 1, unit: 'งาน', price: 2500, labor_price: 2500, mat_price: 0 },
+                            { name: 'ท่อน้ำยาแอร์ทองแดงหุ้มฉนวน 4 เมตร', qty: 1, unit: 'ชุด', price: 1800, labor_price: 0, mat_price: 1800 },
+                            { name: 'สายไฟ VAF 2x2.5 sq.mm. พร้อมท่อร้อยสาย', qty: 10, unit: 'เมตร', price: 65, labor_price: 20, mat_price: 45 }
+                        ],
+                        boq_discount: 0,
+                        boq_grand_total: 31511.50,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-04T08:30:15.000Z",
+                            step2_design_at: "2026-09-04T09:45:22.000Z",
+                            step3_ticket_at: "2026-09-04T10:15:40.000Z",
+                            step4_boq_at: "2026-09-04T11:05:12.000Z",
+                            step5_project_at: "2026-09-04T13:20:05.000Z"
+                        }
                     },
                     {
                         id: 'JOB202609002',
@@ -3958,7 +4378,12 @@
                         additional_notes: 'ติดตั้งเคาน์เตอร์และเดินท่อน้ำทิ้งใหม่',
                         photos: [],
                         boq_items: [],
-                        boq_discount: 0
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-04T08:45:00.000Z",
+                            step2_design_at: "2026-09-04T11:15:00.000Z",
+                            step3_ticket_at: "2026-09-04T11:40:00.000Z"
+                        }
                     },
                     {
                         id: 'JOB202609003',
@@ -3977,7 +4402,11 @@
                         additional_notes: 'เตรียมกล่องอินเวอร์เตอร์และเบรกเกอร์ DC/AC Protection',
                         photos: [],
                         boq_items: [],
-                        boq_discount: 0
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-04T09:00:00.000Z",
+                            step3_ticket_at: "2026-09-04T09:50:00.000Z"
+                        }
                     },
                     {
                         id: 'JOB202609004',
@@ -3996,7 +4425,11 @@
                         additional_notes: 'ปรับระดับพื้นและลงน้ำยากันซึมก่อนปูกระเบื้อง',
                         photos: [],
                         boq_items: [],
-                        boq_discount: 0
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-04T09:15:00.000Z",
+                            step3_ticket_at: "2026-09-04T10:00:00.000Z"
+                        }
                     },
                     {
                         id: 'JOB202609005',
@@ -4015,7 +4448,11 @@
                         additional_notes: 'เช็คเบรกเกอร์ลูกย่อยในตู้ Consumer Unit',
                         photos: [],
                         boq_items: [],
-                        boq_discount: 0
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-04T09:30:00.000Z",
+                            step3_ticket_at: "2026-09-04T10:20:00.000Z"
+                        }
                     },
                     {
                         id: 'JOB202609006',
@@ -4034,7 +4471,10 @@
                         additional_notes: 'ล้างผนังเก่าด้วยเครื่องฉีดน้ำแรงดันสูงก่อนลงน้ำยารองพื้นปูนเก่า',
                         photos: [],
                         boq_items: [],
-                        boq_discount: 0
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-04T09:45:00.000Z"
+                        }
                     },
                     {
                         id: 'JOB202609007',
@@ -4053,7 +4493,10 @@
                         additional_notes: 'เดินสาย LAN Cat6 เข้าตู้ NVR พร้อมตั้งค่า Wi-Fi Router',
                         photos: [],
                         boq_items: [],
-                        boq_discount: 0
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-04T10:00:00.000Z"
+                        }
                     },
                     {
                         id: 'JOB202609008',
@@ -4072,7 +4515,10 @@
                         additional_notes: 'ตรวจสอบแรงดันน้ำทุกก๊อกหลังติดตั้งเสร็จ',
                         photos: [],
                         boq_items: [],
-                        boq_discount: 0
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-04T10:15:00.000Z"
+                        }
                     },
                     {
                         id: 'JOB202609009',
@@ -4091,7 +4537,10 @@
                         additional_notes: 'ใช้กระจกลามิเนตหนา 6+6 มม. กันกระแทก',
                         photos: [],
                         boq_items: [],
-                        boq_discount: 0
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-04T10:30:00.000Z"
+                        }
                     },
                     {
                         id: 'JOB202609010',
@@ -4110,7 +4559,10 @@
                         additional_notes: 'เดินท่อน้ำทิ้ง PVC หุ้มฉนวน Armaflex ป้องกันหยดน้ำเกาะฝ้า',
                         photos: [],
                         boq_items: [],
-                        boq_discount: 0
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-04T10:45:00.000Z"
+                        }
                     }
                 ];
             },
@@ -4244,6 +4696,31 @@
                 } else {
                     DB.blueprints = this.getDefaultMockBlueprints();
                     this.persistBlueprints();
+                }
+
+                // Step Timestamps Audit: Ensure all jobs have step_timestamps initialized for reporting
+                if (Array.isArray(DB.jobs)) {
+                    DB.jobs.forEach(j => {
+                        if (!j.step_timestamps) j.step_timestamps = {};
+                        if (!j.step_timestamps.step1_order_at) {
+                            j.step_timestamps.step1_order_at = j.created_at || (j.date ? `${j.date}T08:30:00.000Z` : "2026-09-04T08:30:15.000Z");
+                        }
+                        const hasBp = (DB.blueprints || []).find(b => b.jobId === j.id);
+                        if (hasBp && !j.step_timestamps.step2_design_at) {
+                            j.step_timestamps.step2_design_at = hasBp.recorded_at || "2026-09-04T09:45:22.000Z";
+                        }
+                        const hasTkt = (DB.tickets || []).find(t => t.job_id === j.id);
+                        if (hasTkt && !j.step_timestamps.step3_ticket_at) {
+                            j.step_timestamps.step3_ticket_at = hasTkt.created_at || "2026-09-04T10:15:40.000Z";
+                        }
+                        if (j.boq_items && j.boq_items.length > 0 && !j.step_timestamps.step4_boq_at) {
+                            j.step_timestamps.step4_boq_at = "2026-09-04T11:05:12.000Z";
+                        }
+                        const hasTasks = (DB.tasks || []).some(t => t.jobId === j.id);
+                        if (hasTasks && !j.step_timestamps.step5_project_at) {
+                            j.step_timestamps.step5_project_at = "2026-09-04T13:20:05.000Z";
+                        }
+                    });
                 }
 
                 // Rule Enforcement: แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart
@@ -4526,8 +5003,11 @@
                     const runningStr = String(DB.jobs.length + 1).padStart(3, '0');
                     const newId = `JOB${yyyy}${mm}${runningStr}`;
                     const fullName = `${firstName} ${lastName}`;
+                    const nowIso = new Date().toISOString();
                     DB.jobs.unshift({
                         id: newId,
+                        job_no: newId,
+                        external_ref_id: `INT-${yyyy}-${runningStr}`,
                         firstName: firstName,
                         lastName: lastName,
                         customer: fullName,
@@ -4542,7 +5022,15 @@
                         tech: tech,
                         special_instructions: special_instructions,
                         additional_notes: additional_notes,
-                        photos: []
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: nowIso
+                        },
+                        step_timestamps_history: [
+                            { stepKey: 'step1_order_at', timestamp: nowIso, note: 'บันทึกเปิดงานใหม่ / รับ Order' }
+                        ]
                     });
                     this.showToast(`สร้างงาน ${newId} (ลูกค้า: ${fullName}) สำเร็จแล้ว`);
                     if(this.state.currentView === 'jobs') this.renderJobs();
@@ -4760,12 +5248,29 @@
                             <span class="text-xs">${j.tech}</span>
                         </td>
                         <td class="px-5 py-4">${this.getStatusHtml(j.status)}</td>
-                        <td class="px-5 py-4 w-40">
+                        <td class="px-5 py-4 w-44">
                             <div class="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-                                <span>${j.progress}%</span>
+                                <span class="font-semibold text-foreground">${j.progress}%</span>
+                                <span class="text-[10px] text-purple-600 dark:text-purple-400 font-mono" title="ความสมบูรณ์ 5 ขั้นตอน">${(() => {
+                                    const rep = app.getJobStepAuditReportData(j.id);
+                                    return rep ? `Step ${rep.completedCount}/5` : '';
+                                })()}</span>
                             </div>
-                            <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                            <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden mb-1.5">
                                 <div class="bg-gradient-to-r from-brand-600 to-indigo-500 h-1.5 rounded-full" style="width: ${j.progress}%"></div>
+                            </div>
+                            <!-- 5-Step Micro Indicators with Exact Timestamp Tooltips -->
+                            <div class="flex items-center gap-1" onclick="event.stopPropagation(); app.openStepAuditReportModal('${j.id}')" title="คลิกเพื่อดู Audit Report บันทึกเวลาทั้ง 5 ขั้นตอน">
+                                ${(() => {
+                                    const rep = app.getJobStepAuditReportData(j.id);
+                                    if (!rep) return '';
+                                    return rep.steps.map(s => {
+                                        const done = s.isDone;
+                                        const t = s.timestamp ? app.formatTimestamp(s.timestamp) : 'ยังไม่บันทึก';
+                                        return `<span class="w-3.5 h-3.5 rounded-full font-mono text-[8px] flex items-center justify-center font-bold ${done ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground/50 border border-border'}" title="${s.name}: ${t}">${s.stepNumber}</span>`;
+                                    }).join('');
+                                })()}
+                                <span class="text-[9px] text-brand-500 ml-1 hover:underline cursor-pointer"><i class="ph ph-clock"></i></span>
                             </div>
                         </td>
                         <td class="px-5 py-4 text-right">
@@ -5074,10 +5579,15 @@
                 const job = DB.jobs.find(j => j.id === id);
                 if(!job) return;
 
+                const acceptNow = new Date().toISOString();
                 job.status = 'IN_PROGRESS';
                 job.pmt_accepted = true;
-                job.pmt_accepted_at = new Date().toISOString();
+                job.pmt_accepted_at = acceptNow;
                 job.progress = Math.max(job.progress || 0, 45);
+                this.recordStepTimestamp(id, 'step1_accepted_at', acceptNow, 'รับงานเข้าสู่ PMT (In Progress)');
+                if (!job.step_timestamps || !job.step_timestamps.step1_order_at) {
+                    this.recordStepTimestamp(id, 'step1_order_at', acceptNow, 'รับ Order');
+                }
 
                 this.persistJobs();
 
@@ -5460,22 +5970,21 @@
                                     </div>
                                 </div>
 
-                                <!-- Compact Workflow Timeline -->
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                                    <div class="p-2 rounded-lg bg-muted/30 border border-border flex items-start gap-2">
-                                        <div class="w-4 h-4 bg-emerald-500 text-white flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 mt-0.5">✓</div>
-                                        <div class="min-w-0">
-                                            <div class="font-semibold text-foreground text-[11px] truncate">1. เปิดงานใหม่ (จาก INT/AE)</div>
-                                            <div class="text-[10px] text-muted-foreground">Order อัตโนมัติ • ${job.date}</div>
+                                <!-- 5-Step Workflow Timestamps Quick Header -->
+                                <div class="p-2 rounded-xl bg-purple-500/5 border border-purple-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center text-sm shrink-0">
+                                            <i class="ph ph-clock-counter-clockwise"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-foreground text-[11px]">Workflow Step Timestamps Audit</div>
+                                            <div class="text-[10px] text-muted-foreground">บันทึกเวลาประทับทุกขั้นตอนเพื่อทำ Report</div>
                                         </div>
                                     </div>
-                                    <div class="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/20 flex items-start gap-2">
-                                        <div class="w-4 h-4 bg-emerald-500 text-white flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 mt-0.5">✓</div>
-                                        <div class="min-w-0">
-                                            <div class="font-semibold text-emerald-600 dark:text-emerald-400 text-[11px] truncate">2. Check-in GPS (จาก AE)</div>
-                                            <div class="text-[10px] text-muted-foreground truncate">GPS ห่าง 180 ม. <span class="text-emerald-500 font-medium">(ผ่านเกณฑ์ 400 ม.)</span></div>
-                                        </div>
-                                    </div>
+                                    <button type="button" onclick="app.openStepAuditReportModal('${job.id}')" class="btn-artifact-primary px-3 py-1 rounded-lg text-xs bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer">
+                                        <i class="ph ph-file-text"></i>
+                                        <span>เปิด Audit Report</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -5596,6 +6105,93 @@
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
                             ${this.getStatusHtml(job.status)}
+                        </div>
+                    </div>
+
+                    <!-- 5-Step Workflow & Timestamps Audit Pipeline Tracker Card -->
+                    <div class="artifact-card p-4 space-y-3 bg-gradient-to-br from-card via-card to-purple-500/5 border border-border shadow-xs">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-border">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center text-lg shrink-0">
+                                    <i class="ph ph-git-commit"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-display font-bold text-xs text-foreground flex items-center gap-1.5">
+                                        <span>5 ขั้นตอนการปฏิบัติงาน & บันทึกเวลา (Workflow Step Timestamps)</span>
+                                        <span class="px-2 py-0.2 rounded-full text-[9px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Audit Trail Active</span>
+                                    </h3>
+                                    <p class="text-[10px] text-muted-foreground">บันทึกเวลาอัตโนมัติทุกขั้นตอน (Step 1-5) เพื่อความโปร่งใสและการจัดทำรายงาน Audit & SLA</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button type="button" onclick="app.openStepAuditReportModal('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer">
+                                    <i class="ph ph-file-text text-sm"></i>
+                                    <span>📄 ดูรายงาน Audit Report</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 5 Steps Horizontal Responsive Cards -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                            ${(() => {
+                                const report = app.getJobStepAuditReportData(job.id);
+                                if (!report) return '';
+                                return report.steps.map(s => {
+                                    const isDone = s.isDone;
+                                    const tsText = s.timestamp ? app.formatTimestamp(s.timestamp) : 'ยังไม่ดำเนินการ';
+                                    const iconMap = {
+                                        1: 'ph-file-text',
+                                        2: 'ph-blueprint',
+                                        3: 'ph-receipt',
+                                        4: 'ph-calculator',
+                                        5: 'ph-calendar-check'
+                                    };
+                                    let actionBtn = '';
+                                    if (s.stepNumber === 1) {
+                                        actionBtn = `<span class="text-[9px] text-muted-foreground font-mono truncate">${job.external_ref_id || job.id}</span>`;
+                                    } else if (s.stepNumber === 2) {
+                                        actionBtn = `<button type="button" onclick="app.navigate('blueprints')" class="text-[10px] text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-0.5 cursor-pointer font-medium"><i class="ph ph-arrow-square-out"></i> ไปหน้า Design</button>`;
+                                    } else if (s.stepNumber === 3) {
+                                        actionBtn = `<button type="button" onclick="app.navigate('tickets')" class="text-[10px] text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-0.5 cursor-pointer font-medium"><i class="ph ph-arrow-square-out"></i> ไปหน้า Ticket</button>`;
+                                    } else if (s.stepNumber === 4) {
+                                        actionBtn = `<button type="button" onclick="app.switchJobTab('boq')" class="text-[10px] text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-0.5 cursor-pointer font-medium"><i class="ph ph-receipt"></i> จัดการ BOQ</button>`;
+                                    } else if (s.stepNumber === 5) {
+                                        actionBtn = `<button type="button" onclick="app.navigate('gantt')" class="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5 cursor-pointer font-medium"><i class="ph ph-chart-bar"></i> ผัง Gantt</button>`;
+                                    }
+
+                                    return `
+                                    <div class="p-2.5 rounded-xl border ${isDone ? 'bg-emerald-500/5 border-emerald-500/25 dark:bg-emerald-500/10' : 'bg-muted/30 border-border opacity-70'} flex flex-col justify-between space-y-2 transition hover:shadow-xs">
+                                        <div>
+                                            <div class="flex items-center justify-between gap-1 mb-1">
+                                                <span class="w-5 h-5 rounded-full ${isDone ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground border border-border'} font-mono font-bold text-[10px] flex items-center justify-center shrink-0">
+                                                    ${s.stepNumber}
+                                                </span>
+                                                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold ${isDone ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'}">
+                                                    ${isDone ? '✓ บันทึกแล้ว' : '⏳ รอดำเนินการ'}
+                                                </span>
+                                            </div>
+                                            <div class="font-bold text-foreground text-[11px] leading-tight truncate" title="${s.name}">
+                                                ${s.name}
+                                            </div>
+                                            <div class="text-[9px] text-muted-foreground truncate" title="${s.category}">
+                                                ${s.category}
+                                            </div>
+                                        </div>
+
+                                        <div class="pt-1.5 border-t border-border/50 space-y-1">
+                                            <div class="font-mono text-[9px] ${isDone ? 'text-emerald-700 dark:text-emerald-300 font-semibold' : 'text-muted-foreground/60 italic'} flex items-center gap-1 truncate" title="${tsText}">
+                                                <i class="ph ph-clock text-[10px] ${isDone ? 'text-emerald-600' : 'text-muted-foreground/40'} shrink-0"></i>
+                                                <span class="truncate">${tsText}</span>
+                                            </div>
+                                            <div class="flex items-center justify-between pt-0.5">
+                                                ${actionBtn}
+                                                <span class="text-[8px] font-mono text-muted-foreground">${s.leadTime}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    `;
+                                }).join('');
+                            })()}
                         </div>
                     </div>
 
@@ -5876,9 +6472,13 @@
                     notes: notes
                 };
 
+                newBp.recorded_at = new Date().toISOString();
                 if (!DB.blueprints) DB.blueprints = [];
                 DB.blueprints.unshift(newBp);
                 this.persistBlueprints();
+
+                // Step 2 Timestamp Recording
+                this.recordStepTimestamp(jobId, 'step2_design_at', newBp.recorded_at, `แนบแบบแปลน ${filename} (${version})`);
 
                 this.hideModal('modal-upload-blueprint');
                 this.showToast(`✅ บันทึกและแนบแบบแปลน "${filename}" สำหรับ ${jobId} สำเร็จ`);
@@ -6306,6 +6906,7 @@
                     });
                 });
 
+                this.recordStepTimestamp(data.jobId, 'step4_boq_at', new Date().toISOString(), 'บันทึก BOQ & กำหนดวันปฏิบัติงาน');
                 this.persistJobs();
 
                 // Sync with backend API in background
@@ -6931,6 +7532,7 @@
                     if (header.date) job.date = header.date;
                 }
 
+                this.recordStepTimestamp(targetJobId, 'step4_boq_at', new Date().toISOString(), `นำเข้า BOQ ${newItems.length} รายการ`);
                 this.persistJobs();
                 this.hideModal('modal-import-boq');
                 this.state.selectedGanttJobId = targetJobId;
@@ -7562,6 +8164,7 @@
                     })
                 }).catch(err => console.log('Backend sync task notice:', err.message));
 
+                this.recordStepTimestamp(targetJobId, 'step5_project_at', new Date().toISOString(), `แปลง BOQ เป็นแผนงาน Task ${selectedTasks.length} รายการ`);
                 this.persistJobs();
                 this.syncQCBookingsFromTasks();
                 this.hideModal('modal-convert-boq-tasks');
@@ -7947,6 +8550,9 @@
                 if (!DB.tickets) DB.tickets = [];
                 DB.tickets.unshift(newTicket);
                 this.persistTickets();
+
+                // Step 3 Timestamp Recording
+                this.recordStepTimestamp(jobId, 'step3_ticket_at', newTicket.created_at, `บันทึก Ticket ${ticketNo} สลิป ${receiptNo || '-'}`);
                 this.hideModal('modal-create-ticket');
                 this.renderTickets();
                 this.showToast(`✅ บันทึก Ticket ${ticketNo} และแนบใบเสร็จเรียบร้อย`);
@@ -8230,8 +8836,9 @@
 
             saveBOQPage() {
                 const targetJobId = this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
+                this.recordStepTimestamp(targetJobId, 'step4_boq_at', new Date().toISOString(), 'บันทึกรายการ BOQ ในระบบ PMT');
                 this.persistJobs();
-                this.showToast(`💾 บันทึกรายการ BOQ โครงการ ${targetJobId} เรียบร้อย`);
+                this.showToast(`💾 บันทึกรายการ BOQ โครงการ ${targetJobId} เรียบร้อย (บันทึก Timestamp แล้ว)`);
             },
 
             proceedToStep5Project(jobId) {
