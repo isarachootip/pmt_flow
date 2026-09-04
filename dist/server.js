@@ -474,12 +474,8 @@ function seedInitialCoreData(populateMocks = false) {
         console.log('[CORE STORE] Initialized with empty core jobs store (Clean State).');
         return;
     }
-    const mockTasks = [
-        { id: 'T2', job_id: 1, job_no: 'JOB202609001', task_name: 'งานประปา/ไฟฟ้า', assigned_tech: 'Team A', assignees: ['Team A (สมศักดิ์)'], plan_start_date: '2026-09-03', plan_end_date: '2026-09-05', duration_days: 3, status: 'IN_PROGRESS', progress_percent: 60 },
-        { id: 'T3', job_id: 1, job_no: 'JOB202609001', task_name: 'ติดตั้งตู้เคาน์เตอร์', assigned_tech: 'Team A', assignees: ['Team A (สมศักดิ์)'], plan_start_date: '2026-09-06', plan_end_date: '2026-09-09', duration_days: 4, status: 'PENDING', progress_percent: 0 },
-        { id: 'T4', job_id: 2, job_no: 'JOB202609002', task_name: 'เตรียมหน้างาน', assigned_tech: 'Team B', assignees: ['Team B (ประเสริฐ)'], plan_start_date: '2026-09-01', plan_end_date: '2026-09-01', duration_days: 1, status: 'DONE', progress_percent: 100 },
-        { id: 'T5', job_id: 2, job_no: 'JOB202609002', task_name: 'ติดตั้งปั้มและเดินท่อ', assigned_tech: 'Team B', assignees: ['Team B (ประเสริฐ)'], plan_start_date: '2026-09-02', plan_end_date: '2026-09-02', duration_days: 1, status: 'DONE', progress_percent: 100 },
-    ];
+    // When simulating fresh INT work orders, start cleanly with no tasks or QC bookings
+    const mockTasks = [];
     exports.coreTaskStore.push(...mockTasks);
     mockTasks.forEach(t => syncQCBookingForTask(t));
     const mockCustomers = [
@@ -501,14 +497,14 @@ function seedInitialCoreData(populateMocks = false) {
             job_no: 'JOB202609001',
             external_ref_id: 'INT-2026-001',
             customer_id: 1,
-            status: JobStatus.IN_PROGRESS,
+            status: JobStatus.DRAFT,
             property_type: 'บ้านเดี่ยว',
             project_type: 'Installation',
             project_sub_type: 'ติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU',
             assigned_tech: 'Team A (สมศักดิ์)',
             plan_date: '2026-09-05',
             services: ['ติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU'],
-            overall_progress: 45,
+            overall_progress: 0,
             special_instructions: 'ระวังมีสุนัขในบ้าน, กรุณาโทรแจ้งลูกค้าล่วงหน้า 30 นาทีก่อนเข้าพื้นที่ และสวมถุงคลุมรองเท้าก่อนเข้าห้องนอน',
             additional_notes: 'ตรวจสอบจุดเชื่อมต่อท่อน้ำทิ้งเดิม และระวังแนวท่อแอร์บนฝ้าเพดาน ลูกค้าเตรียมเต้ารับไฟฟ้าพร้อมแล้ว',
             photos: [],
@@ -1511,6 +1507,8 @@ app.post('/api/v1/jobs/reset-status', requireAuth, (req, res) => {
         j.status = JobStatus.DRAFT;
         j.overall_progress = 0;
     });
+    exports.coreTaskStore.length = 0;
+    exports.coreQCBookingStore.length = 0;
     return res.json({
         success: true,
         message: 'ถอยสถานะของทุก Job กลับสู่จุดเริ่มต้น (DRAFT / 0%) เรียบร้อย',

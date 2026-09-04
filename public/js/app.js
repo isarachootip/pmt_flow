@@ -434,24 +434,57 @@ const app = {
                     alert('ขออภัย เฉพาะผู้ใช้ isarachootip@gmail.com เท่านั้นที่สามารถถอยสถานะโครงการได้');
                     return;
                 }
-                if (confirmAction && !confirm('คุณแน่ใจหรือไม่ที่จะถอยสถานะของทุกโครงการกลับไปจุดเริ่มต้น (Draft / 0%)?')) {
+                if (confirmAction && !confirm('คุณแน่ใจหรือไม่ที่จะถอยสถานะของทุกโครงการกลับไปจุดเริ่มต้น (Step 1 / Draft / 0%)?')) {
                     return;
                 }
                 DB.jobs.forEach(job => {
                     job.status = 'DRAFT';
                     job.progress = 0;
+                    const s1 = (job.step_timestamps && job.step_timestamps.step1_order_at) || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : '2026-09-04T08:30:15.000Z');
+                    job.step_timestamps = { step1_order_at: s1 };
+                    job.boq_items = [];
+                    job.boq_discount = 0;
+                    job.boq_grand_total = 0;
                 });
+                DB.tasks = [];
+                DB.blueprints = [];
+                DB.tickets = [];
+                DB.qcBookings = [];
                 this.persistJobs();
+                this.persistBlueprints();
+                this.persistTickets();
+                try {
+                    localStorage.setItem('pmt_tasks', JSON.stringify([]));
+                    localStorage.setItem('pmt_qc_bookings', JSON.stringify([]));
+                } catch (e) {}
+
                 try {
                     await fetch('/api/v1/jobs/reset-status', { method: 'POST' });
                 } catch (e) {}
+
                 if (this.state.currentView === 'jobs') this.renderJobs();
                 if (this.state.currentView === 'dashboard') this.renderDashboard();
                 if (this.state.currentView === 'job-detail') this.renderJobDetail();
                 if (this.state.currentView === 'gantt') this.renderGantt();
                 if (this.state.currentView === 'qc') this.renderQC();
                 if (this.state.currentView === 'csat') this.renderCSAT();
-                this.showToast('🔄 ถอยสถานะโครงการทั้งหมดกลับสู่จุดเริ่มต้น (Draft / 0%) เรียบร้อยแล้ว');
+                if (this.state.currentView === 'blueprints') this.renderBlueprints();
+                if (this.state.currentView === 'tickets') this.renderTickets();
+
+                const countEl = document.getElementById('sidebar-job-count');
+                if (countEl) countEl.innerText = DB.jobs.length;
+                const sidebarBp = document.getElementById('sidebar-blueprint-count');
+                if (sidebarBp) sidebarBp.innerText = DB.jobs.length;
+                const sidebarTicket = document.getElementById('sidebar-ticket-count');
+                if (sidebarTicket) sidebarTicket.innerText = '0';
+                const sidebarBoq = document.getElementById('sidebar-boq-count');
+                if (sidebarBoq) sidebarBoq.innerText = '0';
+                const sidebarTask = document.getElementById('sidebar-task-count');
+                if (sidebarTask) sidebarTask.innerText = '0';
+                const sidebarCsat = document.getElementById('sidebar-csat-count');
+                if (sidebarCsat) sidebarCsat.innerText = '0';
+
+                this.showToast('🔄 ถอยสถานะโครงการทั้งหมดกลับสู่จุดเริ่มต้น (Step 1 / Draft / 0%) เรียบร้อยแล้ว');
             },
 
             async clearAllProjects(confirmAction = true) {
@@ -500,30 +533,19 @@ const app = {
                         phone: '081-111-2222',
                         service: 'ติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU',
                         services: ['ติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU'],
-                        status: 'IN_PROGRESS',
+                        status: 'DRAFT',
                         date: '2026-09-05',
-                        progress: 45,
+                        progress: 0,
                         address: '99/1 ซอยสุขุมวิท 55 แขวงคลองตันเหนือ เขตวัฒนา กรุงเทพฯ 10110',
                         tech: 'Team A (สมศักดิ์)',
                         special_instructions: 'ระวังมีสุนัขในบ้าน, กรุณาโทรแจ้งลูกค้าล่วงหน้า 30 นาทีก่อนเข้าพื้นที่ และสวมถุงคลุมรองเท้าก่อนเข้าห้องนอน',
                         additional_notes: 'ตรวจสอบจุดเชื่อมต่อท่อน้ำทิ้งเดิม และระวังแนวท่อแอร์บนฝ้าเพดาน ลูกค้าเตรียมเต้ารับไฟฟ้าพร้อมแล้ว',
                         photos: [],
-                        boq_items: [
-                            { name: 'เครื่องปรับอากาศ Daikin Inverter 18000 BTU', qty: 1, unit: 'ชุด', price: 24500, labor_price: 0, mat_price: 24500 },
-                            { name: 'ค่าแรงติดตั้งเครื่องปรับอากาศพร้อมขาแขวนคอมเพรสเซอร์', qty: 1, unit: 'งาน', price: 2500, labor_price: 2500, mat_price: 0 },
-                            { name: 'ท่อน้ำยาแอร์ทองแดงหุ้มฉนวน 4 เมตร', qty: 1, unit: 'ชุด', price: 1800, labor_price: 0, mat_price: 1800 },
-                            { name: 'สายไฟ VAF 2x2.5 sq.mm. พร้อมท่อร้อยสาย', qty: 10, unit: 'เมตร', price: 65, labor_price: 20, mat_price: 45 }
-                        ],
+                        boq_items: [],
                         boq_discount: 0,
-                        boq_grand_total: 31511.50,
+                        boq_grand_total: 0,
                         step_timestamps: {
-                            step1_order_at: "2026-09-04T08:30:15.000Z",
-                            step2_design_at: "2026-09-04T09:45:22.000Z",
-                            step3_boq_at: "2026-09-04T10:15:40.000Z",
-                            step4_ticket_at: "2026-09-04T11:05:12.000Z",
-                            step3_ticket_at: "2026-09-04T11:05:12.000Z",
-                            step4_boq_at: "2026-09-04T10:15:40.000Z",
-                            step5_project_at: "2026-09-04T13:20:05.000Z"
+                            step1_order_at: "2026-09-04T08:30:15.000Z"
                         }
                     },
                     {
@@ -545,10 +567,7 @@ const app = {
                         boq_items: [],
                         boq_discount: 0,
                         step_timestamps: {
-                            step1_order_at: "2026-09-04T08:45:00.000Z",
-                            step2_design_at: "2026-09-04T11:15:00.000Z",
-                            step3_ticket_at: "2026-09-04T11:40:00.000Z",
-                            step4_ticket_at: "2026-09-04T11:40:00.000Z"
+                            step1_order_at: "2026-09-04T08:45:00.000Z"
                         }
                     },
                     {
@@ -570,9 +589,7 @@ const app = {
                         boq_items: [],
                         boq_discount: 0,
                         step_timestamps: {
-                            step1_order_at: "2026-09-04T09:00:00.000Z",
-                            step3_ticket_at: "2026-09-04T09:50:00.000Z",
-                            step4_ticket_at: "2026-09-04T09:50:00.000Z"
+                            step1_order_at: "2026-09-04T09:00:00.000Z"
                         }
                     },
                     {
@@ -594,9 +611,7 @@ const app = {
                         boq_items: [],
                         boq_discount: 0,
                         step_timestamps: {
-                            step1_order_at: "2026-09-04T09:15:00.000Z",
-                            step3_ticket_at: "2026-09-04T10:00:00.000Z",
-                            step4_ticket_at: "2026-09-04T10:00:00.000Z"
+                            step1_order_at: "2026-09-04T09:15:00.000Z"
                         }
                     },
                     {
@@ -618,9 +633,7 @@ const app = {
                         boq_items: [],
                         boq_discount: 0,
                         step_timestamps: {
-                            step1_order_at: "2026-09-04T09:30:00.000Z",
-                            step3_ticket_at: "2026-09-04T10:20:00.000Z",
-                            step4_ticket_at: "2026-09-04T10:20:00.000Z"
+                            step1_order_at: "2026-09-04T09:30:00.000Z"
                         }
                     },
                     {
@@ -747,10 +760,14 @@ const app = {
                     return;
                 }
 
-                // 1. Clear the cleared flag so local storage and polling don't wipe it
+                // 1. Clear storage flags
                 try {
                     localStorage.removeItem('pmt_jobs_cleared_v3');
-                    localStorage.setItem('pmt_int_mock_10jobs_v3', 'true');
+                    localStorage.setItem('pmt_int_mock_10jobs_v4', 'true');
+                    localStorage.removeItem('pmt_tasks');
+                    localStorage.removeItem('pmt_blueprints');
+                    localStorage.removeItem('pmt_tickets');
+                    localStorage.removeItem('pmt_qc_bookings');
                 } catch(e) {}
 
                 // 2. Tell backend server to seed the 10 INT orders
@@ -760,11 +777,20 @@ const app = {
                     console.warn('Server reset failed, continuing with local mock:', e);
                 }
 
-                // 3. Populate local DB.jobs
+                // 3. Populate local DB
                 const mockOrders = this.getINTMockOrders();
                 DB.jobs = JSON.parse(JSON.stringify(mockOrders));
                 DB.tasks = [];
+                DB.blueprints = [];
+                DB.tickets = [];
+                DB.qcBookings = [];
                 this.persistJobs();
+                this.persistBlueprints();
+                this.persistTickets();
+                try {
+                    localStorage.setItem('pmt_tasks', JSON.stringify([]));
+                    localStorage.setItem('pmt_qc_bookings', JSON.stringify([]));
+                } catch (e) {}
 
                 // 4. Synchronize with API
                 await this.fetchJobsFromApi();
@@ -774,11 +800,23 @@ const app = {
                 if (this.state.currentView === 'gantt') this.renderGantt();
                 if (this.state.currentView === 'qc') this.renderQC();
                 if (this.state.currentView === 'csat') this.renderCSAT();
+                if (this.state.currentView === 'blueprints') this.renderBlueprints();
+                if (this.state.currentView === 'tickets') this.renderTickets();
 
                 const countEl = document.getElementById('sidebar-job-count');
                 if (countEl) countEl.innerText = DB.jobs.length;
+                const sidebarBp = document.getElementById('sidebar-blueprint-count');
+                if (sidebarBp) sidebarBp.innerText = DB.jobs.length;
+                const sidebarTicket = document.getElementById('sidebar-ticket-count');
+                if (sidebarTicket) sidebarTicket.innerText = '0';
+                const sidebarBoq = document.getElementById('sidebar-boq-count');
+                if (sidebarBoq) sidebarBoq.innerText = '0';
+                const sidebarTask = document.getElementById('sidebar-task-count');
+                if (sidebarTask) sidebarTask.innerText = '0';
+                const sidebarCsat = document.getElementById('sidebar-csat-count');
+                if (sidebarCsat) sidebarCsat.innerText = '0';
 
-                this.showToast(`📥 จำลองรับ Order จาก INT System สำเร็จ ${DB.jobs.length} งาน (BOQ ว่างเปล่า รอการนำเข้าเพื่อสร้าง Task ใน Gantt)`);
+                this.showToast(`📥 จำลองรับ Order จาก INT System สำเร็จ ${DB.jobs.length} งาน (ทุกงานอยู่ที่ Step 1 ความคืบหน้า 0% พร้อมเริ่มต้นกระบวนการ)`);
             },
 
             init() {
@@ -788,6 +826,23 @@ const app = {
                     document.documentElement.classList.add('dark');
                 } else {
                     document.documentElement.classList.remove('dark');
+                }
+
+                // Initial seed or auto-migration to v4 of 10 INT orders (clean Step 1 start)
+                if (localStorage.getItem('pmt_int_mock_10jobs_v4') !== 'true') {
+                    try {
+                        localStorage.setItem('pmt_int_mock_10jobs_v4', 'true');
+                        DB.jobs = this.getINTMockOrders();
+                        DB.tasks = [];
+                        DB.blueprints = [];
+                        DB.tickets = [];
+                        DB.qcBookings = [];
+                        this.persistJobs();
+                        this.persistBlueprints();
+                        this.persistTickets();
+                        localStorage.setItem('pmt_tasks', JSON.stringify([]));
+                        localStorage.setItem('pmt_qc_bookings', JSON.stringify([]));
+                    } catch(e) {}
                 }
 
                 // Restore saved jobs or seed with 10 INT mock jobs
@@ -808,15 +863,6 @@ const app = {
                 } else {
                     DB.jobs = this.getINTMockOrders();
                     this.persistJobs();
-                }
-
-                // Initial seed of 10 INT orders if not seeded yet
-                if (localStorage.getItem('pmt_int_mock_10jobs_v3') !== 'true') {
-                    try {
-                        localStorage.setItem('pmt_int_mock_10jobs_v3', 'true');
-                        DB.jobs = this.getINTMockOrders();
-                        this.persistJobs();
-                    } catch(e) {}
                 }
 
                 // Restore saved tasks
@@ -891,15 +937,23 @@ const app = {
                         const hasBp = (DB.blueprints || []).find(b => b.jobId === j.id);
                         if (hasBp && !j.step_timestamps.step2_design_at) {
                             j.step_timestamps.step2_design_at = hasBp.recorded_at || "2026-09-04T09:45:22.000Z";
+                        } else if (!hasBp && j.status === 'DRAFT') {
+                            delete j.step_timestamps.step2_design_at;
                         }
-                        if (j.boq_items && j.boq_items.length > 0) {
+
+                        const hasBoq = j.boq_items && j.boq_items.length > 0;
+                        if (hasBoq) {
                             if (!j.step_timestamps.step3_boq_at) {
                                 j.step_timestamps.step3_boq_at = j.step_timestamps.step4_boq_at || "2026-09-04T10:15:40.000Z";
                             }
                             if (!j.step_timestamps.step4_boq_at) {
                                 j.step_timestamps.step4_boq_at = j.step_timestamps.step3_boq_at;
                             }
+                        } else if (!hasBoq && j.status === 'DRAFT') {
+                            delete j.step_timestamps.step3_boq_at;
+                            delete j.step_timestamps.step4_boq_at;
                         }
+
                         const hasTkt = (DB.tickets || []).find(t => t.job_id === j.id);
                         if (hasTkt) {
                             if (!j.step_timestamps.step4_ticket_at) {
@@ -908,10 +962,16 @@ const app = {
                             if (!j.step_timestamps.step3_ticket_at) {
                                 j.step_timestamps.step3_ticket_at = j.step_timestamps.step4_ticket_at;
                             }
+                        } else if (!hasTkt && j.status === 'DRAFT') {
+                            delete j.step_timestamps.step4_ticket_at;
+                            delete j.step_timestamps.step3_ticket_at;
                         }
+
                         const hasTasks = (DB.tasks || []).some(t => t.jobId === j.id);
                         if (hasTasks && !j.step_timestamps.step5_project_at) {
                             j.step_timestamps.step5_project_at = "2026-09-04T13:20:05.000Z";
+                        } else if (!hasTasks && j.status === 'DRAFT') {
+                            delete j.step_timestamps.step5_project_at;
                         }
                     });
                 }
@@ -4817,124 +4877,12 @@ const app = {
                         receipt_no: "RC-VFIX-260901-001",
                         contract_no: "CTR-202609-001",
                         job_id: "JOB202609001",
-                        customer_name: "คุณ นภัสวรรณ มีศิริ",
-                        service: "ติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU",
-                        amount: 32500,
-                        payment_date: "2026-09-04",
-                        payment_method: "โอนเงินผ่านธนาคาร (Bank Transfer)",
-                        slip_url: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80",
-                        slip_name: "slip_transfer_kbank.jpg",
-                        contract_url: "https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80",
-                        contract_name: "สัญญาจ้างงานติดตั้ง_vFIX_202609001.pdf",
-                        status: "VERIFIED",
-                        notes: "ชำระเงินมัดจำงวดแรกผ่าน QR โอนเงิน ธนาคารกสิกรไทย สาขาพัทยา"
-                    },
-                    {
-                        id: "TKT-202609-002",
-                        ticket_no: "209051120",
-                        receipt_no: "RC-VFIX-260901-002",
-                        contract_no: "CTR-202609-002",
-                        job_id: "JOB202609002",
-                        customer_name: "คุณสมศรี สุขใจ",
-                        service: "Renovate ห้องครัว Built-in & งานระบบประปา",
-                        amount: 48900,
-                        payment_date: "2026-09-04",
-                        payment_method: "บัตรเครดิต (Credit Card)",
-                        slip_url: "https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=600&auto=format&fit=crop&q=80",
-                        slip_name: "slip_credit_card.jpg",
-                        contract_url: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=700&auto=format&fit=crop&q=80",
-                        contract_name: "สัญญาบริการรีโนเวทห้องครัว_202609002.pdf",
-                        status: "VERIFIED",
-                        notes: "รูดบัตรเครดิต KBank ผ่อนชำระ 0% 10 เดือน ที่สาขาอารีย์"
-                    },
-                    {
-                        id: "TKT-202609-003",
-                        ticket_no: "209051121",
-                        receipt_no: "RC-VFIX-260901-003",
-                        contract_no: "CTR-202609-003",
-                        job_id: "JOB202609003",
-                        customer_name: "คุณเอนก มั่งคั่ง",
-                        service: "ติดตั้งระบบโซลาร์เซลล์ Solar Rooftop On-Grid 5kW",
-                        amount: 145000,
-                        payment_date: "2026-09-04",
-                        payment_method: "โอนเงินผ่านธนาคาร (Bank Transfer)",
-                        slip_url: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=600&auto=format&fit=crop&q=80",
-                        slip_name: "slip_solar_50pct.jpg",
-                        contract_url: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=700&auto=format&fit=crop&q=80",
-                        contract_name: "สัญญาจ้างติดตั้ง Solar_Rooftop_5kW.pdf",
-                        status: "ATTACHED",
-                        notes: "มัดจำ 50% งานติดตั้ง Solar Rooftop ยอดรวม 290,000 บาท"
-                    },
-                    {
-                        id: "TKT-202609-004",
-                        ticket_no: "209051122",
-                        receipt_no: "RC-VFIX-260901-004",
-                        contract_no: "CTR-202609-004",
-                        job_id: "JOB202609004",
-                        customer_name: "คุณวิชัย ใจสว่าง",
-                        service: "ปูกระกระเบื้องแกรนิตโต้ 60x60 ซม. และงานยาแนวกันซึม",
-                        amount: 22000,
-                        payment_date: "2026-09-04",
-                        payment_method: "เงินสด (Cash)",
-                        slip_url: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80",
-                        slip_name: "receipt_cash.jpg",
-                        contract_url: "https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80",
-                        contract_name: "สัญญาจ้างเหมาปูกระเบื้อง.pdf",
-                        status: "VERIFIED",
-                        notes: "รับเงินสดหน้างาน พร้อมออกใบเสร็จรับเงินชั่วคราว"
-                    },
-                    {
-                        id: "TKT-202609-005",
-                        ticket_no: "209051123",
-                        receipt_no: "RC-VFIX-260901-005",
-                        contract_no: "CTR-202609-005",
-                        job_id: "JOB202609005",
-                        customer_name: "คุณสมศักดิ์ มั่นคงโชคดี",
-                        service: "ติดตั้งเครื่องปรับอากาศ 45000W พร้อมเดินท่อทองแดงขาแขวน 1-CUT",
-                        amount: 18500,
-                        payment_date: "2026-09-04",
-                        payment_method: "โอนเงินผ่านธนาคาร (Bank Transfer)",
-                        slip_url: "https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=600&auto=format&fit=crop&q=80",
-                        slip_name: "slip_transfer.jpg",
-                        contract_url: "https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80",
-                        contract_name: "สัญญาติดตั้งแอร์_45000W.pdf",
-                        status: "ATTACHED",
-                        notes: "โอนชำระเงินค่าติดตั้งและอุปกรณ์ท่อทองแดง"
-                    }
-                ];
+            getDefaultMockTickets() {
+                return [];
             },
 
             getDefaultMockBlueprints() {
-                return [
-                    {
-                        id: "BP001",
-                        jobId: "JOB202609001",
-                        customer: "คุณณวัฒน์ รักสงบ",
-                        service: "ติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU",
-                        filename: "Air_Installation_Layout_v3_Final.pdf",
-                        version: "v3 Final",
-                        isCurrent: true,
-                        size: "3.4 MB",
-                        date: "04/09/2569 10:30 น.",
-                        designer: "คุณธนกฤต (HVAC Designer)",
-                        previewImg: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600&auto=format&fit=crop&q=80",
-                        notes: "แบบแปลนจุดติดตั้งคอยล์เย็นในห้องนอนใหญ่ และตำแหน่งแขวนคอนเดนซิ่งยูนิตภายนอกพร้อมแนวท่อรางครอบ 4 เมตร"
-                    },
-                    {
-                        id: "BP002",
-                        jobId: "JOB202609002",
-                        customer: "คุณสมศรี สุขใจ",
-                        service: "Renovate ห้องครัว Built-in & งานระบบประปา",
-                        filename: "Kitchen_Renovate_Plumbing_Schematic.dwg",
-                        version: "v2 Approved",
-                        isCurrent: true,
-                        size: "5.8 MB",
-                        date: "04/09/2569 11:15 น.",
-                        designer: "คุณกิตติศักดิ์ (Interior CAD)",
-                        previewImg: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&auto=format&fit=crop&q=80",
-                        notes: "ไดอะแกรมระบบสุขาภิบาล จุดต่อน้ำดี-น้ำทิ้ง และตำแหน่งตู้เคาน์เตอร์ครัว Built-in พร้อมแนวบล็อกไฟฝังผนัง"
-                    }
-                ];
+                return [];
             },
 
             // ─── STEP 4: TICKETS & RECEIPTS METHODS ─────────────────────
