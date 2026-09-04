@@ -70,7 +70,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="/public/css/app.css">
+    <link rel="stylesheet" href="/public/css/app.css?v=1.1.1">
 </head>
 <body class="h-screen flex overflow-hidden font-sans select-none antialiased">
 
@@ -226,10 +226,10 @@
             <!-- Profile Footer -->
             <div class="p-3 border-t border-border">
                 <div class="flex items-center justify-between p-2 rounded-xl bg-muted/50 border border-border">
-                    <button type="button" onclick="auth.openMyProfile()" class="flex items-center gap-2.5 min-w-0 text-left cursor-pointer group flex-1 mr-1" title="แก้ไขข้อมูลโปรไฟล์ & เปลี่ยนรหัสผ่าน">
+                    <button type="button" id="sidebar-profile-btn" onclick="auth.handleProfileClick()" class="flex items-center gap-2.5 min-w-0 text-left cursor-pointer group flex-1 mr-1" title="ข้อมูลโปรไฟล์ / เข้าสู่ระบบ">
                         <div class="relative shrink-0">
                             <div id="sidebar-avatar" class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-600 to-indigo-500 flex items-center justify-center text-white text-xs font-bold group-hover:ring-2 group-hover:ring-brand-500 transition">ผ</div>
-                            <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card"></span>
+                            <span id="sidebar-user-status-dot" class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card"></span>
                         </div>
                         <div class="truncate">
                             <p class="text-xs font-semibold text-foreground truncate group-hover:text-brand-500 transition" id="sidebar-user-name">ผู้ดูแลระบบ</p>
@@ -237,11 +237,11 @@
                         </div>
                     </button>
                     <div class="flex items-center gap-0.5 shrink-0">
-                        <button onclick="auth.openMyProfile()" class="text-muted-foreground hover:text-brand-500 p-1.5 rounded-lg hover:bg-muted transition cursor-pointer" title="แก้ไขโปรไฟล์ / เปลี่ยนรหัสผ่าน">
+                        <button type="button" id="sidebar-gear-btn" onclick="auth.openMyProfile()" class="text-muted-foreground hover:text-brand-500 p-1.5 rounded-lg hover:bg-muted transition cursor-pointer" title="แก้ไขโปรไฟล์ / เปลี่ยนรหัสผ่าน">
                             <i class="ph ph-gear-six text-base"></i>
                         </button>
-                        <button onclick="(window.auth && auth.logout) ? auth.logout() : app.logout()" class="text-muted-foreground hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-500/10 transition cursor-pointer" title="ออกจากระบบ (Logout)">
-                            <i class="ph ph-sign-out text-base"></i>
+                        <button type="button" id="sidebar-auth-btn" onclick="(window.auth && auth.logout) ? auth.logout() : app.logout()" class="text-muted-foreground hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-500/10 transition cursor-pointer" title="ออกจากระบบ (Logout)">
+                            <i id="sidebar-auth-icon" class="ph ph-sign-out text-base"></i>
                         </button>
                     </div>
                 </div>
@@ -275,7 +275,7 @@
                 <!-- Right Actions -->
                 <div class="flex items-center gap-3">
                     <!-- User Management Quick Nav -->
-                    <button onclick="app.navigate('users')" class="px-2.5 py-1.5 rounded-lg text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition flex items-center gap-1.5 text-xs font-semibold cursor-pointer shadow-xs" title="จัดการผู้ใช้งาน (User Management)">
+                    <button id="topbar-user-mgmt-btn" onclick="app.navigate('users')" class="px-2.5 py-1.5 rounded-lg text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition flex items-center gap-1.5 text-xs font-semibold cursor-pointer shadow-xs" title="จัดการผู้ใช้งาน (User Management)">
                         <i class="ph ph-users-three text-base"></i>
                         <span>User Management</span>
                     </button>
@@ -287,7 +287,7 @@
                     </button>
 
                     <!-- Light / Dark Mode Switcher -->
-                    <button onclick="app.toggleTheme()" class="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition" title="Toggle Theme">
+                    <button id="topbar-theme-btn" onclick="app.toggleTheme()" class="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer" title="สลับโหมดมืด/สว่าง (Toggle Theme)">
                         <i class="ph ph-sun dark:hidden text-lg"></i>
                         <i class="ph ph-moon hidden dark:block text-lg"></i>
                     </button>
@@ -298,8 +298,8 @@
                         <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-500 rounded-full ring-2 ring-card"></span>
                     </button>
 
-                    <!-- Quick Logout Button in Topbar -->
-                    <button onclick="(window.auth && auth.logout) ? auth.logout() : app.logout()" class="px-2.5 py-1.5 rounded-lg text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 border border-border hover:border-rose-500/30 transition flex items-center gap-1.5 text-xs font-medium cursor-pointer" title="ออกจากระบบ (Sign Out / Logout)">
+                    <!-- Auth Button in Topbar (Toggles between Login & Logout via auth.updateUI) -->
+                    <button id="topbar-auth-btn" onclick="(window.auth && auth.logout) ? auth.logout() : app.logout()" class="px-2.5 py-1.5 rounded-lg text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 border border-border hover:border-rose-500/30 transition flex items-center gap-1.5 text-xs font-medium cursor-pointer" title="ออกจากระบบ (Sign Out / Logout)">
                         <i class="ph ph-sign-out text-base text-rose-500"></i>
                         <span class="hidden md:inline font-semibold">ออกจากระบบ</span>
                     </button>
@@ -2373,6 +2373,8 @@
                 <button onclick="app.hideModal('modal-photo-lightbox')" class="btn-artifact-secondary px-4 py-1.5 rounded-lg text-xs self-end sm:self-auto">ปิดหน้าต่าง</button>
             </div>
         </div>
+    </div>
+
     <!-- MODAL: CREATE TICKET & RECEIPT (STEP 3) -->
     <div id="modal-create-ticket" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
         <div class="artifact-card rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-create-ticket-content">
@@ -3884,11 +3886,11 @@
 
     <!-- APPLICATION JAVASCRIPT LOGIC -->
     <!-- APPLICATION SCRIPTS -->
-    <script src="/public/js/db.js?v=1.0.9"></script>
-    <script src="/public/js/auth.js?v=1.0.9"></script>
-    <script src="/public/js/app.js?v=1.0.9"></script>
-    <script src="/public/js/userMgmt.js?v=1.0.9"></script>
-    <script src="/public/js/app.hooks.js?v=1.0.9"></script>
+    <script src="/public/js/db.js?v=1.1.1"></script>
+    <script src="/public/js/auth.js?v=1.1.1"></script>
+    <script src="/public/js/app.js?v=1.1.1"></script>
+    <script src="/public/js/userMgmt.js?v=1.1.1"></script>
+    <script src="/public/js/app.hooks.js?v=1.1.1"></script>
 
 </body>
 </html>

@@ -30,16 +30,32 @@ window.auth =  {
 
         showLoginOverlay() {
             const overlay = document.getElementById('login-overlay');
+            const pageContainer = document.getElementById('page-container');
             if (overlay) {
                 overlay.style.setProperty('display', 'flex', 'important');
                 overlay.classList.remove('hidden');
             }
+            if (pageContainer) {
+                pageContainer.style.setProperty('display', 'none', 'important');
+            }
         },
         hideLoginOverlay() {
             const overlay = document.getElementById('login-overlay');
+            const pageContainer = document.getElementById('page-container');
             if (overlay) {
                 overlay.style.setProperty('display', 'none', 'important');
                 overlay.classList.add('hidden');
+            }
+            if (pageContainer) {
+                pageContainer.style.removeProperty('display');
+            }
+        },
+
+        handleProfileClick() {
+            if (!this.user) {
+                this.showLoginOverlay();
+            } else {
+                this.openMyProfile();
             }
         },
 
@@ -102,6 +118,10 @@ window.auth =  {
             const avatarEl = document.getElementById('sidebar-avatar');
             const navUsers = document.getElementById('nav-users');
 
+            const topbarAuthBtn = document.getElementById('topbar-auth-btn');
+            const sidebarAuthBtn = document.getElementById('sidebar-auth-btn');
+            const sidebarAuthIcon = document.getElementById('sidebar-auth-icon');
+
             if (!u) {
                 document.body.classList.remove('superadmin-allowed');
                 document.querySelectorAll('.superadmin-only-btn').forEach(btn => {
@@ -110,13 +130,44 @@ window.auth =  {
                     btn.title = '🔒 กรุณาเข้าสู่ระบบ';
                 });
                 if (nameEl) nameEl.textContent = 'ยังไม่ได้เข้าสู่ระบบ';
-                if (roleEl) roleEl.textContent = 'กรุณา เข้าสู่ระบบ';
+                if (roleEl) roleEl.textContent = 'กรุณาเข้าสู่ระบบ';
                 if (avatarEl) avatarEl.textContent = '?';
                 if (navUsers) {
                     navUsers.style.setProperty('display', 'none', 'important');
                     navUsers.classList.add('hidden');
                 }
+
+                // Topbar auth button -> Green "เข้าสู่ระบบ"
+                if (topbarAuthBtn) {
+                    topbarAuthBtn.className = "px-2.5 py-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition flex items-center gap-1.5 text-xs font-semibold cursor-pointer shadow-xs";
+                    topbarAuthBtn.title = "เข้าสู่ระบบ (Sign In)";
+                    topbarAuthBtn.onclick = () => window.auth.showLoginOverlay();
+                    topbarAuthBtn.innerHTML = '<i class="ph ph-sign-in text-base text-emerald-500"></i><span class="hidden md:inline font-semibold">เข้าสู่ระบบ</span>';
+                }
+
+                // Sidebar auth button -> Green "เข้าสู่ระบบ"
+                if (sidebarAuthBtn) {
+                    sidebarAuthBtn.title = "เข้าสู่ระบบ (Sign In)";
+                    sidebarAuthBtn.onclick = () => window.auth.showLoginOverlay();
+                    if (sidebarAuthIcon) sidebarAuthIcon.className = "ph ph-sign-in text-base text-emerald-500";
+                }
                 return;
+            }
+
+            // Logged in UI state:
+            // Topbar auth button -> Red "ออกจากระบบ"
+            if (topbarAuthBtn) {
+                topbarAuthBtn.className = "px-2.5 py-1.5 rounded-lg text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 border border-border hover:border-rose-500/30 transition flex items-center gap-1.5 text-xs font-medium cursor-pointer";
+                topbarAuthBtn.title = "ออกจากระบบ (Sign Out / Logout)";
+                topbarAuthBtn.onclick = () => window.auth.logout();
+                topbarAuthBtn.innerHTML = '<i class="ph ph-sign-out text-base text-rose-500"></i><span class="hidden md:inline font-semibold">ออกจากระบบ</span>';
+            }
+
+            // Sidebar auth button -> Red "ออกจากระบบ"
+            if (sidebarAuthBtn) {
+                sidebarAuthBtn.title = "ออกจากระบบ (Logout)";
+                sidebarAuthBtn.onclick = () => window.auth.logout();
+                if (sidebarAuthIcon) sidebarAuthIcon.className = "ph ph-sign-out text-base";
             }
 
             // Sidebar user info
