@@ -159,14 +159,14 @@ window.auth =  {
             if (topbarAuthBtn) {
                 topbarAuthBtn.className = "px-2.5 py-1.5 rounded-lg text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 border border-border hover:border-rose-500/30 transition flex items-center gap-1.5 text-xs font-medium cursor-pointer";
                 topbarAuthBtn.title = "ออกจากระบบ (Sign Out / Logout)";
-                topbarAuthBtn.onclick = () => window.auth.logout();
+                topbarAuthBtn.onclick = () => (window.handleLogout ? window.handleLogout() : window.auth.logout());
                 topbarAuthBtn.innerHTML = '<i class="ph ph-sign-out text-base text-rose-500"></i><span class="hidden md:inline font-semibold">ออกจากระบบ</span>';
             }
 
             // Sidebar auth button -> Red "ออกจากระบบ"
             if (sidebarAuthBtn) {
                 sidebarAuthBtn.title = "ออกจากระบบ (Logout)";
-                sidebarAuthBtn.onclick = () => window.auth.logout();
+                sidebarAuthBtn.onclick = () => (window.handleLogout ? window.handleLogout() : window.auth.logout());
                 if (sidebarAuthIcon) sidebarAuthIcon.className = "ph ph-sign-out text-base";
             }
 
@@ -368,5 +368,7 @@ window.auth =  {
         }
     };
 
-    // ─── USER MANAGEMENT MODULE ──────────────────────────────;
-const auth = window.auth;
+    // ─── USER MANAGEMENT MODULE & EXPORTS ─────────────────────
+    window.auth = window.auth;
+    const auth = window.auth;
+    window.logout = () => (window.handleLogout ? window.handleLogout() : window.auth.logout());
