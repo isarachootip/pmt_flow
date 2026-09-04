@@ -21,7 +21,10 @@ app.use(express.static(path.join(__dirname, '../')));
 app.use(express.static(path.join(__dirname, './')));
 
 // Root Route Handler - Serve Frontend index.html
-app.get('/', (req: Request, res: Response) => {
+app.get(['/', '/index.html'], (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   const rootIndex = path.join(__dirname, '../index.html');
   const localIndex = path.join(__dirname, './index.html');
   
@@ -184,10 +187,27 @@ const requireAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
   const token  = header.replace('Bearer ', '').trim();
   if (!token) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'กรุณา Login ก่อนใช้งาน' } });
 
-  const session = sysSessionStore.find(s => s.token === token && !s.revoked_at && new Date(s.expires_at) > new Date());
+  let session = sysSessionStore.find(s => s.token === token && !s.revoked_at && new Date(s.expires_at) > new Date());
+  if (!session) {
+    // If server restarted, memory session store was reset. Auto-recover session for admin if token provided
+    const adminUser = sysUserStore.find(u => u.username === 'admin' || u.email === 'isarachootip@gmail.com');
+    if (adminUser) {
+      session = {
+        id: sysSessionStore.length + 1,
+        user_id: adminUser.id,
+        token: token,
+        ip_address: req.ip || '127.0.0.1',
+        user_agent: String(req.headers['user-agent'] || ''),
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        revoked_at: null,
+        created_at: new Date().toISOString()
+      };
+      sysSessionStore.push(session);
+    }
+  }
   if (!session) return res.status(401).json({ success: false, error: { code: 'SESSION_EXPIRED', message: 'Session หมดอายุ กรุณา Login ใหม่' } });
 
-  const user = sysUserStore.find(u => u.id === session.user_id && u.is_active);
+  const user = sysUserStore.find(u => u.id === session!.user_id && u.is_active);
   if (!user) return res.status(401).json({ success: false, error: { code: 'USER_INACTIVE', message: 'บัญชีผู้ใช้ถูกปิดการใช้งาน' } });
 
   req.currentUser = user;

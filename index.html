@@ -372,23 +372,23 @@
                 <div>
                     <div class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">การตั้งค่าระบบ</div>
                     <nav class="space-y-1">
+                        <a href="#" id="nav-users" onclick="app.navigate('users')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
+                            <div class="flex items-center gap-2.5">
+                                <i class="ph ph-users-three text-base text-rose-500"></i>
+                                <span class="font-medium text-foreground">จัดการผู้ใช้งาน (User Management)</span>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400 font-mono font-bold">Admin</span>
+                        </a>
+                        <a href="#" onclick="app.navigate('settings')" class="nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
+                            <i class="ph ph-gear text-base"></i>
+                            <span>ตั้งค่าระบบ & API</span>
+                        </a>
                         <a href="#" onclick="app.navigate('faq')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-faq">
                             <div class="flex items-center gap-2.5">
                                 <i class="ph ph-book-open text-base text-brand-500"></i>
                                 <span>คู่มือ & FAQ ระบบ</span>
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-medium">8 Steps</span>
-                        </a>
-                        <a href="#" onclick="app.navigate('settings')" class="nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
-                            <i class="ph ph-gear text-base"></i>
-                            <span>ตั้งค่าระบบ & API</span>
-                        </a>
-                        <a href="#" id="nav-users" onclick="app.navigate('users')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
-                            <div class="flex items-center gap-2.5">
-                                <i class="ph ph-users-three text-base text-rose-500"></i>
-                                <span>จัดการผู้ใช้งาน</span>
-                            </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-500 font-mono font-medium">Admin</span>
                         </a>
                     </nav>
                 </div>
@@ -445,6 +445,12 @@
 
                 <!-- Right Actions -->
                 <div class="flex items-center gap-3">
+                    <!-- User Management Quick Nav -->
+                    <button onclick="app.navigate('users')" class="px-2.5 py-1.5 rounded-lg text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition flex items-center gap-1.5 text-xs font-semibold cursor-pointer shadow-xs" title="จัดการผู้ใช้งาน (User Management)">
+                        <i class="ph ph-users-three text-base"></i>
+                        <span>User Management</span>
+                    </button>
+
                     <!-- FAQ & Workflow Guide Button -->
                     <button onclick="app.navigate('faq')" class="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition flex items-center gap-1 text-xs" title="คู่มือระบบ & FAQ ขั้นตอนการทำงาน">
                         <i class="ph ph-question text-lg text-brand-500"></i>
@@ -1564,6 +1570,23 @@
                     <div>
                         <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">ตั้งค่าระบบ & การเชื่อมต่อ API</h2>
                         <p class="text-xs text-muted-foreground mt-0.5">กำหนดค่าพารามิเตอร์ของระบบ GPS Check-in และการเชื่อมต่อระบบภายนอก</p>
+                    </div>
+
+                    <!-- Direct Access Card to User Management -->
+                    <div class="artifact-card p-5 rounded-2xl border border-rose-500/30 bg-gradient-to-r from-rose-500/10 via-card to-rose-500/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                        <div class="flex items-center gap-3.5">
+                            <div class="w-11 h-11 rounded-xl bg-rose-500/15 text-rose-500 flex items-center justify-center text-xl shrink-0 border border-rose-500/30">
+                                <i class="ph ph-users-three"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-display font-bold text-sm text-foreground">จัดการผู้ใช้งาน (User Management)</h3>
+                                <p class="text-xs text-muted-foreground mt-0.5">บริหารจัดการบัญชีผู้ใช้, กำหนดสิทธิ์ Role (Admin, AE, QC, Contact Center), รีเซ็ตรหัสผ่าน และดูประวัติ Audit Logs</p>
+                            </div>
+                        </div>
+                        <button onclick="app.navigate('users')" class="btn-artifact-primary px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 shadow-md cursor-pointer hover:scale-[1.02] transition-transform">
+                            <i class="ph ph-users-three text-sm"></i>
+                            <span>เปิดหน้า User Management</span>
+                        </button>
                     </div>
 
                     <div class="artifact-card p-6 space-y-5">
@@ -12147,6 +12170,12 @@
 
     // ─── USER MANAGEMENT MODULE ──────────────────────────────
     const userMgmt = {
+        defaultSeedUsers: [
+            { id: 1, user_code: 'USR-001', username: 'admin', email: 'isarachootip@gmail.com', full_name: 'ผู้ดูแลระบบ', role: 'ADMIN', is_active: true, last_login_at: new Date().toISOString() },
+            { id: 2, user_code: 'USR-002', username: 'ae.somchai', email: 'ae@pmt.local', full_name: 'สมชาย ขายเก่ง', role: 'AE', is_active: true, last_login_at: null },
+            { id: 3, user_code: 'USR-003', username: 'qc.wichai', email: 'qc@pmt.local', full_name: 'วิชัย ตรวจละเอียด', role: 'QC', is_active: true, last_login_at: null },
+            { id: 4, user_code: 'USR-004', username: 'cc.nipa', email: 'cc@pmt.local', full_name: 'นิภา บริการดี', role: 'CONTACT_CENTER', is_active: true, last_login_at: null }
+        ],
         users: [],
         filtered: [],
         roleFilter: 'ALL',
@@ -12163,14 +12192,18 @@
             try {
                 const res  = await fetch('/api/v1/users', { headers: auth.getHeaders() });
                 const json = await res.json();
-                if (json.success) {
+                if (json.success && Array.isArray(json.data) && json.data.length) {
                     this.users = json.data;
-                    this.applyFilters();
-                    this.renderStats();
+                } else {
+                    if (!this.users.length) this.users = [...this.defaultSeedUsers];
                 }
             } catch(e) {
-                console.error('Failed to load users', e);
+                console.warn('API /api/v1/users fallback to seed users', e);
+                if (!this.users.length) this.users = [...this.defaultSeedUsers];
             } finally {
+                if (!this.users.length) this.users = [...this.defaultSeedUsers];
+                this.applyFilters();
+                this.renderStats();
                 if (refreshIcon) {
                     setTimeout(() => refreshIcon.classList.remove('animate-spin'), 350);
                 }

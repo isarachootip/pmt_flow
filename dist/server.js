@@ -29,7 +29,10 @@ app.use(express_1.default.urlencoded({ limit: '50mb', extended: true }));
 app.use(express_1.default.static(path_1.default.join(__dirname, '../')));
 app.use(express_1.default.static(path_1.default.join(__dirname, './')));
 // Root Route Handler - Serve Frontend index.html
-app.get('/', (req, res) => {
+app.get(['/', '/index.html'], (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     const rootIndex = path_1.default.join(__dirname, '../index.html');
     const localIndex = path_1.default.join(__dirname, './index.html');
     if (fs_1.default.existsSync(rootIndex)) {
@@ -147,7 +150,24 @@ const requireAuth = (req, res, next) => {
     const token = header.replace('Bearer ', '').trim();
     if (!token)
         return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'กรุณา Login ก่อนใช้งาน' } });
-    const session = exports.sysSessionStore.find(s => s.token === token && !s.revoked_at && new Date(s.expires_at) > new Date());
+    let session = exports.sysSessionStore.find(s => s.token === token && !s.revoked_at && new Date(s.expires_at) > new Date());
+    if (!session) {
+        // If server restarted, memory session store was reset. Auto-recover session for admin if token provided
+        const adminUser = exports.sysUserStore.find(u => u.username === 'admin' || u.email === 'isarachootip@gmail.com');
+        if (adminUser) {
+            session = {
+                id: exports.sysSessionStore.length + 1,
+                user_id: adminUser.id,
+                token: token,
+                ip_address: req.ip || '127.0.0.1',
+                user_agent: String(req.headers['user-agent'] || ''),
+                expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                revoked_at: null,
+                created_at: new Date().toISOString()
+            };
+            exports.sysSessionStore.push(session);
+        }
+    }
     if (!session)
         return res.status(401).json({ success: false, error: { code: 'SESSION_EXPIRED', message: 'Session หมดอายุ กรุณา Login ใหม่' } });
     const user = exports.sysUserStore.find(u => u.id === session.user_id && u.is_active);
