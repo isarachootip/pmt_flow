@@ -34,12 +34,6 @@ window.auth =  {
                 overlay.style.setProperty('display', 'flex', 'important');
                 overlay.classList.remove('hidden');
             }
-            const sidebar = document.getElementById('app-sidebar');
-            const pageContainer = document.getElementById('page-container');
-            const topbar = document.querySelector('header');
-            if (sidebar) sidebar.style.setProperty('display', 'none', 'important');
-            if (pageContainer) pageContainer.style.setProperty('display', 'none', 'important');
-            if (topbar) topbar.style.setProperty('display', 'none', 'important');
         },
         hideLoginOverlay() {
             const overlay = document.getElementById('login-overlay');
@@ -47,17 +41,14 @@ window.auth =  {
                 overlay.style.setProperty('display', 'none', 'important');
                 overlay.classList.add('hidden');
             }
-            const sidebar = document.getElementById('app-sidebar');
-            const pageContainer = document.getElementById('page-container');
-            const topbar = document.querySelector('header');
-            if (sidebar) sidebar.style.removeProperty('display');
-            if (pageContainer) pageContainer.style.removeProperty('display');
-            if (topbar) topbar.style.removeProperty('display');
         },
 
         fillDemo(username, password) {
-            document.getElementById('login-username').value = username;
-            document.getElementById('login-password').value = password;
+            const uEl = document.getElementById('login-username');
+            const pEl = document.getElementById('login-password');
+            if (uEl) uEl.value = username;
+            if (pEl) pEl.value = password;
+            this.login({ preventDefault: () => {} });
         },
 
         async login(e) {
