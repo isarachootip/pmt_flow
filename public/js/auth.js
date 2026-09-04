@@ -34,12 +34,20 @@ window.auth =  {
                 overlay.style.setProperty('display', 'flex', 'important');
                 overlay.classList.remove('hidden');
             }
+            const wrapper = document.getElementById('app-main-wrapper');
+            if (wrapper) {
+                wrapper.classList.add('blur-md', 'pointer-events-none', 'select-none', 'opacity-30');
+            }
         },
         hideLoginOverlay() {
             const overlay = document.getElementById('login-overlay');
             if (overlay) {
                 overlay.style.setProperty('display', 'none', 'important');
                 overlay.classList.add('hidden');
+            }
+            const wrapper = document.getElementById('app-main-wrapper');
+            if (wrapper) {
+                wrapper.classList.remove('blur-md', 'pointer-events-none', 'select-none', 'opacity-30');
             }
         },
 
@@ -97,6 +105,11 @@ window.auth =  {
 
         updateUI() {
             const u = this.user;
+            const nameEl = document.getElementById('sidebar-user-name');
+            const roleEl = document.getElementById('sidebar-user-role');
+            const avatarEl = document.getElementById('sidebar-avatar');
+            const navUsers = document.getElementById('nav-users');
+
             if (!u) {
                 document.body.classList.remove('superadmin-allowed');
                 document.querySelectorAll('.superadmin-only-btn').forEach(btn => {
@@ -104,18 +117,22 @@ window.auth =  {
                     btn.disabled = true;
                     btn.title = '🔒 กรุณาเข้าสู่ระบบ';
                 });
+                if (nameEl) nameEl.textContent = 'ยังไม่ได้เข้าสู่ระบบ';
+                if (roleEl) roleEl.textContent = 'กรุณา เข้าสู่ระบบ';
+                if (avatarEl) avatarEl.textContent = '?';
+                if (navUsers) {
+                    navUsers.style.setProperty('display', 'none', 'important');
+                    navUsers.classList.add('hidden');
+                }
                 return;
             }
+
             // Sidebar user info
-            const nameEl = document.getElementById('sidebar-user-name');
-            const roleEl = document.getElementById('sidebar-user-role');
-            const avatarEl = document.getElementById('sidebar-avatar');
             if (nameEl) nameEl.textContent = u.full_name || 'ผู้ดูแลระบบ';
             if (roleEl) roleEl.textContent = { ADMIN:'ผู้ดูแลระบบ (Admin)', AE:'Account Executive', QC:'Quality Control', CONTACT_CENTER:'Contact Center' }[u.role] || u.role;
             if (avatarEl) avatarEl.textContent = (u.full_name || 'ผ').charAt(0).toUpperCase();
 
             // User Management nav
-            const navUsers = document.getElementById('nav-users');
             if (navUsers) {
                 navUsers.style.setProperty('display', 'flex', 'important');
                 navUsers.classList.remove('hidden');
@@ -296,11 +313,11 @@ window.auth =  {
             if (currentTheme) {
                 try { localStorage.setItem('pmt-theme', currentTheme); } catch(e) {}
             }
+            this.updateUI();
             this.showLoginOverlay();
             if (tok) {
                 fetch('/api/v1/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok } }).catch(() => {});
             }
-            window.location.href = '/?logout=' + Date.now();
         },
 
         getHeaders() {

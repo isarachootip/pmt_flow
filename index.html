@@ -74,7 +74,7 @@
 <body class="h-screen flex overflow-hidden font-sans select-none antialiased">
 
     <!-- MAIN WRAPPER -->
-    <div class="flex w-full h-full">
+    <div id="app-main-wrapper" class="flex w-full h-full transition-all duration-300">
         
         <!-- SIDEBAR NAVIGATION (Artifact Style) -->
         <aside id="app-sidebar" class="w-64 bg-card border-r border-border flex flex-col z-20 shrink-0 transition-all duration-200">
@@ -812,10 +812,10 @@
                                     <tr>
                                         <th class="px-5 py-3.5">Ticket No. & วันที่</th>
                                         <th class="px-5 py-3.5">โครงการ & ลูกค้า</th>
-                                        <th class="px-5 py-3.5">เลขที่ใบเสร็จ</th>
+                                        <th class="px-5 py-3.5">เลขที่ใบเสร็จ / สัญญา</th>
                                         <th class="px-5 py-3.5">ยอดเงิน (บาท)</th>
                                         <th class="px-5 py-3.5">ช่องทางชำระ</th>
-                                        <th class="px-5 py-3.5 text-center">สลิป / หลักฐาน</th>
+                                        <th class="px-5 py-3.5 text-center">สลิป & สัญญาจ้าง</th>
                                         <th class="px-5 py-3.5">สถานะ</th>
                                         <th class="px-5 py-3.5 text-right">การจัดการ</th>
                                     </tr>
@@ -2374,15 +2374,15 @@
         </div>
     <!-- MODAL: CREATE TICKET & RECEIPT (STEP 3) -->
     <div id="modal-create-ticket" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
-        <div class="artifact-card rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-create-ticket-content">
+        <div class="artifact-card rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-create-ticket-content">
             <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
                 <div class="flex items-center gap-2.5">
                     <div class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
                         <i class="ph ph-receipt text-lg"></i>
                     </div>
                     <div>
-                        <h3 class="font-display font-bold text-sm text-foreground">บันทึก Ticket & แนบใบเสร็จ (Step 3)</h3>
-                        <p class="text-[11px] text-muted-foreground">บันทึกเลขที่ Ticket, ใบเสร็จรับเงิน และแนบสลิปหลักฐานการชำระเงิน</p>
+                        <h3 class="font-display font-bold text-sm text-foreground">บันทึก Ticket & แนบใบเสร็จ พร้อมสัญญาการทำงาน (Step 3)</h3>
+                        <p class="text-[11px] text-muted-foreground">บันทึกเลขที่ Ticket, ใบเสร็จรับเงิน, สัญญาจ้างงาน และแนบสลิป/เอกสารหลักฐาน</p>
                     </div>
                 </div>
                 <button onclick="app.hideModal('modal-create-ticket')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition cursor-pointer">
@@ -2398,7 +2398,7 @@
                     </select>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div class="space-y-1">
                         <label class="text-xs font-semibold text-foreground">เลขที่ Ticket <span class="text-rose-500">*</span></label>
                         <input type="text" id="create-ticket-no" required placeholder="TKT-202609-001" class="w-full bg-card border border-border text-foreground rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500 font-mono">
@@ -2406,6 +2406,10 @@
                     <div class="space-y-1">
                         <label class="text-xs font-semibold text-foreground">เลขที่ใบเสร็จ (Receipt No.) <span class="text-rose-500">*</span></label>
                         <input type="text" id="create-ticket-receipt-no" required placeholder="RC-2026-001" class="w-full bg-card border border-border text-foreground rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500 font-mono">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-semibold text-foreground">เลขที่สัญญาจ้าง (Contract No.)</label>
+                        <input type="text" id="create-ticket-contract-no" placeholder="CTR-202609-001" class="w-full bg-card border border-border text-foreground rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500 font-mono">
                     </div>
                 </div>
 
@@ -2430,26 +2434,52 @@
                     </select>
                 </div>
 
-                <!-- Receipt Slip Attachment -->
-                <div class="space-y-2">
-                    <label class="text-xs font-semibold text-foreground flex items-center justify-between">
-                        <span>แนบไฟล์ / รูปถ่ายสลิปใบเสร็จ (Slip Attachment)</span>
-                        <span class="text-[10px] text-emerald-500">JPG, PNG, PDF</span>
-                    </label>
-                    <div class="border-2 border-dashed border-border hover:border-emerald-500/50 rounded-xl p-4 text-center cursor-pointer bg-muted/20 hover:bg-emerald-500/5 transition relative" onclick="document.getElementById('ticket-slip-file').click()">
-                        <input type="file" id="ticket-slip-file" accept="image/*,.pdf" class="hidden" onchange="app.handleTicketSlipSelect(event)">
-                        <i class="ph ph-cloud-arrow-up text-2xl text-emerald-500 mb-1"></i>
-                        <p class="text-xs font-semibold text-foreground">คลิกเพื่ออัปโหลด หรือลากไฟล์มาวางที่นี่</p>
-                        <p class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์สลิปธนาคาร ใบเสร็จ HomePro / ไทวัสดุ / vFIX</p>
-                        <div id="ticket-slip-preview-container" class="mt-3 hidden">
-                            <img id="ticket-slip-preview-img" src="" alt="Slip Preview" class="max-h-48 mx-auto rounded-lg shadow border border-border object-contain">
-                            <p id="ticket-slip-preview-name" class="mt-1 text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold"></p>
+                <!-- Combined Attachments Section -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                    <!-- Slip Box -->
+                    <div class="space-y-2 border border-border bg-muted/20 p-3 rounded-xl">
+                        <label class="text-xs font-semibold text-foreground flex items-center justify-between">
+                            <span class="flex items-center gap-1.5"><i class="ph ph-receipt text-emerald-500"></i> 1. แนบใบเสร็จ / สลิปโอนเงิน</span>
+                            <span class="text-[10px] text-emerald-500 font-mono">JPG, PNG, PDF</span>
+                        </label>
+                        <div class="border-2 border-dashed border-border hover:border-emerald-500/50 rounded-xl p-3 text-center cursor-pointer bg-card hover:bg-emerald-500/5 transition relative" onclick="document.getElementById('ticket-slip-file').click()">
+                            <input type="file" id="ticket-slip-file" accept="image/*,.pdf" class="hidden" onchange="app.handleTicketSlipSelect(event)">
+                            <i class="ph ph-cloud-arrow-up text-xl text-emerald-500 mb-0.5"></i>
+                            <p class="text-xs font-semibold text-foreground">คลิกเพื่อแนบไฟล์สลิป</p>
+                            <p class="text-[10px] text-muted-foreground mt-0.5">รองรับสลิปธนาคาร / ใบเสร็จ vFIX</p>
+                            <div id="ticket-slip-preview-container" class="mt-2 hidden">
+                                <img id="ticket-slip-preview-img" src="" alt="Slip Preview" class="max-h-28 mx-auto rounded-lg shadow border border-border object-contain">
+                                <p id="ticket-slip-preview-name" class="mt-1 text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold truncate"></p>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+                            <span class="text-[10px] text-muted-foreground">ตัวอย่าง:</span>
+                            <button type="button" onclick="app.useSampleSlip(1)" class="text-[10px] bg-card hover:bg-muted px-2 py-0.5 rounded text-foreground border border-border cursor-pointer">Slip โอนเงิน</button>
+                            <button type="button" onclick="app.useSampleSlip(2)" class="text-[10px] bg-card hover:bg-muted px-2 py-0.5 rounded text-foreground border border-border cursor-pointer">Slip บัตรเครดิต</button>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 pt-1">
-                        <span class="text-[10px] text-muted-foreground">ตัวอย่าง Slip ทดสอบ:</span>
-                        <button type="button" onclick="app.useSampleSlip(1)" class="text-[10px] bg-muted hover:bg-muted/80 px-2 py-0.5 rounded text-foreground border border-border cursor-pointer">Slip โอนเงิน</button>
-                        <button type="button" onclick="app.useSampleSlip(2)" class="text-[10px] bg-muted hover:bg-muted/80 px-2 py-0.5 rounded text-foreground border border-border cursor-pointer">Slip บัตรเครดิต</button>
+
+                    <!-- Work Contract Box -->
+                    <div class="space-y-2 border border-border bg-muted/20 p-3 rounded-xl">
+                        <label class="text-xs font-semibold text-foreground flex items-center justify-between">
+                            <span class="flex items-center gap-1.5"><i class="ph ph-file-text text-brand-500"></i> 2. แนบสัญญาการทำงาน</span>
+                            <span class="text-[10px] text-brand-500 font-mono">PDF, JPG, PNG</span>
+                        </label>
+                        <div class="border-2 border-dashed border-border hover:border-brand-500/50 rounded-xl p-3 text-center cursor-pointer bg-card hover:bg-brand-500/5 transition relative" onclick="document.getElementById('ticket-contract-file').click()">
+                            <input type="file" id="ticket-contract-file" accept="image/*,.pdf,.doc,.docx" class="hidden" onchange="app.handleTicketContractSelect(event)">
+                            <i class="ph ph-file-arrow-up text-xl text-brand-500 mb-0.5"></i>
+                            <p class="text-xs font-semibold text-foreground">คลิกเพื่อแนบสัญญาจ้างงาน</p>
+                            <p class="text-[10px] text-muted-foreground mt-0.5">สัญญาติดตั้ง / สัญญาจ้างเหมา</p>
+                            <div id="ticket-contract-preview-container" class="mt-2 hidden">
+                                <img id="ticket-contract-preview-img" src="" alt="Contract Preview" class="max-h-28 mx-auto rounded-lg shadow border border-border object-contain">
+                                <p id="ticket-contract-preview-name" class="mt-1 text-[10px] font-mono text-brand-600 dark:text-brand-400 font-semibold truncate"></p>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+                            <span class="text-[10px] text-muted-foreground">ตัวอย่าง:</span>
+                            <button type="button" onclick="app.useSampleContract(1)" class="text-[10px] bg-card hover:bg-muted px-2 py-0.5 rounded text-foreground border border-border cursor-pointer">สัญญาจ้างมาตรฐาน</button>
+                            <button type="button" onclick="app.useSampleContract(2)" class="text-[10px] bg-card hover:bg-muted px-2 py-0.5 rounded text-foreground border border-border cursor-pointer">สัญญาติดตั้งแอร์</button>
+                        </div>
                     </div>
                 </div>
 
@@ -2461,39 +2491,126 @@
                 <div class="pt-3 border-t border-border flex justify-end gap-2">
                     <button type="button" onclick="app.hideModal('modal-create-ticket')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs cursor-pointer">ยกเลิก</button>
                     <button type="submit" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-sm">
-                        <i class="ph ph-check-bold mr-1"></i> บันทึก Ticket & ใบเสร็จ
+                        <i class="ph ph-check-bold mr-1"></i> บันทึก Ticket, ใบเสร็จ & สัญญา
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL: TICKET RECEIPT LIGHTBOX -->
+    <!-- MODAL: TICKET RECEIPT & CONTRACT LIGHTBOX -->
     <div id="modal-ticket-receipt-lightbox" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
-        <div class="artifact-card rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border">
-            <div class="p-4 border-b border-border flex justify-between items-center bg-muted/40">
+        <div class="artifact-card rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border">
+            <div class="p-4 border-b border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-muted/40">
                 <div class="flex items-center gap-2">
-                    <i class="ph ph-receipt text-emerald-500 text-lg"></i>
+                    <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                        <i class="ph ph-files text-lg"></i>
+                    </div>
                     <div>
-                        <h4 class="font-display font-bold text-sm text-foreground" id="receipt-lightbox-title">ใบเสร็จรับเงิน</h4>
+                        <h4 class="font-display font-bold text-sm text-foreground" id="receipt-lightbox-title">หลักฐานใบเสร็จ & สัญญาการทำงาน</h4>
                         <p class="text-[10px] text-muted-foreground font-mono" id="receipt-lightbox-subtitle">Ticket No: -</p>
                     </div>
                 </div>
-                <button onclick="app.hideModal('modal-ticket-receipt-lightbox')" class="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted transition cursor-pointer">
-                    <i class="ph ph-x text-base"></i>
-                </button>
+                <!-- Lightbox Tabs -->
+                <div class="flex items-center gap-1.5 bg-card p-1 rounded-xl border border-border">
+                    <button id="lightbox-tab-slip" onclick="app.switchLightboxTab('slip')" class="px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer bg-emerald-600 text-white shadow-xs">
+                        <i class="ph ph-receipt"></i>
+                        <span>1. สลิปใบเสร็จ</span>
+                    </button>
+                    <button id="lightbox-tab-contract" onclick="app.switchLightboxTab('contract')" class="px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer text-muted-foreground hover:text-foreground">
+                        <i class="ph ph-file-text"></i>
+                        <span>2. สัญญาการทำงาน</span>
+                    </button>
+                    <button onclick="app.hideModal('modal-ticket-receipt-lightbox')" class="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted transition cursor-pointer ml-1">
+                        <i class="ph ph-x text-base"></i>
+                    </button>
+                </div>
             </div>
-            <div class="p-4 bg-muted/20 flex items-center justify-center max-h-[70vh] overflow-auto">
-                <img id="receipt-lightbox-img" src="" alt="Receipt Slip" class="max-h-[60vh] max-w-full rounded-xl shadow-lg border border-border object-contain">
+
+            <!-- Tab Content: Slip View -->
+            <div id="lightbox-content-slip" class="p-4 bg-muted/20 flex flex-col items-center justify-center max-h-[65vh] overflow-auto">
+                <img id="receipt-lightbox-img" src="" alt="Receipt Slip" class="max-h-[55vh] max-w-full rounded-xl shadow-lg border border-border object-contain">
+                <p id="receipt-lightbox-slip-name" class="mt-2 text-xs font-mono text-emerald-600 dark:text-emerald-400 font-semibold"></p>
             </div>
-            <div class="p-4 border-t border-border flex items-center justify-between bg-muted/20 text-xs">
+
+            <!-- Tab Content: Contract View -->
+            <div id="lightbox-content-contract" class="p-4 bg-muted/20 flex flex-col items-center justify-center max-h-[65vh] overflow-auto hidden">
+                <img id="contract-lightbox-img" src="" alt="Work Contract" class="max-h-[55vh] max-w-full rounded-xl shadow-lg border border-border object-contain">
+                <p id="contract-lightbox-name" class="mt-2 text-xs font-mono text-brand-600 dark:text-brand-400 font-semibold"></p>
+            </div>
+
+            <div class="p-4 border-t border-border flex flex-col sm:flex-row items-start sm:items-center justify-between bg-muted/20 text-xs gap-3">
                 <div id="receipt-lightbox-details" class="text-muted-foreground space-y-0.5">
                     <!-- populated by JS -->
                 </div>
-                <button onclick="app.hideModal('modal-ticket-receipt-lightbox')" class="btn-artifact-secondary px-4 py-1.5 rounded-lg text-xs cursor-pointer">
-                    ปิด
+                <div class="flex items-center gap-2">
+                    <button id="btn-quick-upload-lightbox" onclick="app.openQuickUploadForCurrentTicket()" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs bg-brand-600 hover:bg-brand-700 text-white flex items-center gap-1 cursor-pointer">
+                        <i class="ph ph-upload-simple"></i>
+                        <span>อัปโหลด / เปลี่ยนสัญญา</span>
+                    </button>
+                    <button onclick="app.hideModal('modal-ticket-receipt-lightbox')" class="btn-artifact-secondary px-4 py-1.5 rounded-lg text-xs cursor-pointer">
+                        ปิด
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: QUICK ATTACH RECEIPT / CONTRACT -->
+    <div id="modal-quick-attach" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border">
+            <div class="p-4 border-b border-border flex justify-between items-center bg-muted/30">
+                <div class="flex items-center gap-2">
+                    <i class="ph ph-paperclip text-brand-500 text-lg"></i>
+                    <div>
+                        <h3 class="font-display font-bold text-sm text-foreground">อัปโหลดสลิปใบเสร็จ / สัญญาการทำงาน</h3>
+                        <p class="text-[10px] text-muted-foreground" id="quick-attach-subtitle">Ticket: -</p>
+                    </div>
+                </div>
+                <button onclick="app.hideModal('modal-quick-attach')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition cursor-pointer">
+                    <i class="ph ph-x text-base"></i>
                 </button>
             </div>
+            <form onsubmit="app.submitQuickAttach(event)" class="p-5 space-y-4">
+                <input type="hidden" id="quick-attach-ticket-id">
+                
+                <div class="space-y-2 border border-border bg-muted/20 p-3 rounded-xl">
+                    <label class="text-xs font-semibold text-foreground flex items-center justify-between">
+                        <span>🧾 สลิปใบเสร็จรับเงิน (Slip)</span>
+                        <span class="text-[10px] text-emerald-500">JPG, PNG, PDF</span>
+                    </label>
+                    <div class="flex items-center gap-2">
+                        <input type="file" id="quick-slip-file" accept="image/*,.pdf" class="w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-500/20 file:text-emerald-600 hover:file:bg-emerald-500/30 cursor-pointer">
+                    </div>
+                    <div class="flex items-center gap-2 pt-1">
+                        <span class="text-[10px] text-muted-foreground">ตัวอย่าง:</span>
+                        <button type="button" onclick="app.setQuickSlipSample(1)" class="text-[10px] bg-card hover:bg-muted px-2 py-0.5 rounded text-foreground border border-border cursor-pointer">Slip 1</button>
+                        <button type="button" onclick="app.setQuickSlipSample(2)" class="text-[10px] bg-card hover:bg-muted px-2 py-0.5 rounded text-foreground border border-border cursor-pointer">Slip 2</button>
+                    </div>
+                </div>
+
+                <div class="space-y-2 border border-border bg-muted/20 p-3 rounded-xl">
+                    <label class="text-xs font-semibold text-foreground flex items-center justify-between">
+                        <span>📝 เอกสารสัญญาการทำงาน (Work Contract)</span>
+                        <span class="text-[10px] text-brand-500">PDF, JPG, PNG</span>
+                    </label>
+                    <div class="flex items-center gap-2">
+                        <input type="file" id="quick-contract-file" accept="image/*,.pdf,.doc,.docx" class="w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-500/20 file:text-brand-600 hover:file:bg-brand-500/30 cursor-pointer">
+                    </div>
+                    <div class="flex items-center gap-2 pt-1">
+                        <span class="text-[10px] text-muted-foreground">ตัวอย่าง:</span>
+                        <button type="button" onclick="app.setQuickContractSample(1)" class="text-[10px] bg-card hover:bg-muted px-2 py-0.5 rounded text-foreground border border-border cursor-pointer">สัญญาจ้าง 1</button>
+                        <button type="button" onclick="app.setQuickContractSample(2)" class="text-[10px] bg-card hover:bg-muted px-2 py-0.5 rounded text-foreground border border-border cursor-pointer">สัญญาจ้าง 2</button>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-border flex justify-end gap-2">
+                    <button type="button" onclick="app.hideModal('modal-quick-attach')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs cursor-pointer">ยกเลิก</button>
+                    <button type="submit" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-sm">
+                        <i class="ph ph-check-bold mr-1"></i> อัปโหลดเอกสาร
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -3766,11 +3883,11 @@
 
     <!-- APPLICATION JAVASCRIPT LOGIC -->
     <!-- APPLICATION SCRIPTS -->
-    <script src="/public/js/db.js?v=1.0.6"></script>
-    <script src="/public/js/auth.js?v=1.0.6"></script>
-    <script src="/public/js/app.js?v=1.0.6"></script>
-    <script src="/public/js/userMgmt.js?v=1.0.6"></script>
-    <script src="/public/js/app.hooks.js?v=1.0.6"></script>
+    <script src="/public/js/db.js?v=1.0.7"></script>
+    <script src="/public/js/auth.js?v=1.0.7"></script>
+    <script src="/public/js/app.js?v=1.0.7"></script>
+    <script src="/public/js/userMgmt.js?v=1.0.7"></script>
+    <script src="/public/js/app.hooks.js?v=1.0.7"></script>
 
 </body>
 </html>

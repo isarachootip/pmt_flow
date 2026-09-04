@@ -4610,6 +4610,7 @@ const app = {
                         id: "TKT-202609-001",
                         ticket_no: "209051119",
                         receipt_no: "RC-VFIX-260901-001",
+                        contract_no: "CTR-202609-001",
                         job_id: "JOB202609001",
                         customer_name: "คุณ นภัสวรรณ มีศิริ",
                         service: "ติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU",
@@ -4618,6 +4619,8 @@ const app = {
                         payment_method: "โอนเงินผ่านธนาคาร (Bank Transfer)",
                         slip_url: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80",
                         slip_name: "slip_transfer_kbank.jpg",
+                        contract_url: "https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80",
+                        contract_name: "สัญญาจ้างงานติดตั้ง_vFIX_202609001.pdf",
                         status: "VERIFIED",
                         notes: "ชำระเงินมัดจำงวดแรกผ่าน QR โอนเงิน ธนาคารกสิกรไทย สาขาพัทยา"
                     },
@@ -4625,6 +4628,7 @@ const app = {
                         id: "TKT-202609-002",
                         ticket_no: "209051120",
                         receipt_no: "RC-VFIX-260901-002",
+                        contract_no: "CTR-202609-002",
                         job_id: "JOB202609002",
                         customer_name: "คุณสมศรี สุขใจ",
                         service: "Renovate ห้องครัว Built-in & งานระบบประปา",
@@ -4633,6 +4637,8 @@ const app = {
                         payment_method: "บัตรเครดิต (Credit Card)",
                         slip_url: "https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=600&auto=format&fit=crop&q=80",
                         slip_name: "slip_credit_card.jpg",
+                        contract_url: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=700&auto=format&fit=crop&q=80",
+                        contract_name: "สัญญาบริการรีโนเวทห้องครัว_202609002.pdf",
                         status: "VERIFIED",
                         notes: "รูดบัตรเครดิต KBank ผ่อนชำระ 0% 10 เดือน ที่สาขาอารีย์"
                     },
@@ -4640,6 +4646,7 @@ const app = {
                         id: "TKT-202609-003",
                         ticket_no: "209051121",
                         receipt_no: "RC-VFIX-260901-003",
+                        contract_no: "CTR-202609-003",
                         job_id: "JOB202609003",
                         customer_name: "คุณเอนก มั่งคั่ง",
                         service: "ติดตั้งระบบโซลาร์เซลล์ Solar Rooftop On-Grid 5kW",
@@ -4648,6 +4655,8 @@ const app = {
                         payment_method: "โอนเงินผ่านธนาคาร (Bank Transfer)",
                         slip_url: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=600&auto=format&fit=crop&q=80",
                         slip_name: "slip_solar_50pct.jpg",
+                        contract_url: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=700&auto=format&fit=crop&q=80",
+                        contract_name: "สัญญาจ้างติดตั้ง Solar_Rooftop_5kW.pdf",
                         status: "ATTACHED",
                         notes: "มัดจำ 50% งานติดตั้ง Solar Rooftop ยอดรวม 290,000 บาท"
                     },
@@ -4655,6 +4664,7 @@ const app = {
                         id: "TKT-202609-004",
                         ticket_no: "209051122",
                         receipt_no: "RC-VFIX-260901-004",
+                        contract_no: "CTR-202609-004",
                         job_id: "JOB202609004",
                         customer_name: "คุณวิชัย ใจสว่าง",
                         service: "ปูกระกระเบื้องแกรนิตโต้ 60x60 ซม. และงานยาแนวกันซึม",
@@ -4663,6 +4673,8 @@ const app = {
                         payment_method: "เงินสด (Cash)",
                         slip_url: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80",
                         slip_name: "receipt_cash.jpg",
+                        contract_url: "https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80",
+                        contract_name: "สัญญาจ้างเหมาปูกระเบื้อง.pdf",
                         status: "VERIFIED",
                         notes: "รับเงินสดหน้างาน พร้อมออกใบเสร็จรับเงินชั่วคราว"
                     },
@@ -4670,6 +4682,7 @@ const app = {
                         id: "TKT-202609-005",
                         ticket_no: "209051123",
                         receipt_no: "RC-VFIX-260901-005",
+                        contract_no: "CTR-202609-005",
                         job_id: "JOB202609005",
                         customer_name: "คุณสมศักดิ์ มั่นคงโชคดี",
                         service: "ติดตั้งเครื่องปรับอากาศ 45000W พร้อมเดินท่อทองแดงขาแขวน 1-CUT",
@@ -4678,6 +4691,8 @@ const app = {
                         payment_method: "โอนเงินผ่านธนาคาร (Bank Transfer)",
                         slip_url: "https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=600&auto=format&fit=crop&q=80",
                         slip_name: "slip_transfer.jpg",
+                        contract_url: "https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80",
+                        contract_name: "สัญญาติดตั้งแอร์_45000W.pdf",
                         status: "ATTACHED",
                         notes: "โอนชำระเงินค่าติดตั้งและอุปกรณ์ท่อทองแดง"
                     }
@@ -4752,6 +4767,7 @@ const app = {
                     filtered = filtered.filter(t => 
                         (t.ticket_no && t.ticket_no.toLowerCase().includes(q)) ||
                         (t.receipt_no && t.receipt_no.toLowerCase().includes(q)) ||
+                        (t.contract_no && t.contract_no.toLowerCase().includes(q)) ||
                         (t.job_id && t.job_id.toLowerCase().includes(q)) ||
                         (t.customer_name && t.customer_name.toLowerCase().includes(q)) ||
                         (t.service && t.service.toLowerCase().includes(q))
@@ -4795,19 +4811,34 @@ const app = {
                         ? '<span class="status-pill font-mono text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">✓ ตรวจสอบแล้ว</span>'
                         : '<span class="status-pill font-mono text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">⏳ แนบใบเสร็จแล้ว</span>';
 
+                    // Slip thumbnail
                     const slipThumb = t.slip_url ? `
-                        <div class="inline-block relative group cursor-pointer" onclick="app.openTicketSlipLightbox('${t.id}')" title="คลิกดูสลิปขนาดใหญ่">
-                            <img src="${t.slip_url}" alt="Slip" class="w-12 h-10 object-cover rounded-lg border border-border group-hover:border-emerald-500 transition shadow-xs">
+                        <div class="inline-block relative group cursor-pointer" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')" title="คลิกดูสลิปใบเสร็จ">
+                            <img src="${t.slip_url}" alt="Slip" class="w-10 h-9 object-cover rounded-lg border border-border group-hover:border-emerald-500 transition shadow-xs">
                             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 rounded-lg flex items-center justify-center transition">
-                                <i class="ph ph-magnifying-glass-plus text-white text-xs"></i>
+                                <i class="ph ph-receipt text-white text-xs"></i>
                             </div>
                         </div>
                     ` : '<span class="text-[10px] text-muted-foreground">-</span>';
 
+                    // Contract badge/thumb
+                    const contractDisplay = t.contract_url ? `
+                        <div class="inline-block relative group cursor-pointer" onclick="app.openTicketSlipLightbox('${t.id}', 'contract')" title="คลิกดูเอกสารสัญญาการทำงาน">
+                            <div class="px-2 py-1 bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/30 rounded-lg flex items-center gap-1 group-hover:bg-brand-500/20 transition">
+                                <i class="ph ph-file-text text-xs"></i>
+                                <span class="text-[10px] font-semibold">สัญญา</span>
+                            </div>
+                        </div>
+                    ` : `
+                        <button type="button" onclick="app.openQuickAttachModal('${t.id}')" class="text-[10px] px-2 py-0.5 rounded-lg border border-dashed border-brand-500/40 text-brand-600 dark:text-brand-400 hover:bg-brand-500/10 transition cursor-pointer">
+                            + แนบสัญญา
+                        </button>
+                    `;
+
                     return `
                     <tr class="hover:bg-muted/30 transition">
                         <td class="px-5 py-3.5">
-                            <div class="font-mono font-bold text-foreground text-xs">${t.ticket_no}</div>
+                            <div class="font-mono font-bold text-foreground text-xs hover:text-emerald-600 cursor-pointer" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')">${t.ticket_no}</div>
                             <div class="text-[10px] text-muted-foreground font-mono mt-0.5">${t.payment_date || '-'}</div>
                         </td>
                         <td class="px-5 py-3.5">
@@ -4817,8 +4848,12 @@ const app = {
                             <div class="font-medium text-foreground text-xs truncate max-w-[200px]" title="${customerDisplay}">${customerDisplay}</div>
                             <div class="text-[10px] text-muted-foreground truncate max-w-[200px]">${serviceDisplay}</div>
                         </td>
-                        <td class="px-5 py-3.5 font-mono text-foreground font-medium">
-                            ${t.receipt_no || '-'}
+                        <td class="px-5 py-3.5">
+                            <div class="font-mono text-foreground font-medium text-xs">${t.receipt_no || '-'}</div>
+                            <div class="text-[10px] font-mono text-brand-600 dark:text-brand-400 mt-0.5 flex items-center gap-1">
+                                <i class="ph ph-file-text text-[11px]"></i>
+                                <span>${t.contract_no || 'ยังไม่ได้ระบุ'}</span>
+                            </div>
                         </td>
                         <td class="px-5 py-3.5 font-mono font-bold text-foreground">
                             ${amt.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿
@@ -4828,7 +4863,10 @@ const app = {
                             <div class="text-[10px] text-muted-foreground truncate max-w-[140px]">${t.notes || ''}</div>
                         </td>
                         <td class="px-5 py-3.5 text-center">
-                            ${slipThumb}
+                            <div class="flex items-center justify-center gap-2">
+                                ${slipThumb}
+                                ${contractDisplay}
+                            </div>
                         </td>
                         <td class="px-5 py-3.5">
                             ${statusBadge}
@@ -4838,8 +4876,11 @@ const app = {
                                 <button type="button" onclick="app.openBOQForJob('${t.job_id}')" class="btn-artifact-primary px-2.5 py-1 rounded-lg text-[11px] bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1 cursor-pointer font-medium shadow-xs" title="ไปจัดทำ BOQ (Step 4) สำหรับงานนี้">
                                     <span>BOQ</span> <i class="ph ph-arrow-right"></i>
                                 </button>
-                                <button type="button" onclick="app.openTicketSlipLightbox('${t.id}')" class="p-1.5 rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-muted transition cursor-pointer" title="ดูใบเสร็จ">
+                                <button type="button" onclick="app.openTicketSlipLightbox('${t.id}')" class="p-1.5 rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-muted transition cursor-pointer" title="ดูสลิปและสัญญาจ้าง">
                                     <i class="ph ph-eye text-base"></i>
+                                </button>
+                                <button type="button" onclick="app.openQuickAttachModal('${t.id}')" class="p-1.5 rounded-lg text-muted-foreground hover:text-brand-500 hover:bg-muted transition cursor-pointer" title="อัปโหลด/แก้ไขเอกสารแนบ">
+                                    <i class="ph ph-paperclip text-base"></i>
                                 </button>
                                 <button type="button" onclick="app.deleteTicket('${t.id}')" class="p-1.5 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-muted transition cursor-pointer" title="ลบ Ticket">
                                     <i class="ph ph-trash text-base"></i>
@@ -4872,6 +4913,9 @@ const app = {
                 const rcInput = document.getElementById('create-ticket-receipt-no');
                 if (rcInput) rcInput.value = `RC-VFIX-260901-${nextNumStr}`;
 
+                const ctrInput = document.getElementById('create-ticket-contract-no');
+                if (ctrInput) ctrInput.value = `CTR-202609-${nextNumStr}`;
+
                 const amtInput = document.getElementById('create-ticket-amount');
                 if (amtInput) {
                     let defaultAmt = 25000;
@@ -4882,10 +4926,17 @@ const app = {
                 const dateInput = document.getElementById('create-ticket-date');
                 if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
 
+                // Slip preview reset
                 const previewContainer = document.getElementById('ticket-slip-preview-container');
                 if (previewContainer) previewContainer.classList.add('hidden');
                 this.state.newTicketSlipPreview = 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80';
                 this.state.newTicketSlipName = 'slip_sample_transfer.jpg';
+
+                // Contract preview reset
+                const ctrPreviewContainer = document.getElementById('ticket-contract-preview-container');
+                if (ctrPreviewContainer) ctrPreviewContainer.classList.add('hidden');
+                this.state.newTicketContractPreview = 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80';
+                this.state.newTicketContractName = 'contract_service_vfix.pdf';
 
                 const notesInput = document.getElementById('create-ticket-notes');
                 if (notesInput) notesInput.value = '';
@@ -4920,6 +4971,25 @@ const app = {
                 reader.readAsDataURL(file);
             },
 
+            handleTicketContractSelect(event) {
+                const file = event.target.files && event.target.files[0];
+                if (!file) return;
+                this.state.newTicketContractName = file.name;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.state.newTicketContractPreview = e.target.result;
+                    const previewContainer = document.getElementById('ticket-contract-preview-container');
+                    const previewImg = document.getElementById('ticket-contract-preview-img');
+                    const previewName = document.getElementById('ticket-contract-preview-name');
+                    if (previewContainer && previewImg) {
+                        previewImg.src = e.target.result;
+                        if (previewName) previewName.innerText = `📄 ${file.name}`;
+                        previewContainer.classList.remove('hidden');
+                    }
+                };
+                reader.readAsDataURL(file);
+            },
+
             useSampleSlip(type = 1) {
                 const sampleUrl = type === 1 
                     ? 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80'
@@ -4938,11 +5008,30 @@ const app = {
                 this.showToast('📷 เลือกรูปตัวอย่างสลิปใบเสร็จเรียบร้อย');
             },
 
+            useSampleContract(type = 1) {
+                const sampleUrl = type === 1
+                    ? 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80'
+                    : 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=700&auto=format&fit=crop&q=80';
+                const sampleName = type === 1 ? 'sample_standard_work_contract.pdf' : 'sample_ac_installation_contract.pdf';
+                this.state.newTicketContractPreview = sampleUrl;
+                this.state.newTicketContractName = sampleName;
+                const previewContainer = document.getElementById('ticket-contract-preview-container');
+                const previewImg = document.getElementById('ticket-contract-preview-img');
+                const previewName = document.getElementById('ticket-contract-preview-name');
+                if (previewContainer && previewImg) {
+                    previewImg.src = sampleUrl;
+                    if (previewName) previewName.innerText = `📄 ${sampleName}`;
+                    previewContainer.classList.remove('hidden');
+                }
+                this.showToast('📝 เลือกไฟล์ตัวอย่างสัญญาการทำงานเรียบร้อย');
+            },
+
             submitCreateTicket(event) {
                 event.preventDefault();
                 const jobId = document.getElementById('create-ticket-jobid').value;
                 const ticketNo = document.getElementById('create-ticket-no').value.trim();
                 const receiptNo = document.getElementById('create-ticket-receipt-no').value.trim();
+                const contractNo = (document.getElementById('create-ticket-contract-no').value || '').trim();
                 const amount = parseFloat(document.getElementById('create-ticket-amount').value) || 0;
                 const paymentDate = document.getElementById('create-ticket-date').value;
                 const paymentMethod = document.getElementById('create-ticket-method').value;
@@ -4953,6 +5042,7 @@ const app = {
                     id: `TKT-${Date.now()}`,
                     ticket_no: ticketNo,
                     receipt_no: receiptNo,
+                    contract_no: contractNo || `CTR-${Date.now().toString().slice(-6)}`,
                     job_id: jobId,
                     customer_name: job ? job.customer : '',
                     service: job ? job.service : '',
@@ -4961,6 +5051,8 @@ const app = {
                     payment_method: paymentMethod,
                     slip_url: this.state.newTicketSlipPreview || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80',
                     slip_name: this.state.newTicketSlipName || 'receipt_slip.jpg',
+                    contract_url: this.state.newTicketContractPreview || 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80',
+                    contract_name: this.state.newTicketContractName || 'work_contract.pdf',
                     status: 'VERIFIED',
                     notes: notes,
                     created_at: new Date().toISOString()
@@ -4971,29 +5063,159 @@ const app = {
                 this.persistTickets();
 
                 // Step 3 Timestamp Recording
-                this.recordStepTimestamp(jobId, 'step3_ticket_at', newTicket.created_at, `บันทึก Ticket ${ticketNo} สลิป ${receiptNo || '-'}`);
+                this.recordStepTimestamp(jobId, 'step3_ticket_at', newTicket.created_at, `บันทึก Ticket ${ticketNo} ใบเสร็จ ${receiptNo || '-'} สัญญา ${contractNo || '-'}`);
                 this.hideModal('modal-create-ticket');
                 this.renderTickets();
-                this.showToast(`✅ บันทึก Ticket ${ticketNo} และแนบใบเสร็จเรียบร้อย`);
+                this.showToast(`✅ บันทึก Ticket ${ticketNo}, ใบเสร็จ และแนบสัญญาการทำงานเรียบร้อย`);
             },
 
-            openTicketSlipLightbox(ticketId) {
+            openTicketSlipLightbox(ticketId, defaultTab = 'slip') {
                 const t = (DB.tickets || []).find(x => x.id === ticketId);
                 if (!t) return;
-                const img = document.getElementById('receipt-lightbox-img');
+                this.state.currentLightboxTicketId = ticketId;
+
+                const slipImg = document.getElementById('receipt-lightbox-img');
+                const slipName = document.getElementById('receipt-lightbox-slip-name');
+                const contractImg = document.getElementById('contract-lightbox-img');
+                const contractName = document.getElementById('contract-lightbox-name');
+
                 const title = document.getElementById('receipt-lightbox-title');
                 const sub = document.getElementById('receipt-lightbox-subtitle');
                 const details = document.getElementById('receipt-lightbox-details');
-                if (img) img.src = t.slip_url;
-                if (title) title.innerText = `ใบเสร็จรับเงิน: ${t.receipt_no || '-'}`;
-                if (sub) sub.innerText = `Ticket: ${t.ticket_no} • โครงการ: ${t.job_id} (${t.customer_name})`;
+
+                if (slipImg) slipImg.src = t.slip_url || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80';
+                if (slipName) slipName.innerText = `🧾 สลิปใบเสร็จ: ${t.slip_name || 'slip.jpg'}`;
+
+                if (contractImg) contractImg.src = t.contract_url || 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80';
+                if (contractName) contractName.innerText = `📄 สัญญาการทำงาน: ${t.contract_name || 'contract.pdf'} (เลขที่: ${t.contract_no || '-'})`;
+
+                if (title) title.innerText = `หลักฐานใบเสร็จ & สัญญา: ${t.ticket_no}`;
+                if (sub) sub.innerText = `ใบเสร็จ: ${t.receipt_no || '-'} • สัญญา: ${t.contract_no || '-'} • โครงการ: ${t.job_id} (${t.customer_name})`;
                 if (details) {
                     details.innerHTML = `
                         <div><strong>ยอดชำระ:</strong> <span class="font-mono text-emerald-600 font-bold">${Number(t.amount).toLocaleString('th-TH')} ฿</span> (${t.payment_method})</div>
-                        <div><strong>วันที่:</strong> <span class="font-mono">${t.payment_date || '-'}</span> | <strong>หมายเหตุ:</strong> ${t.notes || '-'}</div>
+                        <div><strong>วันที่:</strong> <span class="font-mono">${t.payment_date || '-'}</span> | <strong>สัญญาจ้าง:</strong> ${t.contract_no || '-'} | <strong>หมายเหตุ:</strong> ${t.notes || '-'}</div>
                     `;
                 }
+
+                this.switchLightboxTab(defaultTab);
                 this.showModal('modal-ticket-receipt-lightbox');
+            },
+
+            switchLightboxTab(tab) {
+                const slipContent = document.getElementById('lightbox-content-slip');
+                const contractContent = document.getElementById('lightbox-content-contract');
+                const tabSlipBtn = document.getElementById('lightbox-tab-slip');
+                const tabContractBtn = document.getElementById('lightbox-tab-contract');
+
+                if (tab === 'contract') {
+                    if (slipContent) slipContent.classList.add('hidden');
+                    if (contractContent) contractContent.classList.remove('hidden');
+                    if (tabSlipBtn) {
+                        tabSlipBtn.className = 'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer text-muted-foreground hover:text-foreground';
+                    }
+                    if (tabContractBtn) {
+                        tabContractBtn.className = 'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer bg-brand-600 text-white shadow-xs';
+                    }
+                } else {
+                    if (contractContent) contractContent.classList.add('hidden');
+                    if (slipContent) slipContent.classList.remove('hidden');
+                    if (tabContractBtn) {
+                        tabContractBtn.className = 'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer text-muted-foreground hover:text-foreground';
+                    }
+                    if (tabSlipBtn) {
+                        tabSlipBtn.className = 'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer bg-emerald-600 text-white shadow-xs';
+                    }
+                }
+            },
+
+            openQuickUploadForCurrentTicket() {
+                if (this.state.currentLightboxTicketId) {
+                    this.hideModal('modal-ticket-receipt-lightbox');
+                    this.openQuickAttachModal(this.state.currentLightboxTicketId);
+                }
+            },
+
+            openQuickAttachModal(ticketId) {
+                const t = (DB.tickets || []).find(x => x.id === ticketId);
+                if (!t) return;
+                
+                const inputId = document.getElementById('quick-attach-ticket-id');
+                const sub = document.getElementById('quick-attach-subtitle');
+                if (inputId) inputId.value = ticketId;
+                if (sub) sub.innerText = `Ticket No: ${t.ticket_no} | ${t.job_id} (${t.customer_name})`;
+
+                this.state.tempQuickSlip = t.slip_url || null;
+                this.state.tempQuickSlipName = t.slip_name || null;
+                this.state.tempQuickContract = t.contract_url || null;
+                this.state.tempQuickContractName = t.contract_name || null;
+
+                const slipInput = document.getElementById('quick-slip-file');
+                const ctrInput = document.getElementById('quick-contract-file');
+                if (slipInput) slipInput.value = '';
+                if (ctrInput) ctrInput.value = '';
+
+                this.showModal('modal-quick-attach');
+            },
+
+            setQuickSlipSample(type = 1) {
+                this.state.tempQuickSlip = type === 1
+                    ? 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80'
+                    : 'https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=600&auto=format&fit=crop&q=80';
+                this.state.tempQuickSlipName = type === 1 ? 'slip_transfer_kbank.jpg' : 'slip_credit_card.jpg';
+                this.showToast('📷 เลือกรูปตัวอย่างสลิปใบเสร็จแล้ว');
+            },
+
+            setQuickContractSample(type = 1) {
+                this.state.tempQuickContract = type === 1
+                    ? 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80'
+                    : 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=700&auto=format&fit=crop&q=80';
+                this.state.tempQuickContractName = type === 1 ? 'work_contract_vfix_standard.pdf' : 'contract_installation_ac.pdf';
+                this.showToast('📝 เลือกไฟล์ตัวอย่างสัญญาการทำงานแล้ว');
+            },
+
+            submitQuickAttach(event) {
+                event.preventDefault();
+                const ticketId = document.getElementById('quick-attach-ticket-id').value;
+                const t = (DB.tickets || []).find(x => x.id === ticketId);
+                if (!t) return;
+
+                const slipFile = document.getElementById('quick-slip-file').files[0];
+                const contractFile = document.getElementById('quick-contract-file').files[0];
+
+                const processFiles = async () => {
+                    if (slipFile) {
+                        t.slip_name = slipFile.name;
+                        t.slip_url = await new Promise(res => {
+                            const r = new FileReader();
+                            r.onload = e => res(e.target.result);
+                            r.readAsDataURL(slipFile);
+                        });
+                    } else if (this.state.tempQuickSlip) {
+                        t.slip_url = this.state.tempQuickSlip;
+                        t.slip_name = this.state.tempQuickSlipName || 'slip.jpg';
+                    }
+
+                    if (contractFile) {
+                        t.contract_name = contractFile.name;
+                        t.contract_url = await new Promise(res => {
+                            const r = new FileReader();
+                            r.onload = e => res(e.target.result);
+                            r.readAsDataURL(contractFile);
+                        });
+                    } else if (this.state.tempQuickContract) {
+                        t.contract_url = this.state.tempQuickContract;
+                        t.contract_name = this.state.tempQuickContractName || 'work_contract.pdf';
+                    }
+
+                    t.status = 'VERIFIED';
+                    this.persistTickets();
+                    this.renderTickets();
+                    this.hideModal('modal-quick-attach');
+                    this.showToast(`✅ อัปโหลดเอกสารสลิปและสัญญาการทำงานสำหรับ ${t.ticket_no} เรียบร้อย`);
+                };
+
+                processFiles();
             },
 
             deleteTicket(ticketId) {
