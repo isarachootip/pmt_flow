@@ -847,6 +847,18 @@
                                     <option value="ติดตั้งเครื่องปรับอากาศ">ติดตั้งเครื่องปรับอากาศ</option>
                                     <option value="โซลาร์เซลล์">โซลาร์เซลล์</option>
                                 </select>
+
+                                <!-- Blueprint View Mode Switcher: Card View vs List View -->
+                                <div class="inline-flex p-1 bg-muted/60 border border-border rounded-xl text-xs shrink-0">
+                                    <button type="button" id="btn-blueprint-mode-card" onclick="app.setBlueprintViewMode('card')" class="px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs" title="แสดงแบบการ์ด (Card View)">
+                                        <i class="ph ph-squares-four text-indigo-500 text-sm"></i>
+                                        <span>Card View</span>
+                                    </button>
+                                    <button type="button" id="btn-blueprint-mode-list" onclick="app.setBlueprintViewMode('list')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground" title="แสดงแบบรายการ (List View)">
+                                        <i class="ph ph-list-bullets text-sm"></i>
+                                        <span>List View</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2700,12 +2712,11 @@
 
                 <!-- Real File Attachment & Drag-Drop Zone -->
                 <div class="space-y-2">
-                    <label class="block text-xs font-semibold text-foreground">แนบไฟล์แบบแปลน (CAD / PDF / DWG / รูปภาพ) *</label>
-                    <input type="file" id="upload-bp-file" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.zip,.rar" class="hidden" onchange="app.handleBlueprintFileSelect(event)">
+                    <label class="block text-xs font-semibold text-foreground">แนบไฟล์แบบแปลน (CAD / PDF / DWG / รูปภาพ) <span class="text-rose-500">*</span></label>
+                    <input type="file" id="upload-bp-file" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.zip,.rar" class="sr-only" onchange="app.handleBlueprintFileSelect(event)">
                     
-                    <div id="upload-bp-dropzone" 
-                         class="border-2 border-dashed border-border hover:border-indigo-500 rounded-xl p-5 text-center cursor-pointer bg-muted/20 hover:bg-indigo-500/5 transition relative flex flex-col items-center justify-center gap-2 group"
-                         onclick="document.getElementById('upload-bp-file').click()"
+                    <label for="upload-bp-file" id="upload-bp-dropzone" 
+                         class="border-2 border-dashed border-border hover:border-indigo-500 rounded-xl p-5 text-center cursor-pointer bg-muted/20 hover:bg-indigo-500/5 transition relative flex flex-col items-center justify-center gap-2 group block"
                          ondragover="app.handleBlueprintDragOver(event)"
                          ondragleave="app.handleBlueprintDragLeave(event)"
                          ondrop="app.handleBlueprintDrop(event)">
@@ -2716,10 +2727,10 @@
                             <div class="text-xs font-bold text-foreground">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่</div>
                             <div class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์ PDF, AutoCAD (.dwg, .dxf), รูปภาพ (.jpg, .png) สูงสุด 50 MB</div>
                         </div>
-                        <button type="button" class="btn-artifact-secondary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-xs mt-1 pointer-events-none">
+                        <div class="btn-artifact-secondary px-3.5 py-1.5 rounded-lg text-xs inline-flex items-center gap-1.5 font-medium shadow-xs mt-1 pointer-events-none">
                             <i class="ph ph-folder-open text-sm"></i> เลือกไฟล์จากเครื่องคอมพิวเตอร์
-                        </button>
-                    </div>
+                        </div>
+                    </label>
 
                     <!-- Selected File Preview Card -->
                     <div id="upload-bp-selected-file" class="hidden p-3 rounded-xl border border-indigo-500/30 bg-indigo-500/5 flex items-center justify-between gap-3">
@@ -2733,10 +2744,10 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-1.5 shrink-0">
-                            <button type="button" onclick="document.getElementById('upload-bp-file').click()" class="p-1.5 text-muted-foreground hover:text-foreground text-xs rounded-lg hover:bg-muted cursor-pointer" title="เปลี่ยนไฟล์">
+                            <label for="upload-bp-file" class="p-1.5 text-muted-foreground hover:text-foreground text-xs rounded-lg hover:bg-muted cursor-pointer inline-flex items-center" title="เปลี่ยนไฟล์">
                                 <i class="ph ph-arrows-clockwise text-sm"></i>
-                            </button>
-                            <button type="button" onclick="app.clearBlueprintSelectedFile()" class="p-1.5 text-rose-500 hover:text-rose-600 text-xs rounded-lg hover:bg-rose-500/10 cursor-pointer" title="ลบไฟล์ที่เลือก">
+                            </label>
+                            <button type="button" onclick="app.clearBlueprintSelectedFile()" class="p-1.5 text-rose-500 hover:text-rose-600 text-xs rounded-lg hover:bg-rose-500/10 cursor-pointer inline-flex items-center" title="ลบไฟล์ที่เลือก">
                                 <i class="ph ph-trash text-sm"></i>
                             </button>
                         </div>
@@ -2762,8 +2773,8 @@
                 </div>
 
                 <div class="pt-3 border-t border-border flex justify-end gap-2">
-                    <button type="button" onclick="app.hideModal('modal-upload-blueprint')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs">ยกเลิก</button>
-                    <button type="submit" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-sm">
+                    <button type="button" onclick="app.hideModal('modal-upload-blueprint')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs cursor-pointer">ยกเลิก</button>
+                    <button type="submit" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer">
                         <i class="ph ph-upload-simple"></i> บันทึกแบบแปลน
                     </button>
                 </div>
@@ -3947,6 +3958,9 @@
                 newTicketSlipName: '',
                 projectViewMode: (function() {
                     try { return localStorage.getItem('pmt_project_view_mode') || 'card'; } catch (e) { return 'card'; }
+                })(),
+                blueprintViewMode: (function() {
+                    try { return localStorage.getItem('pmt_blueprint_view_mode') || 'card'; } catch (e) { return 'card'; }
                 })(),
                 ganttViewMode: (function() {
                     try { return localStorage.getItem('pmt_gantt_view_mode') || 'gantt'; } catch (e) { return 'gantt'; }
@@ -6349,6 +6363,36 @@
                 }
             },
 
+            setBlueprintViewMode(mode) {
+                this.state.blueprintViewMode = mode;
+                try { localStorage.setItem('pmt_blueprint_view_mode', mode); } catch (e) {}
+                this.updateBlueprintViewModeButtons();
+                this.renderBlueprints();
+            },
+
+            updateBlueprintViewModeButtons() {
+                const mode = this.state.blueprintViewMode || 'card';
+                const btnCard = document.getElementById('btn-blueprint-mode-card');
+                const btnList = document.getElementById('btn-blueprint-mode-list');
+                if (btnCard && btnList) {
+                    if (mode === 'card') {
+                        btnCard.className = 'px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs';
+                        btnList.className = 'px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground';
+                    } else {
+                        btnList.className = 'px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs';
+                        btnCard.className = 'px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground';
+                    }
+                }
+            },
+
+            handleDirectBlueprintUpload(event, jobId) {
+                const file = event.target.files && event.target.files[0];
+                if (!file) return;
+                this.openUploadBlueprintModal(jobId);
+                this.processSelectedBlueprintFile(file);
+                event.target.value = '';
+            },
+
             renderBlueprints(searchQuery = '', serviceFilter = 'all') {
                 const searchEl = document.getElementById('blueprint-search');
                 const serviceEl = document.getElementById('blueprint-filter-service');
@@ -6413,15 +6457,84 @@
                 const sbBp = document.getElementById('sidebar-blueprint-count');
                 if (sbBp) sbBp.innerText = totalPendingCount;
 
+                this.updateBlueprintViewModeButtons();
+                const isList = (this.state.blueprintViewMode === 'list');
+
                 // 3. Render Pending Queue Container
                 const pendingContainer = document.getElementById('blueprints-pending-list');
                 if (pendingContainer) {
+                    if (isList) {
+                        pendingContainer.className = "w-full overflow-hidden";
+                    } else {
+                        pendingContainer.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
+                    }
+
                     if (pendingDesignJobs.length === 0) {
                         pendingContainer.innerHTML = `
                             <div class="col-span-full artifact-card p-10 text-center text-muted-foreground border border-dashed border-border">
                                 <i class="ph ph-check-circle text-4xl mb-2 text-emerald-500"></i>
                                 <h4 class="font-display font-medium text-foreground text-sm">ไม่มีงานที่รอจัดทำ Design ในขณะนี้</h4>
                                 <p class="text-xs text-muted-foreground mt-1">ทุกโครงการในระบบได้จัดทำแบบแปลนติดตั้งแล้ว หรือไม่ตรงกับเงื่อนไขการค้นหา</p>
+                            </div>
+                        `;
+                    } else if (isList) {
+                        pendingContainer.innerHTML = `
+                            <div class="overflow-x-auto rounded-2xl border border-border bg-card shadow-xs">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="border-b border-border bg-muted/40 text-muted-foreground font-semibold text-[11px]">
+                                            <th class="py-3 px-4 font-mono">JOB ID</th>
+                                            <th class="py-3 px-4">วันที่รับ Order</th>
+                                            <th class="py-3 px-4">ลูกค้า</th>
+                                            <th class="py-3 px-4">บริการ / งานติดตั้ง</th>
+                                            <th class="py-3 px-4">สถานที่ติดตั้ง</th>
+                                            <th class="py-3 px-4">ช่างผู้รับผิดชอบ</th>
+                                            <th class="py-3 px-4 text-center">สถานะ</th>
+                                            <th class="py-3 px-4 text-right">ดำเนินการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-border">
+                                        ${pendingDesignJobs.map(job => `
+                                            <tr class="hover:bg-muted/30 transition">
+                                                <td class="py-3 px-4 font-mono font-bold text-foreground">
+                                                    <span class="bg-muted px-2 py-0.5 rounded border border-border">${job.id}</span>
+                                                </td>
+                                                <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${job.date || '-'}</td>
+                                                <td class="py-3 px-4 font-medium text-foreground">${job.customer}</td>
+                                                <td class="py-3 px-4 text-brand-600 dark:text-brand-400 font-medium">${job.service}</td>
+                                                <td class="py-3 px-4 text-muted-foreground text-[11px] max-w-[180px] truncate" title="${job.address || '-'}">
+                                                    ${job.address || '-'}
+                                                </td>
+                                                <td class="py-3 px-4 text-muted-foreground">
+                                                    <div class="flex items-center gap-1.5">
+                                                        <i class="ph ph-wrench text-muted-foreground"></i>
+                                                        <span class="text-foreground font-medium">${job.tech || 'ยังไม่ระบุ'}</span>
+                                                    </div>
+                                                </td>
+                                                <td class="py-3 px-4 text-center whitespace-nowrap">
+                                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 inline-flex items-center gap-1">
+                                                        <i class="ph ph-clock"></i> รอแบบ Design
+                                                    </span>
+                                                </td>
+                                                <td class="py-3 px-4 text-right whitespace-nowrap">
+                                                    <div class="flex items-center justify-end gap-1.5">
+                                                        <button type="button" onclick="app.navigate('job-detail', '${job.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer" title="ดูรายละเอียดงาน">
+                                                            <i class="ph ph-eye"></i> <span>ดูงาน</span>
+                                                        </button>
+                                                        <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer" title="ฟอร์มบันทึกแบบแปลน">
+                                                            <i class="ph ph-pencil-simple"></i>
+                                                        </button>
+                                                        <label for="bp-list-upload-${job.id}" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-sm" title="เลือกไฟล์เพื่ออัปโหลดแบบแปลนทันที">
+                                                            <i class="ph ph-upload-simple"></i>
+                                                            <span>อัปโหลด Design</span>
+                                                        </label>
+                                                        <input type="file" id="bp-list-upload-${job.id}" class="sr-only" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.zip,.rar" onchange="app.handleDirectBlueprintUpload(event, '${job.id}')">
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
                             </div>
                         `;
                     } else {
@@ -6457,10 +6570,16 @@
                                     <button type="button" onclick="app.navigate('job-detail', '${job.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer">
                                         <i class="ph ph-eye"></i> ดูงาน
                                     </button>
-                                    <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-sm">
-                                        <i class="ph ph-upload-simple"></i>
-                                        <span>+ บันทึก Design</span>
-                                    </button>
+                                    <div class="flex items-center gap-1.5">
+                                        <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-secondary px-2 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer" title="กรอกข้อมูล / บันทึกแบบแปลน">
+                                            <i class="ph ph-pencil-simple"></i>
+                                        </button>
+                                        <label for="bp-card-upload-${job.id}" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-sm" title="เลือกไฟล์เพื่ออัปโหลดแบบแปลนทันที">
+                                            <i class="ph ph-upload-simple"></i>
+                                            <span>อัปโหลด Design</span>
+                                        </label>
+                                        <input type="file" id="bp-card-upload-${job.id}" class="sr-only" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.zip,.rar" onchange="app.handleDirectBlueprintUpload(event, '${job.id}')">
+                                    </div>
                                 </div>
                             </div>
                             `;
@@ -6474,12 +6593,74 @@
                 if (libCountText) libCountText.innerText = `แสดง ${blueprints.length} จาก ${totalBpFiles} ไฟล์`;
 
                 if (container) {
+                    if (isList) {
+                        container.className = "w-full overflow-hidden";
+                    } else {
+                        container.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+                    }
+
                     if (blueprints.length === 0) {
                         container.innerHTML = `
                             <div class="col-span-full artifact-card p-12 text-center text-muted-foreground border border-dashed border-border">
                                 <i class="ph ph-file-dashed text-4xl mb-2 text-muted-foreground/50"></i>
                                 <h4 class="font-display font-medium text-foreground text-sm">ไม่พบไฟล์แบบแปลนที่ตรงกับเงื่อนไข</h4>
                                 <p class="text-xs text-muted-foreground mt-1">ลองเปลี่ยนคำค้นหา หรือกดปุ่ม "อัปโหลดแบบแปลนใหม่"</p>
+                            </div>
+                        `;
+                    } else if (isList) {
+                        container.innerHTML = `
+                            <div class="overflow-x-auto rounded-2xl border border-border bg-card shadow-xs">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="border-b border-border bg-muted/40 text-muted-foreground font-semibold text-[11px]">
+                                            <th class="py-3 px-4 font-mono">รหัสแบบ</th>
+                                            <th class="py-3 px-4 font-mono">JOB ID</th>
+                                            <th class="py-3 px-4">ชื่อไฟล์แบบแปลน</th>
+                                            <th class="py-3 px-4">ลูกค้า</th>
+                                            <th class="py-3 px-4">ประเภทบริการ</th>
+                                            <th class="py-3 px-4 text-center">เวอร์ชัน</th>
+                                            <th class="py-3 px-4">ขนาดไฟล์</th>
+                                            <th class="py-3 px-4">ผู้ออกแบบ</th>
+                                            <th class="py-3 px-4">วันที่บันทึก</th>
+                                            <th class="py-3 px-4 text-right">ดำเนินการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-border">
+                                        ${blueprints.map(b => `
+                                            <tr class="hover:bg-muted/30 transition">
+                                                <td class="py-3 px-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">${b.id}</td>
+                                                <td class="py-3 px-4 font-mono text-foreground font-bold">${b.jobId}</td>
+                                                <td class="py-3 px-4">
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="ph ph-file-pdf text-rose-500 text-base"></i>
+                                                        <span class="font-medium text-foreground truncate max-w-[200px]" title="${b.filename}">${b.filename}</span>
+                                                    </div>
+                                                </td>
+                                                <td class="py-3 px-4 font-medium text-foreground">${b.customer}</td>
+                                                <td class="py-3 px-4 text-brand-600 dark:text-brand-400 font-medium">${b.service}</td>
+                                                <td class="py-3 px-4 text-center">
+                                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-600 text-white shadow-xs">${b.version}</span>
+                                                </td>
+                                                <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${b.size}</td>
+                                                <td class="py-3 px-4 text-muted-foreground text-[11px]">${b.designer || 'Designer'}</td>
+                                                <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${b.date}</td>
+                                                <td class="py-3 px-4 text-right whitespace-nowrap">
+                                                    <div class="flex items-center justify-end gap-1.5">
+                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white" onclick="app.openBasePhotoLightbox(1)" title="ดูตัวอย่างแบบ">
+                                                            <i class="ph ph-eye"></i> <span>ดูตัวอย่าง</span>
+                                                        </button>
+                                                        <button class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer" title="ดาวน์โหลดไฟล์ PDF" onclick="app.showToast('กำลังดาวน์โหลด ${b.filename}...')">
+                                                            <i class="ph ph-download-simple"></i>
+                                                        </button>
+                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium cursor-pointer" onclick="app.navigate('job-detail', '${b.jobId}')" title="เปิดดูงาน">
+                                                            <span>เปิดดูงาน</span> <i class="ph ph-arrow-right"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
                             </div>
                         `;
                     } else {
@@ -6666,17 +6847,28 @@
 
             openUploadBlueprintModal(preselectedJobId = null) {
                 this.clearBlueprintSelectedFile();
+                const jobs = DB.jobs || [];
                 const selectJob = document.getElementById('upload-bp-jobid');
                 if (selectJob) {
-                    selectJob.innerHTML = DB.jobs.map(j => `<option value="${j.id}">${j.id} - ${j.customer} (${j.service})</option>`).join('');
+                    selectJob.innerHTML = jobs.map(j => `<option value="${j.id}">${j.id} - ${j.customer} (${j.service})</option>`).join('');
                     if (preselectedJobId) {
                         selectJob.value = preselectedJobId;
                     }
+                    selectJob.onchange = (e) => {
+                        const jId = e.target.value;
+                        const j = jobs.find(job => job.id === jId);
+                        const fnInput = document.getElementById('upload-bp-filename');
+                        if (j && fnInput && (!this.state.newBlueprintFileName || !fnInput.value || fnInput.value.includes('_Layout_'))) {
+                            const sanitizedSvc = (j.service || 'Service').replace(/\s+/g, '_').substring(0, 20);
+                            fnInput.value = `${j.id}_Layout_${sanitizedSvc}.pdf`;
+                        }
+                    };
                 }
                 const filenameInput = document.getElementById('upload-bp-filename');
+                const targetJobId = preselectedJobId || (selectJob ? selectJob.value : (jobs[0] ? jobs[0].id : null));
                 if (filenameInput) {
-                    if (preselectedJobId) {
-                        const selJob = DB.jobs.find(j => j.id === preselectedJobId);
+                    if (targetJobId) {
+                        const selJob = jobs.find(j => j.id === targetJobId);
                         if (selJob) {
                             const sanitizedSvc = (selJob.service || 'Service').replace(/\s+/g, '_').substring(0, 20);
                             filenameInput.value = `${selJob.id}_Layout_${sanitizedSvc}.pdf`;
@@ -12895,6 +13087,9 @@
         // After original init, enforce login
         setTimeout(() => auth.init(), 100);
     };
+
+    // Expose app to global window scope
+    window.app = app;
     </script>
 
 </body>
