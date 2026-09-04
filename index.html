@@ -12372,40 +12372,16 @@
         },
 
         async logout() {
-            try {
-                const tokenToRevoke = this.token;
-                this.token = null; this.user = null;
-                
-                try {
-                    document.body.classList.remove('superadmin-allowed');
-                    document.querySelectorAll('.superadmin-only-btn').forEach(btn => {
-                        btn.setAttribute('disabled', 'disabled');
-                        btn.disabled = true;
-                    });
-                } catch(e) {}
-
-                try {
-                    sessionStorage.removeItem('pmt_token');
-                    sessionStorage.removeItem('pmt_user');
-                    localStorage.removeItem('pmt_token');
-                    localStorage.removeItem('pmt_user');
-                } catch(e) {}
-
-                this.showLoginOverlay();
-
-                if (tokenToRevoke) {
-                    fetch('/api/v1/auth/logout', {
-                        method: 'POST',
-                        headers: { 'Authorization': 'Bearer ' + tokenToRevoke }
-                    }).catch(e => {});
-                }
-                
-                // Also trigger a page reload to fully clear memory state after a small delay
-                setTimeout(() => window.location.reload(), 100);
-            } catch(e) {
-                console.error('Logout error:', e);
-                window.location.reload();
+            // Fire-and-forget the server logout
+            const tok = this.token;
+            if (tok) {
+                fetch('/api/v1/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok } }).catch(() => {});
             }
+            // Wipe ALL storage (most reliable way)
+            try { localStorage.clear(); } catch(e) {}
+            try { sessionStorage.clear(); } catch(e) {}
+            // Hard navigate — browser will fetch fresh page, auth.init() will find no token → show Login
+            window.location.href = '/';
         },
 
         getHeaders() {
