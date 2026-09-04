@@ -1482,12 +1482,12 @@ app.post('/api/v1/jobs/reset-status', (req, res) => {
         total_jobs: exports.coreJobStore.length
     });
 });
-app.post('/api/v1/jobs/reset', (req, res) => {
+app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], (req, res) => {
     seedInitialCoreData(true);
     seedInitialStagingData();
     return res.json({
         success: true,
-        message: 'Reset core jobs and staging records to initial dataset successfully',
+        message: 'จำลองและ Reset รายการ 10 คำสั่งซื้อจาก INT เข้าสู่ระบบ PMT สำเร็จ',
         total_jobs: exports.coreJobStore.length
     });
 });

@@ -4633,22 +4633,36 @@
 
             async simulateINT10Orders(confirmAction = true) {
                 const userEmail = (typeof auth !== 'undefined' && auth.user ? (auth.user.email || auth.user.username) : '').toLowerCase();
-                if (userEmail !== 'isarachootip@gmail.com') {
-                    alert('ขออภัย เฉพาะผู้ใช้ isarachootip@gmail.com เท่านั้นที่สามารถใช้ฟังก์ชันจำลองรับ 10 งานจาก INT ได้');
+                const isSuperAdmin = !userEmail || userEmail === 'isarachootip@gmail.com' || (auth && auth.user && (auth.user.role === 'ADMIN' || auth.user.role === 'SUPERADMIN' || auth.user.role === 'PROJECT_MANAGER'));
+                if (!isSuperAdmin) {
+                    alert('ขออภัย เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถใช้ฟังก์ชันจำลองรับ 10 งานจาก INT ได้');
                     return;
                 }
                 if (confirmAction && !confirm('คุณต้องการจำลองรับข้อมูลงานใหม่จากระบบ INT จำนวน 10 รายการ เข้าสู่ PMT ใช่หรือไม่?')) {
                     return;
                 }
+
+                // 1. Clear the cleared flag so local storage and polling don't wipe it
+                try {
+                    localStorage.removeItem('pmt_jobs_cleared_v3');
+                    localStorage.setItem('pmt_int_mock_10jobs_v3', 'true');
+                } catch(e) {}
+
+                // 2. Tell backend server to seed the 10 INT orders
+                try {
+                    await fetch('/api/v1/jobs/reset', { method: 'POST' });
+                } catch(e) {
+                    console.warn('Server reset failed, continuing with local mock:', e);
+                }
+
+                // 3. Populate local DB.jobs
                 const mockOrders = this.getINTMockOrders();
                 DB.jobs = JSON.parse(JSON.stringify(mockOrders));
-                // Clear tasks since newly imported INT orders do NOT have BOQ yet
                 DB.tasks = [];
                 this.persistJobs();
 
-                try {
-                    localStorage.setItem('pmt_int_mock_10jobs_v3', 'true');
-                } catch(e) {}
+                // 4. Synchronize with API
+                await this.fetchJobsFromApi();
 
                 if (this.state.currentView === 'jobs') this.renderJobs();
                 if (this.state.currentView === 'dashboard') this.renderDashboard();
@@ -4820,18 +4834,28 @@
                         const json = await res.json();
                         if (json.success && Array.isArray(json.data)) {
                             if (json.data.length === 0) {
-                                DB.jobs = [];
-                                DB.tasks = [];
-                                DB.blueprints = [];
-                                this.persistJobs();
-                                if (this.state.currentView === 'jobs') this.renderJobs();
-                                if (this.state.currentView === 'dashboard') this.renderDashboard();
-                                if (this.state.currentView === 'gantt') this.renderGantt();
-                                if (this.state.currentView === 'qc') this.renderQC();
-                                if (this.state.currentView === 'csat') this.renderCSAT();
-                                if (this.state.currentView === 'blueprints') this.renderBlueprints();
-                                const countEl = document.getElementById('sidebar-job-count');
-                                if (countEl) countEl.innerText = '0';
+                                // Only wipe out local jobs if user explicitly clicked "ล้างข้อมูลโครงการ" AND DB.jobs is empty
+                                if (localStorage.getItem('pmt_jobs_cleared_v3') === 'true' && (!DB.jobs || DB.jobs.length === 0)) {
+                                    DB.jobs = [];
+                                    DB.tasks = [];
+                                    DB.blueprints = [];
+                                    this.persistJobs();
+                                    if (this.state.currentView === 'jobs') this.renderJobs();
+                                    if (this.state.currentView === 'dashboard') this.renderDashboard();
+                                    if (this.state.currentView === 'gantt') this.renderGantt();
+                                    if (this.state.currentView === 'qc') this.renderQC();
+                                    if (this.state.currentView === 'csat') this.renderCSAT();
+                                    if (this.state.currentView === 'blueprints') this.renderBlueprints();
+                                    const countEl = document.getElementById('sidebar-job-count');
+                                    if (countEl) countEl.innerText = '0';
+                                    return;
+                                }
+                                // If local state has jobs (such as simulated jobs), do NOT wipe them out!
+                                // Instead, tell the server to reset/seed so backend gets synchronized!
+                                if (DB.jobs && DB.jobs.length > 0) {
+                                    fetch('/api/v1/jobs/reset', { method: 'POST' }).catch(() => {});
+                                    return;
+                                }
                                 return;
                             }
                             const remoteJobs = json.data;
