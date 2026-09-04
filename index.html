@@ -4397,32 +4397,34 @@
                                 </div>
                                 <div>
                                     <div class="font-bold flex items-center gap-1.5 text-foreground">
-                                        <span>ยังไม่มีการนำเข้า BOQ</span>
-                                        <span class="px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-mono">Gantt Tasks Locked</span>
+                                        <span>ขั้นตอนที่ 1: โครงการยังไม่มีรายการ BOQ</span>
+                                        <span class="px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-mono">Step 1 of 2</span>
                                     </div>
-                                    <p class="text-muted-foreground mt-0.5">📌 <strong>กฎเกณฑ์ระบบ:</strong> แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart นะครับ</p>
+                                    <p class="text-muted-foreground mt-0.5">📌 <strong>Flow การทำงาน:</strong> นำเข้าไฟล์ BOQ (Excel / OCR / Template) ก่อน จึงจะสามารถแปลงเป็น Task ใน Gantt Chart ได้</p>
                                 </div>
                             </div>
-                            <button onclick="app.openImportBOQModal('${job.id}')" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm">
-                                <i class="ph ph-file-arrow-up"></i> 📥 นำเข้าไฟล์ BOQ เดี๋ยวนี้
+                            <button onclick="app.openImportBOQModal('${job.id}')" class="btn-artifact-primary px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm">
+                                <i class="ph ph-file-arrow-up text-sm"></i> 📥 กดที่นี่: นำเข้าไฟล์ BOQ
                             </button>
                         </div>
                         ` : `
-                        <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-800 dark:text-emerald-200">
+                        <div class="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-purple-900 dark:text-purple-200">
                             <div class="flex items-center gap-2.5">
-                                <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                                    <i class="ph ph-check-circle text-lg"></i>
+                                <div class="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                                    <i class="ph ph-check-circle text-xl text-emerald-500"></i>
                                 </div>
                                 <div>
-                                    <div class="font-bold flex items-center gap-1.5 text-foreground">
-                                        <span>นำเข้า BOQ เรียบร้อยแล้ว (${boqItems.length} รายการ)</span>
-                                        <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-mono">Ready for Gantt</span>
+                                    <div class="font-bold flex items-center gap-1.5 text-foreground flex-wrap">
+                                        <span class="text-emerald-600 dark:text-emerald-400">✓ นำเข้า BOQ แล้ว (${boqItems.length} รายการ)</span>
+                                        <span class="text-muted-foreground">•</span>
+                                        <span>ขั้นตอนที่ 2: แปลงเป็นแผนงาน Gantt</span>
+                                        <span class="px-2 py-0.5 rounded text-[10px] bg-purple-500/20 text-purple-700 dark:text-purple-300 font-mono font-bold">Next Step</span>
                                     </div>
-                                    <p class="text-muted-foreground mt-0.5">สามารถสร้างหรือแปลงรายการค่าแรงเป็น Task ในแผนงาน Gantt Timeline ได้ทันที</p>
+                                    <p class="text-muted-foreground mt-0.5">ตรวจทานรายการด้านล่าง แล้วกดปุ่ม <strong>"กำหนดวัน & ช่าง"</strong> เพื่อระบุวันเริ่ม-สิ้นสุดและทีมช่างที่จะลงผัง Gantt Timeline</p>
                                 </div>
                             </div>
-                            <button onclick="app.openConvertBOQToTasksModal('${job.id}')" class="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium text-xs flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm">
-                                <i class="ph ph-calendar-plus"></i> ⚡ แปลง BOQ เป็น Task ใน Gantt
+                            <button onclick="app.openConvertBOQToTasksModal('${job.id}')" class="btn-artifact-primary px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-700 hover:to-brand-700 text-white font-bold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer shadow-md">
+                                <i class="ph ph-calendar-check text-sm"></i> ⚡ กดปุ่มนี้: แปลง BOQ เป็น Task ใน Gantt ➔
                             </button>
                         </div>
                         `}
@@ -4506,9 +4508,6 @@
                                     <button onclick="app.addBOQItem('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-sm cursor-pointer">
                                         <i class="ph ph-plus-circle text-sm"></i> เพิ่มแถวรายการใหม่
                                     </button>
-                                    <button onclick="app.openConvertBOQToTasksModal('${job.id}')" class="btn-artifact-secondary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 cursor-pointer" title="แปลงรายการ BOQ เป็น Task ปฏิบัติงาน">
-                                        <i class="ph ph-calendar-plus"></i> ⚡ แปลงเป็น Task แผนงาน
-                                    </button>
                                 </div>
                                 <div class="w-full sm:w-80 space-y-1.5 text-xs bg-muted/20 p-4 rounded-xl border border-border">
                                     <div class="flex justify-between text-muted-foreground">
@@ -4531,14 +4530,17 @@
                             </div>
                         </div>
 
-                        <!-- Footer Navigation -->
-                        <div class="flex items-center justify-between pt-4 border-t border-border">
-                            <button class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5" onclick="app.switchJobTab('general')">
+                        <!-- Footer Navigation: Clear Control Flow -->
+                        <div class="flex items-center justify-between pt-4 border-t border-border flex-wrap gap-3">
+                            <button class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer" onclick="app.switchJobTab('general')">
                                 <i class="ph ph-arrow-left"></i> กลับหน้าข้อมูลงาน & Check-in
                             </button>
                             <div class="flex items-center gap-2">
-                                <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-sm" onclick="app.saveBOQ('${job.id}')">
-                                    <i class="ph ph-floppy-disk"></i> บันทึก BOQ ในระบบ PMT
+                                <button type="button" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 font-medium cursor-pointer" onclick="app.saveBOQOnly('${job.id}')" title="บันทึกข้อมูลตาราง BOQ เก็บไว้">
+                                    <i class="ph ph-floppy-disk"></i> บันทึกร่าง BOQ
+                                </button>
+                                <button type="button" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs flex items-center gap-1.5 font-bold shadow-sm bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-700 hover:to-brand-700 text-white cursor-pointer" onclick="app.openConvertBOQToTasksModal('${job.id}')">
+                                    <i class="ph ph-calendar-check text-sm"></i> ⚡ กำหนดวันเวลา & ช่าง (แปลงเป็น Gantt Chart) ➔
                                 </button>
                             </div>
                         </div>
@@ -5026,8 +5028,16 @@
                 this.showToast(`🗑️ ลบรายการ BOQ ทั้งหมดของ ${job.id} เรียบร้อย`);
             },
 
+            saveBOQOnly(jobId) {
+                const job = DB.jobs.find(j => j.id === jobId);
+                if (!job) return;
+                this.persistJobs();
+                this.renderJobDetail();
+                this.showToast(`💾 บันทึกรายการ BOQ ของ ${job.id} เรียบร้อยแล้ว (หากพร้อมวางแผนงาน กรุณากด 'กำหนดวันเวลา & ช่าง')`);
+            },
+
             saveBOQ(jobId) {
-                this.openSaveBOQModal(jobId);
+                this.openConvertBOQToTasksModal(jobId);
             },
 
             openSaveBOQModal(jobId) {
@@ -6548,9 +6558,7 @@
                 if (sel) sel.value = targetJobId;
                 this.showToast(`⚡ แปลง BOQ เป็น Task ปฏิบัติงาน ${selectedTasks.length} รายการ และสร้างคิวจองช่าง QC ล่วงหน้า 5 วันเรียบร้อย`);
 
-                if (this.state.currentView === 'gantt') {
-                    this.renderGantt();
-                }
+                this.navigate('gantt');
             },
 
             openJobDetailBOQ(jobId) {
