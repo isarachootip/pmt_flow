@@ -2058,6 +2058,18 @@
                         <div class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์ใบเสนอราคา vFIX หรือ CSV (ลำดับ, รหัสสินค้า, รายการ, จำนวน, หน่วย, ค่าวัสดุ, ค่าแรง)</div>
                         <div id="boq-file-name" class="mt-2 text-xs font-mono text-emerald-600 dark:text-emerald-400 font-semibold"></div>
                     </div>
+
+                    <!-- Dynamic Sheet Selector (when Excel has multiple sheets) -->
+                    <div id="boq-sheet-selector-container" class="hidden p-3 rounded-xl bg-muted/40 border border-border space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                <i class="ph ph-files text-emerald-500"></i> เลือก Sheet ในไฟล์ Excel ที่ต้องการนำเข้า:
+                            </label>
+                            <span class="text-[10px] text-muted-foreground" id="boq-sheet-summary-badge"></span>
+                        </div>
+                        <select id="boq-sheet-select" onchange="app.handleBOQSheetChange(this.value)" class="w-full bg-card border border-border text-foreground rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500 font-medium">
+                        </select>
+                    </div>
                 </div>
 
                 <!-- 3. Image / Photo OCR Section (Visible on image tab) -->
@@ -5443,6 +5455,14 @@
                 const imgInp = document.getElementById('boq-image-input');
                 if (imgInp) imgInp.value = '';
 
+                // Reset sheet selector
+                const sheetContainer = document.getElementById('boq-sheet-selector-container');
+                if (sheetContainer) sheetContainer.classList.add('hidden');
+                const sheetSelect = document.getElementById('boq-sheet-select');
+                if (sheetSelect) sheetSelect.innerHTML = '';
+                this.state.currentBOQWorkbook = null;
+                this.state.availableBOQSheets = [];
+
                 this.switchBOQImportTab('file');
 
                 // Start with empty pending BOQ
@@ -5534,15 +5554,39 @@
                         try {
                             const data = new Uint8Array(e.target.result);
                             const wb = XLSX.read(data, { type: 'array' });
-                            const parsed = this.parseVFixExcelWorkbook(wb);
-                            if (parsed && parsed.items && parsed.items.length > 0) {
+                            this.state.currentBOQWorkbook = wb;
+
+                            // Analyze all sheets and score them
+                            const sheetAnalysis = this.analyzeBOQWorkbookSheets(wb);
+                            this.state.availableBOQSheets = sheetAnalysis;
+
+                            // Setup sheet selector dropdown
+                            const sheetContainer = document.getElementById('boq-sheet-selector-container');
+                            const sheetSelect = document.getElementById('boq-sheet-select');
+                            const sheetBadge = document.getElementById('boq-sheet-summary-badge');
+
+                            if (sheetAnalysis.length > 0 && sheetSelect && sheetContainer) {
+                                sheetContainer.classList.remove('hidden');
+                                if (sheetBadge) sheetBadge.innerText = `พบทั้งหมด ${sheetAnalysis.length} Sheet`;
+                                sheetSelect.innerHTML = sheetAnalysis.map(s => {
+                                    const countText = s.itemCount > 0 ? `(${s.itemCount} รายการ - รวม ${s.totalAmount.toLocaleString()} ฿)` : '(ไม่มีรายการ)';
+                                    const custText = s.customer ? ` [ลูกค้า: ${s.customer}]` : '';
+                                    return `<option value="${s.name}" ${s.isBest ? 'selected' : ''}>${s.name} ${custText} ${countText}</option>`;
+                                }).join('');
+                            }
+
+                            // Pick best sheet or first valid sheet
+                            const bestSheet = sheetAnalysis.find(s => s.isBest) || sheetAnalysis.find(s => s.itemCount > 0) || sheetAnalysis[0];
+
+                            if (bestSheet && bestSheet.itemCount > 0) {
+                                const parsed = this.parseVFixExcelSheet(wb.Sheets[bestSheet.name], bestSheet.name);
                                 this.state.pendingBOQHeader = parsed.header || {};
                                 this.state.pendingBOQItems = parsed.items;
                                 this.renderBOQPreviewTable();
-                                if (nameEl) nameEl.innerHTML = `<span class="text-emerald-500 font-bold">✓ อ่านไฟล์สำเร็จ [Sheet: ${parsed.sheetName}] (${parsed.items.length} รายการ)</span>`;
-                                this.showToast(`📊 อ่านไฟล์ Excel "${file.name}" (Sheet: ${parsed.sheetName}) สำเร็จ (${parsed.items.length} รายการ)`);
+                                if (nameEl) nameEl.innerHTML = `<span class="text-emerald-500 font-bold">✓ อ่านไฟล์สำเร็จ [Sheet: ${bestSheet.name}] (${parsed.items.length} รายการ)</span>`;
+                                this.showToast(`📊 อ่านไฟล์ Excel "${file.name}" (Sheet: ${bestSheet.name}) สำเร็จ (${parsed.items.length} รายการ)`);
                             } else {
-                                this.showToast('⚠️ ไม่พบข้อมูลตาราง BOQ ในไฟล์ Excel กรุณาตรวจสอบ Sheet ภายในไฟล์');
+                                this.showToast('⚠️ ไม่พบรายการ BOQ ที่มีข้อมูลใน Sheet เริ่มต้น กรุณาเลือก Sheet อื่นจากรายการดรอปดาวน์');
                             }
                         } catch (err) {
                             console.error('Excel parse error:', err);
@@ -5561,118 +5605,173 @@
                 }
             },
 
-            parseVFixExcelWorkbook(wb) {
-                if (!wb || !wb.SheetNames || wb.SheetNames.length === 0) return null;
+            handleBOQSheetChange(sheetName) {
+                if (!this.state.currentBOQWorkbook || !sheetName) return;
+                const ws = this.state.currentBOQWorkbook.Sheets[sheetName];
+                if (!ws) return;
 
-                // Priority sheet order: BOQ โครงการ, PT, สำหรับกรอก BOQ, BOQ, or other sheets except NOTE/Cover
-                const preferredSheets = wb.SheetNames.filter(s => 
-                    !s.includes('NOTE') && !s.includes('พรินท์_Cover') && !s.includes('แผนการทำงาน')
-                );
-                const candidateSheets = preferredSheets.length > 0 ? preferredSheets : wb.SheetNames;
+                const parsed = this.parseVFixExcelSheet(ws, sheetName);
+                this.state.pendingBOQHeader = parsed.header || {};
+                this.state.pendingBOQItems = parsed.items;
+                this.renderBOQPreviewTable();
 
-                let bestResult = null;
+                const nameEl = document.getElementById('boq-file-name');
+                if (nameEl) {
+                    nameEl.innerHTML = `<span class="text-emerald-500 font-bold">✓ เปลี่ยนเป็น Sheet: ${sheetName} (${parsed.items.length} รายการ)</span>`;
+                }
+                this.showToast(`🔄 สลับไปใช้ข้อมูลจาก Sheet "${sheetName}" (${parsed.items.length} รายการ)`);
+            },
 
-                for (const sName of candidateSheets) {
+            analyzeBOQWorkbookSheets(wb) {
+                if (!wb || !wb.SheetNames) return [];
+                const results = [];
+
+                for (const sName of wb.SheetNames) {
                     const ws = wb.Sheets[sName];
                     if (!ws) continue;
-                    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
-                    if (!rows || rows.length < 3) continue;
+                    const parsed = this.parseVFixExcelSheet(ws, sName);
+                    
+                    let score = 0;
+                    const lower = sName.toLowerCase();
+                    if (lower.includes('สำหรับกรอก') || lower.includes('template') || lower.includes('ตัวอย่าง')) score -= 100;
+                    if (lower.includes('cover') || lower.includes('เงื่อนไข') || lower.includes('แผนการทำงาน') || lower.includes('note')) score -= 200;
+                    if (lower.includes('พรินท์')) score -= 50;
 
-                    let headerInfo = {};
-                    let items = [];
-                    let headerRowIdx = -1;
+                    if (lower.includes('โครงการ')) score += 150;
+                    if (lower.includes('boq')) score += 50;
+                    if (lower.includes('pt')) score += 40;
 
-                    for (let r = 0; r < rows.length; r++) {
-                        const row = rows[r];
-                        if (!row || row.length === 0) continue;
+                    if (parsed.header && parsed.header.customer && !parsed.header.customer.includes('...')) {
+                        score += 80;
+                    }
+                    if (parsed.items.length > 0) {
+                        score += Math.min(100, parsed.items.length * 10);
+                    }
 
-                        // 1. Extract metadata from header lines
-                        for (let c = 0; c < row.length; c++) {
-                            const cell = String(row[c] || '').trim();
-                            if (cell.includes('เรียน') && row[c + 1]) {
-                                headerInfo.customer = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
-                            }
-                            if (cell.includes('ที่อยู่') && row[c + 1]) {
-                                headerInfo.address = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
-                            }
-                            if (cell.includes('Tel') && row[c + 1]) {
-                                headerInfo.phone = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
-                            }
-                            if (cell.includes('สาขา') && row[c + 1]) {
-                                headerInfo.branch = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
-                            }
-                            if (cell.includes('วันที่') && row[c + 1]) {
-                                headerInfo.date = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
-                            }
-                            if (cell.includes('เลขที่ใบเสร็จ') && row[c + 1]) {
-                                headerInfo.receipt_no = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
-                            }
+                    const totalAmount = (parsed.items || []).reduce((acc, it) => acc + (it.qty * (it.price || 0)), 0);
+
+                    results.push({
+                        name: sName,
+                        score: score,
+                        itemCount: (parsed.items || []).length,
+                        customer: (parsed.header && parsed.header.customer) ? parsed.header.customer : '',
+                        totalAmount: totalAmount,
+                        isBest: false
+                    });
+                }
+
+                // Determine best sheet
+                if (results.length > 0) {
+                    const sorted = [...results].sort((a, b) => b.score - a.score);
+                    if (sorted[0] && sorted[0].score > -100) {
+                        const target = results.find(r => r.name === sorted[0].name);
+                        if (target) target.isBest = true;
+                    } else {
+                        results[0].isBest = true;
+                    }
+                }
+
+                return results;
+            },
+
+            parseVFixExcelSheet(ws, sName) {
+                if (!ws) return { sheetName: sName, header: {}, items: [] };
+                const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+                if (!rows || rows.length < 3) return { sheetName: sName, header: {}, items: [] };
+
+                let headerInfo = {};
+                let items = [];
+                let headerRowIdx = -1;
+
+                for (let r = 0; r < rows.length; r++) {
+                    const row = rows[r];
+                    if (!row || row.length === 0) continue;
+
+                    // 1. Extract metadata from header lines
+                    for (let c = 0; c < row.length; c++) {
+                        const cell = String(row[c] || '').trim();
+                        if (cell.includes('เรียน') && row[c + 1]) {
+                            headerInfo.customer = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
                         }
-
-                        // 2. Detect column headers row
-                        const rowStr = row.filter(Boolean).map(c => String(c).trim()).join(' ');
-                        if (rowStr.includes('ลำดับ') || rowStr.includes('รหัสสินค้า') || (rowStr.includes('Item') && rowStr.includes('Descriptions'))) {
-                            headerRowIdx = r;
-                            continue;
+                        if (cell.includes('ที่อยู่') && row[c + 1]) {
+                            headerInfo.address = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
                         }
-
-                        // 3. Parse line items
-                        if (headerRowIdx >= 0 && r > headerRowIdx) {
-                            if (rowStr.includes('รวมมูลค่า') || rowStr.includes('Total Amount') || rowStr.includes('ค่าดำเนินการ') || rowStr.includes('ส่วนลด') || rowStr.includes('Net Value') || rowStr.includes('หมายเหตุ :') || rowStr.includes('ผู้จัดทำ')) {
-                                continue;
-                            }
-
-                            const code = row[1] ? String(row[1]).trim() : '';
-                            const name = row[2] ? String(row[2]).trim() : '';
-                            const qty = row[3] !== null && row[3] !== undefined && !isNaN(Number(row[3])) ? Number(row[3]) : 0;
-                            const unit = row[4] ? String(row[4]).trim() : 'ชุด';
-                            const matPrice = row[5] !== null && row[5] !== undefined && !isNaN(Number(row[5])) ? Number(row[5]) : 0;
-                            const matAmount = row[6] !== null && row[6] !== undefined && !isNaN(Number(row[6])) ? Number(row[6]) : 0;
-                            const laborPrice = row[7] !== null && row[7] !== undefined && !isNaN(Number(row[7])) ? Number(row[7]) : 0;
-                            const laborAmount = row[8] !== null && row[8] !== undefined && !isNaN(Number(row[8])) ? Number(row[8]) : 0;
-                            const totalAmount = row[9] !== null && row[9] !== undefined && !isNaN(Number(row[9])) ? Number(row[9]) : 0;
-                            const remark = row[10] ? String(row[10]).trim() : '';
-
-                            // Project section / note
-                            if (name.startsWith('หมู่บ้าน') || name.startsWith('โครงที่')) {
-                                headerInfo.project_note = (headerInfo.project_note ? headerInfo.project_note + ' ' : '') + name.replace(/\r?\n/g, ' ');
-                                continue;
-                            }
-
-                            if (name && (qty > 0 || laborPrice > 0 || matPrice > 0 || totalAmount > 0)) {
-                                let unitPrice = 0;
-                                if (laborPrice > 0) unitPrice = laborPrice;
-                                else if (matPrice > 0) unitPrice = matPrice;
-                                else if (qty > 0 && totalAmount > 0) unitPrice = totalAmount / qty;
-
-                                items.push({
-                                    code: code || `SKU-${items.length + 1}`,
-                                    name: name,
-                                    qty: qty || 1,
-                                    unit: unit || 'ชุด',
-                                    mat_price: matPrice,
-                                    labor_price: laborPrice,
-                                    price: unitPrice,
-                                    remark: remark
-                                });
-                            }
+                        if (cell.includes('Tel') && row[c + 1]) {
+                            headerInfo.phone = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
+                        }
+                        if (cell.includes('สาขา') && row[c + 1]) {
+                            headerInfo.branch = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
+                        }
+                        if (cell.includes('วันที่') && row[c + 1]) {
+                            headerInfo.date = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
+                        }
+                        if (cell.includes('เลขที่ใบเสร็จ') && row[c + 1]) {
+                            headerInfo.receipt_no = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
                         }
                     }
 
-                    if (items.length > 0) {
-                        const isHighPrioritySheet = sName.includes('โครงการ') || sName.includes('PT') || sName.includes('สำหรับกรอก BOQ');
-                        if (!bestResult || items.length > bestResult.items.length || isHighPrioritySheet) {
-                            bestResult = {
-                                sheetName: sName,
-                                header: headerInfo,
-                                items: items
-                            };
-                            if (isHighPrioritySheet) break;
+                    // 2. Detect column headers row
+                    const rowStr = row.filter(Boolean).map(c => String(c).trim()).join(' ');
+                    if (rowStr.includes('ลำดับ') || rowStr.includes('รหัสสินค้า') || (rowStr.includes('Item') && rowStr.includes('Descriptions'))) {
+                        headerRowIdx = r;
+                        continue;
+                    }
+
+                    // 3. Parse line items
+                    if (headerRowIdx >= 0 && r > headerRowIdx) {
+                        if (rowStr.includes('รวมมูลค่า') || rowStr.includes('Total Amount') || rowStr.includes('ค่าดำเนินการ') || rowStr.includes('ส่วนลด') || rowStr.includes('Net Value') || rowStr.includes('หมายเหตุ :') || rowStr.includes('ผู้จัดทำ')) {
+                            continue;
+                        }
+
+                        const code = row[1] ? String(row[1]).trim() : '';
+                        const name = row[2] ? String(row[2]).trim() : '';
+                        const qty = row[3] !== null && row[3] !== undefined && !isNaN(Number(row[3])) ? Number(row[3]) : 0;
+                        const unit = row[4] ? String(row[4]).trim() : 'ชุด';
+                        const matPrice = row[5] !== null && row[5] !== undefined && !isNaN(Number(row[5])) ? Number(row[5]) : 0;
+                        const matAmount = row[6] !== null && row[6] !== undefined && !isNaN(Number(row[6])) ? Number(row[6]) : 0;
+                        const laborPrice = row[7] !== null && row[7] !== undefined && !isNaN(Number(row[7])) ? Number(row[7]) : 0;
+                        const laborAmount = row[8] !== null && row[8] !== undefined && !isNaN(Number(row[8])) ? Number(row[8]) : 0;
+                        const totalAmount = row[9] !== null && row[9] !== undefined && !isNaN(Number(row[9])) ? Number(row[9]) : 0;
+                        const remark = row[10] ? String(row[10]).trim() : '';
+
+                        // Project section / note
+                        if (name.startsWith('หมู่บ้าน') || name.startsWith('โครงที่')) {
+                            headerInfo.project_note = (headerInfo.project_note ? headerInfo.project_note + ' ' : '') + name.replace(/\r?\n/g, ' ');
+                            continue;
+                        }
+
+                        if (name && (qty > 0 || laborPrice > 0 || matPrice > 0 || totalAmount > 0)) {
+                            let unitPrice = 0;
+                            if (laborPrice > 0) unitPrice = laborPrice;
+                            else if (matPrice > 0) unitPrice = matPrice;
+                            else if (qty > 0 && totalAmount > 0) unitPrice = totalAmount / qty;
+
+                            items.push({
+                                code: code || `SKU-${items.length + 1}`,
+                                name: name,
+                                qty: qty || 1,
+                                unit: unit || 'ชุด',
+                                mat_price: matPrice,
+                                labor_price: laborPrice,
+                                price: unitPrice,
+                                remark: remark
+                            });
                         }
                     }
                 }
 
-                return bestResult;
+                return {
+                    sheetName: sName,
+                    header: headerInfo,
+                    items: items
+                };
+            },
+
+            parseVFixExcelWorkbook(wb) {
+                const sheets = this.analyzeBOQWorkbookSheets(wb);
+                const best = sheets.find(s => s.isBest) || sheets.find(s => s.itemCount > 0) || sheets[0];
+                if (!best) return null;
+                return this.parseVFixExcelSheet(wb.Sheets[best.name], best.name);
             },
 
             parsePastedBOQ(text) {
