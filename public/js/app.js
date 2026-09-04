@@ -916,6 +916,26 @@ const app = {
                 // Automatically generate/sync QC bookings (5 days before each task end date)
                 this.syncQCBookingsFromTasks();
 
+                // Global Paste Listener for Blueprint Image Upload
+                window.addEventListener('paste', (e) => {
+                    const modal = document.getElementById('modal-upload-blueprint');
+                    if (modal && !modal.classList.contains('hidden-view')) {
+                        const items = e.clipboardData && e.clipboardData.items;
+                        if (items) {
+                            for (let i = 0; i < items.length; i++) {
+                                if (items[i].type.indexOf('image') !== -1) {
+                                    const blob = items[i].getAsFile();
+                                    if (blob) {
+                                        this.processSelectedBlueprintFile(blob);
+                                        this.showToast('📋 วางภาพแบบ Design จาก Clipboard สำเร็จ');
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
                 this.navigate('dashboard');
                 this.fetchJobsFromApi();
                 this.fetchMAFromApi();
@@ -2204,6 +2224,59 @@ const app = {
                             </div>
                         </div>
 
+                        <!-- Step 2: Blueprint & Design Files Section in Job Detail -->
+                        ${(() => {
+                            const bp = (DB.blueprints || []).find(b => b.jobId === job.id);
+                            if (bp) {
+                                return `
+                                <div class="artifact-card p-3.5 rounded-xl border border-indigo-500/30 bg-indigo-500/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="w-16 h-12 rounded-lg overflow-hidden border border-indigo-500/30 bg-card shrink-0 cursor-pointer relative group/bp" onclick="app.openBlueprintLightbox('${bp.id}')" title="คลิกดูภาพแบบแปลนขนาดเต็ม">
+                                            <img src="${bp.previewImg}" alt="${bp.filename}" class="w-full h-full object-cover group-hover/bp:scale-105 transition duration-300">
+                                            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover/bp:opacity-100 transition flex items-center justify-center">
+                                                <i class="ph ph-magnifying-glass-plus text-white text-xs"></i>
+                                            </div>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-600 text-white font-mono">${bp.id}</span>
+                                                <span class="font-display font-bold text-xs text-foreground truncate max-w-[240px]" title="${bp.filename}">${bp.filename}</span>
+                                                <span class="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">${bp.version}</span>
+                                            </div>
+                                            <div class="text-[10px] text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
+                                                <span>ผู้ออกแบบ: <strong class="text-foreground font-medium">${bp.designer}</strong></span>
+                                                <span>•</span>
+                                                <span>ขนาด: <strong class="font-mono text-foreground">${bp.size}</strong></span>
+                                                <span>•</span>
+                                                <span class="font-mono">${bp.date}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                                        <button type="button" onclick="app.openBlueprintLightbox('${bp.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow cursor-pointer">
+                                            <i class="ph ph-eye"></i> <span>ดูภาพแบบแปลน</span>
+                                        </button>
+                                        <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer" title="อัปโหลดแบบแปลนเวอร์ชันใหม่">
+                                            <i class="ph ph-arrows-clockwise"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                `;
+                            } else {
+                                return `
+                                <div class="artifact-card p-3 rounded-xl border border-dashed border-border bg-muted/20 flex items-center justify-between gap-3">
+                                    <div class="flex items-center gap-2.5 text-xs text-muted-foreground">
+                                        <i class="ph ph-blueprint text-lg text-indigo-500"></i>
+                                        <span>ยังไม่ได้แนบแบบแปลนติดตั้ง (Step 2 Design)</span>
+                                    </div>
+                                    <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 cursor-pointer font-medium">
+                                        <i class="ph ph-upload-simple"></i> <span>อัปโหลด Design</span>
+                                    </button>
+                                </div>
+                                `;
+                            }
+                        })()}
+
                         <!-- Dedicated Section: Site Notes & Special Instructions + Integrated Bottom Action Bar -->
                         <div class="artifact-card p-3 border border-brand-500/30 bg-card shadow-sm space-y-2">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
@@ -2452,14 +2525,32 @@ const app = {
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-border">
-                                        ${pendingDesignJobs.map(job => `
+                                        ${pendingDesignJobs.map(job => {
+                                            const jobSiteImg = (job.photos && job.photos[0] && job.photos[0].url) || 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=300&auto=format&fit=crop&q=80';
+                                            return `
                                             <tr class="hover:bg-muted/30 transition">
                                                 <td class="py-3 px-4 font-mono font-bold text-foreground">
                                                     <span class="bg-muted px-2 py-0.5 rounded border border-border">${job.id}</span>
                                                 </td>
                                                 <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${job.date || '-'}</td>
                                                 <td class="py-3 px-4 font-medium text-foreground">${job.customer}</td>
-                                                <td class="py-3 px-4 text-brand-600 dark:text-brand-400 font-medium">${job.service}</td>
+                                                <td class="py-3 px-4">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <div class="w-10 h-10 rounded-lg overflow-hidden border border-border shrink-0 bg-muted/60 relative group/thumb cursor-pointer shadow-2xs" onclick="app.openJobPhotoPreview('${job.id}')" title="คลิกดูภาพสำรวจหน้างานจริง">
+                                                            <img src="${jobSiteImg}" alt="Site Photo" class="w-full h-full object-cover group-hover/thumb:scale-110 transition duration-300">
+                                                            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover/thumb:opacity-100 transition flex items-center justify-center">
+                                                                <i class="ph ph-magnifying-glass-plus text-white text-xs"></i>
+                                                            </div>
+                                                        </div>
+                                                        <div class="min-w-0">
+                                                            <div class="text-brand-600 dark:text-brand-400 font-semibold truncate max-w-[200px]" title="${job.service}">${job.service}</div>
+                                                            <div class="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                                                                <i class="ph ph-camera text-xs text-indigo-500"></i>
+                                                                <span>ภาพหน้างาน Step 1</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
                                                 <td class="py-3 px-4 text-muted-foreground text-[11px] max-w-[180px] truncate" title="${job.address || '-'}">
                                                     ${job.address || '-'}
                                                 </td>
@@ -2486,29 +2577,39 @@ const app = {
                                                             <i class="ph ph-upload-simple"></i>
                                                             <span>อัปโหลด Design</span>
                                                         </label>
-                                                        <input type="file" id="bp-list-upload-${job.id}" class="sr-only" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.zip,.rar" onchange="app.handleDirectBlueprintUpload(event, '${job.id}')">
+                                                        <input type="file" id="bp-list-upload-${job.id}" class="sr-only" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.webp,.gif,.zip,.rar,image/*" onchange="app.handleDirectBlueprintUpload(event, '${job.id}')">
                                                     </div>
                                                 </td>
                                             </tr>
-                                        `).join('')}
+                                            `;
+                                        }).join('')}
                                     </tbody>
                                 </table>
                             </div>
                         `;
                     } else {
                         pendingContainer.innerHTML = pendingDesignJobs.map(job => {
+                            const jobSiteImg = (job.photos && job.photos[0] && job.photos[0].url) || 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=300&auto=format&fit=crop&q=80';
                             return `
                             <div class="artifact-card p-5 rounded-2xl border border-border hover:border-indigo-500/50 transition duration-200 space-y-3.5 bg-card group shadow-xs">
                                 <div class="flex items-start justify-between gap-2">
-                                    <div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="font-mono text-xs font-bold text-foreground bg-muted px-2 py-0.5 rounded border border-border">${job.id}</span>
-                                            <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
-                                                <i class="ph ph-clock"></i> รอแบบ Design
-                                            </span>
+                                    <div class="flex items-start gap-3 min-w-0">
+                                        <div class="w-12 h-12 rounded-xl overflow-hidden border border-border shrink-0 bg-muted/60 relative group/thumb cursor-pointer shadow-2xs" onclick="app.openJobPhotoPreview('${job.id}')" title="คลิกดูภาพสำรวจหน้างาน">
+                                            <img src="${jobSiteImg}" alt="Site Photo" class="w-full h-full object-cover group-hover/thumb:scale-110 transition duration-300">
+                                            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover/thumb:opacity-100 transition flex items-center justify-center">
+                                                <i class="ph ph-magnifying-glass-plus text-white text-xs"></i>
+                                            </div>
                                         </div>
-                                        <h4 class="font-display font-bold text-sm text-foreground mt-1.5">${job.customer}</h4>
-                                        <p class="text-[11px] text-brand-600 dark:text-brand-400 font-medium">${job.service}</p>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-mono text-xs font-bold text-foreground bg-muted px-2 py-0.5 rounded border border-border">${job.id}</span>
+                                                <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
+                                                    <i class="ph ph-clock"></i> รอแบบ Design
+                                                </span>
+                                            </div>
+                                            <h4 class="font-display font-bold text-sm text-foreground mt-1.5 truncate">${job.customer}</h4>
+                                            <p class="text-[11px] text-brand-600 dark:text-brand-400 font-medium truncate">${job.service}</p>
+                                        </div>
                                     </div>
                                     <span class="text-[10px] font-mono text-muted-foreground shrink-0">${job.date || '-'}</span>
                                 </div>
@@ -2536,7 +2637,7 @@ const app = {
                                             <i class="ph ph-upload-simple"></i>
                                             <span>อัปโหลด Design</span>
                                         </label>
-                                        <input type="file" id="bp-card-upload-${job.id}" class="sr-only" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.zip,.rar" onchange="app.handleDirectBlueprintUpload(event, '${job.id}')">
+                                        <input type="file" id="bp-card-upload-${job.id}" class="sr-only" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.webp,.gif,.zip,.rar,image/*" onchange="app.handleDirectBlueprintUpload(event, '${job.id}')">
                                     </div>
                                 </div>
                             </div>
@@ -2573,7 +2674,7 @@ const app = {
                                         <tr class="border-b border-border bg-muted/40 text-muted-foreground font-semibold text-[11px]">
                                             <th class="py-3 px-4 font-mono">รหัสแบบ</th>
                                             <th class="py-3 px-4 font-mono">JOB ID</th>
-                                            <th class="py-3 px-4">ชื่อไฟล์แบบแปลน</th>
+                                            <th class="py-3 px-4">ชื่อไฟล์แบบแปลน & ภาพตัวอย่าง</th>
                                             <th class="py-3 px-4">ลูกค้า</th>
                                             <th class="py-3 px-4">ประเภทบริการ</th>
                                             <th class="py-3 px-4 text-center">เวอร์ชัน</th>
@@ -2589,9 +2690,20 @@ const app = {
                                                 <td class="py-3 px-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">${b.id}</td>
                                                 <td class="py-3 px-4 font-mono text-foreground font-bold">${b.jobId}</td>
                                                 <td class="py-3 px-4">
-                                                    <div class="flex items-center gap-2">
-                                                        <i class="ph ph-file-pdf text-rose-500 text-base"></i>
-                                                        <span class="font-medium text-foreground truncate max-w-[200px]" title="${b.filename}">${b.filename}</span>
+                                                    <div class="flex items-center gap-2.5">
+                                                        <div class="w-12 h-9 rounded-lg overflow-hidden border border-border shrink-0 bg-muted/60 relative group/bp cursor-pointer shadow-2xs" onclick="app.openBlueprintLightbox('${b.id}')" title="คลิกขยายดูภาพแบบแปลน">
+                                                            <img src="${b.previewImg}" alt="${b.filename}" class="w-full h-full object-cover group-hover/bp:scale-110 transition duration-300">
+                                                            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover/bp:opacity-100 transition flex items-center justify-center">
+                                                                <i class="ph ph-magnifying-glass-plus text-white text-xs"></i>
+                                                            </div>
+                                                        </div>
+                                                        <div class="min-w-0">
+                                                            <div class="font-semibold text-foreground truncate max-w-[200px]" title="${b.filename}">${b.filename}</div>
+                                                            <div class="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
+                                                                <i class="ph ph-file-image text-indigo-500"></i>
+                                                                <span>${b.size}</span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </td>
                                                 <td class="py-3 px-4 font-medium text-foreground">${b.customer}</td>
@@ -2604,7 +2716,7 @@ const app = {
                                                 <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${b.date}</td>
                                                 <td class="py-3 px-4 text-right whitespace-nowrap">
                                                     <div class="flex items-center justify-end gap-1.5">
-                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white" onclick="app.openBasePhotoLightbox(1)" title="ดูตัวอย่างแบบ">
+                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white" onclick="app.openBlueprintLightbox('${b.id}')" title="ดูตัวอย่างแบบ">
                                                             <i class="ph ph-eye"></i> <span>ดูตัวอย่าง</span>
                                                         </button>
                                                         <button class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer" title="ดาวน์โหลดไฟล์ PDF" onclick="app.showToast('กำลังดาวน์โหลด ${b.filename}...')">
@@ -2626,7 +2738,7 @@ const app = {
                             return `
                             <div class="artifact-card p-5 rounded-2xl space-y-4 border border-border hover:border-indigo-500/40 transition group">
                                 <!-- Card Top: Thumbnail & Version -->
-                                <div class="aspect-video bg-muted/60 rounded-xl overflow-hidden relative border border-border group-hover:border-indigo-500/30 transition">
+                                <div class="aspect-video bg-muted/60 rounded-xl overflow-hidden relative border border-border group-hover:border-indigo-500/30 transition cursor-pointer" onclick="app.openBlueprintLightbox('${b.id}')" title="คลิกดูภาพแบบแปลนเต็มตา">
                                     <img src="${b.previewImg}" alt="${b.filename}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                                     <div class="absolute top-3 right-3 flex items-center gap-1.5">
                                         <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-600 text-white shadow-sm">${b.version}</span>
@@ -2635,7 +2747,7 @@ const app = {
                                         <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-black/60 backdrop-blur-xs text-white">${b.jobId}</span>
                                     </div>
                                     <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
-                                        <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white" onclick="app.openBasePhotoLightbox(1)">
+                                        <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white" onclick="event.stopPropagation(); app.openBlueprintLightbox('${b.id}')">
                                             <i class="ph ph-eye"></i> ดูตัวอย่างแบบ
                                         </button>
                                     </div>
@@ -2719,7 +2831,7 @@ const app = {
                 let iconClass = 'ph-file';
                 if (ext === 'pdf') iconClass = 'ph-file-pdf text-rose-500';
                 else if (['dwg', 'dxf', 'cad'].includes(ext)) iconClass = 'ph-file-code text-indigo-500';
-                else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) iconClass = 'ph-file-image text-emerald-500';
+                else if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext)) iconClass = 'ph-file-image text-emerald-500';
 
                 const iconEl = document.getElementById('upload-bp-file-icon');
                 if (iconEl) iconEl.innerHTML = `<i class="ph ${iconClass} text-xl"></i>`;
@@ -2728,22 +2840,70 @@ const app = {
                 if (nameEl) nameEl.innerText = file.name;
 
                 const sizeEl = document.getElementById('upload-bp-file-display-size');
-                if (sizeEl) sizeEl.innerText = `${sizeText} • พร้อมบันทึกเข้าสู่ Step 2`;
+                if (sizeEl) sizeEl.innerText = `${sizeText}`;
 
                 const cardEl = document.getElementById('upload-bp-selected-file');
                 if (cardEl) cardEl.classList.remove('hidden');
 
-                if (file.type.startsWith('image/')) {
+                if (file.type && file.type.startsWith('image/')) {
                     const reader = new FileReader();
                     reader.onload = (e) => {
-                        this.state.newBlueprintPreview = e.target.result;
+                        const rawData = e.target.result;
+                        // Safe downscale using canvas to avoid localStorage quota issues
+                        const img = new Image();
+                        img.onload = () => {
+                            const maxDim = 1400;
+                            let w = img.width;
+                            let h = img.height;
+                            if (w > maxDim || h > maxDim) {
+                                if (w > h) {
+                                    h = Math.round((h * maxDim) / w);
+                                    w = maxDim;
+                                } else {
+                                    w = Math.round((w * maxDim) / h);
+                                    h = maxDim;
+                                }
+                                const canvas = document.createElement('canvas');
+                                canvas.width = w;
+                                canvas.height = h;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0, w, h);
+                                this.state.newBlueprintPreview = canvas.toDataURL('image/jpeg', 0.85);
+                            } else {
+                                this.state.newBlueprintPreview = rawData;
+                            }
+                            this.updateBlueprintModalPreview(true, file.name);
+                        };
+                        img.onerror = () => {
+                            this.state.newBlueprintPreview = rawData;
+                            this.updateBlueprintModalPreview(true, file.name);
+                        };
+                        img.src = rawData;
                     };
                     reader.readAsDataURL(file);
                 } else {
-                    this.state.newBlueprintPreview = 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600&auto=format&fit=crop&q=80';
+                    if (ext === 'pdf') {
+                        this.state.newBlueprintPreview = 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&auto=format&fit=crop&q=80';
+                    } else {
+                        this.state.newBlueprintPreview = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&auto=format&fit=crop&q=80';
+                    }
+                    this.updateBlueprintModalPreview(false, file.name);
                 }
 
-                this.showToast(`📎 แนบไฟล์ "${file.name}" (${sizeText}) สำเร็จแล้ว`);
+                this.showToast(`📎 แนบไฟล์ "${file.name}" (${sizeText}) พร้อมแสดงภาพตัวอย่างแล้ว`);
+            },
+
+            updateBlueprintModalPreview(isRealImage, filename) {
+                const imgEl = document.getElementById('upload-bp-preview-img');
+                if (imgEl && this.state.newBlueprintPreview) {
+                    imgEl.src = this.state.newBlueprintPreview;
+                }
+                const tagEl = document.getElementById('upload-bp-preview-tag');
+                if (tagEl) {
+                    tagEl.innerText = isRealImage ? 'ภาพแบบ Design ที่อัปโหลด (คลิกเพื่อขยายดู)' : 'ภาพไดอะแกรมแบบทางเทคนิค (ตัวอย่างแบบ)';
+                }
+                const cardEl = document.getElementById('upload-bp-selected-file');
+                if (cardEl) cardEl.classList.remove('hidden');
             },
 
             clearBlueprintSelectedFile() {
@@ -2751,6 +2911,8 @@ const app = {
                 if (fileInput) fileInput.value = '';
                 const cardEl = document.getElementById('upload-bp-selected-file');
                 if (cardEl) cardEl.classList.add('hidden');
+                const imgEl = document.getElementById('upload-bp-preview-img');
+                if (imgEl) imgEl.src = '';
                 this.state.newBlueprintSize = null;
                 this.state.newBlueprintFileName = null;
                 this.state.newBlueprintPreview = null;
@@ -2761,17 +2923,20 @@ const app = {
                 let size = '3.4 MB';
                 let version = 'v3 Final';
                 let notes = 'แบบแปลนจุดติดตั้งคอยล์เย็นในห้องนอนใหญ่ และตำแหน่งแขวนคอนเดนซิ่งยูนิตภายนอก';
+                let preview = 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&auto=format&fit=crop&q=80';
 
                 if (type === 'kitchen') {
                     filename = 'Kitchen_Renovate_Plumbing_Schematic.dwg';
                     size = '5.8 MB';
                     version = 'v2 Approved';
                     notes = 'ไดอะแกรมระบบสุขาภิบาล จุดต่อน้ำดี-น้ำทิ้ง และตำแหน่งตู้เคาน์เตอร์ครัว Built-in';
+                    preview = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&auto=format&fit=crop&q=80';
                 } else if (type === 'solar') {
                     filename = 'Solar_Rooftop_5kW_Wiring_Diagram.pdf';
                     size = '4.2 MB';
                     version = 'v1 Approved';
                     notes = 'แบบผังติดตั้งแผงโซลาร์เซลล์บนหลังคา และแนวเดินสายไฟ DC/AC Protection';
+                    preview = 'https://images.unsplash.com/photo-1509391365360-2e959784a276?w=800&auto=format&fit=crop&q=80';
                 }
 
                 const nameInput = document.getElementById('upload-bp-filename');
@@ -2785,6 +2950,7 @@ const app = {
 
                 this.state.newBlueprintSize = size;
                 this.state.newBlueprintFileName = filename;
+                this.state.newBlueprintPreview = preview;
 
                 const ext = filename.split('.').pop().toLowerCase();
                 const iconClass = ext === 'pdf' ? 'ph-file-pdf text-rose-500' : 'ph-file-code text-indigo-500';
@@ -2797,10 +2963,46 @@ const app = {
                 const sizeEl = document.getElementById('upload-bp-file-display-size');
                 if (sizeEl) sizeEl.innerText = `${size} • ไฟล์ตัวอย่างมาตรฐาน`;
 
-                const cardEl = document.getElementById('upload-bp-selected-file');
-                if (cardEl) cardEl.classList.remove('hidden');
-
+                this.updateBlueprintModalPreview(false, filename);
                 this.showToast(`📐 เลือกไฟล์ตัวอย่าง "${filename}" เรียบร้อย`);
+            },
+
+            openBlueprintLightbox(bpId) {
+                const bp = (DB.blueprints || []).find(b => b.id === bpId);
+                if (!bp) return;
+                this.showLightbox(
+                    bp.previewImg || 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&auto=format&fit=crop&q=80',
+                    `${bp.filename} (${bp.version || 'v1'})`,
+                    `แบบแปลน ${bp.id} • ${bp.jobId}`,
+                    `ลูกค้า: ${bp.customer} | บริการ: ${bp.service} | ผู้ออกแบบ: ${bp.designer || '-'} | หมายเหตุ: ${bp.notes || 'แบบแปลนมาตรฐาน'}`,
+                    bp.date || 'บันทึกแล้ว'
+                );
+            },
+
+            openJobPhotoPreview(jobId) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+                const photoUrl = (job.photos && job.photos[0] && job.photos[0].url) || 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800&auto=format&fit=crop&q=80';
+                this.showLightbox(
+                    photoUrl,
+                    `ภาพสำรวจหน้างาน: ${job.id}`,
+                    `${job.customer} • ${job.service}`,
+                    `สถานที่ติดตั้ง: ${job.address || '-'} | ช่าง: ${job.tech || '-'} | คำสั่งพิเศษ: ${job.special_instructions || 'ไม่มี'}`,
+                    job.date || 'ล่าสุด'
+                );
+            },
+
+            openNewBlueprintPreviewLightbox() {
+                if (!this.state.newBlueprintPreview) return;
+                const fn = this.state.newBlueprintFileName || 'แบบแปลนใหม่';
+                const ver = (document.getElementById('upload-bp-version') && document.getElementById('upload-bp-version').value) || 'v1';
+                this.showLightbox(
+                    this.state.newBlueprintPreview,
+                    `${fn} (${ver})`,
+                    'พรีวิวแบบ Design ที่อัปโหลด',
+                    'ตรวจสอบความคมชัดและรายละเอียดของแบบก่อนกดบันทึกเข้าสู่ Step 2',
+                    'พร้อมบันทึก'
+                );
             },
 
             openUploadBlueprintModal(preselectedJobId = null) {
@@ -2860,7 +3062,7 @@ const app = {
                     size: this.state.newBlueprintSize || '2.5 MB',
                     date: new Date().toLocaleDateString('th-TH') + ' ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
                     designer: designer,
-                    previewImg: this.state.newBlueprintPreview || 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600&auto=format&fit=crop&q=80',
+                    previewImg: this.state.newBlueprintPreview || 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&auto=format&fit=crop&q=80',
                     notes: notes
                 };
 
@@ -2872,6 +3074,7 @@ const app = {
                 if (job) {
                     job.blueprint_id = newBp.id;
                     job.blueprint_name = filename;
+                    job.blueprint_img = newBp.previewImg;
                 }
                 this.persistJobs();
 
@@ -2880,8 +3083,9 @@ const app = {
 
                 this.clearBlueprintSelectedFile();
                 this.hideModal('modal-upload-blueprint');
-                this.showToast(`✅ บันทึกและแนบแบบแปลน "${filename}" สำหรับ ${jobId} สำเร็จ`);
+                this.showToast(`✅ บันทึกและแนบแบบแปลน "${filename}" พร้อมรูปภาพสำหรับ ${jobId} สำเร็จ`);
                 if (this.state.currentView === 'blueprints') {
+                    this.switchBlueprintTab('library');
                     this.renderBlueprints();
                 }
                 if (this.state.currentView === 'job-detail') {
