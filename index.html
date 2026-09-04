@@ -383,7 +383,7 @@
                             <i class="ph ph-gear text-base"></i>
                             <span>ตั้งค่าระบบ & API</span>
                         </a>
-                        <a href="#" id="nav-users" onclick="app.navigate('users')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" style="display:none">
+                        <a href="#" id="nav-users" onclick="app.navigate('users')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
                             <div class="flex items-center gap-2.5">
                                 <i class="ph ph-users-three text-base text-rose-500"></i>
                                 <span>จัดการผู้ใช้งาน</span>
@@ -11954,16 +11954,11 @@
             if (roleEl) roleEl.textContent = { ADMIN:'ผู้ดูแลระบบ', AE:'Account Executive', QC:'Quality Control', CONTACT_CENTER:'Contact Center' }[u.role] || u.role;
             if (avatarEl) avatarEl.textContent = (u.full_name || 'U').charAt(0).toUpperCase();
 
-            // Show/hide Admin-only nav
+            // User Management nav
             const navUsers = document.getElementById('nav-users');
             if (navUsers) {
-                if (u.role === 'ADMIN') {
-                    navUsers.style.setProperty('display', 'flex', 'important');
-                    navUsers.classList.remove('hidden');
-                } else {
-                    navUsers.style.setProperty('display', 'none', 'important');
-                    navUsers.classList.add('hidden');
-                }
+                navUsers.style.setProperty('display', 'flex', 'important');
+                navUsers.classList.remove('hidden');
             }
 
             // Enable / Disable superadmin buttons (only enabled for isarachootip@gmail.com)
