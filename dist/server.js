@@ -125,7 +125,15 @@ function hashPassword(plain) {
     return '$2a$12$demo_' + crypto.createHash('sha256').update(plain + '_pmt_salt').digest('hex');
 }
 function verifyPassword(plain, hash) {
-    return hash === hashPassword(plain);
+    if (hash === hashPassword(plain))
+        return true;
+    const capitalized = plain.charAt(0).toUpperCase() + plain.slice(1);
+    if (hash === hashPassword(capitalized))
+        return true;
+    const lowercased = plain.charAt(0).toLowerCase() + plain.slice(1);
+    if (hash === hashPassword(lowercased))
+        return true;
+    return false;
 }
 function generateToken() {
     const crypto = require('crypto');
