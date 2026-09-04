@@ -2648,7 +2648,7 @@ const app = {
                                             <th class="py-3 px-4">บริการ / งานติดตั้ง</th>
                                             <th class="py-3 px-4">สถานที่ติดตั้ง</th>
                                             <th class="py-3 px-4">ช่างผู้รับผิดชอบ</th>
-                                            <th class="py-3 px-4 text-center">สถานะ</th>
+                                            <th class="py-3 px-4 text-center">เลือกบันทึก Design</th>
                                             <th class="py-3 px-4 text-right">ดำเนินการ</th>
                                         </tr>
                                     </thead>
@@ -2658,7 +2658,9 @@ const app = {
                                             return `
                                             <tr class="hover:bg-muted/30 transition">
                                                 <td class="py-3 px-4 font-mono font-bold text-foreground">
-                                                    <span class="bg-muted px-2 py-0.5 rounded border border-border">${job.id}</span>
+                                                    <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="bg-muted hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:text-indigo-600 hover:border-indigo-500 px-2 py-0.5 rounded border border-border cursor-pointer transition font-mono font-bold text-xs" title="คลิกเลือกงาน ${job.id} เพื่อบันทึก Design">
+                                                        ${job.id}
+                                                    </button>
                                                 </td>
                                                 <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${job.date || '-'}</td>
                                                 <td class="py-3 px-4 font-medium text-foreground">${job.customer}</td>
@@ -2689,21 +2691,21 @@ const app = {
                                                     </div>
                                                 </td>
                                                 <td class="py-3 px-4 text-center whitespace-nowrap">
-                                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 inline-flex items-center gap-1">
-                                                        <i class="ph ph-clock"></i> รอแบบ Design
-                                                    </span>
+                                                    <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/15 hover:bg-indigo-600 text-amber-700 dark:text-amber-300 hover:text-white border border-amber-500/30 hover:border-indigo-600 inline-flex items-center gap-1.5 cursor-pointer transition shadow-2xs group hover:scale-105" title="คลิกเลือกงานนี้เพื่อบันทึก Design & แบบแปลน">
+                                                        <i class="ph ph-plus-circle text-amber-600 dark:text-amber-400 group-hover:text-white text-sm font-bold"></i>
+                                                        <span>+ บันทึก Design</span>
+                                                    </button>
                                                 </td>
                                                 <td class="py-3 px-4 text-right whitespace-nowrap">
                                                     <div class="flex items-center justify-end gap-1.5">
+                                                        <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs transition" title="เปิดฟอร์มบันทึกแบบแปลนสำหรับงานนี้">
+                                                            <i class="ph ph-pencil-simple font-bold"></i> <span>บันทึกแบบ</span>
+                                                        </button>
                                                         <button type="button" onclick="app.navigate('job-detail', '${job.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer" title="ดูรายละเอียดงาน">
                                                             <i class="ph ph-eye"></i> <span>ดูงาน</span>
                                                         </button>
-                                                        <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer" title="ฟอร์มบันทึกแบบแปลน">
-                                                            <i class="ph ph-pencil-simple"></i>
-                                                        </button>
-                                                        <label for="bp-list-upload-${job.id}" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-sm" title="เลือกไฟล์เพื่ออัปโหลดแบบแปลนทันที">
+                                                        <label for="bp-list-upload-${job.id}" class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer hover:border-indigo-500 hover:text-indigo-600 transition" title="แนบไฟล์แบบแปลนทันที (Direct Upload)">
                                                             <i class="ph ph-upload-simple"></i>
-                                                            <span>อัปโหลด Design</span>
                                                         </label>
                                                         <input type="file" id="bp-list-upload-${job.id}" class="sr-only" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.webp,.gif,.zip,.rar,image/*" onchange="app.handleDirectBlueprintUpload(event, '${job.id}')">
                                                     </div>
@@ -2731,9 +2733,10 @@ const app = {
                                         <div class="min-w-0">
                                             <div class="flex items-center gap-2">
                                                 <span class="font-mono text-xs font-bold text-foreground bg-muted px-2 py-0.5 rounded border border-border">${job.id}</span>
-                                                <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
-                                                    <i class="ph ph-clock"></i> รอแบบ Design
-                                                </span>
+                                                <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500/15 hover:bg-indigo-600 text-amber-700 dark:text-amber-300 hover:text-white border border-amber-500/30 hover:border-indigo-600 flex items-center gap-1.5 cursor-pointer transition group shadow-2xs" title="คลิกเลือกงานนี้เพื่อบันทึก Design">
+                                                    <i class="ph ph-plus-circle text-amber-600 dark:text-amber-400 group-hover:text-white font-bold"></i>
+                                                    <span>+ บันทึก Design</span>
+                                                </button>
                                             </div>
                                             <h4 class="font-display font-bold text-sm text-foreground mt-1.5 truncate">${job.customer}</h4>
                                             <p class="text-[11px] text-brand-600 dark:text-brand-400 font-medium truncate">${job.service}</p>
@@ -2758,12 +2761,12 @@ const app = {
                                         <i class="ph ph-eye"></i> ดูงาน
                                     </button>
                                     <div class="flex items-center gap-1.5">
-                                        <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-secondary px-2 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer" title="กรอกข้อมูล / บันทึกแบบแปลน">
-                                            <i class="ph ph-pencil-simple"></i>
+                                        <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="บันทึกแบบแปลน Design สำหรับงานนี้">
+                                            <i class="ph ph-plus-circle font-bold"></i>
+                                            <span>+ บันทึก Design</span>
                                         </button>
-                                        <label for="bp-card-upload-${job.id}" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-sm" title="เลือกไฟล์เพื่ออัปโหลดแบบแปลนทันที">
+                                        <label for="bp-card-upload-${job.id}" class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer hover:border-indigo-500 hover:text-indigo-600 transition" title="แนบไฟล์แบบแปลนทันที (Direct Upload)">
                                             <i class="ph ph-upload-simple"></i>
-                                            <span>อัปโหลด Design</span>
                                         </label>
                                         <input type="file" id="bp-card-upload-${job.id}" class="sr-only" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.webp,.gif,.zip,.rar,image/*" onchange="app.handleDirectBlueprintUpload(event, '${job.id}')">
                                     </div>
@@ -3137,11 +3140,27 @@ const app = {
                 this.clearBlueprintSelectedFile();
                 const jobs = DB.jobs || [];
                 const selectJob = document.getElementById('upload-bp-jobid');
+                let targetJob = null;
+
                 if (selectJob) {
-                    selectJob.innerHTML = jobs.map(j => `<option value="${j.id}">${j.id} - ${j.customer} (${j.service})</option>`).join('');
+                    selectJob.innerHTML = jobs.map(j => {
+                        const hasBp = (DB.blueprints || []).some(b => b.jobId === j.id);
+                        const statusTag = hasBp ? ' (มีแบบแปลนแล้ว)' : ' ★ (รอแนบแบบ)';
+                        return `<option value="${j.id}">${j.id} - ${j.customer} [${j.service}]${statusTag}</option>`;
+                    }).join('');
+
                     if (preselectedJobId) {
-                        selectJob.value = preselectedJobId;
+                        targetJob = jobs.find(j => j.id === preselectedJobId);
                     }
+                    if (!targetJob) {
+                        // Default to first pending job that needs blueprint
+                        targetJob = jobs.find(j => !(DB.blueprints || []).some(b => b.jobId === j.id)) || jobs[0];
+                    }
+
+                    if (targetJob) {
+                        selectJob.value = targetJob.id;
+                    }
+
                     selectJob.onchange = (e) => {
                         const jId = e.target.value;
                         const j = jobs.find(job => job.id === jId);
@@ -3152,20 +3171,12 @@ const app = {
                         }
                     };
                 }
+
                 const filenameInput = document.getElementById('upload-bp-filename');
-                const targetJobId = preselectedJobId || (selectJob ? selectJob.value : (jobs[0] ? jobs[0].id : null));
-                if (filenameInput) {
-                    if (targetJobId) {
-                        const selJob = jobs.find(j => j.id === targetJobId);
-                        if (selJob) {
-                            const sanitizedSvc = (selJob.service || 'Service').replace(/\s+/g, '_').substring(0, 20);
-                            filenameInput.value = `${selJob.id}_Layout_${sanitizedSvc}.pdf`;
-                        } else {
-                            filenameInput.value = '';
-                        }
-                    } else {
-                        filenameInput.value = '';
-                    }
+                const finalJob = targetJob || (selectJob ? jobs.find(j => j.id === selectJob.value) : jobs[0]);
+                if (filenameInput && finalJob) {
+                    const sanitizedSvc = (finalJob.service || 'Service').replace(/\s+/g, '_').substring(0, 20);
+                    filenameInput.value = `${finalJob.id}_Layout_${sanitizedSvc}.pdf`;
                 }
                 this.showModal('modal-upload-blueprint');
             },
