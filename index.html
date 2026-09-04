@@ -752,14 +752,64 @@
                                 <span class="text-2xl">📐</span>
                                 <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">บันทึก Design & แบบแปลนติดตั้ง (Blueprints & CAD/PDF)</h2>
                             </div>
-                            <p class="text-xs text-muted-foreground mt-1">คลังไฟล์แบบแปลน ไดอะแกรมงานติดตั้ง CAD/PDF และประวัติเวอร์ชันทุกโครงการ</p>
+                            <p class="text-xs text-muted-foreground mt-1">คิวงานที่รอจัดทำแบบติดตั้ง (Design Queue) จาก Step 1, คลังไฟล์แบบแปลน CAD/PDF และประวัติเวอร์ชันทุกโครงการ</p>
                         </div>
                         <div class="flex items-center gap-2.5">
-                            <button onclick="app.openUploadBlueprintModal()" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm">
+                            <button onclick="app.openUploadBlueprintModal()" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer">
                                 <i class="ph ph-upload-simple text-sm"></i>
-                                <span>อัปโหลดแบบแปลนใหม่</span>
+                                <span>+ บันทึก / อัปโหลดแบบแปลนใหม่</span>
                             </button>
                         </div>
+                    </div>
+
+                    <!-- KPI Stats for Step 2 -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="artifact-card p-4 space-y-1">
+                            <div class="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
+                                <span>งานที่กำลังรอ Design</span>
+                                <i class="ph ph-clock text-amber-500 text-base"></i>
+                            </div>
+                            <div class="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400" id="blueprints-stat-pending">0</div>
+                            <div class="text-[10px] text-amber-500">รอแนบแบบแปลนติดตั้ง</div>
+                        </div>
+                        <div class="artifact-card p-4 space-y-1">
+                            <div class="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
+                                <span>งานที่มีแบบ Design แล้ว</span>
+                                <i class="ph ph-check-circle text-emerald-500 text-base"></i>
+                            </div>
+                            <div class="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400" id="blueprints-stat-designed">0</div>
+                            <div class="text-[10px] text-emerald-500">มีไฟล์แบบแปลนในระบบ</div>
+                        </div>
+                        <div class="artifact-card p-4 space-y-1">
+                            <div class="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
+                                <span>ไฟล์แบบแปลนทั้งหมด</span>
+                                <i class="ph ph-files text-indigo-500 text-base"></i>
+                            </div>
+                            <div class="text-2xl font-bold font-mono text-indigo-600 dark:text-indigo-400" id="blueprints-stat-total">0</div>
+                            <div class="text-[10px] text-muted-foreground">CAD, PDF, DWG ในคลัง</div>
+                        </div>
+                        <div class="artifact-card p-4 space-y-1">
+                            <div class="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
+                                <span>โครงการทั้งหมด (Step 1)</span>
+                                <i class="ph ph-briefcase text-brand-500 text-base"></i>
+                            </div>
+                            <div class="text-2xl font-bold font-mono text-brand-500" id="blueprints-stat-jobs">0</div>
+                            <div class="text-[10px] text-muted-foreground">Order ที่รับจาก Step 1</div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Switcher: Pending Design Jobs vs Uploaded Blueprints -->
+                    <div class="flex border-b border-border gap-6">
+                        <button type="button" id="tab-bp-pending" onclick="app.switchBlueprintTab('pending')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-indigo-600 text-foreground cursor-pointer">
+                            <i class="ph ph-hourglass-high text-amber-500 text-sm"></i>
+                            <span>รายการงานที่กำลังรอ Design</span>
+                            <span id="tab-bp-pending-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold">0</span>
+                        </button>
+                        <button type="button" id="tab-bp-library" onclick="app.switchBlueprintTab('library')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer">
+                            <i class="ph ph-folder-open text-indigo-500 text-sm"></i>
+                            <span>คลังแบบแปลนที่บันทึกแล้ว</span>
+                            <span id="tab-bp-library-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-mono font-bold">0</span>
+                        </button>
                     </div>
 
                     <!-- Search & Filter Card -->
@@ -767,23 +817,48 @@
                         <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
                             <div class="relative flex-1 w-full">
                                 <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
-                                <input type="text" id="blueprint-search" oninput="app.filterBlueprints()" placeholder="ค้นหาตามรหัสงาน (JOB ID), ชื่อลูกค้า, หรือชื่อไฟล์แบบงาน..." class="w-full bg-card border border-border rounded-lg pl-9 pr-4 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500">
+                                <input type="text" id="blueprint-search" oninput="app.filterBlueprints()" placeholder="ค้นหาตามรหัสงาน (JOB ID), ชื่อลูกค้า, บริการ, หรือชื่อแบบแปลน..." class="w-full bg-card border border-border rounded-lg pl-9 pr-4 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500">
                             </div>
                             <div class="flex items-center gap-2 w-full sm:w-auto">
-                                <select id="blueprint-filter-service" onchange="app.filterBlueprints()" class="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                                <select id="blueprint-filter-service" onchange="app.filterBlueprints()" class="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500">
                                     <option value="all">ทุกประเภทบริการ</option>
                                     <option value="Renovate ครัว">Renovate ครัว</option>
                                     <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
                                     <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
                                     <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
+                                    <option value="ติดตั้งเครื่องปรับอากาศ">ติดตั้งเครื่องปรับอากาศ</option>
+                                    <option value="โซลาร์เซลล์">โซลาร์เซลล์</option>
                                 </select>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Blueprints Grid List Container -->
-                    <div id="blueprints-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Populated dynamically by JS -->
+                    <!-- Section 1: Pending Design Queue Container -->
+                    <div id="blueprints-pending-container" class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                <h3 class="font-display font-bold text-sm text-foreground">งานที่รอจัดทำ / บันทึก Design & CAD (Pending Design Queue)</h3>
+                            </div>
+                            <span class="text-xs text-muted-foreground">คลิกปุ่ม <strong class="text-indigo-600 dark:text-indigo-400 font-semibold">+ บันทึก Design</strong> เพื่อแนบไฟล์แบบแปลน</span>
+                        </div>
+                        <div id="blueprints-pending-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Uploaded Blueprints Grid Container -->
+                    <div id="blueprints-library-container" class="space-y-4 hidden-view">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                                <h3 class="font-display font-bold text-sm text-foreground">คลังแบบแปลนและไฟล์ CAD/PDF ที่บันทึกแล้ว</h3>
+                            </div>
+                            <span class="text-xs text-muted-foreground" id="blueprints-library-count-text">แสดงไฟล์ทั้งหมด</span>
+                        </div>
+                        <div id="blueprints-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Populated dynamically by JS -->
+                        </div>
                     </div>
                 </div>
 
@@ -3761,6 +3836,12 @@
                 } catch (e) {}
             },
 
+            persistBlueprints() {
+                try {
+                    localStorage.setItem('pmt_blueprints', JSON.stringify(DB.blueprints || []));
+                } catch (e) {}
+            },
+
             updateJobStatus(jobId, newStatus) {
                 const job = DB.jobs.find(j => j.id === jobId);
                 if (!job) return;
@@ -4145,6 +4226,26 @@
                     this.persistTickets();
                 }
 
+                // Restore saved blueprints or seed with initial mock blueprints (Step 2)
+                const savedBlueprints = localStorage.getItem('pmt_blueprints');
+                if (savedBlueprints) {
+                    try {
+                        const parsedBlueprints = JSON.parse(savedBlueprints);
+                        if (Array.isArray(parsedBlueprints) && parsedBlueprints.length > 0) {
+                            DB.blueprints = parsedBlueprints;
+                        } else {
+                            DB.blueprints = this.getDefaultMockBlueprints();
+                            this.persistBlueprints();
+                        }
+                    } catch (e) {
+                        DB.blueprints = this.getDefaultMockBlueprints();
+                        this.persistBlueprints();
+                    }
+                } else {
+                    DB.blueprints = this.getDefaultMockBlueprints();
+                    this.persistBlueprints();
+                }
+
                 // Rule Enforcement: แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart
                 // Filter out any tasks whose jobs do not have BOQ items
                 if (Array.isArray(DB.jobs)) {
@@ -4322,7 +4423,11 @@
                 const sidebarJob = document.getElementById('sidebar-job-count');
                 if (sidebarJob) sidebarJob.innerText = DB.jobs.length;
                 const sidebarBp = document.getElementById('sidebar-blueprint-count');
-                if (sidebarBp && DB.blueprints) sidebarBp.innerText = DB.blueprints.length;
+                if (sidebarBp) {
+                    const designedJobIds = new Set((DB.blueprints || []).map(b => b.jobId));
+                    const pendingBpCount = (DB.jobs || []).filter(j => !designedJobIds.has(j.id)).length;
+                    sidebarBp.innerText = pendingBpCount;
+                }
                 const sidebarTicket = document.getElementById('sidebar-ticket-count');
                 if (sidebarTicket && DB.tickets) sidebarTicket.innerText = DB.tickets.length;
                 const sidebarBoq = document.getElementById('sidebar-boq-count');
@@ -5509,13 +5614,61 @@
                 document.getElementById('job-detail-content').innerHTML = html;
             },
 
+            switchBlueprintTab(tab) {
+                this.state.blueprintTab = tab;
+                const tabPending = document.getElementById('tab-bp-pending');
+                const tabLibrary = document.getElementById('tab-bp-library');
+                const secPending = document.getElementById('blueprints-pending-container');
+                const secLibrary = document.getElementById('blueprints-library-container');
+
+                if (tab === 'library') {
+                    if (tabPending) {
+                        tabPending.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer";
+                    }
+                    if (tabLibrary) {
+                        tabLibrary.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-indigo-600 text-foreground cursor-pointer";
+                    }
+                    if (secPending) secPending.classList.add('hidden-view');
+                    if (secLibrary) secLibrary.classList.remove('hidden-view');
+                } else {
+                    if (tabPending) {
+                        tabPending.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-indigo-600 text-foreground cursor-pointer";
+                    }
+                    if (tabLibrary) {
+                        tabLibrary.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer";
+                    }
+                    if (secPending) secPending.classList.remove('hidden-view');
+                    if (secLibrary) secLibrary.classList.add('hidden-view');
+                }
+            },
+
             renderBlueprints(searchQuery = '', serviceFilter = 'all') {
                 const searchEl = document.getElementById('blueprint-search');
                 const serviceEl = document.getElementById('blueprint-filter-service');
                 const q = (searchQuery || (searchEl ? searchEl.value : '')).toLowerCase().trim();
                 const sFilter = serviceFilter !== 'all' ? serviceFilter : (serviceEl ? serviceEl.value : 'all');
 
+                const allJobs = DB.jobs || [];
                 let blueprints = DB.blueprints || [];
+
+                // Map which jobs have blueprints attached
+                const designedJobIds = new Set(blueprints.map(b => b.jobId));
+
+                // 1. Calculate and render pending design jobs queue
+                let pendingDesignJobs = allJobs.filter(j => !designedJobIds.has(j.id));
+                if (q) {
+                    pendingDesignJobs = pendingDesignJobs.filter(j =>
+                        (j.id && j.id.toLowerCase().includes(q)) ||
+                        (j.customer && j.customer.toLowerCase().includes(q)) ||
+                        (j.service && j.service.toLowerCase().includes(q)) ||
+                        (j.address && j.address.toLowerCase().includes(q))
+                    );
+                }
+                if (sFilter && sFilter !== 'all') {
+                    pendingDesignJobs = pendingDesignJobs.filter(j => (j.service || '').includes(sFilter));
+                }
+
+                // 2. Filter uploaded blueprints
                 if (q) {
                     blueprints = blueprints.filter(b => 
                         b.id.toLowerCase().includes(q) ||
@@ -5526,84 +5679,175 @@
                     );
                 }
                 if (sFilter && sFilter !== 'all') {
-                    blueprints = blueprints.filter(b => b.service === sFilter);
+                    blueprints = blueprints.filter(b => (b.service || '').includes(sFilter));
                 }
 
+                // Update Stats
+                const totalPendingCount = allJobs.filter(j => !designedJobIds.has(j.id)).length;
+                const totalDesignedCount = designedJobIds.size;
+                const totalBpFiles = (DB.blueprints || []).length;
+
+                const statPendingEl = document.getElementById('blueprints-stat-pending');
+                if (statPendingEl) statPendingEl.innerText = totalPendingCount;
+                const statDesignedEl = document.getElementById('blueprints-stat-designed');
+                if (statDesignedEl) statDesignedEl.innerText = totalDesignedCount;
+                const statTotalEl = document.getElementById('blueprints-stat-total');
+                if (statTotalEl) statTotalEl.innerText = totalBpFiles;
+                const statJobsEl = document.getElementById('blueprints-stat-jobs');
+                if (statJobsEl) statJobsEl.innerText = allJobs.length;
+
+                // Update tab badges
+                const tabPendingBadge = document.getElementById('tab-bp-pending-badge');
+                if (tabPendingBadge) tabPendingBadge.innerText = totalPendingCount;
+                const tabLibraryBadge = document.getElementById('tab-bp-library-badge');
+                if (tabLibraryBadge) tabLibraryBadge.innerText = totalBpFiles;
+
+                // Update sidebar badge to show pending design count
+                const sbBp = document.getElementById('sidebar-blueprint-count');
+                if (sbBp) sbBp.innerText = totalPendingCount;
+
+                // 3. Render Pending Queue Container
+                const pendingContainer = document.getElementById('blueprints-pending-list');
+                if (pendingContainer) {
+                    if (pendingDesignJobs.length === 0) {
+                        pendingContainer.innerHTML = `
+                            <div class="col-span-full artifact-card p-10 text-center text-muted-foreground border border-dashed border-border">
+                                <i class="ph ph-check-circle text-4xl mb-2 text-emerald-500"></i>
+                                <h4 class="font-display font-medium text-foreground text-sm">ไม่มีงานที่รอจัดทำ Design ในขณะนี้</h4>
+                                <p class="text-xs text-muted-foreground mt-1">ทุกโครงการในระบบได้จัดทำแบบแปลนติดตั้งแล้ว หรือไม่ตรงกับเงื่อนไขการค้นหา</p>
+                            </div>
+                        `;
+                    } else {
+                        pendingContainer.innerHTML = pendingDesignJobs.map(job => {
+                            return `
+                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-indigo-500/50 transition duration-200 space-y-3.5 bg-card group shadow-xs">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-mono text-xs font-bold text-foreground bg-muted px-2 py-0.5 rounded border border-border">${job.id}</span>
+                                            <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
+                                                <i class="ph ph-clock"></i> รอแบบ Design
+                                            </span>
+                                        </div>
+                                        <h4 class="font-display font-bold text-sm text-foreground mt-1.5">${job.customer}</h4>
+                                        <p class="text-[11px] text-brand-600 dark:text-brand-400 font-medium">${job.service}</p>
+                                    </div>
+                                    <span class="text-[10px] font-mono text-muted-foreground shrink-0">${job.date || '-'}</span>
+                                </div>
+
+                                <div class="text-[11px] text-muted-foreground space-y-1 bg-muted/30 p-2.5 rounded-xl border border-border/50">
+                                    <div class="flex items-center gap-1.5 truncate">
+                                        <i class="ph ph-map-pin text-muted-foreground shrink-0"></i>
+                                        <span class="truncate" title="${job.address || '-'}">${job.address || 'ไม่ระบุที่อยู่'}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <i class="ph ph-wrench text-muted-foreground shrink-0"></i>
+                                        <span>ช่าง: <strong class="text-foreground font-medium">${job.tech || 'ยังไม่ระบุช่าง'}</strong></span>
+                                    </div>
+                                </div>
+
+                                <div class="pt-2 border-t border-border flex items-center justify-between gap-2">
+                                    <button type="button" onclick="app.navigate('job-detail', '${job.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer">
+                                        <i class="ph ph-eye"></i> ดูงาน
+                                    </button>
+                                    <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-sm">
+                                        <i class="ph ph-upload-simple"></i>
+                                        <span>+ บันทึก Design</span>
+                                    </button>
+                                </div>
+                            </div>
+                            `;
+                        }).join('');
+                    }
+                }
+
+                // 4. Render Blueprints Library Container
                 const container = document.getElementById('blueprints-list-container');
-                if (!container) return;
+                const libCountText = document.getElementById('blueprints-library-count-text');
+                if (libCountText) libCountText.innerText = `แสดง ${blueprints.length} จาก ${totalBpFiles} ไฟล์`;
 
-                if (blueprints.length === 0) {
-                    container.innerHTML = `
-                        <div class="col-span-full artifact-card p-12 text-center text-muted-foreground">
-                            <i class="ph ph-file-dashed text-4xl mb-2 text-muted-foreground/50"></i>
-                            <h4 class="font-display font-medium text-foreground text-sm">ไม่พบไฟล์แบบแปลนที่ตรงกับเงื่อนไข</h4>
-                            <p class="text-xs text-muted-foreground mt-1">ลองเปลี่ยนคำค้นหา หรือกดปุ่ม "อัปโหลดแบบแปลนใหม่"</p>
-                        </div>
-                    `;
-                    return;
+                if (container) {
+                    if (blueprints.length === 0) {
+                        container.innerHTML = `
+                            <div class="col-span-full artifact-card p-12 text-center text-muted-foreground border border-dashed border-border">
+                                <i class="ph ph-file-dashed text-4xl mb-2 text-muted-foreground/50"></i>
+                                <h4 class="font-display font-medium text-foreground text-sm">ไม่พบไฟล์แบบแปลนที่ตรงกับเงื่อนไข</h4>
+                                <p class="text-xs text-muted-foreground mt-1">ลองเปลี่ยนคำค้นหา หรือกดปุ่ม "อัปโหลดแบบแปลนใหม่"</p>
+                            </div>
+                        `;
+                    } else {
+                        container.innerHTML = blueprints.map(b => {
+                            return `
+                            <div class="artifact-card p-5 rounded-2xl space-y-4 border border-border hover:border-indigo-500/40 transition group">
+                                <!-- Card Top: Thumbnail & Version -->
+                                <div class="aspect-video bg-muted/60 rounded-xl overflow-hidden relative border border-border group-hover:border-indigo-500/30 transition">
+                                    <img src="${b.previewImg}" alt="${b.filename}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                    <div class="absolute top-3 right-3 flex items-center gap-1.5">
+                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-600 text-white shadow-sm">${b.version}</span>
+                                    </div>
+                                    <div class="absolute top-3 left-3">
+                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-black/60 backdrop-blur-xs text-white">${b.jobId}</span>
+                                    </div>
+                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                                        <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white" onclick="app.openBasePhotoLightbox(1)">
+                                            <i class="ph ph-eye"></i> ดูตัวอย่างแบบ
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Card Info -->
+                                <div class="space-y-1.5">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <h4 class="font-display font-bold text-sm text-foreground truncate" title="${b.filename}">${b.filename}</h4>
+                                        <span class="text-[10px] font-mono text-muted-foreground shrink-0">${b.size}</span>
+                                    </div>
+                                    <div class="text-xs text-muted-foreground flex items-center gap-1.5">
+                                        <i class="ph ph-user text-xs"></i> <span>${b.customer}</span> • <span class="text-brand-500 font-medium">${b.service}</span>
+                                    </div>
+                                    <p class="text-[11px] text-muted-foreground/90 line-clamp-2">${b.notes || 'แบบแปลนและผังงานติดตั้งฉบับมาตรฐาน'}</p>
+                                </div>
+
+                                <!-- Card Footer -->
+                                <div class="pt-3 border-t border-border flex items-center justify-between text-[10px] text-muted-foreground">
+                                    <div>
+                                        <div>${b.designer || 'Designer'}</div>
+                                        <div class="text-[9px] font-mono opacity-75">${b.date}</div>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <button class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer" title="ดาวน์โหลดไฟล์ PDF" onclick="app.showToast('กำลังดาวน์โหลด ${b.filename}...')">
+                                            <i class="ph ph-download-simple"></i>
+                                        </button>
+                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium cursor-pointer" onclick="app.navigate('job-detail', '${b.jobId}')">
+                                            <span>เปิดดูงาน</span> <i class="ph ph-arrow-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            `;
+                        }).join('');
+                    }
                 }
-
-                const html = blueprints.map(b => {
-                    return `
-                    <div class="artifact-card p-5 rounded-2xl space-y-4 border border-border hover:border-brand-500/40 transition group">
-                        <!-- Card Top: Thumbnail & Version -->
-                        <div class="aspect-video bg-muted/60 rounded-xl overflow-hidden relative border border-border group-hover:border-brand-500/30 transition">
-                            <img src="${b.previewImg}" alt="${b.filename}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                            <div class="absolute top-3 right-3 flex items-center gap-1.5">
-                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-brand-500 text-white shadow-sm">${b.version}</span>
-                            </div>
-                            <div class="absolute top-3 left-3">
-                                <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-black/60 backdrop-blur-xs text-white">${b.jobId}</span>
-                            </div>
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
-                                <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow" onclick="app.openBasePhotoLightbox(1)">
-                                    <i class="ph ph-eye"></i> ดูตัวอย่างแบบ
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Card Info -->
-                        <div class="space-y-1.5">
-                            <div class="flex items-center justify-between gap-2">
-                                <h4 class="font-display font-bold text-sm text-foreground truncate" title="${b.filename}">${b.filename}</h4>
-                                <span class="text-[10px] font-mono text-muted-foreground shrink-0">${b.size}</span>
-                            </div>
-                            <div class="text-xs text-muted-foreground flex items-center gap-1.5">
-                                <i class="ph ph-user text-xs"></i> <span>${b.customer}</span> • <span class="text-brand-500 font-medium">${b.service}</span>
-                            </div>
-                            <p class="text-[11px] text-muted-foreground/90 line-clamp-2">${b.notes || 'แบบแปลนและผังงานติดตั้งฉบับมาตรฐาน'}</p>
-                        </div>
-
-                        <!-- Card Footer -->
-                        <div class="pt-3 border-t border-border flex items-center justify-between text-[10px] text-muted-foreground">
-                            <div>
-                                <div>${b.designer || 'Designer'}</div>
-                                <div class="text-[9px] font-mono opacity-75">${b.date}</div>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <button class="btn-artifact-secondary p-1.5 rounded-lg text-xs" title="ดาวน์โหลดไฟล์ PDF" onclick="app.showToast('กำลังดาวน์โหลด ${b.filename}...')">
-                                    <i class="ph ph-download-simple"></i>
-                                </button>
-                                <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium" onclick="app.navigate('job-detail', '${b.jobId}')">
-                                    <span>เปิดดูงาน</span> <i class="ph ph-arrow-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    `;
-                }).join('');
-
-                container.innerHTML = html;
             },
 
             filterBlueprints() {
                 this.renderBlueprints();
             },
 
-            openUploadBlueprintModal() {
+            openUploadBlueprintModal(preselectedJobId = null) {
                 const selectJob = document.getElementById('upload-bp-jobid');
                 if (selectJob) {
                     selectJob.innerHTML = DB.jobs.map(j => `<option value="${j.id}">${j.id} - ${j.customer} (${j.service})</option>`).join('');
+                    if (preselectedJobId) {
+                        selectJob.value = preselectedJobId;
+                    }
+                }
+                const filenameInput = document.getElementById('upload-bp-filename');
+                if (filenameInput && preselectedJobId) {
+                    const selJob = DB.jobs.find(j => j.id === preselectedJobId);
+                    if (selJob && !filenameInput.value) {
+                        const sanitizedSvc = (selJob.service || 'Service').replace(/\s+/g, '_').substring(0, 20);
+                        filenameInput.value = `${selJob.id}_Layout_${sanitizedSvc}.pdf`;
+                    }
                 }
                 this.showModal('modal-upload-blueprint');
             },
@@ -5634,12 +5878,10 @@
 
                 if (!DB.blueprints) DB.blueprints = [];
                 DB.blueprints.unshift(newBp);
-
-                const sbBp = document.getElementById('sidebar-blueprint-count');
-                if (sbBp) sbBp.innerText = DB.blueprints.length;
+                this.persistBlueprints();
 
                 this.hideModal('modal-upload-blueprint');
-                this.showToast(`✅ อัปโหลดแบบติดตั้ง "${filename}" สำเร็จ`);
+                this.showToast(`✅ บันทึกและแนบแบบแปลน "${filename}" สำหรับ ${jobId} สำเร็จ`);
                 if (this.state.currentView === 'blueprints') {
                     this.renderBlueprints();
                 }
@@ -7416,6 +7658,39 @@
                         slip_name: "slip_transfer.jpg",
                         status: "ATTACHED",
                         notes: "โอนชำระเงินค่าติดตั้งและอุปกรณ์ท่อทองแดง"
+                    }
+                ];
+            },
+
+            getDefaultMockBlueprints() {
+                return [
+                    {
+                        id: "BP001",
+                        jobId: "JOB202609001",
+                        customer: "คุณณวัฒน์ รักสงบ",
+                        service: "ติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU",
+                        filename: "Air_Installation_Layout_v3_Final.pdf",
+                        version: "v3 Final",
+                        isCurrent: true,
+                        size: "3.4 MB",
+                        date: "04/09/2569 10:30 น.",
+                        designer: "คุณธนกฤต (HVAC Designer)",
+                        previewImg: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600&auto=format&fit=crop&q=80",
+                        notes: "แบบแปลนจุดติดตั้งคอยล์เย็นในห้องนอนใหญ่ และตำแหน่งแขวนคอนเดนซิ่งยูนิตภายนอกพร้อมแนวท่อรางครอบ 4 เมตร"
+                    },
+                    {
+                        id: "BP002",
+                        jobId: "JOB202609002",
+                        customer: "คุณสมศรี สุขใจ",
+                        service: "Renovate ห้องครัว Built-in & งานระบบประปา",
+                        filename: "Kitchen_Renovate_Plumbing_Schematic.dwg",
+                        version: "v2 Approved",
+                        isCurrent: true,
+                        size: "5.8 MB",
+                        date: "04/09/2569 11:15 น.",
+                        designer: "คุณกิตติศักดิ์ (Interior CAD)",
+                        previewImg: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&auto=format&fit=crop&q=80",
+                        notes: "ไดอะแกรมระบบสุขาภิบาล จุดต่อน้ำดี-น้ำทิ้ง และตำแหน่งตู้เคาน์เตอร์ครัว Built-in พร้อมแนวบล็อกไฟฝังผนัง"
                     }
                 ];
             },
