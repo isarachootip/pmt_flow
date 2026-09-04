@@ -2099,6 +2099,32 @@ app.post('/api/v1/jobs/:id/tasks/reorder', async (req: Request, res: Response) =
   });
 });
 
+// PUT /api/v1/jobs/:id/tasks/:taskId — Update Task (Start Date, End Date, Technician, Status, etc.)
+app.put('/api/v1/jobs/:id/tasks/:taskId', async (req: Request, res: Response) => {
+  const { id, taskId } = req.params;
+  const task = coreTaskStore.find(t => String(t.id) === taskId);
+  if (!task) {
+    return res.status(404).json({ success: false, error: { code: 'TASK_NOT_FOUND', message: 'ไม่พบ Task' } });
+  }
+
+  const { task_name, name, start_date, start, end_date, end, duration_days, days, assigned_tech, tech, assignees, status } = req.body;
+  if (task_name !== undefined || name !== undefined) task.task_name = task_name || name;
+  if (start_date !== undefined || start !== undefined) task.plan_start_date = start_date || start;
+  if (end_date !== undefined || end !== undefined) task.plan_end_date = end_date || end;
+  if (duration_days !== undefined || days !== undefined) {
+    task.duration_days = duration_days || days;
+  } else if (task.plan_start_date && task.plan_end_date) {
+    const s = new Date(task.plan_start_date);
+    const e = new Date(task.plan_end_date);
+    task.duration_days = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+  }
+  if (assigned_tech !== undefined || tech !== undefined) task.assigned_tech = assigned_tech || tech;
+  if (assignees !== undefined) task.assignees = assignees;
+  if (status !== undefined) task.status = status;
+
+  return res.json({ success: true, message: 'อัปเดต Task สำเร็จ', data: task });
+});
+
 // DELETE /api/v1/jobs/:id/tasks/:taskId — Delete Task
 app.delete('/api/v1/jobs/:id/tasks/:taskId', async (req: Request, res: Response) => {
   const { id, taskId } = req.params;

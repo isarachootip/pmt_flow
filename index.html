@@ -755,36 +755,16 @@
                                 <span class="text-2xl">📊</span>
                                 <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">แผนงานติดตั้ง (Gantt Timeline)</h2>
                             </div>
-                            <p class="text-xs text-muted-foreground mt-0.5">วางแผนตารางเวลาทีมช่างและระยะเวลาดำเนินงานในแต่ละโครงการ จัดเรียงตามวันเริ่มต้นอัตโนมัติ (คลิกที่โครงการเพื่อเปิด Project Detail ตาม BOQ)</p>
+                            <p class="text-xs text-muted-foreground mt-0.5">วางแผนตารางเวลาทีมช่างและระยะเวลาดำเนินงานในแต่ละโครงการ (เลือกโครงการเพื่อดูและจัดการ Task แผนงานช่าง)</p>
                         </div>
-                        <div class="flex flex-wrap items-center gap-2.5">
-                            <div class="flex items-center gap-2 bg-card border border-border rounded-lg px-2.5 py-1 text-xs">
-                                <label for="gantt-filter-job" class="text-muted-foreground">โครงการ:</label>
-                                <select id="gantt-filter-job" onchange="app.renderGantt()" class="bg-transparent text-foreground font-medium focus:outline-none cursor-pointer">
+                        <div class="flex items-center gap-2.5">
+                            <div class="flex items-center gap-2 bg-card border border-border rounded-xl px-3 py-1.5 text-xs shadow-xs">
+                                <i class="ph ph-folders text-brand-500 text-sm"></i>
+                                <label for="gantt-filter-job" class="text-muted-foreground font-medium">โครงการ:</label>
+                                <select id="gantt-filter-job" onchange="app.selectGanttJob(this.value)" class="bg-transparent text-foreground font-semibold focus:outline-none cursor-pointer">
                                     <option value="all">ทุกโครงการ (All Jobs)</option>
-                                    <option value="JOB202609001">JOB202609001 - คุณณวัฒน์ (Renovate ครัว)</option>
-                                    <option value="JOB202609002">JOB202609002 - คุณสมศรี (ปั้มแท็งก์)</option>
-                                    <option value="JOB202609003">JOB202609003 - คุณเอนก (ติดตั้งเครื่องทำน้ำอุ่น)</option>
-                                    <option value="JOB202609004">JOB202609004 - คุณมาลี (สำรวจหน้างาน)</option>
-                                    <option value="JOB202609005">JOB202609005 - คุณฉัตรชัย (Renovate ครัว)</option>
                                 </select>
                             </div>
-                            <button onclick="app.resetAllJobStatuses()" class="superadmin-only-btn btn-artifact-secondary text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer shadow-xs" title="ถอยสถานะทุกโครงการกลับเป็น Draft (0%)">
-                                <i class="ph ph-arrow-counter-clockwise"></i>
-                                <span>ถอยสถานะเป็น Draft</span>
-                            </button>
-                            <button onclick="app.clearAllProjects()" class="superadmin-only-btn btn-artifact-secondary text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer shadow-xs" title="ลบข้อมูลโครงการและรายการแผนงานทั้งหมด">
-                                <i class="ph ph-trash"></i>
-                                <span>ลบข้อมูลโครงการทั้งหมด</span>
-                            </button>
-                            <button onclick="app.openCurrentFilterJobBOQ()" class="btn-artifact-secondary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium text-brand-600 dark:text-brand-400 border border-brand-500/30 hover:bg-brand-500/10 cursor-pointer shadow-xs" title="คลิกเปิดดู Project Detail & รายการ BOQ ของโครงการนี้">
-                                <i class="ph ph-receipt text-sm"></i>
-                                <span>ดู Project Detail (BOQ)</span>
-                            </button>
-                            <button onclick="app.openConvertBOQToTasksModal()" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-sm bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-700 hover:to-brand-700 text-white cursor-pointer">
-                                <i class="ph ph-calendar-plus"></i>
-                                <span>⚡ แปลง BOQ เป็น Task</span>
-                            </button>
                         </div>
                     </div>
 
@@ -792,9 +772,9 @@
                     <div class="space-y-2">
                         <div class="flex items-center justify-between text-xs">
                             <span class="font-semibold text-foreground flex items-center gap-1.5">
-                                <i class="ph ph-squares-four text-brand-500"></i> เลือกโครงการเพื่อเปิด Project Detail (BOQ):
+                                <i class="ph ph-squares-four text-brand-500"></i> เลือกโครงการเพื่อวางแผนงาน (Gantt Schedule):
                             </span>
-                            <span class="text-[11px] text-muted-foreground">คลิกที่การ์ดโครงการใดก็ได้เพื่อเปิดรายละเอียด BOQ ทันที</span>
+                            <span class="text-[11px] text-muted-foreground">คลิกที่การ์ดโครงการที่มี BOQ เพื่อดูและจัดการ Task แผนงานช่าง</span>
                         </div>
                         <div id="gantt-projects-strip" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                             <!-- Populated dynamically by JS -->
@@ -6550,9 +6530,9 @@
                     const hasBOQ = boqCount > 0;
                     
                     return `
-                    <div onclick="app.openJobDetailBOQ('${job.id}')" 
+                    <div onclick="app.selectGanttJob('${job.id}')" 
                          class="artifact-card p-3 rounded-xl border transition-all cursor-pointer group hover:scale-[1.02] hover:shadow-md ${isSelected ? 'border-brand-500 bg-brand-500/10 ring-2 ring-brand-500/30' : 'border-border hover:border-brand-500/50 bg-card'}"
-                         title="คลิกเพื่อเปิด Project Detail & ตาราง BOQ ของ ${job.id}">
+                         title="คลิกเพื่อเลือกโครงการ ${job.id} และกำหนดตารางงาน (Gantt Schedule)">
                         <div class="flex items-center justify-between gap-1 mb-1.5">
                             <span class="font-mono text-xs font-bold text-brand-500 flex items-center gap-1 group-hover:text-purple-600 transition">
                                 <i class="ph ph-folder-open text-xs"></i> ${job.id}
@@ -6575,13 +6555,13 @@
                                 <span class="text-purple-600 dark:text-purple-400 font-mono font-semibold flex items-center gap-1">
                                     <i class="ph ph-chart-bar-horizontal"></i> ${taskCount} Tasks
                                 </span>
-                                <span class="text-brand-500 font-medium group-hover:underline flex items-center gap-0.5">
-                                    <span>ดู BOQ / Task</span>
-                                    <i class="ph ph-arrow-right text-xs group-hover:translate-x-0.5 transition-transform"></i>
-                                </span>
+                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailBOQ('${job.id}')" class="text-brand-500 hover:underline flex items-center gap-0.5 cursor-pointer font-medium" title="เปิดดูตาราง BOQ">
+                                    <span>ดู BOQ</span>
+                                    <i class="ph ph-receipt text-xs"></i>
+                                </button>
                             ` : `
                                 <span class="text-amber-600 dark:text-amber-400 text-[10px] font-medium">รอการนำเข้า BOQ</span>
-                                <button onclick="event.stopPropagation(); app.openImportBOQModal('${job.id}')" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-medium cursor-pointer shadow-xs flex items-center gap-1">
+                                <button type="button" onclick="event.stopPropagation(); app.openImportBOQModal('${job.id}')" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-medium cursor-pointer shadow-xs flex items-center gap-1">
                                     <i class="ph ph-file-arrow-up"></i> นำเข้า BOQ
                                 </button>
                             `}
@@ -6591,6 +6571,208 @@
                 }).join('');
 
                 stripEl.innerHTML = cardsHtml;
+            },
+
+            selectGanttJob(jobId) {
+                const sel = document.getElementById('gantt-filter-job');
+                if (sel && sel.value !== jobId) sel.value = jobId;
+                
+                if (jobId && jobId !== 'all') {
+                    const job = (DB.jobs || []).find(j => j.id === jobId);
+                    if (job && Array.isArray(job.boq_items) && job.boq_items.length > 0) {
+                        const existing = (DB.tasks || []).filter(t => t.jobId === jobId);
+                        if (existing.length === 0) {
+                            this.ensureTasksFromBOQ(job);
+                        }
+                    }
+                }
+                this.renderGantt();
+            },
+
+            ensureTasksFromBOQ(job) {
+                if (!job || !Array.isArray(job.boq_items) || job.boq_items.length === 0) return;
+                const baseDate = job.date || '2026-09-05';
+                const defaultTech = job.tech || 'Team A (สมศักดิ์)';
+
+                const isLaborItem = (item) => {
+                    if (item.labor_price && Number(item.labor_price) > 0) return true;
+                    if (item.mat_price && Number(item.mat_price) > 0 && (!item.labor_price || Number(item.labor_price) === 0)) {
+                        const strongLabor = ['ค่าแรง', 'งานติดตั้ง', 'บริการ', 'สำรวจ', 'รื้อถอน', 'เดินท่อ', 'เดินสาย', 'เตรียมหน้างาน', 'ทดสอบระบบ', 'ล้าง', 'ซ่อม'];
+                        return strongLabor.some(kw => (item.name || '').includes(kw));
+                    }
+                    const name = item.name || '';
+                    const laborKeywords = ['ค่าแรง', 'งาน', 'บริการ', 'ช่าง', 'ติดตั้ง', 'สำรวจ', 'รื้อถอน', 'เดินท่อ', 'เดินสาย', 'เตรียม', 'ประกอบ', 'ทดสอบ', 'ซ่อม', 'ล้าง'];
+                    const materialKeywords = ['ชุดท่อ', 'รางครอบ', 'ขาแขวน', 'เบรกเกอร์', 'ถังเก็บน้ำ', 'ปั๊มน้ำ', 'สายไฟ', 'วาล์ว', 'ฐานรอง', 'อุปกรณ์', 'อะไหล่', 'ทองแดง'];
+                    const hasLabor = laborKeywords.some(kw => name.includes(kw));
+                    const hasMaterial = materialKeywords.some(kw => name.includes(kw));
+                    if (hasLabor && !hasMaterial) return true;
+                    if (name.startsWith('ค่าแรง') || name.startsWith('งาน') || name.startsWith('บริการ')) return true;
+                    return hasLabor;
+                };
+
+                const laborItems = job.boq_items.filter(isLaborItem);
+                const targetItems = laborItems.length > 0 ? laborItems : job.boq_items;
+
+                const newTasks = targetItems.map((item, idx) => {
+                    const d = new Date(baseDate);
+                    d.setDate(d.getDate() + idx);
+                    const dateStr = d.toISOString().slice(0, 10);
+
+                    let cleanName = item.name || `งานติดตั้ง ${idx + 1}`;
+                    if (cleanName.startsWith('ค่าแรงช่าง')) {
+                        cleanName = cleanName.replace(/^ค่าแรงช่าง/, 'งาน');
+                    } else if (cleanName.startsWith('ค่าแรง')) {
+                        cleanName = cleanName.replace(/^ค่าแรง/, 'งาน');
+                    }
+
+                    return {
+                        id: `T_${job.id}_${Date.now()}_${idx + 1}`,
+                        jobId: job.id,
+                        name: cleanName,
+                        tech: defaultTech,
+                        start: dateStr,
+                        end: dateStr,
+                        days: 1,
+                        status: 'IN_PROGRESS'
+                    };
+                });
+
+                if (!DB.tasks) DB.tasks = [];
+                DB.tasks = DB.tasks.filter(t => t.jobId !== job.id);
+                DB.tasks.push(...newTasks);
+                this.persistJobs();
+
+                fetch(`/api/v1/jobs/${job.id}/tasks/import-boq`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items: newTasks.map(t => ({
+                            name: t.name,
+                            start_date: t.start,
+                            end_date: t.end,
+                            duration_days: t.days,
+                            assigned_tech: t.tech
+                        }))
+                    })
+                }).catch(() => {});
+            },
+
+            updateGanttTaskField(taskId, field, value) {
+                if (!DB.tasks) return;
+                const task = DB.tasks.find(t => t.id === taskId);
+                if (!task) return;
+
+                if (field === 'start') {
+                    task.start = value;
+                    if (task.start) {
+                        if (!task.end || new Date(task.end) < new Date(task.start)) {
+                            const s = new Date(task.start);
+                            s.setDate(s.getDate() + ((task.days || 1) - 1));
+                            task.end = s.toISOString().slice(0, 10);
+                        } else {
+                            const s = new Date(task.start);
+                            const e = new Date(task.end);
+                            task.days = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1);
+                        }
+                    }
+                } else if (field === 'end') {
+                    task.end = value;
+                    if (task.start && task.end) {
+                        if (new Date(task.end) < new Date(task.start)) {
+                            task.start = task.end;
+                            task.days = 1;
+                        } else {
+                            const s = new Date(task.start);
+                            const e = new Date(task.end);
+                            task.days = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1);
+                        }
+                    }
+                } else if (field === 'tech') {
+                    task.tech = value;
+                } else if (field === 'name') {
+                    task.name = value;
+                } else if (field === 'status') {
+                    task.status = value;
+                }
+
+                // Auto sort tasks of this job by start date
+                const jobTasks = DB.tasks.filter(t => t.jobId === task.jobId);
+                jobTasks.sort((a, b) => {
+                    const da = new Date(a.start || '9999-12-31').getTime();
+                    const db = new Date(b.start || '9999-12-31').getTime();
+                    if (da !== db) return da - db;
+                    return (a.name || '').localeCompare(b.name || '');
+                });
+
+                this.persistJobs();
+
+                fetch(`/api/v1/jobs/${task.jobId}/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: task.name,
+                        start: task.start,
+                        end: task.end,
+                        days: task.days,
+                        tech: task.tech,
+                        status: task.status
+                    })
+                }).catch(() => {});
+
+                this.renderGantt();
+            },
+
+            addGanttTask(jobId) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+                const jobTasks = (DB.tasks || []).filter(t => t.jobId === jobId);
+                let newStart = job.date || '2026-09-05';
+                if (jobTasks.length > 0) {
+                    const last = jobTasks[jobTasks.length - 1];
+                    if (last && last.end) {
+                        const d = new Date(last.end);
+                        d.setDate(d.getDate() + 1);
+                        newStart = d.toISOString().slice(0, 10);
+                    }
+                }
+                const newTask = {
+                    id: `T_${jobId}_${Date.now()}`,
+                    jobId: jobId,
+                    name: 'งานบริการ / ติดตั้งเพิ่มเติม',
+                    start: newStart,
+                    end: newStart,
+                    days: 1,
+                    tech: job.tech || 'Team A (สมศักดิ์)',
+                    status: 'IN_PROGRESS'
+                };
+                if (!DB.tasks) DB.tasks = [];
+                DB.tasks.push(newTask);
+                this.persistJobs();
+                this.showToast(`➕ เพิ่ม Task ใหม่สำหรับ ${jobId} เรียบร้อย`);
+                this.renderGantt();
+            },
+
+            deleteGanttTask(taskId) {
+                if (!confirm('คุณต้องการลบ Task นี้ใช่หรือไม่?')) return;
+                if (!DB.tasks) return;
+                const task = DB.tasks.find(t => t.id === taskId);
+                const jobId = task ? task.jobId : '';
+                DB.tasks = DB.tasks.filter(t => t.id !== taskId);
+                this.persistJobs();
+                if (jobId) {
+                    fetch(`/api/v1/jobs/${jobId}/tasks/${taskId}`, { method: 'DELETE' }).catch(() => {});
+                }
+                this.showToast('🗑️ ลบ Task เรียบร้อย');
+                this.renderGantt();
+            },
+
+            resetGanttTasksFromBOQ(jobId) {
+                if (!confirm('คุณต้องการรีเซ็ต Task ทั้งหมดของโครงการนี้จาก BOQ ใช่หรือไม่? (ข้อมูลวันที่และช่างที่เคยตั้งค่าไว้จะถูกสร้างใหม่)')) return;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+                this.ensureTasksFromBOQ(job);
+                this.showToast(`🔄 รีเซ็ต Task จาก BOQ ของ ${jobId} เรียบร้อย`);
+                this.renderGantt();
             },
 
             renderGantt() {
@@ -6603,116 +6785,305 @@
                 // Render Projects quick access strip
                 this.renderGanttProjectsStrip(selectedJobFilter);
 
-                let tasks = DB.tasks || [];
-                if (selectedJobFilter && selectedJobFilter !== 'all') {
-                    tasks = tasks.filter(t => t.jobId === selectedJobFilter);
-                }
-
-                // Update total count badge
-                const countEl = document.getElementById('gantt-total-count');
-                if (countEl) countEl.innerText = tasks.length;
-
                 const container = document.getElementById('gantt-container');
                 if (!container) return;
 
-                if (tasks.length === 0) {
-                    if (selectedJobFilter && selectedJobFilter !== 'all') {
-                        const targetJob = DB.jobs.find(j => j.id === selectedJobFilter);
-                        const hasBOQ = targetJob && Array.isArray(targetJob.boq_items) && targetJob.boq_items.length > 0;
-                        if (!hasBOQ) {
-                            container.innerHTML = `
-                                <div class="py-12 text-center text-muted-foreground text-xs space-y-4">
-                                    <div class="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 mx-auto text-3xl">
-                                        <i class="ph ph-warning-circle"></i>
-                                    </div>
-                                    <div class="space-y-1">
-                                        <h3 class="font-display font-bold text-base text-foreground">ยังไม่มีรายการ Task ในแผนงานสำหรับ ${selectedJobFilter}</h3>
-                                        <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">⚠️ โครงการนี้ยังไม่มีการนำเข้า BOQ</p>
-                                    </div>
-                                    <div class="max-w-md mx-auto p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-left space-y-2 text-xs text-amber-800 dark:text-amber-200">
-                                        <div class="font-bold flex items-center gap-1.5">
-                                            <i class="ph ph-info text-base"></i> กฎเกณฑ์ระบบ (Business Rule):
-                                        </div>
-                                        <p class="font-semibold text-foreground">"แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart นะครับ"</p>
-                                        <p class="text-[11px] text-muted-foreground">ระบบจะดึงเฉพาะรายการค่าแรงและงานบริการติดตั้งจาก BOQ มากำหนดช่วงเวลาและทีมช่างเพื่อแสดงบน Gantt Timeline ดังนั้นจึงต้องมีรายการ BOQ ในระบบก่อนเสมอ</p>
-                                    </div>
-                                    <div class="flex items-center justify-center gap-2 pt-2">
-                                        <button onclick="app.openImportBOQModal('${selectedJobFilter}')" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
-                                            <i class="ph ph-file-arrow-up text-sm"></i> 📥 นำเข้าไฟล์ BOQ เดี๋ยวนี้
-                                        </button>
-                                        <button onclick="app.openJobDetailBOQ('${selectedJobFilter}')" class="btn-artifact-secondary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer">
-                                            <i class="ph ph-receipt text-sm"></i> เปิดหน้า BOQ ของโครงการ
-                                        </button>
-                                    </div>
-                                </div>
-                            `;
-                            return;
-                        } else {
-                            container.innerHTML = `
-                                <div class="py-12 text-center text-muted-foreground text-xs space-y-4">
-                                    <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 mx-auto text-3xl">
-                                        <i class="ph ph-check-circle"></i>
-                                    </div>
-                                    <div class="space-y-1">
-                                        <h3 class="font-display font-bold text-base text-foreground">นำเข้า BOQ แล้ว (${targetJob.boq_items.length} รายการ)</h3>
-                                        <p class="text-xs text-muted-foreground">ยังไม่ได้สร้าง Task แผนงานเข้า Gantt Timeline</p>
-                                    </div>
-                                    <p class="text-xs text-muted-foreground max-w-md mx-auto">กดปุ่มด้านล่างเพื่อดึงรายการค่าแรงจาก BOQ มาสร้างเป็น Task มอบหมายทีมช่าง และจัดเรียงเข้า Gantt Timeline</p>
-                                    <div class="flex items-center justify-center gap-2 pt-2">
-                                        <button onclick="app.openConvertBOQToTasksModal('${selectedJobFilter}')" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm bg-purple-600 hover:bg-purple-700 text-white cursor-pointer">
-                                            <i class="ph ph-calendar-plus text-sm"></i> ⚡ แปลง BOQ เป็น Task แผนงาน
-                                        </button>
-                                        <button onclick="app.openJobDetailBOQ('${selectedJobFilter}')" class="btn-artifact-secondary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer">
-                                            <i class="ph ph-receipt text-sm"></i> ตรวจสอบตาราง BOQ
-                                        </button>
-                                    </div>
-                                </div>
-                            `;
-                            return;
-                        }
-                    } else {
+                const availableTechs = [
+                    'Team A (สมศักดิ์)',
+                    'Team B (ประเสริฐ)',
+                    'Team C (วิชัย)',
+                    'ช่างอนุชา (ผู้ช่วยช่าง)',
+                    'ช่างธนกฤต (ช่างแอร์)',
+                    'ช่างกิตติพงษ์ (ช่างไฟฟ้า)',
+                    'ช่างสมชาย (งานทั่วไป)'
+                ];
+
+                // Case: Single Project Selected
+                if (selectedJobFilter && selectedJobFilter !== 'all') {
+                    const targetJob = (DB.jobs || []).find(j => j.id === selectedJobFilter);
+                    if (!targetJob) {
+                        container.innerHTML = `<div class="py-12 text-center text-muted-foreground text-xs">ไม่พบข้อมูลโครงการ ${selectedJobFilter}</div>`;
+                        return;
+                    }
+
+                    const hasBOQ = Array.isArray(targetJob.boq_items) && targetJob.boq_items.length > 0;
+                    if (!hasBOQ) {
+                        // Project has NO BOQ yet
+                        const countEl = document.getElementById('gantt-total-count');
+                        if (countEl) countEl.innerText = '0';
+
                         container.innerHTML = `
                             <div class="py-12 text-center text-muted-foreground text-xs space-y-4">
-                                <div class="w-16 h-16 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground mx-auto text-3xl">
-                                    <i class="ph ph-calendar-blank"></i>
+                                <div class="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 mx-auto text-3xl">
+                                    <i class="ph ph-warning-circle"></i>
                                 </div>
                                 <div class="space-y-1">
-                                    <h3 class="font-display font-bold text-base text-foreground">ยังไม่มีรายการ Task ในแผนงาน Gantt Timeline</h3>
-                                    <p class="text-xs text-muted-foreground">📌 แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart นะครับ</p>
+                                    <h3 class="font-display font-bold text-base text-foreground">ยังไม่มีรายการ Task ในแผนงานสำหรับ ${selectedJobFilter}</h3>
+                                    <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">⚠️ โครงการนี้ยังไม่มีการนำเข้า BOQ</p>
                                 </div>
-                                <p class="text-[11px] text-muted-foreground max-w-lg mx-auto">เลือกโครงการจากแถบด้านบน หรือคลิกปุ่มด้านล่างเพื่อนำเข้า BOQ และเริ่มสร้างแผนงาน Task</p>
+                                <div class="max-w-md mx-auto p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-left space-y-2 text-xs text-amber-800 dark:text-amber-200">
+                                    <div class="font-bold flex items-center gap-1.5">
+                                        <i class="ph ph-info text-base"></i> กฎเกณฑ์ระบบ (Business Rule):
+                                    </div>
+                                    <p class="font-semibold text-foreground">"แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart นะครับ"</p>
+                                    <p class="text-[11px] text-muted-foreground">ระบบจะดึงเฉพาะรายการค่าแรงและงานบริการติดตั้งจาก BOQ มากำหนดช่วงเวลาและทีมช่างเพื่อแสดงบน Gantt Timeline ดังนั้นจึงต้องมีรายการ BOQ ในระบบก่อนเสมอ</p>
+                                </div>
                                 <div class="flex items-center justify-center gap-2 pt-2">
-                                    <button onclick="app.openImportBOQModal('JOB202609001')" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
-                                        <i class="ph ph-file-arrow-up text-sm"></i> 📥 นำเข้าไฟล์ BOQ (JOB202609001)
+                                    <button onclick="app.openImportBOQModal('${selectedJobFilter}')" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
+                                        <i class="ph ph-file-arrow-up text-sm"></i> 📥 นำเข้าไฟล์ BOQ (${selectedJobFilter})
                                     </button>
-                                    <button onclick="app.navigate('jobs')" class="btn-artifact-secondary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer">
-                                        <i class="ph ph-list-dashes text-sm"></i> ไปที่รายการงานทั้งหมด
+                                    <button onclick="app.openJobDetailBOQ('${selectedJobFilter}')" class="btn-artifact-secondary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer">
+                                        <i class="ph ph-receipt text-sm"></i> เปิดหน้า BOQ ของโครงการ
                                     </button>
                                 </div>
                             </div>
                         `;
                         return;
                     }
+
+                    // Project HAS BOQ: Ensure tasks exist
+                    let jobTasks = (DB.tasks || []).filter(t => t.jobId === selectedJobFilter);
+                    if (jobTasks.length === 0) {
+                        this.ensureTasksFromBOQ(targetJob);
+                        jobTasks = (DB.tasks || []).filter(t => t.jobId === selectedJobFilter);
+                    }
+
+                    const countEl = document.getElementById('gantt-total-count');
+                    if (countEl) countEl.innerText = jobTasks.length;
+
+                    // Build Task Rows for Scheduler Table
+                    const taskRowsHtml = jobTasks.map((t, idx) => {
+                        const s = new Date(t.start || '2026-09-01');
+                        const e = new Date(t.end || t.start || '2026-09-01');
+                        const taskDays = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+                        const curTech = t.tech || targetJob.tech || 'Team A (สมศักดิ์)';
+
+                        let techOpts = availableTechs.map(tc => `<option value="${tc}" ${tc === curTech ? 'selected' : ''}>${tc}</option>`).join('');
+                        if (!availableTechs.includes(curTech)) {
+                            techOpts += `<option value="${curTech}" selected>${curTech}</option>`;
+                        }
+
+                        const cleanName = (t.name || '').replace(/"/g, '&quot;');
+
+                        return `
+                        <tr class="hover:bg-muted/20 transition">
+                            <td class="py-2.5 px-3 text-center font-mono text-muted-foreground font-semibold text-xs">${idx + 1}</td>
+                            <td class="py-2.5 px-3">
+                                <input type="text" value="${cleanName}" onchange="app.updateGanttTaskField('${t.id}', 'name', this.value)" class="w-full bg-card/60 hover:bg-card focus:bg-card border border-border/60 focus:border-brand-500 rounded-lg px-2.5 py-1.5 text-xs font-medium text-foreground transition focus:outline-none" placeholder="ชื่องานบริการ / Task">
+                            </td>
+                            <td class="py-2.5 px-3">
+                                <input type="date" value="${t.start || '2026-09-05'}" onchange="app.updateGanttTaskField('${t.id}', 'start', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                            </td>
+                            <td class="py-2.5 px-3">
+                                <input type="date" value="${t.end || t.start || '2026-09-05'}" onchange="app.updateGanttTaskField('${t.id}', 'end', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                            </td>
+                            <td class="py-2.5 px-2 text-center">
+                                <span class="px-2 py-1 rounded text-[11px] font-mono font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                                    ${taskDays} วัน
+                                </span>
+                            </td>
+                            <td class="py-2.5 px-3">
+                                <select onchange="app.updateGanttTaskField('${t.id}', 'tech', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-xs text-foreground font-medium focus:outline-none cursor-pointer">
+                                    ${techOpts}
+                                </select>
+                            </td>
+                            <td class="py-2.5 px-3">
+                                <select onchange="app.updateGanttTaskField('${t.id}', 'status', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-[11px] font-medium focus:outline-none cursor-pointer">
+                                    <option value="IN_PROGRESS" ${t.status === 'IN_PROGRESS' ? 'selected' : ''}>กำลังทำ</option>
+                                    <option value="DONE" ${t.status === 'DONE' ? 'selected' : ''}>เสร็จสิ้น</option>
+                                    <option value="TODO" ${t.status === 'TODO' ? 'selected' : ''}>รอดำเนินการ</option>
+                                </select>
+                            </td>
+                            <td class="py-2.5 px-2 text-center">
+                                <button type="button" onclick="app.deleteGanttTask('${t.id}')" class="p-1.5 text-muted-foreground hover:text-rose-500 rounded-lg hover:bg-rose-500/10 transition cursor-pointer" title="ลบ Task นี้">
+                                    <i class="ph ph-trash text-sm"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        `;
+                    }).join('');
+
+                    // Calculate timeline dates for Gantt Bars
+                    let minTimestamp = Infinity;
+                    let maxTimestamp = -Infinity;
+                    jobTasks.forEach(t => {
+                        const s = new Date(t.start || '2026-09-01').getTime();
+                        let e = t.end ? new Date(t.end).getTime() : s;
+                        if (s < minTimestamp) minTimestamp = s;
+                        if (e > maxTimestamp) maxTimestamp = e;
+                    });
+                    if (minTimestamp === Infinity) {
+                        minTimestamp = new Date('2026-09-01').getTime();
+                        maxTimestamp = new Date('2026-09-10').getTime();
+                    }
+
+                    const oneDayMs = 1000 * 60 * 60 * 24;
+                    const totalDays = Math.max(10, Math.round((maxTimestamp - minTimestamp) / oneDayMs) + 2);
+                    const timelineDates = [];
+                    const startDateObj = new Date(minTimestamp);
+                    for (let i = 0; i < totalDays; i++) {
+                        const cur = new Date(startDateObj);
+                        cur.setDate(cur.getDate() + i);
+                        timelineDates.push(cur);
+                    }
+
+                    const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                    const dayHeaderHtml = timelineDates.map(d => {
+                        const dayNum = String(d.getDate()).padStart(2, '0');
+                        const monthStr = monthNames[d.getMonth()];
+                        return `<div class="flex-1 text-center text-[10px] font-mono text-muted-foreground border-l border-border pb-1.5 px-0.5 truncate" title="${d.toISOString().slice(0, 10)}">${dayNum} ${monthStr}</div>`;
+                    }).join('');
+
+                    const dateRangeLabel = document.getElementById('gantt-date-range-label');
+                    if (dateRangeLabel) {
+                        const firstD = timelineDates[0];
+                        const lastD = timelineDates[timelineDates.length - 1];
+                        dateRangeLabel.innerText = `ช่วงเวลา: ${String(firstD.getDate()).padStart(2, '0')} ${monthNames[firstD.getMonth()]} - ${String(lastD.getDate()).padStart(2, '0')} ${monthNames[lastD.getMonth()]} ${lastD.getFullYear()}`;
+                    }
+
+                    const ganttRowsHtml = jobTasks.map(t => {
+                        const taskStart = new Date(t.start || '2026-09-01').getTime();
+                        let taskDays = t.days || 1;
+                        if (t.end && t.start) {
+                            const s = new Date(t.start);
+                            const e = new Date(t.end);
+                            taskDays = Math.max(1, Math.round((e - s) / oneDayMs) + 1);
+                        }
+
+                        const diffFromMin = Math.max(0, Math.round((taskStart - minTimestamp) / oneDayMs));
+                        const offsetPercent = Math.min(95, (diffFromMin / totalDays) * 100);
+                        const widthPercent = Math.max(4, Math.min(100 - offsetPercent, (taskDays / totalDays) * 100));
+
+                        let bgClass = 'bg-muted text-muted-foreground border-border';
+                        if (t.status === 'DONE') bgClass = 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 font-semibold';
+                        else if (t.status === 'IN_PROGRESS') bgClass = 'bg-gradient-to-r from-purple-500/20 to-brand-500/20 text-purple-700 dark:text-purple-300 border-purple-500/40 shadow-xs font-semibold';
+
+                        const endDateStr = t.end || t.start;
+
+                        return `
+                        <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group">
+                            <div class="w-64 shrink-0 text-xs font-medium text-foreground truncate pr-4">
+                                <div class="truncate font-semibold text-foreground">${t.name}</div>
+                                <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2">
+                                    <span>📅 ${t.start} ถึง ${endDateStr} (${taskDays} วัน)</span>
+                                </div>
+                            </div>
+                            <div class="flex-1 relative h-full flex items-center">
+                                <div class="${bgClass} border absolute h-8 rounded-lg text-[11px] px-2.5 flex items-center justify-between truncate shadow-xs transition hover:brightness-105 cursor-pointer hover:ring-2 hover:ring-brand-500/40" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 80px;" title="${t.name} (${t.start} ถึง ${endDateStr} - ${t.tech})">
+                                    <span class="truncate font-medium flex items-center gap-1"><i class="ph ph-user text-[11px]"></i> ${t.tech}</span>
+                                    <span class="text-[10px] opacity-90 ml-1 font-mono font-bold bg-card/60 px-1 py-0.5 rounded">${taskDays}d</span>
+                                </div>
+                            </div>
+                        </div>`;
+                    }).join('');
+
+                    container.innerHTML = `
+                        <!-- Task Scheduler & Assignment Section -->
+                        <div class="mb-6 p-4 rounded-2xl bg-card border border-border space-y-3.5 shadow-xs">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+                                <div>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-mono text-sm font-bold text-brand-500">${targetJob.id}</span>
+                                        <span class="text-xs font-bold text-foreground">${targetJob.customer}</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium border border-emerald-500/20">✓ นำเข้า BOQ แล้ว (${targetJob.boq_items.length} รายการ)</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold border border-purple-500/20">${jobTasks.length} Tasks</span>
+                                    </div>
+                                    <p class="text-[11px] text-muted-foreground mt-1">${targetJob.service} • กำหนดวันเริ่ม-สิ้นสุด และเลือกช่างผู้รับผิดชอบในแต่ละ Task ได้โดยตรง ข้อมูลจะซิงค์สู่ Gantt Timeline ทันที</p>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <button type="button" onclick="app.addGanttTask('${selectedJobFilter}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-700 hover:to-brand-700 text-white cursor-pointer">
+                                        <i class="ph ph-plus-circle text-sm"></i>
+                                        <span>+ แทรก Task งาน</span>
+                                    </button>
+                                    <button type="button" onclick="app.resetGanttTasksFromBOQ('${selectedJobFilter}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer" title="ดึงรายการค่าแรงจาก BOQ มาสร้าง Task ใหม่">
+                                        <i class="ph ph-arrows-clockwise text-sm"></i>
+                                        <span>รีเซ็ตจาก BOQ</span>
+                                    </button>
+                                    <button type="button" onclick="app.openJobDetailBOQ('${selectedJobFilter}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-600 dark:text-brand-400 border border-brand-500/20 hover:bg-brand-500/10 cursor-pointer" title="เปิดดูรายการ BOQ ฉบับเต็ม">
+                                        <i class="ph ph-receipt text-sm"></i>
+                                        <span>ดูตาราง BOQ</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="overflow-x-auto rounded-xl border border-border bg-muted/10">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-muted/40 text-muted-foreground text-[11px] uppercase tracking-wider border-b border-border">
+                                        <tr>
+                                            <th class="py-2.5 px-3 w-10 text-center">#</th>
+                                            <th class="py-2.5 px-3 min-w-[200px]">ชื่องานบริการ / Task</th>
+                                            <th class="py-2.5 px-3 w-36">วันเริ่ม (Start Date)</th>
+                                            <th class="py-2.5 px-3 w-36">วันสิ้นสุด (End Date)</th>
+                                            <th class="py-2.5 px-2 text-center w-20">ระยะเวลา</th>
+                                            <th class="py-2.5 px-3 w-48">ช่างผู้รับผิดชอบ</th>
+                                            <th class="py-2.5 px-3 w-28">สถานะ</th>
+                                            <th class="py-2.5 px-2 w-10 text-center">ลบ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-border">
+                                        ${taskRowsHtml || '<tr><td colspan="8" class="py-6 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Gantt Visual Chart Section -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between text-xs text-muted-foreground px-1">
+                                <span class="font-semibold text-foreground flex items-center gap-1.5">
+                                    <i class="ph ph-chart-bar text-brand-500"></i> แผนภูมิแท่งแสดงช่วงเวลา (Gantt Timeline Chart):
+                                </span>
+                                <span class="text-[11px]">แถบสีจะเปลี่ยนตามวันเริ่ม-สิ้นสุด และสถานะงานอัตโนมัติ</span>
+                            </div>
+                            <div class="border border-border rounded-2xl p-4 bg-card">
+                                <div class="flex border-b border-border mb-2 pb-1">
+                                    <div class="w-64 shrink-0 text-xs font-bold text-muted-foreground">รายการงาน & วันเริ่ม-สิ้นสุด</div>
+                                    <div class="flex-1 flex">${dayHeaderHtml}</div>
+                                </div>
+                                ${ganttRowsHtml}
+                            </div>
+                        </div>
+                    `;
+                    return;
                 }
 
-                // Calculate minimum start date and maximum end date
+                // Case: All Jobs View
+                let tasks = DB.tasks || [];
+                const countEl = document.getElementById('gantt-total-count');
+                if (countEl) countEl.innerText = tasks.length;
+
+                if (tasks.length === 0) {
+                    container.innerHTML = `
+                        <div class="py-12 text-center text-muted-foreground text-xs space-y-4">
+                            <div class="w-16 h-16 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground mx-auto text-3xl">
+                                <i class="ph ph-calendar-blank"></i>
+                            </div>
+                            <div class="space-y-1">
+                                <h3 class="font-display font-bold text-base text-foreground">เลือกโครงการด้านบนเพื่อเริ่มวางแผนงาน</h3>
+                                <p class="text-xs text-muted-foreground">📌 คลิกที่การ์ดโครงการที่มี BOQ เพื่อดูรายการ Task กำหนดวันเริ่ม-สิ้นสุด และมอบหมายช่างในแต่ละ Task ได้ทันที</p>
+                            </div>
+                            <p class="text-[11px] text-muted-foreground max-w-lg mx-auto">โครงการที่นำเข้า BOQ เรียบร้อยแล้ว สามารถคลิกเพื่อวางแผนตารางเวลาทีมช่างได้ทันที</p>
+                            <div class="flex items-center justify-center gap-2 pt-2">
+                                <button onclick="app.selectGanttJob('JOB202609002')" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm bg-brand-600 hover:bg-brand-700 text-white cursor-pointer">
+                                    <i class="ph ph-folder-open text-sm"></i> เปิดโครงการ JOB202609002 (มี BOQ แล้ว)
+                                </button>
+                                <button onclick="app.navigate('jobs')" class="btn-artifact-secondary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer">
+                                    <i class="ph ph-list-dashes text-sm"></i> ไปที่รายการงานทั้งหมด
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Calculate timeline dates for All Jobs
                 let minTimestamp = Infinity;
                 let maxTimestamp = -Infinity;
-
                 tasks.forEach(t => {
                     const s = new Date(t.start || '2026-09-01').getTime();
-                    let e;
-                    if (t.end) {
-                        e = new Date(t.end).getTime();
-                    } else {
-                        const d = new Date(t.start || '2026-09-01');
-                        d.setDate(d.getDate() + (t.days || 1) - 1);
-                        e = d.getTime();
-                    }
+                    let e = t.end ? new Date(t.end).getTime() : s;
                     if (s < minTimestamp) minTimestamp = s;
                     if (e > maxTimestamp) maxTimestamp = e;
                 });
-
                 if (minTimestamp === Infinity) {
                     minTimestamp = new Date('2026-09-01').getTime();
                     maxTimestamp = new Date('2026-09-10').getTime();
@@ -6720,10 +7091,8 @@
 
                 const oneDayMs = 1000 * 60 * 60 * 24;
                 const totalDays = Math.max(10, Math.round((maxTimestamp - minTimestamp) / oneDayMs) + 2);
-
                 const timelineDates = [];
                 const startDateObj = new Date(minTimestamp);
-
                 for (let i = 0; i < totalDays; i++) {
                     const cur = new Date(startDateObj);
                     cur.setDate(cur.getDate() + i);
@@ -6744,7 +7113,7 @@
                     dateRangeLabel.innerText = `ช่วงเวลา: ${String(firstD.getDate()).padStart(2, '0')} ${monthNames[firstD.getMonth()]} - ${String(lastD.getDate()).padStart(2, '0')} ${monthNames[lastD.getMonth()]} ${lastD.getFullYear()}`;
                 }
 
-                const rowsHtml = tasks.map((t, idx) => {
+                const rowsHtml = tasks.map(t => {
                     const taskStart = new Date(t.start || '2026-09-01').getTime();
                     let taskDays = t.days || 1;
                     if (t.end && t.start) {
@@ -6767,18 +7136,18 @@
                     <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group">
                         <div class="w-64 shrink-0 text-xs font-medium text-foreground truncate pr-4">
                             <div class="flex items-center gap-1.5">
-                                <button onclick="app.openJobDetailBOQ('${t.jobId}')" class="font-mono text-purple-600 dark:text-purple-400 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-[11px] transition cursor-pointer flex items-center gap-1" title="คลิกเพื่อเปิด Project Detail & ตาราง BOQ ของ ${t.jobId}">
-                                    <i class="ph ph-receipt text-[10px]"></i> ${t.jobId}
+                                <button onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-600 dark:text-purple-400 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-[11px] transition cursor-pointer flex items-center gap-1" title="คลิกเพื่อเปิดดูและแก้ไข Task ของ ${t.jobId}">
+                                    <i class="ph ph-folder text-[10px]"></i> ${t.jobId}
                                 </button>
-                                <span onclick="app.openJobDetailBOQ('${t.jobId}')" class="truncate font-medium text-foreground hover:text-brand-500 cursor-pointer transition" title="คลิกเพื่อเปิดดูรายละเอียดโครงการ ${t.jobId}">${t.name}</span>
+                                <span onclick="app.selectGanttJob('${t.jobId}')" class="truncate font-medium text-foreground hover:text-brand-500 cursor-pointer transition" title="คลิกเพื่อเลือก ${t.jobId}">${t.name}</span>
                             </div>
                             <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2">
                                 <span>📅 ${t.start} ถึง ${endDateStr} (${taskDays} วัน)</span>
-                                <span onclick="app.openJobDetailBOQ('${t.jobId}')" class="text-brand-500 hover:underline cursor-pointer opacity-0 group-hover:opacity-100 transition text-[9px]">เปิด BOQ ➔</span>
+                                <span onclick="app.selectGanttJob('${t.jobId}')" class="text-brand-500 hover:underline cursor-pointer opacity-0 group-hover:opacity-100 transition text-[9px]">แก้ไข Task ➔</span>
                             </div>
                         </div>
                         <div class="flex-1 relative h-full flex items-center">
-                            <div onclick="app.openJobDetailBOQ('${t.jobId}')" class="${bgClass} border absolute h-8 rounded-lg text-[11px] px-2.5 flex items-center justify-between truncate shadow-xs transition hover:brightness-105 cursor-pointer hover:ring-2 hover:ring-brand-500/40" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 80px;" title="คลิกเปิดดู Project Detail (BOQ) - ${t.name} (${t.start} ถึง ${endDateStr} - ${t.tech})">
+                            <div onclick="app.selectGanttJob('${t.jobId}')" class="${bgClass} border absolute h-8 rounded-lg text-[11px] px-2.5 flex items-center justify-between truncate shadow-xs transition hover:brightness-105 cursor-pointer hover:ring-2 hover:ring-brand-500/40" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 80px;" title="${t.name} (${t.start} ถึง ${endDateStr} - ${t.tech})">
                                 <span class="truncate font-medium flex items-center gap-1"><i class="ph ph-user text-[11px]"></i> ${t.tech}</span>
                                 <span class="text-[10px] opacity-90 ml-1 font-mono font-bold bg-card/60 px-1 py-0.5 rounded">${taskDays}d</span>
                             </div>
@@ -6788,7 +7157,7 @@
 
                 const html = `
                     <div class="flex border-b border-border mb-2 pb-1">
-                        <div class="w-64 shrink-0 text-xs font-bold text-muted-foreground">รายการงาน & วันเริ่ม-สิ้นสุด (คลิกเปิด BOQ)</div>
+                        <div class="w-64 shrink-0 text-xs font-bold text-muted-foreground">รายการงาน & วันเริ่ม-สิ้นสุด (คลิกเพื่อแก้ไข)</div>
                         <div class="flex-1 flex">${dayHeaderHtml}</div>
                     </div>
                     ${rowsHtml}
