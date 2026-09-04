@@ -528,6 +528,7 @@ const app = {
                     {
                         id: 'JOB202609001',
                         job_no: 'JOB202609001',
+                        job_type: 'quick',
                         external_ref_id: 'INT-2026-001',
                         customer: 'คุณณวัฒน์ รักสงบ',
                         phone: '081-111-2222',
@@ -551,6 +552,7 @@ const app = {
                     {
                         id: 'JOB202609002',
                         job_no: 'JOB202609002',
+                        job_type: 'renovate',
                         external_ref_id: 'INT-2026-002',
                         customer: 'คุณสมศรี สุขใจ',
                         phone: '082-222-3333',
@@ -573,6 +575,7 @@ const app = {
                     {
                         id: 'JOB202609003',
                         job_no: 'JOB202609003',
+                        job_type: 'quick',
                         external_ref_id: 'INT-2026-003',
                         customer: 'คุณเอนก มั่งคั่ง',
                         phone: '083-333-4444',
@@ -595,6 +598,7 @@ const app = {
                     {
                         id: 'JOB202609004',
                         job_no: 'JOB202609004',
+                        job_type: 'renovate',
                         external_ref_id: 'INT-2026-004',
                         customer: 'คุณมาลี มีโชค',
                         phone: '084-444-5555',
@@ -617,6 +621,7 @@ const app = {
                     {
                         id: 'JOB202609005',
                         job_no: 'JOB202609005',
+                        job_type: 'quick',
                         external_ref_id: 'INT-2026-005',
                         customer: 'คุณฉัตรชัย เจริญวิทย์',
                         phone: '085-555-6666',
@@ -639,6 +644,7 @@ const app = {
                     {
                         id: 'JOB202609006',
                         job_no: 'JOB202609006',
+                        job_type: 'renovate',
                         external_ref_id: 'INT-2026-006',
                         customer: 'คุณวิภาดา รัตนกุล',
                         phone: '086-666-7777',
@@ -661,6 +667,7 @@ const app = {
                     {
                         id: 'JOB202609007',
                         job_no: 'JOB202609007',
+                        job_type: 'quick',
                         external_ref_id: 'INT-2026-007',
                         customer: 'คุณธีรเดช สุวรรณภูมิ',
                         phone: '087-777-8888',
@@ -683,6 +690,7 @@ const app = {
                     {
                         id: 'JOB202609008',
                         job_no: 'JOB202609008',
+                        job_type: 'ma',
                         external_ref_id: 'INT-2026-008',
                         customer: 'คุณกัญญารัตน์ วงศ์สว่าง',
                         phone: '088-888-9999',
@@ -705,6 +713,7 @@ const app = {
                     {
                         id: 'JOB202609009',
                         job_no: 'JOB202609009',
+                        job_type: 'renovate',
                         external_ref_id: 'INT-2026-009',
                         customer: 'คุณพงศกร เลิศอนันต์',
                         phone: '089-999-1010',
@@ -727,6 +736,7 @@ const app = {
                     {
                         id: 'JOB202609010',
                         job_no: 'JOB202609010',
+                        job_type: 'ma',
                         external_ref_id: 'INT-2026-010',
                         customer: 'คุณนภัสวรรณ มีศิริ',
                         phone: '092-279-5574',
@@ -864,6 +874,20 @@ const app = {
                     DB.jobs = this.getINTMockOrders();
                     this.persistJobs();
                 }
+
+                // Ensure all jobs have a valid job_type (quick, renovate, ma)
+                (DB.jobs || []).forEach(j => {
+                    if (!j.job_type) {
+                        const s = (j.service || '').toLowerCase();
+                        if (s.includes('renovate') || s.includes('กระเบื้อง') || s.includes('ทาสี') || s.includes('ฉากกั้น') || s.includes('ครัว')) {
+                            j.job_type = 'renovate';
+                        } else if (s.includes('ma') || s.includes('ล้าง') || s.includes('บำรุง') || s.includes('ปั๊ม')) {
+                            j.job_type = 'ma';
+                        } else {
+                            j.job_type = 'quick';
+                        }
+                    }
+                });
 
                 // Restore saved tasks
                 const savedTasks = localStorage.getItem('pmt_tasks');
@@ -1523,9 +1547,12 @@ const app = {
                             <div class="text-[11px] text-muted-foreground font-mono">${j.phone}</div>
                         </td>
                         <td class="px-5 py-4 text-muted-foreground">
-                            <span class="inline-flex items-center gap-1">
-                                <i class="ph ph-tag text-muted-foreground/60"></i> ${j.service}
-                            </span>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : (j.job_type === 'renovate' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20')}">${j.job_type || 'quick'}</span>
+                                <span class="inline-flex items-center gap-1 text-xs">
+                                    ${j.service}
+                                </span>
+                            </div>
                         </td>
                         <td class="px-5 py-4 text-muted-foreground">
                             <span class="text-xs">${j.tech}</span>
@@ -1917,6 +1944,31 @@ const app = {
                 }
             },
 
+            updateJobType(id, jobType) {
+                const job = (DB.jobs || []).find(j => j.id === id);
+                if (!job) return;
+                const prevType = job.job_type || 'quick';
+                job.job_type = jobType;
+                this.persistJobs();
+
+                // Background API sync if available
+                fetch(`/api/v1/jobs/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ job_type: jobType })
+                }).catch(() => {});
+
+                const typeNames = {
+                    'quick': 'quick (งานติดตั้งด่วน)',
+                    'renovate': 'renovate (งานรีโนเวท)',
+                    'ma': 'ma (งานบำรุงรักษา MA)'
+                };
+                this.showToast(`✅ อัปเดตประเภทงาน (job_type) เป็น "${typeNames[jobType] || jobType}" สำเร็จ`);
+                this.renderJobDetail();
+                if (this.state.currentView === 'jobs') this.renderJobs();
+                if (this.state.currentView === 'dashboard') this.renderDashboard();
+            },
+
             renderJobDetail() {
                 const job = DB.jobs.find(j => j.id === this.state.currentJobId);
                 if(!job) return;
@@ -2206,6 +2258,9 @@ const app = {
                         }).join('');
                     }
 
+                    const curJobType = (job.job_type || (job.service && job.service.toLowerCase().includes('renovate') ? 'renovate' : (job.service && (job.service.toLowerCase().includes('ma') || job.service.includes('ล้าง')) ? 'ma' : 'quick'))).toLowerCase();
+                    job.job_type = curJobType;
+
                     tabContent = `
                     <div class="space-y-2.5">
                         <!-- Top Dual Cards: Customer Info & Timeline Actions -->
@@ -2245,12 +2300,45 @@ const app = {
                             <!-- Right: Actions & Workflow Timeline (7 Cols) -->
                             <div class="lg:col-span-7 artifact-card p-3 space-y-2 flex flex-col justify-between">
                                 <div class="flex items-center justify-between pb-1.5 border-b border-border">
-                                    <h3 class="font-display font-semibold text-xs text-foreground flex items-center gap-1.5">
-                                        <i class="ph ph-lightning text-brand-500 text-sm"></i> การดำเนินการด่วน (Quick Actions)
-                                    </h3>
+                                    <div class="flex items-center gap-2">
+                                        <label for="job-type-select-${job.id}" class="font-display font-semibold text-xs text-foreground flex items-center gap-1.5 shrink-0">
+                                            <i class="ph ph-briefcase text-brand-500 text-sm"></i> job_type:
+                                        </label>
+                                        <select id="job-type-select-${job.id}" onchange="app.updateJobType('${job.id}', this.value)" class="bg-card border border-border rounded-lg px-2.5 py-1 text-xs font-semibold text-brand-600 dark:text-brand-400 focus:outline-none focus:border-brand-500 cursor-pointer shadow-xs">
+                                            <option value="quick" ${curJobType === 'quick' ? 'selected' : ''}>quick</option>
+                                            <option value="renovate" ${curJobType === 'renovate' ? 'selected' : ''}>renovate</option>
+                                            <option value="ma" ${curJobType === 'ma' ? 'selected' : ''}>ma</option>
+                                        </select>
+                                    </div>
                                     <div class="flex items-center gap-2">
                                         ${actionButtons}
                                     </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2 text-xs">
+                                    <div>
+                                        <div class="text-[10px] text-muted-foreground font-medium">ประเภทงาน (job_type):</div>
+                                        <div class="text-xs font-semibold text-foreground flex items-center gap-1.5 mt-0.5">
+                                            <span class="w-2 h-2 rounded-full ${curJobType === 'quick' ? 'bg-amber-500' : (curJobType === 'renovate' ? 'bg-indigo-500' : 'bg-emerald-500')}"></span>
+                                            <span class="font-mono uppercase font-bold text-brand-600 dark:text-brand-400">${curJobType}</span>
+                                            <span class="text-[10px] text-muted-foreground font-normal">(${curJobType === 'quick' ? 'งานด่วน/ติดตั้ง' : (curJobType === 'renovate' ? 'งานรีโนเวท' : 'งาน MA/บำรุงรักษา')})</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="text-[10px] text-muted-foreground font-medium">รหัสอ้างอิงต้นทาง (Reference):</div>
+                                        <div class="text-xs font-mono text-foreground mt-0.5 truncate">${job.external_ref_id || 'INT-2026-001'}</div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between bg-muted/40 border border-border rounded-lg px-2.5 py-1 text-xs">
+                                    <span class="text-[11px] text-muted-foreground flex items-center gap-1">
+                                        <i class="ph ph-clock text-brand-500"></i> เวลาบันทึกในระบบ:
+                                    </span>
+                                    <span class="text-[11px] font-mono text-foreground font-medium">${job.step_timestamps?.step1_order_at ? new Date(job.step_timestamps.step1_order_at).toLocaleDateString('th-TH') : job.date}</span>
+                                </div>
+
+                                <div class="text-[11px] text-muted-foreground truncate">
+                                    <strong class="text-foreground font-medium">ทีมผู้รับผิดชอบ:</strong> ${job.tech}
                                 </div>
                             </div>
                         </div>

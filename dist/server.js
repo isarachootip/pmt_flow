@@ -498,6 +498,7 @@ function seedInitialCoreData(populateMocks = false) {
             external_ref_id: 'INT-2026-001',
             customer_id: 1,
             status: JobStatus.DRAFT,
+            job_type: 'quick',
             property_type: 'บ้านเดี่ยว',
             project_type: 'Installation',
             project_sub_type: 'ติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU',
@@ -516,6 +517,7 @@ function seedInitialCoreData(populateMocks = false) {
             external_ref_id: 'INT-2026-002',
             customer_id: 2,
             status: JobStatus.DRAFT,
+            job_type: 'renovate',
             property_type: 'ทาวน์โฮม',
             project_type: 'Renovate',
             project_sub_type: 'Renovate ห้องครัว Built-in & งานระบบประปา',
@@ -534,6 +536,7 @@ function seedInitialCoreData(populateMocks = false) {
             external_ref_id: 'INT-2026-003',
             customer_id: 3,
             status: JobStatus.DRAFT,
+            job_type: 'quick',
             property_type: 'บ้านเดี่ยว',
             project_type: 'Installation',
             project_sub_type: 'ติดตั้งระบบโซลาร์เซลล์ Solar Rooftop On-Grid 5kW',
@@ -552,6 +555,7 @@ function seedInitialCoreData(populateMocks = false) {
             external_ref_id: 'INT-2026-004',
             customer_id: 4,
             status: JobStatus.DRAFT,
+            job_type: 'renovate',
             property_type: 'บ้านเดี่ยว',
             project_type: 'Renovate',
             project_sub_type: 'ปูกระเบื้องแกรนิตโต้ 60x60 ซม. และสุขภัณฑ์ห้องน้ำ',
@@ -570,6 +574,7 @@ function seedInitialCoreData(populateMocks = false) {
             external_ref_id: 'INT-2026-005',
             customer_id: 5,
             status: JobStatus.DRAFT,
+            job_type: 'quick',
             property_type: 'คอนโดมิเนียม',
             project_type: 'Installation',
             project_sub_type: 'ติดตั้งเครื่องทำน้ำอุ่น 4500W พร้อมเดินระบบสายดิน Safe-T-Cut',
@@ -588,6 +593,7 @@ function seedInitialCoreData(populateMocks = false) {
             external_ref_id: 'INT-2026-006',
             customer_id: 6,
             status: JobStatus.DRAFT,
+            job_type: 'renovate',
             property_type: 'บ้านเดี่ยว',
             project_type: 'Renovate',
             project_sub_type: 'งานทาสีภายนอกและภายในบ้านเดี่ยว 2 ชั้น (TOA Supershield)',
@@ -606,6 +612,7 @@ function seedInitialCoreData(populateMocks = false) {
             external_ref_id: 'INT-2026-007',
             customer_id: 7,
             status: JobStatus.DRAFT,
+            job_type: 'quick',
             property_type: 'บ้านเดี่ยว',
             project_type: 'Installation',
             project_sub_type: 'ติดตั้ง Digital Door Lock & กล้องวงจรปิด CCTV Smart IP 4 จุด',
@@ -624,6 +631,7 @@ function seedInitialCoreData(populateMocks = false) {
             external_ref_id: 'INT-2026-008',
             customer_id: 8,
             status: JobStatus.DRAFT,
+            job_type: 'ma',
             property_type: 'บ้านเดี่ยว',
             project_type: 'Installation',
             project_sub_type: 'ติดตั้งปั๊มน้ำอัตโนมัติ Mitsubishi Inverter และถังเก็บน้ำ DOS 1000L',
@@ -642,6 +650,7 @@ function seedInitialCoreData(populateMocks = false) {
             external_ref_id: 'INT-2026-009',
             customer_id: 9,
             status: JobStatus.DRAFT,
+            job_type: 'renovate',
             property_type: 'คอนโดมิเนียม',
             project_type: 'Renovate',
             project_sub_type: 'ติดตั้งฉากกั้นห้องกระจกบานเลื่อน อลูมิเนียมอบดำ Powder Coat',
@@ -660,6 +669,7 @@ function seedInitialCoreData(populateMocks = false) {
             external_ref_id: 'INT-2026-010',
             customer_id: 10,
             status: JobStatus.DRAFT,
+            job_type: 'ma',
             property_type: 'บ้านเดี่ยว',
             project_type: 'Installation',
             project_sub_type: 'ติดตั้งเครื่องปรับอากาศและงานเดินระบบท่อเหนือฝ้าเพดาน',
@@ -1359,7 +1369,7 @@ app.patch('/api/v1/jobs/:id', requireAuth, (req, res) => {
     if (!job) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
     }
-    const { special_instructions, additional_notes, assigned_tech, plan_date, status, overall_progress, photos, pmt_accepted, pmt_accepted_at } = req.body;
+    const { special_instructions, additional_notes, assigned_tech, plan_date, status, overall_progress, photos, pmt_accepted, pmt_accepted_at, job_type } = req.body;
     if (special_instructions !== undefined)
         job.special_instructions = special_instructions;
     if (additional_notes !== undefined)
@@ -1378,6 +1388,8 @@ app.patch('/api/v1/jobs/:id', requireAuth, (req, res) => {
         job.pmt_accepted = pmt_accepted;
     if (pmt_accepted_at !== undefined)
         job.pmt_accepted_at = pmt_accepted_at;
+    if (job_type !== undefined)
+        job.job_type = job_type;
     return res.json({
         success: true,
         data: {
@@ -1386,7 +1398,8 @@ app.patch('/api/v1/jobs/:id', requireAuth, (req, res) => {
             additional_notes: job.additional_notes,
             photos: job.photos || [],
             status: job.status,
-            pmt_accepted: job.pmt_accepted
+            pmt_accepted: job.pmt_accepted,
+            job_type: job.job_type
         },
         message: 'บันทึกข้อมูลงานเรียบร้อยแล้ว'
     });
