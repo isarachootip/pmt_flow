@@ -12363,12 +12363,7 @@
         },
 
         async logout() {
-            try {
-                await fetch('/api/v1/auth/logout', {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + (this.token || '') }
-                });
-            } catch(e) {}
+            const tokenToRevoke = this.token;
             this.token = null; this.user = null;
             document.body.classList.remove('superadmin-allowed');
             document.querySelectorAll('.superadmin-only-btn').forEach(btn => {
@@ -12381,6 +12376,15 @@
             localStorage.removeItem('pmt_token');
             localStorage.removeItem('pmt_user');
             this.showLoginOverlay();
+
+            try {
+                if (tokenToRevoke) {
+                    fetch('/api/v1/auth/logout', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + tokenToRevoke }
+                    }).catch(e => console.warn('Logout fetch failed', e));
+                }
+            } catch(e) {}
         },
 
         getHeaders() {
