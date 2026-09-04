@@ -418,18 +418,6 @@
                         <i class="ph ph-bell text-lg"></i>
                         <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-500 rounded-full ring-2 ring-card"></span>
                     </button>
-
-                    <!-- Simulate 10 INT Orders Quick Button (Superadmin Only: isarachootip@gmail.com) -->
-                    <button onclick="app.simulateINT10Orders(false)" class="superadmin-only-btn btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 font-medium text-purple-600 dark:text-purple-400 border border-purple-500/30 hover:bg-purple-500/10 cursor-pointer shadow-xs" title="จำลองรับคำสั่งซื้อใหม่ 10 งานจากระบบ INT เข้าสู่ PMT">
-                        <i class="ph ph-lightning text-amber-500"></i>
-                        <span>จำลอง 10 งาน (INT)</span>
-                    </button>
-
-                    <!-- Primary Action Button -->
-                    <button onclick="app.showModal('modal-create-job')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-2 font-medium">
-                        <i class="ph ph-plus-bold text-sm"></i>
-                        <span>รับ Order ใหม่ (INT)</span>
-                    </button>
                 </div>
             </header>
 
@@ -674,14 +662,16 @@
                                 <i class="ph ph-trash"></i>
                                 <span>ล้างข้อมูลโครงการ</span>
                             </button>
-                            <button onclick="app.simulateINT10Orders(false)" class="superadmin-only-btn btn-artifact-secondary text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer shadow-xs" title="จำลองรับคำสั่งซื้อใหม่ 10 งานจากระบบ INT เข้าสู่ PMT">
-                                <i class="ph ph-lightning text-amber-500"></i>
-                                <span>จำลอง 10 งาน (INT)</span>
-                            </button>
-                            <button onclick="app.showModal('modal-create-job')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
-                                <i class="ph ph-plus-bold"></i>
-                                <span>สร้างงานใหม่</span>
-                            </button>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button onclick="app.simulateINT10Orders(false)" class="superadmin-only-btn btn-artifact-secondary text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer shadow-xs" title="จำลองรับคำสั่งซื้อใหม่ 10 งานจากระบบ INT เข้าสู่ PMT">
+                                    <i class="ph ph-lightning text-amber-500"></i>
+                                    <span>จำลอง 10 งาน (INT)</span>
+                                </button>
+                                <button onclick="app.showModal('modal-create-job')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-xs" title="สร้างงานใหม่ / รับคำสั่งซื้อจาก INT">
+                                    <i class="ph ph-plus-bold"></i>
+                                    <span>รับ Order ใหม่ (INT)</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
@@ -6544,7 +6534,7 @@
                             <i class="ph ph-folder-dashed text-xl"></i>
                         </div>
                         <p class="text-xs font-semibold text-foreground">ยังไม่มีข้อมูลโครงการในระบบ</p>
-                        <p class="text-[11px] text-muted-foreground">กดปุ่ม "รับ Order ใหม่ (INT)" ด้านบนขวา หรือ "สร้างงานใหม่" เพื่อเริ่มต้นโครงการ</p>
+                        <p class="text-[11px] text-muted-foreground">กดปุ่ม "รับ Order ใหม่ (INT)" หรือ "จำลอง 10 งาน (INT)" เพื่อเริ่มต้นโครงการ</p>
                     </div>
                     `;
                     return;
