@@ -34,20 +34,12 @@ window.auth =  {
                 overlay.style.setProperty('display', 'flex', 'important');
                 overlay.classList.remove('hidden');
             }
-            const wrapper = document.getElementById('app-main-wrapper');
-            if (wrapper) {
-                wrapper.classList.add('blur-md', 'pointer-events-none', 'select-none', 'opacity-30');
-            }
         },
         hideLoginOverlay() {
             const overlay = document.getElementById('login-overlay');
             if (overlay) {
                 overlay.style.setProperty('display', 'none', 'important');
                 overlay.classList.add('hidden');
-            }
-            const wrapper = document.getElementById('app-main-wrapper');
-            if (wrapper) {
-                wrapper.classList.remove('blur-md', 'pointer-events-none', 'select-none', 'opacity-30');
             }
         },
 
