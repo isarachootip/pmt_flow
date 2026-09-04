@@ -271,6 +271,21 @@
 
             <!-- Menu Navigation Links -->
             <div class="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+                <!-- Group: OVERVIEW / DASHBOARD (บนสุด ก่อนขั้นตอนการดำเนินงาน) -->
+                <div>
+                    <nav class="space-y-1">
+                        <a href="#" onclick="app.navigate('dashboard')" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-dashboard">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-6 h-6 rounded-lg bg-brand-500/15 text-brand-500 flex items-center justify-center text-sm">
+                                    <i class="ph ph-squares-four text-base"></i>
+                                </div>
+                                <span class="font-display font-bold text-xs">แดชบอร์ด (Overview)</span>
+                            </div>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-500 font-mono font-bold">Live</span>
+                        </a>
+                    </nav>
+                </div>
+
                 <!-- Group: 5 STEPS WORKFLOW PIPELINE -->
                 <div>
                     <div class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 flex items-center justify-between">
@@ -306,7 +321,7 @@
                         <a href="#" onclick="app.navigate('boq')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-boq">
                             <div class="flex items-center gap-2.5">
                                 <span class="w-5 h-5 rounded-md bg-purple-500/15 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-bold flex items-center justify-center border border-purple-500/30 shrink-0">4</span>
-                                <span class="truncate">Step 4: จัดทำ BOQ</span>
+                                <span class="truncate">Step 4: นำBOQ เข้าระบบ</span>
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono font-medium shrink-0" id="sidebar-boq-count">5</span>
                         </a>
@@ -321,17 +336,10 @@
                     </nav>
                 </div>
 
-                <!-- Group: OVERVIEW & QC -->
+                <!-- Group: OPERATIONS & QC -->
                 <div>
-                    <div class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">ภาพรวม & การควบคุมคุณภาพ</div>
+                    <div class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">การควบคุมคุณภาพ & แผนงาน</div>
                     <nav class="space-y-1">
-                        <a href="#" onclick="app.navigate('dashboard')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-dashboard">
-                            <div class="flex items-center gap-2.5">
-                                <i class="ph ph-squares-four text-base text-brand-500"></i>
-                                <span>แดชบอร์ด (Overview)</span>
-                            </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-500 font-mono font-medium">Live</span>
-                        </a>
                         <a href="#" onclick="app.navigate('gantt')" class="nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-gantt">
                             <i class="ph ph-chart-bar text-base"></i>
                             <span>แผนงาน Gantt เต็มรูป</span>
@@ -975,7 +983,7 @@
                             <div class="flex items-center gap-2">
                                 <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30">Step 4</span>
                                 <span class="text-2xl">📋</span>
-                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">จัดทำ BOQ & ประมาณการราคา (Bill of Quantities)</h2>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">นำBOQ เข้าระบบ & ประมาณการราคา (Bill of Quantities)</h2>
                             </div>
                             <p class="text-xs text-muted-foreground mt-1">นำเข้าใบเสนอราคา vFIX แยกรายการวัสดุและค่าแรง คำนวณราคา พร้อมเตรียมแปลงเข้าแผนงานโครงการ</p>
                         </div>
@@ -4041,8 +4049,8 @@
                     },
                     {
                         stepNumber: 4,
-                        name: 'จัดทำ & บันทึกรายการ BOQ',
-                        category: 'Step 4: BOQ Management',
+                        name: 'นำBOQ เข้าระบบ',
+                        category: 'Step 4: นำBOQ เข้าระบบ (BOQ Ingestion)',
                         timestamp: ts.step4_boq_at || (boqCount > 0 ? '2026-09-04T11:05:12.000Z' : null),
                         isDone: !!(ts.step4_boq_at || boqCount > 0),
                         statusLabel: (ts.step4_boq_at || boqCount > 0) ? `บันทึกแล้ว (${boqCount} รายการ)` : 'รอจัดทำ BOQ',
@@ -4268,7 +4276,7 @@
                     'Step 1: วัน-เวลารับ Order (Order_At)',
                     'Step 2: วัน-เวลาบันทึก Design (Design_At)',
                     'Step 3: วัน-เวลาบันทึก Ticket & ใบเสร็จ (Ticket_At)',
-                    'Step 4: วัน-เวลาจัดทำ BOQ (BOQ_At)',
+                    'Step 4: วัน-เวลานำBOQ เข้าระบบ (BOQ_At)',
                     'Step 5: วัน-เวลาบันทึกเข้า Project (Project_At)',
                     'จำนวนขั้นตอนที่เสร็จสิ้น'
                 ];
@@ -4909,7 +4917,7 @@
                     'job-detail': `รายละเอียดงาน ${param || ''}`,
                     'blueprints': 'Step 2: บันทึก Design & แบบแปลนติดตั้ง (Blueprints & CAD)',
                     'tickets': 'Step 3: บันทึก Ticket & แนบใบเสร็จ (Tickets & Receipts)',
-                    'boq': 'Step 4: จัดทำ BOQ & ประมาณการราคา (Bill of Quantities)',
+                    'boq': 'Step 4: นำBOQ เข้าระบบ & ประมาณการราคา (Bill of Quantities)',
                     'project-conversion': 'Step 5: บันทึก BOQ เข้า Project (Labor-to-Task & Gantt)',
                     'gantt': 'แผนงาน Gantt เต็มรูป (Gantt Timeline)',
                     'qc': 'QC Inspection (ตรวจคุณภาพ)',
@@ -6210,7 +6218,7 @@
                                     } else if (s.stepNumber === 3) {
                                         actionBtn = `<button type="button" onclick="app.navigate('tickets')" class="text-[10px] text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-0.5 cursor-pointer font-medium"><i class="ph ph-arrow-square-out"></i> ไปหน้า Ticket</button>`;
                                     } else if (s.stepNumber === 4) {
-                                        actionBtn = `<button type="button" onclick="app.switchJobTab('boq')" class="text-[10px] text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-0.5 cursor-pointer font-medium"><i class="ph ph-receipt"></i> จัดการ BOQ</button>`;
+                                        actionBtn = `<button type="button" onclick="app.switchJobTab('boq')" class="text-[10px] text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-0.5 cursor-pointer font-medium"><i class="ph ph-receipt"></i> นำBOQ เข้าระบบ</button>`;
                                     } else if (s.stepNumber === 5) {
                                         actionBtn = `<button type="button" onclick="app.navigate('gantt')" class="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5 cursor-pointer font-medium"><i class="ph ph-chart-bar"></i> ผัง Gantt</button>`;
                                     }
@@ -9088,11 +9096,11 @@
                                 </div>
                                 <div>
                                     <h4 class="font-bold text-foreground">โครงการนี้ยังไม่มีรายการ BOQ</h4>
-                                    <p class="text-muted-foreground text-[11px]">กรุณากลับไป Step 4: จัดทำ BOQ หรือกดปุ่มนำเข้าไฟล์ Excel ก่อนเพื่อสกัดรายการค่าแรง</p>
+                                    <p class="text-muted-foreground text-[11px]">กรุณากลับไป Step 4: นำBOQ เข้าระบบ หรือกดปุ่มนำเข้าไฟล์ Excel ก่อนเพื่อสกัดรายการค่าแรง</p>
                                 </div>
                             </div>
                             <button onclick="app.navigate('boq', '${targetJobId}')" class="btn-artifact-secondary px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer shrink-0">
-                                ➔ ไปหน้า Step 4: จัดทำ BOQ
+                                ➔ ไปหน้า Step 4: นำBOQ เข้าระบบ
                             </button>
                         `;
                     } else if (jobTasks.length === 0) {
