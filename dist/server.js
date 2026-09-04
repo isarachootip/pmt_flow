@@ -8,7 +8,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.maRoundStore = exports.maContractStore = exports.maChecklistTemplateStore = exports.coreTaskStore = exports.coreSitePhotoStore = exports.coreVisitCheckinStore = exports.coreJobServiceStore = exports.coreJobStore = exports.coreCustomerStore = exports.stagingSurveyStore = exports.StagingProcessStatus = exports.sysLoginLogStore = exports.sysSessionStore = exports.sysUserStore = exports.UserRole = exports.JobStatus = void 0;
+exports.maRoundStore = exports.maContractStore = exports.maChecklistTemplateStore = exports.coreQCBookingStore = exports.coreTaskStore = exports.coreSitePhotoStore = exports.coreVisitCheckinStore = exports.coreJobServiceStore = exports.coreJobStore = exports.coreCustomerStore = exports.stagingSurveyStore = exports.StagingProcessStatus = exports.sysLoginLogStore = exports.sysSessionStore = exports.sysUserStore = exports.UserRole = exports.JobStatus = void 0;
+exports.calculateQCBookingDate = calculateQCBookingDate;
+exports.syncQCBookingForTask = syncQCBookingForTask;
+exports.removeQCBookingForTask = removeQCBookingForTask;
 exports.seedInitialCoreData = seedInitialCoreData;
 exports.seedInitialStagingData = seedInitialStagingData;
 exports.convertStagingToCorePmt = convertStagingToCorePmt;
@@ -341,6 +344,16 @@ var StagingProcessStatus;
     StagingProcessStatus["VALIDATION_FAILED"] = "VALIDATION_FAILED";
     StagingProcessStatus["ERROR"] = "ERROR";
 })(StagingProcessStatus || (exports.StagingProcessStatus = StagingProcessStatus = {}));
+// Calculate QC Booking Date (5 days before task plan_end_date)
+function calculateQCBookingDate(endDateStr, daysBefore = 5) {
+    if (!endDateStr)
+        return '';
+    const d = new Date(endDateStr);
+    if (isNaN(d.getTime()))
+        return endDateStr;
+    d.setDate(d.getDate() - daysBefore);
+    return d.toISOString().slice(0, 10);
+}
 // =============================================================================
 // MIDDLEWARES
 // =============================================================================
@@ -366,12 +379,62 @@ exports.coreJobServiceStore = [];
 exports.coreVisitCheckinStore = [];
 exports.coreSitePhotoStore = [];
 exports.coreTaskStore = [];
+exports.coreQCBookingStore = [];
+// Helper: Sync or create QC booking for a given task
+function syncQCBookingForTask(task) {
+    const targetJob = exports.coreJobStore.find(j => j.id === task.job_id || j.job_no === task.job_no || String(j.id) === String(task.job_id));
+    const cust = exports.coreCustomerStore.find(c => c.id === targetJob?.customer_id);
+    const custName = cust ? `${cust.first_name} ${cust.last_name}` : (targetJob?.customer || targetJob?.customer_name || 'ลูกค้า');
+    const jobNo = task.job_no || targetJob?.job_no || `JOB20260900${task.job_id}`;
+    const qcDate = calculateQCBookingDate(task.plan_end_date, 5);
+    let booking = exports.coreQCBookingStore.find(b => String(b.task_id) === String(task.id));
+    if (booking) {
+        booking.task_name = task.task_name;
+        booking.plan_start_date = task.plan_start_date;
+        booking.plan_end_date = task.plan_end_date;
+        booking.qc_booking_date = qcDate;
+        booking.assigned_tech = task.assigned_tech;
+        booking.customer_name = custName;
+        booking.job_no = jobNo;
+    }
+    else {
+        booking = {
+            id: `QCB_${task.id}`,
+            job_id: task.job_id,
+            job_no: jobNo,
+            task_id: task.id,
+            task_name: task.task_name,
+            customer_name: custName,
+            plan_start_date: task.plan_start_date,
+            plan_end_date: task.plan_end_date,
+            qc_booking_date: qcDate,
+            days_before: 5,
+            assigned_tech: task.assigned_tech || 'Team A (สมศักดิ์)',
+            assigned_qc_tech: 'วิชัย ตรวจดี (ช่าง QC Lead)',
+            status: 'PENDING_CONFIRM',
+            confirmed_at: null,
+            confirmed_by: null,
+            remarks: '',
+            created_at: new Date().toISOString()
+        };
+        exports.coreQCBookingStore.push(booking);
+    }
+    return booking;
+}
+// Helper: Remove QC booking when task is deleted
+function removeQCBookingForTask(taskId) {
+    const idx = exports.coreQCBookingStore.findIndex(b => String(b.task_id) === String(taskId));
+    if (idx !== -1) {
+        exports.coreQCBookingStore.splice(idx, 1);
+    }
+}
 // Seed Initial Core Data (Empty by default, or with mock data if requested)
 function seedInitialCoreData(populateMocks = false) {
     exports.coreCustomerStore.length = 0;
     exports.coreJobStore.length = 0;
     exports.coreJobServiceStore.length = 0;
     exports.coreTaskStore.length = 0;
+    exports.coreQCBookingStore.length = 0;
     if (!populateMocks) {
         console.log('[CORE STORE] Initialized with empty core jobs store (Clean State).');
         return;
@@ -383,6 +446,7 @@ function seedInitialCoreData(populateMocks = false) {
         { id: 'T5', job_id: 2, job_no: 'JOB202609002', task_name: 'ติดตั้งปั้มและเดินท่อ', assigned_tech: 'Team B', assignees: ['Team B (ประเสริฐ)'], plan_start_date: '2026-09-02', plan_end_date: '2026-09-02', duration_days: 1, status: 'DONE', progress_percent: 100 },
     ];
     exports.coreTaskStore.push(...mockTasks);
+    mockTasks.forEach(t => syncQCBookingForTask(t));
     const mockCustomers = [
         { id: 1, customer_code: 'CUST-001', first_name: 'ณวัฒน์', last_name: 'รักสงบ', phone: '081-111-2222', address: '99/1 ซอยสุขุมวิท 55 แขวงคลองตันเหนือ เขตวัฒนา กรุงเทพฯ 10110', lat: 13.7563, lng: 100.5018 },
         { id: 2, customer_code: 'CUST-002', first_name: 'สมศรี', last_name: 'สุขใจ', phone: '082-222-3333', address: '12 ซอยอารีย์สัมพันธ์ แขวงพญาไท เขตพญาไท กรุงเทพฯ 10400', lat: 13.7801, lng: 100.5432 },
@@ -1605,6 +1669,7 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', async (req, res) => {
         };
     });
     exports.coreTaskStore.push(...newTasks);
+    newTasks.forEach(t => syncQCBookingForTask(t));
     // Sync to coreJobStore
     const targetJobForBOQ = exports.coreJobStore.find(j => j.id === numId || j.job_no === param || String(j.id) === param);
     if (targetJobForBOQ) {
@@ -1623,7 +1688,7 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', async (req, res) => {
     const sorted = sortTasksByStartDate(jobTasks);
     return res.status(201).json({
         success: true,
-        message: `นำเข้าและแปลง BOQ เป็น Task ปฏิบัติงาน ${newTasks.length} รายการ และจัดเรียงตามวันเริ่มงานเรียบร้อย`,
+        message: `นำเข้าและแปลง BOQ เป็น Task ปฏิบัติงาน ${newTasks.length} รายการ และสร้างคิวจองช่าง QC ล่วงหน้า 5 วันเรียบร้อย`,
         total: sorted.length,
         data: sorted
     });
@@ -1677,13 +1742,15 @@ app.post('/api/v1/jobs/:id/tasks', async (req, res) => {
         created_at: new Date().toISOString()
     };
     exports.coreTaskStore.push(newTask);
+    const qcBooking = syncQCBookingForTask(newTask);
     // Auto-sort all tasks for this job by start date
     const jobTasks = exports.coreTaskStore.filter(t => t.job_id === numId || t.job_no === param || String(t.job_id) === param);
     const sorted = sortTasksByStartDate(jobTasks);
     return res.status(201).json({
         success: true,
-        message: 'สร้าง/แทรก Task และจัดเรียงตามวันเริ่มงานเรียบร้อย',
+        message: 'สร้าง/แทรก Task และจองช่าง QC ล่วงหน้า 5 วันเรียบร้อย',
         data: newTask,
+        qc_booking: qcBooking,
         sorted_tasks: sorted
     });
 });
@@ -1727,7 +1794,9 @@ app.put('/api/v1/jobs/:id/tasks/:taskId', async (req, res) => {
         task.assignees = assignees;
     if (status !== undefined)
         task.status = status;
-    return res.json({ success: true, message: 'อัปเดต Task สำเร็จ', data: task });
+    // Sync / update QC booking for this task (recalculate 5 days before new end date)
+    const qcBooking = syncQCBookingForTask(task);
+    return res.json({ success: true, message: 'อัปเดต Task และวันจองตรวจ QC สำเร็จ', data: task, qc_booking: qcBooking });
 });
 // DELETE /api/v1/jobs/:id/tasks/:taskId — Delete Task
 app.delete('/api/v1/jobs/:id/tasks/:taskId', async (req, res) => {
@@ -1737,7 +1806,8 @@ app.delete('/api/v1/jobs/:id/tasks/:taskId', async (req, res) => {
         return res.status(404).json({ success: false, error: { code: 'TASK_NOT_FOUND', message: 'ไม่พบ Task' } });
     }
     exports.coreTaskStore.splice(idx, 1);
-    return res.json({ success: true, message: 'ลบ Task สำเร็จ' });
+    removeQCBookingForTask(taskId);
+    return res.json({ success: true, message: 'ลบ Task และยกเลิกการจอง QC สำเร็จ' });
 });
 // GET /api/v1/tasks/gantt — Get all tasks structured for Gantt Timeline view
 app.get('/api/v1/tasks/gantt', async (req, res) => {
@@ -1751,6 +1821,71 @@ app.get('/api/v1/tasks/gantt', async (req, res) => {
         success: true,
         total: sorted.length,
         data: sorted
+    });
+});
+// =============================================================================
+// QC BOOKINGS API (จองช่าง QC ล่วงหน้า 5 วันก่อนวันสิ้นสุด Task)
+// =============================================================================
+// GET /api/v1/qc/bookings — List all QC Bookings (filter by job_id, status)
+app.get('/api/v1/qc/bookings', async (req, res) => {
+    const { job_id, status } = req.query;
+    let list = exports.coreQCBookingStore;
+    if (job_id && job_id !== 'all') {
+        list = list.filter(b => String(b.job_id) === String(job_id) || b.job_no === String(job_id));
+    }
+    if (status && status !== 'all') {
+        list = list.filter(b => b.status === status);
+    }
+    return res.json({ success: true, total: list.length, data: list });
+});
+// PUT /api/v1/qc/bookings/:id/confirm — Confirm QC Technician Booking
+app.put('/api/v1/qc/bookings/:id/confirm', async (req, res) => {
+    const { id } = req.params;
+    const { qc_tech, confirmed_by, remarks } = req.body;
+    const booking = exports.coreQCBookingStore.find(b => b.id === id || String(b.task_id) === id);
+    if (!booking) {
+        return res.status(404).json({ success: false, error: { code: 'BOOKING_NOT_FOUND', message: 'ไม่พบรายการจอง QC' } });
+    }
+    booking.status = 'CONFIRMED';
+    booking.confirmed_at = new Date().toISOString();
+    if (qc_tech)
+        booking.assigned_qc_tech = qc_tech;
+    if (confirmed_by)
+        booking.confirmed_by = confirmed_by;
+    if (remarks !== undefined)
+        booking.remarks = remarks;
+    return res.json({
+        success: true,
+        message: `ยืนยันการจองช่าง QC (${booking.assigned_qc_tech}) สำหรับ "${booking.task_name}" เรียบร้อยแล้ว`,
+        data: booking
+    });
+});
+// PUT /api/v1/qc/bookings/:id — Update QC Booking (Change QC tech, date, remarks, status)
+app.put('/api/v1/qc/bookings/:id', async (req, res) => {
+    const { id } = req.params;
+    const booking = exports.coreQCBookingStore.find(b => b.id === id || String(b.task_id) === id);
+    if (!booking) {
+        return res.status(404).json({ success: false, error: { code: 'BOOKING_NOT_FOUND', message: 'ไม่พบรายการจอง QC' } });
+    }
+    const { assigned_qc_tech, qc_booking_date, remarks, status } = req.body;
+    if (assigned_qc_tech !== undefined)
+        booking.assigned_qc_tech = assigned_qc_tech;
+    if (qc_booking_date !== undefined)
+        booking.qc_booking_date = qc_booking_date;
+    if (remarks !== undefined)
+        booking.remarks = remarks;
+    if (status !== undefined)
+        booking.status = status;
+    return res.json({ success: true, message: 'อัปเดตข้อมูลการจอง QC เรียบร้อย', data: booking });
+});
+// POST /api/v1/qc/bookings/sync-all — Sync QC bookings from all existing tasks
+app.post('/api/v1/qc/bookings/sync-all', async (req, res) => {
+    exports.coreTaskStore.forEach(task => syncQCBookingForTask(task));
+    return res.json({
+        success: true,
+        message: `ซิงค์งานจองตรวจ QC จากรายการ Task ทั้งหมด (${exports.coreTaskStore.length} tasks) เรียบร้อย`,
+        total: exports.coreQCBookingStore.length,
+        data: exports.coreQCBookingStore
     });
 });
 // =============================================================================

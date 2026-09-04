@@ -312,7 +312,7 @@
                                 <i class="ph ph-check-circle text-base"></i>
                                 <span>ตรวจคุณภาพ (QC)</span>
                             </div>
-                            <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-500 font-mono font-medium" id="sidebar-qc-count">0</span>
                         </a>
                         <a href="#" onclick="app.navigate('ma-contracts')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-ma-contracts">
                             <div class="flex items-center gap-2.5">
@@ -839,33 +839,56 @@
 
                 <!-- 5. QC MODULE VIEW -->
                 <div id="page-qc" class="page-view hidden-view space-y-6">
-                    <div>
-                        <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">การตรวจคุณภาพงาน (QC Inspection)</h2>
-                        <p class="text-xs text-muted-foreground mt-0.5">ตรวจสอบมาตรฐานงานก่อนส่งมอบและประสานงานต่อไปยัง Contact Center</p>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-2xl">🛡️</span>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">การตรวจคุณภาพงาน (QC Inspection)</h2>
+                            </div>
+                            <p class="text-xs text-muted-foreground mt-0.5">ระบบจองช่าง QC ล่วงหน้า 5 วันก่อนวันสิ้นสุด Task และตรวจประเมินคุณภาพงาน</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="app.navigate('gantt')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+                                <i class="ph ph-chart-bar text-sm text-brand-500"></i>
+                                <span>แผนงาน (Gantt Timeline)</span>
+                            </button>
+                            <button onclick="app.syncQCBookingsFromTasks(); app.renderQC(); app.showToast('🔄 ซิงค์ข้อมูลงานตรวจ QC จาก Gantt เรียบร้อย');" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 cursor-pointer" title="รีเฟรชข้อมูลการจอง QC จาก Task ทั้งหมด">
+                                <i class="ph ph-arrows-clockwise text-sm"></i>
+                                <span>ซิงค์งานจาก Gantt</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <!-- Left Queue -->
-                        <div class="artifact-card p-5 flex flex-col h-[600px]">
-                            <div class="flex items-center justify-between pb-3 border-b border-border mb-4">
-                                <h3 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
-                                    <i class="ph ph-queue text-brand-500"></i> คิวรอตรวจ QC
-                                </h3>
-                                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-500/15 text-brand-500 font-semibold" id="qc-queue-count">1 รายการ</span>
+                        <!-- Left Queue with Tabs -->
+                        <div class="artifact-card p-5 flex flex-col h-[650px]">
+                            <!-- Tabs Switcher -->
+                            <div class="flex items-center gap-1 p-1 bg-muted/60 rounded-xl mb-4 border border-border">
+                                <button type="button" id="tab-qc-bookings" onclick="app.switchQCTab('bookings')" class="flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs">
+                                    <i class="ph ph-calendar-check text-brand-500"></i>
+                                    <span>จองช่าง QC (D-5)</span>
+                                    <span id="qc-bookings-badge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-brand-500/20 text-brand-600 dark:text-brand-400 font-mono">0</span>
+                                </button>
+                                <button type="button" id="tab-qc-inspection" onclick="app.switchQCTab('inspection')" class="flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground">
+                                    <i class="ph ph-clipboard-text"></i>
+                                    <span>รอตรวจ (Pending)</span>
+                                    <span id="qc-queue-count" class="px-1.5 py-0.2 rounded-full text-[10px] bg-muted text-muted-foreground font-mono">0</span>
+                                </button>
                             </div>
+
                             <div class="flex-1 overflow-y-auto space-y-2.5 pr-1" id="qc-queue-list">
                                 <!-- Populated by JS -->
                             </div>
                         </div>
 
-                        <!-- Right Inspection Form -->
-                        <div class="lg:col-span-2 artifact-card p-6 overflow-y-auto h-[600px]" id="qc-form-container">
+                        <!-- Right Inspection / Confirmation Form -->
+                        <div class="lg:col-span-2 artifact-card p-6 overflow-y-auto h-[650px]" id="qc-form-container">
                             <div class="h-full flex flex-col items-center justify-center text-center p-8">
                                 <div class="w-16 h-16 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground mb-4">
                                     <i class="ph ph-clipboard-text text-3xl"></i>
                                 </div>
                                 <h4 class="font-display font-medium text-foreground text-base mb-1">ยังไม่ได้เลือกรายการงาน</h4>
-                                <p class="text-xs text-muted-foreground max-w-sm">กรุณาเลือกงานจากคิวด้านซ้ายเพื่อเปิดแบบฟอร์มตรวจสอบมาตรฐานและ Checklist</p>
+                                <p class="text-xs text-muted-foreground max-w-sm">กรุณาเลือกงานจากคิวด้านซ้ายเพื่อเปิดใบนัดหมายจองช่าง QC หรือแบบฟอร์มตรวจสอบมาตรฐาน</p>
                             </div>
                         </div>
                     </div>
@@ -2981,6 +3004,7 @@
             jobs: [],
             blueprints: [],
             tasks: [],
+            qcBookings: [],
             qcChecklist: [
                 { id: 'Q1', text: 'ความสะอาดพื้นที่หน้างาน (Site Cleanliness)', mandatory: true },
                 { id: 'Q2', text: 'ระบบน้ำไม่รั่วซึม และแรงดันน้ำปกติ (Pressure Test)', mandatory: true },
@@ -3088,13 +3112,16 @@
                 maEquipment: [
                     { id: 'si_1', name: 'เครื่องที่ 1', brand: '', btu: '', location: '' }
                 ],
-                selectedMACustomer: null
+                selectedMACustomer: null,
+                qcTab: 'bookings',
+                selectedQCBookingId: null
             },
 
             persistJobs() {
                 try {
                     localStorage.setItem('pmt_jobs', JSON.stringify(DB.jobs));
                     localStorage.setItem('pmt_tasks', JSON.stringify(DB.tasks || []));
+                    localStorage.setItem('pmt_qc_bookings', JSON.stringify(DB.qcBookings || []));
                 } catch (e) {}
             },
 
@@ -3451,6 +3478,17 @@
                     } catch (e) {}
                 }
 
+                // Restore saved QC bookings
+                const savedQCBookings = localStorage.getItem('pmt_qc_bookings');
+                if (savedQCBookings) {
+                    try {
+                        const parsedBookings = JSON.parse(savedQCBookings);
+                        if (Array.isArray(parsedBookings)) {
+                            DB.qcBookings = parsedBookings;
+                        }
+                    } catch (e) {}
+                }
+
                 // Rule Enforcement: แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart
                 // Filter out any tasks whose jobs do not have BOQ items
                 if (Array.isArray(DB.jobs)) {
@@ -3463,6 +3501,9 @@
                         DB.tasks = DB.tasks.filter(t => jobsWithBOQ.has(t.jobId));
                     }
                 }
+
+                // Automatically generate/sync QC bookings (5 days before each task end date)
+                this.syncQCBookingsFromTasks();
 
                 this.navigate('dashboard');
                 this.fetchJobsFromApi();
@@ -6508,8 +6549,9 @@
                 }).catch(err => console.log('Backend sync task notice:', err.message));
 
                 this.persistJobs();
+                this.syncQCBookingsFromTasks();
                 this.hideModal('modal-convert-boq-tasks');
-                this.showToast(`⚡ แปลง BOQ เป็น Task ปฏิบัติงาน ${selectedTasks.length} รายการ และจัดเรียงตามวันเริ่มงานเข้า Gantt Timeline เรียบร้อย`);
+                this.showToast(`⚡ แปลง BOQ เป็น Task ปฏิบัติงาน ${selectedTasks.length} รายการ และสร้างคิวจองช่าง QC ล่วงหน้า 5 วันเรียบร้อย`);
 
                 if (this.state.currentView === 'gantt') {
                     this.renderGantt();
@@ -6598,6 +6640,185 @@
                     return `${parts[2]}/${parts[1]}/${parts[0]}`;
                 }
                 return dateStr;
+            },
+
+            calculateQCBookingDate(endDateStr, daysBefore = 5) {
+                if (!endDateStr) return '';
+                const d = new Date(endDateStr);
+                if (isNaN(d.getTime())) return endDateStr;
+                d.setDate(d.getDate() - daysBefore);
+                return d.toISOString().slice(0, 10);
+            },
+
+            syncQCBookingsFromTasks() {
+                if (!DB.qcBookings) DB.qcBookings = [];
+                const tasks = DB.tasks || [];
+                const validTaskIds = new Set();
+
+                tasks.forEach(t => {
+                    if (!t.id) return;
+                    validTaskIds.add(String(t.id));
+                    const job = (DB.jobs || []).find(j => j.id === t.jobId) || {};
+                    const custName = job.customer || 'ลูกค้า';
+                    const endDateStr = t.end || t.start || '2026-09-05';
+                    const qcDate = this.calculateQCBookingDate(endDateStr, 5);
+
+                    let booking = DB.qcBookings.find(b => String(b.taskId) === String(t.id));
+                    if (booking) {
+                        booking.taskName = t.name;
+                        booking.taskStart = t.start;
+                        booking.taskEnd = endDateStr;
+                        booking.qcBookingDate = qcDate;
+                        booking.assignedTech = t.tech || job.tech || 'Team A (สมศักดิ์)';
+                        booking.customerName = custName;
+                        booking.taskStatus = t.status;
+                        if (!booking.assignedQCTech) booking.assignedQCTech = 'วิชัย ตรวจดี (ช่าง QC Lead)';
+                    } else {
+                        booking = {
+                            id: `QCB_${t.id}`,
+                            taskId: t.id,
+                            jobId: t.jobId,
+                            taskName: t.name,
+                            customerName: custName,
+                            taskStart: t.start || '2026-09-05',
+                            taskEnd: endDateStr,
+                            qcBookingDate: qcDate,
+                            daysBefore: 5,
+                            assignedTech: t.tech || job.tech || 'Team A (สมศักดิ์)',
+                            assignedQCTech: 'วิชัย ตรวจดี (ช่าง QC Lead)',
+                            status: 'PENDING_CONFIRM',
+                            confirmedAt: null,
+                            confirmedBy: null,
+                            remarks: '',
+                            createdAt: new Date().toISOString()
+                        };
+                        DB.qcBookings.push(booking);
+                    }
+                });
+
+                // Clean up orphan bookings whose tasks were deleted
+                DB.qcBookings = DB.qcBookings.filter(b => validTaskIds.has(String(b.taskId)));
+                this.persistJobs();
+                this.updateQCBadges();
+            },
+
+            updateQCBadges() {
+                const bookings = DB.qcBookings || [];
+                const pendingBookings = bookings.filter(b => b.status !== 'CONFIRMED').length;
+                const qcJobs = (DB.jobs || []).filter(j => j.status === 'QC_PENDING').length;
+                const totalQCAlerts = pendingBookings + qcJobs;
+
+                const sbBadge = document.getElementById('sidebar-qc-count');
+                if (sbBadge) {
+                    sbBadge.innerText = totalQCAlerts;
+                    sbBadge.style.display = totalQCAlerts > 0 ? '' : 'none';
+                }
+                const bBadge = document.getElementById('qc-bookings-badge');
+                if (bBadge) bBadge.innerText = bookings.length;
+                const qBadge = document.getElementById('qc-queue-count');
+                if (qBadge) qBadge.innerText = qcJobs.length;
+            },
+
+            openQCFromTask(taskId) {
+                this.syncQCBookingsFromTasks();
+                this.state.qcTab = 'bookings';
+                const booking = (DB.qcBookings || []).find(b => String(b.taskId) === String(taskId));
+                if (booking) {
+                    this.state.selectedQCBookingId = booking.id;
+                }
+                this.navigate('qc');
+            },
+
+            switchQCTab(tab) {
+                this.state.qcTab = tab;
+                const btnBookings = document.getElementById('tab-qc-bookings');
+                const btnInspect = document.getElementById('tab-qc-inspection');
+                if (btnBookings && btnInspect) {
+                    if (tab === 'bookings') {
+                        btnBookings.className = 'flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs';
+                        btnInspect.className = 'flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground';
+                    } else {
+                        btnInspect.className = 'flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs';
+                        btnBookings.className = 'flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground';
+                    }
+                }
+                this.renderQC();
+            },
+
+            updateQCBookingInspector(bookingId, newInspector) {
+                const booking = (DB.qcBookings || []).find(b => b.id === bookingId);
+                if (!booking) return;
+                booking.assignedQCTech = newInspector;
+                this.persistJobs();
+                this.showToast(`👤 มอบหมายช่าง QC: ${newInspector} เรียบร้อย`);
+                fetch(`/api/v1/qc/bookings/${bookingId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ assigned_qc_tech: newInspector })
+                }).catch(() => {});
+            },
+
+            updateQCBookingDate(bookingId, newDate) {
+                const booking = (DB.qcBookings || []).find(b => b.id === bookingId);
+                if (!booking) return;
+                booking.qcBookingDate = newDate;
+                this.persistJobs();
+                this.showToast(`📅 อัปเดตวันนัดตรวจ QC เป็น ${this.formatDateDMY(newDate)} เรียบร้อย`);
+                fetch(`/api/v1/qc/bookings/${bookingId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ qc_booking_date: newDate })
+                }).catch(() => {});
+                if (this.state.currentView === 'gantt') this.renderGantt();
+            },
+
+            saveQCBookingRemarks(bookingId) {
+                const booking = (DB.qcBookings || []).find(b => b.id === bookingId);
+                if (!booking) return;
+                const txt = document.getElementById(`qc-remarks-input-${bookingId}`);
+                if (txt) booking.remarks = txt.value;
+                this.persistJobs();
+                this.showToast('💾 บันทึกหมายเหตุการจอง QC เรียบร้อย');
+                fetch(`/api/v1/qc/bookings/${bookingId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ remarks: booking.remarks })
+                }).catch(() => {});
+            },
+
+            confirmQCBooking(bookingId) {
+                const booking = (DB.qcBookings || []).find(b => b.id === bookingId);
+                if (!booking) return;
+                const inspectorEl = document.getElementById(`qc-inspector-input-${bookingId}`);
+                if (inspectorEl) booking.assignedQCTech = inspectorEl.value;
+                const remarksEl = document.getElementById(`qc-remarks-input-${bookingId}`);
+                if (remarksEl) booking.remarks = remarksEl.value;
+
+                booking.status = 'CONFIRMED';
+                booking.confirmedAt = new Date().toISOString();
+                booking.confirmedBy = (typeof auth !== 'undefined' && auth.user ? auth.user.name : 'เจ้าหน้าที่ PMT');
+
+                this.persistJobs();
+                this.showToast(`✅ ยืนยันการจองช่าง QC (${booking.assignedQCTech}) เรียบร้อยแล้ว`);
+
+                fetch(`/api/v1/qc/bookings/${bookingId}/confirm`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        qc_tech: booking.assignedQCTech,
+                        confirmed_by: booking.confirmedBy,
+                        remarks: booking.remarks
+                    })
+                }).catch(() => {});
+
+                this.renderQC();
+                if (this.state.currentView === 'gantt') this.renderGantt();
+            },
+
+            startQCInspectionFromBooking(jobId) {
+                this.state.qcTab = 'inspection';
+                this.switchQCTab('inspection');
+                this.selectQCJob(jobId);
             },
 
             renderGanttProjectsStrip(selectedFilter = 'all') {
@@ -6894,6 +7115,7 @@
                 DB.tasks = DB.tasks.filter(t => t.jobId !== job.id);
                 DB.tasks.push(...newTasks);
                 this.persistJobs();
+                this.syncQCBookingsFromTasks();
 
                 fetch(`/api/v1/jobs/${job.id}/tasks/import-boq`, {
                     method: 'POST',
@@ -6958,6 +7180,12 @@
                 });
 
                 this.persistJobs();
+                this.syncQCBookingsFromTasks();
+
+                if (field === 'end' || field === 'start') {
+                    const qcD = this.calculateQCBookingDate(task.end || task.start, 5);
+                    this.showToast(`📅 อัปเดต Task สำเร็จ พร้อมจองตรวจ QC วันที่ ${this.formatDateDMY(qcD)} (5 วันก่อนสิ้นสุด)`);
+                }
 
                 fetch(`/api/v1/jobs/${task.jobId}/tasks/${taskId}`, {
                     method: 'PUT',
@@ -7001,7 +7229,9 @@
                 if (!DB.tasks) DB.tasks = [];
                 DB.tasks.push(newTask);
                 this.persistJobs();
-                this.showToast(`➕ เพิ่ม Task ใหม่สำหรับ ${jobId} เรียบร้อย`);
+                this.syncQCBookingsFromTasks();
+                const qcD = this.calculateQCBookingDate(newTask.end, 5);
+                this.showToast(`➕ เพิ่ม Task ใหม่สำหรับ ${jobId} พร้อมสร้างคิวจองช่าง QC (${this.formatDateDMY(qcD)})`);
                 this.renderGantt();
             },
 
@@ -7012,10 +7242,11 @@
                 const jobId = task ? task.jobId : '';
                 DB.tasks = DB.tasks.filter(t => t.id !== taskId);
                 this.persistJobs();
+                this.syncQCBookingsFromTasks();
                 if (jobId) {
                     fetch(`/api/v1/jobs/${jobId}/tasks/${taskId}`, { method: 'DELETE' }).catch(() => {});
                 }
-                this.showToast('🗑️ ลบ Task เรียบร้อย');
+                this.showToast('🗑️ ลบ Task และยกเลิกการจอง QC เรียบร้อย');
                 this.renderGantt();
             },
 
@@ -7024,7 +7255,8 @@
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return;
                 this.ensureTasksFromBOQ(job);
-                this.showToast(`🔄 รีเซ็ต Task จาก BOQ ของ ${jobId} เรียบร้อย`);
+                this.syncQCBookingsFromTasks();
+                this.showToast(`🔄 รีเซ็ต Task จาก BOQ ของ ${jobId} และสร้างคิวจองช่าง QC ใหม่เรียบร้อย`);
                 this.renderGantt();
             },
 
@@ -7126,6 +7358,20 @@
                         }
 
                         const cleanName = (t.name || '').replace(/"/g, '&quot;');
+                        const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
+                        const rawQcDate = qcBooking ? qcBooking.qcBookingDate : this.calculateQCBookingDate(t.end || t.start, 5);
+                        const qcDateDisplay = this.formatDateDMY(rawQcDate);
+                        const isQCConfirmed = qcBooking && qcBooking.status === 'CONFIRMED';
+                        const qcBadgeHtml = isQCConfirmed 
+                            ? `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="จองตรวจ QC: ${qcDateDisplay} (ยืนยันช่าง QC แล้ว: ${qcBooking.assignedQCTech})">
+                                <i class="ph ph-check-circle text-xs"></i>
+                                <span>QC: ${qcDateDisplay} (Confirmed)</span>
+                              </button>`
+                            : `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 hover:bg-amber-500/25 transition cursor-pointer" title="จองช่าง QC ล่วงหน้า 5 วันก่อนวันสิ้นสุด - คลิกเพื่อยืนยันช่าง QC">
+                                <i class="ph ph-calendar-check text-xs"></i>
+                                <span>จอง QC: ${qcDateDisplay}</span>
+                                <span class="underline font-bold ml-0.5">Confirm</span>
+                              </button>`;
 
                         return `
                         <tr class="hover:bg-muted/20 transition gantt-list-row">
@@ -7143,6 +7389,9 @@
                                 <span class="px-2 py-1 rounded text-[11px] font-mono font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
                                     ${taskDays} วัน
                                 </span>
+                            </td>
+                            <td class="py-2.5 px-3 whitespace-nowrap">
+                                ${qcBadgeHtml}
                             </td>
                             <td class="py-2.5 px-3">
                                 <select onchange="app.updateGanttTaskField('${t.id}', 'tech', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-xs text-foreground font-medium focus:outline-none cursor-pointer">
@@ -7181,7 +7430,7 @@
                                             <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium border border-emerald-500/20">✓ นำเข้า BOQ แล้ว (${targetJob.boq_items.length} รายการ)</span>
                                             <span class="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold border border-purple-500/20">${jobTasks.length} Tasks</span>
                                         </div>
-                                        <p class="text-[11px] text-muted-foreground mt-1">${targetJob.service} • มุมมองตารางรายการ (List View) สามารถกำหนดวันเริ่ม-สิ้นสุด และเลือกช่างได้โดยตรง</p>
+                                        <p class="text-[11px] text-muted-foreground mt-1">${targetJob.service} • มุมมองตารางรายการ (List View) กำหนดวันเริ่ม-สิ้นสุด และระบบจองช่าง QC ล่วงหน้า 5 วันอัตโนมัติ</p>
                                     </div>
                                     <div class="flex items-center gap-2 shrink-0">
                                         <button type="button" onclick="app.addGanttTask('${selectedJobFilter}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-700 hover:to-brand-700 text-white cursor-pointer">
@@ -7206,16 +7455,17 @@
                                             <tr>
                                                 <th class="py-3 px-3.5 w-12 text-center font-bold">#</th>
                                                 <th class="py-3 px-3.5 min-w-[220px] font-bold">ชื่องานบริการ / Task</th>
-                                                <th class="py-3 px-3.5 w-40 font-bold">วันเริ่มงาน (Start Date)</th>
-                                                <th class="py-3 px-3.5 w-40 font-bold">วันสิ้นสุด (End Date)</th>
-                                                <th class="py-3 px-2.5 text-center w-24 font-bold">ระยะเวลา</th>
-                                                <th class="py-3 px-3.5 w-52 font-bold">ช่างผู้รับผิดชอบ</th>
-                                                <th class="py-3 px-3.5 w-32 font-bold">สถานะ</th>
+                                                <th class="py-3 px-3.5 w-36 font-bold">วันเริ่ม (Start)</th>
+                                                <th class="py-3 px-3.5 w-36 font-bold">วันสิ้นสุด (End)</th>
+                                                <th class="py-3 px-2.5 text-center w-20 font-bold">ระยะเวลา</th>
+                                                <th class="py-3 px-3.5 w-44 font-bold text-brand-600 dark:text-brand-400">จองตรวจ QC (D-5)</th>
+                                                <th class="py-3 px-3.5 w-48 font-bold">ช่างผู้รับผิดชอบ</th>
+                                                <th class="py-3 px-3.5 w-28 font-bold">สถานะ</th>
                                                 <th class="py-3 px-2.5 w-12 text-center font-bold">ลบ</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-border">
-                                            ${taskRowsHtml || '<tr><td colspan="8" class="py-8 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
+                                            ${taskRowsHtml || '<tr><td colspan="9" class="py-8 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
                                         </tbody>
                                     </table>
                                 </div>
@@ -7274,7 +7524,7 @@
                     if (dateRangeLabel) {
                         const firstD = timelineDates[0];
                         const lastD = timelineDates[timelineDates.length - 1];
-                        dateRangeLabel.innerText = `ช่วงเวลา: ${String(firstD.getDate()).padStart(2, '0')}/${String(firstD.getMonth() + 1).padStart(2, '0')}/${firstD.getFullYear()} - ${String(lastD.getDate()).padStart(2, '0')}/${String(lastD.getMonth() + 1).padStart(2, '0')}/${lastD.getFullYear()}`;
+                        dateRangeLabel.innerText = `ช่วงเวลา: ${String(firstD.getDate()).padStart(2, '0')} ${monthNames[firstD.getMonth()]} - ${String(lastD.getDate()).padStart(2, '0')} ${monthNames[lastD.getMonth()]} ${lastD.getFullYear()}`;
                     }
 
                     const ganttRowsHtml = jobTasks.map(t => {
@@ -7295,6 +7545,9 @@
                         else if (t.status === 'IN_PROGRESS') bgClass = 'bg-gradient-to-r from-purple-500/20 to-brand-500/20 text-purple-700 dark:text-purple-300 border-purple-500/40 shadow-xs font-semibold';
 
                         const endDateStr = t.end || t.start;
+                        const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
+                        const rawQcDate = qcBooking ? qcBooking.qcBookingDate : this.calculateQCBookingDate(endDateStr, 5);
+                        const qcDateDisplay = this.formatDateDMY(rawQcDate);
 
                         return `
                         <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group">
@@ -7302,10 +7555,11 @@
                                 <div class="truncate font-semibold text-foreground">${t.name}</div>
                                 <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2">
                                     <span>📅 ${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} (${taskDays} วัน)</span>
+                                    <span onclick="app.openQCFromTask('${t.id}')" class="text-brand-500 hover:underline cursor-pointer flex items-center gap-0.5" title="คลิกเพื่อดูการจองช่าง QC"><i class="ph ph-shield-check text-[11px]"></i> จอง QC: ${qcDateDisplay}</span>
                                 </div>
                             </div>
                             <div class="flex-1 relative h-full flex items-center">
-                                <div class="${bgClass} border absolute h-8 rounded-lg text-[11px] px-2.5 flex items-center justify-between truncate shadow-xs transition hover:brightness-105 cursor-pointer hover:ring-2 hover:ring-brand-500/40" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 80px;" title="${t.name} (${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} - ${t.tech})">
+                                <div class="${bgClass} border absolute h-8 rounded-lg text-[11px] px-2.5 flex items-center justify-between truncate shadow-xs transition hover:brightness-105 cursor-pointer hover:ring-2 hover:ring-brand-500/40" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 80px;" title="${t.name} (${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} - ${t.tech}) | จองตรวจ QC: ${qcDateDisplay}">
                                     <span class="truncate font-medium flex items-center gap-1"><i class="ph ph-user text-[11px]"></i> ${t.tech}</span>
                                     <span class="text-[10px] opacity-90 ml-1 font-mono font-bold bg-card/60 px-1 py-0.5 rounded">${taskDays}d</span>
                                 </div>
@@ -7324,7 +7578,7 @@
                                         <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium border border-emerald-500/20">✓ นำเข้า BOQ แล้ว (${targetJob.boq_items.length} รายการ)</span>
                                         <span class="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold border border-purple-500/20">${jobTasks.length} Tasks</span>
                                     </div>
-                                    <p class="text-[11px] text-muted-foreground mt-1">${targetJob.service} • กำหนดวันเริ่ม-สิ้นสุด และเลือกช่างผู้รับผิดชอบในแต่ละ Task ได้โดยตรง ข้อมูลจะซิงค์สู่ Gantt Timeline ทันที</p>
+                                    <p class="text-[11px] text-muted-foreground mt-1">${targetJob.service} • กำหนดวันเริ่ม-สิ้นสุด และเลือกช่างผู้รับผิดชอบในแต่ละ Task ได้โดยตรง ระบบจะสร้างงานจองช่าง QC ล่วงหน้า 5 วันอัตโนมัติ</p>
                                 </div>
                                 <div class="flex items-center gap-2 shrink-0">
                                     <button type="button" onclick="app.addGanttTask('${selectedJobFilter}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-700 hover:to-brand-700 text-white cursor-pointer">
@@ -7350,13 +7604,14 @@
                                             <th class="py-2.5 px-3 w-36">วันเริ่ม (Start Date)</th>
                                             <th class="py-2.5 px-3 w-36">วันสิ้นสุด (End Date)</th>
                                             <th class="py-2.5 px-2 text-center w-20">ระยะเวลา</th>
+                                            <th class="py-2.5 px-3 w-44 font-bold text-brand-600 dark:text-brand-400">จองตรวจ QC (D-5)</th>
                                             <th class="py-2.5 px-3 w-48">ช่างผู้รับผิดชอบ</th>
                                             <th class="py-2.5 px-3 w-28">สถานะ</th>
                                             <th class="py-2.5 px-2 w-10 text-center">ลบ</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-border">
-                                        ${taskRowsHtml || '<tr><td colspan="8" class="py-6 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
+                                        ${taskRowsHtml || '<tr><td colspan="9" class="py-6 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
                                     </tbody>
                                 </table>
                             </div>
@@ -7434,6 +7689,21 @@
                         const cleanName = (t.name || '').replace(/"/g, '&quot;');
                         const custName = targetJob.customer || 'ลูกค้า';
 
+                        const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
+                        const rawQcDate = qcBooking ? qcBooking.qcBookingDate : this.calculateQCBookingDate(t.end || t.start, 5);
+                        const qcDateDisplay = this.formatDateDMY(rawQcDate);
+                        const isQCConfirmed = qcBooking && qcBooking.status === 'CONFIRMED';
+                        const qcBadgeHtml = isQCConfirmed 
+                            ? `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="จองตรวจ QC: ${qcDateDisplay} (ยืนยันช่าง QC แล้ว: ${qcBooking.assignedQCTech})">
+                                <i class="ph ph-check-circle text-xs"></i>
+                                <span>QC: ${qcDateDisplay} (Confirmed)</span>
+                              </button>`
+                            : `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 hover:bg-amber-500/25 transition cursor-pointer" title="จองช่าง QC ล่วงหน้า 5 วันก่อนวันสิ้นสุด - คลิกเพื่อยืนยันช่าง QC">
+                                <i class="ph ph-calendar-check text-xs"></i>
+                                <span>จอง QC: ${qcDateDisplay}</span>
+                                <span class="underline font-bold ml-0.5">Confirm</span>
+                              </button>`;
+
                         return `
                         <tr class="hover:bg-muted/20 transition gantt-list-row">
                             <td class="py-2.5 px-3 text-center font-mono text-muted-foreground font-semibold text-xs">${idx + 1}</td>
@@ -7456,6 +7726,9 @@
                                 <span class="px-2 py-1 rounded text-[11px] font-mono font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
                                     ${taskDays} วัน
                                 </span>
+                            </td>
+                            <td class="py-2.5 px-3 whitespace-nowrap">
+                                ${qcBadgeHtml}
                             </td>
                             <td class="py-2.5 px-3">
                                 <select onchange="app.updateGanttTaskField('${t.id}', 'tech', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-xs text-foreground font-medium focus:outline-none cursor-pointer">
@@ -7523,6 +7796,7 @@
                                             <th class="py-3 px-3 w-36 font-bold">วันเริ่ม (Start)</th>
                                             <th class="py-3 px-3 w-36 font-bold">วันสิ้นสุด (End)</th>
                                             <th class="py-3 px-2 text-center w-20 font-bold">ระยะเวลา</th>
+                                            <th class="py-3 px-3 w-44 font-bold text-brand-600 dark:text-brand-400">จองตรวจ QC (D-5)</th>
                                             <th class="py-3 px-3 w-48 font-bold">ช่างผู้รับผิดชอบ</th>
                                             <th class="py-3 px-3 w-28 font-bold">สถานะ</th>
                                             <th class="py-3 px-2 w-10 text-center font-bold">ลบ</th>
@@ -7595,6 +7869,9 @@
                     else if (t.status === 'IN_PROGRESS') bgClass = 'bg-gradient-to-r from-purple-500/20 to-brand-500/20 text-purple-700 dark:text-purple-300 border-purple-500/40 shadow-xs font-semibold';
 
                     const endDateStr = t.end || t.start;
+                    const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
+                    const rawQcDate = qcBooking ? qcBooking.qcBookingDate : this.calculateQCBookingDate(endDateStr, 5);
+                    const qcDateDisplay = this.formatDateDMY(rawQcDate);
 
                     return `
                     <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group">
@@ -7607,11 +7884,11 @@
                             </div>
                             <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2">
                                 <span>📅 ${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} (${taskDays} วัน)</span>
-                                <span onclick="app.selectGanttJob('${t.jobId}')" class="text-brand-500 hover:underline cursor-pointer opacity-0 group-hover:opacity-100 transition text-[9px]">แก้ไข Task ➔</span>
+                                <span onclick="app.openQCFromTask('${t.id}')" class="text-brand-500 hover:underline cursor-pointer flex items-center gap-0.5" title="คลิกเพื่อดูการจองช่าง QC"><i class="ph ph-shield-check text-[11px]"></i> จอง QC: ${qcDateDisplay}</span>
                             </div>
                         </div>
                         <div class="flex-1 relative h-full flex items-center">
-                            <div onclick="app.selectGanttJob('${t.jobId}')" class="${bgClass} border absolute h-8 rounded-lg text-[11px] px-2.5 flex items-center justify-between truncate shadow-xs transition hover:brightness-105 cursor-pointer hover:ring-2 hover:ring-brand-500/40" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 80px;" title="${t.name} (${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} - ${t.tech})">
+                            <div onclick="app.selectGanttJob('${t.jobId}')" class="${bgClass} border absolute h-8 rounded-lg text-[11px] px-2.5 flex items-center justify-between truncate shadow-xs transition hover:brightness-105 cursor-pointer hover:ring-2 hover:ring-brand-500/40" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 80px;" title="${t.name} (${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} - ${t.tech}) | จองตรวจ QC: ${qcDateDisplay}">
                                 <span class="truncate font-medium flex items-center gap-1"><i class="ph ph-user text-[11px]"></i> ${t.tech}</span>
                                 <span class="text-[10px] opacity-90 ml-1 font-mono font-bold bg-card/60 px-1 py-0.5 rounded">${taskDays}d</span>
                             </div>
@@ -7630,21 +7907,227 @@
             },
 
             renderQC() {
-                const qcJobs = DB.jobs.filter(j => j.status === 'QC_PENDING');
-                document.getElementById('qc-queue-count').innerText = `${qcJobs.length} รายการ`;
+                this.updateQCBadges();
+                const currentTab = this.state.qcTab || 'bookings';
 
-                const listHtml = qcJobs.map(j => `
-                    <div class="p-3.5 rounded-xl bg-muted/40 border border-border hover:border-brand-500/40 transition-all cursor-pointer group" onclick="app.selectQCJob('${j.id}')">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="font-mono text-xs font-bold text-brand-500">${j.id}</span>
-                            <span class="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">รอตรวจ</span>
+                if (currentTab === 'bookings') {
+                    const bookings = DB.qcBookings || [];
+                    const listHtml = bookings.map(b => {
+                        const isConfirmed = b.status === 'CONFIRMED';
+                        const statusBadge = isConfirmed
+                            ? `<span class="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 font-bold flex items-center gap-1"><i class="ph ph-check-circle"></i> ยืนยันแล้ว</span>`
+                            : `<span class="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 font-bold flex items-center gap-1"><i class="ph ph-clock"></i> รอ Confirm</span>`;
+
+                        const isSelected = this.state.selectedQCBookingId === b.id;
+                        const cardBg = isSelected 
+                            ? 'bg-brand-500/10 border-brand-500 ring-1 ring-brand-500/40' 
+                            : 'bg-muted/40 border-border hover:border-brand-500/40';
+
+                        return `
+                        <div class="p-3.5 rounded-xl ${cardBg} border transition-all cursor-pointer group" onclick="app.selectQCBooking('${b.id}')">
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-mono text-xs font-bold text-brand-500">${b.jobId}</span>
+                                    <span class="text-[10px] text-muted-foreground font-mono truncate max-w-[90px]" title="${b.taskId}">(${b.taskId})</span>
+                                </div>
+                                ${statusBadge}
+                            </div>
+                            <div class="text-xs font-semibold text-foreground group-hover:text-brand-500 transition truncate">${b.taskName}</div>
+                            <div class="text-[11px] text-muted-foreground mt-1 flex items-center justify-between">
+                                <span class="truncate">ลูกค้า: ${b.customerName || 'ลูกค้า'}</span>
+                                <span class="font-mono text-[10px] text-brand-600 dark:text-brand-400 font-bold">📅 ${this.formatDateDMY(b.qcBookingDate)}</span>
+                            </div>
+                            <div class="text-[10px] text-muted-foreground/80 mt-1 flex items-center justify-between border-t border-border/50 pt-1">
+                                <span>ช่างหน้างาน: ${b.assignedTech}</span>
+                                <span class="text-foreground/80 font-medium">QC: ${b.assignedQCTech.split(' ')[0]}</span>
+                            </div>
                         </div>
-                        <div class="text-xs font-medium text-foreground group-hover:text-brand-500 transition">${j.customer}</div>
-                        <div class="text-[11px] text-muted-foreground mt-1">${j.service} • ${j.tech}</div>
-                    </div>
-                `).join('');
+                        `;
+                    }).join('');
 
-                document.getElementById('qc-queue-list').innerHTML = listHtml || '<div class="text-xs text-muted-foreground text-center py-8">ไม่มีรายการงานที่รอตรวจ QC ในขณะนี้</div>';
+                    document.getElementById('qc-queue-list').innerHTML = listHtml || `
+                        <div class="text-xs text-muted-foreground text-center py-12 space-y-2">
+                            <i class="ph ph-calendar-x text-2xl text-muted-foreground/60 block"></i>
+                            <div>ยังไม่มีรายการจองคิวช่าง QC</div>
+                            <button onclick="app.navigate('gantt')" class="text-brand-500 hover:underline text-[11px] font-medium cursor-pointer">+ ไปยัง Gantt Chart เพื่อสร้าง Task</button>
+                        </div>
+                    `;
+
+                    // Auto-select first booking if none selected or selected not in list
+                    if (bookings.length > 0) {
+                        const targetId = this.state.selectedQCBookingId && bookings.some(b => b.id === this.state.selectedQCBookingId)
+                            ? this.state.selectedQCBookingId
+                            : bookings[0].id;
+                        this.selectQCBooking(targetId);
+                    } else {
+                        document.getElementById('qc-form-container').innerHTML = `
+                            <div class="h-full flex flex-col items-center justify-center text-center p-8">
+                                <div class="w-16 h-16 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground mb-4">
+                                    <i class="ph ph-calendar-blank text-3xl"></i>
+                                </div>
+                                <h4 class="font-display font-medium text-foreground text-base mb-1">ยังไม่มีรายการจองช่าง QC</h4>
+                                <p class="text-xs text-muted-foreground max-w-sm">เมื่อมีการสร้างหรือบันทึก End Date ของแต่ละ Task ใน Gantt Timeline ระบบจะสร้างงานจองคิวตรวจคุณภาพล่วงหน้า 5 วันอัตโนมัติ</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // Pending Inspection Tab
+                    const qcJobs = DB.jobs.filter(j => j.status === 'QC_PENDING');
+                    const listHtml = qcJobs.map(j => `
+                        <div class="p-3.5 rounded-xl bg-muted/40 border border-border hover:border-brand-500/40 transition-all cursor-pointer group" onclick="app.selectQCJob('${j.id}')">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-mono text-xs font-bold text-brand-500">${j.id}</span>
+                                <span class="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">รอตรวจ</span>
+                            </div>
+                            <div class="text-xs font-medium text-foreground group-hover:text-brand-500 transition">${j.customer}</div>
+                            <div class="text-[11px] text-muted-foreground mt-1">${j.service} • ${j.tech}</div>
+                        </div>
+                    `).join('');
+
+                    document.getElementById('qc-queue-list').innerHTML = listHtml || '<div class="text-xs text-muted-foreground text-center py-12 text-muted-foreground">ไม่มีรายการงานที่รอตรวจ QC ในขณะนี้</div>';
+                    
+                    if (qcJobs.length > 0) {
+                        this.selectQCJob(qcJobs[0].id);
+                    } else {
+                        document.getElementById('qc-form-container').innerHTML = `
+                            <div class="h-full flex flex-col items-center justify-center text-center p-8">
+                                <div class="w-16 h-16 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground mb-4">
+                                    <i class="ph ph-clipboard-text text-3xl"></i>
+                                </div>
+                                <h4 class="font-display font-medium text-foreground text-base mb-1">ไม่มีงานค้างรอตรวจประเมิน</h4>
+                                <p class="text-xs text-muted-foreground max-w-sm">งานทั้งหมดได้รับการตรวจ QC เรียบร้อยแล้ว</p>
+                            </div>
+                        `;
+                    }
+                }
+            },
+
+            selectQCBooking(bookingId) {
+                this.state.selectedQCBookingId = bookingId;
+                const booking = (DB.qcBookings || []).find(b => b.id === bookingId);
+                if (!booking) return;
+
+                const qcTechOptions = [
+                    'วิชัย ตรวจดี (ช่าง QC Lead)',
+                    'สมเกียรติ มั่นคง (QC Renovate & Maintenance)',
+                    'ช่างกิตติพงษ์ (QC งานระบบและไฟฟ้า)',
+                    'ช่างธนกฤต (QC งานปรับอากาศ)',
+                    'ช่างสมชาย (QC มาตรฐานทั่วไป)'
+                ];
+
+                const curQcTech = booking.assignedQCTech || qcTechOptions[0];
+                let optsHtml = qcTechOptions.map(tc => `<option value="${tc}" ${tc === curQcTech ? 'selected' : ''}>${tc}</option>`).join('');
+                if (!qcTechOptions.includes(curQcTech)) {
+                    optsHtml += `<option value="${curQcTech}" selected>${curQcTech}</option>`;
+                }
+
+                const isConfirmed = booking.status === 'CONFIRMED';
+                const container = document.getElementById('qc-form-container');
+                if (!container) return;
+
+                container.innerHTML = `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border mb-6">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">${booking.jobId}</span>
+                                <h3 class="font-display font-bold text-lg text-foreground">ใบนัดหมายจองช่างตรวจคุณภาพ (QC Booking)</h3>
+                            </div>
+                            <p class="text-xs text-muted-foreground mt-0.5">Task: <strong class="text-foreground">${booking.taskName}</strong> • ลูกค้า: ${booking.customerName || 'ลูกค้า'}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${isConfirmed 
+                                ? `<span class="px-3 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/30 flex items-center gap-1.5 shadow-xs"><i class="ph ph-check-circle text-base"></i> ยืนยันช่าง QC แล้ว</span>`
+                                : `<span class="px-3 py-1.5 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 text-xs font-bold border border-amber-500/30 flex items-center gap-1.5 shadow-xs"><i class="ph ph-clock text-base"></i> รอยืนยันช่าง QC</span>`
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Booking Key Facts Banner -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="p-4 rounded-2xl bg-card border border-border/80 shadow-xs">
+                            <div class="text-[11px] text-muted-foreground flex items-center gap-1.5 mb-1">
+                                <i class="ph ph-calendar-blank text-brand-500"></i> วันสิ้นสุด Task ใน Gantt
+                            </div>
+                            <div class="text-sm font-bold font-mono text-foreground">${this.formatDateDMY(booking.taskEnd)}</div>
+                            <div class="text-[10px] text-muted-foreground mt-1">เริ่ม: ${this.formatDateDMY(booking.taskStart)}</div>
+                        </div>
+
+                        <div class="p-4 rounded-2xl bg-brand-500/5 border border-brand-500/20 shadow-xs">
+                            <div class="text-[11px] text-brand-600 dark:text-brand-400 flex items-center gap-1.5 font-semibold mb-1">
+                                <i class="ph ph-shield-check text-brand-500"></i> วันนัดตรวจ QC (ล่วงหน้า 5 วัน)
+                            </div>
+                            <div class="text-base font-bold font-mono text-brand-600 dark:text-brand-400">${this.formatDateDMY(booking.qcBookingDate)}</div>
+                            <div class="text-[10px] text-muted-foreground mt-1">คำนวณอัตโนมัติจาก Task End - 5 วัน</div>
+                        </div>
+
+                        <div class="p-4 rounded-2xl bg-card border border-border/80 shadow-xs">
+                            <div class="text-[11px] text-muted-foreground flex items-center gap-1.5 mb-1">
+                                <i class="ph ph-wrench text-brand-500"></i> ช่างผู้รับผิดชอบหน้างาน
+                            </div>
+                            <div class="text-xs font-bold text-foreground truncate">${booking.assignedTech}</div>
+                            <div class="text-[10px] text-muted-foreground mt-1">สถานะ Task: <span class="font-semibold text-brand-500">${booking.taskStatus}</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Inspector Assignment & Scheduling Form -->
+                    <div class="p-5 rounded-2xl bg-card border border-border space-y-4 mb-6 shadow-xs">
+                        <h4 class="font-display font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                            <i class="ph ph-user-gear text-brand-500 text-sm"></i>
+                            กำหนดข้อมูลการตรวจ & ช่าง QC ผู้ตรวจสอบ
+                        </h4>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-foreground mb-1.5">ช่าง QC ผู้รับผิดชอบ (Inspector):</label>
+                                <select id="qc-inspector-input-${booking.id}" onchange="app.updateQCBookingInspector('${booking.id}', this.value)" class="w-full bg-muted/40 border border-border focus:border-brand-500 rounded-xl px-3 py-2 text-xs font-semibold text-foreground focus:outline-none transition cursor-pointer">
+                                    ${optsHtml}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-foreground mb-1.5">วันที่นัดตรวจ QC (Booking Date):</label>
+                                <input type="date" value="${booking.qcBookingDate}" onchange="app.updateQCBookingDate('${booking.id}', this.value)" class="w-full bg-muted/40 border border-border focus:border-brand-500 rounded-xl px-3 py-2 text-xs font-mono font-semibold text-foreground focus:outline-none transition cursor-pointer">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-foreground mb-1.5">หมายเหตุ / เงื่อนไขการตรวจพิเศษ (Special Notes):</label>
+                            <textarea id="qc-remarks-input-${booking.id}" onblur="app.saveQCBookingRemarks('${booking.id}')" rows="2.5" class="w-full bg-muted/40 border border-border focus:border-brand-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none transition" placeholder="เช่น ต้องใช้อุปกรณ์วัดแรงดันพิเศษ, ลูกค้าจะอยู่ตรวจช่วงบ่าย, ตรวจสอบงานสีและขอบบัว...">${booking.remarks || ''}</textarea>
+                        </div>
+                    </div>
+
+                    ${isConfirmed ? `
+                        <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-6 flex items-start gap-3">
+                            <i class="ph ph-check-circle text-emerald-500 text-xl shrink-0 mt-0.5"></i>
+                            <div class="text-xs space-y-1">
+                                <div class="font-bold text-emerald-700 dark:text-emerald-300">ยืนยันการจองช่าง QC เรียบร้อยแล้ว</div>
+                                <div class="text-muted-foreground">ยืนยันโดย: <strong>${booking.confirmedBy || 'เจ้าหน้าที่'}</strong> • เมื่อ: ${booking.confirmedAt ? new Date(booking.confirmedAt).toLocaleString('th-TH') : '-'}</div>
+                                <div class="text-[11px] text-muted-foreground">ช่างตรวจคุณภาพจะเข้าตรวจสอบตามวันนัดหมาย และลงบันทึกในแท็บ "รอตรวจ (Pending)"</div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Actions Toolbar -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border">
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="app.navigate('gantt')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer">
+                                <i class="ph ph-arrow-left"></i> กลับไป Gantt Chart
+                            </button>
+                            <button type="button" onclick="app.startQCInspectionFromBooking('${booking.jobId}')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 text-brand-600 dark:text-brand-400 border-brand-500/20 hover:bg-brand-500/10 cursor-pointer" title="เปิดหน้าแบบฟอร์ม Checklist ตรวจรับ">
+                                <i class="ph ph-clipboard-text text-sm"></i> เปิดฟอร์ม Checklist
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="app.saveQCBookingRemarks('${booking.id}')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-medium cursor-pointer">
+                                💾 บันทึกแบบร่าง
+                            </button>
+                            <button type="button" onclick="app.confirmQCBooking('${booking.id}')" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white cursor-pointer">
+                                <i class="ph ph-check-circle text-base"></i>
+                                <span>${isConfirmed ? 'อัปเดตการยืนยันช่าง QC' : '✓ Confirm จองช่าง QC'}</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
             },
 
             selectQCJob(id) {
