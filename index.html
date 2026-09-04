@@ -2667,11 +2667,67 @@
                     <textarea id="upload-bp-notes" rows="2" placeholder="ระบุรายละเอียดเพิ่มเติมเกี่ยวกับแบบติดตั้งฉบับนี้..." class="w-full bg-muted/40 border border-border rounded-lg p-2.5 text-xs text-foreground focus:outline-none focus:border-brand-500"></textarea>
                 </div>
 
-                <!-- Drag & drop mock -->
-                <div class="border-2 border-dashed border-border hover:border-brand-500/50 rounded-xl p-4 text-center cursor-pointer bg-muted/20">
-                    <i class="ph ph-file-arrow-up text-2xl text-brand-500 mb-1"></i>
-                    <div class="text-xs font-medium text-foreground">ลากไฟล์ PDF / CAD หรือคลิกเพื่อเลือกไฟล์</div>
-                    <div class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์ขนาดสูงสุด 50 MB</div>
+                <!-- Real File Attachment & Drag-Drop Zone -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold text-foreground">แนบไฟล์แบบแปลน (CAD / PDF / DWG / รูปภาพ) *</label>
+                    <input type="file" id="upload-bp-file" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.zip,.rar" class="hidden" onchange="app.handleBlueprintFileSelect(event)">
+                    
+                    <div id="upload-bp-dropzone" 
+                         class="border-2 border-dashed border-border hover:border-indigo-500 rounded-xl p-5 text-center cursor-pointer bg-muted/20 hover:bg-indigo-500/5 transition relative flex flex-col items-center justify-center gap-2 group"
+                         onclick="document.getElementById('upload-bp-file').click()"
+                         ondragover="app.handleBlueprintDragOver(event)"
+                         ondragleave="app.handleBlueprintDragLeave(event)"
+                         ondrop="app.handleBlueprintDrop(event)">
+                        <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition text-2xl">
+                            <i class="ph ph-cloud-arrow-up"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-foreground">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่</div>
+                            <div class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์ PDF, AutoCAD (.dwg, .dxf), รูปภาพ (.jpg, .png) สูงสุด 50 MB</div>
+                        </div>
+                        <button type="button" class="btn-artifact-secondary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-xs mt-1 pointer-events-none">
+                            <i class="ph ph-folder-open text-sm"></i> เลือกไฟล์จากเครื่องคอมพิวเตอร์
+                        </button>
+                    </div>
+
+                    <!-- Selected File Preview Card -->
+                    <div id="upload-bp-selected-file" class="hidden p-3 rounded-xl border border-indigo-500/30 bg-indigo-500/5 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-9 h-9 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-lg shrink-0" id="upload-bp-file-icon">
+                                <i class="ph ph-file-pdf"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-xs font-bold text-foreground truncate" id="upload-bp-file-display-name">blueprint.pdf</div>
+                                <div class="text-[10px] text-muted-foreground font-mono" id="upload-bp-file-display-size">2.4 MB • พร้อมบันทึก</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button type="button" onclick="document.getElementById('upload-bp-file').click()" class="p-1.5 text-muted-foreground hover:text-foreground text-xs rounded-lg hover:bg-muted cursor-pointer" title="เปลี่ยนไฟล์">
+                                <i class="ph ph-arrows-clockwise text-sm"></i>
+                            </button>
+                            <button type="button" onclick="app.clearBlueprintSelectedFile()" class="p-1.5 text-rose-500 hover:text-rose-600 text-xs rounded-lg hover:bg-rose-500/10 cursor-pointer" title="ลบไฟล์ที่เลือก">
+                                <i class="ph ph-trash text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quick Sample Files / Templates -->
+                    <div class="space-y-1.5 pt-1">
+                        <div class="text-[10px] text-muted-foreground flex items-center justify-between">
+                            <span>หรือเลือกตัวอย่างแบบแปลนมาตรฐาน (Quick Test):</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <button type="button" onclick="app.useSampleBlueprint('hvac')" class="text-[10px] bg-muted hover:bg-muted/80 px-2 py-1 rounded-lg text-foreground border border-border cursor-pointer flex items-center gap-1">
+                                <i class="ph ph-file-pdf text-rose-500"></i> แปลนแอร์ Inverter (PDF)
+                            </button>
+                            <button type="button" onclick="app.useSampleBlueprint('kitchen')" class="text-[10px] bg-muted hover:bg-muted/80 px-2 py-1 rounded-lg text-foreground border border-border cursor-pointer flex items-center gap-1">
+                                <i class="ph ph-file-code text-indigo-500"></i> แบบ Renovate ครัว (DWG)
+                            </button>
+                            <button type="button" onclick="app.useSampleBlueprint('solar')" class="text-[10px] bg-muted hover:bg-muted/80 px-2 py-1 rounded-lg text-foreground border border-border cursor-pointer flex items-center gap-1">
+                                <i class="ph ph-sun text-amber-500"></i> ผัง Solar Rooftop (PDF)
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="pt-3 border-t border-border flex justify-end gap-2">
@@ -6429,7 +6485,132 @@
                 this.renderBlueprints();
             },
 
+            handleBlueprintFileSelect(event) {
+                const file = event.target.files && event.target.files[0];
+                if (!file) return;
+                this.processSelectedBlueprintFile(file);
+            },
+
+            handleBlueprintDragOver(event) {
+                event.preventDefault();
+                const dropzone = document.getElementById('upload-bp-dropzone');
+                if (dropzone) dropzone.classList.add('border-indigo-500', 'bg-indigo-500/10');
+            },
+
+            handleBlueprintDragLeave(event) {
+                event.preventDefault();
+                const dropzone = document.getElementById('upload-bp-dropzone');
+                if (dropzone) dropzone.classList.remove('border-indigo-500', 'bg-indigo-500/10');
+            },
+
+            handleBlueprintDrop(event) {
+                event.preventDefault();
+                const dropzone = document.getElementById('upload-bp-dropzone');
+                if (dropzone) dropzone.classList.remove('border-indigo-500', 'bg-indigo-500/10');
+                if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+                    this.processSelectedBlueprintFile(event.dataTransfer.files[0]);
+                }
+            },
+
+            processSelectedBlueprintFile(file) {
+                const nameInput = document.getElementById('upload-bp-filename');
+                if (nameInput) nameInput.value = file.name;
+
+                const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+                const sizeText = file.size < 1024 * 1024 ? `${Math.round(file.size / 1024)} KB` : `${sizeMb} MB`;
+                this.state.newBlueprintSize = sizeText;
+                this.state.newBlueprintFileName = file.name;
+
+                const ext = file.name.split('.').pop().toLowerCase();
+                let iconClass = 'ph-file';
+                if (ext === 'pdf') iconClass = 'ph-file-pdf text-rose-500';
+                else if (['dwg', 'dxf', 'cad'].includes(ext)) iconClass = 'ph-file-code text-indigo-500';
+                else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) iconClass = 'ph-file-image text-emerald-500';
+
+                const iconEl = document.getElementById('upload-bp-file-icon');
+                if (iconEl) iconEl.innerHTML = `<i class="ph ${iconClass} text-xl"></i>`;
+
+                const nameEl = document.getElementById('upload-bp-file-display-name');
+                if (nameEl) nameEl.innerText = file.name;
+
+                const sizeEl = document.getElementById('upload-bp-file-display-size');
+                if (sizeEl) sizeEl.innerText = `${sizeText} • พร้อมบันทึกเข้าสู่ Step 2`;
+
+                const cardEl = document.getElementById('upload-bp-selected-file');
+                if (cardEl) cardEl.classList.remove('hidden');
+
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        this.state.newBlueprintPreview = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    this.state.newBlueprintPreview = 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600&auto=format&fit=crop&q=80';
+                }
+
+                this.showToast(`📎 แนบไฟล์ "${file.name}" (${sizeText}) สำเร็จแล้ว`);
+            },
+
+            clearBlueprintSelectedFile() {
+                const fileInput = document.getElementById('upload-bp-file');
+                if (fileInput) fileInput.value = '';
+                const cardEl = document.getElementById('upload-bp-selected-file');
+                if (cardEl) cardEl.classList.add('hidden');
+                this.state.newBlueprintSize = null;
+                this.state.newBlueprintFileName = null;
+                this.state.newBlueprintPreview = null;
+            },
+
+            useSampleBlueprint(type) {
+                let filename = 'Air_Installation_Layout_v3_Final.pdf';
+                let size = '3.4 MB';
+                let version = 'v3 Final';
+                let notes = 'แบบแปลนจุดติดตั้งคอยล์เย็นในห้องนอนใหญ่ และตำแหน่งแขวนคอนเดนซิ่งยูนิตภายนอก';
+
+                if (type === 'kitchen') {
+                    filename = 'Kitchen_Renovate_Plumbing_Schematic.dwg';
+                    size = '5.8 MB';
+                    version = 'v2 Approved';
+                    notes = 'ไดอะแกรมระบบสุขาภิบาล จุดต่อน้ำดี-น้ำทิ้ง และตำแหน่งตู้เคาน์เตอร์ครัว Built-in';
+                } else if (type === 'solar') {
+                    filename = 'Solar_Rooftop_5kW_Wiring_Diagram.pdf';
+                    size = '4.2 MB';
+                    version = 'v1 Approved';
+                    notes = 'แบบผังติดตั้งแผงโซลาร์เซลล์บนหลังคา และแนวเดินสายไฟ DC/AC Protection';
+                }
+
+                const nameInput = document.getElementById('upload-bp-filename');
+                if (nameInput) nameInput.value = filename;
+
+                const verInput = document.getElementById('upload-bp-version');
+                if (verInput) verInput.value = version;
+
+                const notesInput = document.getElementById('upload-bp-notes');
+                if (notesInput && !notesInput.value) notesInput.value = notes;
+
+                this.state.newBlueprintSize = size;
+                this.state.newBlueprintFileName = filename;
+
+                const ext = filename.split('.').pop().toLowerCase();
+                const iconClass = ext === 'pdf' ? 'ph-file-pdf text-rose-500' : 'ph-file-code text-indigo-500';
+                const iconEl = document.getElementById('upload-bp-file-icon');
+                if (iconEl) iconEl.innerHTML = `<i class="ph ${iconClass} text-xl"></i>`;
+
+                const nameEl = document.getElementById('upload-bp-file-display-name');
+                if (nameEl) nameEl.innerText = filename;
+
+                const sizeEl = document.getElementById('upload-bp-file-display-size');
+                if (sizeEl) sizeEl.innerText = `${size} • ไฟล์ตัวอย่างมาตรฐาน`;
+
+                const cardEl = document.getElementById('upload-bp-selected-file');
+                if (cardEl) cardEl.classList.remove('hidden');
+
+                this.showToast(`📐 เลือกไฟล์ตัวอย่าง "${filename}" เรียบร้อย`);
+            },
+
             openUploadBlueprintModal(preselectedJobId = null) {
+                this.clearBlueprintSelectedFile();
                 const selectJob = document.getElementById('upload-bp-jobid');
                 if (selectJob) {
                     selectJob.innerHTML = DB.jobs.map(j => `<option value="${j.id}">${j.id} - ${j.customer} (${j.service})</option>`).join('');
@@ -6438,11 +6619,17 @@
                     }
                 }
                 const filenameInput = document.getElementById('upload-bp-filename');
-                if (filenameInput && preselectedJobId) {
-                    const selJob = DB.jobs.find(j => j.id === preselectedJobId);
-                    if (selJob && !filenameInput.value) {
-                        const sanitizedSvc = (selJob.service || 'Service').replace(/\s+/g, '_').substring(0, 20);
-                        filenameInput.value = `${selJob.id}_Layout_${sanitizedSvc}.pdf`;
+                if (filenameInput) {
+                    if (preselectedJobId) {
+                        const selJob = DB.jobs.find(j => j.id === preselectedJobId);
+                        if (selJob) {
+                            const sanitizedSvc = (selJob.service || 'Service').replace(/\s+/g, '_').substring(0, 20);
+                            filenameInput.value = `${selJob.id}_Layout_${sanitizedSvc}.pdf`;
+                        } else {
+                            filenameInput.value = '';
+                        }
+                    } else {
+                        filenameInput.value = '';
                     }
                 }
                 this.showModal('modal-upload-blueprint');
@@ -6465,10 +6652,10 @@
                     filename: filename,
                     version: version,
                     isCurrent: true,
-                    size: '2.5 MB',
+                    size: this.state.newBlueprintSize || '2.5 MB',
                     date: new Date().toLocaleDateString('th-TH') + ' ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
                     designer: designer,
-                    previewImg: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600&auto=format&fit=crop&q=80',
+                    previewImg: this.state.newBlueprintPreview || 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600&auto=format&fit=crop&q=80',
                     notes: notes
                 };
 
@@ -6477,13 +6664,23 @@
                 DB.blueprints.unshift(newBp);
                 this.persistBlueprints();
 
+                if (job) {
+                    job.blueprint_id = newBp.id;
+                    job.blueprint_name = filename;
+                }
+                this.persistJobs();
+
                 // Step 2 Timestamp Recording
                 this.recordStepTimestamp(jobId, 'step2_design_at', newBp.recorded_at, `แนบแบบแปลน ${filename} (${version})`);
 
+                this.clearBlueprintSelectedFile();
                 this.hideModal('modal-upload-blueprint');
                 this.showToast(`✅ บันทึกและแนบแบบแปลน "${filename}" สำหรับ ${jobId} สำเร็จ`);
                 if (this.state.currentView === 'blueprints') {
                     this.renderBlueprints();
+                }
+                if (this.state.currentView === 'job-detail') {
+                    this.renderJobDetail();
                 }
             },
 
