@@ -2664,7 +2664,7 @@ const app = {
 
                 // Update tab badges
                 const tabPendingBadge = document.getElementById('tab-bp-pending-badge');
-                if (tabPendingBadge) tabPendingBadge.innerText = queueJobs.length;
+                if (tabPendingBadge) tabPendingBadge.innerText = pendingJobCount;
                 const tabLibraryBadge = document.getElementById('tab-bp-library-badge');
                 if (tabLibraryBadge) tabLibraryBadge.innerText = totalBpFiles;
 
@@ -5658,7 +5658,9 @@ const app = {
                     selectEl.innerHTML = (DB.jobs || []).map(j => {
                         const cust = j.customer || `${j.firstName || ''} ${j.lastName || ''}`.trim() || 'ลูกค้า';
                         const count = (j.boq_items || []).length;
-                        const statusTag = count > 0 ? `(${count} รายการ - มี BOQ)` : `(ยังไม่มี BOQ)`;
+                        const hasBps = (DB.blueprints || []).some(b => b.jobId === j.id) || !!j.blueprint_id;
+                        const bpTag = hasBps ? '📐 มีแบบแปลนแล้ว' : '⏳ ยังไม่มีแบบแปลน';
+                        const statusTag = count > 0 ? `(${count} รายการ BOQ)` : `(${bpTag} - ยังไม่มี BOQ)`;
                         return `<option value="${j.id}" ${j.id === targetJobId ? 'selected' : ''}>${j.id} - ${cust} ${statusTag}</option>`;
                     }).join('');
                     selectEl.value = targetJobId;
@@ -5666,14 +5668,20 @@ const app = {
 
                 const infoBadge = document.getElementById('boq-project-info-badge');
                 if (infoBadge && job) {
+                    const hasBps = (DB.blueprints || []).some(b => b.jobId === job.id) || !!job.blueprint_id;
+                    const bpCount = (DB.blueprints || []).filter(b => b.jobId === job.id).length;
                     infoBadge.innerHTML = `
                         <span class="font-mono font-bold text-purple-600 dark:text-purple-400">${job.id}</span>
                         <span>•</span>
                         <span class="font-semibold text-foreground">${job.customer}</span>
                         <span>•</span>
-                        <span class="text-muted-foreground">${job.phone}</span>
-                        <span>•</span>
                         <span class="text-brand-500 font-medium">${job.service}</span>
+                        ${hasBps ? `
+                        <span>•</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30">
+                            <i class="ph ph-blueprint"></i> แนบแบบแปลนแล้ว (${bpCount} โซน)
+                        </span>
+                        ` : ''}
                     `;
                 }
 
