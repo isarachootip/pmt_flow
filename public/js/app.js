@@ -2481,9 +2481,20 @@ const app = {
                                         <i class="ph ph-check-circle text-sm font-bold"></i>
                                         <span>รับเข้าระบบ PMT แล้ว</span>
                                     </button>
+                                    ${hasBlueprints ? `
+                                    <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-bold shadow-sm bg-purple-600 hover:bg-purple-700 text-white cursor-pointer" onclick="app.openBOQForJob('${job.id}')" title="ไปหน้า Step 3 เพื่อบันทึก/ถอดรายการ BOQ สำหรับงานนี้">
+                                        <i class="ph ph-receipt text-sm"></i>
+                                        <span>ไปหน้า Step 3: นำ BOQ เข้าระบบ</span> <i class="ph ph-arrow-right text-xs"></i>
+                                    </button>
+                                    <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium cursor-pointer" onclick="app.navigate('blueprints')" title="ดูหรือเพิ่มแบบแปลนห้องอื่นเพิ่มเติม">
+                                        <i class="ph ph-blueprint text-indigo-500"></i>
+                                        <span>ดูแบบ Design (Step 2)</span>
+                                    </button>
+                                    ` : `
                                     <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-sm cursor-pointer" onclick="app.navigate('blueprints')">
                                         <span>ไปหน้าบันทึก Design (Step 2)</span> <i class="ph ph-arrow-right text-xs"></i>
                                     </button>
+                                    `}
                                     ` : `
                                     <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-semibold shadow-sm cursor-pointer" onclick="app.acceptJobToPMT('${job.id}')">
                                         <i class="ph ph-check-circle text-sm"></i>
@@ -2742,17 +2753,23 @@ const app = {
                                                     </div>
                                                 </td>
                                                 <td class="py-3 px-4 text-center whitespace-nowrap">
-                                                    <div class="flex items-center justify-center gap-2">
-                                                        <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="${hasBps ? 'บันทึกแบบห้องอื่น / งานย่อยถัดไป' : 'บันทึกแบบแปลนแรกสำหรับงานนี้'}">
-                                                            <i class="ph ph-plus-circle font-bold text-sm"></i>
-                                                            <span>${hasBps ? '+ เพิ่มงานย่อย/ห้อง' : '+ บันทึก Design'}</span>
-                                                        </button>
-                                                        <label for="bp-list-upload-${job.id}" class="btn-artifact-secondary px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1 cursor-pointer hover:border-indigo-500 hover:text-indigo-600 transition" title="แนบไฟล์แบบแปลนทันที (Direct Upload)">
-                                                            <i class="ph ph-upload-simple"></i>
-                                                            <span class="hidden sm:inline">แนบไฟล์ด่วน</span>
-                                                        </label>
-                                                        <input type="file" id="bp-list-upload-${job.id}" class="sr-only" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.webp,.gif,.zip,.rar,image/*" onchange="app.handleDirectBlueprintUpload(event, '${job.id}')">
-                                                    </div>
+                                                     <div class="flex items-center justify-center gap-2">
+                                                         ${hasBps ? `
+                                                         <button type="button" onclick="app.openBOQForJob('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ไปหน้า Step 3: นำ BOQ เข้าระบบ">
+                                                             <i class="ph ph-receipt"></i>
+                                                             <span>ไปทำ BOQ (Step 3) ➔</span>
+                                                         </button>
+                                                         ` : ''}
+                                                         <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="${hasBps ? 'บันทึกแบบห้องอื่น / งานย่อยถัดไป' : 'บันทึกแบบแปลนแรกสำหรับงานนี้'}">
+                                                             <i class="ph ph-plus-circle font-bold text-sm"></i>
+                                                             <span>${hasBps ? '+ เพิ่มงานย่อย/ห้อง' : '+ บันทึก Design'}</span>
+                                                         </button>
+                                                         <label for="bp-list-upload-${job.id}" class="btn-artifact-secondary px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1 cursor-pointer hover:border-indigo-500 hover:text-indigo-600 transition" title="แนบไฟล์แบบแปลนทันที (Direct Upload)">
+                                                             <i class="ph ph-upload-simple"></i>
+                                                             <span class="hidden sm:inline">แนบไฟล์ด่วน</span>
+                                                         </label>
+                                                         <input type="file" id="bp-list-upload-${job.id}" class="sr-only" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.webp,.gif,.zip,.rar,image/*" onchange="app.handleDirectBlueprintUpload(event, '${job.id}')">
+                                                     </div>
                                                 </td>
                                             </tr>
                                             `;
@@ -2822,7 +2839,13 @@ const app = {
                                 </div>
                                 `}
 
-                                <div class="pt-2 border-t border-border flex items-center justify-end gap-2">
+                                <div class="pt-2 border-t border-border flex items-center justify-end gap-2 flex-wrap">
+                                    ${hasBps ? `
+                                    <button type="button" onclick="app.openBOQForJob('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="ไปหน้า Step 3: นำ BOQ เข้าระบบ">
+                                        <i class="ph ph-receipt"></i>
+                                        <span>ไปทำ BOQ (Step 3) ➔</span>
+                                    </button>
+                                    ` : ''}
                                     <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="${hasBps ? 'บันทึกแบบห้องอื่น / งานย่อยถัดไป' : 'บันทึกแบบแปลนแรกสำหรับงานนี้'}">
                                         <i class="ph ph-plus-circle font-bold"></i>
                                         <span>${hasBps ? '+ เพิ่มงานย่อย/ห้อง' : '+ บันทึก Design'}</span>
@@ -2925,7 +2948,10 @@ const app = {
                                                         <button class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer" title="ดาวน์โหลดไฟล์ PDF" onclick="app.showToast('กำลังดาวน์โหลด ${b.filename}...')">
                                                             <i class="ph ph-download-simple"></i>
                                                         </button>
-                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium cursor-pointer" onclick="app.navigate('job-detail', '${b.jobId}')" title="เปิดดูงาน">
+                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-purple-600 hover:bg-purple-700 text-white shadow-xs" onclick="app.openBOQForJob('${b.jobId}')" title="ไปทำ BOQ ของงานนี้ (Step 3)">
+                                                            <i class="ph ph-receipt"></i> <span>ทำ BOQ (Step 3) ➔</span>
+                                                        </button>
+                                                        <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium cursor-pointer" onclick="app.navigate('job-detail', '${b.jobId}')" title="เปิดดูงาน">
                                                             <span>เปิดดูงาน</span> <i class="ph ph-arrow-right"></i>
                                                         </button>
                                                     </div>
@@ -2978,14 +3004,17 @@ const app = {
                                         <div>${b.designer || 'Designer'}</div>
                                         <div class="text-[9px] font-mono opacity-75">${b.date}</div>
                                     </div>
-                                    <div class="flex items-center gap-1.5">
+                                    <div class="flex items-center gap-1.5 flex-wrap justify-end">
                                         <button class="btn-artifact-secondary px-2 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:border-indigo-500 hover:text-indigo-600 transition" onclick="app.openUploadBlueprintModal('${b.jobId}')" title="เพิ่มแบบแปลนห้องอื่นให้งานนี้">
                                             <i class="ph ph-plus-circle"></i> <span>+ โซน</span>
                                         </button>
                                         <button class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer" title="ดาวน์โหลดไฟล์ PDF" onclick="app.showToast('กำลังดาวน์โหลด ${b.filename}...')">
                                             <i class="ph ph-download-simple"></i>
                                         </button>
-                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium cursor-pointer" onclick="app.navigate('job-detail', '${b.jobId}')">
+                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-purple-600 hover:bg-purple-700 text-white shadow-xs" onclick="app.openBOQForJob('${b.jobId}')" title="ไปทำ BOQ ของงานนี้ (Step 3)">
+                                            <i class="ph ph-receipt"></i> <span>ทำ BOQ (Step 3) ➔</span>
+                                        </button>
+                                        <button class="btn-artifact-secondary px-2 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium cursor-pointer" onclick="app.navigate('job-detail', '${b.jobId}')" title="เปิดดูงาน">
                                             <span>เปิดดูงาน</span> <i class="ph ph-arrow-right"></i>
                                         </button>
                                     </div>
@@ -3399,6 +3428,14 @@ const app = {
                 if (this.state.currentView === 'job-detail') {
                     this.renderJobDetail();
                 }
+
+                // Prompt user to proceed to Step 3: BOQ immediately or continue adding zones
+                setTimeout(() => {
+                    const goToBOQ = confirm(`✅ บันทึกแบบแปลนโซน "${zone}" (${filename}) สำหรับ ${jobId} เรียบร้อยแล้ว!\n\nต้องการไปที่ "Step 3: นำ BOQ เข้าระบบ" เพื่อถอดรายการวัสดุ-ค่าแรงต่อทันทีเลยหรือไม่?\n\n• กด [ตกลง (OK)] เพื่อไปหน้า Step 3 (นำ BOQ เข้าระบบ)\n• กด [ยกเลิก (Cancel)] เพื่อบันทึกแบบห้อง/โซนอื่นต่อ`);
+                    if (goToBOQ) {
+                        this.openBOQForJob(jobId);
+                    }
+                }, 350);
             },
 
             addBOQItem(jobId) {
