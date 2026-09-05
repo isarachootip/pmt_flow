@@ -2648,8 +2648,7 @@ const app = {
                                             <th class="py-3 px-4">บริการ / งานติดตั้ง</th>
                                             <th class="py-3 px-4">สถานที่ติดตั้ง</th>
                                             <th class="py-3 px-4">ช่างผู้รับผิดชอบ</th>
-                                            <th class="py-3 px-4 text-center">เลือกบันทึก Design</th>
-                                            <th class="py-3 px-4 text-right">ดำเนินการ</th>
+                                            <th class="py-3 px-4 text-center">บันทึก Design</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-border">
@@ -2678,21 +2677,14 @@ const app = {
                                                     </div>
                                                 </td>
                                                 <td class="py-3 px-4 text-center whitespace-nowrap">
-                                                    <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/15 hover:bg-indigo-600 text-amber-700 dark:text-amber-300 hover:text-white border border-amber-500/30 hover:border-indigo-600 inline-flex items-center gap-1.5 cursor-pointer transition shadow-2xs group hover:scale-105" title="คลิกเลือกงานนี้เพื่อบันทึก Design & แบบแปลน">
-                                                        <i class="ph ph-plus-circle text-amber-600 dark:text-amber-400 group-hover:text-white text-sm font-bold"></i>
-                                                        <span>+ บันทึก Design</span>
-                                                    </button>
-                                                </td>
-                                                <td class="py-3 px-4 text-right whitespace-nowrap">
-                                                    <div class="flex items-center justify-end gap-1.5">
-                                                        <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs transition" title="เปิดฟอร์มบันทึกแบบแปลนสำหรับงานนี้">
-                                                            <i class="ph ph-pencil-simple font-bold"></i> <span>บันทึกแบบ</span>
+                                                    <div class="flex items-center justify-center gap-2">
+                                                        <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="บันทึกและแนบไฟล์แบบแปลน / Design สำหรับงานนี้">
+                                                            <i class="ph ph-plus-circle font-bold text-sm"></i>
+                                                            <span>+ บันทึก Design</span>
                                                         </button>
-                                                        <button type="button" onclick="app.navigate('job-detail', '${job.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer" title="ดูรายละเอียดงาน">
-                                                            <i class="ph ph-eye"></i> <span>ดูงาน</span>
-                                                        </button>
-                                                        <label for="bp-list-upload-${job.id}" class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer hover:border-indigo-500 hover:text-indigo-600 transition" title="แนบไฟล์แบบแปลนทันที (Direct Upload)">
+                                                        <label for="bp-list-upload-${job.id}" class="btn-artifact-secondary px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1 cursor-pointer hover:border-indigo-500 hover:text-indigo-600 transition" title="แนบไฟล์แบบแปลนทันที (Direct Upload)">
                                                             <i class="ph ph-upload-simple"></i>
+                                                            <span class="hidden sm:inline">แนบไฟล์ด่วน</span>
                                                         </label>
                                                         <input type="file" id="bp-list-upload-${job.id}" class="sr-only" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.webp,.gif,.zip,.rar,image/*" onchange="app.handleDirectBlueprintUpload(event, '${job.id}')">
                                                     </div>
@@ -2739,20 +2731,16 @@ const app = {
                                     </div>
                                 </div>
 
-                                <div class="pt-2 border-t border-border flex items-center justify-between gap-2">
-                                    <button type="button" onclick="app.navigate('job-detail', '${job.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer">
-                                        <i class="ph ph-eye"></i> ดูงาน
+                                <div class="pt-2 border-t border-border flex items-center justify-end gap-2">
+                                    <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="บันทึกแบบแปลน Design สำหรับงานนี้">
+                                        <i class="ph ph-plus-circle font-bold"></i>
+                                        <span>+ บันทึก Design</span>
                                     </button>
-                                    <div class="flex items-center gap-1.5">
-                                        <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="บันทึกแบบแปลน Design สำหรับงานนี้">
-                                            <i class="ph ph-plus-circle font-bold"></i>
-                                            <span>+ บันทึก Design</span>
-                                        </button>
-                                        <label for="bp-card-upload-${job.id}" class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer hover:border-indigo-500 hover:text-indigo-600 transition" title="แนบไฟล์แบบแปลนทันที (Direct Upload)">
-                                            <i class="ph ph-upload-simple"></i>
-                                        </label>
-                                        <input type="file" id="bp-card-upload-${job.id}" class="sr-only" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.webp,.gif,.zip,.rar,image/*" onchange="app.handleDirectBlueprintUpload(event, '${job.id}')">
-                                    </div>
+                                    <label for="bp-card-upload-${job.id}" class="btn-artifact-secondary px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1 cursor-pointer hover:border-indigo-500 hover:text-indigo-600 transition" title="แนบไฟล์แบบแปลนทันที (Direct Upload)">
+                                        <i class="ph ph-upload-simple"></i>
+                                        <span>แนบไฟล์ด่วน</span>
+                                    </label>
+                                    <input type="file" id="bp-card-upload-${job.id}" class="sr-only" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.webp,.gif,.zip,.rar,image/*" onchange="app.handleDirectBlueprintUpload(event, '${job.id}')">
                                 </div>
                             </div>
                             `;
