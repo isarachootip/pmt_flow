@@ -1299,6 +1299,9 @@ app.get('/api/v1/jobs', requireAuth, (req, res) => {
                 special_instructions: job.special_instructions || '',
                 additional_notes: job.additional_notes || '',
                 photos: job.photos || [],
+                pmt_accepted: job.pmt_accepted !== undefined ? job.pmt_accepted : job.status !== JobStatus.DRAFT,
+                pmt_accepted_at: job.pmt_accepted_at || null,
+                job_type: job.job_type || 'quick',
                 created_at: job.created_at
             };
         });
@@ -1357,6 +1360,9 @@ app.get('/api/v1/jobs/:id', requireAuth, (req, res) => {
             special_instructions: job.special_instructions || '',
             additional_notes: job.additional_notes || '',
             photos: job.photos || [],
+            pmt_accepted: job.pmt_accepted !== undefined ? job.pmt_accepted : job.status !== JobStatus.DRAFT,
+            pmt_accepted_at: job.pmt_accepted_at || null,
+            job_type: job.job_type || 'quick',
             created_at: job.created_at
         }
     });

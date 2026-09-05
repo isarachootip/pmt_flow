@@ -1096,9 +1096,14 @@ const app = {
                                     const localMatch = DB.jobs.find(lj => lj.id === rj.id);
                                     if (!localMatch) return rj;
                                     const combinedPhotos = (localMatch.photos && localMatch.photos.length > 0) ? localMatch.photos : (rj.photos || []);
+                                    const hasBps = (DB.blueprints && DB.blueprints.some(b => b.jobId === rj.id)) || !!localMatch.blueprint_id || !!rj.blueprint_id;
+                                    const hasBOQ = (localMatch.boq_items && localMatch.boq_items.length > 0) || (rj.boq_items && rj.boq_items.length > 0);
+                                    const isAccepted = Boolean(localMatch.pmt_accepted || rj.pmt_accepted || localMatch.status !== 'DRAFT' || rj.status !== 'DRAFT' || hasBps || hasBOQ);
                                     return { 
                                         ...rj, 
                                         ...localMatch, 
+                                        pmt_accepted: isAccepted,
+                                        status: isAccepted && (localMatch.status === 'DRAFT' || rj.status === 'DRAFT') ? 'IN_PROGRESS' : (localMatch.status || rj.status),
                                         special_instructions: localMatch.special_instructions !== undefined ? localMatch.special_instructions : (rj.special_instructions || ''),
                                         additional_notes: localMatch.additional_notes !== undefined ? localMatch.additional_notes : (rj.additional_notes || ''),
                                         photos: combinedPhotos
@@ -1997,8 +2002,23 @@ const app = {
 
                 this.state.jobTab = 'general';
                 const curTab = 'general';
-                const isDraft = job.status === 'DRAFT';
-                const isInProgress = job.status === 'IN_PROGRESS' || job.status === 'SURVEYED';
+                const hasBlueprints = (DB.blueprints && DB.blueprints.some(b => b.jobId === job.id)) || !!job.blueprint_id || (job.blueprints && job.blueprints.length > 0);
+                const hasBOQ = (job.boq_items && job.boq_items.length > 0) || (job.boq_grand_total > 0);
+                const hasTasks = (DB.tasks && DB.tasks.some(t => t.jobId === job.id));
+                const hasTimestamp = Boolean(job.step_timestamps && (job.step_timestamps.step1_accepted_at || job.step_timestamps.step2_design_at));
+                const isAccepted = Boolean(job.pmt_accepted || job.status !== 'DRAFT' || hasBlueprints || hasBOQ || hasTasks || hasTimestamp);
+
+                if (isAccepted && (!job.pmt_accepted || job.status === 'DRAFT')) {
+                    job.pmt_accepted = true;
+                    if (job.status === 'DRAFT') {
+                        job.status = 'IN_PROGRESS';
+                        job.progress = Math.max(job.progress || 0, 45);
+                    }
+                    this.persistJobs();
+                }
+
+                const isDraft = !isAccepted && job.status === 'DRAFT';
+                const isInProgress = job.status === 'IN_PROGRESS' || job.status === 'SURVEYED' || (isAccepted && job.status === 'DRAFT');
                 const isQcPending = job.status === 'QC_PENDING';
                 const isQcPassed = job.status === 'QC_PASSED';
                 const isAfterSale = job.status === 'AFTER_SALE';
@@ -2210,7 +2230,7 @@ const app = {
                     `;
 
                     let actionButtons = '';
-                    if (isDraft || !job.pmt_accepted) {
+                    if (!isAccepted) {
                         actionButtons = `
                             ${checkinBadge}
                             <span class="text-xs text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5 bg-amber-500/10 px-3 py-2 rounded-lg border border-amber-500/20">
@@ -2456,7 +2476,11 @@ const app = {
                                         <i class="ph ph-floppy-disk text-sm"></i>
                                         <span>บันทึกหมายเหตุ & คำสั่งพิเศษ</span>
                                     </button>
-                                    ${job.pmt_accepted ? `
+                                    ${isAccepted ? `
+                                    <button disabled class="px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 opacity-75 cursor-not-allowed shadow-none select-none" title="รายการนี้ได้รับเข้าสู่ระบบ PMT เรียบร้อยแล้ว (ไม่สามารถกดซ้ำได้)">
+                                        <i class="ph ph-check-circle text-sm font-bold"></i>
+                                        <span>รับเข้าระบบ PMT แล้ว</span>
+                                    </button>
                                     <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-sm cursor-pointer" onclick="app.navigate('blueprints')">
                                         <span>ไปหน้าบันทึก Design (Step 2)</span> <i class="ph ph-arrow-right text-xs"></i>
                                     </button>
@@ -3343,8 +3367,24 @@ const app = {
                     job.blueprint_img = newBp.previewImg;
                     job.blueprint_zone = zone;
                     job.blueprint_count = (DB.blueprints.filter(b => b.jobId === jobId)).length;
+                    job.pmt_accepted = true;
+                    if (job.status === 'DRAFT') {
+                        job.status = 'IN_PROGRESS';
+                        job.progress = Math.max(job.progress || 0, 45);
+                    }
                 }
                 this.persistJobs();
+
+                // Sync acceptance with backend
+                fetch(`/api/v1/jobs/${jobId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: job ? job.status : 'IN_PROGRESS',
+                        pmt_accepted: true,
+                        overall_progress: job ? job.progress : 45
+                    })
+                }).catch(() => {});
 
                 // Step 2 Timestamp Recording
                 this.recordStepTimestamp(jobId, 'step2_design_at', newBp.recorded_at, `แนบแบบแปลน [${zone}] ${filename} (${version})`);

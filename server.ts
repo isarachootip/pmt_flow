@@ -604,6 +604,8 @@ export interface CoreJob {
   boq_discount?: number;
   boq_subtotal?: number;
   boq_grand_total?: number;
+  pmt_accepted?: boolean;
+  pmt_accepted_at?: string;
   created_at: string;
 }
 
@@ -1659,6 +1661,9 @@ app.get('/api/v1/jobs', requireAuth, (req: Request, res: Response) => {
         special_instructions: job.special_instructions || '',
         additional_notes: job.additional_notes || '',
         photos: job.photos || [],
+        pmt_accepted: (job as any).pmt_accepted !== undefined ? (job as any).pmt_accepted : job.status !== JobStatus.DRAFT,
+        pmt_accepted_at: (job as any).pmt_accepted_at || null,
+        job_type: (job as any).job_type || 'quick',
         created_at: job.created_at
       };
     });
@@ -1724,6 +1729,9 @@ app.get('/api/v1/jobs/:id', requireAuth, (req: Request, res: Response) => {
       special_instructions: job.special_instructions || '',
       additional_notes: job.additional_notes || '',
       photos: job.photos || [],
+      pmt_accepted: (job as any).pmt_accepted !== undefined ? (job as any).pmt_accepted : job.status !== JobStatus.DRAFT,
+      pmt_accepted_at: (job as any).pmt_accepted_at || null,
+      job_type: (job as any).job_type || 'quick',
       created_at: job.created_at
     }
   });
