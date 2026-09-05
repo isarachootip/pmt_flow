@@ -2561,30 +2561,39 @@ const app = {
                 const allJobs = DB.jobs || [];
                 let blueprints = DB.blueprints || [];
 
-                // Map which jobs have blueprints attached
-                const designedJobIds = new Set(blueprints.map(b => b.jobId));
+                // Map blueprints by jobId for multi-blueprint / multi-zone tracking (e.g. Living room, Sitting room, Kitchen, etc.)
+                const blueprintsByJob = {};
+                blueprints.forEach(b => {
+                    if (!b.zone) b.zone = 'งานติดตั้งหลัก';
+                    if (!blueprintsByJob[b.jobId]) blueprintsByJob[b.jobId] = [];
+                    blueprintsByJob[b.jobId].push(b);
+                });
 
-                // 1. Calculate and render pending design jobs queue
-                let pendingDesignJobs = allJobs.filter(j => !designedJobIds.has(j.id));
+                // 1. Calculate and filter project queue (keeps all active jobs accessible for adding multi-zones)
+                let queueJobs = allJobs;
                 if (q) {
-                    pendingDesignJobs = pendingDesignJobs.filter(j =>
-                        (j.id && j.id.toLowerCase().includes(q)) ||
-                        (j.customer && j.customer.toLowerCase().includes(q)) ||
-                        (j.service && j.service.toLowerCase().includes(q)) ||
-                        (j.address && j.address.toLowerCase().includes(q))
-                    );
+                    queueJobs = queueJobs.filter(j => {
+                        const jBps = blueprintsByJob[j.id] || [];
+                        const zonesText = jBps.map(b => `${b.zone} ${b.filename}`).join(' ').toLowerCase();
+                        return (j.id && j.id.toLowerCase().includes(q)) ||
+                            (j.customer && j.customer.toLowerCase().includes(q)) ||
+                            (j.service && j.service.toLowerCase().includes(q)) ||
+                            (j.address && j.address.toLowerCase().includes(q)) ||
+                            zonesText.includes(q);
+                    });
                 }
                 if (sFilter && sFilter !== 'all') {
-                    pendingDesignJobs = pendingDesignJobs.filter(j => (j.service || '').includes(sFilter));
+                    queueJobs = queueJobs.filter(j => (j.service || '').includes(sFilter));
                 }
 
-                // 2. Filter uploaded blueprints
+                // 2. Filter uploaded blueprints for library tab
                 if (q) {
                     blueprints = blueprints.filter(b => 
                         b.id.toLowerCase().includes(q) ||
                         b.jobId.toLowerCase().includes(q) ||
                         b.customer.toLowerCase().includes(q) ||
                         b.filename.toLowerCase().includes(q) ||
+                        (b.zone && b.zone.toLowerCase().includes(q)) ||
                         (b.designer && b.designer.toLowerCase().includes(q))
                     );
                 }
@@ -2593,14 +2602,14 @@ const app = {
                 }
 
                 // Update Stats
-                const totalPendingCount = allJobs.filter(j => !designedJobIds.has(j.id)).length;
-                const totalDesignedCount = designedJobIds.size;
+                const designedJobCount = Object.keys(blueprintsByJob).length;
+                const pendingJobCount = allJobs.filter(j => !(blueprintsByJob[j.id] && blueprintsByJob[j.id].length > 0)).length;
                 const totalBpFiles = (DB.blueprints || []).length;
 
                 const statPendingEl = document.getElementById('blueprints-stat-pending');
-                if (statPendingEl) statPendingEl.innerText = totalPendingCount;
+                if (statPendingEl) statPendingEl.innerText = pendingJobCount;
                 const statDesignedEl = document.getElementById('blueprints-stat-designed');
-                if (statDesignedEl) statDesignedEl.innerText = totalDesignedCount;
+                if (statDesignedEl) statDesignedEl.innerText = designedJobCount;
                 const statTotalEl = document.getElementById('blueprints-stat-total');
                 if (statTotalEl) statTotalEl.innerText = totalBpFiles;
                 const statJobsEl = document.getElementById('blueprints-stat-jobs');
@@ -2608,18 +2617,18 @@ const app = {
 
                 // Update tab badges
                 const tabPendingBadge = document.getElementById('tab-bp-pending-badge');
-                if (tabPendingBadge) tabPendingBadge.innerText = totalPendingCount;
+                if (tabPendingBadge) tabPendingBadge.innerText = queueJobs.length;
                 const tabLibraryBadge = document.getElementById('tab-bp-library-badge');
                 if (tabLibraryBadge) tabLibraryBadge.innerText = totalBpFiles;
 
-                // Update sidebar badge to show pending design count
+                // Update sidebar badge
                 const sbBp = document.getElementById('sidebar-blueprint-count');
-                if (sbBp) sbBp.innerText = totalPendingCount;
+                if (sbBp) sbBp.innerText = pendingJobCount;
 
                 this.updateBlueprintViewModeButtons();
                 const isList = (this.state.blueprintViewMode === 'list');
 
-                // 3. Render Pending Queue Container
+                // 3. Render Pending & Multi-zone Queue Container
                 const pendingContainer = document.getElementById('blueprints-pending-list');
                 if (pendingContainer) {
                     if (isList) {
@@ -2628,12 +2637,12 @@ const app = {
                         pendingContainer.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
                     }
 
-                    if (pendingDesignJobs.length === 0) {
+                    if (queueJobs.length === 0) {
                         pendingContainer.innerHTML = `
                             <div class="col-span-full artifact-card p-10 text-center text-muted-foreground border border-dashed border-border">
-                                <i class="ph ph-check-circle text-4xl mb-2 text-emerald-500"></i>
-                                <h4 class="font-display font-medium text-foreground text-sm">ไม่มีงานที่รอจัดทำ Design ในขณะนี้</h4>
-                                <p class="text-xs text-muted-foreground mt-1">ทุกโครงการในระบบได้จัดทำแบบแปลนติดตั้งแล้ว หรือไม่ตรงกับเงื่อนไขการค้นหา</p>
+                                <i class="ph ph-folder-dashed text-4xl mb-2 text-muted-foreground/50"></i>
+                                <h4 class="font-display font-medium text-foreground text-sm">ไม่พบโครงการที่ตรงกับเงื่อนไขการค้นหา</h4>
+                                <p class="text-xs text-muted-foreground mt-1">ลองเปลี่ยนคำค้นหา หรือเลือกตัวกรองประเภทบริการอื่น</p>
                             </div>
                         `;
                     } else if (isList) {
@@ -2646,13 +2655,15 @@ const app = {
                                             <th class="py-3 px-4">วันที่รับ Order</th>
                                             <th class="py-3 px-4">ลูกค้า</th>
                                             <th class="py-3 px-4">บริการ / งานติดตั้ง</th>
-                                            <th class="py-3 px-4">สถานที่ติดตั้ง</th>
+                                            <th class="py-3 px-4">สถานะแบบแปลน (งานย่อย/ห้อง)</th>
                                             <th class="py-3 px-4">ช่างผู้รับผิดชอบ</th>
-                                            <th class="py-3 px-4 text-center">บันทึก Design</th>
+                                            <th class="py-3 px-4 text-center">บันทึก Design / เพิ่มโซน</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-border">
-                                        ${pendingDesignJobs.map(job => {
+                                        ${queueJobs.map(job => {
+                                            const jBps = blueprintsByJob[job.id] || [];
+                                            const hasBps = jBps.length > 0;
                                             return `
                                             <tr class="hover:bg-muted/30 transition">
                                                 <td class="py-3 px-4 font-mono font-bold text-foreground">
@@ -2663,12 +2674,30 @@ const app = {
                                                 <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${job.date || '-'}</td>
                                                 <td class="py-3 px-4 font-medium text-foreground">${job.customer}</td>
                                                 <td class="py-3 px-4">
-                                                    <div class="font-semibold text-brand-600 dark:text-brand-400 truncate max-w-[240px]" title="${job.service}">
+                                                    <div class="font-semibold text-brand-600 dark:text-brand-400 truncate max-w-[200px]" title="${job.service}">
                                                         ${job.service}
                                                     </div>
                                                 </td>
-                                                <td class="py-3 px-4 text-muted-foreground text-[11px] max-w-[180px] truncate" title="${job.address || '-'}">
-                                                    ${job.address || '-'}
+                                                <td class="py-3 px-4">
+                                                    ${hasBps ? `
+                                                        <div class="space-y-1">
+                                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                                                <i class="ph ph-check-circle"></i> บันทึกแล้ว ${jBps.length} งานย่อย
+                                                            </span>
+                                                            <div class="flex flex-wrap gap-1">
+                                                                ${jBps.map(b => `
+                                                                    <button type="button" onclick="app.openBlueprintLightbox('${b.id}')" class="px-1.5 py-0.5 rounded text-[10px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition flex items-center gap-1" title="ดูแบบ ${b.zone}">
+                                                                        <i class="ph ph-blueprint text-indigo-500 text-[10px]"></i>
+                                                                        <span>${b.zone || 'งานติดตั้ง'}</span>
+                                                                    </button>
+                                                                `).join('')}
+                                                            </div>
+                                                        </div>
+                                                    ` : `
+                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                                            <i class="ph ph-hourglass-high"></i> รอจัดทำแบบ (0 งานย่อย)
+                                                        </span>
+                                                    `}
                                                 </td>
                                                 <td class="py-3 px-4 text-muted-foreground">
                                                     <div class="flex items-center gap-1.5">
@@ -2678,9 +2707,9 @@ const app = {
                                                 </td>
                                                 <td class="py-3 px-4 text-center whitespace-nowrap">
                                                     <div class="flex items-center justify-center gap-2">
-                                                        <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="บันทึกและแนบไฟล์แบบแปลน / Design สำหรับงานนี้">
+                                                        <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="${hasBps ? 'บันทึกแบบห้องอื่น / งานย่อยถัดไป' : 'บันทึกแบบแปลนแรกสำหรับงานนี้'}">
                                                             <i class="ph ph-plus-circle font-bold text-sm"></i>
-                                                            <span>+ บันทึก Design</span>
+                                                            <span>${hasBps ? '+ เพิ่มงานย่อย/ห้อง' : '+ บันทึก Design'}</span>
                                                         </button>
                                                         <label for="bp-list-upload-${job.id}" class="btn-artifact-secondary px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1 cursor-pointer hover:border-indigo-500 hover:text-indigo-600 transition" title="แนบไฟล์แบบแปลนทันที (Direct Upload)">
                                                             <i class="ph ph-upload-simple"></i>
@@ -2697,21 +2726,28 @@ const app = {
                             </div>
                         `;
                     } else {
-                        pendingContainer.innerHTML = pendingDesignJobs.map(job => {
+                        pendingContainer.innerHTML = queueJobs.map(job => {
+                            const jBps = blueprintsByJob[job.id] || [];
+                            const hasBps = jBps.length > 0;
                             return `
-                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-indigo-500/50 transition duration-200 space-y-3.5 bg-card group shadow-xs">
+                            <div class="artifact-card p-5 rounded-2xl border ${hasBps ? 'border-indigo-500/30 bg-card' : 'border-border bg-card'} hover:border-indigo-500/60 transition duration-200 space-y-3.5 group shadow-xs">
                                 <div class="flex items-start justify-between gap-2">
                                     <div class="flex items-start gap-3 min-w-0">
-                                        <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                                            <i class="ph ph-blueprint text-xl"></i>
+                                        <div class="w-10 h-10 rounded-xl ${hasBps ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'} flex items-center justify-center shrink-0">
+                                            <i class="ph ${hasBps ? 'ph-folders' : 'ph-blueprint'} text-xl"></i>
                                         </div>
                                         <div class="min-w-0">
-                                            <div class="flex items-center gap-2">
+                                            <div class="flex items-center gap-2 flex-wrap">
                                                 <span class="font-mono text-xs font-bold text-foreground bg-muted px-2 py-0.5 rounded border border-border">${job.id}</span>
-                                                <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500/15 hover:bg-indigo-600 text-amber-700 dark:text-amber-300 hover:text-white border border-amber-500/30 hover:border-indigo-600 flex items-center gap-1.5 cursor-pointer transition group shadow-2xs" title="คลิกเลือกงานนี้เพื่อบันทึก Design">
-                                                    <i class="ph ph-plus-circle text-amber-600 dark:text-amber-400 group-hover:text-white font-bold"></i>
-                                                    <span>+ บันทึก Design</span>
-                                                </button>
+                                                ${hasBps ? `
+                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                                        ✓ บันทึกแล้ว ${jBps.length} งานย่อย
+                                                    </span>
+                                                ` : `
+                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                                        ⏳ รอจัดทำแบบ
+                                                    </span>
+                                                `}
                                             </div>
                                             <h4 class="font-display font-bold text-sm text-foreground mt-1.5 truncate">${job.customer}</h4>
                                             <p class="text-[11px] text-brand-600 dark:text-brand-400 font-medium truncate">${job.service}</p>
@@ -2720,6 +2756,24 @@ const app = {
                                     <span class="text-[10px] font-mono text-muted-foreground shrink-0">${job.date || '-'}</span>
                                 </div>
 
+                                <!-- Sub-tasks / Room Blueprints Badges (if any) -->
+                                ${hasBps ? `
+                                <div class="bg-indigo-500/5 p-2.5 rounded-xl border border-indigo-500/15 space-y-1.5">
+                                    <div class="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 flex items-center justify-between">
+                                        <span>แบบแปลนแยกตามห้อง/งานย่อย (${jBps.length}):</span>
+                                        <span class="text-[9px] text-muted-foreground">คลิกดูแบบ</span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-1">
+                                        ${jBps.map(b => `
+                                            <button type="button" onclick="app.openBlueprintLightbox('${b.id}')" class="px-2 py-1 rounded-lg text-[10px] bg-card hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-foreground border border-border hover:border-indigo-400 cursor-pointer transition flex items-center gap-1 shadow-2xs" title="คลิกดูแบบ ${b.zone} (${b.filename})">
+                                                <i class="ph ph-blueprint text-indigo-500"></i>
+                                                <span class="font-semibold">${b.zone || 'งานติดตั้ง'}</span>
+                                                <span class="text-muted-foreground text-[9px]">(${b.version || 'v1'})</span>
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                ` : `
                                 <div class="text-[11px] text-muted-foreground space-y-1 bg-muted/30 p-2.5 rounded-xl border border-border/50">
                                     <div class="flex items-center gap-1.5 truncate">
                                         <i class="ph ph-map-pin text-muted-foreground shrink-0"></i>
@@ -2730,11 +2784,12 @@ const app = {
                                         <span>ช่าง: <strong class="text-foreground font-medium">${job.tech || 'ยังไม่ระบุช่าง'}</strong></span>
                                     </div>
                                 </div>
+                                `}
 
                                 <div class="pt-2 border-t border-border flex items-center justify-end gap-2">
-                                    <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="บันทึกแบบแปลน Design สำหรับงานนี้">
+                                    <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="${hasBps ? 'บันทึกแบบห้องอื่น / งานย่อยถัดไป' : 'บันทึกแบบแปลนแรกสำหรับงานนี้'}">
                                         <i class="ph ph-plus-circle font-bold"></i>
-                                        <span>+ บันทึก Design</span>
+                                        <span>${hasBps ? '+ เพิ่มงานย่อย/ห้อง' : '+ บันทึก Design'}</span>
                                     </button>
                                     <label for="bp-card-upload-${job.id}" class="btn-artifact-secondary px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1 cursor-pointer hover:border-indigo-500 hover:text-indigo-600 transition" title="แนบไฟล์แบบแปลนทันที (Direct Upload)">
                                         <i class="ph ph-upload-simple"></i>
@@ -2776,6 +2831,7 @@ const app = {
                                         <tr class="border-b border-border bg-muted/40 text-muted-foreground font-semibold text-[11px]">
                                             <th class="py-3 px-4 font-mono">รหัสแบบ</th>
                                             <th class="py-3 px-4 font-mono">JOB ID</th>
+                                            <th class="py-3 px-4">งานย่อย / โซนห้อง</th>
                                             <th class="py-3 px-4">ชื่อไฟล์แบบแปลน & ภาพตัวอย่าง</th>
                                             <th class="py-3 px-4">ลูกค้า</th>
                                             <th class="py-3 px-4">ประเภทบริการ</th>
@@ -2791,6 +2847,12 @@ const app = {
                                             <tr class="hover:bg-muted/30 transition">
                                                 <td class="py-3 px-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">${b.id}</td>
                                                 <td class="py-3 px-4 font-mono text-foreground font-bold">${b.jobId}</td>
+                                                <td class="py-3 px-4">
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                                                        <i class="ph ph-house-line text-indigo-500"></i>
+                                                        <span>${b.zone || 'งานติดตั้งหลัก'}</span>
+                                                    </span>
+                                                </td>
                                                 <td class="py-3 px-4">
                                                     <div class="flex items-center gap-2.5">
                                                         <div class="w-12 h-9 rounded-lg overflow-hidden border border-border shrink-0 bg-muted/60 relative group/bp cursor-pointer shadow-2xs" onclick="app.openBlueprintLightbox('${b.id}')" title="คลิกขยายดูภาพแบบแปลน">
@@ -2821,6 +2883,9 @@ const app = {
                                                         <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white" onclick="app.openBlueprintLightbox('${b.id}')" title="ดูตัวอย่างแบบ">
                                                             <i class="ph ph-eye"></i> <span>ดูตัวอย่าง</span>
                                                         </button>
+                                                        <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:border-indigo-500 hover:text-indigo-600 transition" onclick="app.openUploadBlueprintModal('${b.jobId}')" title="เพิ่มแบบแปลนห้องอื่นให้งานนี้">
+                                                            <i class="ph ph-plus-circle"></i> <span>+ โซน</span>
+                                                        </button>
                                                         <button class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer" title="ดาวน์โหลดไฟล์ PDF" onclick="app.showToast('กำลังดาวน์โหลด ${b.filename}...')">
                                                             <i class="ph ph-download-simple"></i>
                                                         </button>
@@ -2839,14 +2904,15 @@ const app = {
                         container.innerHTML = blueprints.map(b => {
                             return `
                             <div class="artifact-card p-5 rounded-2xl space-y-4 border border-border hover:border-indigo-500/40 transition group">
-                                <!-- Card Top: Thumbnail & Version -->
+                                <!-- Card Top: Thumbnail, Zone & Version -->
                                 <div class="aspect-video bg-muted/60 rounded-xl overflow-hidden relative border border-border group-hover:border-indigo-500/30 transition cursor-pointer" onclick="app.openBlueprintLightbox('${b.id}')" title="คลิกดูภาพแบบแปลนเต็มตา">
                                     <img src="${b.previewImg}" alt="${b.filename}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                                     <div class="absolute top-3 right-3 flex items-center gap-1.5">
                                         <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-600 text-white shadow-sm">${b.version}</span>
                                     </div>
-                                    <div class="absolute top-3 left-3">
+                                    <div class="absolute top-3 left-3 flex items-center gap-1.5">
                                         <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-black/60 backdrop-blur-xs text-white">${b.jobId}</span>
+                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-600/90 backdrop-blur-xs text-white">${b.zone || 'งานติดตั้ง'}</span>
                                     </div>
                                     <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
                                         <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white" onclick="event.stopPropagation(); app.openBlueprintLightbox('${b.id}')">
@@ -2864,6 +2930,9 @@ const app = {
                                     <div class="text-xs text-muted-foreground flex items-center gap-1.5">
                                         <i class="ph ph-user text-xs"></i> <span>${b.customer}</span> • <span class="text-brand-500 font-medium">${b.service}</span>
                                     </div>
+                                    <div class="flex items-center gap-1 text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">
+                                        <i class="ph ph-tag"></i> โซน/งานย่อย: <strong>${b.zone || 'งานติดตั้งหลัก'}</strong>
+                                    </div>
                                     <p class="text-[11px] text-muted-foreground/90 line-clamp-2">${b.notes || 'แบบแปลนและผังงานติดตั้งฉบับมาตรฐาน'}</p>
                                 </div>
 
@@ -2874,6 +2943,9 @@ const app = {
                                         <div class="text-[9px] font-mono opacity-75">${b.date}</div>
                                     </div>
                                     <div class="flex items-center gap-1.5">
+                                        <button class="btn-artifact-secondary px-2 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:border-indigo-500 hover:text-indigo-600 transition" onclick="app.openUploadBlueprintModal('${b.jobId}')" title="เพิ่มแบบแปลนห้องอื่นให้งานนี้">
+                                            <i class="ph ph-plus-circle"></i> <span>+ โซน</span>
+                                        </button>
                                         <button class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer" title="ดาวน์โหลดไฟล์ PDF" onclick="app.showToast('กำลังดาวน์โหลด ${b.filename}...')">
                                             <i class="ph ph-download-simple"></i>
                                         </button>
@@ -3024,6 +3096,7 @@ const app = {
                 let filename = 'Air_Installation_Layout_v3_Final.pdf';
                 let size = '3.4 MB';
                 let version = 'v3 Final';
+                let zone = 'ห้องนอนใหญ่ (Master)';
                 let notes = 'แบบแปลนจุดติดตั้งคอยล์เย็นในห้องนอนใหญ่ และตำแหน่งแขวนคอนเดนซิ่งยูนิตภายนอก';
                 let preview = 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&auto=format&fit=crop&q=80';
 
@@ -3031,15 +3104,20 @@ const app = {
                     filename = 'Kitchen_Renovate_Plumbing_Schematic.dwg';
                     size = '5.8 MB';
                     version = 'v2 Approved';
+                    zone = 'ห้องครัว Built-in';
                     notes = 'ไดอะแกรมระบบสุขาภิบาล จุดต่อน้ำดี-น้ำทิ้ง และตำแหน่งตู้เคาน์เตอร์ครัว Built-in';
                     preview = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&auto=format&fit=crop&q=80';
                 } else if (type === 'solar') {
                     filename = 'Solar_Rooftop_5kW_Wiring_Diagram.pdf';
                     size = '4.2 MB';
                     version = 'v1 Approved';
+                    zone = 'ผังหลังคา / งานโซลาร์';
                     notes = 'แบบผังติดตั้งแผงโซลาร์เซลล์บนหลังคา และแนวเดินสายไฟ DC/AC Protection';
                     preview = 'https://images.unsplash.com/photo-1509391365360-2e959784a276?w=800&auto=format&fit=crop&q=80';
                 }
+
+                const zoneInput = document.getElementById('upload-bp-zone');
+                if (zoneInput) zoneInput.value = zone;
 
                 const nameInput = document.getElementById('upload-bp-filename');
                 if (nameInput) nameInput.value = filename;
@@ -3066,7 +3144,7 @@ const app = {
                 if (sizeEl) sizeEl.innerText = `${size} • ไฟล์ตัวอย่างมาตรฐาน`;
 
                 this.updateBlueprintModalPreview(false, filename);
-                this.showToast(`📐 เลือกไฟล์ตัวอย่าง "${filename}" เรียบร้อย`);
+                this.showToast(`📐 เลือกไฟล์ตัวอย่าง "${filename}" (${zone}) เรียบร้อย`);
             },
 
             openBlueprintLightbox(bpId) {
@@ -3075,8 +3153,8 @@ const app = {
                 this.showLightbox(
                     bp.previewImg || 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&auto=format&fit=crop&q=80',
                     `${bp.filename} (${bp.version || 'v1'})`,
-                    `แบบแปลน ${bp.id} • ${bp.jobId}`,
-                    `ลูกค้า: ${bp.customer} | บริการ: ${bp.service} | ผู้ออกแบบ: ${bp.designer || '-'} | หมายเหตุ: ${bp.notes || 'แบบแปลนมาตรฐาน'}`,
+                    `แบบแปลน ${bp.id} • ${bp.jobId} • โซน: ${bp.zone || 'งานติดตั้งหลัก'}`,
+                    `ลูกค้า: ${bp.customer} | โซน/งานย่อย: ${bp.zone || 'งานติดตั้งหลัก'} | บริการ: ${bp.service} | ผู้ออกแบบ: ${bp.designer || '-'} | หมายเหตุ: ${bp.notes || 'แบบแปลนมาตรฐาน'}`,
                     bp.date || 'บันทึกแล้ว'
                 );
             },
@@ -3107,7 +3185,69 @@ const app = {
                 );
             },
 
-            openUploadBlueprintModal(preselectedJobId = null) {
+            selectBlueprintZone(zoneName) {
+                const zoneInput = document.getElementById('upload-bp-zone');
+                if (zoneInput) {
+                    zoneInput.value = zoneName;
+                }
+                this.updateBlueprintFilenameSuggestion();
+            },
+
+            updateBlueprintFilenameSuggestion() {
+                const selectJob = document.getElementById('upload-bp-jobid');
+                const zoneInput = document.getElementById('upload-bp-zone');
+                const filenameInput = document.getElementById('upload-bp-filename');
+                if (!selectJob || !filenameInput) return;
+                const jobId = selectJob.value;
+                const zone = (zoneInput && zoneInput.value.trim()) || 'โซนหลัก';
+                const sanitizedZone = zone.replace(/[\s\/\\()]/g, '_');
+                if (!this.state.newBlueprintFileName || filenameInput.value.includes('_Layout') || filenameInput.value.includes('_')) {
+                    filenameInput.value = `${jobId}_${sanitizedZone}_Layout.pdf`;
+                }
+            },
+
+            handleBlueprintJobChange(jobId) {
+                const jobs = DB.jobs || [];
+                const job = jobs.find(j => j.id === jobId);
+                const existingInfoEl = document.getElementById('upload-bp-existing-zones-info');
+                const zoneInput = document.getElementById('upload-bp-zone');
+                const blueprints = DB.blueprints || [];
+                const jobBps = blueprints.filter(b => b.jobId === jobId);
+
+                if (existingInfoEl) {
+                    if (jobBps.length > 0) {
+                        const zonesListHtml = jobBps.map(b => `<span class="px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-semibold flex items-center gap-1"><i class="ph ph-blueprint"></i> ${b.zone || 'งานติดตั้ง'} (${b.version || 'v1'})</span>`).join('');
+                        existingInfoEl.innerHTML = `
+                            <div class="flex items-center justify-between font-bold text-indigo-900 dark:text-indigo-200">
+                                <span class="flex items-center gap-1.5"><i class="ph ph-check-circle text-emerald-500"></i> โครงการนี้มีแบบแล้ว ${jobBps.length} งานย่อย/ห้อง:</span>
+                                <span class="font-mono text-[10px] bg-indigo-500/30 px-1.5 py-0.5 rounded">${jobId}</span>
+                            </div>
+                            <div class="flex flex-wrap gap-1 mt-1">${zonesListHtml}</div>
+                            <div class="text-[10px] text-muted-foreground mt-0.5 font-medium">💡 คุณสามารถบันทึกงานย่อย/ห้องถัดไป (เช่น ห้องรับแขก, ห้องนั่งเล่น) ได้ทันที ระบบจะรวมเข้ากับ Job เดียวกัน</div>
+                        `;
+                        existingInfoEl.classList.remove('hidden');
+                    } else {
+                        existingInfoEl.innerHTML = `
+                            <div class="text-muted-foreground flex items-center gap-1.5">
+                                <i class="ph ph-info text-indigo-500"></i> โครงการนี้ยังไม่มีแบบแปลนที่บันทึก (กำลังบันทึกงานย่อยแรก)
+                            </div>
+                        `;
+                        existingInfoEl.classList.remove('hidden');
+                    }
+                }
+
+                // Suggest next room zone not yet recorded for this job
+                const commonZones = ['ห้องรับแขก', 'ห้องนั่งเล่น', 'ห้องครัว Built-in', 'ห้องนอนใหญ่ (Master)', 'ห้องน้ำ', 'ภายนอก / รอบบ้าน', 'งานระบบไฟฟ้า', 'งานระบบประปา'];
+                const recordedZones = new Set(jobBps.map(b => b.zone));
+                const nextZone = commonZones.find(z => !recordedZones.has(z)) || 'งานติดตั้งย่อย';
+                if (zoneInput && (!zoneInput.value || recordedZones.has(zoneInput.value))) {
+                    zoneInput.value = nextZone;
+                }
+
+                this.updateBlueprintFilenameSuggestion();
+            },
+
+            openUploadBlueprintModal(preselectedJobId = null, preselectedZone = null) {
                 this.clearBlueprintSelectedFile();
                 const jobs = DB.jobs || [];
                 const selectJob = document.getElementById('upload-bp-jobid');
@@ -3115,8 +3255,9 @@ const app = {
 
                 if (selectJob) {
                     selectJob.innerHTML = jobs.map(j => {
-                        const hasBp = (DB.blueprints || []).some(b => b.jobId === j.id);
-                        const statusTag = hasBp ? ' (มีแบบแปลนแล้ว)' : ' ★ (รอแนบแบบ)';
+                        const jobBps = (DB.blueprints || []).filter(b => b.jobId === j.id);
+                        const count = jobBps.length;
+                        const statusTag = count > 0 ? ` (มีแล้ว ${count} งานย่อย)` : ' ★ (ยังไม่มีแบบ)';
                         return `<option value="${j.id}">${j.id} - ${j.customer} [${j.service}]${statusTag}</option>`;
                     }).join('');
 
@@ -3133,28 +3274,28 @@ const app = {
                     }
 
                     selectJob.onchange = (e) => {
-                        const jId = e.target.value;
-                        const j = jobs.find(job => job.id === jId);
-                        const fnInput = document.getElementById('upload-bp-filename');
-                        if (j && fnInput && (!this.state.newBlueprintFileName || !fnInput.value || fnInput.value.includes('_Layout_'))) {
-                            const sanitizedSvc = (j.service || 'Service').replace(/\s+/g, '_').substring(0, 20);
-                            fnInput.value = `${j.id}_Layout_${sanitizedSvc}.pdf`;
-                        }
+                        this.handleBlueprintJobChange(e.target.value);
                     };
                 }
 
-                const filenameInput = document.getElementById('upload-bp-filename');
                 const finalJob = targetJob || (selectJob ? jobs.find(j => j.id === selectJob.value) : jobs[0]);
-                if (filenameInput && finalJob) {
-                    const sanitizedSvc = (finalJob.service || 'Service').replace(/\s+/g, '_').substring(0, 20);
-                    filenameInput.value = `${finalJob.id}_Layout_${sanitizedSvc}.pdf`;
+                if (finalJob) {
+                    this.handleBlueprintJobChange(finalJob.id);
                 }
+
+                if (preselectedZone) {
+                    const zoneInput = document.getElementById('upload-bp-zone');
+                    if (zoneInput) zoneInput.value = preselectedZone;
+                    this.updateBlueprintFilenameSuggestion();
+                }
+
                 this.showModal('modal-upload-blueprint');
             },
 
             submitUploadBlueprint(event) {
                 event.preventDefault();
                 const jobId = document.getElementById('upload-bp-jobid').value;
+                const zone = (document.getElementById('upload-bp-zone') && document.getElementById('upload-bp-zone').value.trim()) || 'งานติดตั้งหลัก';
                 const filename = document.getElementById('upload-bp-filename').value.trim();
                 const version = document.getElementById('upload-bp-version').value.trim() || 'v2 Final';
                 const designer = document.getElementById('upload-bp-designer').value.trim() || 'คุณธนกฤต (Designer)';
@@ -3166,6 +3307,7 @@ const app = {
                     jobId: jobId,
                     customer: job ? job.customer : 'ลูกค้าทั่วไป',
                     service: job ? job.service : 'งานบริการ',
+                    zone: zone,
                     filename: filename,
                     version: version,
                     isCurrent: true,
@@ -3182,18 +3324,22 @@ const app = {
                 this.persistBlueprints();
 
                 if (job) {
+                    if (!job.blueprints) job.blueprints = [];
+                    job.blueprints.unshift(newBp.id);
                     job.blueprint_id = newBp.id;
                     job.blueprint_name = filename;
                     job.blueprint_img = newBp.previewImg;
+                    job.blueprint_zone = zone;
+                    job.blueprint_count = (DB.blueprints.filter(b => b.jobId === jobId)).length;
                 }
                 this.persistJobs();
 
                 // Step 2 Timestamp Recording
-                this.recordStepTimestamp(jobId, 'step2_design_at', newBp.recorded_at, `แนบแบบแปลน ${filename} (${version})`);
+                this.recordStepTimestamp(jobId, 'step2_design_at', newBp.recorded_at, `แนบแบบแปลน [${zone}] ${filename} (${version})`);
 
                 this.clearBlueprintSelectedFile();
                 this.hideModal('modal-upload-blueprint');
-                this.showToast(`✅ บันทึกและแนบแบบแปลน "${filename}" พร้อมรูปภาพสำหรับ ${jobId} สำเร็จ`);
+                this.showToast(`✅ บันทึกแบบแปลนโซน "${zone}" (${filename}) สำหรับ ${jobId} สำเร็จ (มีแล้วรวม ${job ? job.blueprint_count : 1} โซน)`);
                 if (this.state.currentView === 'blueprints') {
                     this.switchBlueprintTab('library');
                     this.renderBlueprints();

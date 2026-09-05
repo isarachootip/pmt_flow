@@ -693,12 +693,12 @@
                     <div class="flex border-b border-border gap-6">
                         <button type="button" id="tab-bp-pending" onclick="app.switchBlueprintTab('pending')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-indigo-600 text-foreground cursor-pointer">
                             <i class="ph ph-hourglass-high text-amber-500 text-sm"></i>
-                            <span>รายการงานที่กำลังรอ Design</span>
+                            <span>คิวโครงการ & งานย่อยที่รอ Design</span>
                             <span id="tab-bp-pending-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold">0</span>
                         </button>
                         <button type="button" id="tab-bp-library" onclick="app.switchBlueprintTab('library')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer">
                             <i class="ph ph-folder-open text-indigo-500 text-sm"></i>
-                            <span>คลังแบบแปลนที่บันทึกแล้ว</span>
+                            <span>คลังแบบแปลนแยกตามห้อง/งานย่อย</span>
                             <span id="tab-bp-library-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-mono font-bold">0</span>
                         </button>
                     </div>
@@ -741,9 +741,9 @@
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                <h3 class="font-display font-bold text-sm text-foreground">งานที่รอจัดทำ / บันทึก Design & CAD (Pending Design Queue)</h3>
+                                <h3 class="font-display font-bold text-sm text-foreground">รายการโครงการ & คิวจัดทำแบบ (รองรับหลายงานย่อย/ห้องต่อ 1 โครงการ)</h3>
                             </div>
-                            <span class="text-xs text-muted-foreground">คลิกปุ่ม <strong class="text-indigo-600 dark:text-indigo-400 font-semibold">+ บันทึก Design</strong> เพื่อแนบไฟล์แบบแปลน</span>
+                            <span class="text-xs text-muted-foreground">คลิกปุ่ม <strong class="text-indigo-600 dark:text-indigo-400 font-semibold">+ บันทึก Design / เพิ่มแบบ</strong> เพื่อแนบไฟล์แยกตามห้องหรือโซนงาน</span>
                         </div>
                         <div id="blueprints-pending-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <!-- Populated dynamically by JS -->
@@ -2676,9 +2676,33 @@
                     </select>
                 </div>
 
+                <!-- Existing Blueprints Info Bar for Selected Job -->
+                <div id="upload-bp-existing-zones-info" class="hidden p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs flex flex-col gap-1 transition">
+                    <!-- Populated dynamically by JS -->
+                </div>
+
+                <!-- Zone / Sub-task Selection (Multi-zone support: Living room, Sitting room, Kitchen, etc.) -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-semibold text-foreground">งานย่อย / โซนห้อง (Area / Zone / Sub-task) <span class="text-rose-500">*</span></label>
+                        <span class="text-[10px] text-muted-foreground">คลิกเลือกห้อง หรือพิมพ์ระบุเอง</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button type="button" onclick="app.selectBlueprintZone('ห้องรับแขก')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🛋️ ห้องรับแขก</button>
+                        <button type="button" onclick="app.selectBlueprintZone('ห้องนั่งเล่น')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">📺 ห้องนั่งเล่น</button>
+                        <button type="button" onclick="app.selectBlueprintZone('ห้องครัว Built-in')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🍳 ห้องครัว</button>
+                        <button type="button" onclick="app.selectBlueprintZone('ห้องนอนใหญ่ (Master)')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🛏️ ห้องนอนใหญ่</button>
+                        <button type="button" onclick="app.selectBlueprintZone('ห้องน้ำ')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🚿 ห้องน้ำ</button>
+                        <button type="button" onclick="app.selectBlueprintZone('ภายนอก / รอบบ้าน')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🌿 ภายนอก</button>
+                        <button type="button" onclick="app.selectBlueprintZone('งานระบบไฟฟ้า')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">⚡ ระบบไฟ</button>
+                        <button type="button" onclick="app.selectBlueprintZone('งานระบบประปา')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">💧 ระบบประปา</button>
+                    </div>
+                    <input type="text" id="upload-bp-zone" required placeholder="ระบุโซนห้อง หรืองานย่อย เช่น ห้องรับแขก, ห้องนั่งเล่น..." value="ห้องรับแขก" oninput="app.updateBlueprintFilenameSuggestion()" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                </div>
+
                 <div>
                     <label class="block text-xs font-semibold text-foreground mb-1">ชื่อไฟล์แบบแปลน *</label>
-                    <input type="text" id="upload-bp-filename" required placeholder="เช่น Air_Installation_Layout_v3.pdf" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                    <input type="text" id="upload-bp-filename" required placeholder="เช่น JOB202609001_ห้องรับแขก_Layout.pdf" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -3924,7 +3948,7 @@
     <!-- APPLICATION SCRIPTS -->
     <script src="/public/js/db.js?v=1.1.4"></script>
     <script src="/public/js/auth.js?v=1.1.4"></script>
-    <script src="/public/js/app.js?v=1.1.9"></script>
+    <script src="/public/js/app.js?v=1.1.10"></script>
     <script src="/public/js/userMgmt.js?v=1.1.4"></script>
     <script src="/public/js/app.hooks.js?v=1.1.4"></script>
 
