@@ -2651,9 +2651,11 @@
     </div>
 
     <!-- MODAL: UPLOAD BLUEPRINT -->
-    <div id="modal-upload-blueprint" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
-        <div class="artifact-card rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-upload-blueprint-content">
-            <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
+    <!-- MODAL: UPLOAD BLUEPRINT -->
+    <div id="modal-upload-blueprint" onclick="if(event.target === this) app.hideModal('modal-upload-blueprint')" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-upload-blueprint-content">
+            <!-- Fixed Sticky Header with Prominent Close Button -->
+            <div class="p-4 sm:p-5 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
                 <div class="flex items-center gap-2.5">
                     <div class="w-8 h-8 rounded-xl bg-brand-500/15 text-brand-500 flex items-center justify-center font-bold">
                         <i class="ph ph-blueprint text-lg"></i>
@@ -2663,159 +2665,168 @@
                         <p class="text-[10px] text-muted-foreground">แนบไฟล์แบบแปลนงานติดตั้ง (PDF, CAD, DWG) สำหรับโครงการ</p>
                     </div>
                 </div>
-                <button onclick="app.hideModal('modal-upload-blueprint')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition">
-                    <i class="ph ph-x text-base"></i>
+                <button type="button" onclick="app.hideModal('modal-upload-blueprint')" class="text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-lg hover:bg-muted transition cursor-pointer flex items-center gap-1.5 border border-border/60 hover:border-border" title="ปิดหน้าต่าง (Esc)">
+                    <span class="text-[11px] font-semibold">ปิด (Esc)</span>
+                    <i class="ph ph-x text-base font-bold"></i>
                 </button>
             </div>
 
-            <form onsubmit="app.submitUploadBlueprint(event)" class="p-5 space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-foreground mb-1">เลือกงาน / โครงการ *</label>
-                    <select id="upload-bp-jobid" required class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
-                        <!-- Populated by JS -->
-                    </select>
-                </div>
-
-                <!-- Existing Blueprints Info Bar for Selected Job -->
-                <div id="upload-bp-existing-zones-info" class="hidden p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs flex flex-col gap-1 transition">
-                    <!-- Populated dynamically by JS -->
-                </div>
-
-                <!-- Zone / Sub-task Selection (Multi-zone support: Living room, Sitting room, Kitchen, etc.) -->
-                <div class="space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <label class="block text-xs font-semibold text-foreground">งานย่อย / โซนห้อง (Area / Zone / Sub-task) <span class="text-rose-500">*</span></label>
-                        <span class="text-[10px] text-muted-foreground">คลิกเลือกห้อง หรือพิมพ์ระบุเอง</span>
-                    </div>
-                    <div class="flex flex-wrap gap-1.5">
-                        <button type="button" onclick="app.selectBlueprintZone('ห้องรับแขก')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🛋️ ห้องรับแขก</button>
-                        <button type="button" onclick="app.selectBlueprintZone('ห้องนั่งเล่น')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">📺 ห้องนั่งเล่น</button>
-                        <button type="button" onclick="app.selectBlueprintZone('ห้องครัว Built-in')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🍳 ห้องครัว</button>
-                        <button type="button" onclick="app.selectBlueprintZone('ห้องนอนใหญ่ (Master)')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🛏️ ห้องนอนใหญ่</button>
-                        <button type="button" onclick="app.selectBlueprintZone('ห้องน้ำ')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🚿 ห้องน้ำ</button>
-                        <button type="button" onclick="app.selectBlueprintZone('ภายนอก / รอบบ้าน')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🌿 ภายนอก</button>
-                        <button type="button" onclick="app.selectBlueprintZone('งานระบบไฟฟ้า')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">⚡ ระบบไฟ</button>
-                        <button type="button" onclick="app.selectBlueprintZone('งานระบบประปา')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">💧 ระบบประปา</button>
-                    </div>
-                    <input type="text" id="upload-bp-zone" required placeholder="ระบุโซนห้อง หรืองานย่อย เช่น ห้องรับแขก, ห้องนั่งเล่น..." value="ห้องรับแขก" oninput="app.updateBlueprintFilenameSuggestion()" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-foreground mb-1">ชื่อไฟล์แบบแปลน *</label>
-                    <input type="text" id="upload-bp-filename" required placeholder="เช่น JOB202609001_ห้องรับแขก_Layout.pdf" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
+            <!-- Form with Scrollable Content Body and Fixed Footer -->
+            <form onsubmit="app.submitUploadBlueprint(event)" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div class="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 min-h-0">
                     <div>
-                        <label class="block text-xs font-semibold text-foreground mb-1">เวอร์ชันแบบ</label>
-                        <input type="text" id="upload-bp-version" placeholder="v3 Final" value="v3 Final" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                        <label class="block text-xs font-semibold text-foreground mb-1">เลือกงาน / โครงการ *</label>
+                        <select id="upload-bp-jobid" required class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                            <!-- Populated by JS -->
+                        </select>
                     </div>
+
+                    <!-- Existing Blueprints Info Bar for Selected Job -->
+                    <div id="upload-bp-existing-zones-info" class="hidden p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs flex flex-col gap-1 transition">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+
+                    <!-- Zone / Sub-task Selection (Multi-zone support: Living room, Sitting room, Kitchen, etc.) -->
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-semibold text-foreground">งานย่อย / โซนห้อง (Area / Zone / Sub-task) <span class="text-rose-500">*</span></label>
+                            <span class="text-[10px] text-muted-foreground">คลิกเลือกห้อง หรือพิมพ์ระบุเอง</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button type="button" onclick="app.selectBlueprintZone('ห้องรับแขก')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🛋️ ห้องรับแขก</button>
+                            <button type="button" onclick="app.selectBlueprintZone('ห้องนั่งเล่น')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">📺 ห้องนั่งเล่น</button>
+                            <button type="button" onclick="app.selectBlueprintZone('ห้องครัว Built-in')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🍳 ห้องครัว</button>
+                            <button type="button" onclick="app.selectBlueprintZone('ห้องนอนใหญ่ (Master)')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🛏️ ห้องนอนใหญ่</button>
+                            <button type="button" onclick="app.selectBlueprintZone('ห้องน้ำ')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🚿 ห้องน้ำ</button>
+                            <button type="button" onclick="app.selectBlueprintZone('ภายนอก / รอบบ้าน')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🌿 ภายนอก</button>
+                            <button type="button" onclick="app.selectBlueprintZone('งานระบบไฟฟ้า')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">⚡ ระบบไฟ</button>
+                            <button type="button" onclick="app.selectBlueprintZone('งานระบบประปา')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">💧 ระบบประปา</button>
+                        </div>
+                        <input type="text" id="upload-bp-zone" required placeholder="ระบุโซนห้อง หรืองานย่อย เช่น ห้องรับแขก, ห้องนั่งเล่น..." value="ห้องรับแขก" oninput="app.updateBlueprintFilenameSuggestion()" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                    </div>
+
                     <div>
-                        <label class="block text-xs font-semibold text-foreground mb-1">ผู้ออกแบบ / สถาปนิก</label>
-                        <input type="text" id="upload-bp-designer" placeholder="คุณธนกฤต (Designer)" value="คุณธนกฤต (Designer)" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                        <label class="block text-xs font-semibold text-foreground mb-1">ชื่อไฟล์แบบแปลน *</label>
+                        <input type="text" id="upload-bp-filename" required placeholder="เช่น JOB202609001_ห้องรับแขก_Layout.pdf" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
                     </div>
-                </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-foreground mb-1">หมายเหตุ / รายละเอียดแบบ</label>
-                    <textarea id="upload-bp-notes" rows="2" placeholder="ระบุรายละเอียดเพิ่มเติมเกี่ยวกับแบบติดตั้งฉบับนี้..." class="w-full bg-muted/40 border border-border rounded-lg p-2.5 text-xs text-foreground focus:outline-none focus:border-brand-500"></textarea>
-                </div>
-
-                <!-- Real File Attachment & Drag-Drop Zone -->
-                <div class="space-y-2">
-                    <div class="flex items-center justify-between">
-                        <label class="block text-xs font-semibold text-foreground">แนบไฟล์แบบแปลน (CAD / PDF / DWG / รูปภาพ) <span class="text-rose-500">*</span></label>
-                        <span class="text-[10px] text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded font-mono">รองรับรูปภาพ JPG/PNG & Ctrl+V วางภาพ</span>
-                    </div>
-                    <input type="file" id="upload-bp-file" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.webp,.gif,.zip,.rar,image/*" class="sr-only" onchange="app.handleBlueprintFileSelect(event)">
-                    
-                    <label for="upload-bp-file" id="upload-bp-dropzone" 
-                         class="border-2 border-dashed border-border hover:border-indigo-500 rounded-xl p-5 text-center cursor-pointer bg-muted/20 hover:bg-indigo-500/5 transition relative flex flex-col items-center justify-center gap-2 group block"
-                         ondragover="app.handleBlueprintDragOver(event)"
-                         ondragleave="app.handleBlueprintDragLeave(event)"
-                         ondrop="app.handleBlueprintDrop(event)">
-                        <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition text-2xl">
-                            <i class="ph ph-cloud-arrow-up"></i>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-foreground mb-1">เวอร์ชันแบบ</label>
+                            <input type="text" id="upload-bp-version" placeholder="v3 Final" value="v3 Final" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
                         </div>
                         <div>
-                            <div class="text-xs font-bold text-foreground">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์รูปภาพ/แบบแปลนมาวางที่นี่</div>
-                            <div class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์รูปภาพ (.png, .jpg, .webp), AutoCAD (.dwg, .dxf), PDF สูงสุด 50 MB (กด Ctrl+V เพื่อวางภาพได้)</div>
-                        </div>
-                        <div class="btn-artifact-secondary px-3.5 py-1.5 rounded-lg text-xs inline-flex items-center gap-1.5 font-medium shadow-xs mt-1 pointer-events-none">
-                            <i class="ph ph-folder-open text-sm"></i> เลือกไฟล์จากเครื่องคอมพิวเตอร์
-                        </div>
-                    </label>
-
-                    <!-- Selected File Preview Card with Dedicated Image Preview -->
-                    <div id="upload-bp-selected-file" class="hidden rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-3 space-y-2.5 transition-all">
-                        <!-- Top Info Bar -->
-                        <div class="flex items-center justify-between gap-3">
-                            <div class="flex items-center gap-2.5 min-w-0">
-                                <div class="w-9 h-9 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-lg shrink-0" id="upload-bp-file-icon">
-                                    <i class="ph ph-file-image"></i>
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="text-xs font-bold text-foreground truncate" id="upload-bp-file-display-name">blueprint.png</div>
-                                    <div class="text-[10px] text-muted-foreground font-mono flex items-center gap-1.5 flex-wrap">
-                                        <span id="upload-bp-file-display-size">2.4 MB</span>
-                                        <span>•</span>
-                                        <span id="upload-bp-file-display-status" class="text-emerald-500 font-medium">พร้อมบันทึกเข้าสู่ Step 2</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-1.5 shrink-0">
-                                <label for="upload-bp-file" class="p-1.5 text-muted-foreground hover:text-foreground text-xs rounded-lg hover:bg-muted cursor-pointer inline-flex items-center" title="เปลี่ยนไฟล์">
-                                    <i class="ph ph-arrows-clockwise text-sm"></i>
-                                </label>
-                                <button type="button" onclick="app.clearBlueprintSelectedFile()" class="p-1.5 text-rose-500 hover:text-rose-600 text-xs rounded-lg hover:bg-rose-500/10 cursor-pointer inline-flex items-center" title="ลบไฟล์ที่เลือก">
-                                    <i class="ph ph-trash text-sm"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Image Preview Box -->
-                        <div id="upload-bp-image-preview-container" class="relative rounded-lg overflow-hidden border border-border bg-slate-900/10 dark:bg-slate-950/40 group">
-                            <img id="upload-bp-preview-img" src="" alt="Blueprint Preview" class="w-full max-h-52 object-contain mx-auto transition-transform duration-300 group-hover:scale-[1.02]">
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
-                                <button type="button" onclick="app.openNewBlueprintPreviewLightbox()" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow cursor-pointer">
-                                    <i class="ph ph-magnifying-glass-plus text-sm"></i> คลิกขยายดูภาพขนาดเต็ม (Lightbox)
-                                </button>
-                            </div>
-                            <div class="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-xs text-[10px] text-white font-medium flex items-center gap-1 pointer-events-none">
-                                <i class="ph ph-image text-xs text-indigo-400"></i>
-                                <span id="upload-bp-preview-tag">ภาพตัวอย่างแบบ Design</span>
-                            </div>
-                            <div class="absolute bottom-2 right-2">
-                                <button type="button" onclick="app.openNewBlueprintPreviewLightbox()" class="px-2 py-0.5 rounded bg-black/60 hover:bg-black/80 backdrop-blur-xs text-[10px] text-white font-medium flex items-center gap-1 cursor-pointer transition">
-                                    <i class="ph ph-arrows-out-simple"></i> ขยายดูเต็มตา
-                                </button>
-                            </div>
+                            <label class="block text-xs font-semibold text-foreground mb-1">ผู้ออกแบบ / สถาปนิก</label>
+                            <input type="text" id="upload-bp-designer" placeholder="คุณธนกฤต (Designer)" value="คุณธนกฤต (Designer)" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
                         </div>
                     </div>
 
-                    <!-- Quick Sample Files / Templates -->
-                    <div class="space-y-1.5 pt-1">
-                        <div class="text-[10px] text-muted-foreground flex items-center justify-between">
-                            <span>หรือเลือกตัวอย่างแบบแปลนมาตรฐาน (Quick Test):</span>
+                    <div>
+                        <label class="block text-xs font-semibold text-foreground mb-1">หมายเหตุ / รายละเอียดแบบ</label>
+                        <textarea id="upload-bp-notes" rows="2" placeholder="ระบุรายละเอียดเพิ่มเติมเกี่ยวกับแบบติดตั้งฉบับนี้..." class="w-full bg-muted/40 border border-border rounded-lg p-2.5 text-xs text-foreground focus:outline-none focus:border-brand-500"></textarea>
+                    </div>
+
+                    <!-- Real File Attachment & Drag-Drop Zone -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-semibold text-foreground">แนบไฟล์แบบแปลน (CAD / PDF / DWG / รูปภาพ) <span class="text-rose-500">*</span></label>
+                            <span class="text-[10px] text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded font-mono">รองรับรูปภาพ JPG/PNG & Ctrl+V วางภาพ</span>
                         </div>
-                        <div class="flex flex-wrap items-center gap-1.5">
-                            <button type="button" onclick="app.useSampleBlueprint('hvac')" class="text-[10px] bg-muted hover:bg-muted/80 px-2 py-1 rounded-lg text-foreground border border-border cursor-pointer flex items-center gap-1">
-                                <i class="ph ph-file-pdf text-rose-500"></i> แปลนแอร์ Inverter (PDF)
-                            </button>
-                            <button type="button" onclick="app.useSampleBlueprint('kitchen')" class="text-[10px] bg-muted hover:bg-muted/80 px-2 py-1 rounded-lg text-foreground border border-border cursor-pointer flex items-center gap-1">
-                                <i class="ph ph-file-code text-indigo-500"></i> แบบ Renovate ครัว (DWG)
-                            </button>
-                            <button type="button" onclick="app.useSampleBlueprint('solar')" class="text-[10px] bg-muted hover:bg-muted/80 px-2 py-1 rounded-lg text-foreground border border-border cursor-pointer flex items-center gap-1">
-                                <i class="ph ph-sun text-amber-500"></i> ผัง Solar Rooftop (PDF)
-                            </button>
+                        <input type="file" id="upload-bp-file" accept=".pdf,.dwg,.dxf,.cad,.png,.jpg,.jpeg,.webp,.gif,.zip,.rar,image/*" class="sr-only" onchange="app.handleBlueprintFileSelect(event)">
+                        
+                        <label for="upload-bp-file" id="upload-bp-dropzone" 
+                             class="border-2 border-dashed border-border hover:border-indigo-500 rounded-xl p-5 text-center cursor-pointer bg-muted/20 hover:bg-indigo-500/5 transition relative flex flex-col items-center justify-center gap-2 group block"
+                             ondragover="app.handleBlueprintDragOver(event)"
+                             ondragleave="app.handleBlueprintDragLeave(event)"
+                             ondrop="app.handleBlueprintDrop(event)">
+                            <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition text-2xl">
+                                <i class="ph ph-cloud-arrow-up"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold text-foreground">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์รูปภาพ/แบบแปลนมาวางที่นี่</div>
+                                <div class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์รูปภาพ (.png, .jpg, .webp), AutoCAD (.dwg, .dxf), PDF สูงสุด 50 MB (กด Ctrl+V เพื่อวางภาพได้)</div>
+                            </div>
+                            <div class="btn-artifact-secondary px-3.5 py-1.5 rounded-lg text-xs inline-flex items-center gap-1.5 font-medium shadow-xs mt-1 pointer-events-none">
+                                <i class="ph ph-folder-open text-sm"></i> เลือกไฟล์จากเครื่องคอมพิวเตอร์
+                            </div>
+                        </label>
+
+                        <!-- Selected File Preview Card with Dedicated Image Preview -->
+                        <div id="upload-bp-selected-file" class="hidden rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-3 space-y-2.5 transition-all">
+                            <!-- Top Info Bar -->
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="w-9 h-9 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-lg shrink-0" id="upload-bp-file-icon">
+                                        <i class="ph ph-file-image"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="text-xs font-bold text-foreground truncate" id="upload-bp-file-display-name">blueprint.png</div>
+                                        <div class="text-[10px] text-muted-foreground font-mono flex items-center gap-1.5 flex-wrap">
+                                            <span id="upload-bp-file-display-size">2.4 MB</span>
+                                            <span>•</span>
+                                            <span id="upload-bp-file-display-status" class="text-emerald-500 font-medium">พร้อมบันทึกเข้าสู่ Step 2</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <label for="upload-bp-file" class="p-1.5 text-muted-foreground hover:text-foreground text-xs rounded-lg hover:bg-muted cursor-pointer inline-flex items-center" title="เปลี่ยนไฟล์">
+                                        <i class="ph ph-arrows-clockwise text-sm"></i>
+                                    </label>
+                                    <button type="button" onclick="app.clearBlueprintSelectedFile()" class="p-1.5 text-rose-500 hover:text-rose-600 text-xs rounded-lg hover:bg-rose-500/10 cursor-pointer inline-flex items-center" title="ลบไฟล์ที่เลือก">
+                                        <i class="ph ph-trash text-sm"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Image Preview Box -->
+                            <div id="upload-bp-image-preview-container" class="relative rounded-lg overflow-hidden border border-border bg-slate-900/10 dark:bg-slate-950/40 group">
+                                <img id="upload-bp-preview-img" src="" alt="Blueprint Preview" class="w-full max-h-48 object-contain mx-auto transition-transform duration-300 group-hover:scale-[1.02]">
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                                    <button type="button" onclick="app.openNewBlueprintPreviewLightbox()" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow cursor-pointer">
+                                        <i class="ph ph-magnifying-glass-plus text-sm"></i> คลิกขยายดูภาพขนาดเต็ม (Lightbox)
+                                    </button>
+                                </div>
+                                <div class="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-xs text-[10px] text-white font-medium flex items-center gap-1 pointer-events-none">
+                                    <i class="ph ph-image text-xs text-indigo-400"></i>
+                                    <span id="upload-bp-preview-tag">ภาพตัวอย่างแบบ Design</span>
+                                </div>
+                                <div class="absolute bottom-2 right-2">
+                                    <button type="button" onclick="app.openNewBlueprintPreviewLightbox()" class="px-2 py-0.5 rounded bg-black/60 hover:bg-black/80 backdrop-blur-xs text-[10px] text-white font-medium flex items-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrows-out-simple"></i> ขยายดูเต็มตา
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Sample Files / Templates -->
+                        <div class="space-y-1.5 pt-1">
+                            <div class="text-[10px] text-muted-foreground flex items-center justify-between">
+                                <span>หรือเลือกตัวอย่างแบบแปลนมาตรฐาน (Quick Test):</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <button type="button" onclick="app.useSampleBlueprint('hvac')" class="text-[10px] bg-muted hover:bg-muted/80 px-2 py-1 rounded-lg text-foreground border border-border cursor-pointer flex items-center gap-1">
+                                    <i class="ph ph-file-pdf text-rose-500"></i> แปลนแอร์ Inverter (PDF)
+                                </button>
+                                <button type="button" onclick="app.useSampleBlueprint('kitchen')" class="text-[10px] bg-muted hover:bg-muted/80 px-2 py-1 rounded-lg text-foreground border border-border cursor-pointer flex items-center gap-1">
+                                    <i class="ph ph-file-code text-indigo-500"></i> แบบ Renovate ครัว (DWG)
+                                </button>
+                                <button type="button" onclick="app.useSampleBlueprint('solar')" class="text-[10px] bg-muted hover:bg-muted/80 px-2 py-1 rounded-lg text-foreground border border-border cursor-pointer flex items-center gap-1">
+                                    <i class="ph ph-sun text-amber-500"></i> ผัง Solar Rooftop (PDF)
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="pt-3 border-t border-border flex justify-end gap-2">
-                    <button type="button" onclick="app.hideModal('modal-upload-blueprint')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs cursor-pointer">ยกเลิก</button>
-                    <button type="submit" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer">
-                        <i class="ph ph-upload-simple"></i> บันทึกแบบแปลน
+                <!-- Fixed Sticky Footer with Cancel and Submit Buttons Always Visible! -->
+                <div class="p-4 border-t border-border bg-card/95 backdrop-blur-sm shrink-0 flex items-center justify-between gap-3">
+                    <button type="button" onclick="app.hideModal('modal-upload-blueprint')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer text-muted-foreground hover:text-foreground flex items-center gap-1.5">
+                        <i class="ph ph-x text-sm"></i>
+                        <span>ยกเลิก / ปิด</span>
+                    </button>
+                    <button type="submit" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer transition hover:scale-[1.02]">
+                        <i class="ph ph-upload-simple text-sm"></i>
+                        <span>บันทึกแบบแปลน</span>
                     </button>
                 </div>
             </form>
@@ -3948,7 +3959,7 @@
     <!-- APPLICATION SCRIPTS -->
     <script src="/public/js/db.js?v=1.1.4"></script>
     <script src="/public/js/auth.js?v=1.1.4"></script>
-    <script src="/public/js/app.js?v=1.1.10"></script>
+    <script src="/public/js/app.js?v=1.1.11"></script>
     <script src="/public/js/userMgmt.js?v=1.1.4"></script>
     <script src="/public/js/app.hooks.js?v=1.1.4"></script>
 

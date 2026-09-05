@@ -1036,6 +1036,18 @@ const app = {
                     }
                 });
 
+                // Global Keydown Listener (Esc to close any active modal or lightbox)
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        const openModals = document.querySelectorAll('.fixed.inset-0.z-50:not(.hidden-view), .fixed.inset-0.z-\\[100\\]:not(.hidden-view)');
+                        openModals.forEach(m => {
+                            if (m.id) {
+                                this.hideModal(m.id);
+                            }
+                        });
+                    }
+                });
+
                 this.navigate('dashboard');
                 this.fetchJobsFromApi();
                 this.fetchMAFromApi();
