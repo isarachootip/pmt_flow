@@ -429,22 +429,21 @@ const app = {
             },
 
             async resetAllJobStatuses(confirmAction = true) {
-                const userEmail = (typeof auth !== 'undefined' && auth.user ? (auth.user.email || auth.user.username) : '').toLowerCase();
-                if (userEmail !== 'isarachootip@gmail.com') {
-                    alert('ขออภัย เฉพาะผู้ใช้ isarachootip@gmail.com เท่านั้นที่สามารถถอยสถานะโครงการได้');
+                if (confirmAction && !confirm('คุณแน่ใจหรือไม่ที่จะถอยสถานะของทุกโครงการกลับไปจุดเริ่มต้น (Step 1 / Draft / 0%) เพื่อเริ่มต้นใหม่?')) {
                     return;
                 }
-                if (confirmAction && !confirm('คุณแน่ใจหรือไม่ที่จะถอยสถานะของทุกโครงการกลับไปจุดเริ่มต้น (Step 1 / Draft / 0%)?')) {
-                    return;
-                }
-                DB.jobs.forEach(job => {
+                (DB.jobs || []).forEach(job => {
                     job.status = 'DRAFT';
                     job.progress = 0;
-                    const s1 = (job.step_timestamps && job.step_timestamps.step1_order_at) || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : '2026-09-04T08:30:15.000Z');
-                    job.step_timestamps = { step1_order_at: s1 };
+                    job.step_timestamps = { step1_order_at: job.step_timestamps?.step1_order_at || new Date().toISOString() };
                     job.boq_items = [];
                     job.boq_discount = 0;
                     job.boq_grand_total = 0;
+                    delete job.blueprint_id;
+                    delete job.blueprint_name;
+                    delete job.blueprint_img;
+                    delete job.blueprint_zone;
+                    delete job.blueprint_count;
                 });
                 DB.tasks = [];
                 DB.blueprints = [];
@@ -456,11 +455,14 @@ const app = {
                 try {
                     localStorage.setItem('pmt_tasks', JSON.stringify([]));
                     localStorage.setItem('pmt_qc_bookings', JSON.stringify([]));
+                    localStorage.removeItem('pmt_jobs_cleared_v7');
                 } catch (e) {}
 
                 try {
                     await fetch('/api/v1/jobs/reset-status', { method: 'POST' });
                 } catch (e) {}
+
+                this.updateStepBadges();
 
                 if (this.state.currentView === 'jobs') this.renderJobs();
                 if (this.state.currentView === 'dashboard') this.renderDashboard();
@@ -471,38 +473,26 @@ const app = {
                 if (this.state.currentView === 'blueprints') this.renderBlueprints();
                 if (this.state.currentView === 'tickets') this.renderTickets();
 
-                const countEl = document.getElementById('sidebar-job-count');
-                if (countEl) countEl.innerText = DB.jobs.length;
-                const sidebarBp = document.getElementById('sidebar-blueprint-count');
-                if (sidebarBp) sidebarBp.innerText = DB.jobs.length;
-                const sidebarTicket = document.getElementById('sidebar-ticket-count');
-                if (sidebarTicket) sidebarTicket.innerText = '0';
-                const sidebarBoq = document.getElementById('sidebar-boq-count');
-                if (sidebarBoq) sidebarBoq.innerText = '0';
-                const sidebarTask = document.getElementById('sidebar-task-count');
-                if (sidebarTask) sidebarTask.innerText = '0';
-                const sidebarCsat = document.getElementById('sidebar-csat-count');
-                if (sidebarCsat) sidebarCsat.innerText = '0';
-
-                this.showToast('🔄 ถอยสถานะโครงการทั้งหมดกลับสู่จุดเริ่มต้น (Step 1 / Draft / 0%) เรียบร้อยแล้ว');
+                this.showToast('🔄 ล้างค่าและถอยสถานะทุกโครงการกลับสู่จุดเริ่มต้น (Step 1 / Draft / 0%) เรียบร้อยแล้ว');
             },
 
             async clearAllProjects(confirmAction = true) {
-                const userEmail = (typeof auth !== 'undefined' && auth.user ? (auth.user.email || auth.user.username) : '').toLowerCase();
-                if (userEmail !== 'isarachootip@gmail.com') {
-                    alert('ขออภัย เฉพาะผู้ใช้ isarachootip@gmail.com เท่านั้นที่สามารถล้างข้อมูลโครงการได้');
-                    return;
-                }
-                if (confirmAction && !confirm('คุณแน่ใจหรือไม่ที่จะลบข้อมูลโครงการและรายการแผนงานทั้งหมดออกจากระบบ?')) {
+                if (confirmAction && !confirm('คุณแน่ใจหรือไม่ที่จะล้างข้อมูลโครงการทั้งหมดออกจากระบบ เพื่อเริ่มต้นใหม่จาก 0?')) {
                     return;
                 }
                 DB.jobs = [];
                 DB.tasks = [];
                 DB.blueprints = [];
+                DB.tickets = [];
+                DB.qcBookings = [];
                 try {
                     localStorage.removeItem('pmt_jobs');
                     localStorage.removeItem('pmt_tasks');
-                    localStorage.setItem('pmt_jobs_cleared_v3', 'true');
+                    localStorage.removeItem('pmt_blueprints');
+                    localStorage.removeItem('pmt_tickets');
+                    localStorage.removeItem('pmt_qc_bookings');
+                    localStorage.removeItem('pmt_int_mock_10jobs_v4');
+                    localStorage.setItem('pmt_jobs_cleared_v7', 'true');
                 } catch (e) {}
 
                 try {
@@ -510,6 +500,10 @@ const app = {
                 } catch (e) {}
 
                 this.persistJobs();
+                this.persistBlueprints();
+                this.persistTickets();
+                this.updateStepBadges();
+
                 if (this.state.currentView === 'gantt') this.renderGantt();
                 if (this.state.currentView === 'jobs') this.renderJobs();
                 if (this.state.currentView === 'dashboard') this.renderDashboard();
@@ -517,10 +511,7 @@ const app = {
                 if (this.state.currentView === 'qc') this.renderQC();
                 if (this.state.currentView === 'csat') this.renderCSAT();
 
-                const countEl = document.getElementById('sidebar-job-count');
-                if (countEl) countEl.innerText = '0';
-
-                this.showToast('🗑️ ลบข้อมูลโครงการและรายการแผนงานทั้งหมดออกจากระบบเรียบร้อย');
+                this.showToast('🗑️ ล้างข้อมูลโครงการทั้งหมดเป็น 0 เรียบร้อยแล้ว (สามารถกด "จำลอง 10 งาน" หรือ "รับ Order ใหม่" ได้ทุกเมื่อ)');
             },
 
             getINTMockOrders() {
@@ -760,20 +751,15 @@ const app = {
             },
 
             async simulateINT10Orders(confirmAction = true) {
-                const userEmail = (typeof auth !== 'undefined' && auth.user ? (auth.user.email || auth.user.username) : '').toLowerCase();
-                const isSuperAdmin = !userEmail || userEmail === 'isarachootip@gmail.com' || (auth && auth.user && (auth.user.role === 'ADMIN' || auth.user.role === 'SUPERADMIN' || auth.user.role === 'PROJECT_MANAGER'));
-                if (!isSuperAdmin) {
-                    alert('ขออภัย เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถใช้ฟังก์ชันจำลองรับ 10 งานจาก INT ได้');
-                    return;
-                }
                 if (confirmAction && !confirm('คุณต้องการจำลองรับข้อมูลงานใหม่จากระบบ INT จำนวน 10 รายการ เข้าสู่ PMT ใช่หรือไม่?')) {
                     return;
                 }
 
                 // 1. Clear storage flags
                 try {
+                    localStorage.removeItem('pmt_jobs_cleared_v7');
+                    localStorage.removeItem('pmt_jobs_cleared_v5');
                     localStorage.removeItem('pmt_jobs_cleared_v3');
-                    localStorage.setItem('pmt_int_mock_10jobs_v4', 'true');
                     localStorage.removeItem('pmt_tasks');
                     localStorage.removeItem('pmt_blueprints');
                     localStorage.removeItem('pmt_tickets');
@@ -787,7 +773,7 @@ const app = {
                     console.warn('Server reset failed, continuing with local mock:', e);
                 }
 
-                // 3. Populate local DB
+                // 3. Populate local DB with 10 pure Step 1 jobs (0% Draft)
                 const mockOrders = this.getINTMockOrders();
                 DB.jobs = JSON.parse(JSON.stringify(mockOrders));
                 DB.tasks = [];
@@ -802,9 +788,6 @@ const app = {
                     localStorage.setItem('pmt_qc_bookings', JSON.stringify([]));
                 } catch (e) {}
 
-                // 4. Synchronize with API
-                await this.fetchJobsFromApi();
-
                 if (this.state.currentView === 'jobs') this.renderJobs();
                 if (this.state.currentView === 'dashboard') this.renderDashboard();
                 if (this.state.currentView === 'gantt') this.renderGantt();
@@ -813,18 +796,7 @@ const app = {
                 if (this.state.currentView === 'blueprints') this.renderBlueprints();
                 if (this.state.currentView === 'tickets') this.renderTickets();
 
-                const countEl = document.getElementById('sidebar-job-count');
-                if (countEl) countEl.innerText = DB.jobs.length;
-                const sidebarBp = document.getElementById('sidebar-blueprint-count');
-                if (sidebarBp) sidebarBp.innerText = DB.jobs.length;
-                const sidebarTicket = document.getElementById('sidebar-ticket-count');
-                if (sidebarTicket) sidebarTicket.innerText = '0';
-                const sidebarBoq = document.getElementById('sidebar-boq-count');
-                if (sidebarBoq) sidebarBoq.innerText = '0';
-                const sidebarTask = document.getElementById('sidebar-task-count');
-                if (sidebarTask) sidebarTask.innerText = '0';
-                const sidebarCsat = document.getElementById('sidebar-csat-count');
-                if (sidebarCsat) sidebarCsat.innerText = '0';
+                this.updateStepBadges();
 
                 this.showToast(`📥 จำลองรับ Order จาก INT System สำเร็จ ${DB.jobs.length} งาน (ทุกงานอยู่ที่ Step 1 ความคืบหน้า 0% พร้อมเริ่มต้นกระบวนการ)`);
             },
@@ -838,11 +810,21 @@ const app = {
                     document.documentElement.classList.remove('dark');
                 }
 
-                // Initial seed or auto-migration to v4 of 10 INT orders (clean Step 1 start)
-                if (localStorage.getItem('pmt_int_mock_10jobs_v4') !== 'true') {
+                // Auto-Wipe & Fresh Clean Slate v7 (Fulfilling: "เริ่มใหม่ เลย ล้างค่าทุกอย่างออกไปให้หมด")
+                const FRESH_RESET_KEY = 'pmt_clean_reset_v7';
+                if (localStorage.getItem(FRESH_RESET_KEY) !== 'true') {
                     try {
-                        localStorage.setItem('pmt_int_mock_10jobs_v4', 'true');
-                        DB.jobs = this.getINTMockOrders();
+                        localStorage.setItem(FRESH_RESET_KEY, 'true');
+                        localStorage.setItem('pmt_jobs_cleared_v7', 'true');
+                        localStorage.removeItem('pmt_jobs');
+                        localStorage.removeItem('pmt_tasks');
+                        localStorage.removeItem('pmt_blueprints');
+                        localStorage.removeItem('pmt_tickets');
+                        localStorage.removeItem('pmt_qc_bookings');
+                        localStorage.removeItem('pmt_int_mock_10jobs_v4');
+                        localStorage.removeItem('pmt_jobs_cleared_v3');
+                        localStorage.removeItem('pmt_jobs_cleared_v5');
+                        DB.jobs = [];
                         DB.tasks = [];
                         DB.blueprints = [];
                         DB.tickets = [];
@@ -850,29 +832,28 @@ const app = {
                         this.persistJobs();
                         this.persistBlueprints();
                         this.persistTickets();
-                        localStorage.setItem('pmt_tasks', JSON.stringify([]));
-                        localStorage.setItem('pmt_qc_bookings', JSON.stringify([]));
                     } catch(e) {}
                 }
 
-                // Restore saved jobs or seed with 10 INT mock jobs
+                const isExplicitlyCleared = localStorage.getItem('pmt_jobs_cleared_v7') === 'true';
+
+                // Restore saved jobs
                 const savedJobs = localStorage.getItem('pmt_jobs');
-                if (savedJobs) {
+                if (isExplicitlyCleared) {
+                    DB.jobs = [];
+                } else if (savedJobs) {
                     try {
                         const parsed = JSON.parse(savedJobs);
-                        if (Array.isArray(parsed) && parsed.length > 0) {
+                        if (Array.isArray(parsed)) {
                             DB.jobs = parsed;
                         } else {
-                            DB.jobs = this.getINTMockOrders();
-                            this.persistJobs();
+                            DB.jobs = [];
                         }
                     } catch (e) {
-                        DB.jobs = this.getINTMockOrders();
-                        this.persistJobs();
+                        DB.jobs = [];
                     }
                 } else {
-                    DB.jobs = this.getINTMockOrders();
-                    this.persistJobs();
+                    DB.jobs = [];
                 }
 
                 // Ensure all jobs have a valid job_type (quick, renovate, ma)
@@ -891,64 +872,62 @@ const app = {
 
                 // Restore saved tasks
                 const savedTasks = localStorage.getItem('pmt_tasks');
-                if (savedTasks) {
+                if (savedTasks && !isExplicitlyCleared) {
                     try {
                         const parsedTasks = JSON.parse(savedTasks);
                         if (Array.isArray(parsedTasks)) {
                             DB.tasks = parsedTasks;
                         }
                     } catch (e) {}
+                } else {
+                    DB.tasks = [];
                 }
 
                 // Restore saved QC bookings
                 const savedQCBookings = localStorage.getItem('pmt_qc_bookings');
-                if (savedQCBookings) {
+                if (savedQCBookings && !isExplicitlyCleared) {
                     try {
                         const parsedBookings = JSON.parse(savedQCBookings);
                         if (Array.isArray(parsedBookings)) {
                             DB.qcBookings = parsedBookings;
                         }
                     } catch (e) {}
+                } else {
+                    DB.qcBookings = [];
                 }
 
-                // Restore saved tickets or seed with initial mock tickets (Step 3)
+                // Restore saved tickets
                 const savedTickets = localStorage.getItem('pmt_tickets');
-                if (savedTickets) {
+                if (savedTickets && !isExplicitlyCleared) {
                     try {
                         const parsedTickets = JSON.parse(savedTickets);
-                        if (Array.isArray(parsedTickets) && parsedTickets.length > 0) {
+                        if (Array.isArray(parsedTickets)) {
                             DB.tickets = parsedTickets;
                         } else {
-                            DB.tickets = this.getDefaultMockTickets();
-                            this.persistTickets();
+                            DB.tickets = [];
                         }
                     } catch (e) {
-                        DB.tickets = this.getDefaultMockTickets();
-                        this.persistTickets();
+                        DB.tickets = [];
                     }
                 } else {
-                    DB.tickets = this.getDefaultMockTickets();
-                    this.persistTickets();
+                    DB.tickets = [];
                 }
 
-                // Restore saved blueprints or seed with initial mock blueprints (Step 2)
+                // Restore saved blueprints
                 const savedBlueprints = localStorage.getItem('pmt_blueprints');
-                if (savedBlueprints) {
+                if (savedBlueprints && !isExplicitlyCleared) {
                     try {
                         const parsedBlueprints = JSON.parse(savedBlueprints);
-                        if (Array.isArray(parsedBlueprints) && parsedBlueprints.length > 0) {
+                        if (Array.isArray(parsedBlueprints)) {
                             DB.blueprints = parsedBlueprints;
                         } else {
-                            DB.blueprints = this.getDefaultMockBlueprints();
-                            this.persistBlueprints();
+                            DB.blueprints = [];
                         }
                     } catch (e) {
-                        DB.blueprints = this.getDefaultMockBlueprints();
-                        this.persistBlueprints();
+                        DB.blueprints = [];
                     }
                 } else {
-                    DB.blueprints = this.getDefaultMockBlueprints();
-                    this.persistBlueprints();
+                    DB.blueprints = [];
                 }
 
                 // Step Timestamps Audit: Ensure all jobs have step_timestamps initialized for reporting
@@ -1066,7 +1045,7 @@ const app = {
                         if (json.success && Array.isArray(json.data)) {
                             if (json.data.length === 0) {
                                 // Only wipe out local jobs if user explicitly clicked "ล้างข้อมูลโครงการ" AND DB.jobs is empty
-                                if (localStorage.getItem('pmt_jobs_cleared_v3') === 'true' && (!DB.jobs || DB.jobs.length === 0)) {
+                                if (localStorage.getItem('pmt_jobs_cleared_v7') === 'true' && (!DB.jobs || DB.jobs.length === 0)) {
                                     DB.jobs = [];
                                     DB.tasks = [];
                                     DB.blueprints = [];
@@ -1081,12 +1060,6 @@ const app = {
                                     if (countEl) countEl.innerText = '0';
                                     return;
                                 }
-                                // If local state has jobs (such as simulated jobs), do NOT wipe them out!
-                                // Instead, tell the server to reset/seed so backend gets synchronized!
-                                if (DB.jobs && DB.jobs.length > 0) {
-                                    fetch('/api/v1/jobs/reset', { method: 'POST' }).catch(() => {});
-                                    return;
-                                }
                                 return;
                             }
                             const remoteJobs = json.data;
@@ -1096,14 +1069,11 @@ const app = {
                                     const localMatch = DB.jobs.find(lj => lj.id === rj.id);
                                     if (!localMatch) return rj;
                                     const combinedPhotos = (localMatch.photos && localMatch.photos.length > 0) ? localMatch.photos : (rj.photos || []);
-                                    const hasBps = (DB.blueprints && DB.blueprints.some(b => b.jobId === rj.id)) || !!localMatch.blueprint_id || !!rj.blueprint_id;
-                                    const hasBOQ = (localMatch.boq_items && localMatch.boq_items.length > 0) || (rj.boq_items && rj.boq_items.length > 0);
-                                    const isAccepted = Boolean(localMatch.pmt_accepted || rj.pmt_accepted || localMatch.status !== 'DRAFT' || rj.status !== 'DRAFT' || hasBps || hasBOQ);
                                     return { 
                                         ...rj, 
                                         ...localMatch, 
-                                        pmt_accepted: isAccepted,
-                                        status: isAccepted && (localMatch.status === 'DRAFT' || rj.status === 'DRAFT') ? 'IN_PROGRESS' : (localMatch.status || rj.status),
+                                        status: localMatch.status || rj.status || 'DRAFT',
+                                        progress: (localMatch.status === 'DRAFT' || rj.status === 'DRAFT') && !localMatch.step_timestamps?.step2_design_at ? 0 : (localMatch.progress ?? rj.progress ?? 0),
                                         special_instructions: localMatch.special_instructions !== undefined ? localMatch.special_instructions : (rj.special_instructions || ''),
                                         additional_notes: localMatch.additional_notes !== undefined ? localMatch.additional_notes : (rj.additional_notes || ''),
                                         photos: combinedPhotos
@@ -1121,13 +1091,7 @@ const app = {
                                 if (this.state.currentView === 'gantt') this.renderGantt();
                                 if (this.state.currentView === 'qc') this.renderQC();
                                 if (this.state.currentView === 'csat') this.renderCSAT();
-                                const countEl = document.getElementById('sidebar-job-count');
-                                if (countEl) countEl.innerText = DB.jobs.length;
-                                const sbCsat = document.getElementById('sidebar-csat-count');
-                                if (sbCsat) {
-                                    const pCount = (DB.jobs || []).filter(j => j.status === 'QC_PASSED').length;
-                                    sbCsat.innerText = pCount;
-                                }
+                                this.updateStepBadges();
                             }
                         }
                     }
@@ -1179,7 +1143,7 @@ const app = {
                 // Update breadcrumb
                 const breadcrumbMap = {
                     'dashboard': 'Dashboard (ภาพรวมระบบ)',
-                    'jobs': 'Step 1: บันทึกงาน & รับ Order ใหม่ (All Work Orders)',
+                    'jobs': 'Step 1: คิวงานรับคำสั่งซื้อใหม่ (New Order Intake)',
                     'job-detail': `รายละเอียดงาน ${param || ''}`,
                     'blueprints': 'Step 2: บันทึก Design & แบบแปลนติดตั้ง (Blueprints & CAD)',
                     'boq': 'Step 3: นำBOQ เข้าระบบ & ประมาณการราคา (Bill of Quantities)',
@@ -1227,30 +1191,7 @@ const app = {
                 }
 
                 // Update sidebar badges
-                const sidebarJob = document.getElementById('sidebar-job-count');
-                if (sidebarJob) sidebarJob.innerText = DB.jobs.length;
-                const sidebarBp = document.getElementById('sidebar-blueprint-count');
-                if (sidebarBp) {
-                    const designedJobIds = new Set((DB.blueprints || []).map(b => b.jobId));
-                    const pendingBpCount = (DB.jobs || []).filter(j => !designedJobIds.has(j.id)).length;
-                    sidebarBp.innerText = pendingBpCount;
-                }
-                const sidebarTicket = document.getElementById('sidebar-ticket-count');
-                if (sidebarTicket && DB.tickets) sidebarTicket.innerText = DB.tickets.length;
-                const sidebarBoq = document.getElementById('sidebar-boq-count');
-                if (sidebarBoq) {
-                    const boqJobsCount = (DB.jobs || []).filter(j => j.boq_items && j.boq_items.length > 0).length;
-                    sidebarBoq.innerText = boqJobsCount;
-                }
-                const sidebarTask = document.getElementById('sidebar-task-count');
-                if (sidebarTask) sidebarTask.innerText = (DB.tasks || []).length;
-                const sidebarMa = document.getElementById('sidebar-ma-count');
-                if (sidebarMa) sidebarMa.innerText = DB.maContracts.length;
-                const sidebarCsat = document.getElementById('sidebar-csat-count');
-                if (sidebarCsat) {
-                    const csatPending = (DB.jobs || []).filter(j => j.status === 'QC_PASSED').length;
-                    sidebarCsat.innerText = csatPending;
-                }
+                this.updateStepBadges();
             },
 
             showToast(msg) {
@@ -1549,20 +1490,41 @@ const app = {
 
             renderJobs(jobList = null) {
                 const serviceFilter = document.getElementById('filter-service') ? document.getElementById('filter-service').value : 'all';
-                const statusFilter = document.getElementById('filter-status') ? document.getElementById('filter-status').value : 'all';
+                const statusFilter = document.getElementById('filter-status') ? document.getElementById('filter-status').value : 'STEP1_QUEUE';
 
-                let list = jobList || DB.jobs;
+                const designedJobIds = new Set((DB.blueprints || []).map(b => b.jobId));
+                let list = jobList || DB.jobs || [];
 
-                if(!jobList) {
-                    if(serviceFilter !== 'all') {
+                if (!jobList) {
+                    if (serviceFilter !== 'all') {
                         list = list.filter(j => j.service === serviceFilter);
                     }
-                    if(statusFilter !== 'all') {
+                    if (statusFilter === 'STEP1_QUEUE') {
+                        // Approach 2: Strictly show Step 1 jobs (New Intake) that have not yet progressed to Step 2
+                        list = list.filter(j => 
+                            (j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
+                            !designedJobIds.has(j.id) &&
+                            !(j.step_timestamps && j.step_timestamps.step2_design_at)
+                        );
+                    } else if (statusFilter !== 'ALL' && statusFilter !== 'all') {
                         list = list.filter(j => j.status === statusFilter);
                     }
                 }
 
-                const html = list.map(j => `
+                // Contextual banner display
+                const bannerEl = document.getElementById('step1-queue-banner');
+                if (bannerEl) {
+                    bannerEl.style.display = (statusFilter === 'STEP1_QUEUE') ? 'flex' : 'none';
+                }
+
+                const isStep1Queue = (statusFilter === 'STEP1_QUEUE');
+
+                const html = list.map(j => {
+                    const isJobInStep1 = (j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
+                        !designedJobIds.has(j.id) &&
+                        !(j.step_timestamps && j.step_timestamps.step2_design_at);
+
+                    return `
                     <tr class="hover:bg-muted/40 transition-colors cursor-pointer group" onclick="app.navigate('job-detail', '${j.id}')">
                         <td class="px-5 py-4 font-mono font-semibold text-brand-500">${j.id}</td>
                         <td class="px-5 py-4">
@@ -1582,39 +1544,159 @@ const app = {
                         </td>
                         <td class="px-5 py-4">${this.getStatusHtml(j.status)}</td>
                         <td class="px-5 py-4 w-44">
-                            <div class="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-                                <span class="font-semibold text-foreground">${j.progress}%</span>
-                                <span class="text-[10px] text-purple-600 dark:text-purple-400 font-mono" title="ความสมบูรณ์ 5 ขั้นตอน">${(() => {
-                                    const rep = app.getJobStepAuditReportData(j.id);
-                                    return rep ? `Step ${rep.completedCount}/5` : '';
-                                })()}</span>
-                            </div>
-                            <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden mb-1.5">
-                                <div class="bg-gradient-to-r from-brand-600 to-indigo-500 h-1.5 rounded-full" style="width: ${j.progress}%"></div>
-                            </div>
-                            <!-- 5-Step Micro Indicators with Exact Timestamp Tooltips -->
-                            <div class="flex items-center gap-1" onclick="event.stopPropagation(); app.openStepAuditReportModal('${j.id}')" title="คลิกเพื่อดู Audit Report บันทึกเวลาทั้ง 5 ขั้นตอน">
-                                ${(() => {
-                                    const rep = app.getJobStepAuditReportData(j.id);
-                                    if (!rep) return '';
-                                    return rep.steps.map(s => {
-                                        const done = s.isDone;
-                                        const t = s.timestamp ? app.formatTimestamp(s.timestamp) : 'ยังไม่บันทึก';
-                                        return `<span class="w-3.5 h-3.5 rounded-full font-mono text-[8px] flex items-center justify-center font-bold ${done ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground/50 border border-border'}" title="${s.name}: ${t}">${s.stepNumber}</span>`;
-                                    }).join('');
-                                })()}
-                                <span class="text-[9px] text-brand-500 ml-1 hover:underline cursor-pointer"><i class="ph ph-clock"></i></span>
-                            </div>
+                            ${isJobInStep1 ? `
+                                <div class="flex items-center gap-1.5">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 inline-flex items-center gap-1">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                        Step 1 (0%)
+                                    </span>
+                                    <span class="text-[10px] text-muted-foreground">รอส่งต่อทำแบบ</span>
+                                </div>
+                            ` : `
+                                <div class="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+                                    <span class="font-semibold text-foreground">${j.progress}%</span>
+                                    <span class="text-[10px] text-purple-600 dark:text-purple-400 font-mono" title="ความสมบูรณ์ 5 ขั้นตอน">${(() => {
+                                        const rep = app.getJobStepAuditReportData(j.id);
+                                        return rep ? `Step ${rep.completedCount}/5` : '';
+                                    })()}</span>
+                                </div>
+                                <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden mb-1.5">
+                                    <div class="bg-gradient-to-r from-brand-600 to-indigo-500 h-1.5 rounded-full" style="width: ${j.progress}%"></div>
+                                </div>
+                                <div class="flex items-center gap-1" onclick="event.stopPropagation(); app.openStepAuditReportModal('${j.id}')" title="คลิกเพื่อดู Audit Report บันทึกเวลาทั้ง 5 ขั้นตอน">
+                                    ${(() => {
+                                        const rep = app.getJobStepAuditReportData(j.id);
+                                        if (!rep) return '';
+                                        return rep.steps.map(s => {
+                                            const done = s.isDone;
+                                            const t = s.timestamp ? app.formatTimestamp(s.timestamp) : 'ยังไม่บันทึก';
+                                            return `<span class="w-3.5 h-3.5 rounded-full font-mono text-[8px] flex items-center justify-center font-bold ${done ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground/50 border border-border'}" title="${s.name}: ${t}">${s.stepNumber}</span>`;
+                                        }).join('');
+                                    })()}
+                                    <span class="text-[9px] text-brand-500 ml-1 hover:underline cursor-pointer"><i class="ph ph-clock"></i></span>
+                                </div>
+                            `}
                         </td>
                         <td class="px-5 py-4 text-right">
-                            <button class="text-muted-foreground group-hover:text-brand-500 p-1 rounded hover:bg-muted transition">
-                                <i class="ph ph-caret-right text-base"></i>
-                            </button>
+                            ${isJobInStep1 ? `
+                                <button type="button" onclick="event.stopPropagation(); app.proceedJobToDesign('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ส่งต่อคำสั่งซื้อนี้ไปยัง Step 2 เพื่อจัดทำแบบแปลน/Design">
+                                    <span>ส่งต่อทำแบบ (ไป Step 2)</span>
+                                    <i class="ph ph-arrow-right-bold text-xs"></i>
+                                </button>
+                            ` : `
+                                <button class="text-muted-foreground group-hover:text-brand-500 p-1 rounded hover:bg-muted transition">
+                                    <i class="ph ph-caret-right text-base"></i>
+                                </button>
+                            `}
                         </td>
                     </tr>
-                `).join('');
+                `}).join('');
 
-                document.getElementById('jobs-table-body').innerHTML = html || '<tr><td colspan="7" class="px-5 py-8 text-center text-muted-foreground">ไม่พบรายการงานตามเงื่อนไข</td></tr>';
+                document.getElementById('jobs-table-body').innerHTML = html || `
+                    <tr>
+                        <td colspan="7" class="px-5 py-12 text-center">
+                            <div class="max-w-md mx-auto space-y-3">
+                                <div class="w-12 h-12 mx-auto rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center text-2xl font-bold shadow-xs">
+                                    <i class="ph ph-tray"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-semibold text-foreground">คิวงาน Step 1 ว่าง (ระบบพร้อมเริ่มต้นใหม่)</div>
+                                    <div class="text-xs text-muted-foreground mt-1">ล้างข้อมูลทุกอย่างเรียบร้อยแล้ว ท่านสามารถกดจำลองคำสั่งซื้อใหม่จาก INT หรือกดสร้างคำสั่งซื้อใหม่เพื่อเริ่มต้น</div>
+                                </div>
+                                <div class="flex items-center justify-center gap-2 pt-2">
+                                    <button type="button" onclick="app.simulateINT10Orders(false)" class="btn-artifact-primary px-3.5 py-2 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 cursor-pointer">
+                                        <i class="ph ph-lightning text-amber-300"></i>
+                                        <span>โหลดจำลอง 10 งานใหม่ (INT)</span>
+                                    </button>
+                                    <button type="button" onclick="app.showModal('modal-create-job')" class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-muted text-foreground inline-flex items-center gap-1.5 cursor-pointer">
+                                        <i class="ph ph-plus-bold"></i>
+                                        <span>+ บันทึก Order ใหม่</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                this.updateStepBadges();
+            },
+
+            updateStepBadges() {
+                const designedJobIds = new Set((DB.blueprints || []).map(b => b.jobId));
+                const allJobs = DB.jobs || [];
+
+                // Step 1: Count only jobs waiting in Step 1
+                const step1Count = allJobs.filter(j => 
+                    (j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
+                    !designedJobIds.has(j.id) &&
+                    !(j.step_timestamps && j.step_timestamps.step2_design_at)
+                ).length;
+                const sidebarJob = document.getElementById('sidebar-job-count');
+                if (sidebarJob) sidebarJob.innerText = step1Count;
+
+                // Step 2: Pending blueprints (either in Step 2 or needing design)
+                const pendingBpCount = allJobs.filter(j => !designedJobIds.has(j.id)).length;
+                const sidebarBp = document.getElementById('sidebar-blueprint-count');
+                if (sidebarBp) sidebarBp.innerText = pendingBpCount;
+
+                // Step 3: BOQ
+                const sidebarBoq = document.getElementById('sidebar-boq-count');
+                if (sidebarBoq) {
+                    const boqJobsCount = allJobs.filter(j => j.boq_items && j.boq_items.length > 0).length;
+                    sidebarBoq.innerText = boqJobsCount;
+                }
+
+                // Step 4: Tickets
+                const sidebarTicket = document.getElementById('sidebar-ticket-count');
+                if (sidebarTicket && DB.tickets) sidebarTicket.innerText = DB.tickets.length;
+
+                // Step 5: Tasks
+                const sidebarTask = document.getElementById('sidebar-task-count');
+                if (sidebarTask) sidebarTask.innerText = (DB.tasks || []).length;
+
+                // MA
+                const sidebarMa = document.getElementById('sidebar-ma-count');
+                if (sidebarMa && DB.maContracts) sidebarMa.innerText = DB.maContracts.length;
+
+                // CSAT
+                const sidebarCsat = document.getElementById('sidebar-csat-count');
+                if (sidebarCsat) {
+                    const csatPending = allJobs.filter(j => j.status === 'QC_PASSED').length;
+                    sidebarCsat.innerText = csatPending;
+                }
+            },
+
+            proceedJobToDesign(jobId) {
+                const job = DB.jobs.find(j => j.id === jobId);
+                if (!job) return;
+
+                const confirmed = confirm(`ยืนยันการส่งต่อ Order [${job.id}] ${job.customer} ไปยังขั้นตอน "Step 2: บันทึก Design"?\n\n• ระบบจะบันทึก Timestamp และย้าย Order เข้าสู่คิวงานทำแบบแปลน (Step 2)\n• รายการนี้จะออกจากคิว Step 1 โดยอัตโนมัติ`);
+                if (!confirmed) return;
+
+                if (!job.step_timestamps) job.step_timestamps = {};
+                job.step_timestamps.step2_design_at = new Date().toISOString();
+                
+                // Record timestamp
+                this.recordStepTimestamp(job.id, 'step2_design_at', job.step_timestamps.step2_design_at, 'ส่งต่องานจาก Step 1 เข้าสู่คิวทำแบบ (Step 2)');
+                this.persistJobs();
+
+                this.updateStepBadges();
+                this.showToast(`✅ ส่งต่อ Order ${job.id} ไปยัง "Step 2: บันทึก Design" เรียบร้อยแล้ว`);
+
+                // Re-render Step 1 queue
+                if (this.state.currentView === 'jobs') {
+                    this.renderJobs();
+                }
+
+                // Offer immediate navigation to Step 2
+                setTimeout(() => {
+                    const goToStep2 = confirm(`Order ${job.id} ถูกส่งต่อไปยัง Step 2 แล้ว!\n\nต้องการเปิดไปที่หน้า "Step 2: บันทึก Design" เพื่อเริ่มแนบแบบแปลนตอนนี้เลยหรือไม่?`);
+                    if (goToStep2) {
+                        this.navigate('blueprints');
+                        setTimeout(() => {
+                            this.openUploadBlueprintModal(job.id);
+                        }, 200);
+                    }
+                }, 250);
             },
 
             switchJobTab(tab) {

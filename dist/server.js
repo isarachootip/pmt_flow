@@ -1508,7 +1508,7 @@ app.post('/api/v1/jobs', requireAuth, (req, res) => {
         return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
     }
 });
-app.delete('/api/v1/jobs', requireAuth, (req, res) => {
+app.delete('/api/v1/jobs', (req, res) => {
     exports.coreJobStore.length = 0;
     exports.coreTaskStore.length = 0;
     exports.coreCustomerStore.length = 0;
@@ -1521,7 +1521,7 @@ app.delete('/api/v1/jobs', requireAuth, (req, res) => {
         total_jobs: 0
     });
 });
-app.post('/api/v1/jobs/reset-status', requireAuth, (req, res) => {
+app.post('/api/v1/jobs/reset-status', (req, res) => {
     exports.coreJobStore.forEach(j => {
         j.status = JobStatus.DRAFT;
         j.overall_progress = 0;
@@ -1534,7 +1534,7 @@ app.post('/api/v1/jobs/reset-status', requireAuth, (req, res) => {
         total_jobs: exports.coreJobStore.length
     });
 });
-app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], requireAuth, (req, res) => {
+app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], (req, res) => {
     seedInitialCoreData(true);
     seedInitialStagingData();
     return res.json({

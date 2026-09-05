@@ -559,10 +559,10 @@
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-zinc-500/20 text-zinc-700 dark:text-zinc-300 border border-zinc-500/30">Step 1</span>
-                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">บันทึกงาน / รับ Order ใหม่ (All Work Orders)</h2>
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30">Step 1</span>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">คิวงานรับคำสั่งซื้อใหม่ (New Order Intake - Step 1)</h2>
                             </div>
-                            <p class="text-xs text-muted-foreground mt-0.5">เปิดใบสั่งงาน รับคำสั่งซื้อจาก INT และติดตามสถานะงานติดตั้งทุกโครงการ</p>
+                            <p class="text-xs text-muted-foreground mt-0.5">คิวงานคำสั่งซื้อใหม่จาก INT รอคัดกรองเบื้องต้น ตรวจสอบข้อมูล และส่งต่องานไปยังขั้นตอนทำแบบแปลน (ยังไม่เริ่มงานติดตั้ง)</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2.5">
                             <select id="filter-service" onchange="app.renderJobs()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-brand-500">
@@ -573,18 +573,19 @@
                                 <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
                             </select>
                             <select id="filter-status" onchange="app.renderJobs()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-brand-500">
-                                <option value="all">ทุกสถานะ</option>
+                                <option value="STEP1_QUEUE" selected>📥 คิวงาน Step 1 (Order ใหม่ / Draft)</option>
+                                <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
                                 <option value="DRAFT">Draft (เปิดงานใหม่)</option>
                                 <option value="IN_PROGRESS">In Progress (กำลังทำ)</option>
                                 <option value="QC_PENDING">QC Pending (รอตรวจ)</option>
                                 <option value="QC_PASSED">QC Passed (ผ่านแล้ว)</option>
                                 <option value="AFTER_SALE">After Sale (บริการหลังการขาย)</option>
                             </select>
-                            <button onclick="app.resetAllJobStatuses()" class="superadmin-only-btn btn-artifact-secondary text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer" title="ถอยสถานะทุกโครงการกลับเป็น Draft (0%)">
+                            <button onclick="app.resetAllJobStatuses()" class="btn-artifact-secondary text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer" title="ถอยสถานะทุกโครงการกลับเป็น Draft (0%)">
                                 <i class="ph ph-arrow-counter-clockwise"></i>
                                 <span>ถอยสถานะเป็น Draft</span>
                             </button>
-                            <button onclick="app.clearAllProjects()" class="superadmin-only-btn btn-artifact-secondary text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer" title="ลบข้อมูลโครงการทั้งหมด">
+                            <button onclick="app.clearAllProjects()" class="btn-artifact-secondary text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer" title="ลบข้อมูลโครงการทั้งหมด">
                                 <i class="ph ph-trash"></i>
                                 <span>ล้างข้อมูลโครงการ</span>
                             </button>
@@ -593,7 +594,7 @@
                                     <i class="ph ph-file-csv text-emerald-500 text-sm"></i>
                                     <span>Export รายงาน Timestamps</span>
                                 </button>
-                                <button onclick="app.simulateINT10Orders(false)" class="superadmin-only-btn btn-artifact-secondary text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer shadow-xs" title="จำลองรับคำสั่งซื้อใหม่ 10 งานจากระบบ INT เข้าสู่ PMT">
+                                <button onclick="app.simulateINT10Orders(false)" class="btn-artifact-secondary text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer shadow-xs" title="จำลองรับคำสั่งซื้อใหม่ 10 งานจากระบบ INT เข้าสู่ PMT">
                                     <i class="ph ph-lightning text-amber-500"></i>
                                     <span>จำลอง 10 งาน (INT)</span>
                                 </button>
@@ -604,6 +605,18 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Contextual Queue Banner -->
+                    <div id="step1-queue-banner" class="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-900 dark:text-blue-200 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-300 flex items-center justify-center font-bold text-xs shrink-0">📥</span>
+                            <div>
+                                <span class="font-bold">คิวงาน Step 1 (Order Intake Queue):</span>
+                                <span class="text-muted-foreground ml-1">แสดงเฉพาะ Order ใหม่ที่รอส่งต่อไปทำแบบแปลน (0%) เมื่อกดส่งต่อ รายการจะย้ายไปยัง Step 2 (บันทึก Design) ทันที</span>
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold shrink-0">Single State Queue</span>
+                    </div>
                     
                     <div class="artifact-card overflow-hidden shadow-sm">
                         <div class="overflow-x-auto">
@@ -613,9 +626,9 @@
                                         <th class="px-5 py-3.5">เลขที่งาน</th>
                                         <th class="px-5 py-3.5">ลูกค้า & เบอร์ติดต่อ</th>
                                         <th class="px-5 py-3.5">ประเภทบริการ</th>
-                                        <th class="px-5 py-3.5">ช่างผู้รับผิดชอบ</th>
+                                        <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
                                         <th class="px-5 py-3.5">สถานะ</th>
-                                        <th class="px-5 py-3.5">ความคืบหน้า</th>
+                                        <th class="px-5 py-3.5">ขั้นตอน (Stage)</th>
                                         <th class="px-5 py-3.5 text-right">การจัดการ</th>
                                     </tr>
                                 </thead>
@@ -3957,11 +3970,11 @@
 
     <!-- APPLICATION JAVASCRIPT LOGIC -->
     <!-- APPLICATION SCRIPTS -->
-    <script src="/public/js/db.js?v=1.1.4"></script>
-    <script src="/public/js/auth.js?v=1.1.4"></script>
-    <script src="/public/js/app.js?v=1.1.14"></script>
-    <script src="/public/js/userMgmt.js?v=1.1.4"></script>
-    <script src="/public/js/app.hooks.js?v=1.1.4"></script>
+    <script src="./public/js/db.js?v=1.3.0"></script>
+    <script src="./public/js/auth.js?v=1.3.0"></script>
+    <script src="./public/js/app.js?v=1.3.0"></script>
+    <script src="./public/js/userMgmt.js?v=1.3.0"></script>
+    <script src="./public/js/app.hooks.js?v=1.3.0"></script>
 
 </body>
 </html>

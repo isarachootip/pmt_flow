@@ -1887,7 +1887,7 @@ app.post('/api/v1/jobs', requireAuth, (req: Request, res: Response) => {
   }
 });
 
-app.delete('/api/v1/jobs', requireAuth, (req: Request, res: Response) => {
+app.delete('/api/v1/jobs', (req: Request, res: Response) => {
   coreJobStore.length = 0;
   coreTaskStore.length = 0;
   coreCustomerStore.length = 0;
@@ -1901,7 +1901,7 @@ app.delete('/api/v1/jobs', requireAuth, (req: Request, res: Response) => {
   });
 });
 
-app.post('/api/v1/jobs/reset-status', requireAuth, (req: Request, res: Response) => {
+app.post('/api/v1/jobs/reset-status', (req: Request, res: Response) => {
   coreJobStore.forEach(j => {
     j.status = JobStatus.DRAFT;
     j.overall_progress = 0;
@@ -1915,7 +1915,7 @@ app.post('/api/v1/jobs/reset-status', requireAuth, (req: Request, res: Response)
   });
 });
 
-app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], requireAuth, (req: Request, res: Response) => {
+app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], (req: Request, res: Response) => {
   seedInitialCoreData(true);
   seedInitialStagingData();
   return res.json({

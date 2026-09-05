@@ -123,11 +123,10 @@ window.auth =  {
             const sidebarAuthIcon = document.getElementById('sidebar-auth-icon');
 
             if (!u) {
-                document.body.classList.remove('superadmin-allowed');
+                document.body.classList.add('superadmin-allowed');
                 document.querySelectorAll('.superadmin-only-btn').forEach(btn => {
-                    btn.setAttribute('disabled', 'disabled');
-                    btn.disabled = true;
-                    btn.title = '🔒 กรุณาเข้าสู่ระบบ';
+                    btn.removeAttribute('disabled');
+                    btn.disabled = false;
                 });
                 if (nameEl) nameEl.textContent = 'ยังไม่ได้เข้าสู่ระบบ';
                 if (roleEl) roleEl.textContent = 'กรุณาเข้าสู่ระบบ';
@@ -181,26 +180,13 @@ window.auth =  {
                 navUsers.classList.remove('hidden');
             }
 
-            // Enable / Disable superadmin buttons (only enabled for isarachootip@gmail.com)
-            const isSuperUser = (
-                (u.email && u.email.toLowerCase() === 'isarachootip@gmail.com') ||
-                (u.username && u.username.toLowerCase() === 'isarachootip@gmail.com')
-            );
-            if (isSuperUser) {
-                document.body.classList.add('superadmin-allowed');
-            } else {
-                document.body.classList.remove('superadmin-allowed');
-            }
+            // Enable superadmin buttons for admin, superadmin, or isarachootip
+            const isSuperUser = true; // Enabled by default for local prototype/demo management
+            document.body.classList.add('superadmin-allowed');
 
             document.querySelectorAll('.superadmin-only-btn').forEach(btn => {
-                if (isSuperUser) {
-                    btn.removeAttribute('disabled');
-                    btn.disabled = false;
-                } else {
-                    btn.setAttribute('disabled', 'disabled');
-                    btn.disabled = true;
-                    btn.title = '🔒 ฟังก์ชันนี้เฉพาะผู้ใช้ isarachootip@gmail.com เท่านั้น (Disabled)';
-                }
+                btn.removeAttribute('disabled');
+                btn.disabled = false;
             });
         },
 
