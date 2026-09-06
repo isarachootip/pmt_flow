@@ -684,6 +684,7 @@ const app = {
                 try {
                     localStorage.setItem('pmt_tasks', JSON.stringify([]));
                     localStorage.setItem('pmt_qc_bookings', JSON.stringify([]));
+                    localStorage.removeItem('pmt_jobs_cleared_v8');
                     localStorage.removeItem('pmt_jobs_cleared_v7');
                 } catch (e) {}
 
@@ -706,7 +707,7 @@ const app = {
             },
 
             async clearAllProjects(confirmAction = true) {
-                if (confirmAction && !confirm('คุณแน่ใจหรือไม่ที่จะล้างข้อมูลโครงการทั้งหมดออกจากระบบ เพื่อเริ่มต้นใหม่จาก 0?')) {
+                if (confirmAction && !confirm('คุณแน่ใจหรือไม่ที่จะล้างข้อมูล Transaction ทั้งหมดออกจากระบบ เพื่อเริ่มต้นใหม่จาก 0?')) {
                     return;
                 }
                 DB.jobs = [];
@@ -714,18 +715,25 @@ const app = {
                 DB.blueprints = [];
                 DB.tickets = [];
                 DB.qcBookings = [];
+                DB.maContracts = [];
+                DB.maRounds = [];
                 try {
                     localStorage.removeItem('pmt_jobs');
                     localStorage.removeItem('pmt_tasks');
                     localStorage.removeItem('pmt_blueprints');
                     localStorage.removeItem('pmt_tickets');
                     localStorage.removeItem('pmt_qc_bookings');
+                    localStorage.removeItem('pmt_ma_contracts');
+                    localStorage.removeItem('pmt_ma_rounds');
                     localStorage.removeItem('pmt_int_mock_10jobs_v4');
-                    localStorage.setItem('pmt_jobs_cleared_v7', 'true');
+                    localStorage.setItem('pmt_jobs_cleared_v8', 'true');
                 } catch (e) {}
 
                 try {
                     await fetch('/api/v1/jobs', { method: 'DELETE' });
+                } catch (e) {}
+                try {
+                    await fetch('/api/v1/system/wipe-transactions', { method: 'POST' });
                 } catch (e) {}
 
                 this.persistJobs();
@@ -739,8 +747,9 @@ const app = {
                 if (this.state.currentView === 'blueprints') this.renderBlueprints();
                 if (this.state.currentView === 'qc') this.renderQC();
                 if (this.state.currentView === 'csat') this.renderCSAT();
+                if (this.state.currentView === 'ma-contracts') this.renderMAContracts();
 
-                this.showToast('🗑️ ล้างข้อมูลโครงการทั้งหมดเป็น 0 เรียบร้อยแล้ว (สามารถกด "จำลอง 10 งาน" หรือ "รับ Order ใหม่" ได้ทุกเมื่อ)');
+                this.showToast('🗑️ ล้างข้อมูลโครงการและรายการ Transaction ทั้งหมดเป็น 0 เรียบร้อยแล้ว (สามารถกด "จำลอง 10 งาน" หรือ "รับ Order ใหม่" ได้ทุกเมื่อ)');
             },
 
             getINTMockOrders() {
@@ -986,6 +995,7 @@ const app = {
 
                 // 1. Clear storage flags
                 try {
+                    localStorage.removeItem('pmt_jobs_cleared_v8');
                     localStorage.removeItem('pmt_jobs_cleared_v7');
                     localStorage.removeItem('pmt_jobs_cleared_v5');
                     localStorage.removeItem('pmt_jobs_cleared_v3');
@@ -1046,32 +1056,37 @@ const app = {
                     document.documentElement.classList.remove('dark');
                 }
 
-                // Auto-Wipe & Fresh Clean Slate v7 (Fulfilling: "เริ่มใหม่ เลย ล้างค่าทุกอย่างออกไปให้หมด")
-                const FRESH_RESET_KEY = 'pmt_clean_reset_v7';
+                // Auto-Wipe & Fresh Clean Slate v8 (Fulfilling: "ล้างข้อมูล Transaction ทั้งหมด")
+                const FRESH_RESET_KEY = 'pmt_clean_reset_v8';
                 if (localStorage.getItem(FRESH_RESET_KEY) !== 'true') {
                     try {
                         localStorage.setItem(FRESH_RESET_KEY, 'true');
-                        localStorage.setItem('pmt_jobs_cleared_v7', 'true');
+                        localStorage.setItem('pmt_jobs_cleared_v8', 'true');
                         localStorage.removeItem('pmt_jobs');
                         localStorage.removeItem('pmt_tasks');
                         localStorage.removeItem('pmt_blueprints');
                         localStorage.removeItem('pmt_tickets');
                         localStorage.removeItem('pmt_qc_bookings');
+                        localStorage.removeItem('pmt_ma_contracts');
+                        localStorage.removeItem('pmt_ma_rounds');
                         localStorage.removeItem('pmt_int_mock_10jobs_v4');
                         localStorage.removeItem('pmt_jobs_cleared_v3');
                         localStorage.removeItem('pmt_jobs_cleared_v5');
+                        localStorage.removeItem('pmt_jobs_cleared_v7');
                         DB.jobs = [];
                         DB.tasks = [];
                         DB.blueprints = [];
                         DB.tickets = [];
                         DB.qcBookings = [];
+                        DB.maContracts = [];
+                        DB.maRounds = [];
                         this.persistJobs();
                         this.persistBlueprints();
                         this.persistTickets();
                     } catch(e) {}
                 }
 
-                const isExplicitlyCleared = localStorage.getItem('pmt_jobs_cleared_v7') === 'true';
+                const isExplicitlyCleared = localStorage.getItem('pmt_jobs_cleared_v8') === 'true';
 
                 // Restore saved jobs
                 const savedJobs = localStorage.getItem('pmt_jobs');
@@ -1281,7 +1296,7 @@ const app = {
                         if (json.success && Array.isArray(json.data)) {
                             if (json.data.length === 0) {
                                 // Only wipe out local jobs if user explicitly clicked "ล้างข้อมูลโครงการ" AND DB.jobs is empty
-                                if (localStorage.getItem('pmt_jobs_cleared_v7') === 'true' && (!DB.jobs || DB.jobs.length === 0)) {
+                                if ((localStorage.getItem('pmt_jobs_cleared_v8') === 'true' || localStorage.getItem('pmt_jobs_cleared_v7') === 'true') && (!DB.jobs || DB.jobs.length === 0)) {
                                     DB.jobs = [];
                                     DB.tasks = [];
                                     DB.blueprints = [];

@@ -11,35 +11,8 @@ const DB = {
                 { id: 'Q3', text: 'การเก็บรอยต่อซิลิโคนและงานผิวสัมผัสเรียบร้อย', mandatory: false },
                 { id: 'Q4', text: 'ส่งมอบคู่มือการใช้งาน & ใบรับประกันให้ลูกค้า', mandatory: true }
             ],
-            maContracts: [
-                {
-                    id: "mac_1788397202685",
-                    contract_no: "MAC-2026-0001",
-                    customer_name: "สมควร กระจ่าง",
-                    customer_phone: "0896292111",
-                    site_name: "dfdfsdfsfdsdf",
-                    site_address: "123/45 สุขุมวิท กรุงเทพฯ",
-                    service_type: "ล้างแอร์",
-                    service_items: [
-                        { id: "si_1", btu: "", name: "เครื่องที่ 1", brand: "", location: "" }
-                    ],
-                    frequency_months: 3,
-                    total_rounds: 4,
-                    total_rounds_count: 4,
-                    completed_rounds: 0,
-                    contract_start_date: "2026-09-04",
-                    contract_end_date: "2027-09-04",
-                    contract_value: 12000,
-                    status: "Active",
-                    notes: "ลูกค้า: สมควร กระจ่าง\nโทร: 0896292111\nไซต์: dfdfsdfsfdsdf\nที่อยู่: 123/45 สุขุมวิท กรุงเทพฯ"
-                }
-            ],
-            maRounds: [
-                { id: "mar_1788397202746", contract_id: "mac_1788397202685", round_number: 1, scheduled_date: "2026-09-04", actual_date: null, status: "Scheduled" },
-                { id: "mar_1788397202801", contract_id: "mac_1788397202685", round_number: 2, scheduled_date: "2026-12-04", actual_date: null, status: "Scheduled" },
-                { id: "mar_1788397202856", contract_id: "mac_1788397202685", round_number: 3, scheduled_date: "2027-03-04", actual_date: null, status: "Scheduled" },
-                { id: "mar_1788397202908", contract_id: "mac_1788397202685", round_number: 4, scheduled_date: "2027-06-04", actual_date: null, status: "Scheduled" }
-            ],
+            maContracts: [],
+            maRounds: [],
             maChecklistTemplates: [
                 {
                     id: "mact_ac_wash",

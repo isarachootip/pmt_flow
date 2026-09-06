@@ -973,9 +973,9 @@ function seedInitialStagingData(populateMocks = false) {
     exports.stagingSurveyStore.push(...mockRecords);
     console.log(`[STAGING SEED] Seeded ${mockRecords.length} mock pending records in staging table.`);
 }
-// Initial Seed on Server Startup (Pre-populate with 10 INT inbound jobs)
+// Initial Seed on Server Startup (Clean Slate - 0 transactions)
 seedInitialStagingData(false);
-seedInitialCoreData(true);
+seedInitialCoreData(false);
 // =============================================================================
 // CONVERSION ENGINE (STAGING -> CORE PMT)
 // =============================================================================
@@ -1523,19 +1523,26 @@ app.post('/api/v1/jobs', requireAuth, (req, res) => {
         return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
     }
 });
-app.delete('/api/v1/jobs', (req, res) => {
+const wipeAllTransactions = (req, res) => {
     exports.coreJobStore.length = 0;
     exports.coreTaskStore.length = 0;
     exports.coreCustomerStore.length = 0;
     exports.coreJobServiceStore.length = 0;
     exports.coreVisitCheckinStore.length = 0;
     exports.coreSitePhotoStore.length = 0;
+    exports.coreQCBookingStore.length = 0;
+    exports.stagingSurveyStore.length = 0;
+    exports.maContractStore.length = 0;
+    exports.maRoundStore.length = 0;
+    console.log('[SYSTEM] Wiped all transactions across Core Jobs, Tasks, QC, Staging, and MA.');
     return res.json({
         success: true,
-        message: 'ลบข้อมูลโครงการและรายการ Task ทั้งหมดเรียบร้อย',
+        message: 'ลบข้อมูลโครงการและรายการ Transaction ทั้งหมดเรียบร้อยแล้ว (0 รายการ)',
         total_jobs: 0
     });
-});
+};
+app.delete(['/api/v1/jobs', '/api/v1/system/wipe-transactions'], wipeAllTransactions);
+app.post(['/api/v1/system/wipe-transactions', '/api/v1/jobs/wipe-all'], wipeAllTransactions);
 app.post('/api/v1/jobs/reset-status', (req, res) => {
     exports.coreJobStore.forEach(j => {
         j.status = JobStatus.DRAFT;
@@ -2116,77 +2123,8 @@ exports.maChecklistTemplateStore = [
         created_at: "2026-08-25T09:49:27.569Z"
     }
 ];
-exports.maContractStore = [
-    {
-        id: "mac_1788397202685",
-        contract_no: "MAC-2026-0001",
-        customer_id: null,
-        customer_site_id: null,
-        service_type: "ล้างแอร์",
-        service_items: [
-            { id: "si_1", btu: "", name: "เครื่องที่ 1", brand: "", location: "" }
-        ],
-        frequency_months: 3,
-        total_rounds: 4,
-        contract_start_date: "2026-09-04",
-        contract_end_date: "2027-09-04",
-        contract_value: "12000",
-        status: "Active",
-        notes: "ลูกค้า: สมควร กระจ่าง\nโทร: 0896292111\nไซต์: dfdfsdfsfdsdf\nที่อยู่: 123/45 สุขุมวิท กรุงเทพฯ",
-        created_at: "2026-09-03T01:00:02.688Z",
-        created_by: "u4",
-        customer_name: "สมควร กระจ่าง",
-        customer_phone: "0896292111",
-        site_name: "dfdfsdfsfdsdf",
-        site_address: "123/45 สุขุมวิท กรุงเทพฯ"
-    }
-];
-exports.maRoundStore = [
-    {
-        id: "mar_1788397202746",
-        contract_id: "mac_1788397202685",
-        project_id: null,
-        round_number: 1,
-        scheduled_date: "2026-09-04",
-        actual_date: null,
-        status: "Scheduled",
-        notes: null,
-        created_at: "2026-09-03T01:00:02.746Z"
-    },
-    {
-        id: "mar_1788397202801",
-        contract_id: "mac_1788397202685",
-        project_id: null,
-        round_number: 2,
-        scheduled_date: "2026-12-04",
-        actual_date: null,
-        status: "Scheduled",
-        notes: null,
-        created_at: "2026-09-03T01:00:02.802Z"
-    },
-    {
-        id: "mar_1788397202856",
-        contract_id: "mac_1788397202685",
-        project_id: null,
-        round_number: 3,
-        scheduled_date: "2027-03-04",
-        actual_date: null,
-        status: "Scheduled",
-        notes: null,
-        created_at: "2026-09-03T01:00:02.857Z"
-    },
-    {
-        id: "mar_1788397202908",
-        contract_id: "mac_1788397202685",
-        project_id: null,
-        round_number: 4,
-        scheduled_date: "2027-06-04",
-        actual_date: null,
-        status: "Scheduled",
-        notes: null,
-        created_at: "2026-09-03T01:00:02.908Z"
-    }
-];
+exports.maContractStore = [];
+exports.maRoundStore = [];
 // Helper: Format contract with round counts
 function formatContractWithRounds(c) {
     const rounds = exports.maRoundStore.filter(r => r.contract_id === c.id);
