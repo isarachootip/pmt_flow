@@ -379,8 +379,8 @@ const app = {
                         name: 'บันทึก Ticket และแนบใบเสร็จ',
                         category: 'Step 4: Tickets & Receipt Slips',
                         timestamp: tkt ? (tkt.created_at || '2026-09-04T10:15:40.000Z') : ts.step4_ticket_at,
-                        isDone: !!(tkt || ts.step5_project_at || (tasks && tasks.length > 0)),
-                        statusLabel: (tkt || ts.step5_project_at) ? 'ออก Ticket & สลิปแล้ว' : (ts.step4_ticket_at ? 'รอออก Ticket & แนบสลิป' : 'รอยืนยันการชำระเงิน'),
+                        isDone: !!(tkt || ts.step5_project_at || ts.qc_pending_at || (tasks && tasks.length > 0)),
+                        statusLabel: (tkt || ts.step5_project_at || ts.qc_pending_at) ? (isQuick ? 'ออก Ticket & ส่ง QC Online แล้ว' : 'ออก Ticket & สลิปแล้ว') : (ts.step4_ticket_at ? 'รอออก Ticket & แนบสลิป' : 'รอยืนยันการชำระเงิน'),
                         reference: tkt ? `Ticket: ${tkt.ticket_no} • ใบเสร็จ: ${tkt.receipt_no || '-'}` : (ts.step4_ticket_at ? 'อยู่ในคิว Step 4' : 'ยังไม่มี Ticket'),
                         detail: tkt ? `ยอดเงิน: ${Number(tkt.amount || 0).toLocaleString()} ฿ (${tkt.payment_method})` : 'รอลูกค้าชำระเงินมัดจำ/แนบสลิป'
                     },
@@ -388,11 +388,12 @@ const app = {
                         stepNumber: 5,
                         name: 'บันทึก BOQ เข้า Project (Gantt Tasks)',
                         category: 'Step 5: Project Conversion & Gantt',
-                        timestamp: ts.step5_project_at || (tasks.length > 0 ? '2026-09-04T13:20:05.000Z' : null),
-                        isDone: !!(ts.step5_project_at || tasks.length > 0),
-                        statusLabel: (ts.step5_project_at || tasks.length > 0) ? `สร้างแล้ว (${tasks.length} Tasks)` : 'รอแปลงเข้า Project',
-                        reference: tasks.length > 0 ? `แผนงาน Gantt: ${tasks.length} กิจกรรม` : 'ยังไม่มี Task ใน Gantt',
-                        detail: tasks.length > 0 ? `กำหนดช่าง (${job.tech}) และช่วงวันปฏิบัติงานเรียบร้อย` : 'รอกดแปลงรายการค่าแรงเป็น Task ในแผนงาน'
+                        timestamp: isQuick ? (ts.qc_pending_at || ts.step4_ticket_at) : (ts.step5_project_at || (tasks.length > 0 ? '2026-09-04T13:20:05.000Z' : null)),
+                        isDone: isQuick ? true : !!(ts.step5_project_at || tasks.length > 0),
+                        isSkipped: isQuick,
+                        statusLabel: isQuick ? '⚡ ข้ามขั้นตอน (Quick - ตรงไป QC Online)' : ((ts.step5_project_at || tasks.length > 0) ? `สร้างแล้ว (${tasks.length} Tasks)` : 'รอแปลงเข้า Project'),
+                        reference: isQuick ? 'ตรวจคุณภาพ Online ทันที (ข้าม Gantt)' : (tasks.length > 0 ? `แผนงาน Gantt: ${tasks.length} กิจกรรม` : 'ยังไม่มี Task ใน Gantt'),
+                        detail: isQuick ? 'งานประเภท Quick Service ข้ามการแปลงเป็น Project Gantt โดยส่งต่อไปยังคิวตรวจคุณภาพแบบ Online (ภาพถ่ายหน้างาน Visit Plan)' : (tasks.length > 0 ? `กำหนดช่าง (${job.tech}) และช่วงวันปฏิบัติงานเรียบร้อย` : 'รอกดแปลงรายการค่าแรงเป็น Task ในแผนงาน')
                     }
                 ];
 
@@ -1959,6 +1960,7 @@ const app = {
 
                 // Update All 5 Step Dashboards
                 this.updateAllStepDashboards();
+                this.updateQCBadges();
             },
 
             updateStep1Dashboard() {
@@ -2927,12 +2929,13 @@ const app = {
                 const rep = this.getJobStepAuditReportData(job.id);
                 const progress = job.progress || (stepNumber * 20);
 
+                const isQuick = this.isQuickJob(job);
                 const stepLabels = {
                     1: 'Step 1: New Intake',
-                    2: 'Step 2: Design & CAD',
-                    3: 'Step 3: BOQ Ingest',
-                    4: 'Step 4: Tickets',
-                    5: 'Step 5: Project Tasks'
+                    2: isQuick ? 'Step 2: ข้าม (Quick)' : 'Step 2: Design & CAD',
+                    3: isQuick ? 'Step 3: ข้าม (Quick)' : 'Step 3: BOQ Ingest',
+                    4: (isQuick && (job.status === 'QC_PENDING' || (job.step_timestamps && job.step_timestamps.qc_pending_at))) ? 'Step 4: รอตรวจ QC Online' : 'Step 4: Tickets',
+                    5: isQuick ? 'Step 5: ข้าม (ไป QC)' : 'Step 5: Project Tasks'
                 };
 
                 const stepDots = rep ? rep.steps.map(s => {
@@ -3328,10 +3331,12 @@ const app = {
             },
 
             goToQC(id) {
+                this.state.qcTab = 'inspection';
                 this.navigate('qc');
+                this.switchQCTab('inspection');
                 setTimeout(() => {
                     this.selectQCJob(id);
-                }, 100);
+                }, 50);
             },
 
             completeJob() {
@@ -6784,6 +6789,7 @@ const app = {
                             const hasTicket = jobTickets.length > 0;
                             const stageHtml = this.renderStageWithSLA(j, 4);
 
+                            const isQuick = this.isQuickJob(j);
                             const isSentToStep5 = !!(j.step_timestamps && j.step_timestamps.step5_project_at);
                             const actionButtons = hasTicket ? `
                                 <div class="flex items-center justify-end gap-1.5">
@@ -6791,7 +6797,12 @@ const app = {
                                         <i class="ph ph-receipt"></i>
                                         <span>ดูสลิป/ใบเสร็จ (${jobTickets.length})</span>
                                     </button>
-                                    ${isSentToStep5 ? `
+                                    ${isQuick ? `
+                                    <button onclick="event.stopPropagation(); app.goToQC('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ไปตรวจคุณภาพ QC Online (ภาพถ่ายหน้างาน)">
+                                        <i class="ph ph-globe text-xs"></i>
+                                        <span>ไปตรวจ QC Online ➔</span>
+                                    </button>
+                                    ` : (isSentToStep5 ? `
                                     <button onclick="event.stopPropagation(); app.navigate('project-conversion', '${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 inline-flex items-center gap-1 cursor-pointer" title="งานนี้ส่งเข้า Step 5 เรียบร้อยแล้ว (คลิกเพื่อเปิดดูใน Step 5)">
                                         <i class="ph ph-check-circle text-xs text-amber-500"></i>
                                         <span>อยู่ในคิว Step 5</span>
@@ -6801,7 +6812,7 @@ const app = {
                                         <span>แปลงเข้า Project (ไป Step 5)</span>
                                         <i class="ph ph-arrow-right-bold text-xs"></i>
                                     </button>
-                                    `}
+                                    `)}
                                 </div>
                             ` : `
                                 <button onclick="event.stopPropagation(); app.openCreateTicketModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="บันทึก Ticket & แนบใบเสร็จ">
@@ -6969,12 +6980,17 @@ const app = {
                                                 </td>
                                                 <td class="py-3 px-4 text-center whitespace-nowrap">
                                                     <div class="flex items-center justify-center gap-2">
-                                                        ${hasTkt ? `
+                                                        ${hasTkt ? (this.isQuickJob(job) ? `
+                                                        <button type="button" onclick="app.goToQC('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-cyan-600 hover:bg-cyan-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ไปตรวจคุณภาพ QC Online">
+                                                            <i class="ph ph-globe"></i>
+                                                            <span>ไปตรวจ QC Online ➔</span>
+                                                        </button>
+                                                        ` : `
                                                         <button type="button" onclick="app.proceedJobToConversion('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ไป Step 5 แปลง BOQ เข้า Project">
                                                             <i class="ph ph-lightning"></i>
                                                             <span>ไป Step 5 ➔</span>
                                                         </button>
-                                                        ` : ''}
+                                                        `) : ''}
                                                         <button type="button" onclick="app.openCreateTicketModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="บันทึก Ticket & แนบสลิป">
                                                             <i class="ph ph-plus-circle font-bold text-sm"></i>
                                                             <span>${hasTkt ? '+ ออก Ticket เพิ่ม' : '+ บันทึก Ticket & สลิป'}</span>
@@ -7030,12 +7046,17 @@ const app = {
                                 </div>
 
                                 <div class="flex items-center justify-end gap-2 pt-1">
-                                    ${hasTkt ? `
+                                    ${hasTkt ? (this.isQuickJob(job) ? `
+                                    <button type="button" onclick="app.goToQC('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-cyan-600 hover:bg-cyan-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="ไปตรวจคุณภาพ QC Online">
+                                        <i class="ph ph-globe"></i>
+                                        <span>ไปตรวจ QC Online ➔</span>
+                                    </button>
+                                    ` : `
                                     <button type="button" onclick="app.proceedJobToConversion('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs transition hover:scale-102" title="ไป Step 5 แปลง BOQ เข้า Project">
                                         <i class="ph ph-lightning"></i>
                                         <span>ไป Step 5 ➔</span>
                                     </button>
-                                    ` : ''}
+                                    `) : ''}
                                     <button type="button" onclick="app.openCreateTicketModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="บันทึก Ticket & แนบสลิป">
                                         <i class="ph ph-plus-circle font-bold text-sm"></i>
                                         <span>${hasTkt ? '+ เพิ่ม Ticket' : '+ บันทึก Ticket & สลิป'}</span>
@@ -7369,20 +7390,42 @@ const app = {
                 DB.tickets.unshift(newTicket);
                 this.persistTickets();
 
+                let isQuick = false;
                 if (job) {
                     job.ticket_id = newTicket.id;
                     job.receipt_no = receiptNo;
                     job.ticket_amount = amount;
                     job.ticket_count = (DB.tickets.filter(t => (t.job_id || t.jobId) === jobId)).length;
-                    if (job.status === 'IN_PROGRESS' || job.status === 'Draft' || job.status === 'DRAFT') {
-                        job.progress = Math.max(job.progress || 0, 80);
-                    }
 
-                    // All jobs: Transition state strictly into Step 5 (Project Conversion & Gantt)
-                    if (!job.step_timestamps) job.step_timestamps = {};
-                    job.step_timestamps.step5_project_at = newTicket.created_at;
-                    this.recordStepTimestamp(jobId, 'step5_project_at', newTicket.created_at, 'บันทึก Ticket & ใบเสร็จ และย้ายเข้าสู่ State 5 (บันทึก BOQ เข้า Project)');
-                    this.persistJobs();
+                    isQuick = this.isQuickJob(job);
+                    if (isQuick) {
+                        // Quick Job: Update directly to wait for QC inspection (Online photo review from Visit Plan)
+                        job.status = 'QC_PENDING';
+                        job.qc_inspection_type = 'ONLINE';
+                        job.qc_type = 'ONLINE';
+                        job.progress = Math.max(job.progress || 0, 85);
+                        if (!job.step_timestamps) job.step_timestamps = {};
+                        job.step_timestamps.step4_ticket_at = newTicket.created_at;
+                        job.step_timestamps.qc_pending_at = newTicket.created_at;
+                        job.step_timestamps.step5_skipped_at = newTicket.created_at;
+
+                        // Ensure photos exist from Visit Plan (or initialize sample photos if empty)
+                        if (!job.photos || job.photos.length === 0) {
+                            job.photos = this.getSampleVisitPlanPhotos(job);
+                        }
+
+                        this.recordStepTimestamp(jobId, 'qc_pending_at', newTicket.created_at, 'บันทึก Ticket & ใบเสร็จ และส่งไปตั้งรอตรวจสอบที่คิว QC Online ทันที (ตรวจสอบแบบ Online แนบรูปอย่างเดียว จาก Visit Plan)');
+                        this.persistJobs();
+                    } else {
+                        // Standard / Renovate: Transition into Step 5
+                        if (job.status === 'IN_PROGRESS' || job.status === 'Draft' || job.status === 'DRAFT') {
+                            job.progress = Math.max(job.progress || 0, 80);
+                        }
+                        if (!job.step_timestamps) job.step_timestamps = {};
+                        job.step_timestamps.step5_project_at = newTicket.created_at;
+                        this.recordStepTimestamp(jobId, 'step5_project_at', newTicket.created_at, 'บันทึก Ticket & ใบเสร็จ และย้ายเข้าสู่ State 5 (บันทึก BOQ เข้า Project)');
+                        this.persistJobs();
+                    }
                 }
 
                 // Step 4 Timestamp Recording
@@ -7395,11 +7438,13 @@ const app = {
                     body: JSON.stringify({
                         status: job ? job.status : 'IN_PROGRESS',
                         overall_progress: job ? job.progress : 80,
+                        qc_inspection_type: job ? job.qc_inspection_type : undefined,
                         step_timestamps: job ? job.step_timestamps : undefined
                     })
                 }).catch(() => {});
 
                 this.updateStepBadges();
+                this.updateQCBadges();
                 this.hideModal('modal-create-ticket');
                 if (this.state.currentView === 'tickets') {
                     this.switchTicketTab('library');
@@ -7407,7 +7452,11 @@ const app = {
                 } else {
                     this.renderTickets();
                 }
-                this.showToast(`✅ บันทึก Ticket ${ticketNo}, ใบเสร็จ และย้ายเข้าสู่ State 5 (บันทึก BOQ เข้า Project) สำเร็จ`);
+                if (isQuick) {
+                    this.showToast(`✅ บันทึก Ticket ${ticketNo} & แนบสลิปสำเร็จ! งานประเภท Quick ถูกส่งไปตั้งรอที่คิว QC Online ทันที`);
+                } else {
+                    this.showToast(`✅ บันทึก Ticket ${ticketNo}, ใบเสร็จ และย้ายเข้าสู่ State 5 (บันทึก BOQ เข้า Project) สำเร็จ`);
+                }
             },
 
             openTicketSlipLightbox(ticketId, defaultTab = 'slip') {
@@ -10953,21 +11002,48 @@ const app = {
                 } else {
                     // Pending Inspection Tab
                     const qcJobs = DB.jobs.filter(j => j.status === 'QC_PENDING');
-                    const listHtml = qcJobs.map(j => `
-                        <div class="p-3.5 rounded-xl bg-muted/40 border border-border hover:border-brand-500/40 transition-all cursor-pointer group" onclick="app.selectQCJob('${j.id}')">
+                    const listHtml = qcJobs.map(j => {
+                        const isQuick = this.isQuickJob(j) || j.qc_inspection_type === 'ONLINE';
+                        const isSelected = (this.state.selectedQCJobId === j.id);
+                        const cardBg = isSelected 
+                            ? (isQuick ? 'bg-cyan-500/10 border-cyan-500 ring-1 ring-cyan-500/40' : 'bg-brand-500/10 border-brand-500 ring-1 ring-brand-500/40') 
+                            : 'bg-muted/40 border-border hover:border-brand-500/40';
+                        const photoCount = (j.photos && j.photos.length > 0) ? j.photos.length : 5;
+
+                        return `
+                        <div class="p-3.5 rounded-xl ${cardBg} border transition-all cursor-pointer group" onclick="app.selectQCJob('${j.id}')">
                             <div class="flex items-center justify-between mb-1">
-                                <span class="font-mono text-xs font-bold text-brand-500">${j.id}</span>
-                                <span class="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">รอตรวจ</span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-mono text-xs font-bold ${isQuick ? 'text-cyan-600 dark:text-cyan-400' : 'text-brand-500'}">${j.id}</span>
+                                    ${isQuick ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase bg-amber-500/10 text-amber-600 border border-amber-500/20">QUICK</span>` : ''}
+                                </div>
+                                ${isQuick ? `
+                                    <span class="text-[10px] text-cyan-700 dark:text-cyan-300 bg-cyan-500/15 px-2 py-0.5 rounded-md border border-cyan-500/30 font-bold flex items-center gap-1">
+                                        <i class="ph ph-globe"></i> ตรวจ Online
+                                    </span>
+                                ` : `
+                                    <span class="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">รอตรวจ</span>
+                                `}
                             </div>
-                            <div class="text-xs font-medium text-foreground group-hover:text-brand-500 transition">${j.customer}</div>
-                            <div class="text-[11px] text-muted-foreground mt-1">${j.service} • ${j.tech}</div>
+                            <div class="text-xs font-medium text-foreground group-hover:text-brand-500 transition truncate">${j.customer}</div>
+                            <div class="text-[11px] text-muted-foreground mt-1 truncate">${j.service} • ${j.tech}</div>
+                            ${isQuick ? `
+                                <div class="text-[10px] text-cyan-600/90 dark:text-cyan-400/90 mt-1.5 flex items-center justify-between border-t border-border/50 pt-1.5 font-medium">
+                                    <span class="flex items-center gap-1"><i class="ph ph-camera"></i> รูปหน้างาน: ${photoCount} รูป</span>
+                                    <span class="text-muted-foreground font-normal">รอรับจาก Visit Plan</span>
+                                </div>
+                            ` : ''}
                         </div>
-                    `).join('');
+                        `;
+                    }).join('');
 
                     document.getElementById('qc-queue-list').innerHTML = listHtml || '<div class="text-xs text-muted-foreground text-center py-12 text-muted-foreground">ไม่มีรายการงานที่รอตรวจ QC ในขณะนี้</div>';
                     
                     if (qcJobs.length > 0) {
-                        this.selectQCJob(qcJobs[0].id);
+                        const targetId = (this.state.selectedQCJobId && qcJobs.some(j => j.id === this.state.selectedQCJobId)) 
+                            ? this.state.selectedQCJobId 
+                            : qcJobs[0].id;
+                        this.selectQCJob(targetId);
                     } else {
                         document.getElementById('qc-form-container').innerHTML = `
                             <div class="h-full flex flex-col items-center justify-center text-center p-8">
@@ -11111,8 +11187,15 @@ const app = {
             },
 
             selectQCJob(id) {
+                this.state.selectedQCJobId = id;
                 const job = DB.jobs.find(j => j.id === id);
                 if(!job) return;
+
+                const isQuick = this.isQuickJob(job) || job.qc_inspection_type === 'ONLINE';
+                if (isQuick) {
+                    this.renderQuickOnlineQC(job);
+                    return;
+                }
 
                 let formHtml = `
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-border mb-6">
@@ -11128,7 +11211,7 @@ const app = {
                     </div>
 
                     <div class="space-y-3 mb-6">
-                        <div class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Checklist มาตรฐานความปลอดภัยและคุณภาพ</div>
+                        <div class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Checklist มาตรฐานความปลอดภัยและคุณภาพ (On-site Inspection)</div>
                 `;
 
                 DB.qcChecklist.forEach(q => {
@@ -11160,37 +11243,354 @@ const app = {
 
                     <div class="p-4 rounded-xl bg-muted/30 border border-border mb-6">
                         <label class="block text-xs font-medium text-muted-foreground mb-1.5">หมายเหตุการตรวจ QC (Inspector Remarks)</label>
-                        <textarea class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" rows="2" placeholder="ระบุความคิดเห็นหรือข้อสังเกตเพิ่มเติม..."></textarea>
+                        <textarea id="qc-remarks-text-${id}" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" rows="2" placeholder="ระบุความคิดเห็นหรือข้อสังเกตเพิ่มเติม..."></textarea>
                     </div>
 
                     <div class="flex flex-wrap justify-end gap-3 pt-2">
-                        <button class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs text-rose-500 hover:bg-rose-500/10 border-rose-500/20" onclick="app.showToast('บันทึกผล QC: FAIL - ส่งเรื่องกลับให้ช่างแก้ไข')">FAIL - ส่งกลับแก้ไข (Rework)</button>
-                        <button class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium" onclick="app.passQC('${id}')">PASS - ผ่านเกณฑ์และส่งต่อ CSAT</button>
+                        <button class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs text-rose-500 hover:bg-rose-500/10 border-rose-500/20 cursor-pointer" onclick="app.failQC('${id}')">FAIL - ส่งกลับแก้ไข (Rework)</button>
+                        <button class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium cursor-pointer" onclick="app.passQC('${id}')">PASS - ผ่านเกณฑ์และส่งต่อ CSAT</button>
                     </div>
                 `;
 
                 document.getElementById('qc-form-container').innerHTML = formHtml;
             },
 
+            renderQuickOnlineQC(job) {
+                if (!job.photos || job.photos.length === 0) {
+                    job.photos = this.getSampleVisitPlanPhotos(job);
+                    this.persistJobs();
+                }
+
+                const jobTicket = (DB.tickets || []).find(t => (t.job_id || t.jobId) === job.id);
+                const container = document.getElementById('qc-form-container');
+                if (!container) return;
+
+                const photosHtml = job.photos.map((p, idx) => `
+                    <div class="group relative rounded-xl border border-border bg-card overflow-hidden shadow-xs hover:border-cyan-500/50 transition flex flex-col">
+                        <div class="relative h-36 w-full overflow-hidden bg-muted cursor-pointer shrink-0" onclick="app.showLightbox('${p.url}', '${p.title}', 'รูปหน้างาน Visit Plan', '${p.note || ''}', '${p.source || 'Visit Plan'}')">
+                            <img src="${p.url}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-200">
+                            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                                <span class="bg-black/60 px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1">
+                                    <i class="ph ph-magnifying-glass-plus"></i> คลิกซูมดูรูป
+                                </span>
+                            </div>
+                            <span class="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold bg-black/60 text-white backdrop-blur-xs font-mono">
+                                รูปที่ ${idx + 1}
+                            </span>
+                            <span class="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-semibold ${p.source === 'QC Inspector' ? 'bg-indigo-600/90 text-white' : 'bg-cyan-600/90 text-white'} backdrop-blur-xs">
+                                ${p.source || 'Visit Plan'}
+                            </span>
+                        </div>
+                        <div class="p-2.5 space-y-1 flex-1 flex flex-col justify-between">
+                            <div>
+                                <div class="text-xs font-bold text-foreground truncate" title="${p.title}">${p.title}</div>
+                                <div class="text-[11px] text-muted-foreground line-clamp-2 mt-0.5" title="${p.note || ''}">${p.note || 'ภาพถ่ายจากหน้างาน'}</div>
+                            </div>
+                            ${p.id && String(p.id).startsWith('p_qc_') ? `
+                                <div class="pt-1 text-right">
+                                    <button type="button" onclick="app.removeQCPhoto('${job.id}', '${p.id}')" class="text-[10px] text-rose-500 hover:underline cursor-pointer">
+                                        <i class="ph ph-trash"></i> ลบรูป
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+
+                container.innerHTML = `
+                    <!-- Header -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border mb-5">
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">${job.id}</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/10 text-amber-600 border border-amber-500/20">QUICK SERVICE</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                                    <i class="ph ph-globe"></i> ตรวจสอบแบบ Online (รูปถ่ายหน้างาน)
+                                </span>
+                            </div>
+                            <h3 class="font-display font-bold text-lg text-foreground mt-1">แบบฟอร์มตรวจคุณภาพ Online: <span class="text-brand-500">${job.customer}</span></h3>
+                            <p class="text-xs text-muted-foreground mt-0.5">
+                                บริการ: <strong class="text-foreground">${job.service}</strong> • ช่าง: <strong class="text-foreground">${job.tech}</strong> • เบอร์โทร: <span class="font-mono">${job.phone || '-'}</span>
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            ${jobTicket ? `
+                            <button type="button" onclick="app.openTicketSlipLightbox('${jobTicket.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 cursor-pointer" title="ดูสลิปใบเสร็จและสัญญาจ้าง">
+                                <i class="ph ph-receipt text-emerald-500"></i>
+                                <span>ดูสลิปชำระเงิน</span>
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Visit Plan Integration Banner -->
+                    <div class="p-4 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-teal-500/10 to-emerald-500/10 border border-cyan-500/20 mb-6 space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-start sm:items-center gap-2.5">
+                                <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold text-xl shrink-0 mt-0.5 sm:mt-0">
+                                    <i class="ph ph-device-mobile-camera"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-foreground flex items-center gap-2 flex-wrap">
+                                        <span>การตรวจสอบแบบ Online จาก Visit Plan (Photo-Only Verification)</span>
+                                        <span class="text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-medium">รอรับรูปอัตโนมัติ</span>
+                                    </div>
+                                    <div class="text-[11px] text-muted-foreground mt-0.5">
+                                        งานประเภท Quick Service ตรวจสอบผ่านรูปถ่ายหน้างานเท่านั้น (ในอนาคตเมื่อช่าง Check-out ใน Visit Plan รูปถ่าย 5 รูปจะเชื่อมโยงเข้าสู่คิว QC นี้อัตโนมัติ)
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button type="button" onclick="app.syncVisitPlanPhotos('${job.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer bg-card hover:bg-muted" title="ดึงรูปถ่ายจำลองจาก Visit Plan">
+                                    <i class="ph ph-arrows-clockwise text-cyan-500"></i>
+                                    <span>ดึงรูปจาก Visit Plan</span>
+                                </button>
+                                <label class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white cursor-pointer shadow-xs">
+                                    <i class="ph ph-plus-circle text-sm"></i>
+                                    <span>+ แนบรูปเพิ่ม</span>
+                                    <input type="file" accept="image/*" class="hidden" onchange="app.handleQCPhotoUpload(event, '${job.id}')">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Photo Gallery -->
+                    <div class="mb-6 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                <i class="ph ph-camera text-cyan-500 text-sm"></i>
+                                <span>รูปถ่ายหน้างานสำหรับตรวจประเมิน (${job.photos.length} รูป)</span>
+                            </div>
+                            <span class="text-[11px] text-muted-foreground">คลิกรูปเพื่อซูมตรวจสอบรายละเอียด</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                            ${photosHtml}
+                        </div>
+                    </div>
+
+                    <!-- Online QC Checklist -->
+                    <div class="p-5 rounded-2xl bg-card border border-border space-y-4 mb-6 shadow-xs">
+                        <div class="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                            <i class="ph ph-shield-check text-cyan-500 text-sm"></i>
+                            <span>เกณฑ์ตรวจสอบคุณภาพ Online (Online Checklist)</span>
+                        </div>
+                        <div class="space-y-2.5">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-muted/40 border border-border">
+                                <div class="text-xs text-foreground">
+                                    1. ภาพถ่ายหน้างานครบถ้วน คมชัด ครอบคลุมจุดสำคัญตามมาตรฐาน <span class="text-rose-500 font-bold">*</span>
+                                </div>
+                                <div class="flex items-center gap-3 shrink-0">
+                                    <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600 dark:text-emerald-400 text-xs bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                                        <input type="radio" name="qc_online_q1" value="PASS" class="accent-emerald-500" checked>
+                                        <span>PASS</span>
+                                    </label>
+                                    <label class="flex items-center gap-1.5 cursor-pointer text-rose-600 dark:text-rose-400 text-xs bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
+                                        <input type="radio" name="qc_online_q1" value="FAIL" class="accent-rose-500">
+                                        <span>FAIL</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-muted/40 border border-border">
+                                <div class="text-xs text-foreground">
+                                    2. อุปกรณ์และวัสดุติดตั้งถูกต้องตรงตามใบสั่งงานและรุ่นที่ระบุ <span class="text-rose-500 font-bold">*</span>
+                                </div>
+                                <div class="flex items-center gap-3 shrink-0">
+                                    <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600 dark:text-emerald-400 text-xs bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                                        <input type="radio" name="qc_online_q2" value="PASS" class="accent-emerald-500" checked>
+                                        <span>PASS</span>
+                                    </label>
+                                    <label class="flex items-center gap-1.5 cursor-pointer text-rose-600 dark:text-rose-400 text-xs bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
+                                        <input type="radio" name="qc_online_q2" value="FAIL" class="accent-rose-500">
+                                        <span>FAIL</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-muted/40 border border-border">
+                                <div class="text-xs text-foreground">
+                                    3. การต่อระบบไฟฟ้า / สายดิน Safe-T-Cut / ข้อต่อท่อ ปลอดภัยตามมาตรฐาน <span class="text-rose-500 font-bold">*</span>
+                                </div>
+                                <div class="flex items-center gap-3 shrink-0">
+                                    <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600 dark:text-emerald-400 text-xs bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                                        <input type="radio" name="qc_online_q3" value="PASS" class="accent-emerald-500" checked>
+                                        <span>PASS</span>
+                                    </label>
+                                    <label class="flex items-center gap-1.5 cursor-pointer text-rose-600 dark:text-rose-400 text-xs bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
+                                        <input type="radio" name="qc_online_q3" value="FAIL" class="accent-rose-500">
+                                        <span>FAIL</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-muted/40 border border-border">
+                                <div class="text-xs text-foreground">
+                                    4. ความเรียบร้อย การทำความสะอาดพื้นที่ และส่งมอบงานให้ลูกค้า
+                                </div>
+                                <div class="flex items-center gap-3 shrink-0">
+                                    <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600 dark:text-emerald-400 text-xs bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                                        <input type="radio" name="qc_online_q4" value="PASS" class="accent-emerald-500" checked>
+                                        <span>PASS</span>
+                                    </label>
+                                    <label class="flex items-center gap-1.5 cursor-pointer text-rose-600 dark:text-rose-400 text-xs bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
+                                        <input type="radio" name="qc_online_q4" value="FAIL" class="accent-rose-500">
+                                        <span>FAIL</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-muted-foreground mb-1.5">หมายเหตุการตรวจ QC Online (Inspector Remarks):</label>
+                            <textarea id="qc-online-remarks-${job.id}" rows="2" class="w-full bg-muted/30 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none transition" placeholder="ระบุความคิดเห็น เช่น ตรวจสอบภาพถ่ายการติดตั้งและจุดต่อสายดินถูกต้องตามเกณฑ์ เรียบร้อยดี..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Actions Toolbar -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border">
+                        <button type="button" onclick="app.navigate('tickets')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer">
+                            <i class="ph ph-arrow-left"></i> กลับไป Step 4: Tickets
+                        </button>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="app.failQC('${job.id}')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs text-rose-500 hover:bg-rose-500/10 border-rose-500/20 cursor-pointer">
+                                ❌ FAIL - ส่งกลับแก้ไข (Rework)
+                            </button>
+                            <button type="button" onclick="app.passQC('${job.id}')" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white cursor-pointer">
+                                <i class="ph ph-check-circle text-base"></i>
+                                <span>PASS - ผ่านการตรวจ Online (ส่งต่อ CSAT)</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            },
+
+            syncVisitPlanPhotos(jobId) {
+                const job = DB.jobs.find(j => j.id === jobId);
+                if (!job) return;
+                job.photos = this.getSampleVisitPlanPhotos(job);
+                this.persistJobs();
+                this.showToast('🔄 ดึงรูปถ่ายหน้างาน 5 รูปจาก Visit Plan เรียบร้อยแล้ว');
+                this.selectQCJob(jobId);
+            },
+
+            handleQCPhotoUpload(event, jobId) {
+                const file = event.target.files && event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const job = DB.jobs.find(j => j.id === jobId);
+                    if (!job) return;
+                    if (!job.photos) job.photos = [];
+                    const newPhoto = {
+                        id: `p_qc_${Date.now()}`,
+                        num: job.photos.length + 1,
+                        title: `รูปแนบเพิ่มเติม: ${file.name}`,
+                        note: `แนบโดยผู้ตรวจ QC เมื่อ ${new Date().toLocaleTimeString('th-TH')}`,
+                        url: e.target.result,
+                        uploaded_at: new Date().toISOString(),
+                        source: 'QC Inspector'
+                    };
+                    job.photos.push(newPhoto);
+                    this.persistJobs();
+                    this.showToast(`📷 แนบรูปภาพ "${file.name}" เรียบร้อยแล้ว`);
+                    this.selectQCJob(jobId);
+                };
+                reader.readAsDataURL(file);
+            },
+
+            removeQCPhoto(jobId, photoId) {
+                const job = DB.jobs.find(j => j.id === jobId);
+                if (!job || !job.photos) return;
+                job.photos = job.photos.filter(p => p.id !== photoId);
+                this.persistJobs();
+                this.showToast('🗑️ ลบรูปภาพเรียบร้อยแล้ว');
+                this.selectQCJob(jobId);
+            },
+
+            failQC(id) {
+                const job = DB.jobs.find(j => j.id === id);
+                if(job) {
+                    const remarksEl = document.getElementById(`qc-online-remarks-${id}`) || document.getElementById(`qc-remarks-text-${id}`);
+                    const remark = remarksEl ? remarksEl.value.trim() : 'รูปถ่ายไม่ชัดเจน หรือพบจุดที่ต้องแก้ไข';
+                    job.qc_remarks = remark;
+                    this.persistJobs();
+                    this.showToast(`⚠️ บันทึกผล QC: FAIL - ส่งเรื่องกลับให้ทีมช่างแก้ไขหน้างาน (${remark || 'ต้องแก้ไข'})`);
+                }
+            },
+
             passQC(id) {
                 const job = DB.jobs.find(j => j.id === id);
                 if(job) {
                     job.status = 'QC_PASSED';
-                    this.showToast(`บันทึกผล QC: ผ่านเกณฑ์สำหรับ ${id} แล้ว ส่งต่อไปยัง Contact Center เรียบร้อย`);
+                    job.qc_passed_at = new Date().toISOString();
+                    job.progress = 100;
+                    if (!job.step_timestamps) job.step_timestamps = {};
+                    job.step_timestamps.qc_passed_at = job.qc_passed_at;
+                    this.recordStepTimestamp(id, 'qc_passed_at', job.qc_passed_at, 'ตรวจประเมินคุณภาพ QC Online ผ่านเกณฑ์เรียบร้อย และส่งต่อไปยัง CSAT');
+                    this.persistJobs();
+                    this.updateQCBadges();
+                    this.updateStepBadges();
+
+                    fetch(`/api/v1/jobs/${id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            status: 'QC_PASSED',
+                            overall_progress: 100,
+                            qc_passed_at: job.qc_passed_at,
+                            step_timestamps: job.step_timestamps
+                        })
+                    }).catch(() => {});
+
+                    this.showToast(`✅ บันทึกผล QC: ผ่านเกณฑ์สำหรับ ${id} แล้ว! ส่งต่อไปยัง Contact Center เรียบร้อย`);
                     this.renderQC();
-                    document.getElementById('qc-form-container').innerHTML = `
-                        <div class="h-full flex flex-col items-center justify-center text-center p-8">
-                            <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 mb-3">
-                                <i class="ph ph-check-circle text-2xl"></i>
+                    const container = document.getElementById('qc-form-container');
+                    if (container) {
+                        container.innerHTML = `
+                            <div class="h-full flex flex-col items-center justify-center text-center p-8">
+                                <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 mb-3">
+                                    <i class="ph ph-check-circle text-2xl"></i>
+                                </div>
+                                <h4 class="font-display font-medium text-foreground text-sm mb-1">บันทึกผล QC Online ผ่านเกณฑ์สำเร็จ</h4>
+                                <p class="text-xs text-muted-foreground mb-4">ระบบได้ส่งต่อไปยัง Contact Center เพื่อโทรประเมินความพึงพอใจ (CSAT) เรียบร้อยแล้ว</p>
+                                <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 mx-auto cursor-pointer" onclick="app.navigate('csat')">
+                                    <i class="ph ph-star"></i> ไปยังหน้าความพึงพอใจลูกค้า (CSAT) ➔
+                                </button>
                             </div>
-                            <h4 class="font-display font-medium text-foreground text-sm mb-1">บันทึกผล QC ผ่านเกณฑ์สำเร็จ</h4>
-                            <p class="text-xs text-muted-foreground mb-4">ระบบได้ส่งต่อไปยัง Contact Center เพื่อโทรประเมินความพึงพอใจ (CSAT) เรียบร้อยแล้ว</p>
-                            <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 mx-auto" onclick="app.navigate('csat')">
-                                <i class="ph ph-star"></i> ไปยังหน้าความพึงพอใจลูกค้า (CSAT) ➔
-                            </button>
-                        </div>
-                    `;
+                        `;
+                    }
                 }
+            },
+
+            getSampleVisitPlanPhotos(job) {
+                const s = (job.service || '').toLowerCase();
+                const nowIso = new Date().toISOString();
+
+                if (s.includes('โซลาร์') || s.includes('solar')) {
+                    return [
+                        { id: 'vp_1', num: 1, title: '1. สภาพโครงสร้างหลังคาและจุดติดตั้งแผง', note: 'ตรวจสอบความแข็งแรงโครงสร้างซีแพคโมเนีย ก่อนติดตั้งแผงโซลาร์เซลล์', url: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
+                        { id: 'vp_2', num: 2, title: '2. การติดตั้งราง Rail & Solar Mount', note: 'ยึด Rail แน่นหนาตามมุมลาดเอียง ทนแรงลมได้ดี ป้องกันน้ำรั่วซึม', url: 'https://images.unsplash.com/photo-1508873696983-2df57046475a?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
+                        { id: 'vp_3', num: 3, title: '3. แผงโซลาร์เซลล์ Solar Rooftop 5kW', note: 'ติดตั้งแผง Tier 1 ครบตามจำนวน 10 แผง จัดเรียงระนาบสวยงาม', url: 'https://images.unsplash.com/photo-1545208942-e1c9c916524b?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
+                        { id: 'vp_4', num: 4, title: '4. ระบบ Inverter & ตู้เบรกเกอร์ DC/AC', note: 'กล่อง Combiner, เบรกเกอร์ Surge Protection และระบบสายดิน ELCB', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
+                        { id: 'vp_5', num: 5, title: '5. ทดสอบผลิตไฟฟ้าและส่งมอบงาน', note: 'วัดค่าไฟ On-Grid ผลิตได้ตามมาตรฐาน ส่งมอบแอปพลิเคชันมอนิเตอร์', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' }
+                    ];
+                }
+
+                if (s.includes('น้ำอุ่น') || s.includes('heater')) {
+                    return [
+                        { id: 'vp_1', num: 1, title: '1. สภาพผนังห้องน้ำก่อนเริ่มงาน', note: 'ตรวจจุดท่อน้ำดีและตำแหน่งเจาะยึดเครื่องทำน้ำอุ่น', url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
+                        { id: 'vp_2', num: 2, title: '2. การยึดตัวเครื่องระดับน้ำตรง', note: 'เจาะพุกยึดเครื่องทำน้ำอุ่น Stiebel Eltron 4500W มั่นคงแข็งแรง', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
+                        { id: 'vp_3', num: 3, title: '3. การต่อท่อน้ำดีและชุดฝักบัว', note: 'ข้อต่อเกลียวทองเหลืองพร้อมวาล์วเปิด-ปิด ทดสอบแรงดันน้ำไม่รั่วซึม', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
+                        { id: 'vp_4', num: 4, title: '4. ระบบสายดิน & เบรกเกอร์ Safe-T-Cut', note: 'เดินสายดินแท้ลง Ground Rod และเช็คเบรกเกอร์ ELCB', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
+                        { id: 'vp_5', num: 5, title: '5. ทดสอบปุ่ม Test ELCB และอุณหภูมิ', note: 'ระบบตัดไฟรั่วทำงานปกติ 100% น้ำอุ่นสม่ำเสมอ ส่งมอบคู่มือและใบรับประกัน', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' }
+                    ];
+                }
+
+                // Default Quick Service photos
+                return [
+                    { id: 'vp_1', num: 1, title: '1. สภาพพื้นที่ก่อนติดตั้ง', note: 'ภาพรวมบริเวณปฏิบัติงานก่อนเริ่มการติดตั้ง', url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
+                    { id: 'vp_2', num: 2, title: '2. การวัดระดับและยึดอุปกรณ์', note: 'ตำแหน่งติดตั้งถูกต้องตามมาตรฐานช่าง VFIX', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
+                    { id: 'vp_3', num: 3, title: '3. จุดต่อระบบท่อ / สายไฟ', note: 'เดินระบบเรียบร้อย มีการเก็บรอยต่อสวยงาม ปลอดภัย', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
+                    { id: 'vp_4', num: 4, title: '4. ระบบความปลอดภัยและสายดิน', note: 'ตรวจเช็คเบรกเกอร์และสายดินตามเกณฑ์มาตรฐานความปลอดภัย', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
+                    { id: 'vp_5', num: 5, title: '5. งานแล้วเสร็จและทดสอบการทำงาน', note: 'เก็บกวาดพื้นที่สะอาด ทดสอบระบบพร้อมส่งมอบให้ลูกค้า', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' }
+                ];
             },
 
             setCSATFilter(filter) {

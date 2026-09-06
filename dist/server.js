@@ -1377,7 +1377,7 @@ app.patch('/api/v1/jobs/:id', requireAuth, (req, res) => {
     if (!job) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
     }
-    const { special_instructions, additional_notes, assigned_tech, plan_date, status, overall_progress, photos, pmt_accepted, pmt_accepted_at, job_type, step_timestamps, step3_confirmed } = req.body;
+    const { special_instructions, additional_notes, assigned_tech, plan_date, status, overall_progress, photos, pmt_accepted, pmt_accepted_at, job_type, step_timestamps, step3_confirmed, qc_inspection_type, qc_passed_at } = req.body;
     if (special_instructions !== undefined)
         job.special_instructions = special_instructions;
     if (additional_notes !== undefined)
@@ -1402,6 +1402,10 @@ app.patch('/api/v1/jobs/:id', requireAuth, (req, res) => {
         job.step_timestamps = step_timestamps;
     if (step3_confirmed !== undefined)
         job.step3_confirmed = step3_confirmed;
+    if (qc_inspection_type !== undefined)
+        job.qc_inspection_type = qc_inspection_type;
+    if (qc_passed_at !== undefined)
+        job.qc_passed_at = qc_passed_at;
     return res.json({
         success: true,
         data: {
@@ -1413,7 +1417,9 @@ app.patch('/api/v1/jobs/:id', requireAuth, (req, res) => {
             pmt_accepted: job.pmt_accepted,
             job_type: job.job_type,
             step_timestamps: job.step_timestamps,
-            step3_confirmed: job.step3_confirmed
+            step3_confirmed: job.step3_confirmed,
+            qc_inspection_type: job.qc_inspection_type,
+            qc_passed_at: job.qc_passed_at
         },
         message: 'บันทึกข้อมูลงานเรียบร้อยแล้ว'
     });

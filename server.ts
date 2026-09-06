@@ -1750,7 +1750,7 @@ app.patch('/api/v1/jobs/:id', requireAuth, (req: Request, res: Response) => {
     return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
   }
 
-  const { special_instructions, additional_notes, assigned_tech, plan_date, status, overall_progress, photos, pmt_accepted, pmt_accepted_at, job_type, step_timestamps, step3_confirmed } = req.body;
+  const { special_instructions, additional_notes, assigned_tech, plan_date, status, overall_progress, photos, pmt_accepted, pmt_accepted_at, job_type, step_timestamps, step3_confirmed, qc_inspection_type, qc_passed_at } = req.body;
 
   if (special_instructions !== undefined) job.special_instructions = special_instructions;
   if (additional_notes !== undefined) job.additional_notes = additional_notes;
@@ -1764,6 +1764,8 @@ app.patch('/api/v1/jobs/:id', requireAuth, (req: Request, res: Response) => {
   if (job_type !== undefined) (job as any).job_type = job_type;
   if (step_timestamps !== undefined) (job as any).step_timestamps = step_timestamps;
   if (step3_confirmed !== undefined) (job as any).step3_confirmed = step3_confirmed;
+  if (qc_inspection_type !== undefined) (job as any).qc_inspection_type = qc_inspection_type;
+  if (qc_passed_at !== undefined) (job as any).qc_passed_at = qc_passed_at;
 
   return res.json({
     success: true,
@@ -1776,7 +1778,9 @@ app.patch('/api/v1/jobs/:id', requireAuth, (req: Request, res: Response) => {
       pmt_accepted: (job as any).pmt_accepted,
       job_type: (job as any).job_type,
       step_timestamps: (job as any).step_timestamps,
-      step3_confirmed: (job as any).step3_confirmed
+      step3_confirmed: (job as any).step3_confirmed,
+      qc_inspection_type: (job as any).qc_inspection_type,
+      qc_passed_at: (job as any).qc_passed_at
     },
     message: 'บันทึกข้อมูลงานเรียบร้อยแล้ว'
   });
