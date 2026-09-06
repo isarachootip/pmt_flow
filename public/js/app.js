@@ -11450,12 +11450,84 @@ const app = {
                 }).join('');
             },
 
+            render24HourTimePickerHtml(prefix, type, defaultH = '08', defaultM = '30', labelText = 'เวลา') {
+                const hours = ['06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '00', '01', '02', '03', '04', '05'];
+                const minutes = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'];
+
+                const hourOptions = hours.map(h => `<option value="${h}" ${h === defaultH ? 'selected' : ''}>${h}</option>`).join('');
+                const minOptions = minutes.map(m => `<option value="${m}" ${m === defaultM ? 'selected' : ''}>${m}</option>`).join('');
+
+                return `
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-[10px] font-semibold text-foreground">
+                            ${labelText} <span class="text-rose-500">*</span>
+                        </label>
+                        <span class="text-[9px] font-mono text-cyan-600 dark:text-cyan-400 font-bold bg-cyan-500/10 px-1.5 py-0.2 rounded border border-cyan-500/20">24 ชม. (ไม่มี AM/PM)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-card border border-border focus-within:border-cyan-500 rounded-xl px-3 py-2 shadow-xs transition">
+                        <i class="ph ph-clock text-cyan-600 dark:text-cyan-400 text-base shrink-0"></i>
+                        <select id="${prefix}-${type}-hour" onchange="app.syncDailyLogTime('${prefix}')" class="bg-transparent text-xs font-mono font-bold text-foreground focus:outline-none cursor-pointer py-0.5" title="เลือกชั่วโมง (00 - 23)">
+                            ${hourOptions}
+                        </select>
+                        <span class="text-xs font-bold text-muted-foreground font-mono select-none px-0.5">:</span>
+                        <select id="${prefix}-${type}-min" onchange="app.syncDailyLogTime('${prefix}')" class="bg-transparent text-xs font-mono font-semibold text-foreground focus:outline-none cursor-pointer py-0.5" title="เลือกนาที">
+                            ${minOptions}
+                        </select>
+                        <span class="text-[11px] text-muted-foreground font-mono ml-auto font-medium select-none">น.</span>
+                    </div>
+                    <input type="hidden" id="${prefix}-input-${type}-time" value="${defaultH}:${defaultM}">
+                </div>`;
+            },
+
+            renderDailyLogShiftPresetsHtml(prefix = 'page') {
+                return `
+                <div class="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-cyan-500/15 text-[10px]">
+                    <span class="text-muted-foreground font-medium flex items-center gap-1"><i class="ph ph-lightning text-amber-500"></i> เลือกกะเวลารวดเร็ว:</span>
+                    <button type="button" onclick="app.setDailyLogShiftPreset('${prefix}', '08', '00', '17', '00')" class="px-2 py-0.5 rounded-md bg-muted/80 hover:bg-cyan-500/20 hover:text-cyan-600 dark:hover:text-cyan-400 border border-border/60 transition cursor-pointer font-mono font-medium">08:00 - 17:00</button>
+                    <button type="button" onclick="app.setDailyLogShiftPreset('${prefix}', '08', '30', '17', '00')" class="px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/25 border border-cyan-500/30 transition cursor-pointer font-mono font-bold">08:30 - 17:00</button>
+                    <button type="button" onclick="app.setDailyLogShiftPreset('${prefix}', '08', '30', '17', '30')" class="px-2 py-0.5 rounded-md bg-muted/80 hover:bg-cyan-500/20 hover:text-cyan-600 dark:hover:text-cyan-400 border border-border/60 transition cursor-pointer font-mono font-medium">08:30 - 17:30</button>
+                    <button type="button" onclick="app.setDailyLogShiftPreset('${prefix}', '09', '00', '18', '00')" class="px-2 py-0.5 rounded-md bg-muted/80 hover:bg-cyan-500/20 hover:text-cyan-600 dark:hover:text-cyan-400 border border-border/60 transition cursor-pointer font-mono font-medium">09:00 - 18:00</button>
+                    <button type="button" onclick="app.setDailyLogShiftPreset('${prefix}', '13', '00', '17', '00')" class="px-2 py-0.5 rounded-md bg-muted/80 hover:bg-cyan-500/20 hover:text-cyan-600 dark:hover:text-cyan-400 border border-border/60 transition cursor-pointer font-mono font-medium">13:00 - 17:00</button>
+                </div>`;
+            },
+
+            syncDailyLogTime(prefix = 'page') {
+                const sHour = document.getElementById(`${prefix}-start-hour`)?.value || '08';
+                const sMin = document.getElementById(`${prefix}-start-min`)?.value || '30';
+                const eHour = document.getElementById(`${prefix}-end-hour`)?.value || '17';
+                const eMin = document.getElementById(`${prefix}-end-min`)?.value || '00';
+
+                const sEl = document.getElementById(`${prefix}-input-start-time`);
+                const eEl = document.getElementById(`${prefix}-input-end-time`);
+                if (sEl) sEl.value = `${sHour}:${sMin}`;
+                if (eEl) eEl.value = `${eHour}:${eMin}`;
+
+                this.updateDailyLogDurationDisplay(prefix);
+            },
+
+            setDailyLogShiftPreset(prefix, sH, sM, eH, eM) {
+                const sHourEl = document.getElementById(`${prefix}-start-hour`);
+                const sMinEl = document.getElementById(`${prefix}-start-min`);
+                const eHourEl = document.getElementById(`${prefix}-end-hour`);
+                const eMinEl = document.getElementById(`${prefix}-end-min`);
+
+                if (sHourEl) sHourEl.value = sH;
+                if (sMinEl) sMinEl.value = sM;
+                if (eHourEl) eHourEl.value = eH;
+                if (eMinEl) eMinEl.value = eM;
+
+                this.syncDailyLogTime(prefix);
+                this.showToast(`⏱️ ปรับเวลาทำงานเป็น ${sH}:${sM} - ${eH}:${eM} น. (24 ชม.)`);
+            },
+
             updateDailyLogDurationDisplay(prefix = 'page') {
                 const sEl = document.getElementById(`${prefix}-input-start-time`);
                 const eEl = document.getElementById(`${prefix}-input-end-time`);
                 const outEl = document.getElementById(`${prefix}-duration-text`);
                 if (sEl && eEl && outEl) {
-                    outEl.innerText = this.calculateWorkDuration(sEl.value, eEl.value);
+                    const dur = this.calculateWorkDuration(sEl.value, eEl.value);
+                    outEl.innerHTML = `⏱️ รวม ${dur} <span class="text-[10px] font-mono opacity-80">(${sEl.value} - ${eEl.value} น.)</span>`;
                 }
             },
 
@@ -11765,27 +11837,22 @@ const app = {
                                         </div>
                                     </div>
 
-                                    <!-- Time In & Time Out (ระยะเวลา เริ่มที่เข้าไป และเวลา ที่ สิ้นสุด) -->
-                                    <div class="p-3.5 rounded-xl bg-cyan-500/5 border border-cyan-500/20 space-y-2">
+                                    <!-- Time In & Time Out (ระยะเวลา เริ่มที่เข้าไป และเวลา ที่ สิ้นสุด - 24 Hours) -->
+                                    <div class="p-3.5 rounded-xl bg-cyan-500/5 border border-cyan-500/20 space-y-2.5">
                                         <div class="flex items-center justify-between">
                                             <span class="text-[11px] font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5">
                                                 <i class="ph ph-clock text-sm"></i>
-                                                บันทึกระยะเวลาเข้าปฏิบัติงานจริง (Time Tracking):
+                                                บันทึกระยะเวลาเข้าปฏิบัติงานจริง (24-Hour Time Tracking):
                                             </span>
                                             <span id="page-duration-text" class="text-[11px] font-mono font-bold px-2 py-0.5 rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30">
-                                                ⏱️ 8 ชม. 30 นาที
+                                                ⏱️ รวม 8 ชม. 30 นาที <span class="text-[10px] font-mono opacity-80">(08:30 - 17:00 น.)</span>
                                             </span>
                                         </div>
                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <div>
-                                                <label class="block text-[10px] font-medium text-muted-foreground mb-1">เวลาเริ่มเข้าหน้างาน (Check-in Time): <span class="text-rose-500">*</span></label>
-                                                <input type="time" id="page-input-start-time" value="08:30" onchange="app.updateDailyLogDurationDisplay('page')" class="w-full bg-card border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer" required>
-                                            </div>
-                                            <div>
-                                                <label class="block text-[10px] font-medium text-muted-foreground mb-1">เวลาสิ้นสุดการทำงาน (Check-out Time): <span class="text-rose-500">*</span></label>
-                                                <input type="time" id="page-input-end-time" value="17:00" onchange="app.updateDailyLogDurationDisplay('page')" class="w-full bg-card border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer" required>
-                                            </div>
+                                            ${this.render24HourTimePickerHtml('page', 'start', '08', '30', 'เวลาเริ่มเข้าหน้างาน (Check-in)')}
+                                            ${this.render24HourTimePickerHtml('page', 'end', '17', '00', 'เวลาสิ้นสุดการทำงาน (Check-out)')}
                                         </div>
+                                        ${this.renderDailyLogShiftPresetsHtml('page')}
                                     </div>
 
                                     <!-- Recorded By & Role -->
@@ -11914,6 +11981,7 @@ const app = {
                 if (detailEl) detailEl.value = '';
                 const issuesEl = document.getElementById(`${prefix}-input-issues`);
                 if (issuesEl) issuesEl.value = '';
+                this.setDailyLogShiftPreset(prefix, '08', '30', '17', '00');
                 this.showToast('🔄 ล้างฟอร์มเรียบร้อย');
             },
 
@@ -12171,26 +12239,21 @@ const app = {
                                         </div>
                                     </div>
 
-                                    <!-- Time In & Time Out in Modal -->
-                                    <div class="p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20 space-y-1.5">
+                                    <!-- Time In & Time Out in Modal (24 Hours) -->
+                                    <div class="p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20 space-y-2">
                                         <div class="flex items-center justify-between">
                                             <span class="text-[11px] font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
-                                                <i class="ph ph-clock text-xs"></i> ระยะเวลาปฏิบัติงาน:
+                                                <i class="ph ph-clock text-xs"></i> ระยะเวลาปฏิบัติงาน (24 ชม.):
                                             </span>
-                                            <span id="dwl-duration-text" class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
-                                                ⏱️ 8 ชม. 30 นาที
+                                            <span id="dwl-duration-text" class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30">
+                                                ⏱️ รวม 8 ชม. 30 นาที <span class="text-[9px] font-mono opacity-80">(08:30 - 17:00 น.)</span>
                                             </span>
                                         </div>
                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                            <div>
-                                                <label class="block text-[10px] text-muted-foreground mb-0.5">เวลาเริ่ม (Check-in):</label>
-                                                <input type="time" id="dwl-input-start-time" value="08:30" onchange="app.updateDailyLogDurationDisplay('dwl')" class="w-full bg-card border border-border focus:border-cyan-500 rounded-xl px-2.5 py-1 text-xs font-mono text-foreground focus:outline-none cursor-pointer" required>
-                                            </div>
-                                            <div>
-                                                <label class="block text-[10px] text-muted-foreground mb-0.5">เวลาสิ้นสุด (Check-out):</label>
-                                                <input type="time" id="dwl-input-end-time" value="17:00" onchange="app.updateDailyLogDurationDisplay('dwl')" class="w-full bg-card border border-border focus:border-cyan-500 rounded-xl px-2.5 py-1 text-xs font-mono text-foreground focus:outline-none cursor-pointer" required>
-                                            </div>
+                                            ${this.render24HourTimePickerHtml('dwl', 'start', '08', '30', 'เวลาเริ่ม (Check-in)')}
+                                            ${this.render24HourTimePickerHtml('dwl', 'end', '17', '00', 'เวลาสิ้นสุด (Check-out)')}
                                         </div>
+                                        ${this.renderDailyLogShiftPresetsHtml('dwl')}
                                     </div>
 
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
