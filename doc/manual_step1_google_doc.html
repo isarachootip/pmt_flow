@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>คู่มือการใช้งานระบบ PMT Flow - Step 1: คิวงานรับคำสั่งซื้อใหม่ (New Order Intake)</title>
+    <style>
+        body {
+            font-family: 'Sarabun', 'Segoe UI', Tahoma, sans-serif;
+            line-height: 1.6;
+            color: #1e293b;
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        h1 {
+            color: #0f172a;
+            font-size: 26px;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+        h2 {
+            color: #1e3a8a;
+            font-size: 20px;
+            margin-top: 28px;
+            border-left: 4px solid #3b82f6;
+            padding-left: 10px;
+        }
+        h3 {
+            color: #334155;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        p, li {
+            font-size: 14px;
+            color: #334155;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 13px;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .callout {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+        .callout-warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+        .callout-success {
+            background-color: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+        .screenshot-placeholder {
+            border: 2px dashed #94a3b8;
+            background-color: #f8fafc;
+            padding: 24px;
+            text-align: center;
+            color: #64748b;
+            font-size: 13px;
+            margin: 16px 0;
+            border-radius: 6px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .badge-quick {
+            background-color: #fef3c7;
+            color: #b45309;
+            border: 1px solid #fde68a;
+        }
+        .badge-project {
+            background-color: #e0e7ff;
+            color: #3730a3;
+            border: 1px solid #c7d2fe;
+        }
+        .meta-table {
+            margin-bottom: 24px;
+        }
+        .meta-table td {
+            padding: 6px 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <table class="meta-table" style="width:100%; border: 1px solid #e2e8f0; background-color: #f8fafc;">
+        <tr>
+            <td style="width: 25%; font-weight: bold; background-color: #f1f5f9;">รหัสเอกสาร:</td>
+            <td style="width: 25%;">SOP-PMT-001</td>
+            <td style="width: 25%; font-weight: bold; background-color: #f1f5f9;">เวอร์ชันระบบ:</td>
+            <td style="width: 25%;">v1.2 (Pipeline Architecture)</td>
+        </tr>
+        <tr>
+            <td style="font-weight: bold; background-color: #f1f5f9;">ชื่อเอกสาร:</td>
+            <td colspan="3">คู่มือปฏิบัติงาน: Step 1 คิวงานรับคำสั่งซื้อใหม่ (New Order Intake)</td>
+        </tr>
+        <tr>
+            <td style="font-weight: bold; background-color: #f1f5f9;">กลุ่มผู้ใช้งานเป้าหมาย:</td>
+            <td>Admin Intake, Project Manager (PM), Dispatcher</td>
+            <td style="font-weight: bold; background-color: #f1f5f9;">วันที่อัปเดต:</td>
+            <td>กันยายน 2569</td>
+        </tr>
+    </table>
+
+    <h1>📘 คู่มือการใช้งาน: Step 1 คิวงานรับคำสั่งซื้อใหม่ (New Order Intake)</h1>
+
+    <div class="callout">
+        <b>บทสรุปสำหรับผู้บริหาร (Executive Summary):</b><br>
+        หน้าจอ <b>Step 1: คิวงานรับคำสั่งซื้อใหม่ (New Order Intake)</b> ทำหน้าที่เป็นศูนย์กลางรับเข้าและคัดกรองคำสั่งซื้อแรกเริ่มจากระบบ INT โดยมีฟังก์ชันวิเคราะห์สัดส่วนงาน (Distribution Summary), ควบคุมเวลาส่งต่อ (SLA Monitoring) และระบบคัดกรองแบบอัจฉริยะที่ช่วยให้งานบริการด่วน (Quick Services) สามารถข้ามขั้นตอนการเขียนแบบและถอด BOQ ตรงไปยังขั้นตอนการเปิด Ticket ได้ทันที
+    </div>
+
+    <h2>1. วัตถุประสงค์และขอบเขต (Objectives & Scope)</h2>
+    <ol>
+        <li><b>รับคำสั่งซื้อใหม่จาก INT:</b> จัดเก็บข้อมูลคำสั่งซื้อ เลขที่งาน ข้อมูลลูกค้า เบอร์ติดต่อ และประเภทงานบริการ</li>
+        <li><b>คัดแยกสายงาน (Job Segmentation):</b>
+            <ul>
+                <li><span class="badge badge-quick">QUICK</span> <b>งานบริการด่วน:</b> งานติดตั้งขนาดเล็ก (เช่น ติดตั้งเครื่องทำน้ำอุ่น, ซ่อมด่วน, ปั้มแท็งก์) ที่มีราคามาตรฐาน ไม่ต้องเขียนแบบแปลน</li>
+                <li><span class="badge badge-project">RENOVATE / PROJECT</span> <b>งานโครงการปรับปรุง:</b> งานที่ต้องสำรวจหน้างาน เขียนแบบแปลน (CAD/PDF) และถอดแบบ BOQ ละเอียด</li>
+            </ul>
+        </li>
+        <li><b>ควบคุมเกณฑ์เวลาให้บริการ (SLA Control):</b> ตรวจสอบและส่งต่องานภายในระยะเวลาที่กำหนด (ค่ามาตรฐาน 4 ชั่วโมง)</li>
+        <li><b>ส่งต่องานเข้าสู่สายงานที่ถูกต้อง (Dispatching):</b> ลดขั้นตอนการทำงานที่ซ้ำซ้อนด้วยระบบ Fast-track</li>
+    </ol>
+
+    <div class="screenshot-placeholder">
+        📸 <b>[จุดวางภาพหน้าจอที่ 1: ภาพรวมหน้าจอ Step 1 ทั้งหน้าจอ พร้อมไฮไลต์แดชบอร์ดด้านบนและตารางด้านล่าง]</b>
+    </div>
+
+    <h2>2. โครงสร้างองค์ประกอบของหน้าจอ (Screen Breakdown)</h2>
+
+    <h3>2.1 แถบเครื่องมือและตัวกรอง (Toolbar & Filters)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 25%;">ปุ่ม / ตัวควบคุม</th>
+                <th style="width: 35%;">หน้าที่การทำงาน</th>
+                <th style="width: 40%;">คำแนะนำการใช้งาน</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><b>ตัวกรองบริการ (Service Filter)</b></td>
+                <td>กรองแสดงงานเฉพาะประเภท เช่น เครื่องทำน้ำอุ่น, ปั้มแท็งก์, Renovate ครัว</td>
+                <td>ใช้เมื่อต้องการมอบหมายงานให้ช่างผู้เชี่ยวชาญเฉพาะทาง</td>
+            </tr>
+            <tr>
+                <td><b>ตัวกรองสถานะ (Status Filter)</b></td>
+                <td>สลับมุมมองระหว่าง "📥 คิวงาน Step 1" กับ "🗂️ ทั้งหมดทุกขั้นตอน"</td>
+                <td>ค่าเริ่มต้นจะแสดงเฉพาะคิวงานที่ยังไม่ได้ส่งต่อ เพื่อให้เห็นงานค้างท่อ</td>
+            </tr>
+            <tr>
+                <td><b>ปุ่ม "+ รับ Order ใหม่ (INT)"</b></td>
+                <td>เปิดหน้าต่างบันทึกคำสั่งซื้อใหม่ด้วยตนเอง</td>
+                <td>ใช้ในกรณีมีลูกค้านอกระบบ หรือกรณีฉุกเฉินที่ระบบ INT ขัดข้อง</td>
+            </tr>
+            <tr>
+                <td><b>ปุ่ม "Export รายงาน Timestamps"</b></td>
+                <td>ดาวน์โหลดไฟล์ .CSV สรุปเวลาบันทึกของทั้ง 5 ขั้นตอน</td>
+                <td>ใช้จัดทำรายงาน KPI ประจำสัปดาห์/ประจำเดือน เสนอผู้บริหาร</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>2.2 แดชบอร์ดติดตามสถานะและ SLA (Order Intake Analytics)</h3>
+    <p>ประกอบด้วยการ์ดสรุปผลเชิงสถิติ 4 ใบหลักที่สามารถคลิกเพื่อกรองข้อมูลได้ทันที:</p>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 25%;">การ์ดสถิติ (KPI Card)</th>
+                <th style="width: 45%;">ความหมายและการคำนวณ</th>
+                <th style="width: 30%;">การโต้ตอบเมื่อคลิก</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><b>1. ยอดงานเข้า ทั้งหมด</b></td>
+                <td>จำนวนคำสั่งซื้อสะสมทั้งหมดในระบบ</td>
+                <td>แสดงรายการคำสั่งซื้อทั้งหมดทุกสถานะ</td>
+            </tr>
+            <tr>
+                <td><b>2. ยอดเข้าวันนี้</b></td>
+                <td>จำนวนคำสั่งซื้อที่เพิ่งถูกส่งเข้ามาในวันปัจจุบัน</td>
+                <td>กรองดูเฉพาะงานที่เพิ่งรับเข้ามาวันนี้</td>
+            </tr>
+            <tr>
+                <td><b>3. ยอดที่ยังคงเหลือ</b></td>
+                <td>งานค้างใน Step 1 ที่ยังไม่ได้กดส่งต่อ (สถานะ Draft / 0%)</td>
+                <td>กรองเฉพาะงานที่รอการส่งต่อ</td>
+            </tr>
+            <tr>
+                <td><b>4. สถานะ SLA</b></td>
+                <td>จำนวนงานที่เกินกำหนดเวลา (Overdue) เทียบกับเกณฑ์เวลาที่ตั้งไว้</td>
+                <td>กรองเฉพาะงานที่เกินเวลา เพื่อเร่งรัดการดำเนินงาน</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="callout-warning">
+        <b>💡 การตั้งค่า SLA:</b> ผู้ดูแลระบบสามารถคลิกที่ปุ่ม <b>"⚙️ Config"</b> บนการ์ดสถานะ SLA เพื่อกำหนดชั่วโมงเกณฑ์เวลาของ Step 1 ได้ตามนโยบายขององค์กร (เช่น กำหนด 4 ชั่วโมง สำหรับงานทั่วไป หรือ 2 ชั่วโมง สำหรับงานด่วน)
+    </div>
+
+    <div class="screenshot-placeholder">
+        📸 <b>[จุดวางภาพหน้าจอที่ 2: เจาะลึกการ์ด KPI 4 ใบ และแถบ Segment Distribution Summary]</b>
+    </div>
+
+    <h3>2.3 แถบสัดส่วนประเภทงาน (Segment Distribution Summary)</h3>
+    <p>ช่วยให้เห็นภาพรวมของประเภทงานและสัดส่วนภาระงานในระบบ:</p>
+    <ul>
+        <li><b style="color: #d97706;">Quick Services:</b> งานบริการด่วน อัตราการหมุนเวียนงานเร็ว</li>
+        <li><b style="color: #4f46e5;">Renovate:</b> งานโครงการปรับปรุง ต้องผ่านการเขียนแบบและถอด BOQ</li>
+        <li><b style="color: #9333ea;">MA & Maintenance:</b> สัญญาบำรุงรักษาเชิงป้องกัน</li>
+        <li><b style="color: #059669;">ส่งต่อทำแบบแล้ว:</b> งานที่ผ่านการคัดกรองและส่งต่อไปยัง Step 2 หรือสูงกว่า</li>
+    </ul>
+
+    <h2>3. ขั้นตอนการปฏิบัติงานมาตรฐาน (Standard Operating Procedure - SOP)</h2>
+
+    <h3>กรณีที่ 1: ขั้นตอนการจัดการงานบริการด่วน (Quick Services) ⚡</h3>
+    <div class="callout-success">
+        <b>คุณสมบัติของงาน:</b> งานติดตั้งอุปกรณ์เดี่ยว, งานซ่อมมาตรฐาน, สินค้าพร้อมติดตั้ง ไม่ต้องเขียนแบบแปลนห้องและไม่ต้องถอดราคา BOQ ละเอียด
+    </div>
+    <ol>
+        <li><b>ตรวจสอบข้อมูล:</b> ตรวจดูความถูกต้องของชื่อลูกค้า เบอร์โทรศัพท์ และที่อยู่ติดตั้งในตารางรายการ</li>
+        <li><b>กดปุ่ม Fast-track:</b> คลิกที่ปุ่มสีเขียว <b>"ข้ามไป Step 4 (Quick)"</b> ที่คอลัมน์ขวาสุดของรายการ
+            <div class="screenshot-placeholder">
+                📸 <b>[จุดวางภาพหน้าจอที่ 3: ภาพปุ่มสีเขียว "ข้ามไป Step 4 (Quick)" พร้อมไอคอนสายฟ้า]</b>
+            </div>
+        </li>
+        <li><b>ระบบบันทึกข้อมูลอัตโนมัติ:</b>
+            <ul>
+                <li>ระบบจะประทับเวลา <code>step4_ticket_at</code> ลงในฐานข้อมูลทันที</li>
+                <li>รายการจะถูกย้ายออกจากคิวงาน Step 1 เพื่อป้องกันความสับสน</li>
+            </ul>
+        </li>
+        <li><b>เปิดหน้าบันทึก Ticket:</b> ระบบจะแสดงหน้าต่างแจ้งเตือนสอบถามว่า <i>"ต้องการเปิดไปที่หน้า Step 4 เพื่อบันทึกหมายเลข Ticket และแนบสลิปตอนนี้เลยหรือไม่?"</i>
+            <ul>
+                <li>หากกด <b>"ตกลง"</b>: ระบบจะนำทางไปยังหน้า <b>Step 4 (บันทึก Ticket & ใบเสร็จ)</b> พร้อมเปิดฟอร์มสร้าง Ticket ให้ทันที</li>
+                <li>หากกด <b>"ยกเลิก"</b>: ระบบจะคงอยู่ที่หน้า Step 1 เพื่อให้ผู้ใช้งานคัดกรองงานลำดับถัดไป</li>
+            </ul>
+        </li>
+    </ol>
+
+    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;">
+
+    <h3>กรณีที่ 2: ขั้นตอนการจัดการงานโครงการปรับปรุง (Renovate / Major Projects) 📐</h3>
+    <div class="callout">
+        <b>คุณสมบัติของงาน:</b> งานปรับปรุงห้องครัว, งานรีโนเวทบ้าน, งานต่อเติม หรือสำรวจหน้างานที่ต้องอาศัยแบบแปลน CAD/PDF และการถอดวัสดุ BOQ
+    </div>
+    <ol>
+        <li><b>ตรวจสอบรายละเอียดงาน:</b> คลิกที่แถวรายการเพื่อเข้าสู่หน้า <b>รายละเอียดงาน (Job Detail)</b> ตรวจดูรูปถ่ายหน้างานและข้อกำหนดพิเศษจากลูกค้า</li>
+        <li><b>กดปุ่มส่งต่อ:</b> คลิกที่ปุ่มสีน้ำเงิน <b>"ส่งต่อทำแบบ (ไป Step 2)"</b>
+            <div class="screenshot-placeholder">
+                📸 <b>[จุดวางภาพหน้าจอที่ 4: ภาพปุ่มสีน้ำเงิน "ส่งต่อทำแบบ (ไป Step 2)"]</b>
+            </div>
+        </li>
+        <li><b>ระบบบันทึกเวลาส่งต่อ:</b>
+            <ul>
+                <li>ระบบจะบันทึก Timestamp <code>step2_design_at</code></li>
+                <li>สถานะของงานจะย้ายเข้าสู่คิวงานออกแบบของสถาปนิก/มัณฑนากรใน <b>Step 2 (บันทึก Design)</b> โดยอัตโนมัติ</li>
+            </ul>
+        </li>
+        <li><b>การประสานงานฝ่ายออกแบบ:</b> สามารถกดยืนยันเพื่อเปิดหน้า Step 2 และเริ่มอัปโหลดไฟล์แบบแปลน CAD/PDF ได้ทันที</li>
+    </ol>
+
+    <h2>4. แผนภาพเปรียบเทียบเส้นทางการไหลของงาน (Workflow Comparison)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 25%;">คุณลักษณะ</th>
+                <th style="width: 37%;">สายงานด่วน (Quick Services)</th>
+                <th style="width: 38%;">สายงานโครงการ (Renovate / Projects)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><b>กลุ่มงานตัวอย่าง</b></td>
+                <td>ติดตั้งเครื่องทำน้ำอุ่น, ปั้มน้ำ-แท็งก์น้ำ</td>
+                <td>Renovate ห้องครัว, งานตกแต่งภายใน, ต่อเติม</td>
+            </tr>
+            <tr>
+                <td><b>ปุ่ม Action ที่ใช้</b></td>
+                <td><b style="color: #059669;">[ ข้ามไป Step 4 (Quick) ]</b> (ปุ่มสีเขียว)</td>
+                <td><b style="color: #4f46e5;">[ ส่งต่อทำแบบ (ไป Step 2) ]</b> (ปุ่มสีน้ำเงิน)</td>
+            </tr>
+            <tr>
+                <td><b>ขั้นตอนถัดไป</b></td>
+                <td>Step 4: บันทึก Ticket & สลิปใบเสร็จ</td>
+                <td>Step 2: บันทึก Design & แบบแปลน</td>
+            </tr>
+            <tr>
+                <td><b>การถอด BOQ</b></td>
+                <td>ไม่ต้องใช้ (ข้าม Step 3)</td>
+                <td>จำเป็นต้องถอดรายการวัสดุ-ค่าแรงใน Step 3</td>
+            </tr>
+            <tr>
+                <td><b>เป้าหมาย SLA เฉลี่ย</b></td>
+                <td>ส่งต่องานภายใน 1 - 2 ชั่วโมง</td>
+                <td>คัดกรองและส่งต่อฝ่ายแบบภายใน 4 ชั่วโมง</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>5. รายการตรวจสอบก่อนส่งมอบงาน (Intake Officer Checklist)</h2>
+    <ul style="list-style-type: none; padding-left: 0;">
+        <li><input type="checkbox"> ตรวจสอบชื่อ-นามสกุล และเบอร์โทรศัพท์ของลูกค้าครบถ้วนถูกต้อง</li>
+        <li><input type="checkbox"> ตรวจสอบที่อยู่หน้างาน และพิกัดสถานที่ติดตั้ง</li>
+        <li><input type="checkbox"> คัดแยกประเภทงานถูกต้อง (Quick vs Renovate)</li>
+        <li><input type="checkbox"> ระบุทีมช่างผู้รับผิดชอบเบื้องต้น</li>
+        <li><input type="checkbox"> ตรวจสอบเวลาที่รับเข้า ไม่ให้เกินเกณฑ์เตือน SLA (การ์ดสีแดง)</li>
+    </ul>
+
+    <h2>6. คำถามที่พบบ่อย (FAQ & Troubleshooting)</h2>
+    <p><b>Q1: หากกดปุ่มส่งต่องานผิด เช่น งาน Renovate เผลอกด "ข้ามไป Step 4" จะแก้ไขอย่างไร?</b><br>
+    <i>คำตอบ:</i> สามารถไปที่เมนู <b>Step 4 (บันทึก Ticket)</b> หรือเข้าไปที่หน้ารายละเอียดงาน (Job Detail) แล้วสามารถคลิกเลือกนำทางกลับมายังขั้นตอน Step 2 (Design) ได้ตลอดเวลา หรือประสานงานผู้ดูแลระบบ (Admin) เพื่อปรับปรุงข้อมูล</p>
+
+    <p><b>Q2: ตัวเลขนับถอยหลัง SLA ขึ้นเป็นสีแดงและติดลบ มีผลอย่างไร?</b><br>
+    <i>คำตอบ:</i> ตัวเลขสีแดงแสดงว่าคำสั่งซื้อนั้นค้างอยู่ในคิวเกินเกณฑ์มาตรฐานที่บริษัทกำหนด (Overdue) ระบบจะบันทึกค่าสถานะนี้ไว้ใน Audit Log แนะนำให้รีบดำเนินการตรวจสอบและกดส่งต่องานทันที</p>
+
+    <p><b>Q3: สามารถดึงข้อมูล Order ทั้งหมดไปทำกราฟสรุปใน Google Sheets ได้หรือไม่?</b><br>
+    <i>คำตอบ:</i> ได้ โดยการคลิกปุ่ม <b>"Export รายงาน Timestamps"</b> ด้านบนขวา ระบบจะบันทึกไฟล์ .CSV ที่มีข้อมูลเวลาของทั้ง 5 ขั้นตอน สามารถนำไปเปิดใน Google Sheets หรือ Excel ได้โดยตรง</p>
+
+</body>
+</html>
