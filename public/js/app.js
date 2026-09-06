@@ -2797,31 +2797,33 @@ const app = {
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return;
 
-                const confirmed = confirm(`ยืนยันการส่งต่อ Order [${job.id}] ${job.customer} ไปยังขั้นตอน "Step 5: บันทึก BOQ เข้า Project"?\n\n• ระบบจะบันทึก Timestamp และย้าย Order เข้าสู่คิวแปลงงานเข้า Project (Step 5)\n• ท่านสามารถแปลงรายการค่าแรงจาก BOQ เป็น Task และจัดแผนงาน Gantt`);
-                if (!confirmed) return;
-
                 if (!job.step_timestamps) job.step_timestamps = {};
-                job.step_timestamps.step5_project_at = new Date().toISOString();
+                const now = new Date().toISOString();
+                job.step_timestamps.step5_project_at = now;
+                job.progress = Math.max(job.progress || 0, 80);
                 
-                this.recordStepTimestamp(job.id, 'step5_project_at', job.step_timestamps.step5_project_at, 'ส่งต่องานจาก Step 4 เข้าสู่คิวแปลงเข้า Project (Step 5)');
+                this.recordStepTimestamp(job.id, 'step5_project_at', now, 'ส่งต่องานจาก Step 4 เข้าสู่คิวแปลงเข้า Project (Step 5)');
                 this.persistJobs();
 
+                // Sync with backend server
+                fetch(`/api/v1/jobs/${jobId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        overall_progress: job.progress,
+                        step_timestamps: job.step_timestamps
+                    })
+                }).catch(() => {});
+
                 this.updateStepBadges();
-                this.showToast(`✅ ส่งต่อ Order ${job.id} ไปยัง "Step 5: บันทึก BOQ เข้า Project" เรียบร้อยแล้ว`);
+                this.showToast(`✅ ย้าย Order [${job.id}] เข้าสู่คิว "Step 5: บันทึก BOQ เข้า Project" สำเร็จ`);
 
                 if (this.state.currentView === 'tickets') {
                     this.renderTickets();
                 }
-
-                setTimeout(() => {
-                    const goToStep5 = confirm(`Order ${job.id} ถูกส่งต่อไปยัง Step 5 แล้ว!\n\nต้องการเปิดไปที่หน้า "Step 5: บันทึก BOQ เข้า Project" ตอนนี้เลยหรือไม่?`);
-                    if (goToStep5) {
-                        this.navigate('project-conversion', job.id);
-                        setTimeout(() => {
-                            this.openConvertBOQToTasksModal(job.id);
-                        }, 200);
-                    }
-                }, 250);
+                if (this.state.currentView === 'job-detail') {
+                    this.renderJobDetail();
+                }
             },
 
             openJobTicketsDetail(jobId) {
@@ -6637,16 +6639,24 @@ const app = {
                             const hasTicket = jobTickets.length > 0;
                             const stageHtml = this.renderStageWithSLA(j, 4);
 
+                            const isSentToStep5 = !!(j.step_timestamps && j.step_timestamps.step5_project_at);
                             const actionButtons = hasTicket ? `
                                 <div class="flex items-center justify-end gap-1.5">
                                     <button onclick="event.stopPropagation(); app.openJobTicketsDetail('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted text-foreground inline-flex items-center gap-1 cursor-pointer" title="ดูสลิปและใบเสร็จ">
                                         <i class="ph ph-receipt"></i>
                                         <span>ดูสลิป/ใบเสร็จ (${jobTickets.length})</span>
                                     </button>
+                                    ${isSentToStep5 ? `
+                                    <button onclick="event.stopPropagation(); app.navigate('project-conversion', '${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 inline-flex items-center gap-1 cursor-pointer" title="งานนี้ส่งเข้า Step 5 เรียบร้อยแล้ว (คลิกเพื่อเปิดดูใน Step 5)">
+                                        <i class="ph ph-check-circle text-xs text-amber-500"></i>
+                                        <span>อยู่ในคิว Step 5</span>
+                                    </button>
+                                    ` : `
                                     <button onclick="event.stopPropagation(); app.proceedJobToConversion('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ส่งต่อไปยัง Step 5 แปลงเข้า Project">
                                         <span>แปลงเข้า Project (ไป Step 5)</span>
                                         <i class="ph ph-arrow-right-bold text-xs"></i>
                                     </button>
+                                    `}
                                 </div>
                             ` : `
                                 <button onclick="event.stopPropagation(); app.openCreateTicketModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="บันทึก Ticket & แนบใบเสร็จ">
@@ -7220,14 +7230,31 @@ const app = {
                     job.ticket_amount = amount;
                     job.ticket_count = (DB.tickets.filter(t => (t.job_id || t.jobId) === jobId)).length;
                     if (job.status === 'IN_PROGRESS' || job.status === 'Draft' || job.status === 'DRAFT') {
-                        job.progress = Math.max(job.progress || 0, 75);
+                        job.progress = Math.max(job.progress || 0, 80);
                     }
+
+                    // All jobs: Transition state strictly into Step 5 (Project Conversion & Gantt)
+                    if (!job.step_timestamps) job.step_timestamps = {};
+                    job.step_timestamps.step5_project_at = newTicket.created_at;
+                    this.recordStepTimestamp(jobId, 'step5_project_at', newTicket.created_at, 'บันทึก Ticket & ใบเสร็จ และย้ายเข้าสู่ State 5 (บันทึก BOQ เข้า Project)');
                     this.persistJobs();
                 }
 
                 // Step 4 Timestamp Recording
                 this.recordStepTimestamp(jobId, 'step4_ticket_at', newTicket.created_at, `บันทึก Ticket ${ticketNo} ใบเสร็จ ${receiptNo || '-'} สัญญา ${contractNo || '-'}`);
-                this.recordStepTimestamp(jobId, 'step3_ticket_at', newTicket.created_at, `บันทึก Ticket ${ticketNo} ใบเสร็จ ${receiptNo || '-'} สัญญา ${contractNo || '-'}`);
+
+                // Sync with backend
+                fetch(`/api/v1/jobs/${jobId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: job ? job.status : 'IN_PROGRESS',
+                        overall_progress: job ? job.progress : 80,
+                        step_timestamps: job ? job.step_timestamps : undefined
+                    })
+                }).catch(() => {});
+
+                this.updateStepBadges();
                 this.hideModal('modal-create-ticket');
                 if (this.state.currentView === 'tickets') {
                     this.switchTicketTab('library');
@@ -7235,15 +7262,7 @@ const app = {
                 } else {
                     this.renderTickets();
                 }
-                this.showToast(`✅ บันทึก Ticket ${ticketNo}, ใบเสร็จ และแนบสัญญาการทำงานเรียบร้อย`);
-
-                // Prompt user to proceed to Step 5: Project Conversion (Gantt)
-                setTimeout(() => {
-                    const goToStep5 = confirm(`✅ บันทึก Ticket "${ticketNo}" และแนบสลิปใบเสร็จ สำหรับ ${jobId} เรียบร้อยแล้ว!\n\nต้องการไปที่ "Step 5: บันทึก BOQ เข้า Project" เพื่อแปลงงานเข้าตาราง Gantt Timeline ต่อทันทีเลยหรือไม่?\n\n• กด [ตกลง (OK)] เพื่อไปหน้า Step 5 (บันทึก BOQ เข้า Project)\n• กด [ยกเลิก (Cancel)] เพื่อออก Ticket งานอื่นต่อ`);
-                    if (goToStep5) {
-                        this.proceedJobToConversion(jobId);
-                    }
-                }, 350);
+                this.showToast(`✅ บันทึก Ticket ${ticketNo}, ใบเสร็จ และย้ายเข้าสู่ State 5 (บันทึก BOQ เข้า Project) สำเร็จ`);
             },
 
             openTicketSlipLightbox(ticketId, defaultTab = 'slip') {
@@ -8417,8 +8436,16 @@ const app = {
                         tableJobs = tableJobs.filter(j => j.service === convServiceFilter);
                     }
                     if (convStatusFilter === 'STEP5_QUEUE') {
-                        tableJobs = tableJobs.filter(j => !convertedJobIds.has(j.id));
-                        if (tableJobs.length === 0) tableJobs = allJobs;
+                        tableJobs = tableJobs.filter(j => 
+                            j.pmt_accepted &&
+                            ((j.step_timestamps && j.step_timestamps.step5_project_at) ||
+                             (DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id) ||
+                             j.ticket_id) &&
+                            !convertedJobIds.has(j.id)
+                        );
+                        if (tableJobs.length === 0) {
+                            tableJobs = allJobs.filter(j => !convertedJobIds.has(j.id));
+                        }
                     } else if (convStatusFilter === 'NOT_CONVERTED') {
                         tableJobs = tableJobs.filter(j => !convertedJobIds.has(j.id));
                     } else if (convStatusFilter === 'CONVERTED') {
