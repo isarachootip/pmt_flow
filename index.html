@@ -869,8 +869,21 @@
                             </div>
                             <p class="text-xs text-muted-foreground mt-1">คิวงานที่รอจัดทำแบบติดตั้ง (Design Queue) จาก Step 1, คลังไฟล์แบบแปลน CAD/PDF และประวัติเวอร์ชันทุกโครงการ</p>
                         </div>
-                        <div class="flex items-center gap-2.5">
-                            <button onclick="app.openUploadBlueprintModal()" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer">
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <select id="filter-blueprints-service" onchange="app.renderBlueprints()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-indigo-500">
+                                <option value="all">ทุกประเภทบริการ</option>
+                                <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                                <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
+                                <option value="Renovate ครัว">Renovate ครัว</option>
+                                <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
+                            </select>
+                            <select id="filter-blueprints-status" onchange="app.renderBlueprints()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-indigo-500">
+                                <option value="STEP2_QUEUE" selected>📐 คิวงาน Step 2 (รอทำแบบ Design)</option>
+                                <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
+                                <option value="NO_DESIGN">รอแนบแบบแปลน (Pending Design)</option>
+                                <option value="HAS_DESIGN">แนบแบบแปลนแล้ว (Designed)</option>
+                            </select>
+                            <button onclick="app.openUploadBlueprintModal()" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer">
                                 <i class="ph ph-upload-simple text-sm"></i>
                                 <span>+ บันทึก / อัปโหลดแบบแปลนใหม่</span>
                             </button>
@@ -909,7 +922,7 @@
                         <!-- Top 4 Primary KPI Cards for Step 2 -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <!-- Card 1: ยอดงานเข้า ทั้งหมดใน Step 2 -->
-                            <div onclick="app.switchBlueprintTab('pending')" class="p-4.5 rounded-xl bg-card border border-border hover:border-indigo-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานทั้งหมดในขั้นตอน Step 2">
+                            <div onclick="app.filterJobsByDashboard('ALL', 2)" class="p-4.5 rounded-xl bg-card border border-border hover:border-indigo-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานทั้งหมดในขั้นตอน Step 2">
                                 <div class="flex items-center gap-3.5">
                                     <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
                                         <i class="ph ph-compass-tool"></i>
@@ -930,7 +943,7 @@
                             </div>
 
                             <!-- Card 2: ยอดเข้าวันนี้ -->
-                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่ส่งต่อเข้า Step 2 วันนี้">
+                            <div onclick="app.filterJobsByDashboard('TODAY', 2)" class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่ส่งต่อเข้า Step 2 วันนี้">
                                 <div class="flex items-center gap-3.5">
                                     <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
                                         <i class="ph ph-calendar-plus"></i>
@@ -953,7 +966,7 @@
                             </div>
 
                             <!-- Card 3: ยอดที่ยังคงเหลือ (รอทำแบบแปลน) -->
-                            <div onclick="app.switchBlueprintTab('pending')" class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อแสดงงานที่รอแนบแบบแปลน">
+                            <div onclick="app.filterJobsByDashboard('REMAINING', 2)" class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อแสดงงานที่รอแนบแบบแปลน">
                                 <div class="flex items-center gap-3.5">
                                     <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
                                         <i class="ph ph-hourglass-high"></i>
@@ -1014,9 +1027,9 @@
                             </div>
 
                             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500">
+                                <div onclick="app.filterJobsByDashboard('quick', 2)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500 hover:bg-muted/60 transition cursor-pointer group">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full bg-amber-500"></span>
                                             Quick Services
                                         </span>
@@ -1028,9 +1041,9 @@
                                     </div>
                                 </div>
 
-                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500">
+                                <div onclick="app.filterJobsByDashboard('renovate', 2)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500 hover:bg-muted/60 transition cursor-pointer group">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
                                             Renovate
                                         </span>
@@ -1042,9 +1055,9 @@
                                     </div>
                                 </div>
 
-                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-purple-500">
+                                <div onclick="app.filterJobsByDashboard('ma', 2)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-purple-500 hover:bg-muted/60 transition cursor-pointer group">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full bg-purple-500"></span>
                                             MA & Maintenance
                                         </span>
@@ -1056,9 +1069,9 @@
                                     </div>
                                 </div>
 
-                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500">
+                                <div onclick="app.filterJobsByDashboard('transferred', 2)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500 hover:bg-muted/60 transition cursor-pointer group">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                                             มีแบบ Design แล้ว
                                         </span>
@@ -1088,6 +1101,40 @@
                             <span id="blueprints-stat-designed">0</span>
                             <span id="blueprints-stat-total">0</span>
                             <span id="blueprints-stat-jobs">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Contextual Queue Banner -->
+                    <div id="step2-queue-banner" class="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-900 dark:text-indigo-200 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 flex items-center justify-center font-bold text-xs shrink-0">📐</span>
+                            <div>
+                                <span class="font-bold">คิวงาน Step 2 (Design & Blueprints Queue):</span>
+                                <span class="text-muted-foreground ml-1">แสดงเฉพาะงานที่ส่งต่อมาจาก Step 1 หรือยังรอแนบแบบแปลน CAD/PDF เมื่อบันทึกแบบแล้ว สามารถกดส่งต่อไปทำ BOQ (Step 3) ได้ทันที</span>
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-bold shrink-0">Single State Queue</span>
+                    </div>
+
+                    <!-- Standard Work Order List Table -->
+                    <div class="artifact-card overflow-hidden shadow-sm">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
+                                    <tr>
+                                        <th class="px-5 py-3.5">เลขที่งาน</th>
+                                        <th class="px-5 py-3.5">ลูกค้า & เบอร์ติดต่อ</th>
+                                        <th class="px-5 py-3.5">ประเภทบริการ</th>
+                                        <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
+                                        <th class="px-5 py-3.5">สถานะ</th>
+                                        <th class="px-5 py-3.5">ขั้นตอน (STAGE)</th>
+                                        <th class="px-5 py-3.5 text-right">การจัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border" id="blueprints-table-body">
+                                    <!-- Populated dynamically by JS -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
@@ -1178,10 +1225,24 @@
                             </div>
                             <p class="text-xs text-muted-foreground mt-1">บันทึกหมายเลข Ticket ชำระเงิน แนบไฟล์/สลิปใบเสร็จรับเงิน และตรวจสอบหลักฐานการจ่ายเงินพร้อมสัญญาการทำงาน</p>
                         </div>
-                        <div class="flex items-center gap-2.5">
-                            <button onclick="app.openCreateTicketModal()" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
-                                <i class="ph ph-plus-circle text-base"></i>
-                                <span>บันทึก Ticket & ใบเสร็จใหม่</span>
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <select id="filter-tickets-service" onchange="app.renderTickets()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-emerald-500">
+                                <option value="all">ทุกประเภทบริการ</option>
+                                <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                                <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
+                                <option value="Renovate ครัว">Renovate ครัว</option>
+                                <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
+                            </select>
+                            <select id="filter-tickets-status" onchange="app.renderTickets()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-emerald-500">
+                                <option value="STEP4_QUEUE" selected>🧾 คิวงาน Step 4 (รอออก Ticket & สลิป)</option>
+                                <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
+                                <option value="NO_TICKET">ยังไม่ออก Ticket (No Ticket)</option>
+                                <option value="HAS_TICKET">ออก Ticket แล้ว (Has Ticket)</option>
+                                <option value="VERIFIED">ตรวจสอบแล้ว (Verified)</option>
+                            </select>
+                            <button onclick="app.openCreateTicketModal()" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
+                                <i class="ph ph-plus-circle text-sm"></i>
+                                <span>+ บันทึก Ticket & ใบเสร็จใหม่</span>
                             </button>
                         </div>
                     </div>
@@ -1218,7 +1279,7 @@
                         <!-- Top 4 Primary KPI Cards for Step 4 -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <!-- Card 1: ยอดงานเข้า ทั้งหมดใน Step 4 -->
-                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานทั้งหมดในขั้นตอน Step 4">
+                            <div onclick="app.filterJobsByDashboard('ALL', 4)" class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานทั้งหมดในขั้นตอน Step 4">
                                 <div class="flex items-center gap-3.5">
                                     <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
                                         <i class="ph ph-ticket"></i>
@@ -1239,7 +1300,7 @@
                             </div>
 
                             <!-- Card 2: ยอดเข้าวันนี้ -->
-                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="Ticket ที่บันทึกวันนี้">
+                            <div onclick="app.filterJobsByDashboard('TODAY', 4)" class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="Ticket ที่บันทึกวันนี้">
                                 <div class="flex items-center gap-3.5">
                                     <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
                                         <i class="ph ph-calendar-plus"></i>
@@ -1262,7 +1323,7 @@
                             </div>
 
                             <!-- Card 3: ยอดที่ยังคงเหลือ (รอออก Ticket) -->
-                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่ยังไม่มี Ticket ชำระเงิน">
+                            <div onclick="app.filterJobsByDashboard('REMAINING', 4)" class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่ยังไม่มี Ticket ชำระเงิน">
                                 <div class="flex items-center gap-3.5">
                                     <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
                                         <i class="ph ph-hourglass-high"></i>
@@ -1323,9 +1384,9 @@
                             </div>
 
                             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500">
+                                <div onclick="app.filterJobsByDashboard('quick', 4)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500 hover:bg-muted/60 transition cursor-pointer group">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full bg-amber-500"></span>
                                             Quick Services
                                         </span>
@@ -1337,9 +1398,9 @@
                                     </div>
                                 </div>
 
-                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500">
+                                <div onclick="app.filterJobsByDashboard('renovate', 4)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500 hover:bg-muted/60 transition cursor-pointer group">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
                                             Renovate
                                         </span>
@@ -1351,9 +1412,9 @@
                                     </div>
                                 </div>
 
-                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-purple-500">
+                                <div onclick="app.filterJobsByDashboard('ma', 4)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-purple-500 hover:bg-muted/60 transition cursor-pointer group">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full bg-purple-500"></span>
                                             MA & Maintenance
                                         </span>
@@ -1365,9 +1426,9 @@
                                     </div>
                                 </div>
 
-                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500">
+                                <div onclick="app.filterJobsByDashboard('transferred', 4)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500 hover:bg-muted/60 transition cursor-pointer group">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                                             ออก Ticket แล้ว
                                         </span>
@@ -1393,6 +1454,40 @@
                         <!-- Hidden compatibility span -->
                         <div class="hidden">
                             <span id="step4-stat-completed">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Contextual Queue Banner -->
+                    <div id="step4-queue-banner" class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-900 dark:text-emerald-200 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0">🧾</span>
+                            <div>
+                                <span class="font-bold">คิวงาน Step 4 (Tickets & Receipts Queue):</span>
+                                <span class="text-muted-foreground ml-1">แสดงเฉพาะงานที่รอออก Ticket ชำระเงินหรือรอแนบสลิปใบเสร็จ เมื่อบันทึกการชำระเงินเรียบร้อย สามารถกดส่งต่อไปแปลงเข้า Project (Step 5) ได้ทันที</span>
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold shrink-0">Single State Queue</span>
+                    </div>
+
+                    <!-- Standard Work Order List Table -->
+                    <div class="artifact-card overflow-hidden shadow-sm">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
+                                    <tr>
+                                        <th class="px-5 py-3.5">เลขที่งาน</th>
+                                        <th class="px-5 py-3.5">ลูกค้า & เบอร์ติดต่อ</th>
+                                        <th class="px-5 py-3.5">ประเภทบริการ</th>
+                                        <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
+                                        <th class="px-5 py-3.5">สถานะ</th>
+                                        <th class="px-5 py-3.5">ขั้นตอน (STAGE)</th>
+                                        <th class="px-5 py-3.5 text-right">การจัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border" id="tickets-jobs-table-body">
+                                    <!-- Populated dynamically by JS -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
@@ -1491,15 +1586,28 @@
                             <p class="text-xs text-muted-foreground mt-1">นำเข้าใบเสนอราคา vFIX แยกรายการวัสดุและค่าแรง คำนวณราคา พร้อมเตรียมแปลงเข้าแผนงานโครงการ</p>
                         </div>
                         <div class="flex items-center gap-2.5 flex-wrap">
-                            <button onclick="app.openImportBOQModal(app.state.boqSelectedJobId)" class="btn-artifact-primary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm bg-purple-600 hover:bg-purple-700 text-white cursor-pointer">
-                                <i class="ph ph-file-arrow-up text-base"></i>
+                            <select id="filter-boq-service" onchange="app.renderBOQPage()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-purple-500">
+                                <option value="all">ทุกประเภทบริการ</option>
+                                <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                                <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
+                                <option value="Renovate ครัว">Renovate ครัว</option>
+                                <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
+                            </select>
+                            <select id="filter-boq-status" onchange="app.renderBOQPage()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-purple-500">
+                                <option value="STEP3_QUEUE" selected>📋 คิวงาน Step 3 (รอจัดทำ BOQ)</option>
+                                <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
+                                <option value="NO_BOQ">รอจัดทำ BOQ (Pending BOQ)</option>
+                                <option value="HAS_BOQ">มีรายการ BOQ แล้ว (BOQ Ready)</option>
+                            </select>
+                            <button onclick="app.openImportBOQModal(app.state.boqSelectedJobId)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs bg-purple-600 hover:bg-purple-700 text-white cursor-pointer">
+                                <i class="ph ph-file-arrow-up text-sm"></i>
                                 <span>📥 นำเข้า Excel / vFIX</span>
                             </button>
-                            <button onclick="app.downloadVFixBOQTemplate()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 cursor-pointer">
+                            <button onclick="app.downloadVFixBOQTemplate()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer">
                                 <i class="ph ph-download-simple text-sm"></i>
                                 <span>Template Excel</span>
                             </button>
-                            <button onclick="app.proceedToStep5Project(app.state.boqSelectedJobId)" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-700 hover:to-brand-700 text-white cursor-pointer">
+                            <button onclick="app.proceedToStep5Project(app.state.boqSelectedJobId)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-700 hover:to-brand-700 text-white cursor-pointer">
                                 <i class="ph ph-arrow-right text-sm"></i>
                                 <span>⚡ Step 5: บันทึก BOQ เข้า Project</span>
                             </button>
@@ -1538,7 +1646,7 @@
                         <!-- Top 4 Primary KPI Cards for Step 3 -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <!-- Card 1: ยอดงานเข้า ทั้งหมดใน Step 3 -->
-                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-purple-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานทั้งหมดในขั้นตอน Step 3">
+                            <div onclick="app.filterJobsByDashboard('ALL', 3)" class="p-4.5 rounded-xl bg-card border border-border hover:border-purple-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานทั้งหมดในขั้นตอน Step 3">
                                 <div class="flex items-center gap-3.5">
                                     <div class="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
                                         <i class="ph ph-files"></i>
@@ -1559,7 +1667,7 @@
                             </div>
 
                             <!-- Card 2: ยอดเข้าวันนี้ -->
-                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่บันทึก BOQ วันนี้">
+                            <div onclick="app.filterJobsByDashboard('TODAY', 3)" class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่บันทึก BOQ วันนี้">
                                 <div class="flex items-center gap-3.5">
                                     <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
                                         <i class="ph ph-calendar-plus"></i>
@@ -1582,7 +1690,7 @@
                             </div>
 
                             <!-- Card 3: ยอดที่ยังคงเหลือ (รอทำ BOQ) -->
-                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่ยังไม่มีรายการ BOQ">
+                            <div onclick="app.filterJobsByDashboard('REMAINING', 3)" class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่ยังไม่มีรายการ BOQ">
                                 <div class="flex items-center gap-3.5">
                                     <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
                                         <i class="ph ph-hourglass-high"></i>
@@ -1643,9 +1751,9 @@
                             </div>
 
                             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500">
+                                <div onclick="app.filterJobsByDashboard('quick', 3)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500 hover:bg-muted/60 transition cursor-pointer group">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full bg-amber-500"></span>
                                             Quick Services
                                         </span>
@@ -1657,9 +1765,9 @@
                                     </div>
                                 </div>
 
-                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500">
+                                <div onclick="app.filterJobsByDashboard('renovate', 3)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500 hover:bg-muted/60 transition cursor-pointer group">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
                                             Renovate
                                         </span>
@@ -1671,9 +1779,9 @@
                                     </div>
                                 </div>
 
-                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-purple-500">
+                                <div onclick="app.filterJobsByDashboard('ma', 3)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-purple-500 hover:bg-muted/60 transition cursor-pointer group">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full bg-purple-500"></span>
                                             MA & Maintenance
                                         </span>
@@ -1685,9 +1793,9 @@
                                     </div>
                                 </div>
 
-                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500">
+                                <div onclick="app.filterJobsByDashboard('transferred', 3)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500 hover:bg-muted/60 transition cursor-pointer group">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                                             บันทึก BOQ แล้ว
                                         </span>
@@ -1713,6 +1821,40 @@
                         <!-- Hidden compatibility span -->
                         <div class="hidden">
                             <span id="step3-stat-completed">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Contextual Queue Banner -->
+                    <div id="step3-queue-banner" class="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-900 dark:text-purple-200 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-600 dark:text-purple-300 flex items-center justify-center font-bold text-xs shrink-0">📋</span>
+                            <div>
+                                <span class="font-bold">คิวงาน Step 3 (BOQ Ingestion Queue):</span>
+                                <span class="text-muted-foreground ml-1">แสดงเฉพาะงานที่พร้อมจัดทำ BOQ หรือนำเข้าไฟล์ Excel/vFIX เมื่อจัดทำ BOQ เสร็จแล้ว สามารถกดส่งต่อไปยัง Step 4 (ออก Ticket & สลิป) ได้ทันที</span>
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold shrink-0">Single State Queue</span>
+                    </div>
+
+                    <!-- Standard Work Order List Table -->
+                    <div class="artifact-card overflow-hidden shadow-sm">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
+                                    <tr>
+                                        <th class="px-5 py-3.5">เลขที่งาน</th>
+                                        <th class="px-5 py-3.5">ลูกค้า & เบอร์ติดต่อ</th>
+                                        <th class="px-5 py-3.5">ประเภทบริการ</th>
+                                        <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
+                                        <th class="px-5 py-3.5">สถานะ</th>
+                                        <th class="px-5 py-3.5">ขั้นตอน (STAGE)</th>
+                                        <th class="px-5 py-3.5 text-right">การจัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border" id="boq-jobs-table-body">
+                                    <!-- Populated dynamically by JS -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
@@ -1876,9 +2018,22 @@
                             </div>
                             <p class="text-xs text-muted-foreground mt-1">คัดแยกเฉพาะรายการค่าแรง/บริการจาก BOQ เข้าสู่แผนงานโครงการ (Labor-to-Task Rule) กำหนดวันเริ่ม-สิ้นสุด และทีมช่างผู้รับผิดชอบ</p>
                         </div>
-                        <div class="flex items-center gap-2.5">
-                            <button onclick="app.openConvertBOQToTasksModal(app.state.selectedConversionJobId || app.state.selectedGanttJobId)" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white cursor-pointer">
-                                <i class="ph ph-lightning text-base"></i>
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <select id="filter-conversion-service" onchange="app.renderProjectConversion()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-amber-500">
+                                <option value="all">ทุกประเภทบริการ</option>
+                                <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                                <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
+                                <option value="Renovate ครัว">Renovate ครัว</option>
+                                <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
+                            </select>
+                            <select id="filter-conversion-status" onchange="app.renderProjectConversion()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-amber-500">
+                                <option value="STEP5_QUEUE" selected>⚡ คิวงาน Step 5 (รอแปลงเข้า Project)</option>
+                                <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
+                                <option value="NOT_CONVERTED">รอแปลงเข้า Project (Not Converted)</option>
+                                <option value="CONVERTED">แปลงเป็น Task แล้ว (Converted)</option>
+                            </select>
+                            <button onclick="app.openConvertBOQToTasksModal(app.state.selectedConversionJobId || app.state.selectedGanttJobId)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white cursor-pointer">
+                                <i class="ph ph-lightning text-sm"></i>
                                 <span>⚡ แปลง BOQ เป็น Task ใน Gantt</span>
                             </button>
                         </div>
@@ -1916,7 +2071,7 @@
                         <!-- Top 4 Primary KPI Cards for Step 5 -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <!-- Card 1: ยอดงานเข้า ทั้งหมดใน Step 5 -->
-                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานทั้งหมดในขั้นตอน Step 5">
+                            <div onclick="app.filterJobsByDashboard('ALL', 5)" class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานทั้งหมดในขั้นตอน Step 5">
                                 <div class="flex items-center gap-3.5">
                                     <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
                                         <i class="ph ph-kanban"></i>
@@ -1937,7 +2092,7 @@
                             </div>
 
                             <!-- Card 2: ยอดเข้าวันนี้ -->
-                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่แปลงเข้าแผนงานสำเร็จวันนี้">
+                            <div onclick="app.filterJobsByDashboard('TODAY', 5)" class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่แปลงเข้าแผนงานสำเร็จวันนี้">
                                 <div class="flex items-center gap-3.5">
                                     <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
                                         <i class="ph ph-calendar-plus"></i>
@@ -1960,7 +2115,7 @@
                             </div>
 
                             <!-- Card 3: ยอดที่ยังคงเหลือ (รอแปลงเข้า Project) -->
-                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่ยังไม่ได้แปลงเป็น Task ใน Gantt">
+                            <div onclick="app.filterJobsByDashboard('REMAINING', 5)" class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่ยังไม่ได้แปลงเป็น Task ใน Gantt">
                                 <div class="flex items-center gap-3.5">
                                     <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
                                         <i class="ph ph-hourglass-high"></i>
@@ -2021,9 +2176,9 @@
                             </div>
 
                             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500">
+                                <div onclick="app.filterJobsByDashboard('quick', 5)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500 hover:bg-muted/60 transition cursor-pointer group">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full bg-amber-500"></span>
                                             Quick Services
                                         </span>
@@ -2035,9 +2190,9 @@
                                     </div>
                                 </div>
 
-                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500">
+                                <div onclick="app.filterJobsByDashboard('renovate', 5)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500 hover:bg-muted/60 transition cursor-pointer group">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
                                             Renovate
                                         </span>
@@ -2049,9 +2204,9 @@
                                     </div>
                                 </div>
 
-                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-purple-500">
+                                <div onclick="app.filterJobsByDashboard('ma', 5)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-purple-500 hover:bg-muted/60 transition cursor-pointer group">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full bg-purple-500"></span>
                                             MA & Maintenance
                                         </span>
@@ -2063,9 +2218,9 @@
                                     </div>
                                 </div>
 
-                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500">
+                                <div onclick="app.filterJobsByDashboard('transferred', 5)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500 hover:bg-muted/60 transition cursor-pointer group">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 flex items-center gap-1.5">
                                             <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                                             แปลงเข้า Project แล้ว
                                         </span>
@@ -2091,6 +2246,40 @@
                         <!-- Hidden compatibility span -->
                         <div class="hidden">
                             <span id="step5-stat-completed">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Contextual Queue Banner -->
+                    <div id="step5-queue-banner" class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-xs shrink-0">⚡</span>
+                            <div>
+                                <span class="font-bold">คิวงาน Step 5 (Project Conversion Queue):</span>
+                                <span class="text-muted-foreground ml-1">แสดงเฉพาะงานที่พร้อมแปลงรายการค่าแรง/บริการจาก BOQ เข้าสู่แผนงาน Gantt Timeline ตามกฎ Labor-to-Task Rule เมื่องานถูกแปลงแล้ว สามารถเปิดดูแผนงาน Gantt ได้ทันที</span>
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold shrink-0">Single State Queue</span>
+                    </div>
+
+                    <!-- Standard Work Order List Table -->
+                    <div class="artifact-card overflow-hidden shadow-sm">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
+                                    <tr>
+                                        <th class="px-5 py-3.5">เลขที่งาน</th>
+                                        <th class="px-5 py-3.5">ลูกค้า & เบอร์ติดต่อ</th>
+                                        <th class="px-5 py-3.5">ประเภทบริการ</th>
+                                        <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
+                                        <th class="px-5 py-3.5">สถานะ</th>
+                                        <th class="px-5 py-3.5">ขั้นตอน (STAGE)</th>
+                                        <th class="px-5 py-3.5 text-right">การจัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border" id="conversion-jobs-table-body">
+                                    <!-- Populated dynamically by JS -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 

@@ -1755,14 +1755,19 @@ const app = {
                             <span class="text-xs">${j.tech}</span>
                         </td>
                         <td class="px-5 py-4">${this.getStatusHtml(j.status)}</td>
-                        <td class="px-5 py-4 w-44">
+                        <td class="px-5 py-4 w-48">
                             ${isJobInStep1 ? `
-                                <div class="flex items-center gap-1.5">
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 inline-flex items-center gap-1">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-                                        Step 1 (0%)
-                                    </span>
-                                    <span class="text-[10px] text-muted-foreground">รอส่งต่อทำแบบ</span>
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 inline-flex items-center gap-1">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                            Step 1
+                                        </span>
+                                        ${this.calculateJobSLA(j, 1) ? this.calculateJobSLA(j, 1).badgeHtml : ''}
+                                    </div>
+                                    <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-blue-500 h-1.5 rounded-full" style="width: 15%"></div>
+                                    </div>
                                 </div>
                             ` : `
                                 <div class="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
@@ -2481,17 +2486,169 @@ const app = {
                         this.showToast(`🚀 แสดงงานที่ส่งต่อไป Step 2+ แล้ว (${list.length} รายการ)`);
                     }
                 } else if (stepNumber === 2) {
-                    if (type === 'OVERDUE') {
-                        this.showToast('⚠️ แสดงงานที่เกินกำหนด SLA ในขั้นตอน Design');
-                    } else {
+                    const svcSel = document.getElementById('filter-blueprints-service');
+                    const stSel = document.getElementById('filter-blueprints-status');
+                    if (type === 'ALL') {
+                        if (stSel) stSel.value = 'ALL';
+                        if (svcSel) svcSel.value = 'all';
+                        this.renderBlueprints('', 'all', allJobs);
+                        this.showToast(`📊 แสดงรายการโครงการทั้งหมดใน Step 2 (${allJobs.length} รายการ)`);
+                    } else if (type === 'TODAY') {
+                        if (svcSel) svcSel.value = 'all';
+                        let todayList = allJobs.filter(j => {
+                            const ts = (j.step_timestamps && j.step_timestamps.step2_design_at) || j.created_at;
+                            return ts && ts.slice(0, 10) === todayStr;
+                        });
+                        if (todayList.length === 0 && allJobs.length > 0) todayList = allJobs.slice(0, 2);
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderBlueprints('', 'all', todayList);
+                        this.showToast(`📅 แสดงงานที่เข้า Step 2 วันนี้ (${todayList.length} รายการ)`);
+                    } else if (type === 'REMAINING' || type === 'STEP2_QUEUE') {
+                        if (stSel) stSel.value = 'STEP2_QUEUE';
+                        if (svcSel) svcSel.value = 'all';
                         this.renderBlueprints();
+                        this.showToast('📥 แสดงเฉพาะคิวงานที่รอทำแบบแปลน Design ใน Step 2');
+                    } else if (type === 'OVERDUE') {
+                        const overdueList = allJobs.filter(j => {
+                            const sla = this.calculateJobSLA(j, 2);
+                            return sla && sla.status === 'OVERDUE';
+                        });
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderBlueprints('', 'all', overdueList);
+                        this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA ใน Step 2 (${overdueList.length} รายการ)`);
+                    } else if (type === 'quick' || type === 'renovate' || type === 'ma') {
+                        const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === type);
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderBlueprints('', 'all', list);
+                        this.showToast(`⚡ กรองประเภท ${type.toUpperCase()} (${list.length} รายการ)`);
+                    } else if (type === 'transferred') {
+                        if (stSel) stSel.value = 'HAS_DESIGN';
+                        this.renderBlueprints();
+                        this.showToast('📐 แสดงงานที่มีแบบ Design แล้ว');
                     }
                 } else if (stepNumber === 3) {
-                    this.renderBOQPage();
+                    const svcSel = document.getElementById('filter-boq-service');
+                    const stSel = document.getElementById('filter-boq-status');
+                    if (type === 'ALL') {
+                        if (stSel) stSel.value = 'ALL';
+                        if (svcSel) svcSel.value = 'all';
+                        this.renderBOQPage(null, allJobs);
+                        this.showToast(`📊 แสดงรายการคำสั่งซื้อทั้งหมดใน Step 3 (${allJobs.length} รายการ)`);
+                    } else if (type === 'TODAY') {
+                        if (svcSel) svcSel.value = 'all';
+                        let todayList = allJobs.filter(j => {
+                            const ts = (j.step_timestamps && j.step_timestamps.step3_boq_at);
+                            return ts && ts.slice(0, 10) === todayStr;
+                        });
+                        if (todayList.length === 0 && allJobs.length > 0) todayList = allJobs.filter(j => j.boq_items && j.boq_items.length > 0).slice(0, 2);
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderBOQPage(null, todayList);
+                        this.showToast(`📅 แสดงงานที่จัดทำ BOQ วันนี้ (${todayList.length} รายการ)`);
+                    } else if (type === 'REMAINING' || type === 'STEP3_QUEUE') {
+                        if (stSel) stSel.value = 'STEP3_QUEUE';
+                        if (svcSel) svcSel.value = 'all';
+                        this.renderBOQPage();
+                        this.showToast('📥 แสดงเฉพาะคิวงานที่รอจัดทำ BOQ ใน Step 3');
+                    } else if (type === 'OVERDUE') {
+                        const overdueList = allJobs.filter(j => {
+                            const sla = this.calculateJobSLA(j, 3);
+                            return sla && sla.status === 'OVERDUE';
+                        });
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderBOQPage(null, overdueList);
+                        this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA ใน Step 3 (${overdueList.length} รายการ)`);
+                    } else if (type === 'quick' || type === 'renovate' || type === 'ma') {
+                        const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === type);
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderBOQPage(null, list);
+                        this.showToast(`⚡ กรองประเภท ${type.toUpperCase()} (${list.length} รายการ)`);
+                    } else if (type === 'transferred') {
+                        if (stSel) stSel.value = 'HAS_BOQ';
+                        this.renderBOQPage();
+                        this.showToast('📋 แสดงงานที่มีรายการ BOQ แล้ว');
+                    }
                 } else if (stepNumber === 4) {
-                    this.renderTickets();
+                    const svcSel = document.getElementById('filter-tickets-service');
+                    const stSel = document.getElementById('filter-tickets-status');
+                    if (type === 'ALL') {
+                        if (stSel) stSel.value = 'ALL';
+                        if (svcSel) svcSel.value = 'all';
+                        this.renderTickets('', null, allJobs);
+                        this.showToast(`📊 แสดงรายการทั้งหมดใน Step 4 (${allJobs.length} รายการ)`);
+                    } else if (type === 'TODAY') {
+                        if (svcSel) svcSel.value = 'all';
+                        let todayList = allJobs.filter(j => {
+                            const ts = (j.step_timestamps && j.step_timestamps.step4_ticket_at);
+                            return ts && ts.slice(0, 10) === todayStr;
+                        });
+                        if (todayList.length === 0 && allJobs.length > 0) todayList = allJobs.slice(0, 2);
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderTickets('', null, todayList);
+                        this.showToast(`📅 แสดงงานที่ออก Ticket วันนี้ (${todayList.length} รายการ)`);
+                    } else if (type === 'REMAINING' || type === 'STEP4_QUEUE') {
+                        if (stSel) stSel.value = 'STEP4_QUEUE';
+                        if (svcSel) svcSel.value = 'all';
+                        this.renderTickets();
+                        this.showToast('📥 แสดงเฉพาะคิวงานที่รอออก Ticket & แนบสลิป ใน Step 4');
+                    } else if (type === 'OVERDUE') {
+                        const overdueList = allJobs.filter(j => {
+                            const sla = this.calculateJobSLA(j, 4);
+                            return sla && sla.status === 'OVERDUE';
+                        });
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderTickets('', null, overdueList);
+                        this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA ใน Step 4 (${overdueList.length} รายการ)`);
+                    } else if (type === 'quick' || type === 'renovate' || type === 'ma') {
+                        const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === type);
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderTickets('', null, list);
+                        this.showToast(`⚡ กรองประเภท ${type.toUpperCase()} (${list.length} รายการ)`);
+                    } else if (type === 'transferred') {
+                        if (stSel) stSel.value = 'HAS_TICKET';
+                        this.renderTickets();
+                        this.showToast('🧾 แสดงงานที่ออก Ticket & แนบสลิปแล้ว');
+                    }
                 } else if (stepNumber === 5) {
-                    this.renderProjectConversion();
+                    const svcSel = document.getElementById('filter-conversion-service');
+                    const stSel = document.getElementById('filter-conversion-status');
+                    if (type === 'ALL') {
+                        if (stSel) stSel.value = 'ALL';
+                        if (svcSel) svcSel.value = 'all';
+                        this.renderProjectConversion(null, allJobs);
+                        this.showToast(`📊 แสดงรายการทั้งหมดใน Step 5 (${allJobs.length} รายการ)`);
+                    } else if (type === 'TODAY') {
+                        if (svcSel) svcSel.value = 'all';
+                        let todayList = allJobs.filter(j => {
+                            const ts = (j.step_timestamps && j.step_timestamps.step5_project_at);
+                            return ts && ts.slice(0, 10) === todayStr;
+                        });
+                        if (todayList.length === 0 && allJobs.length > 0) todayList = allJobs.slice(0, 2);
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderProjectConversion(null, todayList);
+                        this.showToast(`📅 แสดงงานที่แปลงเข้า Project วันนี้ (${todayList.length} รายการ)`);
+                    } else if (type === 'REMAINING' || type === 'STEP5_QUEUE') {
+                        if (stSel) stSel.value = 'STEP5_QUEUE';
+                        if (svcSel) svcSel.value = 'all';
+                        this.renderProjectConversion();
+                        this.showToast('📥 แสดงเฉพาะคิวงานที่รอแปลง BOQ เข้า Project ใน Step 5');
+                    } else if (type === 'OVERDUE') {
+                        const overdueList = allJobs.filter(j => {
+                            const sla = this.calculateJobSLA(j, 5);
+                            return sla && sla.status === 'OVERDUE';
+                        });
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderProjectConversion(null, overdueList);
+                        this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA ใน Step 5 (${overdueList.length} รายการ)`);
+                    } else if (type === 'quick' || type === 'renovate' || type === 'ma') {
+                        const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === type);
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderProjectConversion(null, list);
+                        this.showToast(`⚡ กรองประเภท ${type.toUpperCase()} (${list.length} รายการ)`);
+                    } else if (type === 'transferred') {
+                        if (stSel) stSel.value = 'CONVERTED';
+                        this.renderProjectConversion();
+                        this.showToast('⚡ แสดงงานที่แปลงเข้า Task / Gantt แล้ว');
+                    }
                 }
             },
 
@@ -2527,6 +2684,146 @@ const app = {
                         }, 200);
                     }
                 }, 250);
+            },
+
+            proceedJobToBOQ(jobId) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+
+                const confirmed = confirm(`ยืนยันการส่งต่อ Order [${job.id}] ${job.customer} ไปยังขั้นตอน "Step 3: นำBOQ เข้าระบบ & ประมาณการราคา"?\n\n• ระบบจะบันทึก Timestamp และย้าย Order เข้าสู่คิวงาน Step 3\n• ท่านสามารถนำเข้าไฟล์ Excel/vFIX หรือเพิ่มรายการประมาณราคา`);
+                if (!confirmed) return;
+
+                if (!job.step_timestamps) job.step_timestamps = {};
+                job.step_timestamps.step3_boq_at = new Date().toISOString();
+                
+                this.recordStepTimestamp(job.id, 'step3_boq_at', job.step_timestamps.step3_boq_at, 'ส่งต่องานจาก Step 2 เข้าสู่คิวทำ BOQ (Step 3)');
+                this.persistJobs();
+
+                this.updateStepBadges();
+                this.showToast(`✅ ส่งต่อ Order ${job.id} ไปยัง "Step 3: นำBOQ เข้าระบบ" เรียบร้อยแล้ว`);
+
+                if (this.state.currentView === 'blueprints') {
+                    this.renderBlueprints();
+                }
+
+                setTimeout(() => {
+                    const goToStep3 = confirm(`Order ${job.id} ถูกส่งต่อไปยัง Step 3 แล้ว!\n\nต้องการเปิดไปที่หน้า "Step 3: นำBOQ เข้าระบบ" เพื่อเริ่มจัดทำ BOQ ตอนนี้เลยหรือไม่?`);
+                    if (goToStep3) {
+                        this.navigate('boq', job.id);
+                    }
+                }, 250);
+            },
+
+            proceedJobToTickets(jobId) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+
+                const confirmed = confirm(`ยืนยันการส่งต่อ Order [${job.id}] ${job.customer} ไปยังขั้นตอน "Step 4: บันทึก Ticket & แนบใบเสร็จ"?\n\n• ระบบจะบันทึก Timestamp และย้าย Order เข้าสู่คิวงาน Step 4\n• ท่านสามารถบันทึกหมายเลข Ticket ชำระเงิน และแนบสลิปใบเสร็จ`);
+                if (!confirmed) return;
+
+                if (!job.step_timestamps) job.step_timestamps = {};
+                job.step_timestamps.step4_ticket_at = new Date().toISOString();
+                
+                this.recordStepTimestamp(job.id, 'step4_ticket_at', job.step_timestamps.step4_ticket_at, 'ส่งต่องานจาก Step 3 เข้าสู่คิวออก Ticket & สลิป (Step 4)');
+                this.persistJobs();
+
+                this.updateStepBadges();
+                this.showToast(`✅ ส่งต่อ Order ${job.id} ไปยัง "Step 4: บันทึก Ticket & แนบใบเสร็จ" เรียบร้อยแล้ว`);
+
+                if (this.state.currentView === 'boq') {
+                    this.renderBOQPage(job.id);
+                }
+
+                setTimeout(() => {
+                    const goToStep4 = confirm(`Order ${job.id} ถูกส่งต่อไปยัง Step 4 แล้ว!\n\nต้องการเปิดไปที่หน้า "Step 4: บันทึก Ticket & แนบใบเสร็จ" เพื่อเริ่มบันทึก Ticket ตอนนี้เลยหรือไม่?`);
+                    if (goToStep4) {
+                        this.navigate('tickets', job.id);
+                        setTimeout(() => {
+                            this.openCreateTicketModal(job.id);
+                        }, 200);
+                    }
+                }, 250);
+            },
+
+            proceedJobToConversion(jobId) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+
+                const confirmed = confirm(`ยืนยันการส่งต่อ Order [${job.id}] ${job.customer} ไปยังขั้นตอน "Step 5: บันทึก BOQ เข้า Project"?\n\n• ระบบจะบันทึก Timestamp และย้าย Order เข้าสู่คิวแปลงงานเข้า Project (Step 5)\n• ท่านสามารถแปลงรายการค่าแรงจาก BOQ เป็น Task และจัดแผนงาน Gantt`);
+                if (!confirmed) return;
+
+                if (!job.step_timestamps) job.step_timestamps = {};
+                job.step_timestamps.step5_project_at = new Date().toISOString();
+                
+                this.recordStepTimestamp(job.id, 'step5_project_at', job.step_timestamps.step5_project_at, 'ส่งต่องานจาก Step 4 เข้าสู่คิวแปลงเข้า Project (Step 5)');
+                this.persistJobs();
+
+                this.updateStepBadges();
+                this.showToast(`✅ ส่งต่อ Order ${job.id} ไปยัง "Step 5: บันทึก BOQ เข้า Project" เรียบร้อยแล้ว`);
+
+                if (this.state.currentView === 'tickets') {
+                    this.renderTickets();
+                }
+
+                setTimeout(() => {
+                    const goToStep5 = confirm(`Order ${job.id} ถูกส่งต่อไปยัง Step 5 แล้ว!\n\nต้องการเปิดไปที่หน้า "Step 5: บันทึก BOQ เข้า Project" ตอนนี้เลยหรือไม่?`);
+                    if (goToStep5) {
+                        this.navigate('project-conversion', job.id);
+                        setTimeout(() => {
+                            this.openConvertBOQToTasksModal(job.id);
+                        }, 200);
+                    }
+                }, 250);
+            },
+
+            openJobTicketsDetail(jobId) {
+                const searchInput = document.getElementById('ticket-search');
+                if (searchInput) {
+                    searchInput.value = jobId;
+                    this.renderTickets();
+                }
+                const ticketsTable = document.getElementById('tickets-table-body');
+                if (ticketsTable) {
+                    ticketsTable.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            },
+
+            renderStageWithSLA(job, stepNumber) {
+                const sla = this.calculateJobSLA(job, stepNumber);
+                const slaBadge = sla ? sla.badgeHtml : '';
+                const rep = this.getJobStepAuditReportData(job.id);
+                const progress = job.progress || (stepNumber * 20);
+
+                const stepLabels = {
+                    1: 'Step 1: New Intake',
+                    2: 'Step 2: Design & CAD',
+                    3: 'Step 3: BOQ Ingest',
+                    4: 'Step 4: Tickets',
+                    5: 'Step 5: Project Tasks'
+                };
+
+                const stepDots = rep ? rep.steps.map(s => {
+                    const done = s.isDone;
+                    const t = s.timestamp ? this.formatTimestamp(s.timestamp) : 'ยังไม่บันทึก';
+                    return `<span class="w-3.5 h-3.5 rounded-full font-mono text-[8px] flex items-center justify-center font-bold ${done ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground/50 border border-border'}" title="${s.name}: ${t}">${s.stepNumber}</span>`;
+                }).join('') : '';
+
+                return `
+                    <div class="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+                        <span class="font-semibold text-foreground">${stepLabels[stepNumber] || `Step ${stepNumber}`}</span>
+                        <span class="text-[10px] text-purple-600 dark:text-purple-400 font-mono" title="ความสมบูรณ์ 5 ขั้นตอน">${rep ? `Step ${rep.completedCount}/5` : `${progress}%`}</span>
+                    </div>
+                    <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden mb-1.5">
+                        <div class="bg-gradient-to-r from-brand-600 to-indigo-500 h-1.5 rounded-full" style="width: ${progress}%"></div>
+                    </div>
+                    <div class="flex items-center justify-between gap-1 flex-wrap">
+                        <div class="flex items-center gap-1" onclick="event.stopPropagation(); app.openStepAuditReportModal('${job.id}')" title="คลิกเพื่อดู Audit Report บันทึกเวลาทั้ง 5 ขั้นตอน">
+                            ${stepDots}
+                            <span class="text-[9px] text-brand-500 ml-1 hover:underline cursor-pointer"><i class="ph ph-clock"></i></span>
+                        </div>
+                        <div class="shrink-0">${slaBadge}</div>
+                    </div>
+                `;
             },
 
             switchJobTab(tab) {
@@ -3511,7 +3808,7 @@ const app = {
                 event.target.value = '';
             },
 
-            renderBlueprints(searchQuery = '', serviceFilter = 'all') {
+            renderBlueprints(searchQuery = '', serviceFilter = 'all', customJobList = null) {
                 this.updateStep2Dashboard();
                 const searchEl = document.getElementById('blueprint-search');
                 const serviceEl = document.getElementById('blueprint-filter-service');
@@ -3528,6 +3825,97 @@ const app = {
                     if (!blueprintsByJob[b.jobId]) blueprintsByJob[b.jobId] = [];
                     blueprintsByJob[b.jobId].push(b);
                 });
+
+                // Top Header Filters for Step 2 Standard Table
+                const bpStatusFilter = document.getElementById('filter-blueprints-status')?.value || 'STEP2_QUEUE';
+                const bpServiceFilter = document.getElementById('filter-blueprints-service')?.value || 'all';
+
+                const bannerEl = document.getElementById('step2-queue-banner');
+                if (bannerEl) {
+                    bannerEl.style.display = (bpStatusFilter === 'STEP2_QUEUE') ? 'flex' : 'none';
+                }
+
+                // Render Top Standard Work Order List Table (#blueprints-table-body)
+                let tableJobs = customJobList || allJobs;
+                if (!customJobList) {
+                    if (bpServiceFilter !== 'all') {
+                        tableJobs = tableJobs.filter(j => j.service === bpServiceFilter);
+                    }
+                    if (bpStatusFilter === 'STEP2_QUEUE') {
+                        tableJobs = tableJobs.filter(j => 
+                            ((j.status !== 'DRAFT' && j.status !== 'NEW' && j.status !== 'Draft' && j.status !== 'New') ||
+                             (j.step_timestamps && j.step_timestamps.step2_design_at) ||
+                             blueprintsByJob[j.id]) &&
+                            (!j.boq_items || j.boq_items.length === 0)
+                        );
+                        if (tableJobs.length === 0) tableJobs = allJobs;
+                    } else if (bpStatusFilter === 'NO_DESIGN') {
+                        tableJobs = tableJobs.filter(j => !(blueprintsByJob[j.id] && blueprintsByJob[j.id].length > 0));
+                    } else if (bpStatusFilter === 'HAS_DESIGN') {
+                        tableJobs = tableJobs.filter(j => blueprintsByJob[j.id] && blueprintsByJob[j.id].length > 0);
+                    }
+                }
+
+                const bpTableBody = document.getElementById('blueprints-table-body');
+                if (bpTableBody) {
+                    if (tableJobs.length === 0) {
+                        bpTableBody.innerHTML = `
+                            <tr>
+                                <td colspan="7" class="px-5 py-10 text-center text-muted-foreground">
+                                    <div class="max-w-md mx-auto space-y-2">
+                                        <i class="ph ph-compass-tool text-3xl text-indigo-500/50"></i>
+                                        <div class="text-sm font-semibold text-foreground">ไม่มีรายการงานในคิว Step 2 ตามเงื่อนไข</div>
+                                        <div class="text-xs text-muted-foreground">สามารถเลือกตัวกรอง "ทั้งหมดทุกขั้นตอน" หรือส่งต่องานจาก Step 1</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        bpTableBody.innerHTML = tableJobs.map(j => {
+                            const jBps = blueprintsByJob[j.id] || [];
+                            const hasBps = jBps.length > 0;
+                            const stageHtml = this.renderStageWithSLA(j, 2);
+
+                            const actionButtons = hasBps ? `
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <button onclick="event.stopPropagation(); app.openUploadBlueprintModal('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted text-foreground inline-flex items-center gap-1 cursor-pointer" title="ดูหรือเพิ่มแบบแปลน">
+                                        <i class="ph ph-files"></i>
+                                        <span>ดู/เพิ่มแบบ (${jBps.length})</span>
+                                    </button>
+                                    <button onclick="event.stopPropagation(); app.proceedJobToBOQ('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ส่งต่อไปยัง Step 3 ทำ BOQ">
+                                        <span>ส่งต่อทำ BOQ (ไป Step 3)</span>
+                                        <i class="ph ph-arrow-right-bold text-xs"></i>
+                                    </button>
+                                </div>
+                            ` : `
+                                <button onclick="event.stopPropagation(); app.openUploadBlueprintModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="บันทึก / แนบแบบแปลนสำหรับงานนี้">
+                                    <i class="ph ph-upload-simple text-xs"></i>
+                                    <span>บันทึก Design</span>
+                                </button>
+                            `;
+
+                            return `
+                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group" onclick="app.navigate('job-detail', '${j.id}')">
+                                    <td class="px-5 py-4 font-mono font-semibold text-indigo-600 dark:text-indigo-400">${j.id}</td>
+                                    <td class="px-5 py-4">
+                                        <div class="text-foreground font-medium group-hover:text-indigo-500 transition">${j.customer}</div>
+                                        <div class="text-[11px] text-muted-foreground font-mono">${j.phone || '-'}</div>
+                                    </td>
+                                    <td class="px-5 py-4 text-muted-foreground">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : (j.job_type === 'renovate' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20')}">${j.job_type || 'quick'}</span>
+                                            <span class="inline-flex items-center gap-1 text-xs">${j.service}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
+                                    <td class="px-5 py-4">${this.getStatusHtml(j.status)}</td>
+                                    <td class="px-5 py-4 w-48">${stageHtml}</td>
+                                    <td class="px-5 py-4 text-right">${actionButtons}</td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
+                }
 
                 // 1. Calculate and filter project queue (keeps all active jobs accessible for adding multi-zones)
                 let queueJobs = allJobs;
@@ -6059,8 +6447,100 @@ const app = {
             },
 
             // ─── STEP 4: TICKETS & RECEIPTS METHODS ─────────────────────
-            renderTickets() {
+            renderTickets(searchQuery = '', customStatusFilter = null, customJobList = null) {
                 this.updateStep4Dashboard();
+
+                // Top Header Filters for Step 4 Standard Table
+                const tktStatusFilter = customStatusFilter || (document.getElementById('filter-tickets-status')?.value || 'STEP4_QUEUE');
+                const tktServiceFilter = document.getElementById('filter-tickets-service')?.value || 'all';
+
+                const bannerEl = document.getElementById('step4-queue-banner');
+                if (bannerEl) {
+                    bannerEl.style.display = (tktStatusFilter === 'STEP4_QUEUE') ? 'flex' : 'none';
+                }
+
+                // Render Top Standard Work Order List Table (#tickets-jobs-table-body)
+                const allJobs = DB.jobs || [];
+                const ticketJobIds = new Set((DB.tickets || []).map(t => t.job_id || t.jobId));
+                let tableJobs = customJobList || allJobs;
+                if (!customJobList) {
+                    if (tktServiceFilter !== 'all') {
+                        tableJobs = tableJobs.filter(j => j.service === tktServiceFilter);
+                    }
+                    if (tktStatusFilter === 'STEP4_QUEUE') {
+                        tableJobs = tableJobs.filter(j => !ticketJobIds.has(j.id));
+                        if (tableJobs.length === 0) tableJobs = allJobs;
+                    } else if (tktStatusFilter === 'NO_TICKET') {
+                        tableJobs = tableJobs.filter(j => !ticketJobIds.has(j.id));
+                    } else if (tktStatusFilter === 'HAS_TICKET') {
+                        tableJobs = tableJobs.filter(j => ticketJobIds.has(j.id));
+                    } else if (tktStatusFilter === 'VERIFIED') {
+                        const verifiedJobIds = new Set((DB.tickets || []).filter(t => t.status === 'VERIFIED').map(t => t.job_id || t.jobId));
+                        tableJobs = tableJobs.filter(j => verifiedJobIds.has(j.id));
+                    }
+                }
+
+                const tktTableBody = document.getElementById('tickets-jobs-table-body');
+                if (tktTableBody) {
+                    if (tableJobs.length === 0) {
+                        tktTableBody.innerHTML = `
+                            <tr>
+                                <td colspan="7" class="px-5 py-10 text-center text-muted-foreground">
+                                    <div class="max-w-md mx-auto space-y-2">
+                                        <i class="ph ph-receipt text-3xl text-emerald-500/50"></i>
+                                        <div class="text-sm font-semibold text-foreground">ไม่มีรายการงานในคิว Step 4 ตามเงื่อนไข</div>
+                                        <div class="text-xs text-muted-foreground">สามารถเลือกตัวกรอง "ทั้งหมดทุกขั้นตอน" เพื่อดูงานทั้งหมด</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        tktTableBody.innerHTML = tableJobs.map(j => {
+                            const jobTickets = (DB.tickets || []).filter(t => (t.job_id || t.jobId) === j.id);
+                            const hasTicket = jobTickets.length > 0;
+                            const stageHtml = this.renderStageWithSLA(j, 4);
+
+                            const actionButtons = hasTicket ? `
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <button onclick="event.stopPropagation(); app.openJobTicketsDetail('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted text-foreground inline-flex items-center gap-1 cursor-pointer" title="ดูสลิปและใบเสร็จ">
+                                        <i class="ph ph-receipt"></i>
+                                        <span>ดูสลิป/ใบเสร็จ (${jobTickets.length})</span>
+                                    </button>
+                                    <button onclick="event.stopPropagation(); app.proceedJobToConversion('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ส่งต่อไปยัง Step 5 แปลงเข้า Project">
+                                        <span>แปลงเข้า Project (ไป Step 5)</span>
+                                        <i class="ph ph-arrow-right-bold text-xs"></i>
+                                    </button>
+                                </div>
+                            ` : `
+                                <button onclick="event.stopPropagation(); app.openCreateTicketModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="บันทึก Ticket & แนบใบเสร็จ">
+                                    <i class="ph ph-plus-circle text-xs"></i>
+                                    <span>บันทึก Ticket & สลิป</span>
+                                </button>
+                            `;
+
+                            return `
+                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group" onclick="app.openJobTicketsDetail('${j.id}')">
+                                    <td class="px-5 py-4 font-mono font-semibold text-emerald-600 dark:text-emerald-400">${j.id}</td>
+                                    <td class="px-5 py-4">
+                                        <div class="text-foreground font-medium group-hover:text-emerald-500 transition">${j.customer}</div>
+                                        <div class="text-[11px] text-muted-foreground font-mono">${j.phone || '-'}</div>
+                                    </td>
+                                    <td class="px-5 py-4 text-muted-foreground">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : (j.job_type === 'renovate' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20')}">${j.job_type || 'quick'}</span>
+                                            <span class="inline-flex items-center gap-1 text-xs">${j.service}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
+                                    <td class="px-5 py-4">${this.getStatusHtml(j.status)}</td>
+                                    <td class="px-5 py-4 w-48">${stageHtml}</td>
+                                    <td class="px-5 py-4 text-right">${actionButtons}</td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
+                }
+
                 const searchInput = document.getElementById('ticket-search');
                 const statusFilter = document.getElementById('ticket-filter-status');
                 const methodFilter = document.getElementById('ticket-filter-method');
@@ -6560,8 +7040,96 @@ const app = {
             },
 
             // ─── STEP 3: BOQ MANAGEMENT METHODS ─────────────────────────
-            renderBOQPage(jobId = null) {
+            renderBOQPage(jobId = null, customJobList = null) {
                 this.updateStep3Dashboard();
+
+                // Top Header Filters for Step 3 Standard Table
+                const boqStatusFilter = document.getElementById('filter-boq-status')?.value || 'STEP3_QUEUE';
+                const boqServiceFilter = document.getElementById('filter-boq-service')?.value || 'all';
+
+                const bannerEl = document.getElementById('step3-queue-banner');
+                if (bannerEl) {
+                    bannerEl.style.display = (boqStatusFilter === 'STEP3_QUEUE') ? 'flex' : 'none';
+                }
+
+                const allJobs = DB.jobs || [];
+                let tableJobs = customJobList || allJobs;
+                if (!customJobList) {
+                    if (boqServiceFilter !== 'all') {
+                        tableJobs = tableJobs.filter(j => j.service === boqServiceFilter);
+                    }
+                    if (boqStatusFilter === 'STEP3_QUEUE') {
+                        tableJobs = tableJobs.filter(j => !j.boq_items || j.boq_items.length === 0);
+                        if (tableJobs.length === 0) tableJobs = allJobs;
+                    } else if (boqStatusFilter === 'NO_BOQ') {
+                        tableJobs = tableJobs.filter(j => !j.boq_items || j.boq_items.length === 0);
+                    } else if (boqStatusFilter === 'HAS_BOQ') {
+                        tableJobs = tableJobs.filter(j => j.boq_items && j.boq_items.length > 0);
+                    }
+                }
+
+                const boqTableBody = document.getElementById('boq-jobs-table-body');
+                if (boqTableBody) {
+                    if (tableJobs.length === 0) {
+                        boqTableBody.innerHTML = `
+                            <tr>
+                                <td colspan="7" class="px-5 py-10 text-center text-muted-foreground">
+                                    <div class="max-w-md mx-auto space-y-2">
+                                        <i class="ph ph-receipt text-3xl text-purple-500/50"></i>
+                                        <div class="text-sm font-semibold text-foreground">ไม่มีรายการงานในคิว Step 3 ตามเงื่อนไข</div>
+                                        <div class="text-xs text-muted-foreground">สามารถเลือกตัวกรอง "ทั้งหมดทุกขั้นตอน" เพื่อดูงานทั้งหมด</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        boqTableBody.innerHTML = tableJobs.map(j => {
+                            const items = j.boq_items || [];
+                            const hasBOQ = items.length > 0;
+                            const stageHtml = this.renderStageWithSLA(j, 3);
+                            const isSelected = j.id === (jobId || this.state.boqSelectedJobId);
+
+                            const actionButtons = hasBOQ ? `
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <button onclick="event.stopPropagation(); app.switchBOQPageJob('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted text-foreground inline-flex items-center gap-1 cursor-pointer" title="จัดการรายการ BOQ">
+                                        <i class="ph ph-note-pencil"></i>
+                                        <span>จัดการ BOQ (${items.length})</span>
+                                    </button>
+                                    <button onclick="event.stopPropagation(); app.proceedJobToTickets('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ส่งต่อไปยัง Step 4 ออก Ticket & สลิป">
+                                        <span>ออก Ticket (ไป Step 4)</span>
+                                        <i class="ph ph-arrow-right-bold text-xs"></i>
+                                    </button>
+                                </div>
+                            ` : `
+                                <button onclick="event.stopPropagation(); app.switchBOQPageJob('${j.id}'); app.openImportBOQModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="บันทึก / นำเข้า BOQ สำหรับงานนี้">
+                                    <i class="ph ph-file-arrow-up text-xs"></i>
+                                    <span>บันทึก BOQ</span>
+                                </button>
+                            `;
+
+                            return `
+                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSelected ? 'bg-purple-500/5' : ''}" onclick="app.switchBOQPageJob('${j.id}')">
+                                    <td class="px-5 py-4 font-mono font-semibold text-purple-600 dark:text-purple-400">${j.id}</td>
+                                    <td class="px-5 py-4">
+                                        <div class="text-foreground font-medium group-hover:text-purple-500 transition">${j.customer}</div>
+                                        <div class="text-[11px] text-muted-foreground font-mono">${j.phone || '-'}</div>
+                                    </td>
+                                    <td class="px-5 py-4 text-muted-foreground">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : (j.job_type === 'renovate' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20')}">${j.job_type || 'quick'}</span>
+                                            <span class="inline-flex items-center gap-1 text-xs">${j.service}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
+                                    <td class="px-5 py-4">${this.getStatusHtml(j.status)}</td>
+                                    <td class="px-5 py-4 w-48">${stageHtml}</td>
+                                    <td class="px-5 py-4 text-right">${actionButtons}</td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
+                }
+
                 const targetJobId = jobId || this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
                 this.state.boqSelectedJobId = targetJobId;
 
@@ -6829,8 +7397,97 @@ const app = {
             },
 
             // ─── STEP 5: PROJECT CONVERSION & GANTT METHODS ─────────────
-            renderProjectConversion(jobId = null) {
+            renderProjectConversion(jobId = null, customJobList = null) {
                 this.updateStep5Dashboard();
+
+                // Top Header Filters for Step 5 Standard Table
+                const convStatusFilter = document.getElementById('filter-conversion-status')?.value || 'STEP5_QUEUE';
+                const convServiceFilter = document.getElementById('filter-conversion-service')?.value || 'all';
+
+                const bannerEl = document.getElementById('step5-queue-banner');
+                if (bannerEl) {
+                    bannerEl.style.display = (convStatusFilter === 'STEP5_QUEUE') ? 'flex' : 'none';
+                }
+
+                const allJobs = DB.jobs || [];
+                const convertedJobIds = new Set((DB.tasks || []).map(t => t.jobId));
+                let tableJobs = customJobList || allJobs;
+                if (!customJobList) {
+                    if (convServiceFilter !== 'all') {
+                        tableJobs = tableJobs.filter(j => j.service === convServiceFilter);
+                    }
+                    if (convStatusFilter === 'STEP5_QUEUE') {
+                        tableJobs = tableJobs.filter(j => !convertedJobIds.has(j.id));
+                        if (tableJobs.length === 0) tableJobs = allJobs;
+                    } else if (convStatusFilter === 'NOT_CONVERTED') {
+                        tableJobs = tableJobs.filter(j => !convertedJobIds.has(j.id));
+                    } else if (convStatusFilter === 'CONVERTED') {
+                        tableJobs = tableJobs.filter(j => convertedJobIds.has(j.id));
+                    }
+                }
+
+                const convTableBody = document.getElementById('conversion-jobs-table-body');
+                if (convTableBody) {
+                    if (tableJobs.length === 0) {
+                        convTableBody.innerHTML = `
+                            <tr>
+                                <td colspan="7" class="px-5 py-10 text-center text-muted-foreground">
+                                    <div class="max-w-md mx-auto space-y-2">
+                                        <i class="ph ph-kanban text-3xl text-amber-500/50"></i>
+                                        <div class="text-sm font-semibold text-foreground">ไม่มีรายการงานในคิว Step 5 ตามเงื่อนไข</div>
+                                        <div class="text-xs text-muted-foreground">สามารถเลือกตัวกรอง "ทั้งหมดทุกขั้นตอน" เพื่อดูงานทั้งหมด</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        convTableBody.innerHTML = tableJobs.map(j => {
+                            const jobTasks = (DB.tasks || []).filter(t => t.jobId === j.id);
+                            const hasTasks = jobTasks.length > 0;
+                            const stageHtml = this.renderStageWithSLA(j, 5);
+                            const isSelected = j.id === (jobId || this.state.selectedConversionJobId);
+
+                            const actionButtons = hasTasks ? `
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <button onclick="event.stopPropagation(); app.openConvertBOQToTasksModal('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted text-foreground inline-flex items-center gap-1 cursor-pointer" title="ปรับแต่ง Tasks">
+                                        <i class="ph ph-pencil-simple"></i>
+                                        <span>ปรับแต่ง Tasks (${jobTasks.length})</span>
+                                    </button>
+                                    <button onclick="event.stopPropagation(); app.state.selectedGanttJobId = '${j.id}'; app.navigate('gantt')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="เปิดดูผัง Gantt">
+                                        <span>เปิดดูผัง Gantt</span>
+                                        <i class="ph ph-arrow-right-bold text-xs"></i>
+                                    </button>
+                                </div>
+                            ` : `
+                                <button onclick="event.stopPropagation(); app.openConvertBOQToTasksModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="แปลง BOQ เข้า Project">
+                                    <i class="ph ph-lightning text-xs"></i>
+                                    <span>บันทึก BOQ เข้า Project</span>
+                                </button>
+                            `;
+
+                            return `
+                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSelected ? 'bg-amber-500/5' : ''}" onclick="app.renderProjectConversion('${j.id}')">
+                                    <td class="px-5 py-4 font-mono font-semibold text-amber-600 dark:text-amber-400">${j.id}</td>
+                                    <td class="px-5 py-4">
+                                        <div class="text-foreground font-medium group-hover:text-amber-500 transition">${j.customer}</div>
+                                        <div class="text-[11px] text-muted-foreground font-mono">${j.phone || '-'}</div>
+                                    </td>
+                                    <td class="px-5 py-4 text-muted-foreground">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : (j.job_type === 'renovate' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20')}">${j.job_type || 'quick'}</span>
+                                            <span class="inline-flex items-center gap-1 text-xs">${j.service}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
+                                    <td class="px-5 py-4">${this.getStatusHtml(j.status)}</td>
+                                    <td class="px-5 py-4 w-48">${stageHtml}</td>
+                                    <td class="px-5 py-4 text-right">${actionButtons}</td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
+                }
+
                 const targetJobId = jobId || this.state.selectedConversionJobId || this.state.selectedGanttJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
                 this.state.selectedConversionJobId = targetJobId;
                 this.state.selectedGanttJobId = targetJobId;
