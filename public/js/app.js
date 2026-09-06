@@ -3207,17 +3207,6 @@ const app = {
                 if(this.state.currentView === 'jobs') this.renderJobs();
                 if(this.state.currentView === 'dashboard') this.renderDashboard();
                 if(this.state.currentView === 'blueprints') this.renderBlueprints();
-
-                // Offer immediate navigation to Step 2
-                setTimeout(() => {
-                    const goToStep2 = confirm(`Order [${job.id}] ${job.customer} ได้รับเข้าสู่ระบบ PMT เรียบร้อยแล้ว!\n\n• สถานะเปลี่ยนเป็น In Progress\n• งานถูกย้ายเข้าสู่ "Step 2: บันทึก Design"\n\nต้องการเปิดไปที่หน้า Step 2 เพื่อเริ่มบันทึกแบบแปลนตอนนี้เลยหรือไม่?`);
-                    if (goToStep2) {
-                        this.navigate('blueprints');
-                        setTimeout(() => {
-                            this.openUploadBlueprintModal(job.id);
-                        }, 200);
-                    }
-                }, 250);
             },
 
             sendJobToQC(id) {
