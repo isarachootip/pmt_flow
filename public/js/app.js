@@ -378,10 +378,10 @@ const app = {
                         stepNumber: 4,
                         name: 'บันทึก Ticket และแนบใบเสร็จ',
                         category: 'Step 4: Tickets & Receipt Slips',
-                        timestamp: ts.step4_ticket_at || ts.step3_ticket_at || (tkt ? (tkt.created_at || '2026-09-04T10:15:40.000Z') : null),
-                        isDone: !!(ts.step4_ticket_at || ts.step3_ticket_at || tkt),
-                        statusLabel: (ts.step4_ticket_at || ts.step3_ticket_at || tkt) ? 'ออก Ticket & สลิปแล้ว' : 'รอยืนยันการชำระเงิน',
-                        reference: tkt ? `Ticket: ${tkt.ticket_no} • ใบเสร็จ: ${tkt.receipt_no || '-'}` : 'ยังไม่มี Ticket',
+                        timestamp: tkt ? (tkt.created_at || '2026-09-04T10:15:40.000Z') : ts.step4_ticket_at,
+                        isDone: !!(tkt || ts.step5_project_at || (tasks && tasks.length > 0)),
+                        statusLabel: (tkt || ts.step5_project_at) ? 'ออก Ticket & สลิปแล้ว' : (ts.step4_ticket_at ? 'รอออก Ticket & แนบสลิป' : 'รอยืนยันการชำระเงิน'),
+                        reference: tkt ? `Ticket: ${tkt.ticket_no} • ใบเสร็จ: ${tkt.receipt_no || '-'}` : (ts.step4_ticket_at ? 'อยู่ในคิว Step 4' : 'ยังไม่มี Ticket'),
                         detail: tkt ? `ยอดเงิน: ${Number(tkt.amount || 0).toLocaleString()} ฿ (${tkt.payment_method})` : 'รอลูกค้าชำระเงินมัดจำ/แนบสลิป'
                     },
                     {
@@ -1434,7 +1434,7 @@ const app = {
 
             showToast(msg) {
                 const t = document.getElementById('toast');
-                document.getElementById('toast-msg').innerText = msg;
+                document.getElementById('toast-msg').innerHTML = msg;
                 t.classList.remove('translate-y-20', 'opacity-0');
                 setTimeout(() => {
                     t.classList.add('translate-y-20', 'opacity-0');
@@ -1839,8 +1839,10 @@ const app = {
                                         if (!rep) return '';
                                         return rep.steps.map(s => {
                                             const done = s.isDone;
-                                            const t = s.timestamp ? app.formatTimestamp(s.timestamp) : 'ยังไม่บันทึก';
-                                            return `<span class="w-3.5 h-3.5 rounded-full font-mono text-[8px] flex items-center justify-center font-bold ${done ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground/50 border border-border'}" title="${s.name}: ${t}">${s.stepNumber}</span>`;
+                                            const skipped = s.isSkipped;
+                                            const t = s.timestamp ? app.formatTimestamp(s.timestamp) : (skipped ? 'ข้ามขั้นตอน (Quick)' : 'ยังไม่บันทึก');
+                                            const colorClass = skipped ? 'bg-amber-500 text-white' : (done ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground/50 border border-border');
+                                            return `<span class="w-3.5 h-3.5 rounded-full font-mono text-[8px] flex items-center justify-center font-bold ${colorClass}" title="${s.name}: ${t}">${s.stepNumber}</span>`;
                                         }).join('');
                                     })()}
                                     <span class="text-[9px] text-brand-500 ml-1 hover:underline cursor-pointer"><i class="ph ph-clock"></i></span>
@@ -1849,9 +1851,9 @@ const app = {
                         </td>
                         <td class="px-5 py-4 text-right">
                             ${isJobInStep1 ? `
-                                <button type="button" onclick="event.stopPropagation(); app.acceptJobToPMT('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="บันทึกรับ Order นี้เข้าสู่ระบบ PMT และย้ายเข้าสู่ State 2 (บันทึก Design)">
-                                    <i class="ph ph-check-circle text-xs"></i>
-                                    <span>รับเข้าระบบ PMT</span>
+                                <button type="button" onclick="event.stopPropagation(); app.acceptJobToPMT('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold ${isQuick ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'} text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="${isQuick ? 'บันทึกรับ Order นี้เข้าสู่ระบบ PMT และข้ามขั้นตอน Design & BOQ ย้ายเข้าสู่ Step 4 (บันทึก Ticket & ใบเสร็จ) ทันที' : 'บันทึกรับ Order นี้เข้าสู่ระบบ PMT และย้ายเข้าสู่ State 2 (บันทึก Design)'}">
+                                    <i class="ph ${isQuick ? 'ph-lightning-bold text-amber-300' : 'ph-check-circle'} text-xs"></i>
+                                    <span>${isQuick ? 'รับเข้า (ไป Step 4)' : 'รับเข้าระบบ PMT'}</span>
                                     <i class="ph ph-arrow-right-bold text-xs"></i>
                                 </button>
                             ` : `
@@ -1906,10 +1908,12 @@ const app = {
                 const sidebarJob = document.getElementById('sidebar-job-count');
                 if (sidebarJob) sidebarJob.innerText = step1Count;
 
-                // Step 2: Pending blueprints (Jobs accepted into PMT and waiting for design)
+                // Step 2: Pending blueprints (Jobs accepted into PMT and waiting for design, excluding Quick jobs that skipped to Step 4)
                 const pendingBpCount = allJobs.filter(j => 
                     (j.pmt_accepted || (j.step_timestamps && j.step_timestamps.step2_design_at)) &&
-                    !designedJobIds.has(j.id)
+                    !designedJobIds.has(j.id) &&
+                    !(this.isQuickJob(j) && !(j.step_timestamps && j.step_timestamps.step2_design_at)) &&
+                    !(j.step_timestamps && (j.step_timestamps.step4_ticket_at || j.step_timestamps.step5_project_at))
                 ).length;
                 const sidebarBp = document.getElementById('sidebar-blueprint-count');
                 if (sidebarBp) sidebarBp.innerText = pendingBpCount;
@@ -1923,10 +1927,19 @@ const app = {
                     sidebarBoq.innerText = boqJobsCount;
                 }
 
-                // Step 4: Tickets
+                // Step 4: Tickets (Queue of jobs waiting in Step 4 or issued tickets)
                 const sidebarTicket = document.getElementById('sidebar-ticket-count');
                 if (sidebarTicket) {
-                    sidebarTicket.innerText = (DB.tickets || []).length;
+                    const ticketJobIds = new Set((DB.tickets || []).map(t => t.job_id || t.jobId));
+                    const step4QueueCount = allJobs.filter(j => 
+                        !ticketJobIds.has(j.id) &&
+                        (
+                            (this.isQuickJob(j) && (j.pmt_accepted || (j.step_timestamps && j.step_timestamps.step4_ticket_at))) ||
+                            (j.boq_items && j.boq_items.length > 0) ||
+                            (j.step_timestamps && j.step_timestamps.step4_ticket_at)
+                        )
+                    ).length;
+                    sidebarTicket.innerText = step4QueueCount > 0 ? step4QueueCount : (DB.tickets || []).length;
                 }
 
                 // Step 5: Tasks
@@ -2081,16 +2094,18 @@ const app = {
                 const now = new Date();
                 const todayStr = now.toLocaleDateString('en-CA');
 
-                // Step 2 Jobs: All jobs that are at or beyond Step 2
+                // Step 2 Jobs: All jobs that are at or beyond Step 2 (excluding Quick jobs that skip Step 2 to Step 4)
                 const step2Eligible = allJobs.filter(j => 
-                    designedJobIds.has(j.id) || 
+                    (designedJobIds.has(j.id) || 
                     (j.step_timestamps && j.step_timestamps.step2_design_at) ||
-                    (j.status !== 'DRAFT' && j.status !== 'NEW' && j.status !== 'Draft' && j.status !== 'New')
+                    (j.pmt_accepted && !this.isQuickJob(j))) &&
+                    !(this.isQuickJob(j) && !designedJobIds.has(j.id)) &&
+                    !(j.step_timestamps && (j.step_timestamps.step4_ticket_at || j.step_timestamps.step5_project_at) && !designedJobIds.has(j.id))
                 );
-                const totalStep2 = step2Eligible.length || allJobs.length;
+                const totalStep2 = step2Eligible.length;
 
-                // Remaining in Step 2: Jobs waiting for blueprint attachment
-                const remainingStep2Jobs = allJobs.filter(j => !designedJobIds.has(j.id));
+                // Remaining in Step 2: Jobs waiting for blueprint attachment (excluding Quick jobs)
+                const remainingStep2Jobs = step2Eligible.filter(j => !designedJobIds.has(j.id));
                 const remainingStep2 = remainingStep2Jobs.length;
 
                 // Completed in Step 2
@@ -2279,8 +2294,12 @@ const app = {
                 const todayStr = now.toLocaleDateString('en-CA');
 
                 // Step 4 eligible: Jobs with BOQ or Quick jobs transferred to Step 4
-                const step4Eligible = allJobs.filter(j => (j.boq_items && j.boq_items.length > 0) || (j.step_timestamps && j.step_timestamps.step4_ticket_at));
-                const totalStep4 = step4Eligible.length || allJobs.length;
+                const step4Eligible = allJobs.filter(j => 
+                    (j.boq_items && j.boq_items.length > 0) || 
+                    (j.step_timestamps && j.step_timestamps.step4_ticket_at) ||
+                    (this.isQuickJob(j) && j.pmt_accepted)
+                );
+                const totalStep4 = step4Eligible.length;
 
                 // Remaining in Step 4: Eligible jobs that don't have Ticket yet
                 const remainingStep4Jobs = step4Eligible.filter(j => !ticketJobIds.has(j.id));
@@ -3252,10 +3271,19 @@ const app = {
                     this.recordStepTimestamp(id, 'step1_order_at', acceptNow, 'รับ Order');
                 }
 
-                // All jobs: Transition state strictly into Step 2 (Design)
-                job.progress = Math.max(job.progress || 0, 20);
-                job.step_timestamps.step2_design_at = acceptNow;
-                this.recordStepTimestamp(id, 'step2_design_at', acceptNow, 'บันทึกรับเข้า PMT และย้ายเข้าสู่ State 2 (บันทึก Design)');
+                const isQuick = this.isQuickJob(job);
+
+                if (isQuick) {
+                    // Quick Services: Skip Step 2 (Design) & Step 3 (BOQ), transition directly into Step 4 (Tickets & Receipts)
+                    job.progress = Math.max(job.progress || 0, 60);
+                    job.step_timestamps.step4_ticket_at = acceptNow;
+                    this.recordStepTimestamp(id, 'step4_ticket_at', acceptNow, 'รับเข้า PMT และข้ามขั้นตอน Design & BOQ ย้ายเข้าสู่ Step 4 (บันทึก Ticket & ใบเสร็จ) อัตโนมัติ (Quick Service)');
+                } else {
+                    // Non-quick jobs (Renovate, MA, etc.): Transition into Step 2 (Design)
+                    job.progress = Math.max(job.progress || 0, 20);
+                    job.step_timestamps.step2_design_at = acceptNow;
+                    this.recordStepTimestamp(id, 'step2_design_at', acceptNow, 'บันทึกรับเข้า PMT และย้ายเข้าสู่ State 2 (บันทึก Design)');
+                }
 
                 this.persistJobs();
 
@@ -3273,12 +3301,18 @@ const app = {
                 }).catch(() => {});
 
                 this.updateStepBadges();
-                this.showToast(`🎉 บันทึกรับ Order [${id}] เข้าสู่ระบบ PMT สำเร็จ! ย้ายเข้าสู่ State 2 (บันทึก Design)`);
+                
+                if (isQuick) {
+                    this.showToast(`⚡ ย้าย Order [${id}] (Quick Service) เข้าสู่ Step 4 (บันทึก Ticket & ใบเสร็จ) เรียบร้อยแล้ว <button onclick="app.navigate('tickets')" class="ml-2 font-bold text-emerald-400 hover:underline cursor-pointer">เปิดดูใน Step 4 →</button>`);
+                } else {
+                    this.showToast(`🎉 บันทึกรับ Order [${id}] เข้าสู่ระบบ PMT สำเร็จ! ย้ายเข้าสู่ Step 2 (บันทึก Design) <button onclick="app.navigate('blueprints')" class="ml-2 font-bold text-indigo-400 hover:underline cursor-pointer">เปิดดูใน Step 2 →</button>`);
+                }
 
                 this.renderJobDetail();
                 if(this.state.currentView === 'jobs') this.renderJobs();
                 if(this.state.currentView === 'dashboard') this.renderDashboard();
                 if(this.state.currentView === 'blueprints') this.renderBlueprints();
+                if(this.state.currentView === 'tickets') this.renderTickets();
             },
 
             sendJobToQC(id) {
@@ -3340,14 +3374,15 @@ const app = {
                 const hasBlueprints = (DB.blueprints && DB.blueprints.some(b => b.jobId === job.id)) || !!job.blueprint_id || (job.blueprints && job.blueprints.length > 0);
                 const hasBOQ = (job.boq_items && job.boq_items.length > 0) || (job.boq_grand_total > 0);
                 const hasTasks = (DB.tasks && DB.tasks.some(t => t.jobId === job.id));
-                const hasTimestamp = Boolean(job.step_timestamps && (job.step_timestamps.step1_accepted_at || job.step_timestamps.step2_design_at));
+                const hasTimestamp = Boolean(job.step_timestamps && (job.step_timestamps.step1_accepted_at || job.step_timestamps.step2_design_at || job.step_timestamps.step4_ticket_at));
                 const isAccepted = Boolean(job.pmt_accepted || job.status !== 'DRAFT' || hasBlueprints || hasBOQ || hasTasks || hasTimestamp);
+                const isQuick = this.isQuickJob(job);
 
                 if (isAccepted && (!job.pmt_accepted || job.status === 'DRAFT')) {
                     job.pmt_accepted = true;
                     if (job.status === 'DRAFT') {
                         job.status = 'IN_PROGRESS';
-                        job.progress = Math.max(job.progress || 0, 45);
+                        job.progress = Math.max(job.progress || 0, isQuick ? 60 : 45);
                     }
                     this.persistJobs();
                 }
@@ -3824,7 +3859,12 @@ const app = {
                                         <i class="ph ph-check-circle text-sm font-bold"></i>
                                         <span>รับเข้าระบบ PMT แล้ว</span>
                                     </button>
-                                    ${hasBlueprints ? `
+                                    ${isQuick ? `
+                                    <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-bold shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer" onclick="app.navigate('tickets')" title="ไปหน้า Step 4 เพื่อบันทึก Ticket & ใบเสร็จสำหรับงานด่วน Quick Services">
+                                        <i class="ph ph-ticket text-sm"></i>
+                                        <span>ไปหน้า Step 4: บันทึก Ticket & สลิป</span> <i class="ph ph-arrow-right text-xs"></i>
+                                    </button>
+                                    ` : hasBlueprints ? `
                                     <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-bold shadow-sm bg-purple-600 hover:bg-purple-700 text-white cursor-pointer" onclick="app.openBOQForJob('${job.id}')" title="ไปหน้า Step 3 เพื่อบันทึก/ถอดรายการ BOQ สำหรับงานนี้">
                                         <i class="ph ph-receipt text-sm"></i>
                                         <span>ไปหน้า Step 3: นำ BOQ เข้าระบบ</span> <i class="ph ph-arrow-right text-xs"></i>
@@ -3839,9 +3879,9 @@ const app = {
                                     </button>
                                     `}
                                     ` : `
-                                    <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-semibold shadow-sm cursor-pointer" onclick="app.acceptJobToPMT('${job.id}')">
-                                        <i class="ph ph-check-circle text-sm"></i>
-                                        <span>รับเข้าระบบ PMT</span>
+                                    <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-semibold shadow-sm cursor-pointer ${isQuick ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'}" onclick="app.acceptJobToPMT('${job.id}')" title="${isQuick ? 'บันทึกรับ Order นี้เข้าสู่ระบบ PMT และข้ามขั้นตอน Design & BOQ ย้ายเข้าสู่ Step 4 (บันทึก Ticket & ใบเสร็จ) ทันที' : 'บันทึกรับ Order นี้เข้าสู่ระบบ PMT และย้ายเข้าสู่ State 2 (บันทึก Design)'}">
+                                        <i class="ph ${isQuick ? 'ph-lightning-bold text-amber-300' : 'ph-check-circle'} text-sm"></i>
+                                        <span>${isQuick ? 'รับเข้า (ไป Step 4)' : 'รับเข้าระบบ PMT'}</span>
                                         <i class="ph ph-arrow-right text-xs ml-0.5"></i>
                                     </button>
                                     `}
@@ -3981,7 +4021,8 @@ const app = {
                              (j.status !== 'DRAFT' && j.status !== 'NEW' && j.status !== 'Draft' && j.status !== 'New') ||
                              (j.step_timestamps && j.step_timestamps.step2_design_at) ||
                              blueprintsByJob[j.id]) &&
-                            (!j.boq_items || j.boq_items.length === 0)
+                            (!j.boq_items || j.boq_items.length === 0) &&
+                            !((this.isQuickJob(j) && !(blueprintsByJob[j.id] && blueprintsByJob[j.id].length > 0)) || (j.step_timestamps && j.step_timestamps.step4_ticket_at))
                         );
                     } else if (bpStatusFilter === 'NO_DESIGN') {
                         tableJobs = tableJobs.filter(j => !(blueprintsByJob[j.id] && blueprintsByJob[j.id].length > 0));
@@ -6707,8 +6748,13 @@ const app = {
                         tableJobs = tableJobs.filter(j => j.service === tktServiceFilter);
                     }
                     if (tktStatusFilter === 'STEP4_QUEUE') {
-                        tableJobs = tableJobs.filter(j => !(ticketsByJob[j.id] && ticketsByJob[j.id].length > 0));
-                        if (tableJobs.length === 0) tableJobs = allJobs;
+                        tableJobs = tableJobs.filter(j => {
+                            const isEligible = (j.boq_items && j.boq_items.length > 0) || 
+                                              (j.step_timestamps && j.step_timestamps.step4_ticket_at) ||
+                                              (this.isQuickJob(j) && j.pmt_accepted);
+                            const hasNoTicket = !(ticketsByJob[j.id] && ticketsByJob[j.id].length > 0);
+                            return isEligible && hasNoTicket;
+                        });
                     } else if (tktStatusFilter === 'NO_TICKET') {
                         tableJobs = tableJobs.filter(j => !(ticketsByJob[j.id] && ticketsByJob[j.id].length > 0));
                     } else if (tktStatusFilter === 'HAS_TICKET') {
@@ -7614,7 +7660,8 @@ const app = {
                         tableJobs = tableJobs.filter(j => 
                             j.pmt_accepted &&
                             (j.step3_confirmed || (j.step_timestamps && j.step_timestamps.step3_boq_at) || (j.boq_items && j.boq_items.length > 0)) &&
-                            (!j.boq_items || j.boq_items.length === 0)
+                            (!j.boq_items || j.boq_items.length === 0) &&
+                            !((this.isQuickJob(j) && (!j.boq_items || j.boq_items.length === 0)) || (j.step_timestamps && j.step_timestamps.step4_ticket_at))
                         );
                     } else if (boqStatusFilter === 'NO_BOQ') {
                         tableJobs = tableJobs.filter(j => 
