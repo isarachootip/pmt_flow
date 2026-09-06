@@ -2986,6 +2986,207 @@
                         </div>
                     </div>
 
+                    <!-- Trainer Enterprise Manuals Section (Screen-by-Screen Training Guides) -->
+                    <div class="space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center text-lg font-bold border border-purple-500/20">
+                                    <i class="ph ph-graduation-cap"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-display text-base font-bold text-foreground">ศูนย์รวมคู่มือฝึกอบรมรายหน้าจอ (Screen-by-Screen Training Guides)</h3>
+                                    <p class="text-xs text-muted-foreground">เอกสารและขั้นตอนปฏิบัติงานมาตรฐานสำหรับวิทยากร (Trainer) และผู้ใช้งานระบบทุกสายงาน</p>
+                                </div>
+                            </div>
+                            <button onclick="window.openTrainingDoc('PMT_Training_Curriculum_Master.md', 'หลักสูตรฝึกอบรมแม่บท (Master Training Curriculum)')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer self-start sm:self-auto border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10">
+                                <i class="ph ph-file-text text-sm"></i> ดูหลักสูตรแม่บท (Master Syllabus)
+                            </button>
+                        </div>
+
+                        <!-- 9 Modules Cards Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                            <!-- Module 1: Step 1 -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-brand-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded bg-zinc-500/15 text-zinc-600 dark:text-zinc-300 font-mono text-[10px] font-bold border border-zinc-500/20">TRN-PMT-STEP01</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Module 1</span>
+                                    </div>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-brand-500 transition">Step 1: คิวงานรับคำสั่งซื้อใหม่</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">รับ Order จาก INT, Smart Dual-Dispatch, ติดตาม SLA 4 ชม., จำลอง 10 งาน</p>
+                                </div>
+                                <div class="pt-2 border-t border-border flex items-center gap-2">
+                                    <button onclick="app.navigate('jobs')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
+                                    </button>
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step1_คิวงานรับคำสั่งซื้อใหม่.md', 'โมดูล 1: Step 1 — คิวงานรับคำสั่งซื้อใหม่')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-[11px] font-semibold text-brand-600 dark:text-brand-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Module 2: Step 2 -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-indigo-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-mono text-[10px] font-bold border border-indigo-500/20">TRN-PMT-STEP02</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Module 2</span>
+                                    </div>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-indigo-500 transition">Step 2: บันทึกแบบแปลนติดตั้ง</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">ศูนย์รวมแบบ CAD/PDF, Multi-zone แยกห้อง, Lightbox Preview, Versioning</p>
+                                </div>
+                                <div class="pt-2 border-t border-border flex items-center gap-2">
+                                    <button onclick="app.navigate('blueprints')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
+                                    </button>
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step2_บันทึกแบบแปลนติดตั้ง.md', 'โมดูล 2: Step 2 — บันทึกแบบแปลนติดตั้ง')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Module 3: Step 3 -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-purple-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono text-[10px] font-bold border border-purple-500/20">TRN-PMT-STEP03</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Module 3</span>
+                                    </div>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-purple-500 transition">Step 3: นำ BOQ เข้าระบบ & ราคา</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">นำเข้า Excel/vFIX/Template, ตารางราคา Real-time, VAT 7%, ส่งต่อ Step 4</p>
+                                </div>
+                                <div class="pt-2 border-t border-border flex items-center gap-2">
+                                    <button onclick="app.navigate('boq')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
+                                    </button>
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step3_นำBOQเข้าระบบ.md', 'โมดูล 3: Step 3 — นำ BOQ เข้าระบบ')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-[11px] font-semibold text-purple-600 dark:text-purple-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Module 4: Step 4 -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-emerald-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono text-[10px] font-bold border border-emerald-500/20">TRN-PMT-STEP04</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Module 4</span>
+                                    </div>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-emerald-500 transition">Step 4: บันทึก Ticket & ใบเสร็จ</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">เปิด Work Ticket, จองช่างผ่าน INT API, แนบสลิปเงินโอน, ยืนยันการชำระเงิน</p>
+                                </div>
+                                <div class="pt-2 border-t border-border flex items-center gap-2">
+                                    <button onclick="app.navigate('tickets')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
+                                    </button>
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step4_บันทึกTicketและใบเสร็จ.md', 'โมดูล 4: Step 4 — บันทึก Ticket & ใบเสร็จ')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Module 5: Step 5 -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-amber-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono text-[10px] font-bold border border-amber-500/20">TRN-PMT-STEP05</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Module 5</span>
+                                    </div>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-amber-500 transition">Step 5: บันทึก BOQ เข้า Project & Gantt</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">Labor-to-Task Rule, คำนวณวันเริ่ม-จบ, มอบหมาย Crew ช่าง, Gantt Timeline</p>
+                                </div>
+                                <div class="pt-2 border-t border-border flex items-center gap-2">
+                                    <button onclick="app.navigate('project-conversion')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
+                                    </button>
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step5_บันทึกBOQเข้าProjectและGantt.md', 'โมดูล 5: Step 5 — บันทึก BOQ เข้า Project')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-[11px] font-semibold text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Module 6: QC Inspection -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-teal-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded bg-teal-500/15 text-teal-600 dark:text-teal-400 font-mono text-[10px] font-bold border border-teal-500/20">TRN-PMT-QC01</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Module 6</span>
+                                    </div>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-teal-500 transition">การตรวจรับรองคุณภาพ QC</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">จองตรวจล่วงหน้า D-5, 4-Point Safety Checklist, ตรวจรูปหน้างาน, PASS/FAIL</p>
+                                </div>
+                                <div class="pt-2 border-t border-border flex items-center gap-2">
+                                    <button onclick="app.navigate('qc')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
+                                    </button>
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step6_ตรวจรับรองคุณภาพQC.md', 'โมดูล 6: การตรวจรับรองคุณภาพ QC')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-[11px] font-semibold text-teal-600 dark:text-teal-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Module 7: CSAT & MA Contracts -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-blue-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 font-mono text-[10px] font-bold border border-blue-500/20">TRN-PMT-CSAT01</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Module 7</span>
+                                    </div>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-blue-500 transition">CSAT, สัญญา MA & ปิดงาน BMT</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">ประเมิน 5 ดาว, สัญญาบำรุงรักษา MA ล้างแอร์ 3-4 รอบ/ปี, Close Job ซิงค์ BMT</p>
+                                </div>
+                                <div class="pt-2 border-t border-border flex items-center gap-2">
+                                    <button onclick="app.navigate('csat')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
+                                    </button>
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step7_CSATและบริการหลังการขาย.md', 'โมดูล 7: CSAT และบริการหลังการขาย')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-[11px] font-semibold text-blue-600 dark:text-blue-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Module 8: Dashboard & User Management -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-rose-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400 font-mono text-[10px] font-bold border border-rose-500/20">TRN-PMT-SYS01</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Module 8</span>
+                                    </div>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-rose-500 transition">แดชบอร์ดภาพรวม & จัดการผู้ใช้</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">วิเคราะห์สถิติ KPI ผู้บริหาร, จัดการบัญชีผู้ใช้, สิทธิ์ RBAC 6 ระดับ, Audit Logs</p>
+                                </div>
+                                <div class="pt-2 border-t border-border flex items-center gap-2">
+                                    <button onclick="app.navigate('dashboard')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
+                                    </button>
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_แดชบอร์ดและจัดการผู้ใช้งาน.md', 'โมดูล 8: แดชบอร์ดและจัดการผู้ใช้งาน')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Module 9: Site Check-in & Photos -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-sky-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded bg-sky-500/15 text-sky-600 dark:text-sky-400 font-mono text-[10px] font-bold border border-sky-500/20">TRN-PMT-SITE01</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Module 9</span>
+                                    </div>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-sky-500 transition">รายละเอียดงาน & GPS Check-in</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">Geo-fence 400 เมตร, Timestamp เวลาเข้า-ออก, มาตรฐานรูปถ่ายหน้างาน 5 รูป</p>
+                                </div>
+                                <div class="pt-2 border-t border-border flex items-center gap-2">
+                                    <button onclick="app.navigate('jobs')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrow-square-out"></i> ไปหน้ารายการ
+                                    </button>
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_การเข้าหน้างานและCheckIn.md', 'โมดูล 9: รายละเอียดงานและการ Check-in')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-[11px] font-semibold text-sky-600 dark:text-sky-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Step-by-Step Lifecycle Progression (8 Steps) -->
                     <div class="space-y-4">
                         <div class="flex items-center justify-between">
