@@ -114,6 +114,15 @@
             filter: none !important;
         }
 
+        /* Developer / Isara Chootip Only Controls - Strictly hidden unless body has isara-allowed */
+        .isara-only {
+            display: none !important;
+        }
+        body.isara-allowed .isara-only {
+            display: inline-flex !important;
+        }
+
+
         /* Status Pills */
         .status-pill {
             display: inline-flex;

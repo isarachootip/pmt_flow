@@ -108,7 +108,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="/public/css/app.css?v=1.1.1">
+    <link rel="stylesheet" href="/public/css/app.css?v=1.3.8">
 </head>
 <body class="h-screen flex overflow-hidden font-sans select-none antialiased">
 
@@ -579,20 +579,11 @@
                                 <option value="Renovate ครัว">Renovate ครัว</option>
                                 <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
                             </select>
-                            <select id="filter-status" onchange="app.renderJobs()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-brand-500">
-                                <option value="STEP1_QUEUE" selected>📥 คิวงาน Step 1 (Order ใหม่ / Draft)</option>
-                                <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
-                                <option value="DRAFT">Draft (เปิดงานใหม่)</option>
-                                <option value="IN_PROGRESS">In Progress (กำลังทำ)</option>
-                                <option value="QC_PENDING">QC Pending (รอตรวจ)</option>
-                                <option value="QC_PASSED">QC Passed (ผ่านแล้ว)</option>
-                                <option value="AFTER_SALE">After Sale (บริการหลังการขาย)</option>
-                            </select>
-                            <button onclick="app.resetAllJobStatuses()" class="btn-artifact-secondary text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer" title="ถอยสถานะทุกโครงการกลับเป็น Draft (0%)">
+                            <button id="btn-dev-reset-draft" onclick="app.resetAllJobStatuses()" class="btn-artifact-secondary isara-only text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer" title="ถอยสถานะทุกโครงการกลับเป็น Draft (0%) [เฉพาะ Isara Chootip]">
                                 <i class="ph ph-arrow-counter-clockwise"></i>
                                 <span>ถอยสถานะเป็น Draft</span>
                             </button>
-                            <button onclick="app.clearAllProjects()" class="btn-artifact-secondary text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer" title="ลบข้อมูลโครงการทั้งหมด">
+                            <button id="btn-dev-clear-projects" onclick="app.clearAllProjects()" class="btn-artifact-secondary isara-only text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer" title="ลบข้อมูลโครงการทั้งหมด [เฉพาะ Isara Chootip]">
                                 <i class="ph ph-trash"></i>
                                 <span>ล้างข้อมูลโครงการ</span>
                             </button>
@@ -605,7 +596,7 @@
                                     <i class="ph ph-file-csv text-emerald-500 text-sm"></i>
                                     <span>Export รายงาน Timestamps</span>
                                 </button>
-                                <button onclick="app.simulateINT10Orders(false)" class="btn-artifact-secondary text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer shadow-xs" title="Import รายการคำสั่งซื้อใหม่ 10 งานจาก INT เข้าสู่ PMT (สร้างเฉพาะ Transaction เริ่มต้นระบบ Step 1 ทุกงานเริ่มใหม่จากศูนย์)">
+                                <button id="btn-dev-simulate-int" onclick="app.simulateINT10Orders(false)" class="btn-artifact-secondary isara-only text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer shadow-xs" title="Import รายการคำสั่งซื้อใหม่ 10 งานจาก INT เข้าสู่ PMT [เฉพาะ Isara Chootip]">
                                     <i class="ph ph-lightning text-amber-500"></i>
                                     <span>จำลอง 10 งาน (INT)</span>
                                 </button>
@@ -6035,11 +6026,11 @@
 
     <!-- APPLICATION JAVASCRIPT LOGIC -->
     <!-- APPLICATION SCRIPTS -->
-    <script src="./public/js/db.js?v=1.3.7"></script>
-    <script src="./public/js/auth.js?v=1.3.7"></script>
-    <script src="./public/js/app.js?v=1.3.7"></script>
-    <script src="./public/js/userMgmt.js?v=1.3.7"></script>
-    <script src="./public/js/app.hooks.js?v=1.3.7"></script>
+    <script src="./public/js/db.js?v=1.3.8"></script>
+    <script src="./public/js/auth.js?v=1.3.8"></script>
+    <script src="./public/js/app.js?v=1.3.8"></script>
+    <script src="./public/js/userMgmt.js?v=1.3.8"></script>
+    <script src="./public/js/app.hooks.js?v=1.3.8"></script>
 
 </body>
 </html>

@@ -6,10 +6,24 @@ window.auth =  {
             id: 1,
             user_code: 'USR-001',
             username: 'admin',
-            email: 'isarachootip@gmail.com',
+            email: 'admin@pmt.com',
             full_name: 'ผู้ดูแลระบบ',
             role: 'ADMIN',
             is_active: true
+        },
+
+        isIsaraChootip(u = this.user) {
+            if (!u) return false;
+            const name = String(u.full_name || '').toLowerCase().trim();
+            const username = String(u.username || '').toLowerCase().trim();
+            const email = String(u.email || '').toLowerCase().trim();
+
+            // Match specifically Isara Chootip
+            const hasNameMatch = (name.includes('isara') && name.includes('chootip')) || name === 'isara chootip';
+            const hasUserMatch = (username.includes('isara') && username.includes('chootip')) || username.startsWith('isarachootip');
+            const hasEmailMatch = (email === 'isarachootip@gmail.com' || (email.includes('isara') && email.includes('chootip'))) && username !== 'admin' && name !== 'ผู้ดูแลระบบ';
+
+            return hasNameMatch || hasUserMatch || hasEmailMatch;
         },
 
         init() {
@@ -123,6 +137,10 @@ window.auth =  {
             const sidebarAuthIcon = document.getElementById('sidebar-auth-icon');
 
             if (!u) {
+                document.body.classList.remove('isara-allowed');
+                document.querySelectorAll('.isara-only').forEach(el => {
+                    el.style.setProperty('display', 'none', 'important');
+                });
                 document.body.classList.add('superadmin-allowed');
                 document.querySelectorAll('.superadmin-only-btn').forEach(btn => {
                     btn.removeAttribute('disabled');
@@ -181,13 +199,26 @@ window.auth =  {
             }
 
             // Enable superadmin buttons for admin, superadmin, or isarachootip
-            const isSuperUser = true; // Enabled by default for local prototype/demo management
             document.body.classList.add('superadmin-allowed');
 
             document.querySelectorAll('.superadmin-only-btn').forEach(btn => {
                 btn.removeAttribute('disabled');
                 btn.disabled = false;
             });
+
+            // Developer controls (ล้างโครงการ, ถอยสถานะเป็น Draft, จำลอง 10 งาน) strictly for Isara Chootip
+            const isIsara = this.isIsaraChootip(u);
+            if (isIsara) {
+                document.body.classList.add('isara-allowed');
+                document.querySelectorAll('.isara-only').forEach(btn => {
+                    btn.style.removeProperty('display');
+                });
+            } else {
+                document.body.classList.remove('isara-allowed');
+                document.querySelectorAll('.isara-only').forEach(btn => {
+                    btn.style.setProperty('display', 'none', 'important');
+                });
+            }
         },
 
         openMyProfile() {

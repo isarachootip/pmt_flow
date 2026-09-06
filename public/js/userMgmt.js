@@ -34,7 +34,7 @@ if (typeof window.roleBadge !== 'function') {
 
 window.userMgmt =  {
         defaultSeedUsers: [
-            { id: 1, user_code: 'USR-001', username: 'admin', email: 'isarachootip@gmail.com', full_name: 'ผู้ดูแลระบบ', role: 'ADMIN', is_active: true, last_login_at: new Date().toISOString() },
+            { id: 1, user_code: 'USR-001', username: 'admin', email: 'admin@pmt.com', full_name: 'ผู้ดูแลระบบ', role: 'ADMIN', is_active: true, last_login_at: new Date().toISOString() },
             { id: 2, user_code: 'USR-001B', username: 'isarachootip@gmail.com', email: 'isarachootip@gmail.com', full_name: 'Isara Chootip', role: 'ADMIN', is_active: true, last_login_at: null },
             { id: 3, user_code: 'USR-002', username: 'pm.somrak', email: 'somrak@pmt.local', full_name: 'สมรัก บริหารเก่ง', role: 'ADMIN', is_active: true, last_login_at: null },
             { id: 4, user_code: 'USR-003', username: 'ae.somchai', email: 'somchai@pmt.local', full_name: 'สมชาย ขยันทำ', role: 'AE', is_active: true, last_login_at: null },

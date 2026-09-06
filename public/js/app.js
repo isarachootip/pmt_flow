@@ -670,6 +670,10 @@ const app = {
             },
 
             async resetAllJobStatuses(confirmAction = true) {
+                if (!window.auth || !window.auth.isIsaraChootip()) {
+                    this.showToast('⚠️ ฟังก์ชันนี้สงวนไว้เฉพาะผู้ใช้ Isara Chootip เท่านั้น', 'warning');
+                    return;
+                }
                 if (confirmAction && !confirm('คุณแน่ใจหรือไม่ที่จะถอยสถานะของทุกโครงการกลับไปจุดเริ่มต้น (Step 1 / Draft / 0%) เพื่อเริ่มต้นใหม่?')) {
                     return;
                 }
@@ -719,6 +723,10 @@ const app = {
             },
 
             async clearAllProjects(confirmAction = true) {
+                if (!window.auth || !window.auth.isIsaraChootip()) {
+                    this.showToast('⚠️ ฟังก์ชันนี้สงวนไว้เฉพาะผู้ใช้ Isara Chootip เท่านั้น', 'warning');
+                    return;
+                }
                 if (confirmAction && !confirm('คุณแน่ใจหรือไม่ที่จะล้างข้อมูล Transaction ทั้งหมดออกจากระบบ เพื่อเริ่มต้นใหม่จาก 0?')) {
                     return;
                 }
@@ -1001,6 +1009,10 @@ const app = {
             },
 
             async simulateINT10Orders(confirmAction = true) {
+                if (!window.auth || !window.auth.isIsaraChootip()) {
+                    this.showToast('⚠️ ฟังก์ชันนี้สงวนไว้เฉพาะผู้ใช้ Isara Chootip เท่านั้น', 'warning');
+                    return;
+                }
                 if (confirmAction && !confirm('คุณต้องการจำลองรับข้อมูลงานใหม่จากระบบ INT จำนวน 10 รายการ เข้าสู่ PMT ใช่หรือไม่?')) {
                     return;
                 }
@@ -2029,7 +2041,6 @@ const app = {
             renderJobs(jobList = null) {
                 this.updateStep1Dashboard();
                 const serviceFilter = document.getElementById('filter-service') ? document.getElementById('filter-service').value : 'all';
-                const statusFilter = document.getElementById('filter-status') ? document.getElementById('filter-status').value : 'STEP1_QUEUE';
 
                 const designedJobIds = new Set((DB.blueprints || []).map(b => b.jobId));
                 let list = jobList || DB.jobs || [];
@@ -2038,27 +2049,23 @@ const app = {
                     if (serviceFilter !== 'all') {
                         list = list.filter(j => j.service === serviceFilter);
                     }
-                    if (statusFilter === 'STEP1_QUEUE') {
-                        // Approach 2: Strictly show Step 1 jobs (New Intake) that have not yet been accepted into PMT
-                        list = list.filter(j => 
-                            !j.pmt_accepted &&
-                            (j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
-                            !designedJobIds.has(j.id) &&
-                            !(j.step_timestamps && (j.step_timestamps.step2_design_at || j.step_timestamps.step4_ticket_at || j.step_timestamps.step3_boq_at || j.step_timestamps.step5_project_at)) &&
-                            !(DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id)
-                        );
-                    } else if (statusFilter !== 'ALL' && statusFilter !== 'all') {
-                        list = list.filter(j => j.status === statusFilter);
-                    }
+                    // Since Step 1 has its own dedicated state, strictly show Step 1 jobs (New Intake) that have not yet been accepted into PMT
+                    list = list.filter(j => 
+                        !j.pmt_accepted &&
+                        (j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
+                        !designedJobIds.has(j.id) &&
+                        !(j.step_timestamps && (j.step_timestamps.step2_design_at || j.step_timestamps.step4_ticket_at || j.step_timestamps.step3_boq_at || j.step_timestamps.step5_project_at)) &&
+                        !(DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id)
+                    );
                 }
 
                 // Contextual banner display
                 const bannerEl = document.getElementById('step1-queue-banner');
                 if (bannerEl) {
-                    bannerEl.style.display = (statusFilter === 'STEP1_QUEUE') ? 'flex' : 'none';
+                    bannerEl.style.display = (!jobList) ? 'flex' : 'none';
                 }
 
-                const isStep1Queue = (statusFilter === 'STEP1_QUEUE');
+                const isStep1Queue = (!jobList);
 
                 const html = list.map(j => {
                     const isJobInStep1 = !j.pmt_accepted &&
@@ -2132,6 +2139,7 @@ const app = {
                     </tr>
                 `}).join('');
 
+                const isIsaraUser = window.auth && window.auth.isIsaraChootip ? window.auth.isIsaraChootip() : false;
                 document.getElementById('jobs-table-body').innerHTML = html || `
                     <tr>
                         <td colspan="6" class="px-5 py-12 text-center">
@@ -2141,13 +2149,15 @@ const app = {
                                 </div>
                                 <div>
                                     <div class="text-sm font-semibold text-foreground">คิวงาน Step 1 ว่าง (ระบบพร้อมเริ่มต้นใหม่)</div>
-                                    <div class="text-xs text-muted-foreground mt-1">ล้างข้อมูลทุกอย่างเรียบร้อยแล้ว ท่านสามารถกดจำลองคำสั่งซื้อใหม่จาก INT หรือกดสร้างคำสั่งซื้อใหม่เพื่อเริ่มต้น</div>
+                                    <div class="text-xs text-muted-foreground mt-1">${isIsaraUser ? 'ล้างข้อมูลทุกอย่างเรียบร้อยแล้ว ท่านสามารถกดจำลองคำสั่งซื้อใหม่จาก INT หรือกดสร้างคำสั่งซื้อใหม่เพื่อเริ่มต้น' : 'ยังไม่มีคำสั่งซื้อใหม่ในคิวงาน Step 1 สามารถกดบันทึก Order ใหม่เพื่อเริ่มต้น'}</div>
                                 </div>
                                 <div class="flex items-center justify-center gap-2 pt-2">
-                                    <button type="button" onclick="app.simulateINT10Orders(false)" class="btn-artifact-primary px-3.5 py-2 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 cursor-pointer">
+                                    ${isIsaraUser ? `
+                                    <button type="button" onclick="app.simulateINT10Orders(false)" class="btn-artifact-primary isara-only px-3.5 py-2 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 cursor-pointer">
                                         <i class="ph ph-lightning text-amber-300"></i>
                                         <span>โหลดจำลอง 10 งานใหม่ (INT)</span>
                                     </button>
+                                    ` : ''}
                                     <button type="button" onclick="app.showModal('modal-create-job')" class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-muted text-foreground inline-flex items-center gap-1.5 cursor-pointer">
                                         <i class="ph ph-plus-bold"></i>
                                         <span>+ บันทึก Order ใหม่</span>
@@ -2774,12 +2784,10 @@ const app = {
 
                 if (stepNumber === 1) {
                     const svcSel = document.getElementById('filter-service');
-                    const stSel = document.getElementById('filter-status');
 
                     if (type === 'ALL') {
-                        if (stSel) stSel.value = 'ALL';
                         if (svcSel) svcSel.value = 'all';
-                        this.renderJobs();
+                        this.renderJobs(allJobs);
                         this.showToast(`📊 แสดงคำสั่งซื้อทั้งหมดในระบบ (${allJobs.length} รายการ)`);
                     } else if (type === 'TODAY') {
                         if (svcSel) svcSel.value = 'all';
@@ -2799,11 +2807,9 @@ const app = {
                                 });
                             }
                         }
-                        if (stSel) stSel.value = 'ALL';
                         this.renderJobs(todayList);
                         this.showToast(`📅 แสดงคำสั่งซื้อที่รับเข้าวันนี้ (${todayList.length} รายการ)`);
                     } else if (type === 'STEP1_QUEUE' || type === 'REMAINING') {
-                        if (stSel) stSel.value = 'STEP1_QUEUE';
                         if (svcSel) svcSel.value = 'all';
                         this.renderJobs();
                         this.showToast('📥 แสดงเฉพาะคิวงานที่ยังคงเหลือใน Step 1 (รอส่งต่อ)');
@@ -2817,22 +2823,18 @@ const app = {
                             const sla = this.calculateJobSLA(j, 1);
                             return sla && sla.status === 'OVERDUE';
                         });
-                        if (stSel) stSel.value = 'ALL';
                         this.renderJobs(overdueList);
                         this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA (${overdueList.length} รายการ)`);
                     } else if (type === 'quick') {
                         const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'quick');
-                        if (stSel) stSel.value = 'ALL';
                         this.renderJobs(list);
                         this.showToast(`⚡ กรองเฉพาะงาน Quick Services (${list.length} รายการ)`);
                     } else if (type === 'renovate') {
                         const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'renovate');
-                        if (stSel) stSel.value = 'ALL';
                         this.renderJobs(list);
                         this.showToast(`🔨 กรองเฉพาะงาน Renovate (${list.length} รายการ)`);
                     } else if (type === 'ma') {
                         const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'ma');
-                        if (stSel) stSel.value = 'ALL';
                         this.renderJobs(list);
                         this.showToast(`🔧 กรองเฉพาะงาน MA & Maintenance (${list.length} รายการ)`);
                     } else if (type === 'transferred') {
@@ -2842,7 +2844,6 @@ const app = {
                             (DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id) ||
                             (j.status !== 'DRAFT' && j.status !== 'NEW' && j.status !== 'Draft' && j.status !== 'New')
                         );
-                        if (stSel) stSel.value = 'ALL';
                         this.renderJobs(list);
                         this.showToast(`🚀 แสดงงานที่ส่งต่อไป Step 2+ / Step 4 แล้ว (${list.length} รายการ)`);
                     }

@@ -177,7 +177,7 @@ export const sysLoginLogStore: SysLoginLog[] = [];
 function seedUsers() {
   sysUserStore.length = 0;
   const users: Omit<SysUser, 'id'>[] = [
-    { user_code: 'USR-001', username: 'admin',      email: 'isarachootip@gmail.com', full_name: 'ผู้ดูแลระบบ',       role: UserRole.ADMIN,          password_hash: hashPassword('Admin@1234'),  is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
+    { user_code: 'USR-001', username: 'admin',      email: 'admin@pmt.com',      full_name: 'ผู้ดูแลระบบ',       role: UserRole.ADMIN,          password_hash: hashPassword('Admin@1234'),  is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
     { user_code: 'USR-001B', username: 'isarachootip@gmail.com', email: 'isarachootip@gmail.com', full_name: 'Isara Chootip', role: UserRole.ADMIN, password_hash: hashPassword('Admin@1234'), is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
     { user_code: 'USR-002', username: 'pm.somrak',  email: 'somrak@pmt.local',   full_name: 'สมรัก บริหารเก่ง',  role: UserRole.ADMIN,          password_hash: hashPassword('Admin@1234'),  is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
     { user_code: 'USR-003', username: 'ae.somchai', email: 'somchai@pmt.local',  full_name: 'สมชาย ขยันทำ',      role: UserRole.AE,             password_hash: hashPassword('Ae@1234'),     is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
