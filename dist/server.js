@@ -1377,7 +1377,7 @@ app.patch('/api/v1/jobs/:id', requireAuth, (req, res) => {
     if (!job) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
     }
-    const { special_instructions, additional_notes, assigned_tech, plan_date, status, overall_progress, photos, pmt_accepted, pmt_accepted_at, job_type, step_timestamps } = req.body;
+    const { special_instructions, additional_notes, assigned_tech, plan_date, status, overall_progress, photos, pmt_accepted, pmt_accepted_at, job_type, step_timestamps, step3_confirmed } = req.body;
     if (special_instructions !== undefined)
         job.special_instructions = special_instructions;
     if (additional_notes !== undefined)
@@ -1400,6 +1400,8 @@ app.patch('/api/v1/jobs/:id', requireAuth, (req, res) => {
         job.job_type = job_type;
     if (step_timestamps !== undefined)
         job.step_timestamps = step_timestamps;
+    if (step3_confirmed !== undefined)
+        job.step3_confirmed = step3_confirmed;
     return res.json({
         success: true,
         data: {
@@ -1410,7 +1412,8 @@ app.patch('/api/v1/jobs/:id', requireAuth, (req, res) => {
             status: job.status,
             pmt_accepted: job.pmt_accepted,
             job_type: job.job_type,
-            step_timestamps: job.step_timestamps
+            step_timestamps: job.step_timestamps,
+            step3_confirmed: job.step3_confirmed
         },
         message: 'บันทึกข้อมูลงานเรียบร้อยแล้ว'
     });

@@ -4283,12 +4283,103 @@
                         <i class="ph ph-x text-sm"></i>
                         <span>ยกเลิก / ปิด</span>
                     </button>
-                    <button type="submit" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer transition hover:scale-[1.02]">
-                        <i class="ph ph-upload-simple text-sm"></i>
-                        <span>บันทึกแบบแปลน</span>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-muted-foreground hidden sm:inline">บันทึกแบบได้หลายครั้งใน Step 2</span>
+                        <button type="submit" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer transition hover:scale-[1.02]">
+                            <i class="ph ph-upload-simple text-sm"></i>
+                            <span>บันทึกแบบแปลน</span>
+                        </button>
+                    </div>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CONFIRM PROCEED FROM STEP 2 (DESIGN) TO STEP 3 (BOQ) -->
+    <div id="modal-confirm-proceed-boq" onclick="if(event.target === this) app.hideModal('modal-confirm-proceed-boq')" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-confirm-proceed-boq-content">
+            <!-- Header -->
+            <div class="p-4 sm:p-5 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg">
+                        <i class="ph ph-check-circle"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-sm text-foreground">ยืนยันจบขั้นตอน Design & ย้ายไป Step 3</h3>
+                        <p class="text-[10px] text-muted-foreground">ส่งต่องานเข้าสู่ขั้นตอนจัดทำ BOQ และประมาณการราคา</p>
+                    </div>
+                </div>
+                <button type="button" onclick="app.hideModal('modal-confirm-proceed-boq')" class="text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-lg hover:bg-muted transition cursor-pointer flex items-center gap-1 border border-border/60 hover:border-border" title="ปิด (Esc)">
+                    <span class="text-[11px] font-semibold">ปิด (Esc)</span>
+                    <i class="ph ph-x text-base font-bold"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-5 space-y-4 overflow-y-auto flex-1 min-h-0 text-xs">
+                <!-- Question Banner: ตามที่ผู้ใช้ระบุ: เมื่อกดแล้วให้ถามยืนยันอีกครั้งว่าคุณจบขั้นตอน Design แล้ว เพื่อย้ายไป สร้าง BOQ -->
+                <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 text-lg">
+                        <i class="ph ph-question"></i>
+                    </div>
+                    <div class="space-y-1">
+                        <div class="text-sm font-bold text-foreground font-display">คุณจบขั้นตอน Design แล้ว เพื่อย้ายไปสร้าง BOQ ใช่หรือไม่?</div>
+                        <div class="text-[11px] text-muted-foreground leading-relaxed">
+                            หากยังมีงานย่อย หรือโซนห้องอื่นที่ต้องเพิ่มแบบแปลน สามารถกด "ยังไม่จบขั้นตอน" เพื่อบันทึกแบบ Design เพิ่มเติมใน Step 2 ได้ตลอดเวลา
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Job Overview Card -->
+                <div class="p-3.5 rounded-xl bg-muted/40 border border-border space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] text-muted-foreground">รหัสโครงการ:</span>
+                        <span id="confirm-boq-job-id" class="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs">JOB202609002</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] text-muted-foreground">ลูกค้า:</span>
+                        <span id="confirm-boq-customer" class="font-medium text-foreground">คุณสมศรี สุขใจ</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] text-muted-foreground">ประเภทบริการ:</span>
+                        <span id="confirm-boq-service" class="font-medium text-foreground truncate max-w-[240px]">Renovate ห้องครัว Built-in</span>
+                    </div>
+                </div>
+
+                <!-- Attached Blueprints Summary -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="font-semibold text-foreground flex items-center gap-1.5">
+                            <i class="ph ph-blueprint text-indigo-500"></i>
+                            <span>แบบแปลนที่บันทึกแล้วใน Step 2 (<span id="confirm-boq-blueprint-count">0</span> ฉบับ)</span>
+                        </label>
+                        <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">พร้อมส่งต่อทำ BOQ</span>
+                    </div>
+                    <div id="confirm-boq-blueprint-list" class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+                </div>
+
+                <!-- Info Notice -->
+                <div class="text-[11px] text-muted-foreground bg-purple-500/5 p-3 rounded-xl border border-purple-500/20 flex items-start gap-2">
+                    <i class="ph ph-info text-purple-500 text-sm mt-0.5 shrink-0"></i>
+                    <div>
+                        เมื่อกดยืนยัน งานจะถูกย้ายเข้าสู่ <strong>Step 3: นำ BOQ เข้าระบบ</strong> เพื่อให้ฝ่ายประเมินราคาจัดทำรายการวัสดุและค่าแรงต่อไป
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="p-4 border-t border-border bg-card/95 backdrop-blur-sm shrink-0 flex items-center justify-between gap-3">
+                <button type="button" onclick="app.hideModal('modal-confirm-proceed-boq')" class="btn-artifact-secondary px-4 py-2.5 rounded-xl text-xs font-semibold cursor-pointer text-muted-foreground hover:text-foreground flex items-center gap-1.5">
+                    <i class="ph ph-arrow-counter-clockwise text-sm"></i>
+                    <span>ยังไม่จบ (เพิ่มแบบต่อใน Step 2)</span>
+                </button>
+                <button type="button" id="confirm-proceed-boq-btn" onclick="app.executeProceedToBOQ()" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition hover:scale-[1.02]">
+                    <i class="ph ph-check-circle text-sm"></i>
+                    <span>ยืนยันจบ Design & ย้ายไปสร้าง BOQ ➔</span>
+                </button>
+            </div>
         </div>
     </div>
 

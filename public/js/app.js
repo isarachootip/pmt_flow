@@ -368,11 +368,11 @@ const app = {
                         name: 'นำBOQ เข้าระบบ & ประมาณการราคา',
                         category: 'Step 3: นำBOQ เข้าระบบ (BOQ Ingestion)',
                         timestamp: ts.step3_boq_at || ts.step4_boq_at || (boqCount > 0 ? '2026-09-04T11:05:12.000Z' : null),
-                        isDone: isStep3Skipped ? true : !!(ts.step3_boq_at || ts.step4_boq_at || boqCount > 0),
+                        isDone: isStep3Skipped ? true : (boqCount > 0 || !!ts.step4_ticket_at),
                         isSkipped: isStep3Skipped,
-                        statusLabel: isStep3Skipped ? '⚡ ข้ามขั้นตอน (Quick Service)' : ((ts.step3_boq_at || ts.step4_boq_at || boqCount > 0) ? `บันทึกแล้ว (${boqCount} รายการ)` : 'รอจัดทำ BOQ'),
+                        statusLabel: isStep3Skipped ? '⚡ ข้ามขั้นตอน (Quick Service)' : (boqCount > 0 ? `บันทึกแล้ว (${boqCount} รายการ)` : ((job.step3_confirmed || ts.step3_boq_at) ? 'รอจัดทำ BOQ' : 'รอยืนยันส่งต่อจาก Step 2')),
                         reference: isStep3Skipped ? 'ยกเว้นการจัดทำ BOQ' : (boqCount > 0 ? `ยอดรวม BOQ: ${(Number(job.boq_grand_total || 0)).toLocaleString()} ฿` : 'ยังไม่มี BOQ'),
-                        detail: isStep3Skipped ? 'งานประเภท Quick Service ได้รับการยกเว้นไม่ต้องถอดแบบประมาณการ BOQ' : (boqCount > 0 ? `รายการวัสดุและค่าแรง ${boqCount} รายการ (บันทึกบน PMT)` : 'รอจัดทำหรือนำเข้าไฟล์ BOQ (Excel / vFIX)')
+                        detail: isStep3Skipped ? 'งานประเภท Quick Service ได้รับการยกเว้นไม่ต้องถอดแบบประมาณการ BOQ' : (boqCount > 0 ? `รายการวัสดุและค่าแรง ${boqCount} รายการ (บันทึกบน PMT)` : ((job.step3_confirmed || ts.step3_boq_at) ? 'รอจัดทำหรือนำเข้าไฟล์ BOQ (Excel / vFIX)' : 'รอสถาปนิก/วิศวกรยืนยันจบขั้นตอน Design ใน Step 2'))
                     },
                     {
                         stepNumber: 4,
@@ -1187,7 +1187,7 @@ const app = {
                             if (!j.step_timestamps.step4_boq_at) {
                                 j.step_timestamps.step4_boq_at = j.step_timestamps.step3_boq_at;
                             }
-                        } else if (!hasBoq && j.status === 'DRAFT') {
+                        } else if (!hasBoq && !j.step3_confirmed) {
                             delete j.step_timestamps.step3_boq_at;
                             delete j.step_timestamps.step4_boq_at;
                         }
@@ -2728,36 +2728,100 @@ const app = {
                 return this.acceptJobToPMT(jobId);
             },
 
-            proceedJobToBOQ(jobId) {
+            openConfirmProceedToBOQ(jobId) {
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return;
 
+                this.state.pendingBOQJobId = jobId;
+
+                const idEl = document.getElementById('confirm-boq-job-id');
+                const custEl = document.getElementById('confirm-boq-customer');
+                const svcEl = document.getElementById('confirm-boq-service');
+                const countEl = document.getElementById('confirm-boq-blueprint-count');
+                const listEl = document.getElementById('confirm-boq-blueprint-list');
+                const btnConfirm = document.getElementById('confirm-proceed-boq-btn');
+
+                if (idEl) idEl.innerText = job.id;
+                if (custEl) custEl.innerText = job.customer;
+                if (svcEl) svcEl.innerText = job.service;
+
+                const jobBps = (DB.blueprints || []).filter(b => b.jobId === jobId);
+                if (countEl) countEl.innerText = jobBps.length;
+
+                if (listEl) {
+                    if (jobBps.length === 0) {
+                        listEl.innerHTML = `
+                            <div class="text-[11px] text-amber-500 bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20 flex items-center gap-1.5">
+                                <i class="ph ph-warning"></i>
+                                <span>ยังไม่มีแบบแปลนที่แนบสำหรับงานนี้ (แนะนำให้แนบแบบแปลนอย่างน้อย 1 ฉบับก่อนส่งไปทำ BOQ)</span>
+                            </div>
+                        `;
+                    } else {
+                        listEl.innerHTML = jobBps.map((b, idx) => `
+                            <div class="flex items-center justify-between p-2 rounded-lg bg-card border border-border text-[11px]">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span class="w-5 h-5 rounded bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-mono font-bold flex items-center justify-center text-[10px] shrink-0">${idx + 1}</span>
+                                    <div class="min-w-0">
+                                        <div class="font-semibold text-foreground truncate">${b.zone || 'งานติดตั้ง'}: <span class="font-normal text-muted-foreground">${b.filename}</span></div>
+                                        <div class="text-[9px] text-muted-foreground font-mono">${b.version || 'v1'} • ${b.size || '2.5 MB'} • ${b.designer || 'Designer'}</div>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shrink-0 font-medium">แนบแล้ว</span>
+                            </div>
+                        `).join('');
+                    }
+                }
+
+                if (btnConfirm) {
+                    btnConfirm.onclick = () => this.executeProceedToBOQ(jobId);
+                }
+
+                this.showModal('modal-confirm-proceed-boq');
+            },
+
+            executeProceedToBOQ(jobId) {
+                const targetJobId = jobId || this.state.pendingBOQJobId;
+                const job = (DB.jobs || []).find(j => j.id === targetJobId);
+                if (!job) return;
+
+                const nowIso = new Date().toISOString();
                 if (!job.step_timestamps) job.step_timestamps = {};
-                job.step_timestamps.step3_boq_at = new Date().toISOString();
+                job.step3_confirmed = true;
+                job.step_timestamps.step3_boq_at = nowIso;
                 job.progress = Math.max(job.progress || 0, 45);
-                
-                this.recordStepTimestamp(job.id, 'step3_boq_at', job.step_timestamps.step3_boq_at, 'ส่งต่องานจาก Step 2 เข้าสู่คิวทำ BOQ (Step 3)');
+
+                const count = (DB.blueprints || []).filter(b => b.jobId === targetJobId).length;
+                this.recordStepTimestamp(job.id, 'step3_boq_at', nowIso, `ยืนยันจบขั้นตอน Design (${count} แบบ) และย้ายเข้าสู่คิวสร้าง BOQ (Step 3)`);
                 this.persistJobs();
 
                 // Sync with backend server
-                fetch(`/api/v1/jobs/${jobId}`, {
+                fetch(`/api/v1/jobs/${targetJobId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         overall_progress: job.progress,
+                        step3_confirmed: true,
                         step_timestamps: job.step_timestamps
                     })
                 }).catch(() => {});
 
+                this.hideModal('modal-confirm-proceed-boq');
                 this.updateStepBadges();
-                this.showToast(`✅ ย้าย Order [${job.id}] เข้าสู่คิว "Step 3: นำBOQ เข้าระบบ" สำเร็จ`);
+                this.showToast(`🎉 ยืนยันจบขั้นตอน Design สำหรับ [${job.id}] เรียบร้อย! ย้ายเข้าสู่ Step 3 (สร้าง BOQ)`);
 
                 if (this.state.currentView === 'blueprints') {
                     this.renderBlueprints();
                 }
+                if (this.state.currentView === 'boq') {
+                    this.renderBOQPage();
+                }
                 if (this.state.currentView === 'job-detail') {
                     this.renderJobDetail();
                 }
+            },
+
+            proceedJobToBOQ(jobId) {
+                this.openConfirmProceedToBOQ(jobId);
             },
 
             proceedJobToTickets(jobId) {
@@ -3938,7 +4002,7 @@ const app = {
                             const hasBps = jBps.length > 0;
                             const stageHtml = this.renderStageWithSLA(j, 2);
 
-                            const isSentToBOQ = !!(j.step_timestamps && j.step_timestamps.step3_boq_at);
+                            const isSentToBOQ = !!(j.step3_confirmed || (j.boq_items && j.boq_items.length > 0));
                             const actionButtons = hasBps ? `
                                 <div class="flex items-center justify-end gap-1.5">
                                     <button onclick="event.stopPropagation(); app.openUploadBlueprintModal('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted text-foreground inline-flex items-center gap-1 cursor-pointer" title="ดูหรือเพิ่มแบบแปลน">
@@ -3951,9 +4015,9 @@ const app = {
                                         <span>อยู่ในคิว Step 3</span>
                                     </button>
                                     ` : `
-                                    <button onclick="event.stopPropagation(); app.proceedJobToBOQ('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ส่งต่อไปยัง Step 3 ทำ BOQ">
-                                        <span>ส่งต่อทำ BOQ (ไป Step 3)</span>
-                                        <i class="ph ph-arrow-right-bold text-xs"></i>
+                                    <button onclick="event.stopPropagation(); app.openConfirmProceedToBOQ('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ยืนยันจบขั้นตอน Design เพื่อย้ายไปสร้าง BOQ">
+                                        <i class="ph ph-check-circle text-xs"></i>
+                                        <span>ยืนยันย้ายไป Step 3</span>
                                     </button>
                                     `}
                                 </div>
@@ -4120,17 +4184,24 @@ const app = {
                                                 <td class="py-3 px-4 text-muted-foreground">
                                                     <div class="flex items-center gap-1.5">
                                                         <i class="ph ph-wrench text-muted-foreground"></i>
-                                                        <span class="text-foreground font-medium">${job.tech || 'ยังไม่ระบุ'}</span>
+                                        <span class="text-foreground font-medium">${job.tech || 'ยังไม่ระบุ'}</span>
                                                     </div>
                                                 </td>
                                                 <td class="py-3 px-4 text-center whitespace-nowrap">
                                                      <div class="flex items-center justify-center gap-2">
-                                                         ${hasBps ? `
-                                                         <button type="button" onclick="app.openBOQForJob('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ไปหน้า Step 3: นำ BOQ เข้าระบบ">
-                                                             <i class="ph ph-receipt"></i>
-                                                             <span>ไปทำ BOQ (Step 3) ➔</span>
-                                                         </button>
-                                                         ` : ''}
+                                                         ${hasBps ? (
+                                                            (job.step3_confirmed || (job.boq_items && job.boq_items.length > 0)) ? `
+                                                            <button type="button" onclick="app.openBOQForJob('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ไปหน้า Step 3: นำ BOQ เข้าระบบ">
+                                                                <i class="ph ph-receipt"></i>
+                                                                <span>ไปทำ BOQ (Step 3) ➔</span>
+                                                            </button>
+                                                            ` : `
+                                                            <button type="button" onclick="app.openConfirmProceedToBOQ('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ยืนยันจบขั้นตอน Design เพื่อย้ายไปสร้าง BOQ">
+                                                                <i class="ph ph-check-circle"></i>
+                                                                <span>ยืนยันย้ายไป Step 3</span>
+                                                            </button>
+                                                            `
+                                                        ) : ''}
                                                          <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="${hasBps ? 'บันทึกแบบห้องอื่น / งานย่อยถัดไป' : 'บันทึกแบบแปลนแรกสำหรับงานนี้'}">
                                                              <i class="ph ph-plus-circle font-bold text-sm"></i>
                                                              <span>${hasBps ? '+ เพิ่มงานย่อย/ห้อง' : '+ บันทึก Design'}</span>
@@ -4211,12 +4282,19 @@ const app = {
                                 `}
 
                                 <div class="pt-2 border-t border-border flex items-center justify-end gap-2 flex-wrap">
-                                    ${hasBps ? `
-                                    <button type="button" onclick="app.openBOQForJob('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="ไปหน้า Step 3: นำ BOQ เข้าระบบ">
-                                        <i class="ph ph-receipt"></i>
-                                        <span>ไปทำ BOQ (Step 3) ➔</span>
-                                    </button>
-                                    ` : ''}
+                                    ${hasBps ? (
+                                        (job.step3_confirmed || (job.boq_items && job.boq_items.length > 0)) ? `
+                                        <button type="button" onclick="app.openBOQForJob('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="ไปหน้า Step 3: นำ BOQ เข้าระบบ">
+                                            <i class="ph ph-receipt"></i>
+                                            <span>ไปทำ BOQ (Step 3) ➔</span>
+                                        </button>
+                                        ` : `
+                                        <button type="button" onclick="app.openConfirmProceedToBOQ('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="ยืนยันจบขั้นตอน Design เพื่อย้ายไปสร้าง BOQ">
+                                            <i class="ph ph-check-circle"></i>
+                                            <span>ยืนยันย้ายไป Step 3</span>
+                                        </button>
+                                        `
+                                    ) : ''}
                                     <button type="button" onclick="app.openUploadBlueprintModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="${hasBps ? 'บันทึกแบบห้องอื่น / งานย่อยถัดไป' : 'บันทึกแบบแปลนแรกสำหรับงานนี้'}">
                                         <i class="ph ph-plus-circle font-bold"></i>
                                         <span>${hasBps ? '+ เพิ่มงานย่อย/ห้อง' : '+ บันทึก Design'}</span>
@@ -4771,11 +4849,12 @@ const app = {
                     if (job.status === 'DRAFT') {
                         job.status = 'IN_PROGRESS';
                     }
-                    job.progress = Math.max(job.progress || 0, 45);
+                    job.progress = Math.max(job.progress || 0, 35);
 
                     if (!job.step_timestamps) job.step_timestamps = {};
-                    job.step_timestamps.step3_boq_at = newBp.recorded_at;
-                    this.recordStepTimestamp(jobId, 'step3_boq_at', newBp.recorded_at, 'บันทึกแบบ Design และย้ายเข้าสู่ State 3 (นำ BOQ เข้าระบบ)');
+                    if (!job.step_timestamps.step2_design_at) {
+                        job.step_timestamps.step2_design_at = newBp.recorded_at;
+                    }
                 }
                 this.persistJobs();
 
@@ -4789,7 +4868,7 @@ const app = {
                     body: JSON.stringify({
                         status: job ? job.status : 'IN_PROGRESS',
                         pmt_accepted: true,
-                        overall_progress: job ? job.progress : 45,
+                        overall_progress: job ? job.progress : 35,
                         step_timestamps: job ? job.step_timestamps : undefined
                     })
                 }).catch(() => {});
@@ -4798,9 +4877,8 @@ const app = {
 
                 this.clearBlueprintSelectedFile();
                 this.hideModal('modal-upload-blueprint');
-                this.showToast(`✅ บันทึกแบบแปลนโซน "${zone}" (${filename}) สำหรับ ${jobId} สำเร็จ และย้ายเข้าสู่ State 3 เรียบร้อย`);
+                this.showToast(`✅ บันทึกแบบแปลนโซน "${zone}" (${filename}) เรียบร้อย (สามารถบันทึกเพิ่มได้ หรือกดยืนยันย้ายไปสร้าง BOQ)`);
                 if (this.state.currentView === 'blueprints') {
-                    this.switchBlueprintTab('library');
                     this.renderBlueprints();
                 }
                 if (this.state.currentView === 'job-detail') {
@@ -7514,14 +7592,9 @@ const app = {
                     if (boqStatusFilter === 'STEP3_QUEUE') {
                         tableJobs = tableJobs.filter(j => 
                             j.pmt_accepted &&
-                            ((j.step_timestamps && j.step_timestamps.step3_boq_at) ||
-                             (DB.blueprints || []).some(b => b.jobId === j.id) ||
-                             j.blueprint_id) &&
+                            (j.step3_confirmed || (j.step_timestamps && j.step_timestamps.step3_boq_at) || (j.boq_items && j.boq_items.length > 0)) &&
                             (!j.boq_items || j.boq_items.length === 0)
                         );
-                        if (tableJobs.length === 0) {
-                            tableJobs = allJobs.filter(j => j.pmt_accepted && (!j.boq_items || j.boq_items.length === 0));
-                        }
                     } else if (boqStatusFilter === 'NO_BOQ') {
                         tableJobs = tableJobs.filter(j => 
                             (!j.boq_items || j.boq_items.length === 0)
