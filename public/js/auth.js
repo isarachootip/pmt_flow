@@ -387,6 +387,42 @@ window.auth =  {
     }
     window.roleBadge = roleBadge;
 
+    // ─── DATE FORMAT HELPER (DD/MM/YYYY) ──────────────────────
+    function formatDateDMY(d) {
+        if (!d) return '-';
+        const date = (typeof d === 'object' && typeof d.getDate === 'function') ? d : new Date(d);
+        if (!isNaN(date.getTime())) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+        const str = String(d).trim();
+        const datePart = str.split('T')[0];
+        const parts = datePart.split('-');
+        if (parts.length === 3 && parts[0].length === 4) {
+            return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+        }
+        return str;
+    }
+    function formatDateTimeDMY(d, includeSeconds = false) {
+        if (!d) return '-';
+        const date = (d instanceof Date) ? d : new Date(d);
+        if (isNaN(date.getTime())) return String(d);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const mins = String(date.getMinutes()).padStart(2, '0');
+        if (includeSeconds) {
+            const secs = String(date.getSeconds()).padStart(2, '0');
+            return `${day}/${month}/${year} ${hours}:${mins}:${secs}`;
+        }
+        return `${day}/${month}/${year} ${hours}:${mins}`;
+    }
+    window.formatDateDMY = formatDateDMY;
+    window.formatDateTimeDMY = formatDateTimeDMY;
+
     window.auth = window.auth;
     const auth = window.auth;
     window.logout = () => (window.handleLogout ? window.handleLogout() : window.auth.logout());

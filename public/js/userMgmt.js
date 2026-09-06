@@ -215,9 +215,7 @@ window.userMgmt =  {
                 };
                 const avatarCls = avatarBgMap[u.role] || 'bg-muted text-muted-foreground';
                 const initial = (u.full_name || u.username || 'U').trim().charAt(0).toUpperCase();
-                const lastLogin = u.last_login_at ? new Date(u.last_login_at).toLocaleString('th-TH', {
-                    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                }) : 'ยังไม่เคยเข้าสู่ระบบ';
+                const lastLogin = u.last_login_at ? (window.formatDateTimeDMY ? window.formatDateTimeDMY(u.last_login_at) : new Date(u.last_login_at).toLocaleDateString('en-GB') + ' ' + new Date(u.last_login_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })) : 'ยังไม่เคยเข้าสู่ระบบ';
 
                 return `
                     <tr class="hover:bg-muted/30 transition-colors ${!u.is_active ? 'opacity-50' : ''}">
@@ -718,9 +716,7 @@ window.userMgmt =  {
             tbody.innerHTML = this.filteredLogs.map(log => {
                 const isSuccess = log.success === true || log.status === 'SUCCESS';
                 const dateVal = log.created_at || log.timestamp;
-                const time = dateVal ? new Date(dateVal).toLocaleString('th-TH', {
-                    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
-                }) : '-';
+                const time = dateVal ? (window.formatDateTimeDMY ? window.formatDateTimeDMY(dateVal, true) : new Date(dateVal).toLocaleDateString('en-GB') + ' ' + new Date(dateVal).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })) : '-';
                 const ipVal = log.ip_address || log.ip || '-';
                 const reasonVal = log.fail_reason || log.reason || '';
 

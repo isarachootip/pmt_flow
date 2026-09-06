@@ -14,3 +14,7 @@
   - 4 Roles: `ADMIN`, `AE`, `QC`, `CONTACT_CENTER` with consistent `window.roleBadge(role)` UI.
   - User CRUD, Password Reset modal, Soft delete (is_active toggle), and Login Audit Logs.
   - Resilience: Always provide fallback seed data and isolated try/catch error boundaries.
+
+## 📅 DATE FORMAT STANDARD: DD/MM/YYYY
+- **Mandatory Across All Views**: ทุกหน้าจอ (All Screens & Views) ต้องแสดงผลวันที่ในรูปแบบ **`DD/MM/YYYY`** (เช่น `07/09/2026`) หากมีเวลาประกอบให้ใช้ `DD/MM/YYYY HH:mm` หรือ `DD/MM/YYYY HH:mm:ss`.
+- **Prohibited Formats**: ห้ามแสดงผลเป็น `YYYY-MM-DD` หรือ `MM/DD/YYYY` บน UI ที่ผู้ใช้มองเห็นเด็ดขาด.

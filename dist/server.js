@@ -1996,35 +1996,50 @@ app.post('/api/v1/qc/bookings/sync-all', requireAuth, async (req, res) => {
 // =============================================================================
 // DAILY TECHNICIAN WORK LOGS API (บันทึกงานช่างประจำวัน ตามแผนงาน Gantt)
 // =============================================================================
+// GET /api/v1/daily-logs — Get all daily work logs across all jobs or filtered
+app.get('/api/v1/daily-logs', requireAuth, async (req, res) => {
+    const { jobId, taskId } = req.query;
+    let logs = [...exports.coreDailyWorkLogStore];
+    if (jobId) {
+        logs = logs.filter(l => String(l.job_id) === String(jobId) || l.job_no === String(jobId));
+    }
+    if (taskId) {
+        logs = logs.filter(l => String(l.task_id) === String(taskId));
+    }
+    return res.json({ success: true, total: logs.length, data: logs });
+});
 // GET /api/v1/jobs/:id/daily-logs — Get all daily work logs for a job
 app.get('/api/v1/jobs/:id/daily-logs', requireAuth, async (req, res) => {
     const { id } = req.params;
     const logs = exports.coreDailyWorkLogStore.filter(l => String(l.job_id) === String(id) || l.job_no === id);
     return res.json({ success: true, total: logs.length, data: logs });
 });
-// POST /api/v1/jobs/:id/daily-logs — Create new daily work log
-app.post('/api/v1/jobs/:id/daily-logs', requireAuth, async (req, res) => {
-    const { id } = req.params;
-    const payload = req.body;
+// Helper to create and process daily work log
+function handleCreateDailyLog(payload, jobIdParam) {
+    const id = jobIdParam || payload.job_id || payload.jobId || 'JOB202609002';
     const newLog = {
         id: payload.id || `LOG_${Date.now()}`,
         job_id: id,
-        job_no: payload.job_no || (id.startsWith('JOB') ? id : `JOB20260900${id}`),
-        task_id: payload.task_id || `T_${id}_1`,
-        task_name: payload.task_name || 'งานบริการติดตั้ง',
-        log_date: payload.log_date || new Date().toISOString().slice(0, 10),
-        day_number: Number(payload.day_number) || 1,
-        total_days: Number(payload.total_days) || 1,
+        job_no: payload.job_no || (String(id).startsWith('JOB') ? String(id) : `JOB20260900${id}`),
+        task_id: payload.task_id || payload.taskId || `T_${id}_1`,
+        task_name: payload.task_name || payload.taskName || 'งานบริการติดตั้ง',
+        log_date: payload.log_date || payload.logDate || new Date().toISOString().slice(0, 10),
+        start_time: payload.start_time || payload.startTime || '08:30',
+        end_time: payload.end_time || payload.endTime || '17:00',
+        work_hours: payload.work_hours || payload.workHours || '8 ชม. 30 นาที',
+        day_number: Number(payload.day_number || payload.dayNumber) || 1,
+        total_days: Number(payload.total_days || payload.totalDays) || 1,
         technician: payload.technician || 'Team B (ประเสริฐ)',
-        recorded_by: payload.recorded_by || 'ช่างหน้างาน',
-        reporter_role: payload.reporter_role || 'TECH',
-        progress_percent: Number(payload.progress_percent) || 0,
-        work_description: payload.work_description || '',
+        recorded_by: payload.recorded_by || payload.recordedBy || 'ช่างหน้างาน',
+        reporter_role: payload.reporter_role || payload.reporterRole || 'TECH',
+        progress_percent: Number(payload.progress_percent !== undefined ? payload.progress_percent : payload.progressPercent) || 0,
+        work_description: payload.work_description || payload.workDescription || '',
+        additional_details: payload.additional_details || payload.additionalDetails || '',
         issues: payload.issues || '',
-        materials_used: payload.materials_used || '',
+        materials_used: payload.materials_used || payload.materialsUsed || '',
         photos: Array.isArray(payload.photos) ? payload.photos : [],
-        is_completed: Boolean(payload.is_completed || payload.progress_percent >= 100),
-        created_at: new Date().toISOString()
+        is_completed: Boolean(payload.is_completed || payload.isCompleted || (payload.progress_percent >= 100) || (payload.progressPercent >= 100)),
+        created_at: payload.created_at || payload.createdAt || new Date().toISOString()
     };
     exports.coreDailyWorkLogStore.push(newLog);
     // If completed, update task and job status to QC_PENDING
@@ -2047,6 +2062,23 @@ app.post('/api/v1/jobs/:id/daily-logs', requireAuth, async (req, res) => {
             booking.confirmed_by = newLog.recorded_by;
         }
     }
+    return newLog;
+}
+// POST /api/v1/jobs/:id/daily-logs — Create new daily work log for job
+app.post('/api/v1/jobs/:id/daily-logs', requireAuth, async (req, res) => {
+    const { id } = req.params;
+    const newLog = handleCreateDailyLog(req.body, id);
+    return res.status(201).json({
+        success: true,
+        message: newLog.is_completed
+            ? 'ช่างบันทึกสำเร็จ 100%! ส่งมอบงานเข้าคิวตรวจคุณภาพ QC ล่วงหน้าเรียบร้อย'
+            : 'บันทึกความคืบหน้างานช่างประจำวันเรียบร้อย',
+        data: newLog
+    });
+});
+// POST /api/v1/daily-logs — Create new daily work log
+app.post('/api/v1/daily-logs', requireAuth, async (req, res) => {
+    const newLog = handleCreateDailyLog(req.body);
     return res.status(201).json({
         success: true,
         message: newLog.is_completed
