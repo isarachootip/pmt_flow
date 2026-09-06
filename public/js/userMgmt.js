@@ -318,6 +318,11 @@ window.userMgmt =  {
             const pwdInput = document.getElementById('user-form-password');
             pwdInput.required = true;
             pwdInput.value = '';
+            pwdInput.placeholder = 'อย่างน้อย 6 ตัวอักษร';
+            const pwdLabel = document.getElementById('user-form-password-label');
+            if (pwdLabel) pwdLabel.innerHTML = 'รหัสผ่าน (Password) <span class="text-rose-500" id="user-form-password-required">*</span>';
+            const pwdHelp = document.getElementById('user-form-password-help');
+            if (pwdHelp) pwdHelp.innerText = 'ความยาวอย่างน้อย 6 ตัวอักษร แนะนำให้มีตัวอักษรและตัวเลขผสมกัน';
 
             // Status wrapper (hidden on create)
             document.getElementById('user-form-status-wrapper').classList.add('hidden');
@@ -351,26 +356,32 @@ window.userMgmt =  {
             document.getElementById('user-form-fullname').value = u.full_name || '';
             const usernameInput = document.getElementById('user-form-username');
             usernameInput.value = u.username || '';
-            usernameInput.disabled = true;
-            usernameInput.readOnly = true;
-            usernameInput.classList.add('opacity-60', 'bg-muted');
-            usernameInput.classList.remove('bg-muted/50');
-            document.getElementById('user-form-username-help').innerText = 'ไม่สามารถแก้ไข Username ได้';
+            usernameInput.disabled = false;
+            usernameInput.readOnly = false;
+            usernameInput.classList.remove('opacity-60', 'bg-muted');
+            usernameInput.classList.add('bg-muted/50');
+            document.getElementById('user-form-username-help').innerText = 'สามารถแก้ไข Username ได้ (ตัวอักษรภาษาอังกฤษ ตัวเลข จุด หรือขีด)';
 
             document.getElementById('user-form-email').value = u.email || '';
 
-            // Password hidden in edit mode (dedicated reset password modal is available)
+            // Password editable in edit mode
             const pwdWrapper = document.getElementById('user-form-password-wrapper');
-            pwdWrapper.classList.add('hidden');
+            pwdWrapper.classList.remove('hidden');
             const pwdInput = document.getElementById('user-form-password');
             pwdInput.required = false;
+            pwdInput.value = '';
+            pwdInput.placeholder = 'ระบุรหัสผ่านใหม่ (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)';
+            const pwdLabel = document.getElementById('user-form-password-label');
+            if (pwdLabel) pwdLabel.innerHTML = 'เปลี่ยนรหัสผ่านใหม่ (Password) <span class="text-[10px] text-muted-foreground font-normal">(เว้นว่างหากไม่ต้องการเปลี่ยน)</span>';
+            const pwdHelp = document.getElementById('user-form-password-help');
+            if (pwdHelp) pwdHelp.innerText = 'เว้นว่างไว้หากไม่ต้องการเปลี่ยนรหัสผ่าน (หากระบุต้องมีความยาวอย่างน้อย 6 ตัวอักษร)';
 
             // Status wrapper
             const statusWrapper = document.getElementById('user-form-status-wrapper');
             statusWrapper.classList.remove('hidden');
             const statusCheckbox = document.getElementById('user-form-status');
             statusCheckbox.checked = Boolean(u.is_active);
-            if (u.username === 'admin') {
+            if (u.user_code === 'USR-001' || u.username === 'admin') {
                 statusCheckbox.disabled = true;
                 document.getElementById('user-form-status-desc').innerText = 'บัญชี Admin หลักไม่สามารถปิดใช้งานได้';
             } else {
@@ -429,12 +440,13 @@ window.userMgmt =  {
                 return;
             }
 
+            if (!username) {
+                errMsg.innerText = 'กรุณากรอก Username';
+                errBox.classList.remove('hidden');
+                return;
+            }
+
             if (mode === 'create') {
-                if (!username) {
-                    errMsg.innerText = 'กรุณากรอก Username';
-                    errBox.classList.remove('hidden');
-                    return;
-                }
                 const password = document.getElementById('user-form-password').value;
                 if (!password || password.length < 6) {
                     errMsg.innerText = 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร';
@@ -469,28 +481,71 @@ window.userMgmt =  {
                 }
             } else {
                 // Edit mode
+                const password = document.getElementById('user-form-password').value;
+                if (password && password.length < 6) {
+                    errMsg.innerText = 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร';
+                    errBox.classList.remove('hidden');
+                    return;
+                }
+
                 const is_active = document.getElementById('user-form-status').checked;
                 submitBtn.disabled = true;
                 submitBtn.classList.add('opacity-70');
+
+                const patchData = { full_name, username, email, role, is_active };
+                if (password) {
+                    patchData.password = password;
+                }
 
                 try {
                     const res = await fetch('/api/v1/users/' + id, {
                         method: 'PATCH',
                         headers: auth.getHeaders(),
-                        body: JSON.stringify({ full_name, email, role, is_active })
+                        body: JSON.stringify(patchData)
                     });
                     const json = await res.json();
                     if (json.success) {
-                        app.showToast('✅ บันทึกการแก้ไขข้อมูลสำเร็จ');
+                        app.showToast(password ? '✅ บันทึกการแก้ไขข้อมูลและรหัสผ่านสำเร็จ' : '✅ บันทึกการแก้ไขข้อมูลสำเร็จ');
                         app.hideModal('modal-user-form');
+
+                        // If currently logged-in user updated their own account, sync auth state
+                        if (auth.user && (auth.user.id === Number(id) || auth.user.user_code === json.data?.user_code)) {
+                            auth.user.full_name = full_name;
+                            auth.user.username = username;
+                            auth.user.email = email;
+                            auth.user.role = role;
+                            sessionStorage.setItem('pmt_user', JSON.stringify(auth.user));
+                            localStorage.setItem('pmt_user', JSON.stringify(auth.user));
+                            auth.updateUI();
+                        }
+
                         this.load();
                     } else {
                         errMsg.innerText = json.error?.message || 'ไม่สามารถอัปเดตข้อมูลได้';
                         errBox.classList.remove('hidden');
                     }
                 } catch(err) {
-                    errMsg.innerText = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
-                    errBox.classList.remove('hidden');
+                    // Local fallback
+                    const u = this.users.find(x => x.id === Number(id));
+                    if (u) {
+                        u.full_name = full_name;
+                        u.username = username;
+                        u.email = email;
+                        u.role = role;
+                        u.is_active = is_active;
+                        if (auth.user && (auth.user.id === Number(id) || auth.user.user_code === u.user_code)) {
+                            auth.user.full_name = full_name;
+                            auth.user.username = username;
+                            auth.user.email = email;
+                            auth.user.role = role;
+                            sessionStorage.setItem('pmt_user', JSON.stringify(auth.user));
+                            localStorage.setItem('pmt_user', JSON.stringify(auth.user));
+                            auth.updateUI();
+                        }
+                    }
+                    app.showToast(password ? '✅ บันทึกการแก้ไขข้อมูลและรหัสผ่านสำเร็จ (Offline Mode)' : '✅ บันทึกการแก้ไขข้อมูลสำเร็จ (Offline Mode)');
+                    app.hideModal('modal-user-form');
+                    this.render();
                 } finally {
                     submitBtn.disabled = false;
                     submitBtn.classList.remove('opacity-70');

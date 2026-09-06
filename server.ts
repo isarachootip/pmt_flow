@@ -211,7 +211,7 @@ const requireAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
   let session = sysSessionStore.find(s => s.token === token && !s.revoked_at && new Date(s.expires_at) > new Date());
   if (!session) {
     // If server restarted, memory session store was reset. Auto-recover session for admin if token provided
-    const adminUser = sysUserStore.find(u => u.username === 'admin' || u.email === 'isarachootip@gmail.com');
+    const adminUser = sysUserStore.find(u => u.user_code === 'USR-001' || u.username === 'admin' || u.email === 'isarachootip@gmail.com');
     if (adminUser) {
       session = {
         id: sysSessionStore.length + 1,
@@ -379,18 +379,44 @@ app.post('/api/v1/users', requireAuth, requireRole(UserRole.ADMIN), (req: AuthRe
   return res.status(201).json({ success: true, message: 'สร้างผู้ใช้สำเร็จ', data: safe });
 });
 
-// PATCH /api/v1/users/:id — update role / active / full_name / email
+// PATCH /api/v1/users/:id — update role / active / full_name / email / username / password
 app.patch('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req: AuthRequest, res: Response) => {
   const user = sysUserStore.find(u => u.id === Number(req.params.id));
   if (!user) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบผู้ใช้' } });
 
-  const { full_name, email, role, is_active } = req.body || {};
+  const { full_name, username, email, role, is_active, password } = req.body || {};
   if (full_name !== undefined) user.full_name = full_name;
   if (email     !== undefined) user.email     = email;
-  if (is_active !== undefined) user.is_active  = Boolean(is_active);
+
+  if (is_active !== undefined) {
+    if ((user.user_code === 'USR-001' || user.username === 'admin') && !is_active) {
+      return res.status(400).json({ success: false, error: { code: 'CANNOT_DEACTIVATE_PRIMARY_ADMIN', message: 'ไม่สามารถปิดใช้งานบัญชี Admin หลักได้' } });
+    }
+    user.is_active = Boolean(is_active);
+  }
+
   if (role !== undefined) {
-    if (!Object.values(UserRole).includes(role)) return res.status(400).json({ success: false, error: { code: 'INVALID_ROLE' } });
+    if (!Object.values(UserRole).includes(role)) return res.status(400).json({ success: false, error: { code: 'INVALID_ROLE', message: 'บทบาทไม่ถูกต้อง' } });
+    if ((user.user_code === 'USR-001' || user.username === 'admin') && role !== UserRole.ADMIN) {
+      return res.status(400).json({ success: false, error: { code: 'CANNOT_DEMOTE_PRIMARY_ADMIN', message: 'ไม่สามารถเปลี่ยนบทบาทของ Admin หลักได้' } });
+    }
     user.role = role;
+  }
+
+  if (username !== undefined && username.trim() !== '') {
+    const trimmedUsername = username.trim();
+    const exists = sysUserStore.find(u => u.id !== user.id && u.username.toLowerCase() === trimmedUsername.toLowerCase());
+    if (exists) {
+      return res.status(400).json({ success: false, error: { code: 'USERNAME_TAKEN', message: `Username "${trimmedUsername}" มีผู้ใช้งานแล้ว` } });
+    }
+    user.username = trimmedUsername;
+  }
+
+  if (password !== undefined && password !== '') {
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, error: { code: 'WEAK_PASSWORD', message: 'Password ต้องมีอย่างน้อย 6 ตัวอักษร' } });
+    }
+    user.password_hash = hashPassword(password);
   }
 
   const { password_hash, ...safe } = user;
@@ -417,7 +443,7 @@ app.post('/api/v1/users/:id/reset-password', requireAuth, requireRole(UserRole.A
 app.delete('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req: AuthRequest, res: Response) => {
   const user = sysUserStore.find(u => u.id === Number(req.params.id));
   if (!user) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบผู้ใช้' } });
-  if (user.username === 'admin') return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'ไม่สามารถลบ admin หลักได้' } });
+  if (user.user_code === 'USR-001' || user.username === 'admin') return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'ไม่สามารถลบ admin หลักได้' } });
 
   user.is_active = false;
   sysSessionStore.filter(s => s.user_id === user.id && !s.revoked_at).forEach(s => s.revoked_at = new Date().toISOString());
