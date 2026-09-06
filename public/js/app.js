@@ -775,6 +775,13 @@ const app = {
 
                 // 3. Populate local DB with 10 pure Step 1 jobs (0% Draft)
                 const mockOrders = this.getINTMockOrders();
+                const currentIso = new Date().toISOString();
+                const currentDate = currentIso.slice(0, 10);
+                mockOrders.forEach(o => {
+                    if (!o.step_timestamps) o.step_timestamps = {};
+                    o.step_timestamps.step1_order_at = currentIso;
+                    o.date = currentDate;
+                });
                 DB.jobs = JSON.parse(JSON.stringify(mockOrders));
                 DB.tasks = [];
                 DB.blueprints = [];
@@ -1489,6 +1496,7 @@ const app = {
             },
 
             renderJobs(jobList = null) {
+                this.updateStep1Dashboard();
                 const serviceFilter = document.getElementById('filter-service') ? document.getElementById('filter-service').value : 'all';
                 const statusFilter = document.getElementById('filter-status') ? document.getElementById('filter-status').value : 'STEP1_QUEUE';
 
@@ -1662,6 +1670,178 @@ const app = {
                 if (sidebarCsat) {
                     const csatPending = allJobs.filter(j => j.status === 'QC_PASSED').length;
                     sidebarCsat.innerText = csatPending;
+                }
+
+                // Update Step 1 Intake Dashboard
+                this.updateStep1Dashboard();
+            },
+
+            updateStep1Dashboard() {
+                const allJobs = DB.jobs || [];
+                const designedJobIds = new Set((DB.blueprints || []).map(b => b.jobId));
+
+                // 1. ยอดงานเข้า ทั้งหมด
+                const totalCount = allJobs.length;
+
+                // 2. ยอดที่ยังคงเหลือ (คิว Step 1 ที่ยังไม่ได้ส่งต่อไป Step 2)
+                const remainingCount = allJobs.filter(j => 
+                    (j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
+                    !designedJobIds.has(j.id) &&
+                    !(j.step_timestamps && j.step_timestamps.step2_design_at)
+                ).length;
+
+                // 3. ยอดเข้าวันนี้ (งานที่รับเข้าในวันนี้)
+                const now = new Date();
+                const todayStr = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
+                let todayCount = allJobs.filter(j => {
+                    const ts = (j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date;
+                    return ts && ts.slice(0, 10) === todayStr;
+                }).length;
+
+                // Fallback for demo mock data if exact today has 0 but jobs exist
+                if (todayCount === 0 && allJobs.length > 0) {
+                    const latestDate = allJobs.reduce((max, j) => {
+                        const d = ((j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date || '').slice(0, 10);
+                        return d > max ? d : max;
+                    }, '');
+                    if (latestDate) {
+                        todayCount = allJobs.filter(j => {
+                            const d = ((j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date || '').slice(0, 10);
+                            return d === latestDate;
+                        }).length;
+                    }
+                }
+
+                // 4. สัดส่วนประเภทงาน (Segment Distribution)
+                const quickCount = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'quick').length;
+                const renovateCount = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'renovate').length;
+                const maCount = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'ma').length;
+                const transferredCount = allJobs.filter(j => 
+                    designedJobIds.has(j.id) || 
+                    (j.step_timestamps && j.step_timestamps.step2_design_at) ||
+                    (j.status !== 'DRAFT' && j.status !== 'NEW' && j.status !== 'Draft' && j.status !== 'New')
+                ).length;
+
+                const calcPct = (val, total) => total > 0 ? Math.round((val / total) * 100) : 0;
+                const quickPct = calcPct(quickCount, totalCount);
+                const renovatePct = calcPct(renovateCount, totalCount);
+                const maPct = calcPct(maCount, totalCount);
+                const transferredPct = calcPct(transferredCount, totalCount);
+
+                // Update DOM elements for primary KPI cards
+                const elTotal = document.getElementById('dash-stat-total');
+                if (elTotal) elTotal.innerText = totalCount;
+
+                const elToday = document.getElementById('dash-stat-today');
+                if (elToday) elToday.innerText = todayCount;
+
+                const elRemaining = document.getElementById('dash-stat-remaining');
+                if (elRemaining) elRemaining.innerText = remainingCount;
+
+                // Update Segment Distribution Cards
+                const elQCount = document.getElementById('dash-dist-quick-count');
+                if (elQCount) elQCount.innerText = quickCount;
+                const elQPct = document.getElementById('dash-dist-quick-pct');
+                if (elQPct) elQPct.innerText = `${quickPct}%`;
+
+                const elRCount = document.getElementById('dash-dist-renovate-count');
+                if (elRCount) elRCount.innerText = renovateCount;
+                const elRPct = document.getElementById('dash-dist-renovate-pct');
+                if (elRPct) elRPct.innerText = `${renovatePct}%`;
+
+                const elMCount = document.getElementById('dash-dist-ma-count');
+                if (elMCount) elMCount.innerText = maCount;
+                const elMPct = document.getElementById('dash-dist-ma-pct');
+                if (elMPct) elMPct.innerText = `${maPct}%`;
+
+                const elTCount = document.getElementById('dash-dist-transferred-count');
+                if (elTCount) elTCount.innerText = transferredCount;
+                const elTPct = document.getElementById('dash-dist-transferred-pct');
+                if (elTPct) elTPct.innerText = `${transferredPct}%`;
+
+                // Update Segmented Progress Bar
+                const barQ = document.getElementById('bar-quick');
+                if (barQ) barQ.style.width = `${quickPct}%`;
+                const barR = document.getElementById('bar-renovate');
+                if (barR) barR.style.width = `${renovatePct}%`;
+                const barM = document.getElementById('bar-ma');
+                if (barM) barM.style.width = `${maPct}%`;
+
+                const ratioLabel = document.getElementById('dash-dist-ratio-label');
+                if (ratioLabel) ratioLabel.innerText = `รวม ${totalCount} รายการในระบบ`;
+
+                // Date indicator
+                const dateInd = document.getElementById('dash-date-indicator');
+                if (dateInd) {
+                    const thaiDate = now.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+                    dateInd.innerText = `ข้อมูล ณ ${thaiDate}`;
+                }
+            },
+
+            filterJobsByDashboard(type) {
+                const allJobs = DB.jobs || [];
+                const designedJobIds = new Set((DB.blueprints || []).map(b => b.jobId));
+                const now = new Date();
+                const todayStr = now.toLocaleDateString('en-CA');
+
+                const svcSel = document.getElementById('filter-service');
+                const stSel = document.getElementById('filter-status');
+
+                if (type === 'ALL') {
+                    if (stSel) stSel.value = 'ALL';
+                    if (svcSel) svcSel.value = 'all';
+                    this.renderJobs();
+                    this.showToast(`📊 แสดงคำสั่งซื้อทั้งหมดในระบบ (${allJobs.length} รายการ)`);
+                } else if (type === 'TODAY') {
+                    if (svcSel) svcSel.value = 'all';
+                    let todayList = allJobs.filter(j => {
+                        const ts = (j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date;
+                        return ts && ts.slice(0, 10) === todayStr;
+                    });
+                    if (todayList.length === 0 && allJobs.length > 0) {
+                        const latestDate = allJobs.reduce((max, j) => {
+                            const d = ((j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date || '').slice(0, 10);
+                            return d > max ? d : max;
+                        }, '');
+                        if (latestDate) {
+                            todayList = allJobs.filter(j => {
+                                const d = ((j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date || '').slice(0, 10);
+                                return d === latestDate;
+                            });
+                        }
+                    }
+                    if (stSel) stSel.value = 'ALL';
+                    this.renderJobs(todayList);
+                    this.showToast(`📅 แสดงคำสั่งซื้อที่รับเข้าวันนี้ (${todayList.length} รายการ)`);
+                } else if (type === 'STEP1_QUEUE') {
+                    if (stSel) stSel.value = 'STEP1_QUEUE';
+                    if (svcSel) svcSel.value = 'all';
+                    this.renderJobs();
+                    this.showToast('📥 แสดงเฉพาะคิวงานที่ยังคงเหลือใน Step 1 (รอส่งต่อ)');
+                } else if (type === 'quick') {
+                    const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'quick');
+                    if (stSel) stSel.value = 'ALL';
+                    this.renderJobs(list);
+                    this.showToast(`⚡ กรองเฉพาะงาน Quick Services (${list.length} รายการ)`);
+                } else if (type === 'renovate') {
+                    const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'renovate');
+                    if (stSel) stSel.value = 'ALL';
+                    this.renderJobs(list);
+                    this.showToast(`🔨 กรองเฉพาะงาน Renovate (${list.length} รายการ)`);
+                } else if (type === 'ma') {
+                    const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'ma');
+                    if (stSel) stSel.value = 'ALL';
+                    this.renderJobs(list);
+                    this.showToast(`🔧 กรองเฉพาะงาน MA & Maintenance (${list.length} รายการ)`);
+                } else if (type === 'transferred') {
+                    const list = allJobs.filter(j => 
+                        designedJobIds.has(j.id) || 
+                        (j.step_timestamps && j.step_timestamps.step2_design_at) ||
+                        (j.status !== 'DRAFT' && j.status !== 'NEW' && j.status !== 'Draft' && j.status !== 'New')
+                    );
+                    if (stSel) stSel.value = 'ALL';
+                    this.renderJobs(list);
+                    this.showToast(`🚀 แสดงงานที่ส่งต่อไป Step 2+ แล้ว (${list.length} รายการ)`);
                 }
             },
 
