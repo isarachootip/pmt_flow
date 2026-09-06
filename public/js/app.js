@@ -2764,31 +2764,33 @@ const app = {
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return;
 
-                const confirmed = confirm(`ยืนยันการส่งต่อ Order [${job.id}] ${job.customer} ไปยังขั้นตอน "Step 4: บันทึก Ticket & แนบใบเสร็จ"?\n\n• ระบบจะบันทึก Timestamp และย้าย Order เข้าสู่คิวงาน Step 4\n• ท่านสามารถบันทึกหมายเลข Ticket ชำระเงิน และแนบสลิปใบเสร็จ`);
-                if (!confirmed) return;
-
                 if (!job.step_timestamps) job.step_timestamps = {};
-                job.step_timestamps.step4_ticket_at = new Date().toISOString();
+                const now = new Date().toISOString();
+                job.step_timestamps.step4_ticket_at = now;
+                job.progress = Math.max(job.progress || 0, 60);
                 
-                this.recordStepTimestamp(job.id, 'step4_ticket_at', job.step_timestamps.step4_ticket_at, 'ส่งต่องานจาก Step 3 เข้าสู่คิวออก Ticket & สลิป (Step 4)');
+                this.recordStepTimestamp(job.id, 'step4_ticket_at', now, 'ส่งต่องานจาก Step 3 เข้าสู่คิวออก Ticket & สลิป (Step 4)');
                 this.persistJobs();
 
+                // Sync with backend server
+                fetch(`/api/v1/jobs/${jobId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        overall_progress: job.progress,
+                        step_timestamps: job.step_timestamps
+                    })
+                }).catch(() => {});
+
                 this.updateStepBadges();
-                this.showToast(`✅ ส่งต่อ Order ${job.id} ไปยัง "Step 4: บันทึก Ticket & แนบใบเสร็จ" เรียบร้อยแล้ว`);
+                this.showToast(`✅ ย้าย Order [${job.id}] เข้าสู่คิว "Step 4: บันทึก Ticket & แนบใบเสร็จ" สำเร็จ`);
 
                 if (this.state.currentView === 'boq') {
                     this.renderBOQPage(job.id);
                 }
-
-                setTimeout(() => {
-                    const goToStep4 = confirm(`Order ${job.id} ถูกส่งต่อไปยัง Step 4 แล้ว!\n\nต้องการเปิดไปที่หน้า "Step 4: บันทึก Ticket & แนบใบเสร็จ" เพื่อเริ่มบันทึก Ticket ตอนนี้เลยหรือไม่?`);
-                    if (goToStep4) {
-                        this.navigate('tickets', job.id);
-                        setTimeout(() => {
-                            this.openCreateTicketModal(job.id);
-                        }, 200);
-                    }
-                }, 250);
+                if (this.state.currentView === 'job-detail') {
+                    this.renderJobDetail();
+                }
             },
 
             proceedJobToConversion(jobId) {
@@ -7532,16 +7534,24 @@ const app = {
                             const stageHtml = this.renderStageWithSLA(j, 3);
                             const isSelected = j.id === (jobId || this.state.boqSelectedJobId);
 
+                            const isSentToTicket = !!(j.step_timestamps && j.step_timestamps.step4_ticket_at);
                             const actionButtons = hasBOQ ? `
                                 <div class="flex items-center justify-end gap-1.5">
                                     <button onclick="event.stopPropagation(); app.openManageBOQModal('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted text-foreground inline-flex items-center gap-1 cursor-pointer" title="ดูหรือแก้ไข BOQ">
                                         <i class="ph ph-note-pencil"></i>
                                         <span>ดู/แก้ไข BOQ (${items.length})</span>
                                     </button>
+                                    ${isSentToTicket ? `
+                                    <button onclick="event.stopPropagation(); app.navigate('tickets', '${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 inline-flex items-center gap-1 cursor-pointer" title="งานนี้ส่งเข้า Step 4 เรียบร้อยแล้ว (คลิกเพื่อเปิดดูใน Step 4)">
+                                        <i class="ph ph-check-circle text-xs text-emerald-500"></i>
+                                        <span>อยู่ในคิว Step 4</span>
+                                    </button>
+                                    ` : `
                                     <button onclick="event.stopPropagation(); app.proceedJobToTickets('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ส่งต่อไปยัง Step 4 ออก Ticket & สลิป">
                                         <span>ออก Ticket (ไป Step 4)</span>
                                         <i class="ph ph-arrow-right-bold text-xs"></i>
                                     </button>
+                                    `}
                                 </div>
                             ` : `
                                 <div class="flex items-center justify-end gap-1.5">
@@ -8229,7 +8239,7 @@ const app = {
                 this.showToast('🗑️ ลบรายการเรียบร้อย');
             },
 
-            saveModalBOQ(proceedToStep4 = false) {
+            saveModalBOQ() {
                 const jobId = this.state.modalBOQJobId;
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) {
@@ -8253,17 +8263,32 @@ const app = {
                 job.boq_grand_total = grandTotal;
 
                 if (!job.step_timestamps) job.step_timestamps = {};
-                job.step_timestamps.step3_boq_at = new Date().toISOString();
+                const now = new Date().toISOString();
+                job.step_timestamps.step3_boq_at = now;
+                this.recordStepTimestamp(job.id, 'step3_boq_at', now, `บันทึกรายการ BOQ (${items.length} รายการ)`);
 
-                this.recordStepTimestamp(job.id, 'step3_boq_at', job.step_timestamps.step3_boq_at, `บันทึกรายการ BOQ (${items.length} รายการ)`);
+                // All jobs: Transition state strictly into Step 4 (Ticket & ใบเสร็จ)
+                job.step_timestamps.step4_ticket_at = now;
+                this.recordStepTimestamp(job.id, 'step4_ticket_at', now, 'บันทึก BOQ และย้ายเข้าสู่ State 4 (บันทึก Ticket & ใบเสร็จ)');
+                job.progress = Math.max(job.progress || 0, 60);
+
                 this.persistJobs();
+
+                // Sync with backend server
+                fetch(`/api/v1/jobs/${job.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        overall_progress: job.progress,
+                        step_timestamps: job.step_timestamps,
+                        boq_grand_total: grandTotal
+                    })
+                }).catch(() => {});
+
+                this.updateStepBadges();
                 this.hideModal('modal-manage-boq');
                 this.renderBOQPage();
-                this.showToast(`💾 บันทึก BOQ โครงการ ${job.id} เรียบร้อย (${items.length} รายการ, ยอดสุทธิ ${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿)`);
-
-                if (proceedToStep4) {
-                    this.proceedJobToTickets(job.id);
-                }
+                this.showToast(`💾 บันทึก BOQ โครงการ ${job.id} เรียบร้อย (${items.length} รายการ) และย้ายเข้าสู่ State 4 (บันทึก Ticket & ใบเสร็จ) สำเร็จ`);
             },
 
             // Compatibility methods
