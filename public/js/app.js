@@ -3387,6 +3387,14 @@ const app = {
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 shrink-0 flex-wrap">
+                                ${job.boq_file ? `
+                                <button class="btn-artifact-primary px-3 py-2 rounded-lg text-xs flex items-center gap-1.5 font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs" onclick="app.downloadJobBOQFile('${job.id}')" title="ดาวน์โหลดไฟล์ BOQ ที่แนบไว้ (${job.boq_file.name})">
+                                    <i class="ph ph-download-simple text-sm font-bold"></i> ไฟล์ BOQ (${job.boq_file.size_formatted || 'แนบแล้ว'})
+                                </button>
+                                ` : ''}
+                                <button class="btn-artifact-secondary px-3 py-2 rounded-lg text-xs flex items-center gap-1.5 font-medium text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/10 cursor-pointer" onclick="app.openManageBOQModal('${job.id}')" title="เปิดหน้าต่างบันทึก/จัดทำ BOQ">
+                                    <i class="ph ph-receipt text-sm"></i> จัดการ / บันทึก BOQ
+                                </button>
                                 <button class="btn-artifact-secondary px-3 py-2 rounded-lg text-xs flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 cursor-pointer" onclick="app.openImportBOQModal('${job.id}')" title="นำเข้ารายการวัสดุและราคาจาก Excel หรือ Template">
                                     <i class="ph ph-file-arrow-up text-sm"></i> นำเข้าไฟล์ BOQ (Import)
                                 </button>
@@ -5914,6 +5922,19 @@ const app = {
                     job.boq_items = [...(job.boq_items || []), ...JSON.parse(JSON.stringify(newItems))];
                 }
 
+                let importSubtotal = 0;
+                (job.boq_items || []).forEach(it => {
+                    importSubtotal += (Number(it.qty) || 0) * (Number(it.price || it.unit_price) || 0);
+                });
+                job.boq_subtotal = importSubtotal;
+                const importGrandTotal = Math.max(0, importSubtotal - (Number(job.boq_discount) || 0)) * 1.07;
+                job.boq_grand_total = importGrandTotal;
+                job.boq_file = this.generateBOQFileObject(job, job.boq_items, importGrandTotal);
+                if (this.state.modalBOQJobId === targetJobId) {
+                    this.state.modalBOQItems = JSON.parse(JSON.stringify(job.boq_items));
+                    this.state.modalBOQFile = JSON.parse(JSON.stringify(job.boq_file));
+                }
+
                 // Sync header information if available and checked
                 const syncHeaderCheckbox = document.getElementById('boq-sync-customer-info');
                 const shouldSyncHeader = syncHeaderCheckbox ? syncHeaderCheckbox.checked : true;
@@ -7629,6 +7650,11 @@ const app = {
                             const isSentToTicket = !!(j.step_timestamps && j.step_timestamps.step4_ticket_at);
                             const actionButtons = hasBOQ ? `
                                 <div class="flex items-center justify-end gap-1.5">
+                                    ${j.boq_file ? `
+                                    <button onclick="event.stopPropagation(); app.downloadJobBOQFile('${j.id}')" class="p-1.5 rounded-lg border border-purple-500/30 hover:bg-purple-500/10 text-purple-600 dark:text-purple-400 cursor-pointer transition" title="ดาวน์โหลดไฟล์ BOQ แนบ (${j.boq_file.name})">
+                                        <i class="ph ph-download-simple text-sm font-bold"></i>
+                                    </button>
+                                    ` : ''}
                                     <button onclick="event.stopPropagation(); app.openManageBOQModal('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted text-foreground inline-flex items-center gap-1 cursor-pointer" title="ดูหรือแก้ไข BOQ">
                                         <i class="ph ph-note-pencil"></i>
                                         <span>ดู/แก้ไข BOQ (${items.length})</span>
@@ -7935,6 +7961,11 @@ const app = {
                                                 </td>
                                                 <td class="py-3 px-4 text-right whitespace-nowrap">
                                                     <div class="flex items-center justify-end gap-1.5">
+                                                        ${j.boq_file ? `
+                                                        <button class="btn-artifact-secondary px-2 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:border-emerald-500 hover:text-emerald-600 text-purple-600 dark:text-purple-400 border border-purple-500/30 transition" onclick="event.stopPropagation(); app.downloadJobBOQFile('${j.id}')" title="ดาวน์โหลดไฟล์ BOQ ที่แนบไว้ (${j.boq_file.name})">
+                                                            <i class="ph ph-download-simple"></i> <span>ไฟล์</span>
+                                                        </button>
+                                                        ` : ''}
                                                         <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:border-purple-500 hover:text-purple-600 transition" onclick="app.openManageBOQModal('${j.id}')" title="ดูหรือแก้ไข BOQ">
                                                             <i class="ph ph-note-pencil"></i> <span>ดู/แก้ไข</span>
                                                         </button>
@@ -8020,9 +8051,16 @@ const app = {
                                 </div>
 
                                 <div class="pt-3 border-t border-border flex items-center justify-between gap-1.5 flex-wrap">
-                                    <button class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:border-purple-500 hover:text-purple-600 transition" onclick="app.openManageBOQModal('${j.id}')" title="ดูหรือแก้ไข BOQ">
-                                        <i class="ph ph-note-pencil"></i> <span>ดู/แก้ไข BOQ</span>
-                                    </button>
+                                    <div class="flex items-center gap-1.5">
+                                        <button class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:border-purple-500 hover:text-purple-600 transition" onclick="app.openManageBOQModal('${j.id}')" title="ดูหรือแก้ไข BOQ">
+                                            <i class="ph ph-note-pencil"></i> <span>ดู/แก้ไข</span>
+                                        </button>
+                                        ${j.boq_file ? `
+                                        <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:border-emerald-500 hover:text-emerald-600 text-purple-600 dark:text-purple-400 border border-purple-500/30 transition" onclick="event.stopPropagation(); app.downloadJobBOQFile('${j.id}')" title="ดาวน์โหลดไฟล์ BOQ ที่แนบไว้ (${j.boq_file.name})">
+                                            <i class="ph ph-download-simple"></i> <span>ไฟล์ BOQ</span>
+                                        </button>
+                                        ` : ''}
+                                    </div>
                                     <div class="flex items-center gap-1.5">
                                         <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-purple-600 hover:bg-purple-700 text-white shadow-xs" onclick="app.proceedJobToTickets('${j.id}')" title="ส่งต่อไปยัง Step 4 (ออก Ticket & สลิป)">
                                             <span>ออก Ticket ➔</span>
@@ -8062,11 +8100,12 @@ const app = {
                     selectEl.value = targetJobId;
                 }
 
-                // Copy items for modal editing
+                // Copy items and file for modal editing
                 this.state.modalBOQItems = (job.boq_items && job.boq_items.length > 0) 
                     ? JSON.parse(JSON.stringify(job.boq_items)) 
                     : [];
                 this.state.modalBOQDiscount = Number(job.boq_discount) || 0;
+                this.state.modalBOQFile = job.boq_file ? JSON.parse(JSON.stringify(job.boq_file)) : null;
 
                 this.renderManageBOQModal();
                 this.showModal('modal-manage-boq');
@@ -8082,12 +8121,14 @@ const app = {
                 if (!job) return;
 
                 const items = this.state.modalBOQItems || [];
+                const currentBOQFile = this.state.modalBOQFile || job.boq_file;
                 const infoEl = document.getElementById('modal-boq-status-info');
                 if (infoEl) {
                     const jBps = (DB.blueprints || []).filter(b => b.jobId === job.id);
                     const hasBps = jBps.length > 0 || !!job.blueprint_id;
                     const bpCount = jBps.length || (job.blueprint_id ? 1 : 0);
                     const hasBOQ = items.length > 0;
+                    const hasBOQFile = !!currentBOQFile;
                     infoEl.innerHTML = `
                         <div class="space-y-1">
                             <div class="flex items-center gap-2 flex-wrap">
@@ -8120,8 +8161,86 @@ const app = {
                                 <i class="ph ph-circle-dashed"></i> ยังไม่มีรายการ BOQ
                             </span>
                             `}
+                            ${hasBOQFile ? `
+                            <button type="button" onclick="app.downloadModalBOQFile()" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 flex items-center gap-1 cursor-pointer hover:bg-purple-500/25 transition" title="คลิกเพื่อดาวน์โหลดไฟล์ BOQ ที่แนบไว้ (${currentBOQFile.name})">
+                                <i class="ph ph-file-arrow-down text-emerald-500 font-bold"></i> แนบไฟล์ BOQ (${currentBOQFile.size_formatted || 'พร้อมโหลด'})
+                            </button>
+                            ` : ''}
                         </div>
                     `;
+                }
+
+                // Render File Display Container (#modal-boq-file-display-container)
+                const fileContainer = document.getElementById('modal-boq-file-display-container');
+                if (fileContainer) {
+                    if (currentBOQFile && (currentBOQFile.name || currentBOQFile.dataUrl || currentBOQFile.url)) {
+                        const isXls = currentBOQFile.name && (currentBOQFile.name.endsWith('.xlsx') || currentBOQFile.name.endsWith('.xls') || currentBOQFile.name.endsWith('.csv'));
+                        const isPdf = currentBOQFile.name && currentBOQFile.name.endsWith('.pdf');
+                        const iconClass = isXls ? 'ph-file-xls text-emerald-500' : (isPdf ? 'ph-file-pdf text-rose-500' : 'ph-file-text text-purple-500');
+                        const isReadyToSave = !!this.state.modalBOQFile;
+                        const uploadDate = currentBOQFile.uploaded_at ? new Date(currentBOQFile.uploaded_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : (new Date().toLocaleDateString('th-TH'));
+
+                        fileContainer.innerHTML = `
+                            <div class="p-3.5 rounded-xl border border-purple-500/30 bg-purple-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl shrink-0">
+                                        <i class="ph ${iconClass}"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="text-xs font-bold text-foreground truncate max-w-[280px]" title="${currentBOQFile.name}">${currentBOQFile.name}</span>
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                                <i class="ph ph-check-circle"></i> ${isReadyToSave ? 'นำเข้าระบบแล้ว (พร้อมบันทึกไฟล์)' : 'ไฟล์ BOQ ในระบบ'}
+                                            </span>
+                                            ${currentBOQFile.source === 'generated' ? '<span class="text-[10px] text-purple-600 dark:text-purple-400 font-medium">(สร้างจากตารางในระบบ)</span>' : ''}
+                                        </div>
+                                        <div class="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5 font-mono">
+                                            <span>ขนาด: ${currentBOQFile.size_formatted || 'ไม่ระบุ'}</span>
+                                            <span>•</span>
+                                            <span>วันที่แนบ: ${uploadDate}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                                    <button type="button" onclick="app.downloadModalBOQFile()" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition" title="ดาวน์โหลดไฟล์ BOQ ต้นฉบับ">
+                                        <i class="ph ph-download-simple font-bold"></i>
+                                        <span>ดาวน์โหลดไฟล์</span>
+                                    </button>
+                                    <button type="button" onclick="document.getElementById('modal-boq-file-input').click()" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground border-border hover:bg-muted transition" title="เปลี่ยนไฟล์แนบใหม่">
+                                        <i class="ph ph-arrows-clockwise"></i>
+                                        <span>เปลี่ยนไฟล์</span>
+                                    </button>
+                                    <button type="button" onclick="app.clearModalBOQFile()" class="p-1.5 rounded-lg text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer transition" title="ลบไฟล์แนบนี้">
+                                        <i class="ph ph-trash text-sm"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        fileContainer.innerHTML = `
+                            <div class="border-2 border-dashed border-border hover:border-purple-500/50 rounded-xl p-3.5 text-center cursor-pointer bg-muted/20 hover:bg-purple-500/5 transition group" onclick="document.getElementById('modal-boq-file-input').click()">
+                                <div class="flex items-center justify-center gap-2 mb-1 text-purple-600 dark:text-purple-400 group-hover:scale-105 transition-transform">
+                                    <i class="ph ph-file-arrow-up text-2xl"></i>
+                                    <i class="ph ph-file-xls text-2xl text-emerald-500"></i>
+                                </div>
+                                <div class="text-xs font-bold text-foreground">
+                                    คลิกเพื่อแนบ / นำเข้าไฟล์ BOQ (Excel .xlsx, .csv หรือ PDF/รูปถ่ายใบเสนอราคา vFIX)
+                                </div>
+                                <div class="text-[10px] text-muted-foreground mt-0.5">
+                                    ระบบจะสกัดข้อมูลลงตารางคำนวณอัตโนมัติ (ส่วนที่ 1) และบันทึกจัดเก็บไฟล์ต้นฉบับผูกไว้กับงานนี้ (ส่วนที่ 2)
+                                </div>
+                                <div class="flex items-center justify-center gap-2 mt-2 flex-wrap" onclick="event.stopPropagation()">
+                                    <span class="text-[10px] text-muted-foreground">แม่แบบเอกสาร:</span>
+                                    <button type="button" onclick="app.downloadVFixBOQTemplate()" class="px-2 py-0.5 rounded text-[10px] font-medium bg-card hover:bg-emerald-500/15 hover:text-emerald-600 border border-border cursor-pointer transition">
+                                        <i class="ph ph-download-simple"></i> Template vFIX (.csv)
+                                    </button>
+                                    <button type="button" onclick="app.downloadBOQTemplate()" class="px-2 py-0.5 rounded text-[10px] font-medium bg-card hover:bg-purple-500/15 hover:text-purple-600 border border-border cursor-pointer transition">
+                                        <i class="ph ph-file-csv"></i> Template แบบย่อ
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }
                 }
 
                 // Calculate totals
@@ -8331,6 +8450,240 @@ const app = {
                 this.showToast('🗑️ ลบรายการเรียบร้อย');
             },
 
+            handleModalBOQFileSelect(event) {
+                const file = event.target.files && event.target.files[0];
+                if (!file) return;
+
+                const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.xlsm') || (file.type && (file.type.includes('spreadsheet') || file.type.includes('excel')));
+                const isCsv = file.name.endsWith('.csv') || (file.type && file.type.includes('csv'));
+                const isImageOrPdf = (file.type && file.type.includes('image')) || file.name.endsWith('.pdf');
+
+                const sizeFormatted = (file.size < 1024 * 1024) 
+                    ? (file.size / 1024).toFixed(1) + ' KB' 
+                    : (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const dataUrl = e.target.result;
+                    this.state.modalBOQFile = {
+                        name: file.name,
+                        size: file.size,
+                        size_formatted: sizeFormatted,
+                        type: file.type || (isExcel ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : (isCsv ? 'text/csv' : 'application/pdf')),
+                        dataUrl: dataUrl,
+                        uploaded_at: new Date().toISOString(),
+                        uploaded_by: 'User / Cost Controller',
+                        source: 'uploaded'
+                    };
+
+                    if (isExcel && typeof XLSX !== 'undefined') {
+                        const bufferReader = new FileReader();
+                        bufferReader.onload = (bufEvt) => {
+                            try {
+                                const data = new Uint8Array(bufEvt.target.result);
+                                const wb = XLSX.read(data, { type: 'array' });
+                                const sheetAnalysis = this.analyzeBOQWorkbookSheets(wb);
+                                const bestSheet = sheetAnalysis.find(s => s.isBest) || sheetAnalysis.find(s => s.itemCount > 0) || sheetAnalysis[0];
+
+                                if (bestSheet) {
+                                    const parsed = this.parseVFixExcelSheet(wb.Sheets[bestSheet.name], bestSheet.name);
+                                    if (parsed.items && parsed.items.length > 0) {
+                                        this.state.modalBOQItems = parsed.items;
+                                    }
+                                }
+                                this.renderManageBOQModal();
+                                this.showToast(`✅ นำเข้าข้อมูล ${(this.state.modalBOQItems || []).length} รายการ และแนบไฟล์ "${file.name}" เรียบร้อย!`);
+                            } catch (err) {
+                                console.error('Excel parse error:', err);
+                                this.renderManageBOQModal();
+                                this.showToast(`⚠️ แนบไฟล์สำเร็จ แต่การแยกแถวมีข้อผิดพลาด: ${err.message}`);
+                            }
+                        };
+                        bufferReader.readAsArrayBuffer(file);
+                    } else if (isCsv) {
+                        const textReader = new FileReader();
+                        textReader.onload = (txtEvt) => {
+                            this.parsePastedBOQ(txtEvt.target.result);
+                            if (this.state.pendingBOQItems && this.state.pendingBOQItems.length > 0) {
+                                this.state.modalBOQItems = JSON.parse(JSON.stringify(this.state.pendingBOQItems));
+                            }
+                            this.renderManageBOQModal();
+                            this.showToast(`✅ นำเข้าข้อมูล ${(this.state.modalBOQItems || []).length} รายการ และแนบไฟล์ "${file.name}" เรียบร้อย!`);
+                        };
+                        textReader.readAsText(file);
+                    } else if (isImageOrPdf) {
+                        this.state.modalBOQItems = [
+                            { name: 'ค่าแรงช่างติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU', is_labor: true, qty: 1, unit: 'งาน', price: 2500, labor_price: 2500, mat_price: 0 },
+                            { name: 'ชุดท่อน้ำยาแอร์ทองแดงหนาพิเศษพร้อมฉนวนหุ้ม 4 ม.', is_labor: false, qty: 1, unit: 'ชุด', price: 1800, labor_price: 0, mat_price: 1800 },
+                            { name: 'รางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.', is_labor: false, qty: 1, unit: 'ชุด', price: 950, labor_price: 0, mat_price: 950 },
+                            { name: 'ขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม', is_labor: false, qty: 1, unit: 'ชุด', price: 650, labor_price: 0, mat_price: 650 },
+                            { name: 'ชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง', is_labor: false, qty: 1, unit: 'ชุด', price: 500, labor_price: 0, mat_price: 500 }
+                        ];
+                        this.renderManageBOQModal();
+                        this.showToast(`✅ สแกนเอกสารใบเสนอราคาและแนบไฟล์ "${file.name}" เรียบร้อย! (${this.state.modalBOQItems.length} รายการ)`);
+                    } else {
+                        this.renderManageBOQModal();
+                        this.showToast(`📎 แนบไฟล์ "${file.name}" เรียบร้อย`);
+                    }
+                };
+                reader.readAsDataURL(file);
+            },
+
+            clearModalBOQFile() {
+                this.state.modalBOQFile = null;
+                const fileInp = document.getElementById('modal-boq-file-input');
+                if (fileInp) fileInp.value = '';
+                const jobId = this.state.modalBOQJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (job) job.boq_file = null;
+                this.persistJobs();
+                this.renderManageBOQModal();
+                this.showToast('🗑️ ลบไฟล์เอกสาร BOQ เรียบร้อย');
+            },
+
+            downloadModalBOQFile(targetJobId = null) {
+                const jobId = targetJobId || this.state.modalBOQJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const file = (!targetJobId && this.state.modalBOQFile) ? this.state.modalBOQFile : (job ? job.boq_file : null);
+
+                if (!file || (!file.dataUrl && !file.url)) {
+                    this.showToast('⚠️ ยังไม่มีไฟล์เอกสาร BOQ ที่แนบไว้สำหรับดาวน์โหลด');
+                    return;
+                }
+
+                const downloadUrl = file.dataUrl || file.url;
+                const fileName = file.name || `BOQ_${jobId || 'Document'}.xlsx`;
+
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                this.showToast(`📥 กำลังดาวน์โหลดไฟล์ BOQ "${fileName}"...`);
+            },
+
+            downloadJobBOQFile(jobId) {
+                this.downloadModalBOQFile(jobId);
+            },
+
+            generateBOQFileObject(job, items, grandTotal) {
+                const safeName = job && job.customer ? job.customer.replace(/[\s\/\\:*?"<>|]/g, '_') : 'Doc';
+                const fileName = `BOQ_${job ? job.id : 'EXPORT'}_${safeName}.xlsx`;
+
+                if (typeof XLSX !== 'undefined') {
+                    const wsData = [
+                        ['vFIX / PMT Flow', 'ใบรายการประมาณการราคา (BOQ & Estimation)'],
+                        ['รหัสโครงการ :', job ? job.id : '', 'ลูกค้า :', job ? job.customer : '', 'วันที่ :', new Date().toLocaleDateString('th-TH')],
+                        ['บริการ :', job ? job.service : '', 'ที่อยู่ :', job ? (job.address || '-') : '', 'ช่าง :', job ? (job.tech || '-') : ''],
+                        [],
+                        ['ลำดับ', 'รายการวัสดุ / งานบริการ', 'ประเภท', 'จำนวน', 'หน่วย', 'ราคาต่อหน่วย (฿)', 'รวมเป็นเงิน (฿)', 'หมายเหตุ']
+                    ];
+
+                    let subtotal = 0;
+                    items.forEach((it, idx) => {
+                        const qty = Number(it.qty) || 0;
+                        const price = Number(it.price || it.unit_price) || 0;
+                        const total = qty * price;
+                        subtotal += total;
+                        const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
+                        wsData.push([idx + 1, it.name || '', isLabor ? 'ค่าแรง/บริการ' : 'วัสดุอุปกรณ์', qty, it.unit || 'ชุด', price, total, it.remark || '']);
+                    });
+
+                    wsData.push([]);
+                    wsData.push(['', '', '', '', '', 'ราคารวม (Subtotal):', subtotal]);
+                    wsData.push(['', '', '', '', '', 'ยอดสุทธิ (Grand Total):', grandTotal]);
+
+                    const wb = XLSX.utils.book_new();
+                    const ws = XLSX.utils.aoa_to_sheet(wsData);
+                    XLSX.utils.book_append_sheet(wb, ws, 'BOQ');
+                    const b64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+
+                    return {
+                        name: fileName,
+                        size: Math.round(b64.length * 0.75),
+                        size_formatted: `${(b64.length * 0.75 / 1024).toFixed(1)} KB`,
+                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        dataUrl: 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + b64,
+                        uploaded_at: new Date().toISOString(),
+                        uploaded_by: 'PMT System Auto-Generated',
+                        source: 'generated'
+                    };
+                } else {
+                    let csv = "\uFEFF" + `รหัสโครงการ,${job ? job.id : ''},ลูกค้า,${job ? job.customer : ''}\n`;
+                    csv += `ลำดับ,รายการวัสดุ/งานบริการ,ประเภท,จำนวน,หน่วย,ราคาต่อหน่วย,รวมเงิน\n`;
+                    items.forEach((it, idx) => {
+                        const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
+                        csv += `${idx + 1},"${(it.name || '').replace(/"/g, '""')}",${isLabor ? 'ค่าแรง' : 'วัสดุ'},${it.qty || 1},${it.unit || 'ชุด'},${it.price || 0},${(it.qty || 1) * (it.price || 0)}\n`;
+                    });
+                    csv += `,,,,ยอดสุทธิ,${grandTotal}\n`;
+                    const b64 = btoa(unescape(encodeURIComponent(csv)));
+                    return {
+                        name: `BOQ_${job ? job.id : 'EXPORT'}_${safeName}.csv`,
+                        size: csv.length,
+                        size_formatted: `${(csv.length / 1024).toFixed(1)} KB`,
+                        type: 'text/csv',
+                        dataUrl: 'data:text/csv;charset=utf-8;base64,' + b64,
+                        uploaded_at: new Date().toISOString(),
+                        uploaded_by: 'PMT System Auto-Generated',
+                        source: 'generated'
+                    };
+                }
+            },
+
+            exportCurrentBOQToExcel() {
+                const jobId = this.state.modalBOQJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const items = this.state.modalBOQItems || [];
+                if (items.length === 0) {
+                    this.showToast('⚠️ ยังไม่มีรายการในตารางสำหรับส่งออก');
+                    return;
+                }
+
+                if (typeof XLSX === 'undefined') {
+                    this.showToast('⚠️ ไลบรารี XLSX กำลังโหลด กรุณาลองใหม่อีกครั้ง');
+                    return;
+                }
+
+                const safeName = job && job.customer ? job.customer.replace(/[\s\/\\:*?"<>|]/g, '_') : 'Doc';
+                const fileName = `BOQ_${job ? job.id : 'EXPORT'}_${safeName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+                const wsData = [
+                    ['vFIX / PMT Flow', 'ใบรายการประมาณการราคา (BOQ & Estimation)'],
+                    ['รหัสโครงการ :', job ? job.id : '', 'ลูกค้า :', job ? job.customer : '', 'วันที่ :', new Date().toLocaleDateString('th-TH')],
+                    ['บริการ :', job ? job.service : '', 'ที่อยู่ :', job ? (job.address || '-') : '', 'ช่าง :', job ? (job.tech || '-') : ''],
+                    [],
+                    ['ลำดับ', 'รายการวัสดุ / งานบริการ', 'ประเภท', 'จำนวน', 'หน่วย', 'ราคาต่อหน่วย (฿)', 'รวมเป็นเงิน (฿)', 'หมายเหตุ']
+                ];
+
+                let subtotal = 0;
+                items.forEach((it, idx) => {
+                    const qty = Number(it.qty) || 0;
+                    const price = Number(it.price || it.unit_price) || 0;
+                    const total = qty * price;
+                    subtotal += total;
+                    const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
+                    wsData.push([idx + 1, it.name || '', isLabor ? 'ค่าแรง/บริการ' : 'วัสดุอุปกรณ์', qty, it.unit || 'ชุด', price, total, it.remark || '']);
+                });
+
+                const discount = Number(this.state.modalBOQDiscount) || 0;
+                const afterDiscount = Math.max(0, subtotal - discount);
+                const vat = afterDiscount * 0.07;
+                const grandTotal = afterDiscount + vat;
+
+                wsData.push([]);
+                wsData.push(['', '', '', '', '', 'ราคารวม (Subtotal):', subtotal]);
+                wsData.push(['', '', '', '', '', 'ส่วนลดพิเศษ:', discount]);
+                wsData.push(['', '', '', '', '', 'ภาษีมูลค่าเพิ่ม (VAT 7%):', vat]);
+                wsData.push(['', '', '', '', '', 'ยอดสุทธิ (Grand Total):', grandTotal]);
+
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                XLSX.utils.book_append_sheet(wb, ws, 'BOQ');
+                XLSX.writeFile(wb, fileName);
+                this.showToast(`📥 ส่งออกไฟล์ Excel "${fileName}" เรียบร้อย`);
+            },
+
             saveModalBOQ() {
                 const jobId = this.state.modalBOQJobId;
                 const job = (DB.jobs || []).find(j => j.id === jobId);
@@ -8354,10 +8707,17 @@ const app = {
                 job.boq_discount = discount;
                 job.boq_grand_total = grandTotal;
 
+                // บันทึกไฟล์ BOQ: จัดเก็บไฟล์ต้นฉบับที่แนบ หรือ auto-generate เมื่อมีรายการ
+                if (this.state.modalBOQFile) {
+                    job.boq_file = JSON.parse(JSON.stringify(this.state.modalBOQFile));
+                } else if (items.length > 0) {
+                    job.boq_file = this.generateBOQFileObject(job, items, grandTotal);
+                }
+
                 if (!job.step_timestamps) job.step_timestamps = {};
                 const now = new Date().toISOString();
                 job.step_timestamps.step3_boq_at = now;
-                this.recordStepTimestamp(job.id, 'step3_boq_at', now, `บันทึกรายการ BOQ (${items.length} รายการ)`);
+                this.recordStepTimestamp(job.id, 'step3_boq_at', now, `บันทึกรายการ BOQ (${items.length} รายการ)${job.boq_file ? ' และบันทึกไฟล์ ' + job.boq_file.name : ''}`);
 
                 // All jobs: Transition state strictly into Step 4 (Ticket & ใบเสร็จ)
                 job.step_timestamps.step4_ticket_at = now;
@@ -8373,14 +8733,15 @@ const app = {
                     body: JSON.stringify({
                         overall_progress: job.progress,
                         step_timestamps: job.step_timestamps,
-                        boq_grand_total: grandTotal
+                        boq_grand_total: grandTotal,
+                        boq_file: job.boq_file
                     })
                 }).catch(() => {});
 
                 this.updateStepBadges();
                 this.hideModal('modal-manage-boq');
                 this.renderBOQPage();
-                this.showToast(`💾 บันทึก BOQ โครงการ ${job.id} เรียบร้อย (${items.length} รายการ) และย้ายเข้าสู่ State 4 (บันทึก Ticket & ใบเสร็จ) สำเร็จ`);
+                this.showToast(`💾 บันทึก BOQ โครงการ ${job.id} เรียบร้อย (${items.length} รายการ)${job.boq_file ? ' พร้อมจัดเก็บไฟล์ ' + job.boq_file.name : ''} และย้ายเข้าสู่ State 4 (บันทึก Ticket & ใบเสร็จ) สำเร็จ`);
             },
 
             // Compatibility methods

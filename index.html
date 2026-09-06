@@ -4418,6 +4418,14 @@
                     <!-- Populated dynamically by JS -->
                 </div>
 
+                <!-- Hidden File Input for Direct BOQ File Upload & Ingestion -->
+                <input type="file" id="modal-boq-file-input" accept=".xlsx,.xls,.csv,.pdf,image/*" class="hidden" onchange="app.handleModalBOQFileSelect(event)">
+
+                <!-- BOQ File Ingestion & Storage Section (ส่วนที่ 1: รับไฟล์นำเข้าระบบ & ส่วนที่ 2: บันทึกไฟล์ BOQ) -->
+                <div id="modal-boq-file-display-container">
+                    <!-- Rendered dynamically by app.renderManageBOQModal() -->
+                </div>
+
                 <!-- Quick Common Item Tags (like the zone tags in Step 2 Blueprint Modal!) -->
                 <div class="space-y-1.5">
                     <div class="flex items-center justify-between">
@@ -4439,10 +4447,14 @@
 
                 <!-- Action Toolbar: Import & Add Row -->
                 <div class="flex items-center justify-between pt-1">
-                    <div class="flex items-center gap-2">
-                        <button type="button" onclick="app.openImportBOQModal(app.state.modalBOQJobId)" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30">
-                            <i class="ph ph-file-arrow-up text-sm"></i>
-                            <span>📥 นำเข้าไฟล์ Excel / vFIX</span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button type="button" onclick="document.getElementById('modal-boq-file-input').click()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 shadow-xs" title="แนบไฟล์ Excel หรือใบเสนอราคา vFIX เพื่อสกัดข้อมูลและบันทึกไฟล์">
+                            <i class="ph ph-file-arrow-up text-sm font-bold"></i>
+                            <span>📂 แนบ/นำเข้าไฟล์ BOQ</span>
+                        </button>
+                        <button type="button" onclick="app.openImportBOQModal(app.state.modalBOQJobId)" class="text-[11px] bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-lg border border-border cursor-pointer flex items-center gap-1 transition" title="เปิดหน้าต่างตัวช่วยนำเข้า BOQ แบบละเอียด">
+                            <i class="ph ph-sliders-horizontal text-xs"></i>
+                            <span>นำเข้าขั้นสูง</span>
                         </button>
                         <button type="button" onclick="app.loadSampleBOQItemsToModal()" class="text-[11px] bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-lg border border-border cursor-pointer flex items-center gap-1 transition">
                             <i class="ph ph-sparkle text-amber-500"></i>
@@ -4517,7 +4529,11 @@
                     <i class="ph ph-x text-sm"></i>
                     <span>ยกเลิก / ปิด</span>
                 </button>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap justify-end">
+                    <button type="button" onclick="app.exportCurrentBOQToExcel()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer hover:text-emerald-600 border border-border hover:border-emerald-500/40 transition" title="ส่งออกรายการตารางเป็นไฟล์ Excel (.xlsx)">
+                        <i class="ph ph-file-xls text-sm text-emerald-500 font-bold"></i>
+                        <span>ส่งออกไฟล์ Excel (.xlsx)</span>
+                    </button>
                     <button type="button" onclick="app.saveModalBOQ()" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm bg-purple-600 hover:bg-purple-700 text-white cursor-pointer transition hover:scale-[1.02]">
                         <i class="ph ph-floppy-disk text-sm"></i>
                         <span>บันทึก BOQ</span>
