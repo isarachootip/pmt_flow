@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>แดชบอร์ดภาพรวม & การจัดการผู้ใช้งาน (RBAC)</title>
+    
+    <style>
+        body {
+            font-family: 'Sarabun', 'Segoe UI', Tahoma, sans-serif;
+            line-height: 1.65;
+            color: #1e293b;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 40px 24px;
+            background-color: #ffffff;
+        }
+        h1 {
+            color: #0f172a;
+            font-size: 24px;
+            border-bottom: 2px solid #7c3aed;
+            padding-bottom: 8px;
+            margin-top: 28px;
+        }
+        h2 {
+            color: #4338ca;
+            font-size: 18px;
+            margin-top: 24px;
+            border-left: 4px solid #7c3aed;
+            padding-left: 10px;
+        }
+        h3 {
+            color: #1e293b;
+            font-size: 15px;
+            margin-top: 18px;
+        }
+        h4 {
+            color: #475569;
+            font-size: 13.5px;
+            margin-top: 14px;
+        }
+        p, li {
+            font-size: 13px;
+            color: #334155;
+            line-height: 1.6;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 12px;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .callout {
+            border-left: 4px solid #7c3aed;
+            background-color: #f5f3ff;
+            padding: 12px 16px;
+            margin: 14px 0;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .callout-important {
+            border-left-color: #e11d48;
+            background-color: #fff1f2;
+        }
+        .callout-tip {
+            border-left-color: #10b981;
+            background-color: #ecfdf5;
+        }
+        .callout-note {
+            border-left-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .code-box {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: Consolas, monospace;
+            font-size: 11px;
+            white-space: pre-wrap;
+            margin: 12px 0;
+            color: #475569;
+        }
+        code {
+            background-color: #f1f5f9;
+            color: #6d28d9;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-family: Consolas, monospace;
+            font-size: 11.5px;
+        }
+        .diagram-placeholder {
+            background-color: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            padding: 12px;
+            margin: 12px 0;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+        }
+    </style>
+    
+</head>
+<body>
+<div style="background-color: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 12px 18px; margin-bottom: 24px;">
+    <strong style="color: #6d28d9;">📋 คำแนะนำสำหรับการนำเข้า Google Docs (วิธี Copy-Paste สวยงาม 100%):</strong>
+    <p style="margin: 4px 0 0 0; font-size: 12px; color: #4b5563;">
+        1. เปิดไฟล์นี้ในเว็บเบราว์เซอร์ (Chrome / Edge)<br>
+        2. กด <strong>Ctrl + A</strong> (เลือกทั้งหมด) แล้วกด <strong>Ctrl + C</strong> (คัดลอก)<br>
+        3. เปิดเอกสารเปล่าใน Google Docs แล้วกด <strong>Ctrl + V</strong> (วาง)<br>
+        <em>&rarr; หัวข้อ, ตาราง, สีสัน, กล่องแจ้งเตือน และโครงสร้างทั้งหมดจะถูกแปลงเป็นฟอร์แมตของ Google Docs ทันที</em>
+    </p>
+</div>
+<h1>🎓 คู่มือฝึกอบรมการใช้งานหน้าจอระบบ PMT Flow</h1>
+<h2>โมดูลที่ 8: เจาะลึกหน้าจอแดชบอร์ดบริหารภาพรวม & การจัดการผู้ใช้งานและสิทธิ์ (Executive Dashboard & User Management Training Screen Guide)</h2>
+<p><strong>รหัสหลักสูตร:</strong> <code>TRN-PMT-SYS01</code> | <strong>ระบบ:</strong> PMT Flow (Store Project Management Tool) | <strong>เวอร์ชัน:</strong> 2.0 (Pipeline Architecture) | <strong>กลุ่มเป้าหมาย:</strong> ผู้บริหารระดับสูง (Executive), ผู้จัดการโครงการ (PM), ผู้ดูแลระบบ (System Admin), หัวหน้าฝ่ายปฏิบัติการ และวิทยากรผู้ฝึกอบรม (Trainer)</p>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>📌 บทสรุปและวัตถุประสงค์หลักสูตร (Course Overview & Objectives)</h2>
+<p>คู่มือโมดูลนี้ครอบคลุม 2 หน้าจอสำคัญระดับบริหารและการจัดการระบบของ PMT Flow ได้แก่:</p>
+<li><strong>แดชบอร์ดภาพรวม (Store & Operations Overview - <code>page-dashboard</code>):</strong> ศูนย์รวมตัวชี้วัดประสิทธิภาพองค์กร (Executive KPI), การกระจายตัวของสถานะโครงการแบบ Real-time, กราฟแนวโน้มปริมาณงาน และการเตือนภัยงานวิกฤติ/งานใกล้หลุด SLA</li>
+<li><strong>การจัดการผู้ใช้งานและกำหนดสิทธิ์ (User Management & RBAC - <code>page-users</code>):</strong> ระบบควบคุมการเข้าถึงตามบทบาท (Role-Based Access Control), การสร้าง/แก้ไขบัญชีผู้ใช้งาน, การกำหนดสถานะการทำงาน และการตรวจสอบประวัติการใช้งานระบบ (Audit Trail Logs)</li>
+<h3>🎯 วัตถุประสงค์การเรียนรู้สำหรับผู้เข้าอบรม (Learning Objectives):</h3>
+<li><strong>อ่านและวิเคราะห์ตัวชี้วัดบน Executive Dashboard ได้อย่างแม่นยำ:</strong> เข้าใจความหมายของ Total Revenue, Active Jobs, QC Pass Rate และ SLA Compliance Rate</li>
+<li><strong>ใช้งานตัวกรองช่วงเวลาและการ Export ข้อมูล:</strong> สามารถเลือกดูข้อมูลย้อนหลัง 7 วัน (7D), 30 วัน (30D), 12 เดือน (12M) และส่งออกรายงานสรุป</li>
+<li><strong>จัดการงานวิกฤติและงานเร่งด่วน (Urgent & Delayed Jobs Alert):</strong> ตรวจสอบรายการงานที่ต้องแก้ไขทันทีจากกล่องแจ้งเตือนบนแดชบอร์ด</li>
+<li><strong>สร้างและบริหารบัญชีผู้ใช้งานตามบทบาท (Role Assignment):</strong> เข้าใจความแตกต่างของสิทธิ์ทั้ง 6 ระดับ (Admin, PM, Engineer, Technician, QC Inspector, Contact Center)</li>
+<li><strong>ตรวจสอบความปลอดภัยและ Audit Logs:</strong> รู้วิธีเปิดดูบันทึกประวัติการ Login และประวัติการเปลี่ยนแปลงสถานะงานในระบบ</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>🧭 กายวิภาคของหน้าจอแดชบอร์ดภาพรวม (<code>page-dashboard</code>)</h2>
+<div class="diagram-placeholder">📊 <em>[ผังกระบวนการ / Mermaid Diagram ดูได้ในระบบ PMT Flow หรือดูรายละเอียดหัวข้อย่อยด้านล่าง]</em></div>
+<h3>🔹 การ์ดตัวชี้วัดหลัก 4 ใบ (Executive KPI Cards):</h3>
+<li><strong>มูลค่ารวมโครงการ (Total Project Revenue):</strong> ยอดรวมมูลค่างานทั้งหมดที่บันทึกและผ่านการอนุมัติในระบบ พร้อมเปอร์เซ็นต์การเติบโต</li>
+<li><strong>งานที่กำลังดำเนินการ (Active Projects In-Progress):</strong> จำนวนงานที่กำลังอยู่ระหว่างการออกแบบ, ทำ BOQ, หรือติดตั้งจริงในหน้างาน</li>
+<li><strong>อัตราการผ่านการตรวจ QC (First-time QC Pass Rate):</strong> สัดส่วนงานที่ตรวจผ่านเกณฑ์มาตรฐานความปลอดภัยในครั้งแรก (เป้าหมายองค์กร > 95%)</li>
+<li><strong>อัตราการปฏิบัติตามเกณฑ์เวลา (SLA Compliance Rate):</strong> สัดส่วนงานที่ดำเนินงานเสร็จสิ้นตามกำหนดเวลา SLA ในแต่ละขั้นตอน</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>🧭 กายวิภาคของหน้าจอจัดการผู้ใช้งาน (<code>page-users</code>)</h2>
+<div class="diagram-placeholder">📊 <em>[ผังกระบวนการ / Mermaid Diagram ดูได้ในระบบ PMT Flow หรือดูรายละเอียดหัวข้อย่อยด้านล่าง]</em></div>
+<h3>🔹 เมทริกซ์การกำหนดสิทธิ์ตามบทบาท (Role-Based Access Matrix):</h3>
+<table>
+  <tr><th>บทบาท (Role)</th><th>หน้าจอที่เข้าถึงได้</th><th>สิทธิ์การแก้ไข/บันทึก</th><th>การอนุมัติขั้นสุดท้าย</th></tr>
+  <tr><td><strong>System Admin</strong></td><td>ทุกหน้าจอ (100%)</td><td>สร้าง/ลบผู้ใช้, ปรับปรุง SLA, รีเซ็ตข้อมูล</td><td>มีสิทธิ์สมบูรณ์</td></tr>
+  <tr><td><strong>Project Manager (PM)</strong></td><td>Dashboard, Jobs, Blueprints, BOQ, Gantt, QC</td><td>รับงานเข้า PMT, ปรับตาราง Gantt, Override SLA</td><td>อนุมัติย้ายสเต็ป</td></tr>
+  <tr><td><strong>AE / Intake Officer</strong></td><td>Step 1 (Jobs), Step 4 (Tickets)</td><td>คัดกรองงาน, แนบสลิป, บันทึกข้อมูลลูกค้า</td><td>ส่งต่อ Step 2 หรือ 4</td></tr>
+  <tr><td><strong>Designer / Engineer</strong></td><td>Step 2 (Blueprints), Step 3 (BOQ)</td><td>อัปโหลดแบบ CAD/PDF, กรอก/นำเข้าตาราง BOQ</td><td>ส่งต่อ Step 3 หรือ 4</td></tr>
+  <tr><td><strong>QC Inspector</strong></td><td>QC, Gantt</td><td>ตรวจสอบรูปถ่าย, บันทึก Checklist, ตัดสิน PASS/FAIL</td><td>อนุมัติ QC Pass</td></tr>
+  <tr><td><strong>Contact Center</strong></td><td>CSAT, After-Sales (MA)</td><td>บันทึกคะแนน 5 ดาว, เปิดสัญญา MA, Close Job</td><td>ปิดงานส่ง BMT</td></tr>
+  <tr><td><strong>Technician (ช่าง)</strong></td><td>Job Detail (Check-in), Gantt</td><td>เช็กอิน GPS 400m, อัปโหลดรูปหน้างาน 5 รูป</td><td>ยื่นขอตรวจ QC</td></tr>
+</table>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>🛠️ ขั้นตอนการปฏิบัติงานมาตรฐาน (Step-by-Step SOP)</h2>
+<h3>วิธีการที่ 1: การเพิ่มผู้ใช้งานใหม่เข้าสู่ระบบ (User Onboarding)</h3>
+<li>คลิกเมนู <strong><code>จัดการผู้ใช้งาน (User Management)</code></strong> ที่แถบเมนูด้านซ้าย (หรือคลิกปุ่มสีแดง <code>[ 👥 User Management ]</code> ที่ด้านบน)</li>
+<li>คลิกปุ่มสีม่วง <strong><code>+ เพิ่มผู้ใช้ใหม่</code></strong></li>
+<li>กรอกข้อมูลในแบบฟอร์ม:</li>
+<li><strong>ชื่อ-นามสกุล:</strong> กรอกชื่อจริงและนามสกุล</li>
+<li><strong>ชื่อผู้ใช้งาน (Username):</strong> ตั้งชื่อบัญชีสำหรับใช้เข้าสู่ระบบ (เช่น <code>somchai.t</code>)</li>
+<li><strong>รหัสผ่าน (Password):</strong> กำหนดรหัสผ่านเริ่มต้น (แนะนำอย่างน้อย 8 ตัวอักษร)</li>
+<li><strong>บทบาทในระบบ (Role):</strong> เลือกบทบาทที่ตรงกับตำแหน่งงาน (เช่น <code>QC Inspector</code>)</li>
+<li><strong>เบอร์โทรศัพท์ / LINE ID:</strong> เพื่อใช้ประสานงานด่วน</li>
+<li><strong>สถานะการทำงาน:</strong> เลือก <code>ใช้งานปกติ (Active)</code> หรือ <code>ระงับชั่วคราว (Suspended)</code></li>
+<li>คลิกปุ่ม <strong><code>💾 บันทึกข้อมูลผู้ใช้งาน</code></strong></li>
+<li>ผู้ใช้งานใหม่สามารถเข้าสู่ระบบด้วยชื่อบัญชีและรหัสผ่านดังกล่าวได้ทันที</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h3>วิธีการที่ 2: การตรวจสอบประวัติการเข้าใช้งาน (Audit Trail Logs)</h3>
+<li>ในหน้าจัดการผู้ใช้งาน คลิกปุ่ม <strong><code>ประวัติ Login (Audit Logs)</code></strong></li>
+<li>หน้าต่างประวัติความปลอดภัยจะเปิดขึ้น แสดงรายการ:</li>
+<li>วันที่และเวลาที่เข้าใช้งาน (Timestamps)</li>
+<li>ชื่อผู้ใช้งานและบทบาท</li>
+<li>IP Address และประเภทของเบราว์เซอร์</li>
+<li>ผลการเข้าสู่ระบบ (<code>Success</code> สีเขียว หรือ <code>Failed</code> สีแดง)</li>
+<li>สามารถคลิก <strong><code>Export Audit Log (.csv)</code></strong> เพื่อนำข้อมูลไปจัดทำรายงานความปลอดภัยทางไอทีประจำเดือน</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>💡 แผนการสอนสำหรับ Trainer (Workshop Hands-on Guide)</h2>
+<h3>🎯 บททดสอบปฏิบัติการประจำห้องเรียน (20 นาที):</h3>
+<p><strong>สถานการณ์สมมติ:</strong> "มีพนักงานใหม่เข้าทำงานในตำแหน่ง QC Inspector ชื่อ 'คุณพิชัย ตรวจสอบ' ให้ผู้เรียนดำเนินการสร้างบัญชีผู้ใช้งานและกำหนดสิทธิ์ดังนี้"</p>
+<li><strong>โจทย์ข้อที่ 1:</strong> เข้าสู่หน้าจอจัดการผู้ใช้งาน และคลิกปุ่ม <code>+ เพิ่มผู้ใช้ใหม่</code></li>
+<li><strong>โจทย์ข้อที่ 2:</strong> สร้างบัญชี Username: <code>pichai.qc</code>, บทบาท: <code>QC Inspector</code> และกำหนดรหัสผ่านเริ่มต้น</li>
+<li><strong>โจทย์ข้อที่ 3:</strong> กดบันทึก แล้วใช้แท็บกรอง <code>QC</code> ตรวจสอบว่ามีชื่อคุณพิชัยแสดงในรายชื่อหรือไม่</li>
+<li><strong>โจทย์ข้อที่ 4:</strong> เปิดหน้าต่าง <strong>ประวัติ Login (Audit Logs)</strong> และอธิบายว่าทำไมการเก็บ Log จึงสำคัญต่อมาตรฐานความปลอดภัย Enterprise</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>❓ คำถามที่พบบ่อยและข้อควรระวัง (FAQ & Best Practices)</h2>
+<div class="callout"><strong>Q: หากพนักงานลาออก ควรลบบัญชีผู้ใช้งานออกจากระบบทันทีหรือไม่?</strong><br><strong>A:</strong> ไม่แนะนำให้ลบบัญชี (Delete) เนื่องจากจะทำให้ประวัติการบันทึกงานย้อนหลังสูญหาย แนะนำให้ใช้วิธี <strong>แก้ไขและเปลี่ยนสถานะเป็น "ระงับการใช้งาน (Suspended)"</strong> แทน เพื่อป้องกันการ Login แต่ยังคงรักษาประวัติการทำงานไว้ครบถ้วน</div>
+<div class="callout callout-tip"><strong>Q: สามารถเปลี่ยนรหัสผ่านของตนเองได้อย่างไร?</strong><br><strong>A:</strong> ผู้ใช้งานทุกคนสามารถคลิกที่ปุ่มไอคอนฟันเฟือง <code>⚙️</code> ข้างรูปโปรไฟล์ที่มุมล่างซ้ายของ Sidebar เพื่อเปิดหน้าต่างแก้ไขโปรไฟล์และเปลี่ยนรหัสผ่านส่วนตัวได้ตลอดเวลา</div>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<p><strong>จัดทำโดย:</strong> ฝ่ายพัฒนาหลักสูตรและฝึกอบรม PMT Flow</p>
+<p><strong>รหัสเอกสาร:</strong> <code>TRN-PMT-SYS01-v2.0</code></p>
+<p><strong>สถานะการรับรอง:</strong> Approved Standard (Enterprise Operations)</p>
+
+</body>
+</html>

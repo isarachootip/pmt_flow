@@ -2,12 +2,12 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>คู่มือการฝึกอบรมระบบ PMT Flow - Step 2: บันทึก Design & แบบแปลนติดตั้ง (Blueprints & CAD)</title>
+    <title>Step 2: บันทึกแบบแปลนติดตั้ง (Blueprints CAD)</title>
+    
     <style>
         body {
             font-family: 'Sarabun', 'Segoe UI', Tahoma, sans-serif;
-            line-height: 1.6;
+            line-height: 1.65;
             color: #1e293b;
             max-width: 960px;
             margin: 0 auto;
@@ -16,36 +16,42 @@
         }
         h1 {
             color: #0f172a;
-            font-size: 26px;
-            border-bottom: 2px solid #6366f1;
-            padding-bottom: 10px;
-            margin-top: 24px;
+            font-size: 24px;
+            border-bottom: 2px solid #7c3aed;
+            padding-bottom: 8px;
+            margin-top: 28px;
         }
         h2 {
-            color: #1e3a8a;
-            font-size: 20px;
-            margin-top: 28px;
-            border-left: 4px solid #6366f1;
-            padding-left: 12px;
+            color: #4338ca;
+            font-size: 18px;
+            margin-top: 24px;
+            border-left: 4px solid #7c3aed;
+            padding-left: 10px;
         }
         h3 {
-            color: #334155;
-            font-size: 16px;
-            margin-top: 20px;
+            color: #1e293b;
+            font-size: 15px;
+            margin-top: 18px;
+        }
+        h4 {
+            color: #475569;
+            font-size: 13.5px;
+            margin-top: 14px;
         }
         p, li {
-            font-size: 14px;
+            font-size: 13px;
             color: #334155;
+            line-height: 1.6;
         }
         table {
             width: 100%;
             border-collapse: collapse;
             margin: 16px 0;
-            font-size: 13px;
+            font-size: 12px;
         }
         th, td {
             border: 1px solid #cbd5e1;
-            padding: 10px 12px;
+            padding: 8px 10px;
             text-align: left;
             vertical-align: top;
         }
@@ -58,294 +64,230 @@
             background-color: #f8fafc;
         }
         .callout {
+            border-left: 4px solid #7c3aed;
+            background-color: #f5f3ff;
+            padding: 12px 16px;
+            margin: 14px 0;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .callout-important {
+            border-left-color: #e11d48;
+            background-color: #fff1f2;
+        }
+        .callout-tip {
+            border-left-color: #10b981;
+            background-color: #ecfdf5;
+        }
+        .callout-note {
+            border-left-color: #3b82f6;
             background-color: #eff6ff;
-            border-left: 4px solid #3b82f6;
-            padding: 14px 18px;
-            margin: 18px 0;
-            border-radius: 6px;
         }
-        .callout-warning {
-            background-color: #fffbeb;
-            border-left: 4px solid #f59e0b;
-            padding: 14px 18px;
-            margin: 18px 0;
-            border-radius: 6px;
-        }
-        .callout-success {
-            background-color: #f0fdf4;
-            border-left: 4px solid #10b981;
-            padding: 14px 18px;
-            margin: 18px 0;
-            border-radius: 6px;
-        }
-        .img-container {
-            text-align: center;
-            margin: 24px 0;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 12px;
+        .code-box {
             background-color: #f8fafc;
-        }
-        .img-container img {
-            max-width: 100%;
-            height: auto;
+            border: 1px solid #e2e8f0;
+            padding: 10px;
             border-radius: 6px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            font-family: Consolas, monospace;
+            font-size: 11px;
+            white-space: pre-wrap;
+            margin: 12px 0;
+            color: #475569;
         }
-        .caption {
+        code {
+            background-color: #f1f5f9;
+            color: #6d28d9;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-family: Consolas, monospace;
+            font-size: 11.5px;
+        }
+        .diagram-placeholder {
+            background-color: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            padding: 12px;
+            margin: 12px 0;
+            border-radius: 6px;
+            text-align: center;
             font-size: 12px;
             color: #64748b;
-            margin-top: 8px;
-            font-style: italic;
-        }
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        .badge-renovate {
-            background-color: #e0e7ff;
-            color: #3730a3;
-            border: 1px solid #c7d2fe;
-        }
-        .badge-quick {
-            background-color: #fef3c7;
-            color: #b45309;
-            border: 1px solid #fde68a;
-        }
-        .badge-success {
-            background-color: #d1fae5;
-            color: #065f46;
-            border: 1px solid #a7f3d0;
-        }
-        .badge-step {
-            background-color: #ede9fe;
-            color: #5b21b6;
-            border: 1px solid #ddd6fe;
-        }
-        .btn-sample {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            text-decoration: none;
-        }
-        .btn-purple { background: #6366f1; color: #ffffff; }
-        .btn-emerald { background: #059669; color: #ffffff; }
-        .btn-amber { background: #d97706; color: #ffffff; }
-        .kbd {
-            background: #f1f5f9;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            padding: 2px 6px;
-            font-family: monospace;
-            font-size: 12px;
         }
     </style>
+    
 </head>
 <body>
-
-    <table style="width:100%; border: 1px solid #e2e8f0; background-color: #f8fafc; margin-bottom: 24px;">
-        <tr>
-            <td style="width: 25%; font-weight: bold; background-color: #f1f5f9;">รหัสหลักสูตร / SOP:</td>
-            <td style="width: 25%;">TRN-PMT-STEP02 / SOP-PMT-002</td>
-            <td style="width: 25%; font-weight: bold; background-color: #f1f5f9;">ชื่อระบบ:</td>
-            <td style="width: 25%;">PMT Flow Enterprise Operations</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold; background-color: #f1f5f9;">โมดูล / ขั้นตอน:</td>
-            <td>Step 2: บันทึก Design & แบบแปลน (Blueprints & CAD)</td>
-            <td style="font-weight: bold; background-color: #f1f5f9;">เวอร์ชันสถาปัตยกรรม:</td>
-            <td>v2.0 (Pipeline Architecture & Multi-Zone Support)</td>
-        </tr>
-        <tr>
-            <td style="font-weight: bold; background-color: #f1f5f9;">กลุ่มเป้าหมายผู้เรียน:</td>
-            <td>สถาปนิก, มัณฑนากร, วิศวกรโครงการ, เจ้าหน้าที่ถอดแบบ & BOQ, Trainer</td>
-            <td style="font-weight: bold; background-color: #f1f5f9;">สภาพแวดล้อม Production:</td>
-            <td><a href="https://vibepmt.online" target="_blank">https://vibepmt.online</a></td>
-        </tr>
-    </table>
-
-    <h1>🎓 โมดูลที่ 2: เจาะลึกหน้าจอ Step 2 — บันทึก Design & แบบแปลนติดตั้ง (Blueprints & CAD Training Screen Guide)</h1>
-    <p>คู่มือฉบับมาตรฐานสำหรับวิทยากรผู้ฝึกอบรม (Trainer) และผู้ใช้งานระบบ ในการทำความเข้าใจโครงสร้างหน้าจอ ปุ่มควบคุม แดชบอร์ดวิเคราะห์ผล และขั้นตอนการปฏิบัติงานของศูนย์กลางงานออกแบบและแบบแปลนติดตั้ง (Step 2)</p>
-
-    <div class="img-container">
-        <img src="img/step2_screen.png" alt="หน้าจอ Step 2 บันทึก Design & แบบแปลนติดตั้ง PMT Flow">
-        <div class="caption">ภาพที่ 2.1: หน้าจอ Step 2 บันทึก Design & แบบแปลนติดตั้ง (Blueprints & CAD) ขณะเมาส์ชี้ปุ่ม "ยืนยันย้ายไป Step 3"</div>
-    </div>
-
-    <h2>1. วัตถุประสงค์และบทบาทของหน้าจอ (Purpose & Objectives)</h2>
-    <p>หน้าจอ <b>Step 2 (บันทึก Design)</b> ทำหน้าที่เป็น <b>"Engineering & Design Hub"</b> ของระบบ PMT Flow มีหน้าที่รับช่วงต่องานที่เปิดรับมาจาก Step 1 เพื่อ:</p>
-    <ul>
-        <li><b>จัดเก็บและจัดการไฟล์แบบแปลนอย่างเป็นระบบ:</b> รองรับไฟล์ AutoCAD (<code>.dwg</code>, <code>.dxf</code>), เอกสารแบบแปลน (<code>.pdf</code>) และภาพ 3D Perspective/ภาพสเก็ตช์</li>
-        <li><b>รองรับโครงการขนาดใหญ่ที่มีหลายงานย่อย (Multi-Zone / Multi-Room):</b> สามารถแนบแบบแยกตามห้อง (เช่น ห้องครัว Built-in, ห้องน้ำ, ห้องนอนใหญ่) ภายใต้รหัส Job เดียวกัน</li>
-        <li><b>ควบคุมเกณฑ์มาตรฐานระยะเวลา (SLA Management):</b> ติดตามเวลานับถอยหลัง 24 ชั่วโมง เพื่อส่งต่องานออกแบบให้ทีมถอดแบบได้ทันตามกำหนด</li>
-        <li><b>ส่งต่องาน (Hand-off) สู่ Step 3:</b> เมื่อแบบแปลนครบถ้วน สามารถกดส่งต่องานเข้าสู่ขั้นตอนถอดปริมาณและราคา BOQ (Bill of Quantities) ได้ทันที</li>
-    </ul>
-
-    <h2>2. โครงสร้างและองค์ประกอบบนหน้าจอ (Screen Anatomy Breakdown)</h2>
-    
-    <h3>2.1 แถบกระบวนการหลัก 5 สเต็ป (Left Pipeline Sidebar)</h3>
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 25%;">ขั้นตอน (Pipeline Stage)</th>
-                <th style="width: 15%;">ตัวเลขในภาพ</th>
-                <th>คำอธิบายสถานะและการเชื่อมโยง</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td><b>Step 1: บันทึกงาน / รับ Order</b></td>
-                <td><span class="badge badge-quick">7</span></td>
-                <td>งานที่เพิ่งเข้ามาจากระบบขายหน้าร้าน/INT และรอการกดรับเข้าสู่ระบบ</td>
-            </tr>
-            <tr style="background-color: #f5f3ff;">
-                <td><b>Step 2: บันทึก Design</b></td>
-                <td><span class="badge badge-step">9 (Active)</span></td>
-                <td><b>หน้าจอปัจจุบัน</b> คิวโครงการที่อยู่ในมือทีมออกแบบเพื่อจัดทำแบบแปลน</td>
-            </tr>
-            <tr>
-                <td><b>Step 3: นำ BOQ เข้าระบบ</b></td>
-                <td><span class="badge" style="background:#e2e8f0;">0</span></td>
-                <td>คิวงานที่รอถอดรายการวัสดุและค่าแรงจากแบบแปลนที่ส่งมาจาก Step 2</td>
-            </tr>
-            <tr>
-                <td><b>Step 4: บันทึก Ticket & ใบเสร็จ</b></td>
-                <td><span class="badge badge-success">1</span></td>
-                <td>งานที่กำลังดำเนินการชำระเงินและออกใบเสร็จรับเงิน</td>
-            </tr>
-            <tr>
-                <td><b>Step 5: บันทึก BOQ เข้า Project</b></td>
-                <td><span class="badge" style="background:#e2e8f0;">0</span></td>
-                <td>งานที่แปลงรายการ BOQ เข้าสู่แผนงาน Gantt Timeline</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <h3>2.2 สัดส่วนประเภทงานใน Step 2 (Segment Distribution Summary)</h3>
-    <p>แถบแดชบอร์ดด้านบนช่วยให้หัวหน้าทีมทราบปริมาณและสัดส่วนประเภทงานที่อยู่ในคิว Step 2 ทันที:</p>
-    <table>
-        <thead>
-            <tr>
-                <th>หมวดหมู่งาน</th>
-                <th>จำนวน & %</th>
-                <th>ความสำคัญในกระบวนการ Design</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td><b>Quick Services (ติดตั้งด่วน)</b></td>
-                <td>0 รายการ (0%)</td>
-                <td>งานติดตั้งด่วน เช่น แอร์ หรือปั๊มน้ำ มักใช้แบบมาตรฐานและ Fast-track ข้ามไปได้เร็ว</td>
-            </tr>
-            <tr>
-                <td><b>Renovate (งานปรับปรุง)</b></td>
-                <td>2 รายการ (100%)</td>
-                <td><b>กลุ่มงานหลักในคิวปัจจุบัน:</b> งานครัว Built-in, งานระบบประปา, ปูกระเบื้อง ซึ่งต้องมีแบบแปลนเฉพาะหน้างานชัดเจน</td>
-            </tr>
-            <tr>
-                <td><b>MA & Maintenance (บำรุงรักษา)</b></td>
-                <td>0 รายการ (0%)</td>
-                <td>งานสัญญาบำรุงรักษาเชิงป้องกัน</td>
-            </tr>
-            <tr>
-                <td><b>มีแบบ Design แล้ว (ความคืบหน้า)</b></td>
-                <td>1 รายการ (10%)</td>
-                <td>ความคืบหน้าของงานที่มีแบบแปลนแล้วและพร้อมส่งต่อเข้าสู่ Step 3</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <h3>2.3 ตารางคิวงานหลัก Step 2 (Design & Blueprints Queue)</h3>
-    <p>ใช้สถาปัตยกรรม <b>Single State Queue</b> แสดงเฉพาะงานที่ต้องดำเนินการใน Step 2 เพื่อลดความซับซ้อนของผู้ใช้งาน:</p>
-    <table>
-        <thead>
-            <tr>
-                <th>รหัสงาน</th>
-                <th>ลูกค้า & บริการ</th>
-                <th>สถานะ & SLA</th>
-                <th>ปุ่มการจัดการ (Action)</th>
-                <th>ผลการกดปุ่ม</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td><b>JOB202609002</b></td>
-                <td>คุณสมศรี สุขใจ<br><span class="badge badge-renovate">RENOVATE</span> ครัว Built-in & ท่อประปา</td>
-                <td>In Progress<br><span style="color:#059669; font-size:11px;">✓ ในเกณฑ์ (เหลือ 23 ชม. 59 น.)</span></td>
-                <td>
-                    <span class="btn-sample" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1;">ดู/เพิ่มแบบ (1)</span>
-                    <span class="btn-sample btn-purple">ยืนยันย้ายไป Step 3</span>
-                </td>
-                <td>มีแบบแล้ว 1 โซน เมื่อกดปุ่มสีม่วง <b>ยืนยันย้ายไป Step 3</b> จะเปิดหน้าต่างสรุปเพื่อส่งงานต่อไปยังคิวทำ BOQ ทันที</td>
-            </tr>
-            <tr>
-                <td><b>JOB202609004</b></td>
-                <td>คุณมาลี มีโชค<br><span class="badge badge-renovate">RENOVATE</span> ปูกระเบื้อง 60x60 & สุขภัณฑ์</td>
-                <td>In Progress<br><span style="color:#059669; font-size:11px;">✓ ในเกณฑ์ (เหลือ 23 ชม. 59 น.)</span></td>
-                <td>
-                    <span class="btn-sample btn-purple">บันทึก Design</span>
-                </td>
-                <td>ยังไม่มีแบบแปลน เมื่อกดปุ่มนี้จะเปิดหน้าต่างอัปโหลดแบบแปลนเพื่อแนบไฟล์แบบฉบับแรก</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <h3>2.4 แถบแท็บและคลังแบบแปลน (Tabs & Multi-Zone Project Cards)</h3>
-    <ul>
-        <li><b>แท็บ "คิวโครงการ & งานย่อยที่รอ Design (9)":</b> แสดงการ์ดของทุกโครงการ เพื่อรองรับการคลิกเพิ่มห้องย่อย (เช่น <code>+ เพิ่มงานย่อย/ห้อง</code>) ให้กับงานที่มีหลายโซน</li>
-        <li><b>แท็บ "คลังแบบแปลนแยกตามห้อง/งานย่อย (1)":</b> จัดแสดงไฟล์แบบแปลนทั้งหมดในระบบแบบ Gallery พร้อม Thumbnail, เวอร์ชัน, ชื่อสถาปนิก และปุ่มดาวน์โหลด</li>
-        <li><b>ปุ่มสลับ Card View / List View:</b> ช่วยให้เลือกดูข้อมูลแบบการ์ดกล่องหรือแบบตารางรายการตามความสะดวก</li>
-    </ul>
-
-    <h2>3. ขั้นตอนการปฏิบัติงานมาตรฐาน (Standard Operating Procedure - SOP)</h2>
-    <div class="callout">
-        <b>วงจรการทำงานมาตรฐานใน Step 2 (4 ขั้นตอนหลัก):</b><br>
-        1. <b>ตรวจสอบข้อมูล:</b> เปิดดู Job เพื่อศึกษาภาพถ่ายสำรวจหน้างาน 5 จุดมาตรฐาน<br>
-        2. <b>แนบแบบแปลน:</b> คลิก <code>บันทึก Design</code> หรือ <code>+ เพิ่มงานย่อย/ห้อง</code> เพื่อแนบไฟล์แบบ PDF/CAD พร้อมระบุโซนห้องและเวอร์ชัน<br>
-        3. <b>ตรวจทานความถูกต้อง:</b> คลิกดูภาพขยายผ่านหน้าต่าง Lightbox Preview<br>
-        4. <b>ส่งต่องาน:</b> คลิกปุ่มสีม่วง <code>ยืนยันย้ายไป Step 3</code> เพื่อส่งงานต่อให้ฝ่ายทำราคา
-    </div>
-
-    <h2>4. คำแนะนำสำหรับ Trainer ในห้องฝึกอบรม (Trainer's Guide)</h2>
-    <div class="callout-warning">
-        <b>💡 เทคนิคการจัดเวิร์กช็อปสำหรับ Trainer:</b>
-        <ol>
-            <li><b>สาธิตงานที่มีแบบแล้ว:</b> ชี้ให้ผู้เรียนดูแถว <code>JOB202609002</code> อธิบายว่ามีปุ่ม <code>ดู/เพิ่มแบบ (1)</code> และปุ่ม <code>ยืนยันย้ายไป Step 3</code> ให้ลองกดปุ่มยืนยันเพื่อดู Modal สรุปรายการแบบ</li>
-            <li><b>สาธิตการแนบแบบใหม่:</b> ชี้แถว <code>JOB202609004</code> ที่ยังไม่มีแบบ ให้กดปุ่ม <code>บันทึก Design</code> จากนั้นคลิกปุ่มตัวอย่างด่วน <code>[แบบครัว Built-in]</code> เพื่อสาธิตการดึงแบบมาตรฐานมาใช้งานได้ภายใน 3 วินาที</li>
-            <li><b>อธิบายฟังก์ชัน Multi-Zone:</b> เน้นย้ำให้ผู้เรียนเข้าใจว่า 1 โครงการสามารถแนบแบบได้มากกว่า 1 ห้อง ไม่จำเป็นต้องรวมทุกห้องไว้ในไฟล์เดียว</li>
-        </ol>
-    </div>
-
-    <h2>5. คำถามที่พบบ่อย (FAQ)</h2>
-    <table style="margin-top:16px;">
-        <tr>
-            <th style="width:30%;">คำถาม</th>
-            <th>คำตอบและแนวทางปฏิบัติ</th>
-        </tr>
-        <tr>
-            <td><b>กดย้ายไป Step 3 แล้ว ยังแก้ไขหรือเพิ่มแบบได้หรือไม่?</b></td>
-            <td><b>ได้ตลอดเวลา:</b> สถาปนิกสามารถกลับมาที่ Step 2 เพื่อกด <code>+ เพิ่มงานย่อย/ห้อง</code> หรืออัปเดตเวอร์ชันใหม่ได้ ระบบจะซิงค์ข้อมูลไปยัง Step 3 โดยอัตโนมัติ</td>
-        </tr>
-        <tr>
-            <td><b>ช่างหน้างานจะดูแบบแปลนนี้จากที่ไหน?</b></td>
-            <td>ไฟล์แบบแปลนทั้งหมดจะเชื่อมโยงไปยังหน้า รายละเอียดงาน (Job Detail) และระบบช่างหน้างาน ช่างสามารถเปิดดูไฟล์ PDF หรือรูปภาพความละเอียดสูงบนมือถือหรือแท็บเล็ตได้ทันที</td>
-        </tr>
-        <tr>
-            <td><b>SLA 24 ชั่วโมงเริ่มนับตั้งแต่ตอนไหน?</b></td>
-            <td>เริ่มนับทันทีที่มีการกดยืนยันรับงานเข้าสู่ PMT ใน Step 1 หากใกล้ครบกำหนดระบบจะแสดงแถบแจ้งเตือนสีส้ม และหากเกินกำหนดจะเปลี่ยนเป็นสีแดง</td>
-        </tr>
-    </table>
-
-    <br><hr style="border:0; border-top:1px solid #e2e8f0; margin:30px 0;">
-    <p style="text-align:center; font-size:12px; color:#64748b;">
-        คู่มือการฝึกอบรมระบบ PMT Flow Enterprise Operations | ปรับปรุงล่าสุด: กันยายน 2026<br>
-        เอกสารสำหรับใช้งานภายในองค์กรและฝึกอบรมบุคลากร
+<div style="background-color: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 12px 18px; margin-bottom: 24px;">
+    <strong style="color: #6d28d9;">📋 คำแนะนำสำหรับการนำเข้า Google Docs (วิธี Copy-Paste สวยงาม 100%):</strong>
+    <p style="margin: 4px 0 0 0; font-size: 12px; color: #4b5563;">
+        1. เปิดไฟล์นี้ในเว็บเบราว์เซอร์ (Chrome / Edge)<br>
+        2. กด <strong>Ctrl + A</strong> (เลือกทั้งหมด) แล้วกด <strong>Ctrl + C</strong> (คัดลอก)<br>
+        3. เปิดเอกสารเปล่าใน Google Docs แล้วกด <strong>Ctrl + V</strong> (วาง)<br>
+        <em>&rarr; หัวข้อ, ตาราง, สีสัน, กล่องแจ้งเตือน และโครงสร้างทั้งหมดจะถูกแปลงเป็นฟอร์แมตของ Google Docs ทันที</em>
     </p>
+</div>
+<h1>🎓 คู่มือฝึกอบรมการใช้งานหน้าจอระบบ PMT Flow</h1>
+<h2>โมดูลที่ 2: เจาะลึกหน้าจอ Step 2 — บันทึก Design & แบบแปลนติดตั้ง (Blueprints & CAD Training Screen Guide)</h2>
+<p><strong>รหัสหลักสูตร:</strong> <code>TRN-PMT-STEP02</code> | <strong>ระบบ:</strong> PMT Flow (Store Project Management Tool) | <strong>เวอร์ชัน:</strong> 2.0 (Pipeline Architecture) | <strong>กลุ่มเป้าหมาย:</strong> สถาปนิก, มัณฑนากร, วิศวกรโครงการ, เจ้าหน้าที่ถอดแบบ & BOQ, หัวหน้างาน และวิทยากรผู้ฝึกอบรม (Trainer)</p>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<p>!<a href="img/step2_screen.png" style="color:#6d28d9;">ภาพรวมหน้าจอ Step 2: บันทึก Design & แบบแปลนติดตั้ง (Blueprints & CAD)</a></p>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>📌 บทสรุปและวัตถุประสงค์หลักสูตร (Course Overview & Objectives)</h2>
+<p>หน้าจอ <strong>Step 2: บันทึก Design & แบบแปลนติดตั้ง (Blueprints & CAD)</strong> คือ <strong>"ศูนย์กลางด้านเทคนิคและงานดีไซน์ (Design & Engineering Center)"</strong> ของระบบ PMT Flow มีหน้าที่รับช่วงต่องานที่ผ่านการเปิด Order และคัดกรองเบื้องต้นมาจาก <strong>Step 1</strong> เพื่อให้ทีมออกแบบ, สถาปนิก หรือวิศวกรทำการ <strong>จัดทำ, ตรวจสอบ, อัปโหลด และจัดหมวดหมู่แบบแปลนทางเทคนิค</strong> (AutoCAD <code>.dwg</code>, <code>.dxf</code>, แบบแปลนโครงสร้าง <code>.pdf</code>, หรือภาพ 3D Perspective) ให้ครบถ้วนตามมาตรฐาน ก่อนส่งต่องานไปยัง <strong>Step 3 (นำ BOQ เข้าระบบ)</strong> เพื่อถอดปริมาณวัสดุและคิดราคา</p>
+<h3>🎯 วัตถุประสงค์การเรียนรู้สำหรับผู้เข้าอบรม (Learning Objectives):</h3>
+<li><strong>เข้าใจหลักการทำงานของ Single State Queue ใน Step 2:</strong> เรียนรู้ว่าเหตุใดหน้าจอนี้จึงกรองเฉพาะงานที่ *กำลังรอแบบ* หรือ *พร้อมส่งต่อ* เพื่อให้ทีมงานโฟกัสเฉพาะงานที่ต้องลงมือทำจริง</li>
+<li><strong>จัดการไฟล์แบบแปลนและระบบหลายโซนงาน (Multi-Zone / Multi-Room Management):</strong> สามารถแยกและแนบแบบแปลนสำหรับโครงการ Renovate ที่มีหลายห้อง (เช่น ห้องครัว, ห้องน้ำ, ห้องนอน) ภายใต้รหัส Job เดียวกันได้อย่างถูกต้อง</li>
+<li><strong>ใช้งานระบบ Versioning และ Lightbox ตรวจสอบแบบ:</strong> รู้วิธีเลือก/ระบุเวอร์ชันแบบ (<code>v1 Draft</code>, <code>v2 Approved</code>, <code>v3 Final</code>) และการใช้ฟังก์ชันขยายดูแบบความละเอียดสูง</li>
+<li><strong>วิเคราะห์ตัวชี้วัดแดชบอร์ด Analytics, KPI & SLA:</strong> อ่านค่าสถิติยอดงานเข้า, อัตรางานค้าง, สัดส่วนประเภทงาน (Quick Services / Renovate / MA) และติดตามเวลานับถอยหลัง SLA (24 ชม.) ได้อย่างมีประสิทธิภาพ</li>
+<li><strong>ควบคุมการไหลของงาน (Workflow Routing):</strong> สามารถตรวจสอบความพร้อมของแบบแปลน และกดส่งต่องานผ่านปุ่ม <strong><code>ยืนยันย้ายไป Step 3</code></strong> ได้อย่างถูกต้อง 100%</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>🧭 กายวิภาคของหน้าจอ Step 2 (Screen Anatomy Breakdown)</h2>
+<p>จากภาพหน้าจอระบบจริง โครงสร้างหน้าจอแบ่งออกเป็น <strong>7 โซนสำคัญ</strong> ดังนี้:</p>
+<div class="diagram-placeholder">📊 <em>[ผังกระบวนการ / Mermaid Diagram ดูได้ในระบบ PMT Flow หรือดูรายละเอียดหัวข้อย่อยด้านล่าง]</em></div>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h3>🔹 โซน 0: แถบนำทางด้านบน (Top Global Navigation Bar)</h3>
+<table>
+  <tr><th>องค์ประกอบ</th><th>สัญลักษณ์ / สี</th><th>หน้าที่การทำงาน</th><th>คำแนะนำจาก Trainer</th></tr>
+  <tr><td><strong>โลโก้ & ชื่อระบบ</strong></td><td><code>PMT Flow [Artifact]</code></td><td>แสดงตราสินค้าและระดับ Enterprise Operations</td><td>คลิกเพื่อกลับสู่แดชบอร์ดหน้าหลัก</td></tr>
+  <tr><td><strong>Breadcrumb</strong></td><td><code>PMT Flow > Step 2: บันทึก Design...</code></td><td>ระบุตำแหน่งกระบวนการปัจจุบัน</td><td>ใช้สังเกตว่ากำลังทำงานอยู่ในขั้นตอนที่ 2</td></tr>
+  <tr><td><strong>ค้นหางานด่วน</strong></td><td><code>🔍 ค้นหางาน, ช่าง, ลูกค้า... [⌘K]</code></td><td>ค้นหาเลข Job, ชื่อลูกค้า, เบอร์โทร หรือช่างได้ทั่วระบบ</td><td>แนะนำให้ใช้คีย์ลัด <code>Ctrl + K</code> เพื่อความรวดเร็ว</td></tr>
+  <tr><td><strong>User Management</strong></td><td>ปุ่ม <code>[ 👥 User Management ]</code></td><td>จัดการผู้ใช้งาน กำหนดสิทธิ์ทีมออกแบบ/ช่าง</td><td>ใช้ตรวจสอบสิทธิ์ของทีมสถาปนิกและช่าง</td></tr>
+  <tr><td><strong>FAQ & คู่มือ</strong></td><td>ปุ่ม <code>[ ❓ FAQ & คู่มือ ]</code></td><td>เปิดเอกสารระเบียบปฏิบัติและคู่มือระบบ</td><td>แนะนำให้ผู้เรียนเปิดทบทวนได้ตลอดเวลา</td></tr>
+  <tr><td><strong>โหมดมืด/สว่าง</strong></td><td>ไอคอน <code>☀️</code> / <code>🌙</code></td><td>สลับธีมแสดงผล Light / Dark Mode</td><td>ช่วยลดความล้าของสายตาเมื่อตรวจแบบแปลนนานๆ</td></tr>
+  <tr><td><strong>ออกจากระบบ</strong></td><td>ปุ่ม <code>[ 🚪 ออกจากระบบ ]</code></td><td>ปิด Session การใช้งานอย่างปลอดภัย</td><td>ให้กดทุกครั้งหลังเสร็จสิ้นการทำงาน</td></tr>
+</table>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h3>🔹 โซน 0.1: แถบกระบวนการทำงานหลัก (Left Pipeline Sidebar)</h3>
+<p>แถบเมนูด้านซ้ายมือแสดงขั้นตอนการดำเนินงานทั้ง 5 ขั้นตอน (5 STEPS PIPELINE) พร้อม Badge แสดงจำนวนงานในแต่ละขั้นตอน:</p>
+<li>⚪ <strong>Step 1: บันทึกงาน / รับ Order (<code>7</code>):</strong> งานที่เพิ่งเข้ามาใหม่และรอการเปิดรับ Order</li>
+<li>🟣 <strong>Step 2: บันทึก Design (<code>9</code> - ไฮไลท์สีม่วง):</strong> <strong>หน้าจอปัจจุบัน</strong> มีงานทั้งหมด 9 โครงการที่อยู่ในความดูแลของทีมออกแบบ</li>
+<li>⚪ <strong>Step 3: นำ BOQ เข้าระบบ (<code>0</code>):</strong> คิวงานที่รอถอดรายการวัสดุและค่าแรง</li>
+<li>⚪ <strong>Step 4: บันทึก Ticket & ใบเสร็จ (<code>1</code>):</strong> งานที่อยู่ระหว่างชำระเงินและออกใบเสร็จ</li>
+<li>⚪ <strong>Step 5: บันทึก BOQ เข้า Project (<code>0</code>):</strong> งานที่แปลง BOQ เป็น Task เข้าสู่ Gantt Chart</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h3>🔹 โซน 1: แถบหัวเรื่องและตัวกรอง (Header Action Bar)</h3>
+<p>อยู่ด้านบนขวาของพื้นที่เนื้อหาหลัก ประกอบด้วย:</p>
+<li><strong>ตัวกรองประเภทบริการ:</strong> ดรอปดาวน์เลือกดูเฉพาะกลุ่มงาน เช่น <code>ติดตั้งเครื่องทำน้ำอุ่น</code>, <code>ปั้มแท็งก์</code>, <code>Renovate ครัว</code>, <code>สำรวจหน้างาน</code></li>
+<li><strong>ตัวกรองสถานะคิว:</strong></li>
+<li><code>📐 คิวงาน Step 2 (รอทำแบบ Design)</code> *(ค่าเริ่มต้น)*: แสดงเฉพาะงานที่ต้องจัดทำแบบในสเต็ปนี้</li>
+<li><code>🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</code>: แสดงประวัติงานทุกสเต็ปสำหรับค้นหาย้อนหลัง</li>
+<li><code>รอแนบแบบแปลน (Pending Design)</code>: กรองเฉพาะงานที่ยังไม่มีไฟล์แบบใดๆ แนบเลย</li>
+<li><code>แนบแบบแปลนแล้ว (Designed)</code>: กรองเฉพาะงานที่มีแบบแล้วอย่างน้อย 1 ฉบับ</li>
+<li><strong>ปุ่ม <code>+ บันทึก / อัปโหลดแบบแปลนใหม่</code> (สีน้ำเงิน/ม่วง):</strong> คลิกเพื่อเปิดหน้าต่าง Popup แบบฟอร์มอัปโหลดแบบแปลนใหม่แบบกำหนดเอง</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h3>🔹 โซน 2: สัดส่วนประเภทงานใน Step 2 (Segment Distribution Summary)</h3>
+<p>แถบแดชบอร์ดสรุปสถิติปริมาณงานตามกลุ่มบริการ เพื่อให้หัวหน้าทีมจัดสรรทรัพยากรผู้ออกแบบได้เหมาะสม:</p>
+<table>
+  <tr><th>หมวดหมู่</th><th>ตัวเลข & สัดส่วน</th><th>ความหมายเชิงการปฏิบัติงาน</th></tr>
+  <tr><td><strong>Quick Services</strong></td><td><code>0</code> (0%)</td><td>งานติดตั้งด่วน เช่น ติดตั้งแอร์ตัวเดียว หรือติดตั้งปั๊มน้ำ (ส่วนใหญ่มีแบบมาตรฐานอยู่แล้ว มักถูก Fast-track ข้ามไป Step 4 หรือ Step 3 ได้ทันที)</td></tr>
+  <tr><td><strong>Renovate</strong></td><td><code>2</code> (100%)</td><td><strong>งานปรับปรุง/ต่อเติม</strong> เป็นหัวใจหลักของ Step 2 เช่น งานครัว Built-in, งานปูกระเบื้อง, งานระบบประปา ซึ่งต้องอาศัยแบบแปลนเฉพาะเจาะจง</td></tr>
+  <tr><td><strong>MA & Maintenance</strong></td><td><code>0</code> (0%)</td><td>งานสัญญาบำรุงรักษาเชิงป้องกัน (Preventive Maintenance)</td></tr>
+  <tr><td><strong>มีแบบ Design แล้ว</strong></td><td><code>1</code> (10%)</td><td>จำนวนโครงการในระบบที่มีการแนบแบบแปลนครบถ้วนแล้ว พร้อมส่งต่อไปยัง Step 3</td></tr>
+</table>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h3>🔹 โซน 3: ตารางคิวงานหลัก Step 2 (Design & Blueprints Queue)</h3>
+<p>ตารางนี้ใช้สถาปัตยกรรม <strong>Single State Queue</strong> เพื่อแสดงเฉพาะงานที่กำลังอยู่ในมือของทีมออกแบบในปัจจุบัน:</p>
+<div class="diagram-placeholder">📊 <em>[ผังกระบวนการ / Mermaid Diagram ดูได้ในระบบ PMT Flow หรือดูรายละเอียดหัวข้อย่อยด้านล่าง]</em></div>
+<h4>รายละเอียดแต่ละคอลัมน์ในตาราง:</h4>
+<li><strong>เลขที่งาน (Job ID):</strong> รหัสอ้างอิงของงาน เช่น <code>JOB202609002</code> (คลิกเพื่อเปิดดูรายละเอียดงานเต็มรูปแบบ)</li>
+<li><strong>ลูกค้า & เบอร์ติดต่อ:</strong> ชื่อเจ้าของบ้านและเบอร์โทรศัพท์สำหรับติดต่อสอบถามสเปกหน้างาน</li>
+<li><strong>ประเภทบริการ:</strong> ป้าย Tag ระบุประเภท เช่น <code>RENOVATE</code> พร้อมชื่องานบริการอย่างละเอียด</li>
+<li><strong>ช่าง / ผู้รับผิดชอบ:</strong> ทีมช่างหน้างาน เช่น <code>Team B (ประเสริฐ)</code> หรือ <code>Team A (สมศักดิ์)</code></li>
+<li><strong>สถานะ:</strong> แสดงสถานะวงจรงาน เช่น <code>In Progress</code> (กำลังดำเนินการ)</li>
+<li><strong>ขั้นตอน (STAGE) & SLA:</strong></li>
+<li>แสดงแถบความคืบหน้า 5 ขั้นตอน (ขั้นตอนที่ 2 ไฮไลท์สีเขียว)</li>
+<li>แถบนับถอยหลัง SLA: <code>✓ ในเกณฑ์ (เหลือ 23 ชม. 59 น.)</code> เพื่อควบคุมเวลาการจัดทำแบบไม่ให้เกิน 24 ชั่วโมง</li>
+<li><strong>การจัดการ (Action Buttons):</strong></li>
+<li><strong>ปุ่ม <code>ดู/เพิ่มแบบ (1)</code>:</strong> ดูรายการไฟล์แบบเดิมที่เคยแนบไว้แล้ว หรือกดเพิ่มห้องใหม่</li>
+<li><strong>ปุ่ม <code>ยืนยันย้ายไป Step 3</code> (ปุ่มสีม่วงที่เมาส์ชี้):</strong> ใช้เมื่อจัดทำแบบครบถ้วนแล้ว เมื่อคลิกจะย้ายงานนี้ไปยังคิวถอดราคา BOQ ทันที</li>
+<li><strong>ปุ่ม <code>บันทึก Design</code>:</strong> แสดงสำหรับงานที่ยังไม่มีแบบแปลน คลิกเพื่อเริ่มอัปโหลดแบบฉบับแรก</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h3>🔹 โซน 4, 5 & 6: คิวโครงการ & งานย่อย และคลังแบบแปลน (Multi-Zone Workspace)</h3>
+<p>ด้านล่างของตารางหลักคือพื้นที่สำหรับบริหารจัดการงานในระดับ <strong>"โครงการและงานย่อย (Multi-Zone / Multi-Room)"</strong>:</p>
+<h4>1. แถบสลับแท็บ (Tab Switcher):</h4>
+<li><strong>แท็บ 1: คิวโครงการ & งานย่อยที่รอ Design (<code>9</code>):</strong> แสดงงานทั้งหมดในระบบเพื่อรองรับการเปิดแนบแบบเพิ่มทีละห้อง/ทีละโซน</li>
+<li><strong>แท็บ 2: คลังแบบแปลนแยกตามห้อง/งานย่อย (<code>1</code>):</strong> จัดเก็บไฟล์ CAD/PDF ทั้งหมดในรูปแบบคลังไฟล์กลาง มีตัวอย่างรูปภาพ (Thumbnail), วันที่บันทึก, ชื่อสถาปนิก และปุ่มดาวน์โหลด</li>
+<h4>2. แถบค้นหาและสลับมุมมอง (Search & View Mode):</h4>
+<li>ค้นหาด้วยรหัสงาน, ชื่อลูกค้า หรือชื่อห้อง/โซน</li>
+<li>ปุ่มสลับ <strong><code>Card View</code></strong> (การ์ดกล่อง เหมาะสำหรับดูภาพรวม) และ <strong><code>List View</code></strong> (ตารางรายการ เหมาะสำหรับการจัดการข้อมูลจำนวนมาก)</li>
+<h4>3. การ์ดโครงการด้านล่าง (Project Cards):</h4>
+<li><strong>JOB202609001 (คุณณวัฒน์ รักสงบ):</strong> งานติดตั้งแอร์ ➔ แสดงสถานะ <code>⏳ รอจัดทำแบบ</code></li>
+<li><strong>JOB202609002 (คุณสมศรี สุขใจ):</strong> งานครัว Built-in ➔ แสดงป้าย <code>✓ บันทึกแล้ว 1 งานย่อย</code> พร้อมปุ่มชอร์ตคัตสำหรับคลิกดูแบบแปลนห้องครัวได้ทันที</li>
+<li><strong>JOB202609003 (คุณเอนก มั่งคั่ง):</strong> ติดตั้งโซลาร์เซลล์ ➔ แสดงสถานะ <code>⏳ รอจัดทำแบบ</code></li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>🛠️ ขั้นตอนการปฏิบัติงานมาตรฐาน (SOP: Standard Operating Procedures)</h2>
+<h3>📋 ขั้นตอนที่ 1: ตรวจสอบคำสั่งซื้อและข้อมูลสำรวจหน้างาน</h3>
+<li>เข้าสู่เมนู <strong><code>Step 2: บันทึก Design</code></strong> จากแถบเมนูด้านซ้าย</li>
+<li>ตรวจสอบตารางคิวงานด้านบน สังเกตงานที่มีสถานะ SLA เร่งด่วน</li>
+<li>หากต้องการดูภาพถ่ายสำรวจหน้างานที่ช่างถ่ายส่งมา ให้คลิกที่ <strong>เลขที่งาน (Job ID)</strong> เพื่อเปิดดูภาพถ่าย 5 จุดมาตรฐาน (สภาพพื้นที่, แนวท่อ, จุดต่อไฟ ฯลฯ) ก่อนลงมือเขียนแบบ</li>
+<h3>📋 ขั้นตอนที่ 2: บันทึกและแนบแบบแปลนติดตั้ง (Upload Blueprint)</h3>
+<li>ในตารางคิวงาน หรือการ์ดโครงการ ให้คลิกปุ่ม <strong><code>บันทึก Design</code></strong> หรือ <strong><code>+ เพิ่มงานย่อย/ห้อง</code></strong></li>
+<li>หน้าต่างป๊อปอัป <strong>"บันทึก / แนบแบบแปลนติดตั้ง (Upload Blueprint & CAD)"</strong> จะเปิดขึ้นมา</li>
+<li>กรอกและตรวจสอบข้อมูล:</li>
+<li><strong>รหัสโครงการ (Job ID):</strong> เลือกรหัสงานที่ต้องการ (ระบบจะเลือกให้อัตโนมัติหากกดมาจากแถวงานนั้น)</li>
+<li><strong>โซนงาน / งานย่อย (Zone/Room):</strong> ระบุห้อง เช่น <code>ห้องครัว Built-in</code>, <code>ห้องนอนใหญ่ (Master)</code>, <code>ห้องน้ำชั้น 2</code> (สามารถคลิกแท็กด่วนที่ระบบแนะนำได้)</li>
+<li><strong>ไฟล์แบบแปลน:</strong> ลากไฟล์ PDF หรือ AutoCAD (<code>.dwg</code>, <code>.dxf</code>, รูปภาพ) มาวางในช่อง Dropzone หรือคลิกเลือกปุ่มตัวอย่างด่วน (Quick Samples)</li>
+<li><strong>เลขเวอร์ชัน (Version):</strong> เช่น <code>v1 Draft</code>, <code>v2 Approved</code>, <code>v3 Final</code></li>
+<li><strong>ผู้ออกแบบ (Designer):</strong> บันทึกชื่อสถาปนิกหรือวิศวกรผู้เขียนแบบ</li>
+<li><strong>หมายเหตุทางเทคนิค (Notes):</strong> ระบุจุดสำคัญ เช่น *"แนวท่อน้ำทิ้ง 2 นิ้ว สโลป 1:100"*</li>
+<li>คลิกปุ่ม <strong><code>บันทึกแบบแปลน</code></strong> ระบบจะทำการบันทึกและแสดงแถบป้ายงานย่อยทันที</li>
+<h3>📋 ขั้นตอนที่ 3: การเพิ่มงานย่อยสำหรับโครงการขนาดใหญ่ (Multi-Zone Extension)</h3>
+<li>สำหรับงาน Renovate ทั้งบ้านที่มีหลายห้อง ให้กดปุ่ม <strong><code>+ เพิ่มงานย่อย/ห้อง</code></strong> ซ้ำอีกครั้ง</li>
+<li>เปลี่ยนชื่อโซนเป็นห้องถัดไป (เช่น ห้องน้ำ) แล้วแนบไฟล์แปลนของห้องนั้น</li>
+<li>ระบบจะรวมแบบแปลนทุกห้องไว้ภายใต้ Job เดียวกัน ทำให้ทีมทำราคาใน Step 3 สามารถถอดแบบได้ครบถ้วนโดยไม่ตกหล่น</li>
+<h3>📋 ขั้นตอนที่ 4: การตรวจสอบความถูกต้องผ่าน Lightbox</h3>
+<li>คลิกที่ชื่อโซนห้อง หรือรูป Thumbnail ของแบบแปลน</li>
+<li>ระบบจะเปิดหน้าต่าง <strong>Lightbox Preview</strong> ขยายภาพแบบขนาดใหญ่ พร้อมรายละเอียดเวอร์ชันและหมายเหตุทางเทคนิค เพื่อตรวจทานความถูกต้อง</li>
+<h3>📋 ขั้นตอนที่ 5: การส่งต่องานไปยัง Step 3 (Hand-off to BOQ)</h3>
+<li>เมื่อแนบแบบแปลนที่จำเป็นครบถ้วนแล้ว ให้คลิกปุ่มสีม่วง <strong><code>ยืนยันย้ายไป Step 3</code></strong> ที่แถวของงานนั้น</li>
+<li>ระบบจะเปิดหน้าต่างสรุปยืนยัน <strong>"ยืนยันส่งต่องานเข้าสู่ Step 3: นำ BOQ เข้าระบบ"</strong> ซึ่งจะแสดงรายการแบบแปลนทั้งหมดที่แนบไว้</li>
+<li>คลิกปุ่ม <strong><code>ยืนยันส่งต่อเพื่อสร้าง BOQ ➔</code></strong></li>
+<li>งานจะถูกย้ายออกจากคิว Step 2 และไปปรากฏในคิวรอถอดราคาของ <strong>Step 3 (นำ BOQ เข้าระบบ)</strong> โดยอัตโนมัติ</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>🪟 เจาะลึกหน้าต่างป๊อปอัป (Interactive Modals Deep-Dive)</h2>
+<h3>1. หน้าต่างอัปโหลดแบบแปลน (Upload Blueprint Modal)</h3>
+<div class="code-box">┌─────────────────────────────────────────────────────────────┐
+│ 📐 บันทึก / แนบแบบแปลนติดตั้ง (Upload Blueprint & CAD)       │
+├─────────────────────────────────────────────────────────────┤
+│ โครงการ: [ JOB202609002 - คุณสมศรี สุขใจ (Renovate ครัว) ▼ ] │
+│ โซน/งานย่อย: [ ห้องครัว Built-in                         ] │
+│ แท็กด่วน: [ห้องรับแขก] [ห้องครัว] [ห้องนอนใหญ่] [ห้องน้ำ]   │
+├─────────────────────────────────────────────────────────────┤
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 📁 ลากไฟล์ CAD (.dwg) หรือ PDF มาวางที่นี่               │ │
+│ │ หรือ [เลือกไฟล์จากเครื่อง]                               │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│ ตัวอย่างด่วน: [แบบแอร์ Master] [แบบครัว Built-in] [แบบโซลาร์] │
+├─────────────────────────────────────────────────────────────┤
+│ เวอร์ชัน: [ v2 Approved  ]  ผู้ออกแบบ: [ คุณธนกฤต (Designer)]│
+│ หมายเหตุ: [ แบบแปลนสุขาภิบาล จุดต่อน้ำดี-น้ำทิ้ง          ] │
+├─────────────────────────────────────────────────────────────┤
+│                    [ ยกเลิก ]   [ บันทึกแบบแปลน (Save) ]    │
+└─────────────────────────────────────────────────────────────┘</div>
+<h3>2. หน้าต่างยืนยันย้ายไป Step 3 (Confirm Proceed to BOQ Modal)</h3>
+<li><strong>วัตถุประสงค์:</strong> ป้องกันความผิดพลาดจากการส่งต่องานที่ยังเขียนแบบไม่เสร็จ</li>
+<li><strong>ส่วนประกอบ:</strong></li>
+<li>รหัส Job ID และชื่อลูกค้า</li>
+<li>จำนวนแบบแปลนทั้งหมดที่แนบไว้ในโครงการนี้</li>
+<li>รายการแจกแจงแบบแปลนแต่ละห้อง พร้อมเวอร์ชันและชื่อไฟล์</li>
+<li>หากยังไม่มีแบบแปลนแนบ ระบบจะแสดงกล่องแจ้งเตือนสีเหลืองว่า *"ยังไม่มีแบบแปลนที่แนบสำหรับงานนี้"* เพื่อเตือนสติทีมงาน</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>💡 คำแนะนำและเคล็ดลับสำหรับ Trainer (Pro Tips & Best Practices)</h2>
+<div class="callout callout-tip"><strong>เทคนิคการสาธิตสำหรับห้องอบรม:</strong><br>1. แนะนำให้ Trainer เริ่มจากการสร้างข้อมูลตัวอย่างใน Step 1 โดยกดปุ่ม <strong><code>จำลอง 10 งาน (INT)</code></strong> แล้วกดรับงานเข้ามาที่ Step 2<br>2. ใน Step 2 ให้เลือก <code>JOB202609002</code> แสดงให้ผู้เรียนเห็นว่าโครงการนี้มีแบบแนบไว้แล้ว 1 โซน จากนั้นสาธิตการคลิกปุ่ม <strong><code>ยืนยันย้ายไป Step 3</code></strong><br>3. จากนั้นเลือก <code>JOB202609004</code> ซึ่งยังไม่มีแบบ ให้กดปุ่ม <strong><code>บันทึก Design</code></strong> แล้วคลิกปุ่ม <strong><code>[แบบครัว Built-in]</code></strong> ในแถบตัวอย่างด่วน เพื่อสาธิตการแนบแบบอย่างรวดเร็วโดยไม่ต้องเสียเวลาหาไฟล์จริงในคอมพิวเตอร์</div>
+<div class="callout callout-important"><strong>การบริหารจัดการ SLA (24 ชั่วโมง):</strong><br>มาตรฐานการทำงาน (SLA) ของ Step 2 ถูกกำหนดไว้ที่ <strong>24 ชั่วโมงหลังรับงาน</strong> หากนาฬิกานับถอยหลังเปลี่ยนเป็นสีแดง (Overdue) ระบบจะแจ้งเตือนไปยังหัวหน้าทีมออกแบบทันที หากจำเป็นต้องปรับเวลา สามารถกดปุ่ม <strong><code>ตั้งค่า SLA</code></strong> เพื่อปรับเปลี่ยนเวลาตามประเภทโครงการได้</div>
+<div class="callout callout-note"><strong>การแก้ไขแบบหลังส่งไป Step 3 แล้ว:</strong><br>แม้ว่าจะกดย้ายงานไป Step 3 แล้ว สถาปนิกยังคงสามารถเข้ามาใน Step 2 เพื่อกด <strong><code>+ เพิ่มงานย่อย/ห้อง</code></strong> หรืออัปเดตเวอร์ชันแบบแปลนใหม่ (เช่น ปรับเป็น <code>v3 Final</code>) ได้ตลอดเวลา ข้อมูลจะซิงค์ไปยังหน้า BOQ และหน้าช่างทันที</div>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>❓ คำถามที่พบบ่อย (FAQ)</h2>
+<p><strong>Q: ระบบรองรับไฟล์แบบแปลนประเภทใดบ้าง และขนาดไฟล์สูงสุดเท่าใด?</strong></p>
+<p><strong>A:</strong> รองรับไฟล์เอกสาร PDF (<code>.pdf</code>), ไฟล์เขียนแบบ AutoCAD (<code>.dwg</code>, <code>.dxf</code>), ไฟล์ภาพ 3D Perspective/ภาพถ่าย (<code>.png</code>, <code>.jpg</code>, <code>.webp</code>) และไฟล์บีบอัด (<code>.zip</code>, <code>.rar</code>) โดยระบบมีระบบปรับลดขนาดภาพอัตโนมัติเพื่อป้องกันหน่วยความจำเต็ม</p>
+<p><strong>Q: ปุ่ม "แนบไฟล์ด่วน" บนการ์ดโครงการ ต่างจากปุ่ม "+ บันทึก Design" อย่างไร?</strong></p>
+<p><strong>A:</strong> ปุ่ม <code>+ บันทึก Design</code> จะเปิด Modal เต็มรูปแบบเพื่อให้ตั้งชื่อห้อง, ระบุเวอร์ชัน และใส่หมายเหตุ ส่วนปุ่ม <code>แนบไฟล์ด่วน</code> อนุญาตให้เลือกไฟล์จากเครื่องแล้วบันทึกทันทีโดยใช้ชื่อไฟล์และโซนมาตรฐาน เหมาะสำหรับงานเร่งด่วน</p>
+<p><strong>Q: ช่างที่อยู่หน้างานจะสามารถเปิดดูแบบแปลนเหล่านี้ได้อย่างไร?</strong></p>
+<p><strong>A:</strong> แบบแปลนทั้งหมดที่บันทึกใน Step 2 จะเชื่อมโยงเข้าสู่หน้ารายละเอียดงาน (Job Detail) และระบบ Mobile App ของช่างโดยอัตโนมัติ ช่างสามารถแตะที่ชื่อไฟล์เพื่อเปิดดูแบบแปลนขนาดเต็มบนแท็บเล็ตหรือมือถือขณะอยู่หน้างานได้ทันที</p>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<p><strong>จัดทำโดย:</strong> ทีมพัฒนาระบบ PMT Flow (Enterprise Operations)</p>
+<p><strong>เอกสารประกอบหลักสูตร:</strong> <code>TRN-PMT-STEP02</code> v2.0</p>
+<p><strong>ปรับปรุงล่าสุด:</strong> กันยายน 2026</p>
+<p><strong>ระบบจริง:</strong> <a href="https://vibepmt.online" style="color:#6d28d9;">https://vibepmt.online</a></p>
 
 </body>
 </html>

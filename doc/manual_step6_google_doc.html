@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>การตรวจรับรองคุณภาพงานติดตั้ง (QC Inspection)</title>
+    
+    <style>
+        body {
+            font-family: 'Sarabun', 'Segoe UI', Tahoma, sans-serif;
+            line-height: 1.65;
+            color: #1e293b;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 40px 24px;
+            background-color: #ffffff;
+        }
+        h1 {
+            color: #0f172a;
+            font-size: 24px;
+            border-bottom: 2px solid #7c3aed;
+            padding-bottom: 8px;
+            margin-top: 28px;
+        }
+        h2 {
+            color: #4338ca;
+            font-size: 18px;
+            margin-top: 24px;
+            border-left: 4px solid #7c3aed;
+            padding-left: 10px;
+        }
+        h3 {
+            color: #1e293b;
+            font-size: 15px;
+            margin-top: 18px;
+        }
+        h4 {
+            color: #475569;
+            font-size: 13.5px;
+            margin-top: 14px;
+        }
+        p, li {
+            font-size: 13px;
+            color: #334155;
+            line-height: 1.6;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 12px;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .callout {
+            border-left: 4px solid #7c3aed;
+            background-color: #f5f3ff;
+            padding: 12px 16px;
+            margin: 14px 0;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .callout-important {
+            border-left-color: #e11d48;
+            background-color: #fff1f2;
+        }
+        .callout-tip {
+            border-left-color: #10b981;
+            background-color: #ecfdf5;
+        }
+        .callout-note {
+            border-left-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .code-box {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: Consolas, monospace;
+            font-size: 11px;
+            white-space: pre-wrap;
+            margin: 12px 0;
+            color: #475569;
+        }
+        code {
+            background-color: #f1f5f9;
+            color: #6d28d9;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-family: Consolas, monospace;
+            font-size: 11.5px;
+        }
+        .diagram-placeholder {
+            background-color: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            padding: 12px;
+            margin: 12px 0;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+        }
+    </style>
+    
+</head>
+<body>
+<div style="background-color: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 12px 18px; margin-bottom: 24px;">
+    <strong style="color: #6d28d9;">📋 คำแนะนำสำหรับการนำเข้า Google Docs (วิธี Copy-Paste สวยงาม 100%):</strong>
+    <p style="margin: 4px 0 0 0; font-size: 12px; color: #4b5563;">
+        1. เปิดไฟล์นี้ในเว็บเบราว์เซอร์ (Chrome / Edge)<br>
+        2. กด <strong>Ctrl + A</strong> (เลือกทั้งหมด) แล้วกด <strong>Ctrl + C</strong> (คัดลอก)<br>
+        3. เปิดเอกสารเปล่าใน Google Docs แล้วกด <strong>Ctrl + V</strong> (วาง)<br>
+        <em>&rarr; หัวข้อ, ตาราง, สีสัน, กล่องแจ้งเตือน และโครงสร้างทั้งหมดจะถูกแปลงเป็นฟอร์แมตของ Google Docs ทันที</em>
+    </p>
+</div>
+<h1>🎓 คู่มือฝึกอบรมการใช้งานหน้าจอระบบ PMT Flow</h1>
+<h2>โมดูลที่ 6: เจาะลึกหน้าจอการควบคุมคุณภาพงานติดตั้ง (QC Inspection & Zero-Defect Checklist Training Screen Guide)</h2>
+<p><strong>รหัสหลักสูตร:</strong> <code>TRN-PMT-QC01</code> | <strong>ระบบ:</strong> PMT Flow (Store Project Management Tool) | <strong>เวอร์ชัน:</strong> 2.0 (Pipeline Architecture) | <strong>กลุ่มเป้าหมาย:</strong> เจ้าหน้าที่ควบคุมคุณภาพ (QC Inspector), หัวหน้างานช่าง (Lead Technician), ผู้จัดการโครงการ (PM) และวิทยากรผู้ฝึกอบรม (Trainer)</p>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>📌 บทสรุปและวัตถุประสงค์หลักสูตร (Course Overview & Objectives)</h2>
+<p>หน้าจอ <strong>ตรวจคุณภาพ (QC - Quality Control Inspection)</strong> คือ <strong>"ประตูตรวจรับรองมาตรฐานวิศวกรรมและความปลอดภัย (Engineering Quality & Safety Gatekeeper)"</strong> ของระบบ PMT Flow มีหน้าที่รับช่วงต่องานที่ทีมช่างปฏิบัติงานติดตั้งเสร็จสิ้น เพื่อทำการประเมินและอนุมัติผลงานตามเกณฑ์มาตรฐานแบบ <strong>Zero-Defect Standard</strong> ก่อนส่งมอบพื้นที่ให้ลูกค้าและปิดโครงการ โดยมีแกนหลัก 4 ประการ:</p>
+<li>การบริหารจัดการคิวตรวจงาน 2 รูปแบบ: <strong>คิวจองช่าง QC ล่วงหน้า 5 วัน (D-5 Booking)</strong> และ <strong>คิวรอตรวจจริงหลังติดตั้งเสร็จ (Pending Inspection)</strong></li>
+<li>การตรวจสอบหลักฐานรูปถ่ายหน้างานเปรียบเทียบ ก่อนติดตั้ง, ระหว่างทำ และหลังติดตั้งเสร็จสมบูรณ์</li>
+<li>การประเมินผ่านเกณฑ์มาตรฐานความปลอดภัย 4 ด้าน (4-Point Safety & Quality Standard Checklist)</li>
+<li>การตัดสินผลการตรวจ: การอนุมัติผลงาน (<strong>PASS</strong>) ส่งต่อไปยังขั้นตอนประเมินความพึงพอใจลูกค้า (CSAT) หรือการสั่งแก้ไขงาน (<strong>FAIL / Rework</strong>) ส่งกลับให้ทีมช่างปรับปรุง</li>
+<h3>🎯 วัตถุประสงค์การเรียนรู้สำหรับผู้เข้าอบรม (Learning Objectives):</h3>
+<li><strong>เข้าใจกระบวนการแจ้งเตือนล่วงหน้า 5 วัน (D-5 Booking QC):</strong> รู้จักวิธีติดตาม Task งานที่ใกล้แล้วเสร็จ เพื่อวางแผนส่งผู้ตรวจ QC เข้าหน้างานตรงเวลา</li>
+<li><strong>ตรวจสอบหลักฐานภาพถ่ายเชิงลึกได้อย่างมืออาชีพ:</strong> สามารถซูมดูภาพและตรวจสอบจุดเสี่ยง เช่น รอยต่อท่อน้ำ, สายดิน, การยึดขายึดคอมเพรสเซอร์</li>
+<li><strong>ประเมินแบบฟอร์ม 4-Point Safety Checklist ได้ครบ 100%:</strong> เข้าใจเกณฑ์การให้คะแนน PASS, FAIL หรือ N/A ในแต่ละหัวข้ออย่างถูกต้องตามหลักวิศวกรรม</li>
+<li><strong>บันทึกรายงานผลการตรวจและคำสั่งแก้ไข (Rework Orders):</strong> รู้วิธีเขียนข้อสั่งการแก้ไขอย่างละเอียดเมื่อผลตรวจไม่ผ่าน</li>
+<li><strong>ควบคุมการส่งต่องานสู่ Contact Center (CSAT):</strong> ทราบกระบวนการและเงื่อนไขที่ทำให้งานเปลี่ยนสถานะเป็น <code>QC_PASSED</code> เพื่อส่งต่อให้ทีม CSAT โทรสอบถามลูกค้า</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>🧭 กายวิภาคของหน้าจอตรวจคุณภาพ QC (Screen Anatomy Breakdown)</h2>
+<p>โครงสร้างหน้าจอ QC ประกอบด้วย <strong>6 โซนหลัก</strong> ดังนี้:</p>
+<div class="diagram-placeholder">📊 <em>[ผังกระบวนการ / Mermaid Diagram ดูได้ในระบบ PMT Flow หรือดูรายละเอียดหัวข้อย่อยด้านล่าง]</em></div>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h3>🔹 โซน 1 & 2: แถบหัวเรื่องและแท็บคิวงาน QC (Action Bar & Tabs)</h3>
+<table>
+  <tr><th>องค์ประกอบ</th><th>สัญลักษณ์ / สี</th><th>หน้าที่การทำงาน</th><th>คำแนะนำจาก Trainer</th></tr>
+  <tr><td><strong>หัวเรื่องหน้าจอ</strong></td><td><code>การตรวจคุณภาพงาน (QC Inspection)</code></td><td>ศูนย์กลางการตรวจรับรองคุณภาพงานช่าง</td><td>ชี้แจงบทบาทความเป็นกลางของ QC ไม่ขึ้นกับทีมขาย</td></tr>
+  <tr><td><strong>แผนงาน (Gantt Timeline)</strong></td><td>ปุ่มสีกรมท่า/เทา</td><td>ลิงก์ด่วนเพื่อเปิดดูตารางเวลาและวันเสร็จของงานช่าง</td><td>ใช้สำหรับเช็กว่า Task ใดใกล้ครบกำหนด</td></tr>
+  <tr><td><strong>ซิงค์งานจาก Gantt</strong></td><td>ปุ่มขอบม่วง</td><td>ดึงข้อมูลงานที่เสร็จสิ้นจาก Gantt เข้ามาอัปเดตในคิว QC</td><td>ให้กดปุ่มนี้เป็นอันดับแรกเมื่อเริ่มกะทำงาน</td></tr>
+  <tr><td><strong>แท็บ "จองช่าง QC (D-5)"</strong></td><td>Badge ตัวเลขสีส้ม</td><td>แสดงรายการงานที่ใกล้จะเสร็จภายใน 5 วัน เพื่อล็อกคิวตรวจล่วงหน้า</td><td>ช่วยลดปัญหางานค้างรอตรวจ</td></tr>
+  <tr><td><strong>แท็บ "รอตรวจ (Pending)"</strong></td><td>Badge ตัวเลขสีม่วง</td><td>แสดงรายการงานที่ช่างติดตั้งเสร็จแล้ว และส่งเรื่องขอตรวจรับรอง</td><td>เป็นคิวงานที่ต้องเข้าตรวจสอบทันที</td></tr>
+</table>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>📋 เกณฑ์มาตรฐานความปลอดภัย 4 ด้าน (4-Point Safety & Quality Checklist)</h2>
+<p>ในการตรวจประเมิน เจ้าหน้าที่ QC ต้องตรวจสอบและให้ผลประเมินในแบบฟอร์ม 4 หัวข้อหลัก:</p>
+<div class="diagram-placeholder">📊 <em>[ผังกระบวนการ / Mermaid Diagram ดูได้ในระบบ PMT Flow หรือดูรายละเอียดหัวข้อย่อยด้านล่าง]</em></div>
+<li><strong>จุดที่ 1 — ความปลอดภัยทางไฟฟ้า (Electrical & Earthing Safety):</strong></li>
+<li>ตรวจสอบขนาดสายไฟและสายดิน (Earth Grounding) ตามมาตรฐาน มอก.</li>
+<li>ตรวจสอบขนาดเบรกเกอร์ (Circuit Breaker) ให้เหมาะสมกับขนาดกำลังวัตต์ของอุปกรณ์</li>
+<li>ทดสอบการตัดไฟเมื่อเกิดไฟฟ้ารั่ว (RCBO / ELCB Test)</li>
+<li><strong>จุดที่ 2 — ความแข็งแรงของโครงสร้างและการยึดเกาะ (Mounting & Structural Integrity):</strong></li>
+<li>ตรวจสอบความแน่นหนาของพุกและพุกยึดผนัง/คาน</li>
+<li>ตรวจสอบขายึดคอยล์ร้อนคอมเพรสเซอร์แอร์ หรือฐานรากแท็งก์น้ำ ต้องได้ระดับน้ำ ไม่เอียงหรือสั่นสะเทือน</li>
+<li><strong>จุดที่ 3 — การระบายน้ำและการซีลกันรั่วซึม (Drainage & Waterproof Sealing):</strong></li>
+<li>ทดสอบเทน้ำลงถาดน้ำทิ้ง ตรวจสอบความลาดเอียงของท่อน้ำทิ้ง ไม่มีการขังหรือหยดรั่วซึม</li>
+<li>ตรวจสอบการยิงซิลิโคนกันน้ำรอบท่อที่เจาะทะลุผนังภายนอก เพื่อป้องกันน้ำฝนซึมเข้าตัวบ้าน</li>
+<li><strong>จุดที่ 4 — ความสะอาดพื้นที่และการส่งมอบงาน (Site Cleanliness & Handover):</strong></li>
+<li>ทีมช่างเก็บกวาดเศษฝุ่น เศษท่อ และทำความสะอาดพื้นที่หน้างานเรียบร้อย</li>
+<li>ตรวจสอบว่าได้ส่งมอบคู่มือการใช้งานและใบรับประกันสินค้าให้แก่ลูกค้าครบถ้วน</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>🛠️ ขั้นตอนการปฏิบัติงานมาตรฐาน (Step-by-Step SOP)</h2>
+<div class="diagram-placeholder">📊 <em>[ผังกระบวนการ / Mermaid Diagram ดูได้ในระบบ PMT Flow หรือดูรายละเอียดหัวข้อย่อยด้านล่าง]</em></div>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h3>ขั้นตอนการตรวจรับรองและบันทึกผล (Pass / Fail Execution)</h3>
+<li>คลิกเลือกชื่องานจากรายการคิวทางฝั่งซ้าย (เช่น <code>JOB202609001 - ติดตั้งแอร์ Inverter</code>)</li>
+<li>ตรวจสอบข้อมูลในพื้นที่ทำงานทางฝั่งขวา:</li>
+<li>ตรวจดูรูปถ่ายหน้างานที่ทีมช่างอัปโหลดไว้ คลิกที่รูปเพื่อดูภาพขนาดใหญ่ความละเอียดสูง</li>
+<li>ทำการประเมินในหัวข้อ 4-Point Safety Checklist:</li>
+<li>ติ๊กเลือก <code>PASS</code> หากได้มาตรฐาน</li>
+<li>ติ๊กเลือก <code>FAIL</code> หากพบข้อบกพร่อง</li>
+<li>ติ๊กเลือก <code>N/A</code> หากหัวข้อนั้นไม่เกี่ยวข้องกับประเภทงาน (เช่น งานปั๊มน้ำไม่มีระบบน้ำยาแอร์)</li>
+<li>การตัดสินผลการตรวจ:</li>
+<li><strong>กรณีผ่านการตรวจ:</strong> คลิกปุ่มสีเขียว <strong><code>อนุมัติผลการตรวจ QC (PASS)</code></strong> สถานะจะเปลี่ยนเป็น <strong><code>QC_PASSED</code></strong> ทันที และย้ายงานเข้าสู่ระบบ CSAT</li>
+<li><strong>กรณีไม่ผ่านการตรวจ:</strong> พิมพ์ข้อบกพร่องลงในช่อง <strong>"บันทึกสั่งการแก้ไข (Rework Instructions)"</strong> เช่น *"ให้ช่างเข้ามายิงซิลิโคนซ้ำบริเวณรอยต่อท่อด้านนอก และเก็บเศษสายไฟ"* แล้วคลิกปุ่มสีแดง <strong><code>ไม่อนุมัติ / สั่งแก้ไขงาน (FAIL)</code></strong></li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>💡 แผนการสอนสำหรับ Trainer (Workshop Hands-on Guide)</h2>
+<h3>🎯 บททดสอบปฏิบัติการประจำห้องเรียน (20 นาที):</h3>
+<p><strong>สถานการณ์สมมติ:</strong> "ทีมช่าง Team A รายงานติดตั้งปั๊มน้ำเสร็จสิ้นในงาน <code>JOB202609002</code> และส่งเรื่องเข้าคิวรอตรวจ QC ให้ผู้เรียนสวมบทบาทเป็น QC Inspector ปฏิบัติการดังนี้"</p>
+<li><strong>โจทย์ข้อที่ 1:</strong> คลิกเลือกงาน <code>JOB202609002</code> จากคิวรอตรวจ</li>
+<li><strong>โจทย์ข้อที่ 2:</strong> เปิดดูรูปภาพหน้างาน และตรวจเช็กหัวข้อความปลอดภัยด้านไฟฟ้าและการต่อสายดิน</li>
+<li><strong>โจทย์ข้อที่ 3:</strong> สมมติว่าทุกข้อผ่านเกณฑ์มาตรฐาน ให้เลือก <code>PASS</code> ในทุกหัวข้อของ Checklist</li>
+<li><strong>โจทย์ข้อที่ 4:</strong> บันทึกข้อความ "ติดตั้งได้มาตรฐาน โครงสร้างแข็งแรง ไม่พบน้ำรั่วซึม"</li>
+<li><strong>โจทย์ข้อที่ 5:</strong> กดปุ่ม <strong><code>อนุมัติผลการตรวจ QC (PASS)</code></strong> แล้วตรวจสอบในเมนู <strong>ความพึงพอใจลูกค้า (CSAT)</strong> ว่ามีงานนี้ปรากฏขึ้นหรือไม่</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>❓ คำถามที่พบบ่อยและข้อควรระวัง (FAQ & Best Practices)</h2>
+<div class="callout callout-important"><strong>Q: หากหัวข้อใดหัวข้อหนึ่งใน Checklist เป็น FAIL สามารถกดอนุมัติ PASS ได้หรือไม่?</strong><br><strong>A:</strong> ไม่ได้! ระบบ PMT Flow ยึดหลัก <strong>Zero-Defect Quality</strong> หากมีข้อใดข้อหนึ่งเป็น FAIL ปุ่มอนุมัติ PASS จะถูกปิดการทำงานอัตโนมัติ เพื่อป้องกันการส่งมอบงานที่ไม่ปลอดภัยให้แก่ลูกค้า</div>
+<div class="callout callout-tip"><strong>Q: งานที่สั่งแก้ Rework แล้ว เมื่อช่างแก้ไขเสร็จจะกลับมาที่ไหน?</strong><br><strong>A:</strong> เมื่อช่างแก้ไขงานและถ่ายรูปยืนยันใหม่ งานจะกลับเข้ามาในแท็บ "รอตรวจ (Pending)" ของหน้าจอ QC อีกครั้ง พร้อมประวัติบันทึกว่าเป็นการตรวจรอบที่ 2 (Re-inspection)</div>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<p><strong>จัดทำโดย:</strong> ฝ่ายพัฒนาหลักสูตรและฝึกอบรม PMT Flow</p>
+<p><strong>รหัสเอกสาร:</strong> <code>TRN-PMT-QC01-v2.0</code></p>
+<p><strong>สถานะการรับรอง:</strong> Approved Standard (Enterprise Operations)</p>
+
+</body>
+</html>

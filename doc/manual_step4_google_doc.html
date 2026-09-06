@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Step 4: บันทึก Ticket & แนบใบเสร็จ</title>
+    
+    <style>
+        body {
+            font-family: 'Sarabun', 'Segoe UI', Tahoma, sans-serif;
+            line-height: 1.65;
+            color: #1e293b;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 40px 24px;
+            background-color: #ffffff;
+        }
+        h1 {
+            color: #0f172a;
+            font-size: 24px;
+            border-bottom: 2px solid #7c3aed;
+            padding-bottom: 8px;
+            margin-top: 28px;
+        }
+        h2 {
+            color: #4338ca;
+            font-size: 18px;
+            margin-top: 24px;
+            border-left: 4px solid #7c3aed;
+            padding-left: 10px;
+        }
+        h3 {
+            color: #1e293b;
+            font-size: 15px;
+            margin-top: 18px;
+        }
+        h4 {
+            color: #475569;
+            font-size: 13.5px;
+            margin-top: 14px;
+        }
+        p, li {
+            font-size: 13px;
+            color: #334155;
+            line-height: 1.6;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 12px;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .callout {
+            border-left: 4px solid #7c3aed;
+            background-color: #f5f3ff;
+            padding: 12px 16px;
+            margin: 14px 0;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .callout-important {
+            border-left-color: #e11d48;
+            background-color: #fff1f2;
+        }
+        .callout-tip {
+            border-left-color: #10b981;
+            background-color: #ecfdf5;
+        }
+        .callout-note {
+            border-left-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .code-box {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: Consolas, monospace;
+            font-size: 11px;
+            white-space: pre-wrap;
+            margin: 12px 0;
+            color: #475569;
+        }
+        code {
+            background-color: #f1f5f9;
+            color: #6d28d9;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-family: Consolas, monospace;
+            font-size: 11.5px;
+        }
+        .diagram-placeholder {
+            background-color: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            padding: 12px;
+            margin: 12px 0;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+        }
+    </style>
+    
+</head>
+<body>
+<div style="background-color: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 12px 18px; margin-bottom: 24px;">
+    <strong style="color: #6d28d9;">📋 คำแนะนำสำหรับการนำเข้า Google Docs (วิธี Copy-Paste สวยงาม 100%):</strong>
+    <p style="margin: 4px 0 0 0; font-size: 12px; color: #4b5563;">
+        1. เปิดไฟล์นี้ในเว็บเบราว์เซอร์ (Chrome / Edge)<br>
+        2. กด <strong>Ctrl + A</strong> (เลือกทั้งหมด) แล้วกด <strong>Ctrl + C</strong> (คัดลอก)<br>
+        3. เปิดเอกสารเปล่าใน Google Docs แล้วกด <strong>Ctrl + V</strong> (วาง)<br>
+        <em>&rarr; หัวข้อ, ตาราง, สีสัน, กล่องแจ้งเตือน และโครงสร้างทั้งหมดจะถูกแปลงเป็นฟอร์แมตของ Google Docs ทันที</em>
+    </p>
+</div>
+<h1>🎓 คู่มือฝึกอบรมการใช้งานหน้าจอระบบ PMT Flow</h1>
+<h2>โมดูลที่ 4: เจาะลึกหน้าจอ Step 4 — บันทึก Ticket & แนบใบเสร็จ (Tickets & Payment Receipts Training Screen Guide)</h2>
+<p><strong>รหัสหลักสูตร:</strong> <code>TRN-PMT-STEP04</code> | <strong>ระบบ:</strong> PMT Flow (Store Project Management Tool) | <strong>เวอร์ชัน:</strong> 2.0 (Pipeline Architecture) | <strong>กลุ่มเป้าหมาย:</strong> เจ้าหน้าที่ประสานงานช่าง (Dispatcher), เจ้าหน้าที่การเงิน/แคชเชียร์, เจ้าหน้าที่รับ Order, หัวหน้างาน และวิทยากรผู้ฝึกอบรม (Trainer)</p>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>📌 บทสรุปและวัตถุประสงค์หลักสูตร (Course Overview & Objectives)</h2>
+<p>หน้าจอ <strong>Step 4: บันทึก Ticket & แนบใบเสร็จ (Tickets & Receipts Management)</strong> คือ <strong>"ศูนย์กลางการออกใบสั่งงานและการยืนยันธุรกรรมการเงิน (Work Order & Financial Gatekeeper)"</strong> ของระบบ PMT Flow ทำหน้าที่รับช่วงต่องานจาก <strong>Step 3 (นำ BOQ เข้าระบบ)</strong> หรือรับงานตรงแบบ Fast-track จาก <strong>Step 1 (งานบริการด่วน Quick Services)</strong> เพื่อดำเนินกระบวนการสำคัญ 4 ประการ:</p>
+<li>การเปิดใบสั่งงานช่าง (Work Ticket) กำหนดรหัส Ticket อ้างอิงมาตรฐาน (<code>TCK-YYYYMM-XXXX</code>)</li>
+<li>การส่งคำขอจองคิวช่างไปยังระบบภายนอก (API Booking to INT) และรับการยืนยันทีมช่างกลับมา</li>
+<li>การตรวจสอบการชำระเงินของลูกค้า และการแนบหลักฐานสลิปโอนเงิน / ใบเสร็จรับเงิน (Payment Slip Attachment)</li>
+<li>การตรวจสอบความพร้อมของสัญญาและเงื่อนไขการรับประกันก่อนปล่อยงานเข้าสู่ขั้นตอนการดำเนินงานติดตั้งจริง (Step 5 หรือส่งทีมช่างลงพื้นที่)</li>
+<h3>🎯 วัตถุประสงค์การเรียนรู้สำหรับผู้เข้าอบรม (Learning Objectives):</h3>
+<li><strong>เข้าใจบทบาททางการเงินและการประสานงาน (Financial & Dispatch Role):</strong> เรียนรู้ว่าทำไมระบบจึงไม่อนุญาตให้เริ่มงานติดตั้งจริงจนกว่าจะมีการยืนยันการชำระเงินและมี Ticket ช่างที่สมบูรณ์</li>
+<li><strong>จัดการคิวงาน Single State Queue ใน Step 4 ได้อย่างถูกต้อง:</strong> แยกแยะระหว่างงานที่ "รอออก Ticket/แนบสลิป" กับงานที่ "บันทึกเอกสารครบถ้วนแล้ว"</li>
+<li><strong>เปิด Ticket และมอบหมายทีมช่างได้แม่นยำ:</strong> สามารถระบุทีมช่าง วัน-เวลาเข้าปฏิบัติงาน และเชื่อมโยงกับการจองช่างผ่าน API</li>
+<li><strong>แนบและตรวจสอบสลิปการโอนเงิน 100%:</strong> บันทึกยอดเงิน วันที่-เวลาโอน เลขที่อ้างอิง และแนบไฟล์รูปภาพสลิปได้อย่างถูกต้อง</li>
+<li><strong>ควบคุมการไหลของงานสู่ Step 5 (Gantt Plan):</strong> รู้วิธีย้ายงานเข้าสู่ Step 5 เพื่อแปลงค่าแรงลงสู่ Gantt Timeline อย่างไร้รอยต่อ</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>🧭 กายวิภาคของหน้าจอ Step 4 (Screen Anatomy Breakdown)</h2>
+<p>โครงสร้างหน้าจอ Step 4 ประกอบด้วย <strong>7 โซนหลัก</strong> ดังนี้:</p>
+<div class="diagram-placeholder">📊 <em>[ผังกระบวนการ / Mermaid Diagram ดูได้ในระบบ PMT Flow หรือดูรายละเอียดหัวข้อย่อยด้านล่าง]</em></div>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h3>🔹 โซน 1: แถบหัวเรื่อง & ปุ่มคำสั่งหลัก (Header Action Bar)</h3>
+<table>
+  <tr><th>องค์ประกอบ</th><th>สัญลักษณ์ / สี</th><th>หน้าที่การทำงาน</th><th>คำแนะนำจาก Trainer</th></tr>
+  <tr><td><strong>หัวเรื่องหน้าจอ</strong></td><td><code>Step 4: บันทึก Ticket & ใบเสร็จ</code></td><td>บ่งบอกสถานะการจัดการตั๋วงานและเอกสารการเงิน</td><td>อธิบายผู้เรียนว่าขั้นตอนนี้คือจุดเชื่อมโยงระหว่าง "การขาย" และ "การติดตั้ง"</td></tr>
+  <tr><td><strong>+ บันทึก Ticket & ใบเสร็จใหม่</strong></td><td>ปุ่มสีเขียวมรกตสดใส</td><td>เปิดหน้าต่างบันทึกตั๋วงานและแนบสลิปเงินโอน</td><td>ปุ่มปฏิบัติการหลักในการฝึกอบรม</td></tr>
+  <tr><td><strong>ตั้งค่า SLA</strong></td><td>ปุ่มไอคอนฟันเฟือง <code>⚙️</code></td><td>ปรับแต่งเกณฑ์เวลาเตือน SLA ของคิว Ticket (ค่าเริ่มต้น 12 ชม.)</td><td>แนะนำให้สังเกตสีเตือนเมื่อใกล้ครบกำหนดเวลา</td></tr>
+</table>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h3>🔹 โซน 2: แดชบอร์ดสถิติ & SLA (Tickets & Receipts Analytics)</h3>
+<p>แดชบอร์ดสรุป 4 การ์ดตัวชี้วัดสำคัญของกระบวนการ Step 4:</p>
+<li><strong>Card 1 — โครงการรอออก Ticket & แนบสลิป (Pending Queue):</strong> จำนวนงานที่ผ่านการทำ BOQ (หรือมาจาก Quick Services) ที่รอการยืนยันการชำระเงินและออกตั๋วงาน</li>
+<li><strong>Card 2 — บันทึก Ticket & แนบสลิปแล้ว (Completed Receipts):</strong> จำนวนงานที่เอกสารการเงินครบถ้วนและพร้อมดำเนินการ</li>
+<li><strong>Card 3 — ยอดเงินชำระรวม (Total Paid Amount):</strong> มูลค่ารวมของเงินที่ลูกค้าชำระและแนบหลักฐานเข้าสู่ระบบแล้ว</li>
+<li><strong>Card 4 — สถานะ SLA (Turnaround Time):</strong> นับถอยหลังตามเกณฑ์ SLA 12 ชั่วโมง เพื่อไม่ให้เกิดความล่าช้าในการส่งต่องานให้ทีมช่าง</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h3>🔹 โซน 3 & 4: แถบแท็บสลับมุมมองและตัวกรอง (Tabs & Filters)</h3>
+<li><strong>แท็บ "คิวโครงการที่รอออก Ticket & แนบสลิป":</strong> แสดงเฉพาะงานที่ต้องเปิด Ticket หรือยังขาดหลักฐานการชำระเงิน (Single State Queue)</li>
+<li><strong>แท็บ "คลัง Ticket, สลิปโอนเงิน และสัญญาจ้าง":</strong> แสดงงานทั้งหมดที่มีการบันทึก Ticket และแนบเอกสารการเงินเรียบร้อยแล้ว เพื่อใช้ตรวจสอบย้อนหลังหรือดาวน์โหลดใบสั่งงาน</li>
+<li><strong>สวิตช์ Card View / List View:</strong> เลือกระหว่างการดูแบบการ์ดสรุป หรือตารางแถวสำหรับตรวจสอบข้อมูลหลายรายการ</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>🛠️ ขั้นตอนการปฏิบัติงานมาตรฐาน (Step-by-Step SOP)</h2>
+<div class="diagram-placeholder">📊 <em>[ผังกระบวนการ / Mermaid Diagram ดูได้ในระบบ PMT Flow หรือดูรายละเอียดหัวข้อย่อยด้านล่าง]</em></div>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h3>ขั้นตอนที่ 1: การเปิด Ticket และมอบหมายทีมช่าง (Work Ticket Issuance)</h3>
+<li>ในหน้าจอ Step 4 ค้นหางานที่ต้องการจากตารางคิวงาน</li>
+<li>คลิกปุ่ม <strong><code>บันทึก Ticket & ใบเสร็จ</code></strong> ที่แถวของงานนั้น</li>
+<li>ในหน้าต่าง Modal ตรวจสอบรายละเอียด:</li>
+<li><strong>รหัส Ticket (Ticket ID):</strong> ระบบจะสร้างรหัสมาตรฐานให้อัตโนมัติ เช่น <code>TCK-202609-001</code> (สามารถแก้ไขได้ตามเลขที่ใบสั่งงานจริง)</li>
+<li><strong>ทีมช่างผู้รับผิดชอบ (Assigned Technician / Crew):</strong> เลือกทีมช่าง (เช่น <code>Team A - สมศักดิ์</code>, <code>Team B - ประเสริฐ</code>)</li>
+<li><strong>วันและเวลาเริ่มงาน (Scheduled Date & Time):</strong> ระบุวันนัดหมายและช่วงเวลาเข้าบริการ</li>
+<li><strong>สถานะการจองช่าง INT:</strong> คลิกปุ่ม <strong><code>🔗 ซิงค์จองช่าง INT</code></strong> เพื่อส่งพารามิเตอร์ไปล็อกคิวช่างในระบบ INT</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h3>ขั้นตอนที่ 2: การบันทึกข้อมูลการเงินและแนบสลิป (Payment & Slip Attachment)</h3>
+<li>เลื่อนลงมาที่ส่วน <strong>"ข้อมูลการชำระเงินและหลักฐาน (Payment Verification)"</strong></li>
+<li>กรอกรายละเอียดการชำระเงิน:</li>
+<li><strong>ช่องทางการชำระเงิน:</strong> เลือก <code>โอนเงินผ่านธนาคาร (Bank Transfer)</code>, <code>บัตรเครดิต (Credit Card)</code> หรือ <code>เงินสด (Cash)</code></li>
+<li><strong>ธนาคารต้นทาง/ปลายทาง:</strong> ระบุชื่อธนาคาร</li>
+<li><strong>ยอดเงินที่ชำระ (Paid Amount):</strong> ต้องตรงกับยอด Grand Total จาก BOQ (หรือยอดมัดจำตามงวดงาน)</li>
+<li><strong>วัน-เวลาที่โอน:</strong> ระบุตามที่ปรากฏในสลิป</li>
+<li><strong>หมายเลขอ้างอิงธุรกรรม (Transaction Ref):</strong> กรอกเลขอ้างอิงจากธนาคาร</li>
+<li>การแนบหลักฐาน:</li>
+<li>คลิกที่กรอบ <strong>"แนบภาพสลิป / ใบเสร็จ"</strong> หรือลากไฟล์ภาพ (<code>.png</code>, <code>.jpg</code>, <code>.pdf</code>) มาวาง</li>
+<li>ระบบจะแสดง <strong>ภาพตัวอย่างสลิป (Slip Preview)</strong> ในกรอบทันที พร้อมปุ่มเปิดดูขนาดเต็ม</li>
+<li>คลิกปุ่ม <strong><code>💾 บันทึก Ticket & สลิปการเงิน</code></strong></li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h3>ขั้นตอนที่ 3: การส่งต่องานไปยัง Step 5 (Project Conversion & Gantt)</h3>
+<p>เมื่อข้อมูล Ticket และหลักฐานการเงินได้รับการตรวจสอบเรียบร้อยแล้ว:</p>
+<li>คลิกปุ่มสีม่วง <strong><code>ยืนยันย้ายไป Step 5</code></strong></li>
+<li>ระบบจะทำการตรวจสอบเงื่อนไข (Pre-flight Validation):</li>
+<li>มีรหัส Ticket และกำหนดทีมช่างแล้วหรือไม่?</li>
+<li>มียอดชำระเงินและแนบหลักฐานแล้วหรือไม่?</li>
+<li>เมื่องานผ่านการตรวจสอบ สถานะจะเปลี่ยนเป็นพร้อมแปลงเข้าแผนงาน และงานจะย้ายเข้าสู่หน้าจอ <strong>Step 5: บันทึก BOQ เข้า Project</strong> ทันที</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>💡 แผนการสอนสำหรับ Trainer (Workshop Hands-on Guide)</h2>
+<h3>🎯 บททดสอบปฏิบัติการประจำห้องเรียน (25 นาที):</h3>
+<p><strong>สถานการณ์สมมติ:</strong> "มีงานรับเข้า 2 งานใน Step 4 ได้แก่ งานด่วนติดตั้งแอร์ (Quick Service: <code>JOB202609001</code>) และงาน Renovate ครัว (<code>JOB202609003</code>) ให้ผู้เรียนดำเนินการดังนี้"</p>
+<li><strong>โจทย์ข้อที่ 1:</strong> เปิดหน้าต่างบันทึก Ticket ของงาน <code>JOB202609001</code> กำหนดรหัส Ticket เป็น <code>TCK-AIR-001</code> และเลือกช่าง <code>Team A</code></li>
+<li><strong>โจทย์ข้อที่ 2:</strong> ทำการบันทึกการชำระเงินยอด 3,500 บาท โดยเลือกโอนเงินผ่านธนาคารกสิกรไทย และจำลองการแนบสลิป</li>
+<li><strong>โจทย์ข้อที่ 3:</strong> กดบันทึกข้อมูล และสังเกตว่ายอดเงินใน Card 3 (ยอดเงินชำระรวม) ปรับเพิ่มขึ้นทันทีหรือไม่</li>
+<li><strong>โจทย์ข้อที่ 4:</strong> กดย้ายงานไปยัง Step 5 เพื่อเตรียมจัดแผนงาน Gantt</li>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<h2>❓ คำถามที่พบบ่อยและข้อควรระวัง (FAQ & Best Practices)</h2>
+<div class="callout callout-important"><strong>Q: หากลูกค้าชำระเงินแบบแบ่งจ่ายเป็นงวด (Milestone Payment) สามารถแนบสลิปเพิ่มภายหลังได้หรือไม่?</strong><br><strong>A:</strong> สามารถทำได้ โดยเข้าไปที่แท็บ "คลัง Ticket, สลิปโอนเงิน และสัญญาจ้าง" ค้นหารหัสงาน แล้วกดปุ่ม "แก้ไข / แนบเอกสารเพิ่มเติม" เพื่อแนบสลิปงวดที่ 2 หรือ 3 ได้ตลอดเวลา</div>
+<div class="callout"><strong>Q: สามารถปล่อยงานไป Step 5 โดยไม่มีการแนบสลิปได้หรือไม่?</strong><br><strong>A:</strong> ตามมาตรฐานความปลอดภัยทางการเงิน ระบบจะแสดงข้อความแจ้งเตือนสีส้ม หากไม่มีการแนบหลักฐานการเงิน การจะข้ามขั้นตอนนี้ต้องได้รับอนุมัติเป็นกรณีพิเศษจากระดับผู้จัดการฝ่าย (PM Overrule) เท่านั้น</div>
+<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
+<p><strong>จัดทำโดย:</strong> ฝ่ายพัฒนาหลักสูตรและฝึกอบรม PMT Flow</p>
+<p><strong>รหัสเอกสาร:</strong> <code>TRN-PMT-STEP04-v2.0</code></p>
+<p><strong>สถานะการรับรอง:</strong> Approved Standard (Enterprise Operations)</p>
+
+</body>
+</html>
