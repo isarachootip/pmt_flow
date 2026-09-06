@@ -1,10 +1,46 @@
 // User Management Module
+if (typeof window.roleBadge !== 'function') {
+    window.roleBadge = function(role) {
+        const roleMap = {
+            ADMIN: {
+                label: 'ผู้ดูแลระบบ (Admin)',
+                cls: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+                icon: 'ph ph-shield-star'
+            },
+            AE: {
+                label: 'ฝ่ายขาย (AE)',
+                cls: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+                icon: 'ph ph-briefcase'
+            },
+            QC: {
+                label: 'ตรวจคุณภาพ (QC)',
+                cls: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+                icon: 'ph ph-check-circle'
+            },
+            CONTACT_CENTER: {
+                label: 'บริการลูกค้า (Contact Center)',
+                cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+                icon: 'ph ph-phone'
+            }
+        };
+        const r = roleMap[role] || {
+            label: role || 'ผู้ใช้งาน',
+            cls: 'bg-muted text-muted-foreground border-border',
+            icon: 'ph ph-user'
+        };
+        return `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${r.cls}"><i class="${r.icon} text-xs"></i><span>${r.label}</span></span>`;
+    };
+}
+
 window.userMgmt =  {
         defaultSeedUsers: [
             { id: 1, user_code: 'USR-001', username: 'admin', email: 'isarachootip@gmail.com', full_name: 'ผู้ดูแลระบบ', role: 'ADMIN', is_active: true, last_login_at: new Date().toISOString() },
-            { id: 2, user_code: 'USR-002', username: 'ae.somchai', email: 'ae@pmt.local', full_name: 'สมชาย ขายเก่ง', role: 'AE', is_active: true, last_login_at: null },
-            { id: 3, user_code: 'USR-003', username: 'qc.wichai', email: 'qc@pmt.local', full_name: 'วิชัย ตรวจละเอียด', role: 'QC', is_active: true, last_login_at: null },
-            { id: 4, user_code: 'USR-004', username: 'cc.nipa', email: 'cc@pmt.local', full_name: 'นิภา บริการดี', role: 'CONTACT_CENTER', is_active: true, last_login_at: null }
+            { id: 2, user_code: 'USR-001B', username: 'isarachootip@gmail.com', email: 'isarachootip@gmail.com', full_name: 'Isara Chootip', role: 'ADMIN', is_active: true, last_login_at: null },
+            { id: 3, user_code: 'USR-002', username: 'pm.somrak', email: 'somrak@pmt.local', full_name: 'สมรัก บริหารเก่ง', role: 'ADMIN', is_active: true, last_login_at: null },
+            { id: 4, user_code: 'USR-003', username: 'ae.somchai', email: 'somchai@pmt.local', full_name: 'สมชาย ขยันทำ', role: 'AE', is_active: true, last_login_at: null },
+            { id: 5, user_code: 'USR-004', username: 'ae.malee', email: 'malee@pmt.local', full_name: 'มาลี สวยงาม', role: 'AE', is_active: true, last_login_at: null },
+            { id: 6, user_code: 'USR-005', username: 'qc.wichai', email: 'wichai@pmt.local', full_name: 'วิชัย ตรวจดี', role: 'QC', is_active: true, last_login_at: null },
+            { id: 7, user_code: 'USR-006', username: 'cc.nipa', email: 'nipa@pmt.local', full_name: 'นิภา ใจดี', role: 'CONTACT_CENTER', is_active: true, last_login_at: null }
         ],
         users: [],
         filtered: [],
@@ -32,8 +68,16 @@ window.userMgmt =  {
                 if (!this.users.length) this.users = [...this.defaultSeedUsers];
             } finally {
                 if (!this.users.length) this.users = [...this.defaultSeedUsers];
-                this.applyFilters();
-                this.renderStats();
+                try {
+                    this.applyFilters();
+                } catch(e) {
+                    console.error('Error applying user filters/render:', e);
+                }
+                try {
+                    this.renderStats();
+                } catch(e) {
+                    console.error('Error rendering user stats:', e);
+                }
                 if (refreshIcon) {
                     setTimeout(() => refreshIcon.classList.remove('animate-spin'), 350);
                 }
@@ -195,7 +239,7 @@ window.userMgmt =  {
                             </span>
                         </td>
                         <td class="px-5 py-3.5 text-muted-foreground text-xs">${u.email || '-'}</td>
-                        <td class="px-5 py-3.5">${roleBadge(u.role)}</td>
+                        <td class="px-5 py-3.5">${window.roleBadge(u.role)}</td>
                         <td class="px-5 py-3.5">
                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium border ${u.is_active ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-muted text-muted-foreground border-border'}">
                                 <span class="w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'}"></span>
@@ -463,7 +507,7 @@ window.userMgmt =  {
             document.getElementById('user-reset-pwd-id').value = u.id;
             document.getElementById('user-reset-pwd-name').innerText = u.full_name;
             document.getElementById('user-reset-pwd-username').innerText = u.username;
-            document.getElementById('user-reset-pwd-role').innerHTML = roleBadge(u.role);
+            document.getElementById('user-reset-pwd-role').innerHTML = window.roleBadge(u.role);
             document.getElementById('user-reset-pwd-avatar').innerText = (u.full_name || 'U').charAt(0).toUpperCase();
 
             document.getElementById('user-reset-pwd-new').value = '';
@@ -531,7 +575,7 @@ window.userMgmt =  {
             document.getElementById('user-toggle-id').value = u.id;
             document.getElementById('user-toggle-fullname').innerText = u.full_name;
             document.getElementById('user-toggle-username').innerText = u.username;
-            document.getElementById('user-toggle-role').innerHTML = roleBadge(u.role);
+            document.getElementById('user-toggle-role').innerHTML = window.roleBadge(u.role);
             document.getElementById('user-toggle-avatar').innerText = (u.full_name || 'U').charAt(0).toUpperCase();
 
             const isDeactivating = u.is_active;

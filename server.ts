@@ -187,6 +187,14 @@ function seedUsers() {
   ];
   users.forEach((u, i) => sysUserStore.push({ id: i + 1, ...u }));
   console.log(`[USER SEED] Seeded ${sysUserStore.length} users.`);
+
+  if (sysLoginLogStore.length === 0) {
+    sysLoginLogStore.push(
+      { id: 1, username: 'admin', user_id: 1, success: true, ip_address: '127.0.0.1', fail_reason: null, created_at: new Date(Date.now() - 3600000).toISOString() },
+      { id: 2, username: 'ae.somchai', user_id: 4, success: true, ip_address: '192.168.1.102', fail_reason: null, created_at: new Date(Date.now() - 7200000).toISOString() },
+      { id: 3, username: 'qc.wichai', user_id: 6, success: true, ip_address: '192.168.1.105', fail_reason: null, created_at: new Date(Date.now() - 14400000).toISOString() }
+    );
+  }
 }
 seedUsers();
 

@@ -202,7 +202,7 @@ window.auth =  {
             if (nameDisp) nameDisp.textContent = u.full_name || u.username;
             if (userDisp) userDisp.textContent = '@' + u.username;
             if (avatarDisp) avatarDisp.textContent = (u.full_name || u.username || 'U').charAt(0).toUpperCase();
-            if (roleBadgeEl) roleBadgeEl.innerHTML = roleBadge(u.role);
+            if (roleBadgeEl) roleBadgeEl.innerHTML = window.roleBadge(u.role);
             if (codeDisp) codeDisp.textContent = u.user_code || '-';
 
             const fnInput = document.getElementById('my-profile-fullname');
@@ -354,7 +354,39 @@ window.auth =  {
         }
     };
 
-    // ─── USER MANAGEMENT MODULE & EXPORTS ─────────────────────
+    // ─── ROLE BADGE HELPER & EXPORTS ──────────────────────────
+    function roleBadge(role) {
+        const roleMap = {
+            ADMIN: {
+                label: 'ผู้ดูแลระบบ (Admin)',
+                cls: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+                icon: 'ph ph-shield-star'
+            },
+            AE: {
+                label: 'ฝ่ายขาย (AE)',
+                cls: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+                icon: 'ph ph-briefcase'
+            },
+            QC: {
+                label: 'ตรวจคุณภาพ (QC)',
+                cls: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+                icon: 'ph ph-check-circle'
+            },
+            CONTACT_CENTER: {
+                label: 'บริการลูกค้า (Contact Center)',
+                cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+                icon: 'ph ph-phone'
+            }
+        };
+        const r = roleMap[role] || {
+            label: role || 'ผู้ใช้งาน',
+            cls: 'bg-muted text-muted-foreground border-border',
+            icon: 'ph ph-user'
+        };
+        return `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${r.cls}"><i class="${r.icon} text-xs"></i><span>${r.label}</span></span>`;
+    }
+    window.roleBadge = roleBadge;
+
     window.auth = window.auth;
     const auth = window.auth;
     window.logout = () => (window.handleLogout ? window.handleLogout() : window.auth.logout());
