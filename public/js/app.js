@@ -11531,10 +11531,15 @@ const app = {
                 }
             },
 
-            // ─── DEDICATED PAGE: RENDER DAILY LOGS PAGE ───────────
+            // ─── DEDICATED PAGE: RENDER DAILY LOGS PAGE (OPTION A: MASTER-DETAIL SPLIT VIEW) ───────────
             renderDailyLogsPage(param = null) {
                 const allJobs = DB.jobs || [];
                 if (allJobs.length === 0) return;
+
+                // State defaults
+                if (!this.state.dailyLogActiveTab) this.state.dailyLogActiveTab = 'form';
+                if (!this.state.dailyLogFilterStatus) this.state.dailyLogFilterStatus = 'all';
+                if (!this.state.dailyLogSearchQuery) this.state.dailyLogSearchQuery = '';
 
                 // Determine active job
                 let selectedJobId = param || this.state.dailyLogSelectedJobId || this.state.selectedGanttJobId || 'JOB202609002';
@@ -11543,26 +11548,145 @@ const app = {
                 }
                 this.state.dailyLogSelectedJobId = selectedJobId;
 
-                // Populate Job Select Dropdown
-                const jobSelect = document.getElementById('daily-log-page-job-select');
-                if (jobSelect) {
-                    jobSelect.innerHTML = allJobs.map(j => {
-                        const taskCount = (DB.tasks || []).filter(t => t.jobId === j.id).length;
-                        return `<option value="${j.id}" ${j.id === selectedJobId ? 'selected' : ''}>${j.id} - ${j.customer} (${j.service || 'งานบริการ'}) [${taskCount} Tasks]</option>`;
-                    }).join('');
-                }
+                // Render Master Job Queue on left
+                this.renderDailyLogJobQueue();
 
-                this.onDailyLogJobSelect(selectedJobId, false);
+                // Select and render right workspace with progressive disclosure
+                this.selectDailyLogJob(selectedJobId, false);
             },
 
-            onDailyLogJobSelect(jobId, shouldRerenderAll = true) {
+            onDailyLogQueueSearch(query) {
+                this.state.dailyLogSearchQuery = (query || '').toLowerCase().trim();
+                this.renderDailyLogJobQueue();
+            },
+
+            setDailyLogQueueFilter(filterType) {
+                this.state.dailyLogFilterStatus = filterType;
+                const btnAll = document.getElementById('daily-log-tab-filter-all');
+                const btnPending = document.getElementById('daily-log-tab-filter-pending');
+                const btnDone = document.getElementById('daily-log-tab-filter-done');
+                [btnAll, btnPending, btnDone].forEach(b => {
+                    if (b) b.className = 'flex-1 py-1 rounded-lg font-medium transition cursor-pointer text-center text-muted-foreground hover:text-foreground';
+                });
+                const activeBtn = filterType === 'all' ? btnAll : (filterType === 'pending' ? btnPending : btnDone);
+                if (activeBtn) {
+                    activeBtn.className = 'flex-1 py-1 rounded-lg font-semibold transition cursor-pointer text-center bg-card text-foreground shadow-xs';
+                }
+                this.renderDailyLogJobQueue();
+            },
+
+            renderDailyLogJobQueue() {
+                const listContainer = document.getElementById('daily-log-job-queue-list');
+                const countBadge = document.getElementById('daily-log-queue-count-badge');
+                if (!listContainer) return;
+
+                const allJobs = DB.jobs || [];
+                const allLogs = DB.dailyWorkLogs || [];
+                const allTasks = DB.tasks || [];
+                const todayStr = new Date().toISOString().slice(0, 10);
+                const query = (this.state.dailyLogSearchQuery || '').toLowerCase();
+                const filter = this.state.dailyLogFilterStatus || 'all';
+                const selectedJobId = this.state.dailyLogSelectedJobId;
+
+                // Filter jobs
+                const filteredJobs = allJobs.filter(j => {
+                    const jobTasks = allTasks.filter(t => t.jobId === j.id);
+                    const jobLogs = allLogs.filter(l => String(l.jobId) === String(j.id));
+                    const hasTodayLog = jobLogs.some(l => l.logDate === todayStr || (l.createdAt && l.createdAt.startsWith(todayStr)));
+                    const maxProgress = jobLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
+                    const isCompleted = maxProgress >= 100 || j.status === 'DONE' || j.status === 'QC_PENDING' || j.status === 'QC_PASSED';
+
+                    if (query) {
+                        const matchId = (j.id || '').toLowerCase().includes(query);
+                        const matchCust = (j.customer || '').toLowerCase().includes(query);
+                        const matchTech = (j.tech || '').toLowerCase().includes(query);
+                        const matchService = (j.service || '').toLowerCase().includes(query);
+                        const matchPhone = (j.phone || '').toLowerCase().includes(query);
+                        const matchTasks = jobTasks.some(t => (t.name || '').toLowerCase().includes(query) || (t.tech || '').toLowerCase().includes(query));
+                        if (!matchId && !matchCust && !matchTech && !matchService && !matchPhone && !matchTasks) return false;
+                    }
+
+                    if (filter === 'pending') {
+                        if (hasTodayLog || isCompleted) return false;
+                    } else if (filter === 'done') {
+                        if (!hasTodayLog && !isCompleted) return false;
+                    }
+
+                    return true;
+                });
+
+                if (countBadge) {
+                    countBadge.innerText = `${filteredJobs.length} รายการ`;
+                }
+
+                if (filteredJobs.length === 0) {
+                    listContainer.innerHTML = `
+                        <div class="py-12 text-center text-muted-foreground text-xs p-4 rounded-2xl border border-dashed border-border bg-muted/10 space-y-2">
+                            <i class="ph ph-magnifying-glass text-2xl text-muted-foreground/60"></i>
+                            <div class="font-medium">ไม่พบงานที่ตรงกับเงื่อนไขการค้นหา</div>
+                            <button type="button" onclick="app.setDailyLogQueueFilter('all'); document.getElementById('daily-log-queue-search').value = ''; app.onDailyLogQueueSearch('');" class="text-[11px] text-cyan-600 hover:underline cursor-pointer">ล้างตัวกรอง</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                listContainer.innerHTML = filteredJobs.map(j => {
+                    const isSelected = j.id === selectedJobId;
+                    const jobTasks = allTasks.filter(t => t.jobId === j.id);
+                    const jobLogs = allLogs.filter(l => String(l.jobId) === String(j.id));
+                    const hasTodayLog = jobLogs.some(l => l.logDate === todayStr || (l.createdAt && l.createdAt.startsWith(todayStr)));
+                    const maxProgress = jobLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
+                    const isCompleted = maxProgress >= 100 || j.status === 'DONE' || j.status === 'QC_PENDING' || j.status === 'QC_PASSED';
+                    const primaryTask = jobTasks.length > 0 ? jobTasks[0] : null;
+                    const taskName = primaryTask ? primaryTask.name : (j.service || 'งานบริการ');
+                    const techName = primaryTask ? (primaryTask.tech || j.tech) : (j.tech || 'Team B');
+
+                    let statusBadgeHtml = '';
+                    if (isCompleted) {
+                        statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1 shrink-0"><i class="ph ph-check-circle"></i> เสร็จสมบูรณ์ (รอ QC)</span>`;
+                    } else if (hasTodayLog) {
+                        statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-teal-500/15 text-teal-600 dark:text-teal-400 font-mono flex items-center gap-1 shrink-0"><i class="ph ph-check"></i> บันทึกแล้ว (${maxProgress}%)</span>`;
+                    } else {
+                        statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono flex items-center gap-1 shrink-0 animate-pulse"><i class="ph ph-warning-circle"></i> ค้างลงวันนี้</span>`;
+                    }
+
+                    return `
+                    <div onclick="app.selectDailyLogJob('${j.id}')" class="p-3.5 rounded-2xl border transition cursor-pointer space-y-2 group ${isSelected ? 'bg-cyan-500/10 border-cyan-500 shadow-sm ring-1 ring-cyan-500/30' : 'bg-card border-border hover:border-cyan-500/40 hover:bg-muted/30'}">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-mono text-xs font-bold ${isSelected ? 'text-cyan-600 dark:text-cyan-400' : 'text-foreground group-hover:text-cyan-500'}">${j.id}</span>
+                                    <span class="text-xs font-semibold text-foreground truncate">${j.customer}</span>
+                                </div>
+                                <div class="text-[11px] text-muted-foreground truncate mt-0.5 flex items-center gap-1">
+                                    <i class="ph ph-wrench text-cyan-500 text-xs shrink-0"></i>
+                                    <span class="truncate">${taskName}</span>
+                                </div>
+                            </div>
+                            ${statusBadgeHtml}
+                        </div>
+
+                        <div class="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t border-border/50">
+                            <span class="flex items-center gap-1 truncate">
+                                <i class="ph ph-user text-cyan-500"></i> ${techName}
+                            </span>
+                            <span class="font-mono flex items-center gap-1 shrink-0">
+                                <i class="ph ph-notebook text-purple-500"></i> ${jobLogs.length} วัน (${maxProgress}%)
+                            </span>
+                        </div>
+
+                        <!-- Mini Progress Bar -->
+                        <div class="w-full bg-muted/70 h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-gradient-to-r from-cyan-500 via-brand-500 to-emerald-500 h-full rounded-full transition-all duration-300" style="width: ${Math.min(100, Math.max(isCompleted ? 100 : 5, maxProgress))}%;"></div>
+                        </div>
+                    </div>`;
+                }).join('');
+            },
+
+            selectDailyLogJob(jobId, shouldRerenderQueue = true) {
                 this.state.dailyLogSelectedJobId = jobId;
                 const jobTasks = (DB.tasks || []).filter(t => t.jobId === jobId);
-
-                // Populate Task Select Dropdown
-                const taskSelect = document.getElementById('daily-log-page-task-select');
                 let selectedTaskId = this.state.dailyLogSelectedTaskId;
-
                 if (jobTasks.length > 0) {
                     if (!jobTasks.some(t => String(t.id) === String(selectedTaskId))) {
                         selectedTaskId = jobTasks[0].id;
@@ -11572,65 +11696,96 @@ const app = {
                 }
                 this.state.dailyLogSelectedTaskId = selectedTaskId;
 
-                if (taskSelect) {
-                    if (jobTasks.length > 0) {
-                        taskSelect.innerHTML = jobTasks.map(t => {
-                            const taskLogs = (DB.dailyWorkLogs || []).filter(l => String(l.taskId) === String(t.id));
-                            return `<option value="${t.id}" ${String(t.id) === String(selectedTaskId) ? 'selected' : ''}>${t.name} (${t.days || 3} วัน • ${t.tech || 'ช่าง'}) [บันทึกแล้ว ${taskLogs.length} วัน]</option>`;
-                        }).join('');
-                    } else {
-                        const targetJob = (DB.jobs || []).find(j => j.id === jobId) || {};
-                        taskSelect.innerHTML = `<option value="T_${jobId}_1">${targetJob.service || 'งานบริการหลัก'} (งานเริ่มต้น)</option>`;
-                    }
-                }
+                // Reset photo slots for fresh selection
+                this.state.dailyLogPhotoSlots = [null, null, null, null, null];
 
-                this.onDailyLogTaskSelect(selectedTaskId);
+                if (shouldRerenderQueue) {
+                    this.renderDailyLogJobQueue();
+                }
+                this.renderDailyLogsPageContent();
+            },
+
+            onDailyLogJobSelect(jobId) {
+                this.selectDailyLogJob(jobId);
+            },
+
+            selectDailyLogTask(taskId) {
+                this.state.dailyLogSelectedTaskId = taskId;
+                this.state.dailyLogPhotoSlots = [null, null, null, null, null];
+                this.renderDailyLogsPageContent();
             },
 
             onDailyLogTaskSelect(taskId) {
-                this.state.dailyLogSelectedTaskId = taskId;
-                const jobId = this.state.dailyLogSelectedJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId) || {};
-                const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
+                this.selectDailyLogTask(taskId);
+            },
 
-                // Update task info badge in header
-                const badgeContainer = document.getElementById('daily-log-task-info-badge');
-                if (badgeContainer) {
-                    const startStr = task ? task.start : '2026-09-07';
-                    const endStr = task ? (task.end || task.start) : '2026-09-09';
-                    const days = task ? (task.days || 3) : 3;
-                    const tech = task ? (task.tech || job.tech || 'Team B') : (job.tech || 'Team B');
-
-                    badgeContainer.innerHTML = `
-                        <div class="px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 text-xs flex items-center gap-2">
-                            <i class="ph ph-calendar text-sm"></i>
-                            <span>แผนงาน: <strong>${this.formatDateDMY(startStr)}</strong> ถึง <strong>${this.formatDateDMY(endStr)}</strong> (${days} วัน)</span>
-                        </div>
-                        <div class="px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs flex items-center gap-2 font-medium">
-                            <i class="ph ph-user text-sm"></i>
-                            <span>ช่าง: <strong>${tech}</strong></span>
-                        </div>
-                    `;
-                }
-
+            switchDailyLogTab(tabName) {
+                this.state.dailyLogActiveTab = tabName;
                 this.renderDailyLogsPageContent();
+            },
+
+            selectDailyLogDayStep(dayNumber, isDone, logId = null) {
+                if (isDone) {
+                    this.state.dailyLogActiveTab = 'history';
+                    this.renderDailyLogsPageContent();
+                    if (logId) {
+                        setTimeout(() => {
+                            const cardEl = document.getElementById(`daily-log-card-${logId}`);
+                            if (cardEl) {
+                                cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                cardEl.classList.add('ring-2', 'ring-cyan-500', 'bg-cyan-500/5');
+                                setTimeout(() => cardEl.classList.remove('ring-2', 'ring-cyan-500', 'bg-cyan-500/5'), 2500);
+                            }
+                        }, 60);
+                    }
+                } else {
+                    this.state.dailyLogActiveTab = 'form';
+                    this.renderDailyLogsPageContent();
+                    setTimeout(() => {
+                        const dayInput = document.getElementById('page-input-day-num');
+                        if (dayInput) dayInput.value = dayNumber;
+                        const descInput = document.getElementById('page-input-desc');
+                        if (descInput) descInput.focus();
+                    }, 60);
+                }
             },
 
             renderDailyLogsPageContent() {
                 const container = document.getElementById('daily-logs-page-container');
                 if (!container) return;
 
-                const jobId = this.state.dailyLogSelectedJobId || 'JOB202609002';
-                const taskId = this.state.dailyLogSelectedTaskId || `T_${jobId}_1`;
+                const jobId = this.state.dailyLogSelectedJobId;
+                if (!jobId) {
+                    container.innerHTML = `
+                        <div class="h-full min-h-[460px] flex flex-col items-center justify-center text-center p-8 artifact-card rounded-2xl">
+                            <div class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400 mb-4 shadow-sm">
+                                <i class="ph ph-hand-pointing text-3xl"></i>
+                            </div>
+                            <h4 class="font-display font-bold text-foreground text-lg mb-1">กรุณาเลือกรายการ Job จากคิวด้านซ้าย</h4>
+                            <p class="text-xs text-muted-foreground max-w-sm leading-relaxed">
+                                เลือกโครงการติดตั้งเพื่อดูความคืบหน้าของงาน, ตรวจดูประวัติการเข้างานย้อนหลัง หรือลงบันทึกเวลาปฏิบัติงาน 24 ชั่วโมงพร้อมรูปถ่าย 5 ขั้นตอน
+                            </p>
+                        </div>
+                    `;
+                    return;
+                }
+
                 const job = (DB.jobs || []).find(j => j.id === jobId) || {};
-                const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
+                const jobTasks = (DB.tasks || []).filter(t => t.jobId === jobId);
+                let taskId = this.state.dailyLogSelectedTaskId;
+                if (!taskId || !jobTasks.some(t => String(t.id) === String(taskId))) {
+                    taskId = jobTasks.length > 0 ? jobTasks[0].id : `T_${jobId}_1`;
+                    this.state.dailyLogSelectedTaskId = taskId;
+                }
+                const task = jobTasks.find(t => String(t.id) === String(taskId));
 
                 const taskName = task ? task.name : (job.service || 'งานบริการติดตั้ง');
                 const startDateStr = task ? (task.start || '2026-09-07') : '2026-09-07';
                 const endDateStr = task ? (task.end || '2026-09-09') : '2026-09-09';
                 const taskDays = task ? (task.days || 3) : 3;
+                const techName = task ? (task.tech || job.tech || 'Team B (ประเสริฐ)') : (job.tech || 'Team B (ประเสริฐ)');
 
-                // Fetch logs for this task
+                // Fetch logs for this task & job
                 const allLogs = DB.dailyWorkLogs || [];
                 const taskLogs = allLogs.filter(l => 
                     (taskId && String(l.taskId) === String(taskId)) || 
@@ -11639,7 +11794,7 @@ const app = {
                 taskLogs.sort((a, b) => new Date(a.logDate || '2026-01-01') - new Date(b.logDate || '2026-01-01'));
 
                 const maxProgress = taskLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
-                const isCompleted = taskLogs.some(l => l.isCompleted) || (task && task.status === 'DONE');
+                const isCompleted = taskLogs.some(l => l.isCompleted) || (task && task.status === 'DONE') || (job && (job.status === 'QC_PENDING' || job.status === 'QC_PASSED'));
 
                 // Determine next day number & suggest next date
                 let nextDayNum = taskLogs.length + 1;
@@ -11656,12 +11811,31 @@ const app = {
                     nextDate = startDateStr;
                 }
 
-                // Reset page photo slots if empty
+                // Reset photo slots if uninitialized
                 if (!this.state.dailyLogPhotoSlots || !Array.isArray(this.state.dailyLogPhotoSlots)) {
                     this.state.dailyLogPhotoSlots = [null, null, null, null, null];
                 }
 
-                // Daily Timeline Steps Pills
+                // Multi-task selector buttons (if job has multiple tasks)
+                const taskPillsHtml = jobTasks.length > 1 ? `
+                    <div class="flex items-center gap-1.5 flex-wrap pt-2">
+                        <span class="text-[11px] text-muted-foreground font-semibold flex items-center gap-1">
+                            <i class="ph ph-git-commit text-purple-500"></i> เลือก Task ในงานนี้:
+                        </span>
+                        ${jobTasks.map(t => {
+                            const isCurrentTask = String(t.id) === String(taskId);
+                            const tLogs = allLogs.filter(l => String(l.taskId) === String(t.id));
+                            return `
+                                <button type="button" onclick="app.selectDailyLogTask('${t.id}')" class="px-2.5 py-1 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${isCurrentTask ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/40 shadow-xs' : 'bg-muted/40 hover:bg-muted text-muted-foreground border border-border'}">
+                                    <span>${t.name}</span>
+                                    <span class="text-[10px] font-mono px-1 py-0.2 rounded bg-card/60">${tLogs.length}/${t.days || 3} วัน</span>
+                                </button>
+                            `;
+                        }).join('')}
+                    </div>
+                ` : '';
+
+                // Level 2: Interactive Day Timeline Stepper
                 const timelineStepHtml = Array.from({ length: taskDays }).map((_, i) => {
                     const dayIdx = i + 1;
                     const d = new Date(startDateStr);
@@ -11672,12 +11846,12 @@ const app = {
                     const isLastDay = dayIdx === taskDays;
 
                     return `
-                    <div class="flex-1 min-w-[130px] p-3 rounded-xl border ${isDayDone ? 'bg-emerald-500/10 border-emerald-500/30' : (isLastDay ? 'bg-amber-500/10 border-amber-500/30' : 'bg-card border-border')} transition flex flex-col justify-between shadow-xs">
+                    <div onclick="app.selectDailyLogDayStep(${dayIdx}, ${isDayDone ? 'true' : 'false'}, '${dayLog ? dayLog.id : ''}')" class="flex-1 min-w-[130px] p-3 rounded-xl border ${isDayDone ? 'bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500' : (isLastDay ? 'bg-amber-500/10 border-amber-500/30 hover:border-amber-500' : 'bg-card border-border hover:border-cyan-500/40')} transition cursor-pointer flex flex-col justify-between shadow-xs group" title="คลิกเพื่อ${isDayDone ? 'ดูประวัติวันนี้' : 'เปิดฟอร์มลงบันทึกวันนี้'}">
                         <div class="flex items-center justify-between text-xs">
                             <span class="font-bold ${isDayDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}">วันที่ ${dayIdx} (${this.formatDateDMY(dStr).slice(0, 5)})</span>
                             ${isDayDone 
                                 ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">✓ ${dayLog.progressPercent}%</span>`
-                                : (isLastDay ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold">นัดตรวจ QC</span>` : `<span class="text-[10px] text-muted-foreground">รอลงบันทึก</span>`)}
+                                : (isLastDay ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold">นัดตรวจ QC</span>` : `<span class="text-[10px] text-muted-foreground group-hover:text-cyan-500">รอลงบันทึก</span>`)}
                         </div>
                         <div class="text-[11px] text-muted-foreground mt-1.5 truncate">
                             ${isDayDone ? (dayLog.workDescription || 'บันทึกแล้ว') : (isLastDay ? 'วันสิ้นสุดงาน & จองตรวจ QC' : 'ตามแผนงาน')}
@@ -11704,7 +11878,7 @@ const app = {
                     `).join('');
 
                     return `
-                    <div class="p-4 rounded-2xl bg-card border border-border shadow-xs hover:border-cyan-500/40 transition space-y-3">
+                    <div id="daily-log-card-${l.id}" class="p-4 rounded-2xl bg-card border border-border shadow-xs hover:border-cyan-500/40 transition space-y-3">
                         <div class="flex items-center justify-between flex-wrap gap-2">
                             <div class="flex items-center gap-2">
                                 <span class="w-7 h-7 rounded-xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 text-xs font-bold font-mono flex items-center justify-center border border-cyan-500/30">D${l.dayNumber || 1}</span>
@@ -11755,205 +11929,244 @@ const app = {
                     </div>`;
                 }).join('');
 
+                const activeTab = this.state.dailyLogActiveTab || 'form';
+
+                // Assemble Right Column with Progressive Disclosure
                 container.innerHTML = `
-                    <!-- Top Milestone & Progress Overview Banner -->
+                    <!-- Level 1: Executive Job & Task Header Card -->
                     <div class="p-5 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-brand-500/10 to-emerald-500/10 border border-cyan-500/20 shadow-xs space-y-3.5">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div>
-                                <div class="text-sm font-bold text-foreground flex items-center gap-2">
-                                    <i class="ph ph-chart-line-up text-cyan-500 text-lg"></i>
-                                    <span>ความคืบหน้างานตามแผนงาน Gantt: <strong class="text-cyan-600 dark:text-cyan-400 font-display">${taskName}</strong></span>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-mono font-bold text-sm text-cyan-600 dark:text-cyan-400">${job.id}</span>
+                                    <span class="text-sm font-bold text-foreground">• ${job.customer}</span>
+                                    <span class="text-xs text-muted-foreground font-mono">(${job.phone || '08X-XXX-XXXX'})</span>
                                 </div>
-                                <p class="text-xs text-muted-foreground mt-0.5">
-                                    โครงการ: <strong class="text-foreground">${job.id} - ${job.customer}</strong> • แผนงาน: <strong>${this.formatDateDMY(startDateStr)} ถึง ${this.formatDateDMY(endDateStr)}</strong> (${taskDays} วัน) • นัดตรวจ QC: <strong class="text-emerald-600 dark:text-emerald-400">${this.formatDateDMY(endDateStr)} (วันสิ้นสุด)</strong>
-                                </p>
+                                <div class="text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
+                                    <span>งานหลัก: <strong class="text-foreground">${taskName}</strong></span>
+                                    <span>•</span>
+                                    <span>แผนงาน: <strong>${this.formatDateDMY(startDateStr)} ถึง ${this.formatDateDMY(endDateStr)}</strong> (${taskDays} วัน)</span>
+                                    <span>•</span>
+                                    <span>ช่าง: <strong class="text-cyan-600 dark:text-cyan-400">${techName}</strong></span>
+                                </div>
                             </div>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 shrink-0">
                                 <span class="px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold ${isCompleted ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40' : 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30'}">
                                     ${isCompleted ? '✓ ช่างบันทึกสำเร็จ 100%' : `ความคืบหน้ารวม ${maxProgress}%`}
                                 </span>
                             </div>
                         </div>
 
-                        <!-- Progress Bar -->
-                        <div class="w-full bg-muted/60 h-3 rounded-full overflow-hidden border border-border">
-                            <div class="bg-gradient-to-r from-cyan-500 via-brand-500 to-emerald-500 h-full rounded-full transition-all duration-300" style="width: ${Math.min(100, Math.max(isCompleted ? 100 : 5, maxProgress))}%;"></div>
+                        ${taskPillsHtml}
+
+                        <!-- Overall Progress Bar -->
+                        <div class="space-y-1 pt-1">
+                            <div class="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
+                                <span>ความคืบหน้าสะสมรวม</span>
+                                <span class="font-bold text-foreground">${maxProgress}%</span>
+                            </div>
+                            <div class="w-full bg-muted/60 h-2.5 rounded-full overflow-hidden border border-border">
+                                <div class="bg-gradient-to-r from-cyan-500 via-brand-500 to-emerald-500 h-full rounded-full transition-all duration-300" style="width: ${Math.min(100, Math.max(isCompleted ? 100 : 5, maxProgress))}%;"></div>
+                            </div>
                         </div>
 
-                        <!-- Daily Steps Grid -->
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                        <!-- Level 2: Daily Steps Grid (Interactive Stepper) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1.5">
                             ${timelineStepHtml}
                         </div>
                     </div>
 
-                    <!-- Main Grid: History (Left) & New Log Form (Right) -->
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                        <!-- Left Column: Existing Logs Trail -->
-                        <div class="lg:col-span-6 space-y-3">
+                    <!-- Level 3: Contextual Action Tabs Switcher -->
+                    <div class="flex items-center gap-2 p-1.5 bg-muted/50 rounded-2xl border border-border shadow-xs">
+                        <button type="button" onclick="app.switchDailyLogTab('form')" class="flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${activeTab === 'form' ? 'bg-card text-foreground shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground'}">
+                            <i class="ph ph-note-pencil text-cyan-500 text-sm"></i>
+                            <span>✍️ ลงบันทึกงานประจำวัน ${nextDayNum <= taskDays ? `(รอบที่ ${nextDayNum} / ${taskDays} วัน)` : ''}</span>
+                        </button>
+                        <button type="button" onclick="app.switchDailyLogTab('history')" class="flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${activeTab === 'history' ? 'bg-card text-foreground shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground'}">
+                            <i class="ph ph-clock-counter-clockwise text-purple-500 text-sm"></i>
+                            <span>📋 ประวัติการบันทึกงานที่ผ่านมา</span>
+                            <span class="px-2 py-0.2 rounded-full text-[10px] font-mono ${taskLogs.length > 0 ? 'bg-purple-500/20 text-purple-600 dark:text-purple-400' : 'bg-muted text-muted-foreground'}">${taskLogs.length}</span>
+                        </button>
+                    </div>
+
+                    <!-- Level 4: Active Tab Content (Form or History) -->
+                    ${activeTab === 'form' ? `
+                        <!-- TAB CONTENT: ADD / EDIT DAILY LOG FORM -->
+                        <div class="artifact-card p-6 rounded-2xl border border-border space-y-4 shadow-sm transition">
+                            <div class="flex items-center justify-between pb-3 border-b border-border">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-pulse"></span>
+                                    <h4 class="font-display font-bold text-sm text-foreground">
+                                        แบบฟอร์มลงบันทึกเวลาปฏิบัติงานช่างและรูปถ่าย
+                                    </h4>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/20">
+                                        รอบที่ ${nextDayNum} / ${taskDays} วัน
+                                    </span>
+                                </div>
+                            </div>
+
+                            <form onsubmit="event.preventDefault(); app.saveDailyWorkLog('${taskId}', false, true);" class="space-y-4">
+                                <!-- Date & Day Number -->
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[11px] font-semibold text-foreground mb-1">วันที่เข้าทำงาน (Work Date - DD/MM/YYYY): <span class="text-rose-500">*</span></label>
+                                        <input type="date" id="page-input-date" value="${nextDate}" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs font-mono text-foreground focus:outline-none cursor-pointer" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-semibold text-foreground mb-1">วันที่ในแผนงาน (Day #):</label>
+                                        <input type="number" id="page-input-day-num" value="${nextDayNum}" min="1" max="${taskDays + 5}" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs font-mono text-foreground focus:outline-none" required>
+                                    </div>
+                                </div>
+
+                                <!-- Time In & Time Out (24 Hours - Strictly NO AM/PM) -->
+                                <div class="p-3.5 rounded-xl bg-cyan-500/5 border border-cyan-500/20 space-y-2.5">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[11px] font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5">
+                                            <i class="ph ph-clock text-sm"></i>
+                                            บันทึกระยะเวลาเข้าปฏิบัติงานจริง (24-Hour Time Tracking):
+                                        </span>
+                                        <span id="page-duration-text" class="text-[11px] font-mono font-bold px-2 py-0.5 rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30">
+                                            ⏱️ รวม 8 ชม. 30 นาที <span class="text-[10px] font-mono opacity-80">(08:30 - 17:00 น.)</span>
+                                        </span>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        ${this.render24HourTimePickerHtml('page', 'start', '08', '30', 'เวลาเริ่มเข้าหน้างาน (Check-in)')}
+                                        ${this.render24HourTimePickerHtml('page', 'end', '17', '00', 'เวลาสิ้นสุดการทำงาน (Check-out)')}
+                                    </div>
+                                    ${this.renderDailyLogShiftPresetsHtml('page')}
+                                </div>
+
+                                <!-- Recorded By & Role -->
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[11px] font-semibold text-foreground mb-1">ผู้บันทึก / หัวหน้าช่าง:</label>
+                                        <input type="text" id="page-input-recorded-by" value="${techName}" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-semibold text-foreground mb-1">บทบาทผู้บันทึก:</label>
+                                        <select id="page-input-role" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none cursor-pointer font-medium">
+                                            <option value="TECH">ช่างหน้างาน (Technician)</option>
+                                            <option value="QC">เจ้าหน้าที่ QC ทีม (QC Inspector)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Progress Slider -->
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="text-[11px] font-semibold text-foreground">ความคืบหน้าสะสมรวม (%):</label>
+                                        <span class="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-400" id="page-progress-val">${Math.min(100, Math.max(maxProgress, nextDayNum >= taskDays ? 100 : Math.round((nextDayNum / taskDays) * 100)))}%</span>
+                                    </div>
+                                    <input type="range" id="page-input-progress" min="0" max="100" step="5" value="${Math.min(100, Math.max(maxProgress, nextDayNum >= taskDays ? 100 : Math.round((nextDayNum / taskDays) * 100)))}" oninput="document.getElementById('page-progress-val').innerText = this.value + '%'; if(Number(this.value) === 100) document.getElementById('page-input-completed').checked = true;" class="w-full accent-cyan-500 cursor-pointer">
+                                    <div class="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
+                                        <button type="button" onclick="document.getElementById('page-input-progress').value = 35; document.getElementById('page-progress-val').innerText = '35%';" class="hover:text-foreground cursor-pointer">35% (Day 1)</button>
+                                        <button type="button" onclick="document.getElementById('page-input-progress').value = 70; document.getElementById('page-progress-val').innerText = '70%';" class="hover:text-foreground cursor-pointer">70% (Day 2)</button>
+                                        <button type="button" onclick="document.getElementById('page-input-progress').value = 100; document.getElementById('page-progress-val').innerText = '100%'; document.getElementById('page-input-completed').checked = true;" class="text-emerald-600 font-bold hover:underline cursor-pointer">100% (สำเร็จ)</button>
+                                    </div>
+                                </div>
+
+                                <!-- Work Description -->
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-foreground mb-1">รายละเอียดงานที่ทำในวันนี้ (Daily Accomplishment): <span class="text-rose-500">*</span></label>
+                                    <textarea id="page-input-desc" rows="2.5" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none transition" placeholder="เช่น ต่อสายเมนเข้าตู้ Consumer Unit, ทดสอบเบรกเกอร์กันดูด RCBO Safe-T-Cut, ตรวจวัดแรงดันไฟทุกจุด 220V ปกติ และทำความสะอาดพื้นที่ 100%..." required></textarea>
+                                </div>
+
+                                <!-- Additional Details & Materials -->
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">รายละเอียดเพิ่มเติม / ข้อมูลอ้างอิง:</label>
+                                        <input type="text" id="page-input-additional-details" placeholder="เช่น ดำเนินการตามแบบ CAD จุดระเบียงห้องครัว" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">อุปกรณ์/อะไหล่ที่ติดตั้ง:</label>
+                                        <input type="text" id="page-input-materials" placeholder="เช่น ท่อ EMT 30 ม., เต้ารับ 8 ชุด" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-[11px] font-medium text-muted-foreground mb-1">ปัญหา / อุปสรรคหน้างาน:</label>
+                                    <input type="text" id="page-input-issues" placeholder="เช่น ไม่มีปัญหา หรือ ฝนตกชั่วคราว ดำเนินการต่อได้ปกติ" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none">
+                                </div>
+
+                                <!-- 5 PHOTO SLOTS WITH LIVE PREVIEW & LIGHTBOX PREVIEW -->
+                                <div class="space-y-2 pt-1 border-t border-border">
+                                    <div class="flex items-center justify-between">
+                                        <label class="text-[11px] font-bold text-foreground flex items-center gap-1.5">
+                                            <i class="ph ph-images text-cyan-500 text-sm"></i>
+                                            <span>แนบรูปถ่ายหน้างาน 5 รูป (พร้อมระบบ Preview คลิกดูรูปใหญ่):</span>
+                                        </label>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[10px] font-mono font-semibold text-cyan-600 dark:text-cyan-400" id="page-photos-count-badge">แนบแล้ว 0 / 5 รูป</span>
+                                            <button type="button" onclick="app.loadSamplePhotosForDailyLog('page')" class="text-[10px] text-cyan-600 hover:underline flex items-center gap-0.5 cursor-pointer font-medium" title="โหลดรูปตัวอย่าง 5 รูปจำลองเพื่อทดสอบ">
+                                                <i class="ph ph-sparkle"></i> โหลดรูปตัวอย่าง 5 รูป
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div id="page-5photo-slots-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+                                        ${this.render5PhotoSlotsHtml('page')}
+                                    </div>
+                                </div>
+
+                                <!-- Completion Checkbox Card -->
+                                <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 transition">
+                                    <input type="checkbox" id="page-input-completed" class="mt-0.5 accent-emerald-600 w-4 h-4 cursor-pointer" ${isCompleted || nextDayNum >= taskDays ? 'checked' : ''}>
+                                    <label for="page-input-completed" class="text-xs text-foreground font-medium cursor-pointer">
+                                        <strong class="text-emerald-700 dark:text-emerald-300 block">☑️ ช่างบันทึกสำเร็จ (งานติดตั้งเสร็จสมบูรณ์ 100%)</strong>
+                                        <span class="text-[11px] text-muted-foreground block mt-0.5">ระบบจะปรับสถานะ Task เป็น DONE, ยืนยันจองช่าง QC ณ วันสิ้นสุด (${this.formatDateDMY(endDateStr)}) และส่งงานเข้าสู่คิวรอตรวจรับรองคุณภาพ QC ทันที</span>
+                                    </label>
+                                </div>
+
+                                <!-- Form Action Buttons -->
+                                <div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
+                                    <button type="button" onclick="app.resetDailyLogForm('page')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium cursor-pointer">
+                                        ล้างฟอร์ม
+                                    </button>
+                                    <button type="submit" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 cursor-pointer flex items-center gap-1.5 shadow-xs">
+                                        <i class="ph ph-floppy-disk text-sm"></i>
+                                        <span>💾 บันทึกความคืบหน้ารายวัน</span>
+                                    </button>
+                                    <button type="button" onclick="app.completeDailyWorkAndMoveToQC('${taskId}', true)" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white cursor-pointer">
+                                        <i class="ph ph-paper-plane-tilt text-sm"></i>
+                                        <span>🚀 ยืนยันสำเร็จ & ส่งตรวจ QC</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    ` : `
+                        <!-- TAB CONTENT: EXISTING LOGS HISTORY -->
+                        <div class="space-y-4">
                             <div class="flex items-center justify-between">
                                 <h4 class="font-display font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                                     <i class="ph ph-clock-counter-clockwise text-cyan-500 text-sm"></i>
                                     ประวัติการบันทึกงานประจำวัน (${taskLogs.length} รายการ)
                                 </h4>
-                                <span class="text-[10px] text-muted-foreground font-mono">เรียงตามวันที่ปฏิบัติงาน</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] text-muted-foreground font-mono">เรียงตามวันที่ปฏิบัติงาน</span>
+                                    <button type="button" onclick="app.switchDailyLogTab('form')" class="px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 text-xs font-bold flex items-center gap-1 cursor-pointer">
+                                        <i class="ph ph-plus"></i> ลงบันทึกวันนี้
+                                    </button>
+                                </div>
                             </div>
 
-                            <div class="space-y-3 max-h-[720px] overflow-y-auto pr-1">
+                            <div class="space-y-3">
                                 ${logsCardsHtml || `
                                     <div class="py-16 text-center text-muted-foreground text-xs space-y-3 border border-dashed border-border rounded-2xl p-6 bg-muted/10">
                                         <div class="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto text-muted-foreground">
                                             <i class="ph ph-notebook text-2xl"></i>
                                         </div>
                                         <div class="font-bold text-foreground">ยังไม่มีบันทึกงานช่างประจำวันสำหรับ Task นี้</div>
-                                        <p class="text-[11px] max-w-sm mx-auto">กรอกแบบฟอร์มด้านขวาเพื่อเริ่มบันทึกเวลาเข้า-ออก และอัปโหลดรูปถ่ายหน้างาน 5 รูป</p>
+                                        <p class="text-[11px] max-w-sm mx-auto">คลิกปุ่ม "ลงบันทึกงานประจำวัน" ด้านบนเพื่อเริ่มบันทึกเวลาเข้า-ออก และอัปโหลดรูปถ่ายหน้างาน 5 รูป</p>
+                                        <button type="button" onclick="app.switchDailyLogTab('form')" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer">
+                                            <i class="ph ph-note-pencil"></i> ลงบันทึกงานรอบแรก
+                                        </button>
                                     </div>
                                 `}
                             </div>
                         </div>
-
-                        <!-- Right Column: Add / Edit Daily Log Form -->
-                        <div class="lg:col-span-6">
-                            <div class="p-5 rounded-2xl bg-card border border-border space-y-4 shadow-sm">
-                                <div class="flex items-center justify-between pb-2 border-b border-border">
-                                    <div class="flex items-center gap-2">
-                                        <span class="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-pulse"></span>
-                                        <h4 class="font-display font-bold text-sm uppercase tracking-wider text-foreground">
-                                            ลงบันทึกงานช่างประจำวัน
-                                        </h4>
-                                    </div>
-                                    <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-muted text-muted-foreground font-bold">รอบที่ ${nextDayNum} / ${taskDays} วัน</span>
-                                </div>
-
-                                <form onsubmit="event.preventDefault(); app.saveDailyWorkLog('${taskId}', false, true);" class="space-y-4">
-                                    <!-- Date & Day Number -->
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div>
-                                            <label class="block text-[11px] font-semibold text-foreground mb-1">วันที่เข้าทำงาน (Work Date): <span class="text-rose-500">*</span></label>
-                                            <input type="date" id="page-input-date" value="${nextDate}" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs font-mono text-foreground focus:outline-none cursor-pointer" required>
-                                        </div>
-                                        <div>
-                                            <label class="block text-[11px] font-semibold text-foreground mb-1">วันที่ในแผนงาน (Day #):</label>
-                                            <input type="number" id="page-input-day-num" value="${nextDayNum}" min="1" max="${taskDays + 5}" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs font-mono text-foreground focus:outline-none" required>
-                                        </div>
-                                    </div>
-
-                                    <!-- Time In & Time Out (ระยะเวลา เริ่มที่เข้าไป และเวลา ที่ สิ้นสุด - 24 Hours) -->
-                                    <div class="p-3.5 rounded-xl bg-cyan-500/5 border border-cyan-500/20 space-y-2.5">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-[11px] font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5">
-                                                <i class="ph ph-clock text-sm"></i>
-                                                บันทึกระยะเวลาเข้าปฏิบัติงานจริง (24-Hour Time Tracking):
-                                            </span>
-                                            <span id="page-duration-text" class="text-[11px] font-mono font-bold px-2 py-0.5 rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30">
-                                                ⏱️ รวม 8 ชม. 30 นาที <span class="text-[10px] font-mono opacity-80">(08:30 - 17:00 น.)</span>
-                                            </span>
-                                        </div>
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            ${this.render24HourTimePickerHtml('page', 'start', '08', '30', 'เวลาเริ่มเข้าหน้างาน (Check-in)')}
-                                            ${this.render24HourTimePickerHtml('page', 'end', '17', '00', 'เวลาสิ้นสุดการทำงาน (Check-out)')}
-                                        </div>
-                                        ${this.renderDailyLogShiftPresetsHtml('page')}
-                                    </div>
-
-                                    <!-- Recorded By & Role -->
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div>
-                                            <label class="block text-[11px] font-semibold text-foreground mb-1">ผู้บันทึก / หัวหน้าช่าง:</label>
-                                            <input type="text" id="page-input-recorded-by" value="ช่างประเสริฐ (หัวหน้าชุดติดตั้ง)" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none" required>
-                                        </div>
-                                        <div>
-                                            <label class="block text-[11px] font-semibold text-foreground mb-1">บทบาทผู้บันทึก:</label>
-                                            <select id="page-input-role" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none cursor-pointer font-medium">
-                                                <option value="TECH">ช่างหน้างาน (Technician)</option>
-                                                <option value="QC">เจ้าหน้าที่ QC ทีม (QC Inspector)</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <!-- Progress Slider -->
-                                    <div>
-                                        <div class="flex items-center justify-between mb-1">
-                                            <label class="text-[11px] font-semibold text-foreground">ความคืบหน้าสะสมรวม (%):</label>
-                                            <span class="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-400" id="page-progress-val">${Math.min(100, Math.max(maxProgress, nextDayNum >= taskDays ? 100 : Math.round((nextDayNum / taskDays) * 100)))}%</span>
-                                        </div>
-                                        <input type="range" id="page-input-progress" min="0" max="100" step="5" value="${Math.min(100, Math.max(maxProgress, nextDayNum >= taskDays ? 100 : Math.round((nextDayNum / taskDays) * 100)))}" oninput="document.getElementById('page-progress-val').innerText = this.value + '%'; if(Number(this.value) === 100) document.getElementById('page-input-completed').checked = true;" class="w-full accent-cyan-500 cursor-pointer">
-                                        <div class="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
-                                            <button type="button" onclick="document.getElementById('page-input-progress').value = 35; document.getElementById('page-progress-val').innerText = '35%';" class="hover:text-foreground cursor-pointer">35% (Day 1)</button>
-                                            <button type="button" onclick="document.getElementById('page-input-progress').value = 70; document.getElementById('page-progress-val').innerText = '70%';" class="hover:text-foreground cursor-pointer">70% (Day 2)</button>
-                                            <button type="button" onclick="document.getElementById('page-input-progress').value = 100; document.getElementById('page-progress-val').innerText = '100%'; document.getElementById('page-input-completed').checked = true;" class="text-emerald-600 font-bold hover:underline cursor-pointer">100% (สำเร็จ)</button>
-                                        </div>
-                                    </div>
-
-                                    <!-- Work Description -->
-                                    <div>
-                                        <label class="block text-[11px] font-semibold text-foreground mb-1">รายละเอียดงานที่ทำในวันนี้ (Daily Accomplishment): <span class="text-rose-500">*</span></label>
-                                        <textarea id="page-input-desc" rows="2.5" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none transition" placeholder="เช่น ต่อสายเมนเข้าตู้ Consumer Unit, ทดสอบเบรกเกอร์กันดูด RCBO Safe-T-Cut, ตรวจวัดแรงดันไฟทุกจุด 220V ปกติ และทำความสะอาดพื้นที่ 100%..." required></textarea>
-                                    </div>
-
-                                    <!-- Additional Details & Materials -->
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div>
-                                            <label class="block text-[11px] font-medium text-muted-foreground mb-1">รายละเอียดเพิ่มเติม / ข้อมูลอ้างอิง:</label>
-                                            <input type="text" id="page-input-additional-details" placeholder="เช่น ดำเนินการตามแบบ CAD จุดระเบียงห้องครัว" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none">
-                                        </div>
-                                        <div>
-                                            <label class="block text-[11px] font-medium text-muted-foreground mb-1">อุปกรณ์/อะไหล่ที่ติดตั้ง:</label>
-                                            <input type="text" id="page-input-materials" placeholder="เช่น ท่อ EMT 30 ม., เต้ารับ 8 ชุด" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none">
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">ปัญหา / อุปสรรคหน้างาน:</label>
-                                        <input type="text" id="page-input-issues" placeholder="เช่น ไม่มีปัญหา หรือ ฝนตกชั่วคราว ดำเนินการต่อได้ปกติ" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none">
-                                    </div>
-
-                                    <!-- 5 PHOTO SLOTS WITH LIVE PREVIEW & LIGHTBOX PREVIEW -->
-                                    <div class="space-y-2 pt-1 border-t border-border">
-                                        <div class="flex items-center justify-between">
-                                            <label class="text-[11px] font-bold text-foreground flex items-center gap-1.5">
-                                                <i class="ph ph-images text-cyan-500 text-sm"></i>
-                                                <span>แนบรูปถ่ายหน้างาน 5 รูป (พร้อมระบบ Preview คลิกดูรูปใหญ่):</span>
-                                            </label>
-                                            <div class="flex items-center gap-2">
-                                                <span class="text-[10px] font-mono font-semibold text-cyan-600 dark:text-cyan-400" id="page-photos-count-badge">แนบแล้ว 0 / 5 รูป</span>
-                                                <button type="button" onclick="app.loadSamplePhotosForDailyLog('page')" class="text-[10px] text-cyan-600 hover:underline flex items-center gap-0.5 cursor-pointer font-medium" title="โหลดรูปตัวอย่าง 5 รูปจำลองเพื่อทดสอบ">
-                                                    <i class="ph ph-sparkle"></i> โหลดรูปตัวอย่าง 5 รูป
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div id="page-5photo-slots-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
-                                            ${this.render5PhotoSlotsHtml('page')}
-                                        </div>
-                                    </div>
-
-                                    <!-- Completion Checkbox Card -->
-                                    <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 transition">
-                                        <input type="checkbox" id="page-input-completed" class="mt-0.5 accent-emerald-600 w-4 h-4 cursor-pointer" ${isCompleted || nextDayNum >= taskDays ? 'checked' : ''}>
-                                        <label for="page-input-completed" class="text-xs text-foreground font-medium cursor-pointer">
-                                            <strong class="text-emerald-700 dark:text-emerald-300 block">☑️ ช่างบันทึกสำเร็จ (งานติดตั้งเสร็จสมบูรณ์ 100%)</strong>
-                                            <span class="text-[11px] text-muted-foreground block mt-0.5">ระบบจะปรับสถานะ Task เป็น DONE, ยืนยันจองช่าง QC ณ วันสิ้นสุด (${this.formatDateDMY(endDateStr)}) และส่งงานเข้าสู่คิวรอตรวจรับรองคุณภาพ QC ทันที</span>
-                                        </label>
-                                    </div>
-
-                                    <!-- Form Action Buttons -->
-                                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
-                                        <button type="button" onclick="app.resetDailyLogForm('page')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium cursor-pointer">
-                                            ล้างฟอร์ม
-                                        </button>
-                                        <button type="submit" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 cursor-pointer flex items-center gap-1.5 shadow-xs">
-                                            <i class="ph ph-floppy-disk text-sm"></i>
-                                            <span>💾 บันทึกความคืบหน้ารายวัน</span>
-                                        </button>
-                                        <button type="button" onclick="app.completeDailyWorkAndMoveToQC('${taskId}', true)" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white cursor-pointer">
-                                            <i class="ph ph-paper-plane-tilt text-sm"></i>
-                                            <span>🚀 ยืนยันสำเร็จ & ส่งตรวจ QC</span>
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
+                    `}
                 `;
             },
 
@@ -12465,6 +12678,7 @@ const app = {
                     this.state.dailyLogPhotoSlots = [null, null, null, null, null];
 
                     if (isPageForm) {
+                        this.renderDailyLogJobQueue();
                         this.renderDailyLogsPageContent();
                     } else {
                         this.closeDailyWorkLogModal();
@@ -12486,6 +12700,7 @@ const app = {
                 this.state.dailyLogPhotoSlots = [null, null, null, null, null];
 
                 if (isPageForm) {
+                    this.renderDailyLogJobQueue();
                     this.renderDailyLogsPageContent();
                 } else {
                     this.renderDailyWorkLogs(taskId);
@@ -12507,6 +12722,7 @@ const app = {
                 this.showToast('🗑️ ลบบันทึกงานประจำวันเรียบร้อย');
                 
                 if (this.state.currentView === 'daily-logs') {
+                    this.renderDailyLogJobQueue();
                     this.renderDailyLogsPageContent();
                 } else {
                     this.renderDailyWorkLogs(taskId);
