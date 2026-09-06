@@ -1491,86 +1491,95 @@
                         </div>
                     </div>
 
-                    <!-- KPI Stats for Tickets -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="artifact-card p-4 space-y-1">
-                            <div class="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-                                <span>Tickets ทั้งหมด</span>
-                                <i class="ph ph-ticket text-emerald-500 text-base"></i>
-                            </div>
-                            <div class="text-2xl font-bold font-mono text-foreground" id="tickets-stat-total">0</div>
-                            <div class="text-[10px] text-muted-foreground">รายการบันทึกในระบบ</div>
-                        </div>
-                        <div class="artifact-card p-4 space-y-1">
-                            <div class="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-                                <span>แนบใบเสร็จสมบูรณ์</span>
-                                <i class="ph ph-check-circle text-emerald-500 text-base"></i>
-                            </div>
-                            <div class="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400" id="tickets-stat-verified">0</div>
-                            <div class="text-[10px] text-emerald-500">มีหลักฐานสลิปครบ</div>
-                        </div>
-                        <div class="artifact-card p-4 space-y-1">
-                            <div class="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-                                <span>ยอดเงินตามใบเสร็จรวม</span>
-                                <i class="ph ph-currency-circle-dollar text-brand-500 text-base"></i>
-                            </div>
-                            <div class="text-2xl font-bold font-mono text-brand-500" id="tickets-stat-amount">0 ฿</div>
-                            <div class="text-[10px] text-muted-foreground">ยอดเงินชำระทั้งหมด</div>
-                        </div>
-                        <div class="artifact-card p-4 space-y-1">
-                            <div class="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-                                <span>รอตรวจสอบ</span>
-                                <i class="ph ph-clock text-amber-500 text-base"></i>
-                            </div>
-                            <div class="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400" id="tickets-stat-pending">0</div>
-                            <div class="text-[10px] text-amber-500">รอทีมบัญชีตรวจสอบ</div>
-                        </div>
+                    <!-- Tab Switcher: Pending Ticket Jobs vs Uploaded / Issued Tickets Library -->
+                    <div class="flex border-b border-border gap-6">
+                        <button type="button" id="tab-ticket-pending" onclick="app.switchTicketTab('pending')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-emerald-600 text-foreground cursor-pointer">
+                            <i class="ph ph-hourglass-high text-amber-500 text-sm"></i>
+                            <span>คิวโครงการที่รอออก Ticket & แนบสลิป</span>
+                            <span id="tab-ticket-pending-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold">0</span>
+                        </button>
+                        <button type="button" id="tab-ticket-library" onclick="app.switchTicketTab('library')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer">
+                            <i class="ph ph-receipt text-emerald-500 text-sm"></i>
+                            <span>คลัง Ticket, สลิปโอนเงิน และสัญญาจ้าง</span>
+                            <span id="tab-ticket-library-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono font-bold">0</span>
+                        </button>
                     </div>
 
-                    <!-- Search & Filter Bar -->
+                    <!-- Search & Filter Card -->
                     <div class="artifact-card p-4">
                         <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
                             <div class="relative flex-1 w-full">
                                 <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
-                                <input type="text" id="ticket-search" oninput="app.renderTickets()" placeholder="ค้นหาตาม Ticket No, เลขที่ใบเสร็จ, โครงการ หรือชื่อลูกค้า..." class="w-full bg-card border border-border rounded-lg pl-9 pr-4 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-emerald-500">
+                                <input type="text" id="ticket-search" oninput="app.filterTickets()" placeholder="ค้นหาตาม Ticket No, เลขที่ใบเสร็จ, สัญญา, รหัสงาน (JOB ID), ชื่อลูกค้า..." class="w-full bg-card border border-border rounded-lg pl-9 pr-4 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-emerald-500">
                             </div>
                             <div class="flex items-center gap-2 w-full sm:w-auto">
-                                <select id="ticket-filter-status" onchange="app.renderTickets()" class="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-emerald-500">
-                                    <option value="all">ทุกสถานะใบเสร็จ</option>
-                                    <option value="VERIFIED">ตรวจสอบแล้ว (Verified)</option>
-                                    <option value="ATTACHED">แนบแล้ว (Attached)</option>
+                                <select id="ticket-filter-service" onchange="app.filterTickets()" class="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-emerald-500">
+                                    <option value="all">ทุกประเภทบริการ</option>
+                                    <option value="Renovate ครัว">Renovate ครัว</option>
+                                    <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
+                                    <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                                    <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
+                                    <option value="ติดตั้งเครื่องปรับอากาศ">ติดตั้งเครื่องปรับอากาศ</option>
+                                    <option value="โซลาร์เซลล์">โซลาร์เซลล์</option>
                                 </select>
-                                <select id="ticket-filter-method" onchange="app.renderTickets()" class="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-emerald-500">
+                                <select id="ticket-filter-method" onchange="app.filterTickets()" class="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-emerald-500">
                                     <option value="all">ทุกช่องทางชำระ</option>
                                     <option value="โอนเงิน">โอนเงินผ่านธนาคาร</option>
                                     <option value="บัตรเครดิต">บัตรเครดิต</option>
                                     <option value="เงินสด">เงินสด</option>
                                 </select>
+
+                                <!-- Ticket View Mode Switcher: Card View vs List View -->
+                                <div class="inline-flex p-1 bg-muted/60 border border-border rounded-xl text-xs shrink-0">
+                                    <button type="button" id="btn-ticket-mode-card" onclick="app.setTicketViewMode('card')" class="px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs" title="แสดงแบบการ์ด (Card View)">
+                                        <i class="ph ph-squares-four text-emerald-500 text-sm"></i>
+                                        <span>Card View</span>
+                                    </button>
+                                    <button type="button" id="btn-ticket-mode-list" onclick="app.setTicketViewMode('list')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground" title="แสดงแบบรายการ (List View)">
+                                        <i class="ph ph-list-bullets text-sm"></i>
+                                        <span>List View</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Tickets Table / Cards -->
-                    <div class="artifact-card overflow-hidden shadow-sm">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs">
-                                <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
-                                    <tr>
-                                        <th class="px-5 py-3.5">Ticket No. & วันที่</th>
-                                        <th class="px-5 py-3.5">โครงการ & ลูกค้า</th>
-                                        <th class="px-5 py-3.5">เลขที่ใบเสร็จ / สัญญา</th>
-                                        <th class="px-5 py-3.5">ยอดเงิน (บาท)</th>
-                                        <th class="px-5 py-3.5">ช่องทางชำระ</th>
-                                        <th class="px-5 py-3.5 text-center">สลิป & สัญญาจ้าง</th>
-                                        <th class="px-5 py-3.5">สถานะ</th>
-                                        <th class="px-5 py-3.5 text-right">การจัดการ</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-border" id="tickets-table-body">
-                                    <!-- Populated by JS -->
-                                </tbody>
-                            </table>
+                    <!-- Section 1: Pending Ticket Queue Container -->
+                    <div id="tickets-pending-container" class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                <h3 class="font-display font-bold text-sm text-foreground">รายการโครงการที่รอออก Ticket & ชำระเงิน (Pending Tickets Queue)</h3>
+                            </div>
+                            <span class="text-xs text-muted-foreground">คลิกปุ่ม <strong class="text-emerald-600 dark:text-emerald-400 font-semibold">+ บันทึก Ticket & สลิป</strong> เพื่อแนบสลิปชำระเงินและสัญญาการทำงาน</span>
                         </div>
+                        <div id="tickets-pending-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Uploaded / Issued Tickets Library Container -->
+                    <div id="tickets-library-container" class="space-y-4 hidden-view">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                <h3 class="font-display font-bold text-sm text-foreground">คลังเอกสาร Ticket, สลิปโอนเงิน และสัญญาจ้างที่บันทึกแล้ว</h3>
+                            </div>
+                            <span class="text-xs text-muted-foreground" id="tickets-library-count-text">แสดงทั้งหมด</span>
+                        </div>
+                        <div id="tickets-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Compatibility Hidden Elements for Tickets -->
+                    <div class="hidden">
+                        <span id="tickets-stat-total">0</span>
+                        <span id="tickets-stat-verified">0</span>
+                        <span id="tickets-stat-amount">0 ฿</span>
+                        <span id="tickets-stat-pending">0</span>
+                        <select id="ticket-filter-status"><option value="all">all</option></select>
+                        <table><tbody id="tickets-table-body"></tbody></table>
                     </div>
                 </div>
 
@@ -2207,6 +2216,81 @@
                                     <!-- Populated dynamically by JS -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+
+                    <!-- Tab Switcher: Pending Conversion Jobs vs Uploaded / Converted Projects Library -->
+                    <div class="flex border-b border-border gap-6">
+                        <button type="button" id="tab-conversion-pending" onclick="app.switchConversionTab('pending')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-amber-500 text-foreground cursor-pointer">
+                            <i class="ph ph-hourglass-high text-amber-500 text-sm"></i>
+                            <span>คิวโครงการที่รอแปลงเข้า Project (Labor-to-Task)</span>
+                            <span id="tab-conversion-pending-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold">0</span>
+                        </button>
+                        <button type="button" id="tab-conversion-library" onclick="app.switchConversionTab('library')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer">
+                            <i class="ph ph-kanban text-amber-500 text-sm"></i>
+                            <span>คลังโครงการที่แปลงเข้า Gantt แล้ว (Active Projects)</span>
+                            <span id="tab-conversion-library-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Search & Filter Card -->
+                    <div class="artifact-card p-4">
+                        <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
+                            <div class="relative flex-1 w-full">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+                                <input type="text" id="conversion-search" oninput="app.filterConversion()" placeholder="ค้นหาตามรหัสงาน (JOB ID), ชื่อลูกค้า, บริการ, หรือชื่องาน Task..." class="w-full bg-card border border-border rounded-lg pl-9 pr-4 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div class="flex items-center gap-2 w-full sm:w-auto">
+                                <select id="conversion-filter-service" onchange="app.filterConversion()" class="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-amber-500">
+                                    <option value="all">ทุกประเภทบริการ</option>
+                                    <option value="Renovate ครัว">Renovate ครัว</option>
+                                    <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
+                                    <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                                    <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
+                                    <option value="ติดตั้งเครื่องปรับอากาศ">ติดตั้งเครื่องปรับอากาศ</option>
+                                    <option value="โซลาร์เซลล์">โซลาร์เซลล์</option>
+                                </select>
+
+                                <!-- Conversion View Mode Switcher: Card View vs List View -->
+                                <div class="inline-flex p-1 bg-muted/60 border border-border rounded-xl text-xs shrink-0">
+                                    <button type="button" id="btn-conversion-mode-card" onclick="app.setConversionViewMode('card')" class="px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs" title="แสดงแบบการ์ด (Card View)">
+                                        <i class="ph ph-squares-four text-amber-500 text-sm"></i>
+                                        <span>Card View</span>
+                                    </button>
+                                    <button type="button" id="btn-conversion-mode-list" onclick="app.setConversionViewMode('list')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground" title="แสดงแบบรายการ (List View)">
+                                        <i class="ph ph-list-bullets text-sm"></i>
+                                        <span>List View</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 1: Pending Conversion Queue Container -->
+                    <div id="conversion-pending-container" class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                <h3 class="font-display font-bold text-sm text-foreground">รายการโครงการที่พร้อมแปลง BOQ เข้าแผนงานโครงการ (Labor-to-Task Queue)</h3>
+                            </div>
+                            <span class="text-xs text-muted-foreground">คลิกปุ่ม <strong class="text-amber-600 dark:text-amber-400 font-semibold">⚡ บันทึก BOQ เข้า Project</strong> เพื่อแปลงรายการค่าแรงสู่แผนงาน Gantt</span>
+                        </div>
+                        <div id="conversion-pending-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Converted Projects Library Container -->
+                    <div id="conversion-library-container" class="space-y-4 hidden-view">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                <h3 class="font-display font-bold text-sm text-foreground">คลังโครงการที่แปลงเข้าแผนงาน Gantt Timeline แล้ว (Active Projects)</h3>
+                            </div>
+                            <span class="text-xs text-muted-foreground" id="conversion-library-count-text">แสดงโครงการทั้งหมด</span>
+                        </div>
+                        <div id="conversion-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Populated dynamically by JS -->
                         </div>
                     </div>
 

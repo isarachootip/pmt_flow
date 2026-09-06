@@ -6431,10 +6431,20 @@ const app = {
                 this.hideModal('modal-convert-boq-tasks');
                 this.state.selectedGanttJobId = targetJobId;
                 const sel = document.getElementById('gantt-filter-job');
-                if (sel) sel.value = targetJobId;
                 this.showToast(`⚡ แปลง BOQ เป็น Task ปฏิบัติงาน ${selectedTasks.length} รายการ และสร้างคิวจองช่าง QC ล่วงหน้า 5 วันเรียบร้อย`);
 
-                this.navigate('gantt');
+                // Prompt user to open Gantt timeline or stay in Step 5
+                setTimeout(() => {
+                    const openGantt = confirm(`⚡ แปลง BOQ เป็น ${selectedTasks.length} Tasks สำหรับโครงการ ${targetJobId} เรียบร้อยแล้ว!\n\nต้องการเปิดดูผังตารางเวลาทีมช่าง "Gantt Timeline" ทันทีเลยหรือไม่?\n\n• กด [ตกลง (OK)] เพื่อเปิดดูหน้าผัง Gantt Timeline\n• กด [ยกเลิก (Cancel)] เพื่อตรวจสอบโครงการใน Step 5 ต่อ`);
+                    if (openGantt) {
+                        this.navigate('gantt');
+                    } else {
+                        if (this.state.currentView === 'project-conversion') {
+                            this.switchConversionTab('library');
+                            this.renderProjectConversion(targetJobId);
+                        }
+                    }
+                }, 350);
             },
 
             openJobDetailBOQ(jobId) {
@@ -6454,6 +6464,60 @@ const app = {
             },
 
             // ─── STEP 4: TICKETS & RECEIPTS METHODS ─────────────────────
+            switchTicketTab(tab) {
+                this.state.ticketTab = tab;
+                const tabPending = document.getElementById('tab-ticket-pending');
+                const tabLibrary = document.getElementById('tab-ticket-library');
+                const secPending = document.getElementById('tickets-pending-container');
+                const secLibrary = document.getElementById('tickets-library-container');
+
+                if (tab === 'library') {
+                    if (tabPending) {
+                        tabPending.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer";
+                    }
+                    if (tabLibrary) {
+                        tabLibrary.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-emerald-600 text-foreground cursor-pointer";
+                    }
+                    if (secPending) secPending.classList.add('hidden-view');
+                    if (secLibrary) secLibrary.classList.remove('hidden-view');
+                } else {
+                    if (tabPending) {
+                        tabPending.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-emerald-600 text-foreground cursor-pointer";
+                    }
+                    if (tabLibrary) {
+                        tabLibrary.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer";
+                    }
+                    if (secPending) secPending.classList.remove('hidden-view');
+                    if (secLibrary) secLibrary.classList.add('hidden-view');
+                }
+            },
+
+            setTicketViewMode(mode) {
+                this.state.ticketViewMode = mode;
+                try { localStorage.setItem('pmt_ticket_view_mode', mode); } catch (e) {}
+                this.updateTicketViewModeButtons();
+                this.renderTickets();
+            },
+
+            updateTicketViewModeButtons() {
+                const mode = this.state.ticketViewMode || 'card';
+                const btnCard = document.getElementById('btn-ticket-mode-card');
+                const btnList = document.getElementById('btn-ticket-mode-list');
+                if (btnCard && btnList) {
+                    if (mode === 'card') {
+                        btnCard.className = 'px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs';
+                        btnList.className = 'px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground';
+                    } else {
+                        btnList.className = 'px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs';
+                        btnCard.className = 'px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground';
+                    }
+                }
+            },
+
+            filterTickets() {
+                this.renderTickets();
+            },
+
             renderTickets(searchQuery = '', customStatusFilter = null, customJobList = null) {
                 this.updateStep4Dashboard();
 
@@ -6468,22 +6532,28 @@ const app = {
 
                 // Render Top Standard Work Order List Table (#tickets-jobs-table-body)
                 const allJobs = DB.jobs || [];
-                const ticketJobIds = new Set((DB.tickets || []).map(t => t.job_id || t.jobId));
+                let tickets = DB.tickets || [];
+                const ticketsByJob = {};
+                tickets.forEach(t => {
+                    const jid = t.job_id || t.jobId;
+                    if (!ticketsByJob[jid]) ticketsByJob[jid] = [];
+                    ticketsByJob[jid].push(t);
+                });
+
                 let tableJobs = customJobList || allJobs;
                 if (!customJobList) {
                     if (tktServiceFilter !== 'all') {
                         tableJobs = tableJobs.filter(j => j.service === tktServiceFilter);
                     }
                     if (tktStatusFilter === 'STEP4_QUEUE') {
-                        tableJobs = tableJobs.filter(j => !ticketJobIds.has(j.id));
+                        tableJobs = tableJobs.filter(j => !(ticketsByJob[j.id] && ticketsByJob[j.id].length > 0));
                         if (tableJobs.length === 0) tableJobs = allJobs;
                     } else if (tktStatusFilter === 'NO_TICKET') {
-                        tableJobs = tableJobs.filter(j => !ticketJobIds.has(j.id));
+                        tableJobs = tableJobs.filter(j => !(ticketsByJob[j.id] && ticketsByJob[j.id].length > 0));
                     } else if (tktStatusFilter === 'HAS_TICKET') {
-                        tableJobs = tableJobs.filter(j => ticketJobIds.has(j.id));
+                        tableJobs = tableJobs.filter(j => ticketsByJob[j.id] && ticketsByJob[j.id].length > 0);
                     } else if (tktStatusFilter === 'VERIFIED') {
-                        const verifiedJobIds = new Set((DB.tickets || []).filter(t => t.status === 'VERIFIED').map(t => t.job_id || t.jobId));
-                        tableJobs = tableJobs.filter(j => verifiedJobIds.has(j.id));
+                        tableJobs = tableJobs.filter(j => (ticketsByJob[j.id] || []).some(t => t.status === 'VERIFIED'));
                     }
                 }
 
@@ -6503,7 +6573,7 @@ const app = {
                         `;
                     } else {
                         tktTableBody.innerHTML = tableJobs.map(j => {
-                            const jobTickets = (DB.tickets || []).filter(t => (t.job_id || t.jobId) === j.id);
+                            const jobTickets = ticketsByJob[j.id] || [];
                             const hasTicket = jobTickets.length > 0;
                             const stageHtml = this.renderStageWithSLA(j, 4);
 
@@ -6548,37 +6618,32 @@ const app = {
                     }
                 }
 
+                // Filters for Secondary Pending & Library Sections
                 const searchInput = document.getElementById('ticket-search');
-                const statusFilter = document.getElementById('ticket-filter-status');
-                const methodFilter = document.getElementById('ticket-filter-method');
-                const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
-                const sf = statusFilter ? statusFilter.value : 'all';
-                const mf = methodFilter ? methodFilter.value : 'all';
+                const serviceFilterEl = document.getElementById('ticket-filter-service');
+                const methodFilterEl = document.getElementById('ticket-filter-method');
+                const q = (searchQuery || (searchInput ? searchInput.value : '')).toLowerCase().trim();
+                const sFilter = serviceFilterEl ? serviceFilterEl.value : 'all';
+                const mFilter = methodFilterEl ? methodFilterEl.value : 'all';
 
-                const tickets = DB.tickets || [];
-
-                // Stats calculation
-                const totalTickets = tickets.length;
-                const verifiedTickets = tickets.filter(t => t.status === 'VERIFIED').length;
-                const pendingTickets = tickets.filter(t => t.status === 'ATTACHED').length;
-                const totalAmount = tickets.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-
-                const elTotal = document.getElementById('tickets-stat-total');
-                if (elTotal) elTotal.innerText = totalTickets;
-                const elVerified = document.getElementById('tickets-stat-verified');
-                if (elVerified) elVerified.innerText = verifiedTickets;
-                const elPending = document.getElementById('tickets-stat-pending');
-                if (elPending) elPending.innerText = pendingTickets;
-                const elAmount = document.getElementById('tickets-stat-amount');
-                if (elAmount) elAmount.innerText = totalAmount.toLocaleString('th-TH') + ' ฿';
-
-                const badgeTicketCount = document.getElementById('sidebar-ticket-count');
-                if (badgeTicketCount) badgeTicketCount.innerText = totalTickets;
-
-                // Filter
-                let filtered = tickets;
+                // 1. Calculate pending queue jobs (waiting for ticket or with tickets)
+                let pendingJobs = allJobs;
                 if (q) {
-                    filtered = filtered.filter(t => 
+                    pendingJobs = pendingJobs.filter(j => 
+                        (j.id && j.id.toLowerCase().includes(q)) ||
+                        (j.customer && j.customer.toLowerCase().includes(q)) ||
+                        (j.service && j.service.toLowerCase().includes(q)) ||
+                        (j.phone && j.phone.includes(q))
+                    );
+                }
+                if (sFilter && sFilter !== 'all') {
+                    pendingJobs = pendingJobs.filter(j => (j.service || '').includes(sFilter));
+                }
+
+                // 2. Filter issued tickets for Library tab
+                let filteredTickets = tickets;
+                if (q) {
+                    filteredTickets = filteredTickets.filter(t => 
                         (t.ticket_no && t.ticket_no.toLowerCase().includes(q)) ||
                         (t.receipt_no && t.receipt_no.toLowerCase().includes(q)) ||
                         (t.contract_no && t.contract_no.toLowerCase().includes(q)) ||
@@ -6587,123 +6652,336 @@ const app = {
                         (t.service && t.service.toLowerCase().includes(q))
                     );
                 }
-                if (sf !== 'all') {
-                    filtered = filtered.filter(t => t.status === sf);
+                if (sFilter && sFilter !== 'all') {
+                    filteredTickets = filteredTickets.filter(t => (t.service || '').includes(sFilter));
                 }
-                if (mf !== 'all') {
-                    filtered = filtered.filter(t => (t.payment_method || '').includes(mf));
+                if (mFilter && mFilter !== 'all') {
+                    filteredTickets = filteredTickets.filter(t => (t.payment_method || '').includes(mFilter));
                 }
 
-                const tbody = document.getElementById('tickets-table-body');
-                if (!tbody) return;
+                // Update tab badges & counts
+                const pendingCount = allJobs.filter(j => !(ticketsByJob[j.id] && ticketsByJob[j.id].length > 0)).length;
+                const tabPendingBadge = document.getElementById('tab-ticket-pending-badge');
+                if (tabPendingBadge) tabPendingBadge.innerText = pendingCount;
 
-                if (filtered.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="8" class="py-12 text-center text-muted-foreground">
-                                <div class="flex flex-col items-center justify-center gap-2">
-                                    <i class="ph ph-receipt text-3xl text-muted-foreground/40"></i>
-                                    <p class="text-xs font-semibold text-foreground">ไม่พบรายการ Ticket หรือใบเสร็จที่ตรงกับเงื่อนไข</p>
-                                    <p class="text-[11px] text-muted-foreground">กดปุ่ม "บันทึก Ticket & ใบเสร็จใหม่" เพื่อเพิ่มข้อมูล</p>
-                                    <button onclick="app.openCreateTicketModal()" class="mt-2 btn-artifact-primary px-3 py-1.5 rounded-lg text-xs bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
-                                        + บันทึก Ticket & ใบเสร็จ
+                const tabLibraryBadge = document.getElementById('tab-ticket-library-badge');
+                if (tabLibraryBadge) tabLibraryBadge.innerText = tickets.length;
+
+                const libCountText = document.getElementById('tickets-library-count-text');
+                if (libCountText) libCountText.innerText = `แสดงทั้งหมด ${filteredTickets.length} รายการ (จากทั้งหมด ${tickets.length})`;
+
+                // Compatibility spans
+                const verifiedCount = tickets.filter(t => t.status === 'VERIFIED').length;
+                const totalAmount = tickets.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+                const elTotal = document.getElementById('tickets-stat-total');
+                if (elTotal) elTotal.innerText = tickets.length;
+                const elVerified = document.getElementById('tickets-stat-verified');
+                if (elVerified) elVerified.innerText = verifiedCount;
+                const elAmount = document.getElementById('tickets-stat-amount');
+                if (elAmount) elAmount.innerText = totalAmount.toLocaleString('th-TH') + ' ฿';
+                const elPending = document.getElementById('tickets-stat-pending');
+                if (elPending) elPending.innerText = pendingCount;
+                const badgeTicketCount = document.getElementById('sidebar-ticket-count');
+                if (badgeTicketCount) badgeTicketCount.innerText = tickets.length;
+
+                this.updateTicketViewModeButtons();
+                const isList = (this.state.ticketViewMode === 'list');
+
+                // 3. Render Pending Ticket Queue Container (#tickets-pending-list)
+                const pendingContainer = document.getElementById('tickets-pending-list');
+                if (pendingContainer) {
+                    if (isList) {
+                        pendingContainer.className = "w-full overflow-hidden";
+                    } else {
+                        pendingContainer.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
+                    }
+
+                    if (pendingJobs.length === 0) {
+                        pendingContainer.innerHTML = `
+                            <div class="col-span-full artifact-card p-10 text-center text-muted-foreground border border-dashed border-border">
+                                <i class="ph ph-receipt text-4xl mb-2 text-muted-foreground/50"></i>
+                                <h4 class="font-display font-medium text-foreground text-sm">ไม่พบโครงการที่ตรงกับเงื่อนไขการค้นหา</h4>
+                                <p class="text-xs text-muted-foreground mt-1">ลองเปลี่ยนคำค้นหา หรือเลือกตัวกรองประเภทบริการอื่น</p>
+                            </div>
+                        `;
+                    } else if (isList) {
+                        pendingContainer.innerHTML = `
+                            <div class="overflow-x-auto rounded-2xl border border-border bg-card shadow-xs">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="border-b border-border bg-muted/40 text-muted-foreground font-semibold text-[11px]">
+                                            <th class="py-3 px-4 font-mono">JOB ID</th>
+                                            <th class="py-3 px-4">วันที่รับ Order</th>
+                                            <th class="py-3 px-4">ลูกค้า</th>
+                                            <th class="py-3 px-4">บริการ / งานติดตั้ง</th>
+                                            <th class="py-3 px-4">ยอดเงิน BOQ / สัญญา</th>
+                                            <th class="py-3 px-4">สถานะ Ticket</th>
+                                            <th class="py-3 px-4 text-center">บันทึก Ticket & สลิป</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-border">
+                                        ${pendingJobs.map(job => {
+                                            const jobTkts = ticketsByJob[job.id] || [];
+                                            const hasTkt = jobTkts.length > 0;
+                                            const grandTotal = job.boq_grand_total || (job.boq_items ? job.boq_items.reduce((s, it) => s + ((Number(it.qty) || 1) * (Number(it.price) || 0)), 0) : 25000);
+                                            return `
+                                            <tr class="hover:bg-muted/30 transition">
+                                                <td class="py-3 px-4 font-mono font-bold text-foreground">
+                                                    <button type="button" onclick="app.openCreateTicketModal('${job.id}')" class="bg-muted hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-600 hover:border-emerald-500 px-2 py-0.5 rounded border border-border cursor-pointer transition font-mono font-bold text-xs" title="คลิกเพื่อออก Ticket">
+                                                        ${job.id}
+                                                    </button>
+                                                </td>
+                                                <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${job.date || '-'}</td>
+                                                <td class="py-3 px-4 font-medium text-foreground">${job.customer}</td>
+                                                <td class="py-3 px-4">
+                                                    <div class="font-semibold text-brand-600 dark:text-brand-400 truncate max-w-[200px]" title="${job.service}">
+                                                        ${job.service}
+                                                    </div>
+                                                </td>
+                                                <td class="py-3 px-4 font-mono font-bold text-foreground">
+                                                    ${grandTotal.toLocaleString('th-TH')} ฿
+                                                </td>
+                                                <td class="py-3 px-4">
+                                                    ${hasTkt ? `
+                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                                            <i class="ph ph-check-circle"></i> ออก Ticket แล้ว (${jobTkts.length})
+                                                        </span>
+                                                    ` : `
+                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                                            <i class="ph ph-hourglass-high"></i> รอออก Ticket & สลิป
+                                                        </span>
+                                                    `}
+                                                </td>
+                                                <td class="py-3 px-4 text-center whitespace-nowrap">
+                                                    <div class="flex items-center justify-center gap-2">
+                                                        ${hasTkt ? `
+                                                        <button type="button" onclick="app.proceedJobToConversion('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ไป Step 5 แปลง BOQ เข้า Project">
+                                                            <i class="ph ph-lightning"></i>
+                                                            <span>ไป Step 5 ➔</span>
+                                                        </button>
+                                                        ` : ''}
+                                                        <button type="button" onclick="app.openCreateTicketModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="บันทึก Ticket & แนบสลิป">
+                                                            <i class="ph ph-plus-circle font-bold text-sm"></i>
+                                                            <span>${hasTkt ? '+ ออก Ticket เพิ่ม' : '+ บันทึก Ticket & สลิป'}</span>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    } else {
+                        pendingContainer.innerHTML = pendingJobs.map(job => {
+                            const jobTkts = ticketsByJob[job.id] || [];
+                            const hasTkt = jobTkts.length > 0;
+                            const grandTotal = job.boq_grand_total || (job.boq_items ? job.boq_items.reduce((s, it) => s + ((Number(it.qty) || 1) * (Number(it.price) || 0)), 0) : 25000);
+                            return `
+                            <div class="artifact-card p-5 rounded-2xl border ${hasTkt ? 'border-emerald-500/30 bg-card' : 'border-border bg-card'} hover:border-emerald-500/60 transition duration-200 space-y-3.5 group shadow-xs">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="flex items-start gap-3 min-w-0">
+                                        <div class="w-10 h-10 rounded-xl ${hasTkt ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'} flex items-center justify-center shrink-0">
+                                            <i class="ph ${hasTkt ? 'ph-check-circle' : 'ph-ticket'} text-xl"></i>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2">
+                                                <button type="button" onclick="app.openCreateTicketModal('${job.id}')" class="font-mono font-bold text-xs text-foreground group-hover:text-emerald-600 transition">
+                                                    ${job.id}
+                                                </button>
+                                                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${job.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' : 'bg-indigo-500/10 text-indigo-600 border border-indigo-500/20'}">${job.job_type || 'quick'}</span>
+                                            </div>
+                                            <h4 class="font-semibold text-foreground text-xs truncate mt-0.5" title="${job.customer}">${job.customer}</h4>
+                                        </div>
+                                    </div>
+                                    <div class="text-right shrink-0">
+                                        <div class="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">${grandTotal.toLocaleString('th-TH')} ฿</div>
+                                        <div class="text-[10px] text-muted-foreground font-mono">ยอดชำระตาม BOQ</div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-muted/40 p-2.5 rounded-xl text-xs space-y-1 border border-border/50">
+                                    <div class="flex items-center justify-between text-[11px]">
+                                        <span class="text-muted-foreground flex items-center gap-1"><i class="ph ph-wrench"></i> ${job.service}</span>
+                                        <span class="font-mono text-muted-foreground">${job.date || '-'}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-[11px] pt-1 border-t border-border/40">
+                                        <span class="text-muted-foreground">ช่าง: <strong class="text-foreground">${job.tech || 'ยังไม่ระบุ'}</strong></span>
+                                        <span class="font-bold text-[10px] ${hasTkt ? 'text-emerald-600' : 'text-amber-600'}">
+                                            ${hasTkt ? `✓ ออกแล้ว ${jobTkts.length} ใบ` : '⏳ รอออก Ticket'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-end gap-2 pt-1">
+                                    ${hasTkt ? `
+                                    <button type="button" onclick="app.proceedJobToConversion('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs transition hover:scale-102" title="ไป Step 5 แปลง BOQ เข้า Project">
+                                        <i class="ph ph-lightning"></i>
+                                        <span>ไป Step 5 ➔</span>
+                                    </button>
+                                    ` : ''}
+                                    <button type="button" onclick="app.openCreateTicketModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="บันทึก Ticket & แนบสลิป">
+                                        <i class="ph ph-plus-circle font-bold text-sm"></i>
+                                        <span>${hasTkt ? '+ เพิ่ม Ticket' : '+ บันทึก Ticket & สลิป'}</span>
                                     </button>
                                 </div>
-                            </td>
-                        </tr>
-                    `;
-                    return;
+                            </div>
+                            `;
+                        }).join('');
+                    }
                 }
 
-                tbody.innerHTML = filtered.map(t => {
-                    const job = (DB.jobs || []).find(j => j.id === t.job_id);
-                    const customerDisplay = t.customer_name || (job ? job.customer : 'ลูกค้าโครงการ');
-                    const serviceDisplay = t.service || (job ? job.service : 'งานบริการ');
-                    const amt = Number(t.amount) || 0;
-                    const isVerified = t.status === 'VERIFIED';
-                    const statusBadge = isVerified 
-                        ? '<span class="status-pill font-mono text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">✓ ตรวจสอบแล้ว</span>'
-                        : '<span class="status-pill font-mono text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">⏳ แนบใบเสร็จแล้ว</span>';
+                // 4. Render Issued Tickets Library Container (#tickets-list-container)
+                const listContainer = document.getElementById('tickets-list-container');
+                if (listContainer) {
+                    if (isList) {
+                        listContainer.className = "w-full overflow-hidden";
+                    } else {
+                        listContainer.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+                    }
 
-                    // Slip thumbnail
-                    const slipThumb = t.slip_url ? `
-                        <div class="inline-block relative group cursor-pointer" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')" title="คลิกดูสลิปใบเสร็จ">
-                            <img src="${t.slip_url}" alt="Slip" class="w-10 h-9 object-cover rounded-lg border border-border group-hover:border-emerald-500 transition shadow-xs">
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 rounded-lg flex items-center justify-center transition">
-                                <i class="ph ph-receipt text-white text-xs"></i>
+                    if (filteredTickets.length === 0) {
+                        listContainer.innerHTML = `
+                            <div class="col-span-full artifact-card p-10 text-center text-muted-foreground border border-dashed border-border">
+                                <i class="ph ph-receipt text-4xl mb-2 text-muted-foreground/50"></i>
+                                <h4 class="font-display font-medium text-foreground text-sm">ไม่พบรายการ Ticket ในคลังเอกสาร</h4>
+                                <p class="text-xs text-muted-foreground mt-1">กดปุ่ม "+ บันทึก Ticket & สลิปใหม่" เพื่อเพิ่มข้อมูล</p>
                             </div>
-                        </div>
-                    ` : '<span class="text-[10px] text-muted-foreground">-</span>';
+                        `;
+                    } else if (isList) {
+                        listContainer.innerHTML = `
+                            <div class="overflow-x-auto rounded-2xl border border-border bg-card shadow-xs">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="border-b border-border bg-muted/40 text-muted-foreground font-semibold text-[11px]">
+                                            <th class="py-3 px-4 font-mono">Ticket No.</th>
+                                            <th class="py-3 px-4 font-mono">JOB ID</th>
+                                            <th class="py-3 px-4">ลูกค้า</th>
+                                            <th class="py-3 px-4">ใบเสร็จ / สัญญา</th>
+                                            <th class="py-3 px-4">ยอดเงิน</th>
+                                            <th class="py-3 px-4">ช่องทางชำระ</th>
+                                            <th class="py-3 px-4 text-center">สลิป</th>
+                                            <th class="py-3 px-4">สถานะ</th>
+                                            <th class="py-3 px-4 text-right">การจัดการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-border">
+                                        ${filteredTickets.map(t => {
+                                            const job = allJobs.find(j => j.id === t.job_id);
+                                            const cust = t.customer_name || (job ? job.customer : 'ลูกค้า');
+                                            const amt = Number(t.amount) || 0;
+                                            return `
+                                            <tr class="hover:bg-muted/30 transition">
+                                                <td class="py-3 px-4 font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                                    <button type="button" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')" class="hover:underline cursor-pointer">
+                                                        ${t.ticket_no}
+                                                    </button>
+                                                </td>
+                                                <td class="py-3 px-4 font-mono font-bold text-foreground">${t.job_id}</td>
+                                                <td class="py-3 px-4 font-medium text-foreground">${cust}</td>
+                                                <td class="py-3 px-4 text-muted-foreground">
+                                                    <div class="font-mono text-foreground">${t.receipt_no || '-'}</div>
+                                                    <div class="text-[10px] text-brand-600 font-mono">${t.contract_no || ''}</div>
+                                                </td>
+                                                <td class="py-3 px-4 font-mono font-bold text-foreground">
+                                                    ${amt.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿
+                                                </td>
+                                                <td class="py-3 px-4 text-muted-foreground">${t.payment_method || 'โอนเงิน'}</td>
+                                                <td class="py-3 px-4 text-center">
+                                                    ${t.slip_url ? `
+                                                        <img src="${t.slip_url}" alt="Slip" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')" class="w-9 h-8 object-cover rounded-lg border border-border inline-block cursor-pointer hover:scale-105 transition shadow-2xs">
+                                                    ` : '<span class="text-muted-foreground">-</span>'}
+                                                </td>
+                                                <td class="py-3 px-4">
+                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${t.status === 'VERIFIED' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30'}">
+                                                        ${t.status === 'VERIFIED' ? '✓ ตรวจสอบแล้ว' : '⏳ แนบสลิปแล้ว'}
+                                                    </span>
+                                                </td>
+                                                <td class="py-3 px-4 text-right whitespace-nowrap">
+                                                    <div class="flex items-center justify-end gap-1.5">
+                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')" title="ดูสลิปใบเสร็จ">
+                                                            <i class="ph ph-eye"></i> <span>ดูสลิป</span>
+                                                        </button>
+                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-amber-500 hover:bg-amber-600 text-white shadow-xs" onclick="app.proceedJobToConversion('${t.job_id}')" title="ส่งต่อแปลงเข้า Project (Step 5)">
+                                                            <i class="ph ph-lightning"></i> <span>Step 5 ➔</span>
+                                                        </button>
+                                                        <button class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer text-rose-500 hover:bg-rose-500/10 transition" title="ลบ Ticket" onclick="app.deleteTicket('${t.id}')">
+                                                            <i class="ph ph-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    } else {
+                        listContainer.innerHTML = filteredTickets.map(t => {
+                            const job = allJobs.find(j => j.id === t.job_id);
+                            const cust = t.customer_name || (job ? job.customer : 'ลูกค้า');
+                            const amt = Number(t.amount) || 0;
+                            return `
+                            <div class="artifact-card p-5 rounded-2xl space-y-4 border border-border hover:border-emerald-500/40 transition group shadow-xs">
+                                <!-- Card Top: Slip Preview & Badges -->
+                                <div class="aspect-video bg-muted/60 rounded-xl overflow-hidden relative border border-border group-hover:border-emerald-500/30 transition cursor-pointer" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')" title="คลิกขยายดูสลิปใบเสร็จ">
+                                    <img src="${t.slip_url || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80'}" alt="${t.ticket_no}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                    <div class="absolute top-3 right-3 flex items-center gap-1.5">
+                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${t.status === 'VERIFIED' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-amber-500 text-white shadow-sm'}">${t.status === 'VERIFIED' ? '✓ ตรวจสอบแล้ว' : '⏳ แนบสลิปแล้ว'}</span>
+                                    </div>
+                                    <div class="absolute top-3 left-3 flex items-center gap-1.5">
+                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-black/60 backdrop-blur-xs text-white">${t.ticket_no}</span>
+                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-600/90 backdrop-blur-xs text-white">${t.job_id}</span>
+                                    </div>
+                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                                        <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white" onclick="event.stopPropagation(); app.openTicketSlipLightbox('${t.id}', 'slip')">
+                                            <i class="ph ph-magnifying-glass-plus"></i> ดูสลิปเต็มตา
+                                        </button>
+                                    </div>
+                                </div>
 
-                    // Contract badge/thumb
-                    const contractDisplay = t.contract_url ? `
-                        <div class="inline-block relative group cursor-pointer" onclick="app.openTicketSlipLightbox('${t.id}', 'contract')" title="คลิกดูเอกสารสัญญาการทำงาน">
-                            <div class="px-2 py-1 bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/30 rounded-lg flex items-center gap-1 group-hover:bg-brand-500/20 transition">
-                                <i class="ph ph-file-text text-xs"></i>
-                                <span class="text-[10px] font-semibold">สัญญา</span>
-                            </div>
-                        </div>
-                    ` : `
-                        <button type="button" onclick="app.openQuickAttachModal('${t.id}')" class="text-[10px] px-2 py-0.5 rounded-lg border border-dashed border-brand-500/40 text-brand-600 dark:text-brand-400 hover:bg-brand-500/10 transition cursor-pointer">
-                            + แนบสัญญา
-                        </button>
-                    `;
+                                <!-- Card Info -->
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <h4 class="font-display font-bold text-sm text-foreground truncate" title="${cust}">${cust}</h4>
+                                        <span class="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 shrink-0">${amt.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</span>
+                                    </div>
+                                    <div class="text-xs text-muted-foreground flex items-center justify-between">
+                                        <span>ใบเสร็จ: <strong class="font-mono text-foreground">${t.receipt_no || '-'}</strong></span>
+                                        <span class="px-2 py-0.5 rounded bg-muted font-mono text-[10px]">${t.payment_method || 'โอนเงิน'}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/50">
+                                        <span class="truncate max-w-[180px]">${t.service || (job ? job.service : 'งานบริการ')}</span>
+                                        <span class="font-mono">${t.payment_date || '-'}</span>
+                                    </div>
+                                </div>
 
-                    return `
-                    <tr class="hover:bg-muted/30 transition">
-                        <td class="px-5 py-3.5">
-                            <div class="font-mono font-bold text-foreground text-xs hover:text-emerald-600 cursor-pointer" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')">${t.ticket_no}</div>
-                            <div class="text-[10px] text-muted-foreground font-mono mt-0.5">${t.payment_date || '-'}</div>
-                        </td>
-                        <td class="px-5 py-3.5">
-                            <div class="flex items-center gap-1.5">
-                                <span class="cursor-pointer font-mono font-bold text-emerald-600 dark:text-emerald-400 hover:underline" onclick="app.navigate('job-detail', '${t.job_id}')">${t.job_id}</span>
+                                <!-- Card Actions -->
+                                <div class="flex items-center justify-between pt-2 border-t border-border gap-2">
+                                    <div class="flex items-center gap-1">
+                                        <button class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:border-emerald-500 hover:text-emerald-600 transition" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')" title="ดูสลิปและสัญญาจ้าง">
+                                            <i class="ph ph-receipt"></i> <span>สลิป</span>
+                                        </button>
+                                        <button class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:border-brand-500 hover:text-brand-600 transition" onclick="app.openTicketSlipLightbox('${t.id}', 'contract')" title="ดูสัญญาการทำงาน">
+                                            <i class="ph ph-file-text"></i> <span>สัญญา</span>
+                                        </button>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <button class="btn-artifact-primary px-3 py-1 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition hover:scale-102" onclick="app.proceedJobToConversion('${t.job_id}')" title="ส่งต่อแปลงเข้า Project (Step 5)">
+                                            <span>Step 5 ➔</span>
+                                        </button>
+                                        <button class="p-1.5 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition cursor-pointer" onclick="app.deleteTicket('${t.id}')" title="ลบ Ticket">
+                                            <i class="ph ph-trash text-sm"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="font-medium text-foreground text-xs truncate max-w-[200px]" title="${customerDisplay}">${customerDisplay}</div>
-                            <div class="text-[10px] text-muted-foreground truncate max-w-[200px]">${serviceDisplay}</div>
-                        </td>
-                        <td class="px-5 py-3.5">
-                            <div class="font-mono text-foreground font-medium text-xs">${t.receipt_no || '-'}</div>
-                            <div class="text-[10px] font-mono text-brand-600 dark:text-brand-400 mt-0.5 flex items-center gap-1">
-                                <i class="ph ph-file-text text-[11px]"></i>
-                                <span>${t.contract_no || 'ยังไม่ได้ระบุ'}</span>
-                            </div>
-                        </td>
-                        <td class="px-5 py-3.5 font-mono font-bold text-foreground">
-                            ${amt.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿
-                        </td>
-                        <td class="px-5 py-3.5 text-[11px] text-muted-foreground">
-                            <div class="font-medium text-foreground truncate max-w-[140px]">${t.payment_method || 'โอนเงิน'}</div>
-                            <div class="text-[10px] text-muted-foreground truncate max-w-[140px]">${t.notes || ''}</div>
-                        </td>
-                        <td class="px-5 py-3.5 text-center">
-                            <div class="flex items-center justify-center gap-2">
-                                ${slipThumb}
-                                ${contractDisplay}
-                            </div>
-                        </td>
-                        <td class="px-5 py-3.5">
-                            ${statusBadge}
-                        </td>
-                        <td class="px-5 py-3.5 text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <button type="button" onclick="app.openBOQForJob('${t.job_id}')" class="btn-artifact-primary px-2.5 py-1 rounded-lg text-[11px] bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1 cursor-pointer font-medium shadow-xs" title="ไปจัดทำ BOQ (Step 3) สำหรับงานนี้">
-                                    <span>BOQ</span> <i class="ph ph-arrow-right"></i>
-                                </button>
-                                <button type="button" onclick="app.openTicketSlipLightbox('${t.id}')" class="p-1.5 rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-muted transition cursor-pointer" title="ดูสลิปและสัญญาจ้าง">
-                                    <i class="ph ph-eye text-base"></i>
-                                </button>
-                                <button type="button" onclick="app.openQuickAttachModal('${t.id}')" class="p-1.5 rounded-lg text-muted-foreground hover:text-brand-500 hover:bg-muted transition cursor-pointer" title="อัปโหลด/แก้ไขเอกสารแนบ">
-                                    <i class="ph ph-paperclip text-base"></i>
-                                </button>
-                                <button type="button" onclick="app.deleteTicket('${t.id}')" class="p-1.5 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-muted transition cursor-pointer" title="ลบ Ticket">
-                                    <i class="ph ph-trash text-base"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    `;
-                }).join('');
+                            `;
+                        }).join('');
+                    }
+                }
             },
 
             openCreateTicketModal(jobId = null) {
@@ -6876,12 +7154,36 @@ const app = {
                 DB.tickets.unshift(newTicket);
                 this.persistTickets();
 
+                if (job) {
+                    job.ticket_id = newTicket.id;
+                    job.receipt_no = receiptNo;
+                    job.ticket_amount = amount;
+                    job.ticket_count = (DB.tickets.filter(t => (t.job_id || t.jobId) === jobId)).length;
+                    if (job.status === 'IN_PROGRESS' || job.status === 'Draft' || job.status === 'DRAFT') {
+                        job.progress = Math.max(job.progress || 0, 75);
+                    }
+                    this.persistJobs();
+                }
+
                 // Step 4 Timestamp Recording
                 this.recordStepTimestamp(jobId, 'step4_ticket_at', newTicket.created_at, `บันทึก Ticket ${ticketNo} ใบเสร็จ ${receiptNo || '-'} สัญญา ${contractNo || '-'}`);
                 this.recordStepTimestamp(jobId, 'step3_ticket_at', newTicket.created_at, `บันทึก Ticket ${ticketNo} ใบเสร็จ ${receiptNo || '-'} สัญญา ${contractNo || '-'}`);
                 this.hideModal('modal-create-ticket');
-                this.renderTickets();
+                if (this.state.currentView === 'tickets') {
+                    this.switchTicketTab('library');
+                    this.renderTickets();
+                } else {
+                    this.renderTickets();
+                }
                 this.showToast(`✅ บันทึก Ticket ${ticketNo}, ใบเสร็จ และแนบสัญญาการทำงานเรียบร้อย`);
+
+                // Prompt user to proceed to Step 5: Project Conversion (Gantt)
+                setTimeout(() => {
+                    const goToStep5 = confirm(`✅ บันทึก Ticket "${ticketNo}" และแนบสลิปใบเสร็จ สำหรับ ${jobId} เรียบร้อยแล้ว!\n\nต้องการไปที่ "Step 5: บันทึก BOQ เข้า Project" เพื่อแปลงงานเข้าตาราง Gantt Timeline ต่อทันทีเลยหรือไม่?\n\n• กด [ตกลง (OK)] เพื่อไปหน้า Step 5 (บันทึก BOQ เข้า Project)\n• กด [ยกเลิก (Cancel)] เพื่อออก Ticket งานอื่นต่อ`);
+                    if (goToStep5) {
+                        this.proceedJobToConversion(jobId);
+                    }
+                }, 350);
             },
 
             openTicketSlipLightbox(ticketId, defaultTab = 'slip') {
@@ -7947,6 +8249,60 @@ const app = {
             },
 
             // ─── STEP 5: PROJECT CONVERSION & GANTT METHODS ─────────────
+            switchConversionTab(tab) {
+                this.state.conversionTab = tab;
+                const tabPending = document.getElementById('tab-conversion-pending');
+                const tabLibrary = document.getElementById('tab-conversion-library');
+                const secPending = document.getElementById('conversion-pending-container');
+                const secLibrary = document.getElementById('conversion-library-container');
+
+                if (tab === 'library') {
+                    if (tabPending) {
+                        tabPending.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer";
+                    }
+                    if (tabLibrary) {
+                        tabLibrary.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-amber-500 text-foreground cursor-pointer";
+                    }
+                    if (secPending) secPending.classList.add('hidden-view');
+                    if (secLibrary) secLibrary.classList.remove('hidden-view');
+                } else {
+                    if (tabPending) {
+                        tabPending.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-amber-500 text-foreground cursor-pointer";
+                    }
+                    if (tabLibrary) {
+                        tabLibrary.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer";
+                    }
+                    if (secPending) secPending.classList.remove('hidden-view');
+                    if (secLibrary) secLibrary.classList.add('hidden-view');
+                }
+            },
+
+            setConversionViewMode(mode) {
+                this.state.conversionViewMode = mode;
+                try { localStorage.setItem('pmt_conversion_view_mode', mode); } catch (e) {}
+                this.updateConversionViewModeButtons();
+                this.renderProjectConversion();
+            },
+
+            updateConversionViewModeButtons() {
+                const mode = this.state.conversionViewMode || 'card';
+                const btnCard = document.getElementById('btn-conversion-mode-card');
+                const btnList = document.getElementById('btn-conversion-mode-list');
+                if (btnCard && btnList) {
+                    if (mode === 'card') {
+                        btnCard.className = 'px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs';
+                        btnList.className = 'px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground';
+                    } else {
+                        btnList.className = 'px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs';
+                        btnCard.className = 'px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground';
+                    }
+                }
+            },
+
+            filterConversion() {
+                this.renderProjectConversion();
+            },
+
             renderProjectConversion(jobId = null, customJobList = null) {
                 this.updateStep5Dashboard();
 
@@ -7960,7 +8316,8 @@ const app = {
                 }
 
                 const allJobs = DB.jobs || [];
-                const convertedJobIds = new Set((DB.tasks || []).map(t => t.jobId));
+                const allTasks = DB.tasks || [];
+                const convertedJobIds = new Set(allTasks.map(t => t.jobId));
                 let tableJobs = customJobList || allJobs;
                 if (!customJobList) {
                     if (convServiceFilter !== 'all') {
@@ -8038,6 +8395,343 @@ const app = {
                     }
                 }
 
+                // ── Secondary Section: Tabs, Search, Pending Queue & Converted Library ──
+                const isLabor = (name) => {
+                    if (!name) return false;
+                    const n = name.toLowerCase();
+                    return n.includes('ติดตั้ง') || n.includes('รื้อถอน') || n.includes('เดินท่อ') || 
+                           n.includes('ทาสี') || n.includes('ปู') || n.includes('ฉาบ') || 
+                           n.includes('ประกอบ') || n.includes('ซ่อม') || n.includes('บริการ') ||
+                           n.includes('งาน') || n.includes('แรง') || n.includes('ล้าง');
+                };
+
+                // Badge counters (unfiltered total counts)
+                const totalPendingCount = allJobs.filter(j => !convertedJobIds.has(j.id)).length;
+                const totalConvertedCount = allJobs.filter(j => convertedJobIds.has(j.id)).length;
+                const badgePending = document.getElementById('tab-conversion-pending-badge');
+                const badgeLibrary = document.getElementById('tab-conversion-library-badge');
+                if (badgePending) badgePending.innerText = totalPendingCount;
+                if (badgeLibrary) badgeLibrary.innerText = totalConvertedCount;
+
+                // Search & Filter values for Secondary tabs
+                const searchInput = document.getElementById('conversion-search');
+                const serviceFilterEl = document.getElementById('conversion-filter-service');
+                const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
+                const sFilter = serviceFilterEl ? serviceFilterEl.value : 'all';
+
+                let pendingJobs = allJobs.filter(j => !convertedJobIds.has(j.id));
+                let convertedJobs = allJobs.filter(j => convertedJobIds.has(j.id));
+
+                if (q) {
+                    pendingJobs = pendingJobs.filter(j => 
+                        (j.id && j.id.toLowerCase().includes(q)) ||
+                        (j.customer && j.customer.toLowerCase().includes(q)) ||
+                        (j.service && j.service.toLowerCase().includes(q)) ||
+                        (j.phone && j.phone.includes(q))
+                    );
+                    convertedJobs = convertedJobs.filter(j => 
+                        (j.id && j.id.toLowerCase().includes(q)) ||
+                        (j.customer && j.customer.toLowerCase().includes(q)) ||
+                        (j.service && j.service.toLowerCase().includes(q)) ||
+                        (j.phone && j.phone.includes(q))
+                    );
+                }
+                if (sFilter && sFilter !== 'all') {
+                    pendingJobs = pendingJobs.filter(j => (j.service || '').includes(sFilter));
+                    convertedJobs = convertedJobs.filter(j => (j.service || '').includes(sFilter));
+                }
+
+                this.updateConversionViewModeButtons();
+                const isList = (this.state.conversionViewMode === 'list');
+
+                // 1. Render Pending Conversion Queue Container (#conversion-pending-list)
+                const pendingContainer = document.getElementById('conversion-pending-list');
+                if (pendingContainer) {
+                    if (isList) {
+                        pendingContainer.className = "w-full overflow-hidden";
+                    } else {
+                        pendingContainer.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
+                    }
+
+                    if (pendingJobs.length === 0) {
+                        pendingContainer.innerHTML = `
+                            <div class="col-span-full artifact-card p-10 text-center text-muted-foreground border border-dashed border-border">
+                                <i class="ph ph-check-circle text-4xl mb-2 text-emerald-500/60"></i>
+                                <h4 class="font-display font-medium text-foreground text-sm">ไม่มีโครงการรอแปลงเข้า Project ในขณะนี้</h4>
+                                <p class="text-xs text-muted-foreground mt-1">โครงการทั้งหมดถูกแปลงเข้าสู่แผนงาน Gantt Timeline เรียบร้อยแล้ว</p>
+                            </div>
+                        `;
+                    } else if (isList) {
+                        pendingContainer.innerHTML = `
+                            <div class="w-full overflow-x-auto border border-border rounded-xl bg-card">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="border-b border-border bg-muted/50 text-muted-foreground font-semibold">
+                                            <th class="py-3 px-4">JOB ID</th>
+                                            <th class="py-3 px-4">วันที่</th>
+                                            <th class="py-3 px-4">ลูกค้า</th>
+                                            <th class="py-3 px-4">บริการ</th>
+                                            <th class="py-3 px-4">รายการค่าแรง (Labor)</th>
+                                            <th class="py-3 px-4">ช่างผู้รับผิดชอบ</th>
+                                            <th class="py-3 px-4">สถานะ</th>
+                                            <th class="py-3 px-4 text-center">การกระทำ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-border">
+                                        ${pendingJobs.map(j => {
+                                            const bItems = j.boq_items || [];
+                                            const lItems = bItems.filter(it => isLabor(it.name));
+                                            const mCount = Math.max(0, bItems.length - lItems.length);
+                                            return `
+                                            <tr class="hover:bg-muted/30 transition">
+                                                <td class="py-3 px-4 font-mono font-bold text-foreground">
+                                                    <button type="button" onclick="app.openConvertBOQToTasksModal('${j.id}')" class="bg-muted hover:bg-amber-50 dark:hover:bg-amber-950/50 hover:text-amber-600 hover:border-amber-500 px-2 py-0.5 rounded border border-border cursor-pointer transition font-mono font-bold text-xs" title="คลิกเพื่อแปลงเข้า Project">
+                                                        ${j.id}
+                                                    </button>
+                                                </td>
+                                                <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${j.date || '-'}</td>
+                                                <td class="py-3 px-4 font-medium text-foreground">${j.customer}</td>
+                                                <td class="py-3 px-4">
+                                                    <div class="font-semibold text-brand-600 dark:text-brand-400 truncate max-w-[200px]" title="${j.service}">
+                                                        ${j.service}
+                                                    </div>
+                                                </td>
+                                                <td class="py-3 px-4">
+                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20 font-mono">
+                                                        ⚡ ค่าแรง ${lItems.length} รายการ ${mCount > 0 ? `<span class="text-[10px] text-muted-foreground font-normal">(${mCount} วัสดุ)</span>` : ''}
+                                                    </span>
+                                                </td>
+                                                <td class="py-3 px-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
+                                                <td class="py-3 px-4">
+                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                                        <i class="ph ph-hourglass-high"></i> รอแปลงเข้า Project
+                                                    </span>
+                                                </td>
+                                                <td class="py-3 px-4 text-center whitespace-nowrap">
+                                                    <div class="flex items-center justify-center gap-2">
+                                                        <button type="button" onclick="app.openJobDetailBOQ('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1 cursor-pointer hover:border-amber-500 hover:text-amber-600 transition" title="ดูรายละเอียด BOQ">
+                                                            <i class="ph ph-receipt"></i> <span>ดู BOQ</span>
+                                                        </button>
+                                                        <button type="button" onclick="app.openConvertBOQToTasksModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="แปลง BOQ เข้า Project">
+                                                            <i class="ph ph-lightning text-xs"></i>
+                                                            <span>⚡ บันทึก BOQ เข้า Project</span>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    } else {
+                        pendingContainer.innerHTML = pendingJobs.map(j => {
+                            const bItems = j.boq_items || [];
+                            const lItems = bItems.filter(it => isLabor(it.name));
+                            const mCount = Math.max(0, bItems.length - lItems.length);
+                            const grandTotal = j.boq_grand_total || (bItems.reduce((s, it) => s + ((Number(it.qty) || 1) * (Number(it.price) || 0)), 0)) || 25000;
+                            return `
+                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-amber-500/60 bg-card transition duration-200 space-y-3.5 group shadow-xs">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="flex items-start gap-3 min-w-0">
+                                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                                            <i class="ph ph-hourglass text-xl"></i>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2">
+                                                <button type="button" onclick="app.openConvertBOQToTasksModal('${j.id}')" class="font-mono font-bold text-xs text-foreground group-hover:text-amber-600 transition">
+                                                    ${j.id}
+                                                </button>
+                                                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' : 'bg-indigo-500/10 text-indigo-600 border border-indigo-500/20'}">${j.job_type || 'quick'}</span>
+                                            </div>
+                                            <h4 class="font-semibold text-foreground text-xs truncate mt-0.5" title="${j.customer}">${j.customer}</h4>
+                                        </div>
+                                    </div>
+                                    <div class="text-right shrink-0">
+                                        <div class="text-xs font-mono font-bold text-amber-600 dark:text-amber-400">${grandTotal.toLocaleString('th-TH')} ฿</div>
+                                        <div class="text-[10px] text-muted-foreground font-mono">ยอด BOQ รวม</div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-muted/40 p-2.5 rounded-xl text-xs space-y-1 border border-border/50">
+                                    <div class="flex items-center justify-between text-[11px]">
+                                        <span class="text-muted-foreground flex items-center gap-1"><i class="ph ph-wrench"></i> ${j.service}</span>
+                                        <span class="font-mono text-muted-foreground">${j.date || '-'}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-[11px] pt-1 border-t border-border/40">
+                                        <span class="text-muted-foreground">ช่าง: <strong class="text-foreground">${j.tech || 'ยังไม่ระบุ'}</strong></span>
+                                        <span class="font-bold text-[10px] text-amber-600 dark:text-amber-400">
+                                            ${lItems.length > 0 ? `⚡ มีค่าแรง ${lItems.length} รายการ` : '📋 ไม่มี BOQ (ใช้เทมเพลต)'}
+                                        </span>
+                                    </div>
+                                    ${mCount > 0 ? `
+                                    <div class="text-[10px] text-muted-foreground flex items-center gap-1">
+                                        <i class="ph ph-funnel"></i> กรองวัสดุออกอัตโนมัติ ${mCount} รายการ
+                                    </div>
+                                    ` : ''}
+                                </div>
+
+                                <div class="flex items-center justify-between gap-2 pt-1 border-t border-border/50">
+                                    <button type="button" onclick="app.openJobDetailBOQ('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1 cursor-pointer hover:border-amber-500 hover:text-amber-600 transition" title="ดูรายละเอียด BOQ (Step 3)">
+                                        <i class="ph ph-receipt"></i> <span>ดู BOQ</span>
+                                    </button>
+                                    <button type="button" onclick="app.openConvertBOQToTasksModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="แปลง BOQ เข้า Project">
+                                        <i class="ph ph-lightning text-xs"></i>
+                                        <span>⚡ บันทึก BOQ เข้า Project</span>
+                                    </button>
+                                </div>
+                            </div>
+                            `;
+                        }).join('');
+                    }
+                }
+
+                // 2. Render Converted Projects Library Container (#conversion-list-container)
+                const listContainer = document.getElementById('conversion-list-container');
+                const countTextEl = document.getElementById('conversion-library-count-text');
+                if (countTextEl) countTextEl.innerText = `แสดงโครงการในแผนงาน Gantt ทั้งหมด ${convertedJobs.length} โครงการ`;
+
+                if (listContainer) {
+                    if (isList) {
+                        listContainer.className = "w-full overflow-hidden";
+                    } else {
+                        listContainer.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+                    }
+
+                    if (convertedJobs.length === 0) {
+                        listContainer.innerHTML = `
+                            <div class="col-span-full artifact-card p-10 text-center text-muted-foreground border border-dashed border-border">
+                                <i class="ph ph-kanban text-4xl mb-2 text-muted-foreground/50"></i>
+                                <h4 class="font-display font-medium text-foreground text-sm">ไม่พบโครงการที่แปลงเข้าผัง Gantt</h4>
+                                <p class="text-xs text-muted-foreground mt-1">เลือกโครงการในคิวรอแปลงแล้วกด "⚡ บันทึก BOQ เข้า Project" เพื่อสร้าง Tasks</p>
+                            </div>
+                        `;
+                    } else if (isList) {
+                        listContainer.innerHTML = `
+                            <div class="w-full overflow-x-auto border border-border rounded-xl bg-card">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="border-b border-border bg-muted/50 text-muted-foreground font-semibold">
+                                            <th class="py-3 px-4">JOB ID</th>
+                                            <th class="py-3 px-4">ลูกค้า</th>
+                                            <th class="py-3 px-4">บริการ</th>
+                                            <th class="py-3 px-4 text-center">จำนวน Tasks</th>
+                                            <th class="py-3 px-4">ช่วงเวลาดำเนินการ (Timeline)</th>
+                                            <th class="py-3 px-4">ทีมช่าง</th>
+                                            <th class="py-3 px-4">สถานะโครงการ</th>
+                                            <th class="py-3 px-4 text-right">การกระทำ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-border">
+                                        ${convertedJobs.map(j => {
+                                            const jTasks = allTasks.filter(t => t.jobId === j.id);
+                                            const startDates = jTasks.map(t => t.start).filter(Boolean).sort();
+                                            const endDates = jTasks.map(t => t.end).filter(Boolean).sort();
+                                            const timelineRange = (startDates.length > 0 && endDates.length > 0) ? `${startDates[0]} ถึง ${endDates[endDates.length - 1]}` : (j.date || '-');
+                                            const uniqueTechs = [...new Set(jTasks.map(t => t.tech).filter(Boolean))];
+                                            return `
+                                            <tr class="hover:bg-muted/30 transition">
+                                                <td class="py-3 px-4 font-mono font-bold text-amber-600 dark:text-amber-400">
+                                                    <button type="button" onclick="app.switchConversionJob('${j.id}')" class="hover:underline cursor-pointer">
+                                                        ${j.id}
+                                                    </button>
+                                                </td>
+                                                <td class="py-3 px-4 font-medium text-foreground">${j.customer}</td>
+                                                <td class="py-3 px-4">
+                                                    <span class="text-brand-600 dark:text-brand-400 font-semibold truncate max-w-[180px] inline-block">${j.service}</span>
+                                                </td>
+                                                <td class="py-3 px-4 text-center">
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-mono">
+                                                        ✓ ${jTasks.length} Tasks
+                                                    </span>
+                                                </td>
+                                                <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${timelineRange}</td>
+                                                <td class="py-3 px-4 text-muted-foreground text-xs">${uniqueTechs.length > 0 ? uniqueTechs.join(', ') : (j.tech || '-')}</td>
+                                                <td class="py-3 px-4">${this.getStatusHtml(j.status)}</td>
+                                                <td class="py-3 px-4 text-right whitespace-nowrap">
+                                                    <div class="flex items-center justify-end gap-1.5">
+                                                        <button type="button" onclick="app.switchConversionJob('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:border-amber-500 hover:text-amber-600 transition" title="ตรวจรายการ Task ในโครงการนี้">
+                                                            <i class="ph ph-list-magnifying-glass"></i> <span>ตรวจงาน</span>
+                                                        </button>
+                                                        <button type="button" onclick="app.openConvertBOQToTasksModal('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-1 hover:border-brand-500 hover:text-brand-600" title="ปรับแต่ง Tasks">
+                                                            <i class="ph ph-pencil-simple"></i> <span>ปรับแต่ง</span>
+                                                        </button>
+                                                        <button type="button" onclick="app.state.selectedGanttJobId = '${j.id}'; app.navigate('gantt')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 bg-brand-600 hover:bg-brand-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="เปิดดูผัง Gantt">
+                                                            <i class="ph ph-chart-bar"></i> <span>ดูผัง Gantt ➔</span>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    } else {
+                        listContainer.innerHTML = convertedJobs.map(j => {
+                            const jTasks = allTasks.filter(t => t.jobId === j.id);
+                            const startDates = jTasks.map(t => t.start).filter(Boolean).sort();
+                            const endDates = jTasks.map(t => t.end).filter(Boolean).sort();
+                            const timelineRange = (startDates.length > 0 && endDates.length > 0) ? `${startDates[0]} ถึง ${endDates[endDates.length - 1]}` : (j.date || '-');
+                            const uniqueTechs = [...new Set(jTasks.map(t => t.tech).filter(Boolean))];
+                            return `
+                            <div class="artifact-card p-5 rounded-2xl border border-emerald-500/30 bg-card hover:border-emerald-500/60 transition duration-200 space-y-3.5 group shadow-xs">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="flex items-start gap-3 min-w-0">
+                                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                            <i class="ph ph-check-circle text-xl"></i>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-mono font-bold text-xs text-foreground">${j.id}</span>
+                                                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' : 'bg-indigo-500/10 text-indigo-600 border border-indigo-500/20'}">${j.job_type || 'quick'}</span>
+                                            </div>
+                                            <h4 class="font-semibold text-foreground text-xs truncate mt-0.5" title="${j.customer}">${j.customer}</h4>
+                                        </div>
+                                    </div>
+                                    <div class="text-right shrink-0">
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                            ✓ ${jTasks.length} Tasks ใน Gantt
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-muted/40 p-2.5 rounded-xl text-xs space-y-1 border border-border/50">
+                                    <div class="flex items-center justify-between text-[11px]">
+                                        <span class="text-muted-foreground flex items-center gap-1"><i class="ph ph-wrench"></i> ${j.service}</span>
+                                        <span class="font-mono text-foreground font-medium">${timelineRange}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-[11px] pt-1 border-t border-border/40">
+                                        <span class="text-muted-foreground">ทีมช่าง: <strong class="text-foreground">${uniqueTechs.length > 0 ? uniqueTechs.join(', ') : (j.tech || '-')}</strong></span>
+                                        <span class="font-mono text-[10px] text-muted-foreground">ซิงค์คิว QC แล้ว</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between gap-2 pt-1 border-t border-border/50">
+                                    <button type="button" onclick="app.switchConversionJob('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1 cursor-pointer hover:border-amber-500 hover:text-amber-600 transition" title="ตรวจรายการ Task ในหน้านี้">
+                                        <i class="ph ph-list-magnifying-glass"></i> <span>ตรวจงาน</span>
+                                    </button>
+                                    <div class="flex items-center gap-1.5">
+                                        <button type="button" onclick="app.openConvertBOQToTasksModal('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-xl text-xs font-medium cursor-pointer flex items-center gap-1 hover:border-brand-500 hover:text-brand-600" title="ปรับวันและช่าง">
+                                            <i class="ph ph-pencil-simple"></i> <span>ปรับแต่ง</span>
+                                        </button>
+                                        <button type="button" onclick="app.state.selectedGanttJobId = '${j.id}'; app.navigate('gantt')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-brand-600 hover:bg-brand-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="เปิดดูผัง Gantt Timeline">
+                                            <i class="ph ph-chart-bar"></i> <span>ดูผัง Gantt ➔</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            `;
+                        }).join('');
+                    }
+                }
+
+                if (this.state.conversionTab) {
+                    this.switchConversionTab(this.state.conversionTab);
+                }
+
                 const targetJobId = jobId || this.state.selectedConversionJobId || this.state.selectedGanttJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
                 this.state.selectedConversionJobId = targetJobId;
                 this.state.selectedGanttJobId = targetJobId;
@@ -8057,14 +8751,6 @@ const app = {
                 }
 
                 const boqItems = (job && job.boq_items) ? job.boq_items : [];
-                const isLabor = (name) => {
-                    if (!name) return false;
-                    const n = name.toLowerCase();
-                    return n.includes('ติดตั้ง') || n.includes('รื้อถอน') || n.includes('เดินท่อ') || 
-                           n.includes('ทาสี') || n.includes('ปู') || n.includes('ฉาบ') || 
-                           n.includes('ประกอบ') || n.includes('ซ่อม') || n.includes('บริการ') ||
-                           n.includes('งาน') || n.includes('แรง') || n.includes('ล้าง');
-                };
                 const laborItems = boqItems.filter(it => isLabor(it.name));
                 const jobTasks = (DB.tasks || []).filter(t => t.jobId === targetJobId);
 
