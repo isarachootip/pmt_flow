@@ -1858,151 +1858,78 @@
                         </div>
                     </div>
 
-                    <!-- Project Selection Bar -->
-                    <div class="artifact-card p-4 bg-muted/20 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                        <div class="flex items-center gap-3 w-full sm:w-auto">
-                            <span class="text-xs font-bold text-foreground flex items-center gap-1.5 shrink-0">
-                                <i class="ph ph-briefcase text-purple-500 text-base"></i> เลือกโครงการ:
-                            </span>
-                            <select id="boq-page-job-select" onchange="app.switchBOQPageJob(this.value)" class="flex-1 sm:w-80 bg-card border border-border rounded-xl px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:border-purple-500 cursor-pointer">
-                                <!-- Populated dynamically -->
-                            </select>
-                        </div>
-                        <div class="flex items-center gap-2 text-xs text-muted-foreground" id="boq-project-info-badge">
-                            <!-- Job details badge -->
+                    <!-- Tab Switcher: Pending BOQ Jobs vs Uploaded / Completed BOQ Library -->
+                    <div class="flex border-b border-border gap-6">
+                        <button type="button" id="tab-boq-pending" onclick="app.switchBOQTab('pending')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-purple-600 text-foreground cursor-pointer">
+                            <i class="ph ph-hourglass-high text-amber-500 text-sm"></i>
+                            <span>คิวโครงการที่รอจัดทำ BOQ</span>
+                            <span id="tab-boq-pending-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold">0</span>
+                        </button>
+                        <button type="button" id="tab-boq-library" onclick="app.switchBOQTab('library')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer">
+                            <i class="ph ph-receipt text-purple-500 text-sm"></i>
+                            <span>คลังรายการ BOQ แยกตามโครงการ</span>
+                            <span id="tab-boq-library-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono font-bold">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Search & Filter Card -->
+                    <div class="artifact-card p-4">
+                        <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
+                            <div class="relative flex-1 w-full">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+                                <input type="text" id="boq-search" oninput="app.filterBOQs()" placeholder="ค้นหาตามรหัสงาน (JOB ID), ชื่อลูกค้า, บริการ, หรือรายการสินค้า/ค่าแรง..." class="w-full bg-card border border-border rounded-lg pl-9 pr-4 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-purple-500">
+                            </div>
+                            <div class="flex items-center gap-2 w-full sm:w-auto">
+                                <select id="boq-filter-service" onchange="app.filterBOQs()" class="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-purple-500">
+                                    <option value="all">ทุกประเภทบริการ</option>
+                                    <option value="Renovate ครัว">Renovate ครัว</option>
+                                    <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
+                                    <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                                    <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
+                                    <option value="ติดตั้งเครื่องปรับอากาศ">ติดตั้งเครื่องปรับอากาศ</option>
+                                    <option value="โซลาร์เซลล์">โซลาร์เซลล์</option>
+                                </select>
+
+                                <!-- BOQ View Mode Switcher: Card View vs List View -->
+                                <div class="inline-flex p-1 bg-muted/60 border border-border rounded-xl text-xs shrink-0">
+                                    <button type="button" id="btn-boq-mode-card" onclick="app.setBOQViewMode('card')" class="px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs" title="แสดงแบบการ์ด (Card View)">
+                                        <i class="ph ph-squares-four text-purple-500 text-sm"></i>
+                                        <span>Card View</span>
+                                    </button>
+                                    <button type="button" id="btn-boq-mode-list" onclick="app.setBOQViewMode('list')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground" title="แสดงแบบรายการ (List View)">
+                                        <i class="ph ph-list-bullets text-sm"></i>
+                                        <span>List View</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- KPI Metrics for Selected Job BOQ -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="artifact-card p-4 space-y-1">
-                            <div class="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-                                <span>รายการทั้งหมดใน BOQ</span>
-                                <i class="ph ph-list-numbers text-purple-500 text-base"></i>
-                            </div>
-                            <div class="text-2xl font-bold font-mono text-foreground" id="boq-stat-total-items">0</div>
-                            <div class="text-[10px] text-muted-foreground">รายการสินค้า/บริการ</div>
-                        </div>
-                        <div class="artifact-card p-4 space-y-1">
-                            <div class="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-                                <span>รายการค่าแรง (แปลงเป็น Task)</span>
-                                <i class="ph ph-wrench text-amber-500 text-base"></i>
-                            </div>
-                            <div class="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400" id="boq-stat-labor-items">0</div>
-                            <div class="text-[10px] text-amber-500">สำหรับแปลงเข้า Gantt (Step 5)</div>
-                        </div>
-                        <div class="artifact-card p-4 space-y-1">
-                            <div class="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-                                <span>รายการวัสดุ/อุปกรณ์</span>
-                                <i class="ph ph-package text-brand-500 text-base"></i>
-                            </div>
-                            <div class="text-2xl font-bold font-mono text-brand-500" id="boq-stat-material-items">0</div>
-                            <div class="text-[10px] text-muted-foreground">สำหรับคิดเงิน & ตัดสต็อก</div>
-                        </div>
-                        <div class="artifact-card p-4 space-y-1">
-                            <div class="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-                                <span>ยอดเงินสุทธิรวม (Grand Total)</span>
-                                <i class="ph ph-receipt text-emerald-500 text-base"></i>
-                            </div>
-                            <div class="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400" id="boq-stat-grandtotal">0 ฿</div>
-                            <div class="text-[10px] text-muted-foreground">รวม VAT 7% แล้ว</div>
-                        </div>
-                    </div>
-
-                    <!-- Interactive BOQ Table -->
-                    <div class="artifact-card p-5 space-y-4">
-                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-border">
-                            <div>
-                                <h3 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
-                                    <i class="ph ph-table text-purple-500"></i> ตารางรายการสินค้าและบริการ (BOQ Items Table)
-                                </h3>
-                                <p class="text-[11px] text-muted-foreground mt-0.5">สามารถพิมพ์แก้ไขรายการ จำนวน และราคาต่อหน่วยได้โดยตรง ระบบจะคำนวณยอดเงินให้อัตโนมัติ</p>
-                            </div>
+                    <!-- Section 1: Pending BOQ Queue Container -->
+                    <div id="boq-pending-container" class="space-y-4">
+                        <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
-                                <button onclick="app.addBOQItemToPage()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium cursor-pointer">
-                                    <i class="ph ph-plus-circle text-sm text-purple-500"></i> เพิ่มแถวรายการ
-                                </button>
-                                <button onclick="app.saveBOQPage()" class="btn-artifact-primary px-4 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs">
-                                    <i class="ph ph-floppy-disk text-sm"></i> บันทึก BOQ
-                                </button>
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                <h3 class="font-display font-bold text-sm text-foreground">รายการโครงการที่รอจัดทำ BOQ (Pending BOQ Queue)</h3>
                             </div>
+                            <span class="text-xs text-muted-foreground">คลิกปุ่ม <strong class="text-purple-600 dark:text-purple-400 font-semibold">+ บันทึก BOQ</strong> หรือปุ่ม <strong class="font-semibold">นำเข้าไฟล์ด่วน</strong> เพื่อจัดทำรายการ</span>
                         </div>
-
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs">
-                                <thead class="bg-muted/40 text-muted-foreground uppercase text-[10px] tracking-wider">
-                                    <tr>
-                                        <th class="py-2.5 px-3 font-medium w-12 text-center">ลำดับ</th>
-                                        <th class="py-2.5 px-3 font-medium">รายการวัสดุ / งานบริการ</th>
-                                        <th class="py-2.5 px-3 font-medium w-28 text-center">ประเภท</th>
-                                        <th class="py-2.5 px-3 font-medium w-24 text-center">จำนวน</th>
-                                        <th class="py-2.5 px-3 font-medium w-24 text-center">หน่วย</th>
-                                        <th class="py-2.5 px-3 font-medium w-32 text-right">ราคาต่อหน่วย (฿)</th>
-                                        <th class="py-2.5 px-3 font-medium w-36 text-right">รวมเป็นเงิน (฿)</th>
-                                        <th class="py-2.5 px-3 font-medium w-12 text-center">ลบ</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-border" id="boq-page-table-tbody">
-                                    <!-- Populated by JS -->
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- Calculation summary box -->
-                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-4 border-t border-border gap-4">
-                            <div class="space-y-1 text-xs text-muted-foreground">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                    <span>รายการสีฟ้า/เขียว คือ รายการค่าแรงที่จะถูกแปลงเป็น Task ใน Step 5</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="w-2 h-2 rounded-full bg-zinc-400"></span>
-                                    <span>รายการสีเทา คือ รายการวัสดุ/อุปกรณ์ (ไม่สร้างเป็น Task)</span>
-                                </div>
-                            </div>
-                            <div class="w-full sm:w-80 space-y-1.5 text-xs bg-muted/20 p-4 rounded-xl border border-border">
-                                <div class="flex justify-between text-muted-foreground">
-                                    <span>ราคารวม (Subtotal):</span>
-                                    <span class="font-mono font-medium text-foreground" id="boq-page-subtotal-val">0.00 ฿</span>
-                                </div>
-                                <div class="flex justify-between text-emerald-500">
-                                    <span>ส่วนลดพิเศษโครงการ:</span>
-                                    <span class="font-mono font-medium" id="boq-page-discount-val">-0.00 ฿</span>
-                                </div>
-                                <div class="flex justify-between text-muted-foreground">
-                                    <span>ภาษีมูลค่าเพิ่ม (VAT 7%):</span>
-                                    <span class="font-mono font-medium text-foreground" id="boq-page-vat-val">0.00 ฿</span>
-                                </div>
-                                <div class="flex justify-between text-sm font-bold text-foreground pt-2 border-t border-border">
-                                    <span>ยอดสุทธิ (Grand Total):</span>
-                                    <span class="font-mono text-purple-600 dark:text-purple-400 text-base font-bold" id="boq-page-grandtotal-val">0.00 ฿</span>
-                                </div>
-                            </div>
+                        <div id="boq-pending-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Populated dynamically by JS -->
                         </div>
                     </div>
 
-                    <!-- All Projects BOQ Status Overview -->
-                    <div class="artifact-card p-5 space-y-3">
-                        <h3 class="font-display font-semibold text-sm text-foreground flex items-center gap-2">
-                            <i class="ph ph-folders text-purple-500"></i> ภาพรวมสถานะ BOQ ของทุกโครงการ
-                        </h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs">
-                                <thead class="bg-muted/40 text-muted-foreground uppercase text-[10px]">
-                                    <tr>
-                                        <th class="px-4 py-2.5">เลขที่งาน</th>
-                                        <th class="px-4 py-2.5">ลูกค้า</th>
-                                        <th class="px-4 py-2.5">บริการ</th>
-                                        <th class="px-4 py-2.5 text-center">สถานะ BOQ</th>
-                                        <th class="px-4 py-2.5 text-center">รายการค่าแรง</th>
-                                        <th class="px-4 py-2.5 text-right">ยอดเงินรวม</th>
-                                        <th class="px-4 py-2.5 text-right">การจัดการ</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-border" id="boq-overview-table-tbody">
-                                    <!-- Populated by JS -->
-                                </tbody>
-                            </table>
+                    <!-- Section 2: Completed BOQ Library Container -->
+                    <div id="boq-library-container" class="space-y-4 hidden-view">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                                <h3 class="font-display font-bold text-sm text-foreground">คลังรายการ BOQ และประมาณการราคาที่บันทึกแล้ว</h3>
+                            </div>
+                            <span class="text-xs text-muted-foreground" id="boq-library-count-text">แสดงทั้งหมด</span>
+                        </div>
+                        <div id="boq-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Populated dynamically by JS -->
                         </div>
                     </div>
                 </div>
@@ -4263,6 +4190,154 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- MODAL: MANAGE / RECORD BOQ (STEP 3) - Modeled after modal-upload-blueprint -->
+    <div id="modal-manage-boq" onclick="if(event.target === this) app.hideModal('modal-manage-boq')" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-manage-boq-content">
+            <!-- Fixed Sticky Header with Prominent Close Button -->
+            <div class="p-4 sm:p-5 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-lg">
+                        <i class="ph ph-receipt"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-sm text-foreground">📋 บันทึก / จัดทำ BOQ & ประมาณการราคา</h3>
+                        <p class="text-[10px] text-muted-foreground">จัดการรายการค่าแรง วัสดุอุปกรณ์ และคำนวณราคาสำหรับโครงการ (Step 3)</p>
+                    </div>
+                </div>
+                <button type="button" onclick="app.hideModal('modal-manage-boq')" class="text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-lg hover:bg-muted transition cursor-pointer flex items-center gap-1.5 border border-border/60 hover:border-border" title="ปิดหน้าต่าง (Esc)">
+                    <span class="text-[11px] font-semibold">ปิด (Esc)</span>
+                    <i class="ph ph-x text-base font-bold"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 min-h-0">
+                <!-- 1. Job Selection Dropdown -->
+                <div>
+                    <label class="block text-xs font-semibold text-foreground mb-1">เลือกงาน / โครงการ *</label>
+                    <select id="modal-boq-job-select" onchange="app.onModalBOQJobChange(this.value)" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-purple-500 cursor-pointer font-medium">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+
+                <!-- Existing BOQ & Project Status Bar -->
+                <div id="modal-boq-status-info" class="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition">
+                    <!-- Populated dynamically by JS -->
+                </div>
+
+                <!-- Quick Common Item Tags (like the zone tags in Step 2 Blueprint Modal!) -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-semibold text-foreground">เลือกรายการด่วน (Quick Add Service / Material)</label>
+                        <span class="text-[10px] text-muted-foreground">คลิกเพื่อเพิ่มรายการลงในตาราง BOQ ทันที</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button type="button" onclick="app.addQuickBOQItem('งานติดตั้งหลัก', true, 2500, 'งาน')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-purple-500/15 hover:text-purple-600 border border-border cursor-pointer transition">⚡ ติดตั้งหลัก</button>
+                        <button type="button" onclick="app.addQuickBOQItem('งานเดินระบบไฟฟ้า / ท่อร้อยสาย', true, 1800, 'จุด')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-purple-500/15 hover:text-purple-600 border border-border cursor-pointer transition">⚡ ระบบไฟ/สาย</button>
+                        <button type="button" onclick="app.addQuickBOQItem('งานเดินระบบท่อประปา / น้ำทิ้ง', true, 1500, 'จุด')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-purple-500/15 hover:text-purple-600 border border-border cursor-pointer transition">💧 ระบบประปา</button>
+                        <button type="button" onclick="app.addQuickBOQItem('งานรื้อถอน / ขนย้ายของเดิม', true, 1200, 'เหมา')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-purple-500/15 hover:text-purple-600 border border-border cursor-pointer transition">🔨 งานรื้อถอน</button>
+                        <button type="button" onclick="app.addQuickBOQItem('งานปรับปรุง Built-in / ปูกระเบื้อง', true, 3500, 'ตร.ม.')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-purple-500/15 hover:text-purple-600 border border-border cursor-pointer transition">🍳 งาน Built-in</button>
+                        <button type="button" onclick="app.addQuickBOQItem('งานทาสี / เก็บความเรียบร้อย', true, 1000, 'เหมา')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-purple-500/15 hover:text-purple-600 border border-border cursor-pointer transition">🎨 เก็บสี/หน้างาน</button>
+                        <button type="button" onclick="app.addQuickBOQItem('ชุดท่อน้ำยาแอร์ / ท่อร้อยสายไฟ', false, 950, 'ชุด')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-purple-500/15 hover:text-purple-600 border border-border cursor-pointer transition">📦 ท่อ/รางครอบ</button>
+                        <button type="button" onclick="app.addQuickBOQItem('ชุดเบรกเกอร์ Safety Switch มอก.', false, 550, 'ชุด')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-purple-500/15 hover:text-purple-600 border border-border cursor-pointer transition">🔌 เบรกเกอร์</button>
+                        <button type="button" onclick="app.addQuickBOQItem('ค่าบริการสำรวจและประเมินหน้างาน', true, 500, 'ครั้ง')" class="px-2.5 py-1 rounded-lg text-[11px] bg-muted hover:bg-purple-500/15 hover:text-purple-600 border border-border cursor-pointer transition">🔍 สำรวจหน้างาน</button>
+                    </div>
+                </div>
+
+                <!-- Action Toolbar: Import & Add Row -->
+                <div class="flex items-center justify-between pt-1">
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="app.openImportBOQModal(app.state.modalBOQJobId)" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30">
+                            <i class="ph ph-file-arrow-up text-sm"></i>
+                            <span>📥 นำเข้าไฟล์ Excel / vFIX</span>
+                        </button>
+                        <button type="button" onclick="app.loadSampleBOQItemsToModal()" class="text-[11px] bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-lg border border-border cursor-pointer flex items-center gap-1 transition">
+                            <i class="ph ph-sparkle text-amber-500"></i>
+                            <span>โหลดชุดตัวอย่าง (Quick Test)</span>
+                        </button>
+                    </div>
+                    <button type="button" onclick="app.addModalBOQRow()" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs">
+                        <i class="ph ph-plus-circle text-sm font-bold"></i>
+                        <span>+ เพิ่มแถวรายการ</span>
+                    </button>
+                </div>
+
+                <!-- BOQ Items Table -->
+                <div class="border border-border rounded-xl overflow-hidden shadow-xs">
+                    <div class="max-h-72 overflow-y-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-muted/60 border-b border-border text-[11px] text-muted-foreground sticky top-0 bg-card z-10">
+                                <tr>
+                                    <th class="py-2.5 px-3 w-10 text-center">#</th>
+                                    <th class="py-2.5 px-3">รายการวัสดุ / งานบริการ</th>
+                                    <th class="py-2.5 px-3 w-32 text-center">ประเภท</th>
+                                    <th class="py-2.5 px-3 w-20 text-center">จำนวน</th>
+                                    <th class="py-2.5 px-3 w-20 text-center">หน่วย</th>
+                                    <th class="py-2.5 px-3 w-28 text-right">ราคา/หน่วย (฿)</th>
+                                    <th class="py-2.5 px-3 w-32 text-right">รวมเป็นเงิน (฿)</th>
+                                    <th class="py-2.5 px-3 w-10 text-center">ลบ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modal-boq-table-tbody" class="divide-y divide-border bg-card">
+                                <!-- Populated dynamically by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Financial Summary & Calculation Card -->
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl bg-muted/20 border border-border gap-4">
+                    <div class="space-y-1.5 text-xs text-muted-foreground">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                            <span>⚡ ค่าแรง/บริการ: <strong class="text-foreground font-semibold" id="modal-boq-labor-count">0</strong> รายการ <span class="text-[10px] text-emerald-600 dark:text-emerald-400">(จะแปลงเป็น Task ใน Step 5)</span></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-zinc-400"></span>
+                            <span>📦 วัสดุ/อุปกรณ์: <strong class="text-foreground font-semibold" id="modal-boq-mat-count">0</strong> รายการ <span class="text-[10px] text-muted-foreground">(สต็อก/คิดเงิน)</span></span>
+                        </div>
+                    </div>
+                    <div class="w-full sm:w-80 space-y-1.5 text-xs bg-card p-3.5 rounded-xl border border-border/80">
+                        <div class="flex justify-between text-muted-foreground">
+                            <span>ราคารวม (Subtotal):</span>
+                            <span class="font-mono font-medium text-foreground" id="modal-boq-subtotal-val">0.00 ฿</span>
+                        </div>
+                        <div class="flex justify-between text-emerald-600 dark:text-emerald-400">
+                            <span>ส่วนลดพิเศษโครงการ:</span>
+                            <span class="font-mono font-medium" id="modal-boq-discount-val">-0.00 ฿</span>
+                        </div>
+                        <div class="flex justify-between text-muted-foreground">
+                            <span>ภาษีมูลค่าเพิ่ม (VAT 7%):</span>
+                            <span class="font-mono font-medium text-foreground" id="modal-boq-vat-val">0.00 ฿</span>
+                        </div>
+                        <div class="flex justify-between text-sm font-bold text-foreground pt-1.5 border-t border-border">
+                            <span>ยอดสุทธิ (Grand Total):</span>
+                            <span class="font-mono text-purple-600 dark:text-purple-400 text-base font-bold" id="modal-boq-grandtotal-val">0.00 ฿</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fixed Sticky Footer with Cancel, Save and Save & Proceed Buttons -->
+            <div class="p-4 border-t border-border bg-card/95 backdrop-blur-sm shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                <button type="button" onclick="app.hideModal('modal-manage-boq')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer text-muted-foreground hover:text-foreground flex items-center justify-center gap-1.5">
+                    <i class="ph ph-x text-sm"></i>
+                    <span>ยกเลิก / ปิด</span>
+                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="app.saveModalBOQ(false)" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm bg-purple-600 hover:bg-purple-700 text-white cursor-pointer transition hover:scale-[1.02]">
+                        <i class="ph ph-floppy-disk text-sm"></i>
+                        <span>บันทึก BOQ</span>
+                    </button>
+                    <button type="button" onclick="app.saveModalBOQ(true)" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md bg-gradient-to-r from-purple-600 to-emerald-600 hover:from-purple-700 hover:to-emerald-700 text-white cursor-pointer transition hover:scale-[1.02]">
+                        <span>บันทึก BOQ & ไป Step 4 (ออก Ticket)</span>
+                        <i class="ph ph-arrow-right text-sm"></i>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -14,6 +14,13 @@ const app = {
                 blueprintViewMode: (function() {
                     try { return localStorage.getItem('pmt_blueprint_view_mode') || 'card'; } catch (e) { return 'card'; }
                 })(),
+                boqViewMode: (function() {
+                    try { return localStorage.getItem('pmt_boq_view_mode') || 'card'; } catch (e) { return 'card'; }
+                })(),
+                boqTab: 'pending',
+                modalBOQJobId: null,
+                modalBOQItems: [],
+                modalBOQDiscount: 0,
                 ganttViewMode: (function() {
                     try { return localStorage.getItem('pmt_gantt_view_mode') || 'gantt'; } catch (e) { return 'gantt'; }
                 })(),
@@ -7037,9 +7044,74 @@ const app = {
             openBOQForJob(jobId) {
                 this.state.boqSelectedJobId = jobId;
                 this.navigate('boq', jobId);
+                this.openManageBOQModal(jobId);
             },
 
             // ─── STEP 3: BOQ MANAGEMENT METHODS ─────────────────────────
+            isLaborItem(name) {
+                if (!name) return false;
+                const n = name.toLowerCase();
+                return n.includes('ติดตั้ง') || n.includes('รื้อถอน') || n.includes('เดินท่อ') || 
+                       n.includes('เดินสาย') || n.includes('ทาสี') || n.includes('ปู') || 
+                       n.includes('ฉาบ') || n.includes('ประกอบ') || n.includes('ซ่อม') || 
+                       n.includes('บริการ') || n.includes('งาน') || n.includes('แรง') || 
+                       n.includes('ล้าง') || n.includes('สำรวจ') || n.includes('ทดสอบ');
+            },
+
+            switchBOQTab(tab) {
+                this.state.boqTab = tab;
+                const tabPending = document.getElementById('tab-boq-pending');
+                const tabLibrary = document.getElementById('tab-boq-library');
+                const secPending = document.getElementById('boq-pending-container');
+                const secLibrary = document.getElementById('boq-library-container');
+
+                if (tab === 'library') {
+                    if (tabPending) {
+                        tabPending.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer";
+                    }
+                    if (tabLibrary) {
+                        tabLibrary.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-purple-600 text-foreground cursor-pointer";
+                    }
+                    if (secPending) secPending.classList.add('hidden-view');
+                    if (secLibrary) secLibrary.classList.remove('hidden-view');
+                } else {
+                    if (tabPending) {
+                        tabPending.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-purple-600 text-foreground cursor-pointer";
+                    }
+                    if (tabLibrary) {
+                        tabLibrary.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer";
+                    }
+                    if (secPending) secPending.classList.remove('hidden-view');
+                    if (secLibrary) secLibrary.classList.add('hidden-view');
+                }
+            },
+
+            setBOQViewMode(mode) {
+                this.state.boqViewMode = mode;
+                try { localStorage.setItem('pmt_boq_view_mode', mode); } catch (e) {}
+                this.updateBOQViewModeButtons();
+                this.renderBOQPage();
+            },
+
+            updateBOQViewModeButtons() {
+                const mode = this.state.boqViewMode || 'card';
+                const btnCard = document.getElementById('btn-boq-mode-card');
+                const btnList = document.getElementById('btn-boq-mode-list');
+                if (btnCard && btnList) {
+                    if (mode === 'card') {
+                        btnCard.className = 'px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs';
+                        btnList.className = 'px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground';
+                    } else {
+                        btnList.className = 'px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs';
+                        btnCard.className = 'px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground';
+                    }
+                }
+            },
+
+            filterBOQs() {
+                this.renderBOQPage();
+            },
+
             renderBOQPage(jobId = null, customJobList = null) {
                 this.updateStep3Dashboard();
 
@@ -7068,6 +7140,7 @@ const app = {
                     }
                 }
 
+                // Render Top Standard Work Order List Table (#boq-jobs-table-body)
                 const boqTableBody = document.getElementById('boq-jobs-table-body');
                 if (boqTableBody) {
                     if (tableJobs.length === 0) {
@@ -7091,9 +7164,9 @@ const app = {
 
                             const actionButtons = hasBOQ ? `
                                 <div class="flex items-center justify-end gap-1.5">
-                                    <button onclick="event.stopPropagation(); app.switchBOQPageJob('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted text-foreground inline-flex items-center gap-1 cursor-pointer" title="จัดการรายการ BOQ">
+                                    <button onclick="event.stopPropagation(); app.openManageBOQModal('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted text-foreground inline-flex items-center gap-1 cursor-pointer" title="ดูหรือแก้ไข BOQ">
                                         <i class="ph ph-note-pencil"></i>
-                                        <span>จัดการ BOQ (${items.length})</span>
+                                        <span>ดู/แก้ไข BOQ (${items.length})</span>
                                     </button>
                                     <button onclick="event.stopPropagation(); app.proceedJobToTickets('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ส่งต่อไปยัง Step 4 ออก Ticket & สลิป">
                                         <span>ออก Ticket (ไป Step 4)</span>
@@ -7101,14 +7174,20 @@ const app = {
                                     </button>
                                 </div>
                             ` : `
-                                <button onclick="event.stopPropagation(); app.switchBOQPageJob('${j.id}'); app.openImportBOQModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="บันทึก / นำเข้า BOQ สำหรับงานนี้">
-                                    <i class="ph ph-file-arrow-up text-xs"></i>
-                                    <span>บันทึก BOQ</span>
-                                </button>
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <button onclick="event.stopPropagation(); app.openManageBOQModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="บันทึก / จัดทำ BOQ สำหรับงานนี้">
+                                        <i class="ph ph-plus-circle text-xs"></i>
+                                        <span>+ บันทึก BOQ</span>
+                                    </button>
+                                    <button onclick="event.stopPropagation(); app.openImportBOQModal('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted text-foreground inline-flex items-center gap-1 cursor-pointer" title="นำเข้าไฟล์ Excel/vFIX">
+                                        <i class="ph ph-file-arrow-up text-xs"></i>
+                                        <span>นำเข้าด่วน</span>
+                                    </button>
+                                </div>
                             `;
 
                             return `
-                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSelected ? 'bg-purple-500/5' : ''}" onclick="app.switchBOQPageJob('${j.id}')">
+                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSelected ? 'bg-purple-500/5' : ''}" onclick="app.openManageBOQModal('${j.id}')">
                                     <td class="px-5 py-4 font-mono font-semibold text-purple-600 dark:text-purple-400">${j.id}</td>
                                     <td class="px-5 py-4">
                                         <div class="text-foreground font-medium group-hover:text-purple-500 transition">${j.customer}</div>
@@ -7130,157 +7209,528 @@ const app = {
                     }
                 }
 
+                // Filter search & service for Step 2-style cards & list
+                const searchEl = document.getElementById('boq-search');
+                const serviceEl = document.getElementById('boq-filter-service');
+                const q = (searchEl ? searchEl.value : '').toLowerCase().trim();
+                const sFilter = (serviceEl ? serviceEl.value : 'all');
+
+                let filteredJobs = allJobs;
+                if (q) {
+                    filteredJobs = filteredJobs.filter(j => {
+                        const itemsText = (j.boq_items || []).map(it => it.name).join(' ').toLowerCase();
+                        return (j.id && j.id.toLowerCase().includes(q)) ||
+                               (j.customer && j.customer.toLowerCase().includes(q)) ||
+                               (j.service && j.service.toLowerCase().includes(q)) ||
+                               (j.address && j.address.toLowerCase().includes(q)) ||
+                               itemsText.includes(q);
+                    });
+                }
+                if (sFilter && sFilter !== 'all') {
+                    filteredJobs = filteredJobs.filter(j => (j.service || '').includes(sFilter));
+                }
+
+                const pendingJobs = filteredJobs.filter(j => !j.boq_items || j.boq_items.length === 0);
+                const libraryJobs = filteredJobs.filter(j => j.boq_items && j.boq_items.length > 0);
+
+                // Update tab badges
+                const tabPendingBadge = document.getElementById('tab-boq-pending-badge');
+                if (tabPendingBadge) tabPendingBadge.innerText = pendingJobs.length;
+                const tabLibraryBadge = document.getElementById('tab-boq-library-badge');
+                if (tabLibraryBadge) tabLibraryBadge.innerText = libraryJobs.length;
+                const libCountText = document.getElementById('boq-library-count-text');
+                if (libCountText) libCountText.innerText = `แสดง ${libraryJobs.length} จาก ${allJobs.filter(j => j.boq_items && j.boq_items.length > 0).length} โครงการ`;
+
+                this.updateBOQViewModeButtons();
+                const isList = (this.state.boqViewMode === 'list');
+
+                // 1. Render Pending BOQ Queue Container (#boq-pending-list)
+                const pendingContainer = document.getElementById('boq-pending-list');
+                if (pendingContainer) {
+                    if (isList) {
+                        pendingContainer.className = "w-full overflow-hidden";
+                    } else {
+                        pendingContainer.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
+                    }
+
+                    if (pendingJobs.length === 0) {
+                        pendingContainer.innerHTML = `
+                            <div class="col-span-full artifact-card p-10 text-center text-muted-foreground border border-dashed border-border">
+                                <i class="ph ph-check-circle text-4xl mb-2 text-emerald-500/60"></i>
+                                <h4 class="font-display font-medium text-foreground text-sm">ไม่มีโครงการที่ค้างรอจัดทำ BOQ</h4>
+                                <p class="text-xs text-muted-foreground mt-1">ทุกโครงการได้รับการจัดทำและบันทึก BOQ เรียบร้อยแล้ว</p>
+                            </div>
+                        `;
+                    } else if (isList) {
+                        pendingContainer.innerHTML = `
+                            <div class="overflow-x-auto rounded-2xl border border-border bg-card shadow-xs">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="border-b border-border bg-muted/40 text-muted-foreground font-semibold text-[11px]">
+                                            <th class="py-3 px-4 font-mono">JOB ID</th>
+                                            <th class="py-3 px-4">วันที่รับ Order</th>
+                                            <th class="py-3 px-4">ลูกค้า</th>
+                                            <th class="py-3 px-4">บริการ / งานติดตั้ง</th>
+                                            <th class="py-3 px-4">สถานะแบบแปลน (Step 2)</th>
+                                            <th class="py-3 px-4">สถานะ BOQ</th>
+                                            <th class="py-3 px-4">ช่างผู้รับผิดชอบ</th>
+                                            <th class="py-3 px-4 text-center">จัดทำ / บันทึก BOQ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-border">
+                                        ${pendingJobs.map(job => {
+                                            const jBps = (DB.blueprints || []).filter(b => b.jobId === job.id);
+                                            const hasBps = jBps.length > 0 || !!job.blueprint_id;
+                                            return `
+                                            <tr class="hover:bg-muted/30 transition">
+                                                <td class="py-3 px-4 font-mono font-bold text-foreground">
+                                                    <button type="button" onclick="app.openManageBOQModal('${job.id}')" class="bg-muted hover:bg-purple-50 dark:hover:bg-purple-950/50 hover:text-purple-600 hover:border-purple-500 px-2 py-0.5 rounded border border-border cursor-pointer transition font-mono font-bold text-xs" title="คลิกเลือกงาน ${job.id} เพื่อบันทึก BOQ">
+                                                        ${job.id}
+                                                    </button>
+                                                </td>
+                                                <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${job.date || '-'}</td>
+                                                <td class="py-3 px-4 font-medium text-foreground">${job.customer}</td>
+                                                <td class="py-3 px-4">
+                                                    <div class="font-semibold text-brand-600 dark:text-brand-400 truncate max-w-[200px]" title="${job.service}">
+                                                        ${job.service}
+                                                    </div>
+                                                </td>
+                                                <td class="py-3 px-4">
+                                                    ${hasBps ? `
+                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/20">
+                                                            <i class="ph ph-blueprint"></i> แนบแบบแล้ว (${jBps.length || 1} โซน)
+                                                        </span>
+                                                    ` : `
+                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20">
+                                                            ⏳ รอจัดทำแบบ
+                                                        </span>
+                                                    `}
+                                                </td>
+                                                <td class="py-3 px-4">
+                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                                        <i class="ph ph-hourglass-high"></i> รอจัดทำ BOQ
+                                                    </span>
+                                                </td>
+                                                <td class="py-3 px-4 text-muted-foreground">${job.tech || 'ยังไม่ระบุ'}</td>
+                                                <td class="py-3 px-4 text-center whitespace-nowrap">
+                                                    <div class="flex items-center justify-center gap-1.5">
+                                                        <button type="button" onclick="app.openManageBOQModal('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs transition hover:scale-105">
+                                                            <i class="ph ph-plus-circle font-bold"></i>
+                                                            <span>+ บันทึก BOQ</span>
+                                                        </button>
+                                                        <button type="button" onclick="app.openImportBOQModal('${job.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1 cursor-pointer hover:border-purple-500 hover:text-purple-600 transition">
+                                                            <i class="ph ph-file-arrow-up"></i>
+                                                            <span>นำเข้าด่วน</span>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    } else {
+                        pendingContainer.innerHTML = pendingJobs.map(job => {
+                            const jBps = (DB.blueprints || []).filter(b => b.jobId === job.id);
+                            const hasBps = jBps.length > 0 || !!job.blueprint_id;
+                            return `
+                            <div class="artifact-card p-5 rounded-2xl border border-border bg-card hover:border-purple-500/60 transition duration-200 space-y-3.5 group shadow-xs">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="flex items-start gap-3 min-w-0">
+                                        <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 text-xl font-bold">
+                                            <i class="ph ph-receipt"></i>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <span class="font-mono text-xs font-bold text-foreground bg-muted px-2 py-0.5 rounded border border-border">${job.id}</span>
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                                    ⏳ รอจัดทำ BOQ
+                                                </span>
+                                            </div>
+                                            <h4 class="font-display font-bold text-sm text-foreground mt-1.5 truncate">${job.customer}</h4>
+                                            <p class="text-[11px] text-brand-600 dark:text-brand-400 font-medium truncate">${job.service}</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-[10px] font-mono text-muted-foreground shrink-0">${job.date || '-'}</span>
+                                </div>
+
+                                <div class="text-[11px] text-muted-foreground space-y-1.5 bg-muted/30 p-2.5 rounded-xl border border-border/50">
+                                    <div class="flex items-center justify-between text-[10px]">
+                                        <span class="flex items-center gap-1 text-muted-foreground">
+                                            <i class="ph ph-blueprint"></i> สถานะแบบแปลน (Step 2):
+                                        </span>
+                                        ${hasBps ? `
+                                            <span class="px-2 py-0.5 rounded-md font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/20">
+                                                ✓ แนบแล้ว (${jBps.length || 1} โซน)
+                                            </span>
+                                        ` : `
+                                            <span class="px-2 py-0.5 rounded-md text-muted-foreground bg-muted">
+                                                ⏳ ยังไม่มีแบบแปลน
+                                            </span>
+                                        `}
+                                    </div>
+                                    <div class="flex items-center gap-1.5 truncate">
+                                        <i class="ph ph-map-pin text-muted-foreground shrink-0"></i>
+                                        <span class="truncate" title="${job.address || '-'}">${job.address || 'ไม่ระบุที่อยู่'}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <i class="ph ph-wrench text-muted-foreground shrink-0"></i>
+                                        <span>ช่าง: <strong class="text-foreground font-medium">${job.tech || 'ยังไม่ระบุช่าง'}</strong></span>
+                                    </div>
+                                </div>
+
+                                <div class="pt-2 border-t border-border flex items-center justify-end gap-2 flex-wrap">
+                                    <button type="button" onclick="app.openImportBOQModal('${job.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 cursor-pointer hover:border-purple-500 hover:text-purple-600 transition">
+                                        <i class="ph ph-file-arrow-up"></i>
+                                        <span>นำเข้าไฟล์ด่วน</span>
+                                    </button>
+                                    <button type="button" onclick="app.openManageBOQModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs transition hover:scale-102">
+                                        <i class="ph ph-plus-circle font-bold"></i>
+                                        <span>+ บันทึก BOQ</span>
+                                    </button>
+                                </div>
+                            </div>
+                            `;
+                        }).join('');
+                    }
+                }
+
+                // 2. Render Completed BOQ Library Container (#boq-list-container)
+                const libraryContainer = document.getElementById('boq-list-container');
+                if (libraryContainer) {
+                    if (isList) {
+                        libraryContainer.className = "w-full overflow-hidden";
+                    } else {
+                        libraryContainer.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+                    }
+
+                    if (libraryJobs.length === 0) {
+                        libraryContainer.innerHTML = `
+                            <div class="col-span-full artifact-card p-12 text-center text-muted-foreground border border-dashed border-border">
+                                <i class="ph ph-file-dashed text-4xl mb-2 text-muted-foreground/50"></i>
+                                <h4 class="font-display font-medium text-foreground text-sm">ยังไม่มีโครงการที่มีรายการ BOQ</h4>
+                                <p class="text-xs text-muted-foreground mt-1">กดปุ่ม "+ บันทึก BOQ" ในแท็บคิวงานเพื่อเริ่มจัดทำรายการแรก</p>
+                            </div>
+                        `;
+                    } else if (isList) {
+                        libraryContainer.innerHTML = `
+                            <div class="overflow-x-auto rounded-2xl border border-border bg-card shadow-xs">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="border-b border-border bg-muted/40 text-muted-foreground font-semibold text-[11px]">
+                                            <th class="py-3 px-4 font-mono">JOB ID</th>
+                                            <th class="py-3 px-4">วันที่</th>
+                                            <th class="py-3 px-4">ลูกค้า</th>
+                                            <th class="py-3 px-4">ประเภทบริการ</th>
+                                            <th class="py-3 px-4 text-center">รายการค่าแรง</th>
+                                            <th class="py-3 px-4 text-center">รายการวัสดุ</th>
+                                            <th class="py-3 px-4 text-right">ยอดเงินรวม (Grand Total)</th>
+                                            <th class="py-3 px-4 text-right">การจัดการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-border">
+                                        ${libraryJobs.map(j => {
+                                            const items = j.boq_items || [];
+                                            const laborCount = items.filter(it => this.isLaborItem(it.name)).length;
+                                            const matCount = items.length - laborCount;
+                                            const sub = items.reduce((s, it) => s + ((Number(it.qty) || 0) * (Number(it.price || it.unit_price) || 0)), 0);
+                                            const disc = Number(j.boq_discount) || 0;
+                                            const gt = Math.max(0, sub - disc) * 1.07;
+                                            return `
+                                            <tr class="hover:bg-muted/30 transition">
+                                                <td class="py-3 px-4 font-mono font-bold text-purple-600 dark:text-purple-400">
+                                                    <button type="button" onclick="app.openManageBOQModal('${j.id}')" class="hover:underline cursor-pointer">
+                                                        ${j.id}
+                                                    </button>
+                                                </td>
+                                                <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${j.date || '-'}</td>
+                                                <td class="py-3 px-4 font-medium text-foreground">${j.customer}</td>
+                                                <td class="py-3 px-4 text-brand-600 dark:text-brand-400 font-medium">${j.service}</td>
+                                                <td class="py-3 px-4 text-center">
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                                        ${laborCount} งาน
+                                                    </span>
+                                                </td>
+                                                <td class="py-3 px-4 text-center">
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border border-zinc-500/20">
+                                                        ${matCount} รายการ
+                                                    </span>
+                                                </td>
+                                                <td class="py-3 px-4 text-right font-mono font-bold text-foreground">
+                                                    ${gt.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿
+                                                </td>
+                                                <td class="py-3 px-4 text-right whitespace-nowrap">
+                                                    <div class="flex items-center justify-end gap-1.5">
+                                                        <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:border-purple-500 hover:text-purple-600 transition" onclick="app.openManageBOQModal('${j.id}')" title="ดูหรือแก้ไข BOQ">
+                                                            <i class="ph ph-note-pencil"></i> <span>ดู/แก้ไข</span>
+                                                        </button>
+                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-purple-600 hover:bg-purple-700 text-white shadow-xs" onclick="app.proceedJobToTickets('${j.id}')" title="ส่งต่อไปยัง Step 4">
+                                                            <span>ออก Ticket ➔</span>
+                                                        </button>
+                                                        <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium cursor-pointer" onclick="app.proceedToStep5Project('${j.id}')" title="แปลงเข้า Project Step 5">
+                                                            <span>Step 5</span> <i class="ph ph-arrow-right"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    } else {
+                        libraryContainer.innerHTML = libraryJobs.map(j => {
+                            const items = j.boq_items || [];
+                            const laborCount = items.filter(it => this.isLaborItem(it.name)).length;
+                            const matCount = items.length - laborCount;
+                            const sub = items.reduce((s, it) => s + ((Number(it.qty) || 0) * (Number(it.price || it.unit_price) || 0)), 0);
+                            const disc = Number(j.boq_discount) || 0;
+                            const gt = Math.max(0, sub - disc) * 1.07;
+                            const topItems = items.slice(0, 3);
+
+                            return `
+                            <div class="artifact-card p-5 rounded-2xl space-y-4 border border-border hover:border-purple-500/40 transition group">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="flex items-center gap-2.5 min-w-0">
+                                        <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xl shrink-0">
+                                            <i class="ph ph-receipt"></i>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <span class="font-mono text-xs font-bold text-foreground bg-muted px-2 py-0.5 rounded border border-border">${j.id}</span>
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                                    ✓ บันทึกแล้ว (${items.length} รายการ)
+                                                </span>
+                                            </div>
+                                            <h4 class="font-display font-bold text-sm text-foreground mt-1 truncate">${j.customer}</h4>
+                                        </div>
+                                    </div>
+                                    <span class="text-[10px] font-mono text-muted-foreground shrink-0">${j.date || '-'}</span>
+                                </div>
+
+                                <div class="text-xs text-brand-600 dark:text-brand-400 font-semibold truncate">
+                                    ${j.service}
+                                </div>
+
+                                <!-- Financial summary breakdown badges -->
+                                <div class="grid grid-cols-2 gap-2 text-[11px] bg-muted/20 p-3 rounded-xl border border-border">
+                                    <div class="space-y-0.5">
+                                        <div class="text-muted-foreground text-[10px]">ค่าแรง (แปลงเป็น Task):</div>
+                                        <div class="font-mono font-bold text-emerald-600 dark:text-emerald-400">${laborCount} รายการ</div>
+                                    </div>
+                                    <div class="space-y-0.5">
+                                        <div class="text-muted-foreground text-[10px]">วัสดุ / อุปกรณ์:</div>
+                                        <div class="font-mono font-bold text-foreground">${matCount} รายการ</div>
+                                    </div>
+                                    <div class="col-span-2 pt-2 border-t border-border/60 flex items-baseline justify-between">
+                                        <span class="text-[10px] text-muted-foreground">ยอดสุทธิ (Grand Total):</span>
+                                        <span class="font-mono font-extrabold text-purple-600 dark:text-purple-400 text-sm">${gt.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿</span>
+                                    </div>
+                                </div>
+
+                                <!-- Preview chips of items -->
+                                <div class="space-y-1">
+                                    <div class="text-[10px] text-muted-foreground font-medium">ตัวอย่างรายการใน BOQ:</div>
+                                    <div class="flex flex-wrap gap-1">
+                                        ${topItems.map(it => {
+                                            const isLabor = this.isLaborItem(it.name);
+                                            return `
+                                                <span class="px-2 py-0.5 rounded-md text-[10px] truncate max-w-[220px] ${isLabor ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20' : 'bg-muted text-muted-foreground border border-border'}" title="${it.name} (${it.qty} ${it.unit})">
+                                                    ${isLabor ? '⚡' : '📦'} ${it.name}
+                                                </span>
+                                            `;
+                                        }).join('')}
+                                        ${items.length > 3 ? `<span class="px-1.5 py-0.5 text-[10px] text-muted-foreground">+${items.length - 3} รายการ</span>` : ''}
+                                    </div>
+                                </div>
+
+                                <div class="pt-3 border-t border-border flex items-center justify-between gap-1.5 flex-wrap">
+                                    <button class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:border-purple-500 hover:text-purple-600 transition" onclick="app.openManageBOQModal('${j.id}')" title="ดูหรือแก้ไข BOQ">
+                                        <i class="ph ph-note-pencil"></i> <span>ดู/แก้ไข BOQ</span>
+                                    </button>
+                                    <div class="flex items-center gap-1.5">
+                                        <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-purple-600 hover:bg-purple-700 text-white shadow-xs" onclick="app.proceedJobToTickets('${j.id}')" title="ส่งต่อไปยัง Step 4 (ออก Ticket & สลิป)">
+                                            <span>ออก Ticket ➔</span>
+                                        </button>
+                                        <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer" onclick="app.proceedToStep5Project('${j.id}')" title="แปลงเป็นแผนงานโครงการ (Step 5)">
+                                            <span>Step 5</span> <i class="ph ph-arrow-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            `;
+                        }).join('');
+                    }
+                }
+            },
+
+            // ─── MODAL POPUP: MANAGE / RECORD BOQ ────────────────────────
+            openManageBOQModal(jobId = null) {
                 const targetJobId = jobId || this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
+                this.state.modalBOQJobId = targetJobId;
                 this.state.boqSelectedJobId = targetJobId;
 
                 const job = (DB.jobs || []).find(j => j.id === targetJobId);
+                if (!job) {
+                    this.showToast('⚠️ ไม่พบข้อมูล Job');
+                    return;
+                }
 
-                // Populate Project Select
-                const selectEl = document.getElementById('boq-page-job-select');
+                // Populate modal job select
+                const selectEl = document.getElementById('modal-boq-job-select');
                 if (selectEl) {
                     selectEl.innerHTML = (DB.jobs || []).map(j => {
-                        const cust = j.customer || `${j.firstName || ''} ${j.lastName || ''}`.trim() || 'ลูกค้า';
                         const count = (j.boq_items || []).length;
-                        const hasBps = (DB.blueprints || []).some(b => b.jobId === j.id) || !!j.blueprint_id;
-                        const bpTag = hasBps ? '📐 มีแบบแปลนแล้ว' : '⏳ ยังไม่มีแบบแปลน';
-                        const statusTag = count > 0 ? `(${count} รายการ BOQ)` : `(${bpTag} - ยังไม่มี BOQ)`;
-                        return `<option value="${j.id}" ${j.id === targetJobId ? 'selected' : ''}>${j.id} - ${cust} ${statusTag}</option>`;
+                        const statusTag = count > 0 ? `(${count} รายการ BOQ)` : `(ยังไม่มี BOQ)`;
+                        return `<option value="${j.id}" ${j.id === targetJobId ? 'selected' : ''}>${j.id} - ${j.customer} ${statusTag}</option>`;
                     }).join('');
                     selectEl.value = targetJobId;
                 }
 
-                const infoBadge = document.getElementById('boq-project-info-badge');
-                if (infoBadge && job) {
-                    const hasBps = (DB.blueprints || []).some(b => b.jobId === job.id) || !!job.blueprint_id;
-                    const bpCount = (DB.blueprints || []).filter(b => b.jobId === job.id).length;
-                    infoBadge.innerHTML = `
-                        <span class="font-mono font-bold text-purple-600 dark:text-purple-400">${job.id}</span>
-                        <span>•</span>
-                        <span class="font-semibold text-foreground">${job.customer}</span>
-                        <span>•</span>
-                        <span class="text-brand-500 font-medium">${job.service}</span>
-                        ${hasBps ? `
-                        <span>•</span>
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30">
-                            <i class="ph ph-blueprint"></i> แนบแบบแปลนแล้ว (${bpCount} โซน)
-                        </span>
-                        ` : ''}
+                // Copy items for modal editing
+                this.state.modalBOQItems = (job.boq_items && job.boq_items.length > 0) 
+                    ? JSON.parse(JSON.stringify(job.boq_items)) 
+                    : [];
+                this.state.modalBOQDiscount = Number(job.boq_discount) || 0;
+
+                this.renderManageBOQModal();
+                this.showModal('modal-manage-boq');
+            },
+
+            onModalBOQJobChange(newJobId) {
+                this.openManageBOQModal(newJobId);
+            },
+
+            renderManageBOQModal() {
+                const jobId = this.state.modalBOQJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+
+                const items = this.state.modalBOQItems || [];
+                const infoEl = document.getElementById('modal-boq-status-info');
+                if (infoEl) {
+                    const jBps = (DB.blueprints || []).filter(b => b.jobId === job.id);
+                    const hasBps = jBps.length > 0 || !!job.blueprint_id;
+                    const bpCount = jBps.length || (job.blueprint_id ? 1 : 0);
+                    const hasBOQ = items.length > 0;
+                    infoEl.innerHTML = `
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-mono font-bold text-purple-600 dark:text-purple-400 bg-purple-500/15 px-2 py-0.5 rounded border border-purple-500/30">${job.id}</span>
+                                <span class="font-bold text-foreground text-sm">${job.customer}</span>
+                                <span class="text-brand-600 dark:text-brand-400 font-medium">• ${job.service}</span>
+                            </div>
+                            <div class="text-[11px] text-muted-foreground flex items-center gap-2 flex-wrap">
+                                <span>ที่อยู่: ${job.address || '-'}</span>
+                                <span>•</span>
+                                <span>ช่าง: <strong class="text-foreground">${job.tech || 'ยังไม่ระบุ'}</strong></span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+                            ${hasBps ? `
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/30 flex items-center gap-1">
+                                <i class="ph ph-blueprint"></i> มีแบบแปลน (${bpCount} โซน)
+                            </span>
+                            ` : `
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                                <i class="ph ph-hourglass-high"></i> ยังไม่มีแบบแปลน
+                            </span>
+                            `}
+                            ${hasBOQ ? `
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                <i class="ph ph-check-circle"></i> บันทึกแล้ว ${items.length} รายการ
+                            </span>
+                            ` : `
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border border-zinc-500/30 flex items-center gap-1">
+                                <i class="ph ph-circle-dashed"></i> ยังไม่มีรายการ BOQ
+                            </span>
+                            `}
+                        </div>
                     `;
                 }
 
-                const boqItems = (job && job.boq_items) ? job.boq_items : [];
-
-                // Categorize items
-                const isLabor = (name) => {
-                    if (!name) return false;
-                    const n = name.toLowerCase();
-                    return n.includes('ติดตั้ง') || n.includes('รื้อถอน') || n.includes('เดินท่อ') || 
-                           n.includes('ทาสี') || n.includes('ปู') || n.includes('ฉาบ') || 
-                           n.includes('ประกอบ') || n.includes('ซ่อม') || n.includes('บริการ') ||
-                           n.includes('งาน') || n.includes('แรง') || n.includes('ล้าง');
-                };
-
+                // Calculate totals
                 let laborCount = 0;
                 let matCount = 0;
                 let subtotal = 0;
 
-                boqItems.forEach(item => {
-                    const qty = Number(item.qty) || 0;
-                    const price = Number(item.price || item.unit_price) || 0;
+                items.forEach(it => {
+                    const qty = Number(it.qty) || 0;
+                    const price = Number(it.price || it.unit_price) || 0;
                     subtotal += (qty * price);
-                    if (isLabor(item.name)) {
-                        laborCount++;
-                    } else {
-                        matCount++;
-                    }
+                    const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
+                    if (isLabor) laborCount++; else matCount++;
                 });
 
-                const discount = job ? (Number(job.boq_discount) || 0) : 0;
+                const discount = Number(this.state.modalBOQDiscount) || 0;
                 const afterDiscount = Math.max(0, subtotal - discount);
                 const vat = afterDiscount * 0.07;
                 const grandTotal = afterDiscount + vat;
 
-                if (job) {
-                    job.boq_subtotal = subtotal;
-                    job.boq_grand_total = grandTotal;
-                }
-
-                // Update KPI Cards
-                const elTotItems = document.getElementById('boq-stat-total-items');
-                if (elTotItems) elTotItems.innerText = boqItems.length;
-                const elLaborItems = document.getElementById('boq-stat-labor-items');
-                if (elLaborItems) elLaborItems.innerText = laborCount;
-                const elMatItems = document.getElementById('boq-stat-material-items');
-                if (elMatItems) elMatItems.innerText = matCount;
-                const elGrand = document.getElementById('boq-stat-grandtotal');
-                if (elGrand) elGrand.innerText = grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
-
-                // Update summary box
-                const elSub = document.getElementById('boq-page-subtotal-val');
+                // Update summary elements
+                const elLabor = document.getElementById('modal-boq-labor-count');
+                if (elLabor) elLabor.innerText = laborCount;
+                const elMat = document.getElementById('modal-boq-mat-count');
+                if (elMat) elMat.innerText = matCount;
+                const elSub = document.getElementById('modal-boq-subtotal-val');
                 if (elSub) elSub.innerText = subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
-                const elDisc = document.getElementById('boq-page-discount-val');
+                const elDisc = document.getElementById('modal-boq-discount-val');
                 if (elDisc) elDisc.innerText = `-${discount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
-                const elVat = document.getElementById('boq-page-vat-val');
+                const elVat = document.getElementById('modal-boq-vat-val');
                 if (elVat) elVat.innerText = vat.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
-                const elGt = document.getElementById('boq-page-grandtotal-val');
+                const elGt = document.getElementById('modal-boq-grandtotal-val');
                 if (elGt) elGt.innerText = grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
 
                 // Render Table
-                const tbody = document.getElementById('boq-page-table-tbody');
+                const tbody = document.getElementById('modal-boq-table-tbody');
                 if (tbody) {
-                    if (boqItems.length === 0) {
+                    if (items.length === 0) {
                         tbody.innerHTML = `
                             <tr>
-                                <td colspan="8" class="py-12 text-center text-muted-foreground">
+                                <td colspan="8" class="py-10 text-center text-muted-foreground">
                                     <div class="flex flex-col items-center justify-center gap-2">
-                                        <i class="ph ph-file-dashed text-3xl text-muted-foreground/40"></i>
-                                        <p class="text-xs font-semibold text-foreground">ยังไม่มีรายการ BOQ สำหรับโครงการ ${targetJobId}</p>
-                                        <p class="text-[11px] text-muted-foreground">กดปุ่ม "📥 นำเข้า Excel / vFIX" หรือกด "เพิ่มแถวรายการ" เพื่อเริ่มจัดทำ</p>
-                                        <div class="flex items-center gap-2 mt-2">
-                                            <button onclick="app.openImportBOQModal('${targetJobId}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs bg-purple-600 hover:bg-purple-700 text-white cursor-pointer">
-                                                📥 นำเข้า Excel / vFIX
-                                            </button>
-                                            <button onclick="app.addBOQItemToPage()" class="btn-artifact-secondary px-3.5 py-1.5 rounded-lg text-xs cursor-pointer">
-                                                + เพิ่มแถวรายการ
-                                            </button>
-                                        </div>
+                                        <i class="ph ph-receipt text-3xl text-purple-500/40"></i>
+                                        <p class="text-xs font-semibold text-foreground">ยังไม่มีรายการสินค้าและบริการสำหรับโครงการนี้</p>
+                                        <p class="text-[11px] text-muted-foreground">คลิกเลือก "ปุ่มลัดด้านบน" หรือกด "+ เพิ่มแถวรายการ" หรือนำเข้าไฟล์ Excel/vFIX</p>
                                     </div>
                                 </td>
                             </tr>
                         `;
                     } else {
-                        tbody.innerHTML = boqItems.map((item, idx) => {
-                            const labor = isLabor(item.name);
-                            const itemPrice = Number(item.price || item.unit_price) || 0;
-                            const itemQty = Number(item.qty) || 0;
-                            const itemTotal = itemQty * itemPrice;
-                            const typeBadge = labor 
-                                ? '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">⚡ ค่าแรง/บริการ</span>'
-                                : '<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border border-zinc-500/20">📦 วัสดุอุปกรณ์</span>';
+                        tbody.innerHTML = items.map((it, idx) => {
+                            const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
+                            const qty = Number(it.qty) || 0;
+                            const price = Number(it.price || it.unit_price) || 0;
+                            const itemTotal = qty * price;
 
                             return `
                             <tr class="hover:bg-muted/30 transition">
                                 <td class="py-2.5 px-3 text-center text-muted-foreground font-mono">${idx + 1}</td>
                                 <td class="py-2.5 px-3">
-                                    <input type="text" value="${item.name || ''}" oninput="app.updateBOQPageItem(${idx}, 'name', this.value)" placeholder="ชื่อรายการ..." class="w-full bg-transparent hover:bg-muted/40 focus:bg-card border border-transparent hover:border-border focus:border-purple-500 rounded px-2 py-1 text-xs text-foreground font-medium transition focus:outline-none">
+                                    <input type="text" value="${it.name || ''}" oninput="app.updateModalBOQItem(${idx}, 'name', this.value)" placeholder="ชื่อรายการ..." class="w-full bg-transparent hover:bg-muted/40 focus:bg-card border border-transparent hover:border-border focus:border-purple-500 rounded px-2 py-1 text-xs text-foreground font-medium transition focus:outline-none">
                                 </td>
                                 <td class="py-2.5 px-3 text-center">
-                                    ${typeBadge}
+                                    <button type="button" onclick="app.toggleModalBOQItemType(${idx})" class="px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer transition ${isLabor ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border border-zinc-500/30'}" title="คลิกเพื่อสลับประเภท ค่าแรง vs วัสดุ">
+                                        ${isLabor ? '⚡ ค่าแรง/บริการ' : '📦 วัสดุอุปกรณ์'}
+                                    </button>
                                 </td>
                                 <td class="py-2.5 px-3 text-center">
-                                    <input type="number" min="1" step="1" value="${itemQty}" oninput="app.updateBOQPageItem(${idx}, 'qty', this.value)" class="w-20 text-center bg-muted/30 border border-border focus:border-purple-500 rounded px-2 py-1 text-xs text-foreground font-mono transition focus:outline-none">
+                                    <input type="number" min="1" step="1" value="${qty}" oninput="app.updateModalBOQItem(${idx}, 'qty', this.value)" class="w-16 text-center bg-muted/30 border border-border focus:border-purple-500 rounded px-1.5 py-1 text-xs text-foreground font-mono transition focus:outline-none">
                                 </td>
                                 <td class="py-2.5 px-3 text-center">
-                                    <input type="text" value="${item.unit || 'ชุด'}" oninput="app.updateBOQPageItem(${idx}, 'unit', this.value)" class="w-16 text-center bg-muted/30 border border-border focus:border-purple-500 rounded px-1.5 py-1 text-xs text-foreground transition focus:outline-none">
+                                    <input type="text" value="${it.unit || 'ชุด'}" oninput="app.updateModalBOQItem(${idx}, 'unit', this.value)" class="w-16 text-center bg-muted/30 border border-border focus:border-purple-500 rounded px-1.5 py-1 text-xs text-foreground transition focus:outline-none">
                                 </td>
                                 <td class="py-2.5 px-3 text-right">
-                                    <input type="number" min="0" step="50" value="${itemPrice}" oninput="app.updateBOQPageItem(${idx}, 'price', this.value)" class="w-28 text-right bg-muted/30 border border-border focus:border-purple-500 rounded px-2 py-1 text-xs text-foreground font-mono transition focus:outline-none">
+                                    <input type="number" min="0" step="50" value="${price}" oninput="app.updateModalBOQItem(${idx}, 'price', this.value)" class="w-24 text-right bg-muted/30 border border-border focus:border-purple-500 rounded px-2 py-1 text-xs text-foreground font-mono transition focus:outline-none">
                                 </td>
                                 <td class="py-2.5 px-3 text-right font-mono font-bold text-foreground">
                                     ${itemTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </td>
                                 <td class="py-2.5 px-3 text-center">
-                                    <button type="button" onclick="app.removeBOQPageItem(${idx})" class="p-1 text-muted-foreground hover:text-rose-500 rounded transition cursor-pointer" title="ลบรายการนี้">
+                                    <button type="button" onclick="app.removeModalBOQItem(${idx})" class="p-1 text-muted-foreground hover:text-rose-500 rounded transition cursor-pointer" title="ลบรายการนี้">
                                         <i class="ph ph-trash text-sm"></i>
                                     </button>
                                 </td>
@@ -7289,72 +7739,172 @@ const app = {
                         }).join('');
                     }
                 }
-
-                // Render Overview of all jobs
-                const overviewTbody = document.getElementById('boq-overview-table-tbody');
-                if (overviewTbody) {
-                    overviewTbody.innerHTML = (DB.jobs || []).map(j => {
-                        const items = j.boq_items || [];
-                        const hasBOQ = items.length > 0;
-                        const laborItems = items.filter(it => isLabor(it.name)).length;
-                        const sub = items.reduce((s, it) => s + ((Number(it.qty) || 0) * (Number(it.price || it.unit_price) || 0)), 0);
-                        const disc = Number(j.boq_discount) || 0;
-                        const gt = Math.max(0, sub - disc) * 1.07;
-                        const isCurrent = j.id === targetJobId;
-
-                        const boqStatusBadge = hasBOQ 
-                            ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-mono">มี BOQ (${items.length} รายการ)</span>`
-                            : `<span class="px-2 py-0.5 rounded text-[10px] bg-zinc-500/10 text-zinc-500 font-mono">ยังไม่มี BOQ</span>`;
-
-                        return `
-                        <tr class="hover:bg-muted/30 transition ${isCurrent ? 'bg-purple-500/5' : ''}">
-                            <td class="px-4 py-2.5 font-mono font-bold ${isCurrent ? 'text-purple-600 dark:text-purple-400' : 'text-foreground'}">
-                                ${j.id}
-                            </td>
-                            <td class="px-4 py-2.5 font-medium text-foreground">${j.customer}</td>
-                            <td class="px-4 py-2.5 text-muted-foreground truncate max-w-[180px]">${j.service}</td>
-                            <td class="px-4 py-2.5 text-center">${boqStatusBadge}</td>
-                            <td class="px-4 py-2.5 text-center font-mono font-bold text-amber-600 dark:text-amber-400">${laborItems} งาน</td>
-                            <td class="px-4 py-2.5 text-right font-mono font-semibold text-foreground">
-                                ${hasBOQ ? gt.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿' : '-'}
-                            </td>
-                            <td class="px-4 py-2.5 text-right">
-                                <div class="flex items-center justify-end gap-1.5">
-                                    <button onclick="app.switchBOQPageJob('${j.id}')" class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer">
-                                        เปิด BOQ
-                                    </button>
-                                    <button onclick="app.proceedToStep5Project('${j.id}')" class="btn-artifact-primary px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-600 hover:bg-purple-700 text-white cursor-pointer" title="แปลงเป็น Project (Step 5)">
-                                        Step 5 ➔
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        `;
-                    }).join('');
-                }
             },
 
-            switchBOQPageJob(jobId) {
-                this.state.boqSelectedJobId = jobId;
-                this.renderBOQPage(jobId);
-            },
-
-            addBOQItemToPage() {
-                const targetJobId = this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
-                const job = (DB.jobs || []).find(j => j.id === targetJobId);
-                if (!job) return;
-                if (!job.boq_items) job.boq_items = [];
-                job.boq_items.push({
+            addModalBOQRow() {
+                if (!this.state.modalBOQItems) this.state.modalBOQItems = [];
+                this.state.modalBOQItems.push({
                     name: 'งานบริการติดตั้งเพิ่มเติม',
+                    is_labor: true,
                     qty: 1,
                     unit: 'ชุด',
                     price: 2500,
                     labor_price: 2500,
                     mat_price: 0
                 });
-                this.persistJobs();
-                this.renderBOQPage(targetJobId);
+                this.renderManageBOQModal();
                 this.showToast('➕ เพิ่มแถวรายการใหม่เรียบร้อย');
+            },
+
+            addQuickBOQItem(name, isLabor, price, unit = 'ชุด') {
+                if (!this.state.modalBOQItems) this.state.modalBOQItems = [];
+                this.state.modalBOQItems.push({
+                    name: name,
+                    is_labor: isLabor,
+                    qty: 1,
+                    unit: unit,
+                    price: price,
+                    labor_price: isLabor ? price : 0,
+                    mat_price: isLabor ? 0 : price
+                });
+                this.renderManageBOQModal();
+                this.showToast(`➕ เพิ่ม "${name}" เรียบร้อย`);
+            },
+
+            loadSampleBOQItemsToModal() {
+                const sampleItems = [
+                    { name: 'ค่าแรงติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU', is_labor: true, qty: 1, unit: 'งาน', price: 2500, labor_price: 2500, mat_price: 0 },
+                    { name: 'ชุดท่อน้ำยาแอร์ทองแดงหนาพิเศษพร้อมฉนวนหุ้ม 4 ม.', is_labor: false, qty: 1, unit: 'ชุด', price: 1800, labor_price: 0, mat_price: 1800 },
+                    { name: 'รางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.', is_labor: false, qty: 1, unit: 'ชุด', price: 950, labor_price: 0, mat_price: 950 },
+                    { name: 'ขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม', is_labor: false, qty: 1, unit: 'ชุด', price: 650, labor_price: 0, mat_price: 650 },
+                    { name: 'ชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง', is_labor: false, qty: 1, unit: 'ชุด', price: 500, labor_price: 0, mat_price: 500 }
+                ];
+                this.state.modalBOQItems = sampleItems;
+                this.renderManageBOQModal();
+                this.showToast('✨ โหลดชุดข้อมูลตัวอย่าง BOQ เรียบร้อย');
+            },
+
+            toggleModalBOQItemType(idx) {
+                if (!this.state.modalBOQItems || !this.state.modalBOQItems[idx]) return;
+                const it = this.state.modalBOQItems[idx];
+                const current = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
+                it.is_labor = !current;
+                const price = Number(it.price || it.unit_price) || 0;
+                if (it.is_labor) {
+                    it.labor_price = price;
+                    it.mat_price = 0;
+                } else {
+                    it.labor_price = 0;
+                    it.mat_price = price;
+                }
+                this.renderManageBOQModal();
+            },
+
+            updateModalBOQItem(idx, field, value) {
+                if (!this.state.modalBOQItems || !this.state.modalBOQItems[idx]) return;
+                const it = this.state.modalBOQItems[idx];
+                if (field === 'qty' || field === 'price') {
+                    it[field] = Number(value) || 0;
+                    const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
+                    if (isLabor) {
+                        it.labor_price = it.price;
+                        it.mat_price = 0;
+                    } else {
+                        it.labor_price = 0;
+                        it.mat_price = it.price;
+                    }
+                } else {
+                    it[field] = value;
+                }
+                this.recalculateModalBOQSummary();
+            },
+
+            recalculateModalBOQSummary() {
+                const items = this.state.modalBOQItems || [];
+                let laborCount = 0;
+                let matCount = 0;
+                let subtotal = 0;
+
+                items.forEach(it => {
+                    const qty = Number(it.qty) || 0;
+                    const price = Number(it.price || it.unit_price) || 0;
+                    subtotal += (qty * price);
+                    const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
+                    if (isLabor) laborCount++; else matCount++;
+                });
+
+                const discount = Number(this.state.modalBOQDiscount) || 0;
+                const afterDiscount = Math.max(0, subtotal - discount);
+                const vat = afterDiscount * 0.07;
+                const grandTotal = afterDiscount + vat;
+
+                const elLabor = document.getElementById('modal-boq-labor-count');
+                if (elLabor) elLabor.innerText = laborCount;
+                const elMat = document.getElementById('modal-boq-mat-count');
+                if (elMat) elMat.innerText = matCount;
+                const elSub = document.getElementById('modal-boq-subtotal-val');
+                if (elSub) elSub.innerText = subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
+                const elDisc = document.getElementById('modal-boq-discount-val');
+                if (elDisc) elDisc.innerText = `-${discount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
+                const elVat = document.getElementById('modal-boq-vat-val');
+                if (elVat) elVat.innerText = vat.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
+                const elGt = document.getElementById('modal-boq-grandtotal-val');
+                if (elGt) elGt.innerText = grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
+            },
+
+            removeModalBOQItem(idx) {
+                if (!this.state.modalBOQItems) return;
+                this.state.modalBOQItems.splice(idx, 1);
+                this.renderManageBOQModal();
+                this.showToast('🗑️ ลบรายการเรียบร้อย');
+            },
+
+            saveModalBOQ(proceedToStep4 = false) {
+                const jobId = this.state.modalBOQJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) {
+                    this.showToast('⚠️ ไม่พบข้อมูล Job');
+                    return;
+                }
+
+                const items = this.state.modalBOQItems || [];
+                let subtotal = 0;
+                items.forEach(it => {
+                    const qty = Number(it.qty) || 0;
+                    const price = Number(it.price || it.unit_price) || 0;
+                    subtotal += (qty * price);
+                });
+                const discount = Number(this.state.modalBOQDiscount) || 0;
+                const grandTotal = Math.max(0, subtotal - discount) * 1.07;
+
+                job.boq_items = JSON.parse(JSON.stringify(items));
+                job.boq_subtotal = subtotal;
+                job.boq_discount = discount;
+                job.boq_grand_total = grandTotal;
+
+                if (!job.step_timestamps) job.step_timestamps = {};
+                job.step_timestamps.step3_boq_at = new Date().toISOString();
+
+                this.recordStepTimestamp(job.id, 'step3_boq_at', job.step_timestamps.step3_boq_at, `บันทึกรายการ BOQ (${items.length} รายการ)`);
+                this.persistJobs();
+                this.hideModal('modal-manage-boq');
+                this.renderBOQPage();
+                this.showToast(`💾 บันทึก BOQ โครงการ ${job.id} เรียบร้อย (${items.length} รายการ, ยอดสุทธิ ${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿)`);
+
+                if (proceedToStep4) {
+                    this.proceedJobToTickets(job.id);
+                }
+            },
+
+            // Compatibility methods
+            switchBOQPageJob(jobId) {
+                this.state.boqSelectedJobId = jobId;
+                this.openManageBOQModal(jobId);
+            },
+
+            addBOQItemToPage() {
+                this.openManageBOQModal(this.state.boqSelectedJobId);
+                this.addModalBOQRow();
             },
 
             updateBOQPageItem(idx, field, value) {
@@ -7385,7 +7935,7 @@ const app = {
                 this.recordStepTimestamp(targetJobId, 'step3_boq_at', new Date().toISOString(), 'บันทึกรายการ BOQ ในระบบ PMT');
                 this.recordStepTimestamp(targetJobId, 'step4_boq_at', new Date().toISOString(), 'บันทึกรายการ BOQ ในระบบ PMT');
                 this.persistJobs();
-                this.showToast(`💾 บันทึกรายการ BOQ โครงการ ${targetJobId} เรียบร้อย (บันทึก Timestamp แล้ว)`);
+                this.showToast(`💾 บันทึกรายการ BOQ โครงการ ${targetJobId} เรียบร้อย`);
             },
 
             proceedToStep5Project(jobId) {
