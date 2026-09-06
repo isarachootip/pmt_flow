@@ -719,6 +719,56 @@ export const coreSitePhotoStore: CoreSitePhoto[] = [];
 export const coreTaskStore: CoreTask[] = [];
 export const coreQCBookingStore: QCBooking[] = [];
 
+export interface MAServiceItem {
+  id: string;
+  name: string;
+  brand?: string;
+  btu?: string;
+  location?: string;
+}
+
+export interface MARound {
+  id: string;
+  contract_id: string;
+  project_id?: string | null;
+  round_number: number;
+  scheduled_date: string;
+  actual_date?: string | null;
+  status: 'Scheduled' | 'InProgress' | 'Completed' | 'Rescheduled' | 'Skipped';
+  technician_id?: string | null;
+  technician_name?: string | null;
+  notes?: string | null;
+  created_at: string;
+  proj_id?: string | null;
+  proj_name?: string | null;
+  proj_status?: string | null;
+}
+
+export interface MAContract {
+  id: string;
+  contract_no: string;
+  customer_id?: string | null;
+  customer_site_id?: string | null;
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  site_name?: string | null;
+  site_address?: string | null;
+  service_type: string;
+  service_items: MAServiceItem[];
+  frequency_months: number;
+  total_rounds: number;
+  contract_start_date: string;
+  contract_end_date?: string;
+  contract_value: number | string;
+  status: 'Active' | 'Completed' | 'Cancelled';
+  notes?: string | null;
+  created_at: string;
+  created_by?: string;
+}
+
+export const maContractStore: MAContract[] = [];
+export const maRoundStore: MARound[] = [];
+
 // Helper: Sync or create QC booking for a given task
 export function syncQCBookingForTask(task: CoreTask): QCBooking {
   const targetJob = coreJobStore.find(j => j.id === task.job_id || j.job_no === task.job_no || String(j.id) === String(task.job_id));
@@ -2519,53 +2569,6 @@ app.post('/api/v1/jobs/:id/close-and-export-bmt', requireAuth, async (req: Reque
 // RECURRING MAINTENANCE / MA CONTRACTS API & STORE
 // =============================================================================
 
-export interface MAServiceItem {
-  id: string;
-  name: string;
-  brand?: string;
-  btu?: string;
-  location?: string;
-}
-
-export interface MARound {
-  id: string;
-  contract_id: string;
-  project_id?: string | null;
-  round_number: number;
-  scheduled_date: string;
-  actual_date?: string | null;
-  status: 'Scheduled' | 'InProgress' | 'Completed' | 'Rescheduled' | 'Skipped';
-  technician_id?: string | null;
-  technician_name?: string | null;
-  notes?: string | null;
-  created_at: string;
-  proj_id?: string | null;
-  proj_name?: string | null;
-  proj_status?: string | null;
-}
-
-export interface MAContract {
-  id: string;
-  contract_no: string;
-  customer_id?: string | null;
-  customer_site_id?: string | null;
-  customer_name?: string | null;
-  customer_phone?: string | null;
-  site_name?: string | null;
-  site_address?: string | null;
-  service_type: string;
-  service_items: MAServiceItem[];
-  frequency_months: number;
-  total_rounds: number;
-  contract_start_date: string;
-  contract_end_date?: string;
-  contract_value: number | string;
-  status: 'Active' | 'Completed' | 'Cancelled';
-  notes?: string | null;
-  created_at: string;
-  created_by?: string;
-}
-
 export interface MAChecklistTemplate {
   id: string;
   service_type: string;
@@ -2637,10 +2640,6 @@ export const maChecklistTemplateStore: MAChecklistTemplate[] = [
     created_at: "2026-08-25T09:49:27.569Z"
   }
 ];
-
-export const maContractStore: MAContract[] = [];
-export const maRoundStore: MARound[] = [];
-
 
 // Helper: Format contract with round counts
 function formatContractWithRounds(c: MAContract) {

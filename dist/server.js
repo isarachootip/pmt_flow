@@ -8,7 +8,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.maRoundStore = exports.maContractStore = exports.maChecklistTemplateStore = exports.coreQCBookingStore = exports.coreTaskStore = exports.coreSitePhotoStore = exports.coreVisitCheckinStore = exports.coreJobServiceStore = exports.coreJobStore = exports.coreCustomerStore = exports.stagingSurveyStore = exports.StagingProcessStatus = exports.sysLoginLogStore = exports.sysSessionStore = exports.sysUserStore = exports.UserRole = exports.JobStatus = void 0;
+exports.maChecklistTemplateStore = exports.maRoundStore = exports.maContractStore = exports.coreQCBookingStore = exports.coreTaskStore = exports.coreSitePhotoStore = exports.coreVisitCheckinStore = exports.coreJobServiceStore = exports.coreJobStore = exports.coreCustomerStore = exports.stagingSurveyStore = exports.StagingProcessStatus = exports.sysLoginLogStore = exports.sysSessionStore = exports.sysUserStore = exports.UserRole = exports.JobStatus = void 0;
 exports.calculateQCBookingDate = calculateQCBookingDate;
 exports.syncQCBookingForTask = syncQCBookingForTask;
 exports.removeQCBookingForTask = removeQCBookingForTask;
@@ -415,6 +415,8 @@ exports.coreVisitCheckinStore = [];
 exports.coreSitePhotoStore = [];
 exports.coreTaskStore = [];
 exports.coreQCBookingStore = [];
+exports.maContractStore = [];
+exports.maRoundStore = [];
 // Helper: Sync or create QC booking for a given task
 function syncQCBookingForTask(task) {
     const targetJob = exports.coreJobStore.find(j => j.id === task.job_id || j.job_no === task.job_no || String(j.id) === String(task.job_id));
@@ -2149,8 +2151,6 @@ exports.maChecklistTemplateStore = [
         created_at: "2026-08-25T09:49:27.569Z"
     }
 ];
-exports.maContractStore = [];
-exports.maRoundStore = [];
 // Helper: Format contract with round counts
 function formatContractWithRounds(c) {
     const rounds = exports.maRoundStore.filter(r => r.contract_id === c.id);
