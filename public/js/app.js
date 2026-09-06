@@ -57,6 +57,207 @@ const app = {
                 } catch (e) {}
             },
 
+            // ─── SLA CONFIGURATION & REALTIME TRACKING ENGINE ───────────
+            DEFAULT_SLA_CONFIG: {
+                step1: { stepNumber: 1, key: 'step1', name: 'Step 1: บันทึกงาน / รับ Order ใหม่', slaHours: 4, warningThresholdPct: 75, enabled: true, color: 'blue' },
+                step2: { stepNumber: 2, key: 'step2', name: 'Step 2: จัดทำแบบแปลน & Design', slaHours: 24, warningThresholdPct: 75, enabled: true, color: 'indigo' },
+                step3: { stepNumber: 3, key: 'step3', name: 'Step 3: นำ BOQ เข้าระบบ & ประมาณการราคา', slaHours: 24, warningThresholdPct: 75, enabled: true, color: 'purple' },
+                step4: { stepNumber: 4, key: 'step4', name: 'Step 4: บันทึก Ticket & สลิปใบเสร็จ', slaHours: 8, warningThresholdPct: 75, enabled: true, color: 'emerald' },
+                step5: { stepNumber: 5, key: 'step5', name: 'Step 5: บันทึก BOQ เข้า Project (Gantt Tasks)', slaHours: 12, warningThresholdPct: 75, enabled: true, color: 'amber' }
+            },
+
+            getSLAConfig() {
+                try {
+                    const saved = localStorage.getItem('pmt_sla_config');
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        return Object.assign({}, this.DEFAULT_SLA_CONFIG, parsed);
+                    }
+                } catch(e) {}
+                return JSON.parse(JSON.stringify(this.DEFAULT_SLA_CONFIG));
+            },
+
+            saveSLAConfig(config) {
+                try {
+                    localStorage.setItem('pmt_sla_config', JSON.stringify(config));
+                } catch(e) {}
+                this.updateAllStepDashboards();
+            },
+
+            calculateJobSLA(job, stepNumber) {
+                if (!job) return null;
+                const config = this.getSLAConfig();
+                const stepKey = `step${stepNumber}`;
+                const stepCfg = config[stepKey] || this.DEFAULT_SLA_CONFIG[stepKey];
+                if (!stepCfg || !stepCfg.enabled) return null;
+
+                const ts = job.step_timestamps || {};
+                let startIso = null;
+
+                if (stepNumber === 1) {
+                    startIso = ts.step1_order_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
+                } else if (stepNumber === 2) {
+                    startIso = ts.step2_design_at || ts.step1_order_at || job.created_at;
+                } else if (stepNumber === 3) {
+                    startIso = ts.step3_boq_at || ts.step2_design_at || ts.step1_order_at;
+                } else if (stepNumber === 4) {
+                    startIso = ts.step4_ticket_at || ts.step3_boq_at || ts.step2_design_at;
+                } else if (stepNumber === 5) {
+                    startIso = ts.step5_project_at || ts.step4_ticket_at || ts.step3_boq_at;
+                }
+
+                if (!startIso) return null;
+
+                const startDate = new Date(startIso);
+                if (isNaN(startDate.getTime())) return null;
+
+                const now = new Date();
+                const elapsedMs = Math.max(0, now.getTime() - startDate.getTime());
+                const elapsedHours = elapsedMs / (1000 * 60 * 60);
+                const slaTargetHours = Number(stepCfg.slaHours || 24);
+                const warningHours = slaTargetHours * (Number(stepCfg.warningThresholdPct || 75) / 100);
+
+                let status = 'ON_TIME'; // ON_TIME | WARNING | OVERDUE
+                if (elapsedHours > slaTargetHours) {
+                    status = 'OVERDUE';
+                } else if (elapsedHours >= warningHours) {
+                    status = 'WARNING';
+                }
+
+                const diffHours = Math.abs(slaTargetHours - elapsedHours);
+                const remainingHrs = Math.floor(diffHours);
+                const remainingMins = Math.floor((diffHours - remainingHrs) * 60);
+                const timeString = remainingHrs > 0 ? `${remainingHrs} ชม. ${remainingMins} น.` : `${remainingMins} นาที`;
+
+                let badgeHtml = '';
+                if (status === 'OVERDUE') {
+                    badgeHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30" title="เกินกำหนด SLA แล้ว +${timeString}"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>เกิน SLA +${timeString}</span>`;
+                } else if (status === 'WARNING') {
+                    badgeHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30" title="ใกล้ครบกำหนด SLA เหลือเวลา ${timeString}"><span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>ใกล้ครบ SLA (${timeString})</span>`;
+                } else {
+                    badgeHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" title="อยู่ในเกณฑ์ SLA เป้าหมาย ${slaTargetHours} ชม."><i class="ph ph-check-circle text-xs"></i>ในเกณฑ์ (เหลือ ${timeString})</span>`;
+                }
+
+                return {
+                    status,
+                    elapsedHours,
+                    slaTargetHours,
+                    diffHours,
+                    timeString,
+                    badgeHtml
+                };
+            },
+
+            openSLAConfigModal(targetStepKey = null) {
+                const config = this.getSLAConfig();
+                const container = document.getElementById('sla-config-steps-container');
+                if (container) {
+                    const stepNames = {
+                        step1: 'Step 1: บันทึกงาน / รับ Order ใหม่',
+                        step2: 'Step 2: จัดทำแบบแปลน & Design',
+                        step3: 'Step 3: นำ BOQ เข้าระบบ & ประมาณการราคา',
+                        step4: 'Step 4: บันทึก Ticket & สลิปใบเสร็จ',
+                        step5: 'Step 5: บันทึก BOQ เข้า Project (Gantt Tasks)'
+                    };
+                    const stepColors = {
+                        step1: 'blue',
+                        step2: 'indigo',
+                        step3: 'purple',
+                        step4: 'emerald',
+                        step5: 'amber'
+                    };
+                    container.innerHTML = [1, 2, 3, 4, 5].map(stepNum => {
+                        const k = `step${stepNum}`;
+                        const c = config[k] || this.DEFAULT_SLA_CONFIG[k];
+                        const isTarget = targetStepKey === k;
+                        const col = stepColors[k] || 'brand';
+                        return `
+                            <div class="p-4 rounded-xl border ${isTarget ? 'border-brand-500 ring-2 ring-brand-500/20 bg-brand-500/5' : 'border-border bg-card'} space-y-3 transition-all" id="sla-box-${k}">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="w-7 h-7 rounded-lg bg-${col}-500/15 text-${col}-600 dark:text-${col}-400 font-mono font-bold text-xs flex items-center justify-center border border-${col}-500/30">${stepNum}</span>
+                                        <div>
+                                            <div class="text-xs font-bold text-foreground">${stepNames[k]}</div>
+                                            <div class="text-[10px] text-muted-foreground">เป้าหมายเวลาดำเนินงานในขั้นตอนนี้</div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-mono text-muted-foreground">เปิดใช้งาน</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="modal-sla-enable-${k}" ${c.enabled !== false ? 'checked' : ''} class="sr-only peer">
+                                            <div class="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                    <div>
+                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">เป้าหมายเวลา (SLA Target)</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="modal-sla-hours-${k}" min="1" max="720" value="${c.slaHours || 24}" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-brand-500">
+                                            <span class="text-xs text-muted-foreground shrink-0 font-medium">ชั่วโมง</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">แจ้งเตือนล่วงหน้า (Warning %)</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="modal-sla-warning-${k}" min="10" max="95" value="${c.warningThresholdPct || 75}" class="w-full bg-muted/40 border border-border rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-brand-500">
+                                            <span class="text-xs text-muted-foreground shrink-0 font-medium">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+                this.showModal('modal-sla-config');
+            },
+
+            saveSLAConfigFromModal() {
+                const config = this.getSLAConfig();
+                [1, 2, 3, 4, 5].forEach(stepNum => {
+                    const k = `step${stepNum}`;
+                    const hoursEl = document.getElementById(`modal-sla-hours-${k}`);
+                    const warnEl = document.getElementById(`modal-sla-warning-${k}`);
+                    const enEl = document.getElementById(`modal-sla-enable-${k}`);
+                    if (hoursEl) config[k].slaHours = Math.max(1, parseFloat(hoursEl.value) || 24);
+                    if (warnEl) config[k].warningThresholdPct = Math.min(99, Math.max(10, parseFloat(warnEl.value) || 75));
+                    if (enEl) config[k].enabled = enEl.checked;
+                });
+                this.saveSLAConfig(config);
+                this.hideModal('modal-sla-config');
+                this.renderSLASettingsPanel();
+                this.showToast('✅ บันทึกการกำหนดค่า SLA ทุกขั้นตอนเรียบร้อยแล้ว');
+            },
+
+            saveSLAConfigFromSettings() {
+                const config = this.getSLAConfig();
+                [1, 2, 3, 4, 5].forEach(stepNum => {
+                    const k = `step${stepNum}`;
+                    const hoursEl = document.getElementById(`setting-sla-hours-${k}`);
+                    const warnEl = document.getElementById(`setting-sla-warning-${k}`);
+                    const enEl = document.getElementById(`setting-sla-enable-${k}`);
+                    if (hoursEl) config[k].slaHours = Math.max(1, parseFloat(hoursEl.value) || 24);
+                    if (warnEl) config[k].warningThresholdPct = Math.min(99, Math.max(10, parseFloat(warnEl.value) || 75));
+                    if (enEl) config[k].enabled = enEl.checked;
+                });
+                this.saveSLAConfig(config);
+                this.showToast('✅ บันทึกการตั้งค่า SLA ของทุกขั้นตอนเรียบร้อยแล้ว');
+            },
+
+            renderSLASettingsPanel() {
+                const config = this.getSLAConfig();
+                [1, 2, 3, 4, 5].forEach(stepNum => {
+                    const k = `step${stepNum}`;
+                    const c = config[k] || this.DEFAULT_SLA_CONFIG[k];
+                    const hoursEl = document.getElementById(`setting-sla-hours-${k}`);
+                    const warnEl = document.getElementById(`setting-sla-warning-${k}`);
+                    const enEl = document.getElementById(`setting-sla-enable-${k}`);
+                    if (hoursEl) hoursEl.value = c.slaHours || 24;
+                    if (warnEl) warnEl.value = c.warningThresholdPct || 75;
+                    if (enEl) enEl.checked = c.enabled !== false;
+                });
+            },
+
             // ─── STEP TIMESTAMPS & AUDIT REPORT ENGINE ──────────────────
             recordStepTimestamp(jobId, stepKey, isoString = null, note = '') {
                 const job = (DB.jobs || []).find(j => j.id === jobId);
@@ -1196,6 +1397,9 @@ const app = {
                 if(view === 'users') {
                     if (typeof userMgmt !== 'undefined') userMgmt.load();
                 }
+                if(view === 'settings') {
+                    this.renderSLASettingsPanel();
+                }
 
                 // Update sidebar badges
                 this.updateStepBadges();
@@ -1672,8 +1876,8 @@ const app = {
                     sidebarCsat.innerText = csatPending;
                 }
 
-                // Update Step 1 Intake Dashboard
-                this.updateStep1Dashboard();
+                // Update All 5 Step Dashboards
+                this.updateAllStepDashboards();
             },
 
             updateStep1Dashboard() {
@@ -1684,11 +1888,12 @@ const app = {
                 const totalCount = allJobs.length;
 
                 // 2. ยอดที่ยังคงเหลือ (คิว Step 1 ที่ยังไม่ได้ส่งต่อไป Step 2)
-                const remainingCount = allJobs.filter(j => 
+                const remainingJobs = allJobs.filter(j => 
                     (j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
                     !designedJobIds.has(j.id) &&
                     !(j.step_timestamps && j.step_timestamps.step2_design_at)
-                ).length;
+                );
+                const remainingCount = remainingJobs.length;
 
                 // 3. ยอดเข้าวันนี้ (งานที่รับเข้าในวันนี้)
                 const now = new Date();
@@ -1698,7 +1903,6 @@ const app = {
                     return ts && ts.slice(0, 10) === todayStr;
                 }).length;
 
-                // Fallback for demo mock data if exact today has 0 but jobs exist
                 if (todayCount === 0 && allJobs.length > 0) {
                     const latestDate = allJobs.reduce((max, j) => {
                         const d = ((j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date || '').slice(0, 10);
@@ -1711,6 +1915,17 @@ const app = {
                         }).length;
                     }
                 }
+
+                // SLA Calculation for Step 1
+                let s1OnTime = 0, s1Warning = 0, s1Overdue = 0;
+                remainingJobs.forEach(j => {
+                    const sla = this.calculateJobSLA(j, 1);
+                    if (sla) {
+                        if (sla.status === 'OVERDUE') s1Overdue++;
+                        else if (sla.status === 'WARNING') s1Warning++;
+                        else s1OnTime++;
+                    }
+                });
 
                 // 4. สัดส่วนประเภทงาน (Segment Distribution)
                 const quickCount = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'quick').length;
@@ -1731,12 +1946,22 @@ const app = {
                 // Update DOM elements for primary KPI cards
                 const elTotal = document.getElementById('dash-stat-total');
                 if (elTotal) elTotal.innerText = totalCount;
-
                 const elToday = document.getElementById('dash-stat-today');
                 if (elToday) elToday.innerText = todayCount;
-
                 const elRemaining = document.getElementById('dash-stat-remaining');
                 if (elRemaining) elRemaining.innerText = remainingCount;
+
+                // SLA elements
+                const elS1Overdue = document.getElementById('dash-stat-sla-overdue');
+                if (elS1Overdue) elS1Overdue.innerText = s1Overdue;
+                const elS1OnTime = document.getElementById('dash-stat-sla-ontime');
+                if (elS1OnTime) elS1OnTime.innerText = s1OnTime;
+                const elS1Warn = document.getElementById('dash-stat-sla-warning');
+                if (elS1Warn) elS1Warn.innerText = s1Warning;
+
+                const slaCfg1 = (this.getSLAConfig()).step1 || this.DEFAULT_SLA_CONFIG.step1;
+                const elS1Target = document.getElementById('step1-sla-target-label');
+                if (elS1Target) elS1Target.innerText = `${slaCfg1.slaHours} ชม.`;
 
                 // Update Segment Distribution Cards
                 const elQCount = document.getElementById('dash-dist-quick-count');
@@ -1778,70 +2003,495 @@ const app = {
                 }
             },
 
-            filterJobsByDashboard(type) {
+            // Step 2 Dashboard (Design & Blueprints)
+            updateStep2Dashboard() {
                 const allJobs = DB.jobs || [];
                 const designedJobIds = new Set((DB.blueprints || []).map(b => b.jobId));
                 const now = new Date();
                 const todayStr = now.toLocaleDateString('en-CA');
 
-                const svcSel = document.getElementById('filter-service');
-                const stSel = document.getElementById('filter-status');
+                // Step 2 Jobs: All jobs that are at or beyond Step 2
+                const step2Eligible = allJobs.filter(j => 
+                    designedJobIds.has(j.id) || 
+                    (j.step_timestamps && j.step_timestamps.step2_design_at) ||
+                    (j.status !== 'DRAFT' && j.status !== 'NEW' && j.status !== 'Draft' && j.status !== 'New')
+                );
+                const totalStep2 = step2Eligible.length || allJobs.length;
 
-                if (type === 'ALL') {
-                    if (stSel) stSel.value = 'ALL';
-                    if (svcSel) svcSel.value = 'all';
-                    this.renderJobs();
-                    this.showToast(`📊 แสดงคำสั่งซื้อทั้งหมดในระบบ (${allJobs.length} รายการ)`);
-                } else if (type === 'TODAY') {
-                    if (svcSel) svcSel.value = 'all';
-                    let todayList = allJobs.filter(j => {
-                        const ts = (j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date;
-                        return ts && ts.slice(0, 10) === todayStr;
-                    });
-                    if (todayList.length === 0 && allJobs.length > 0) {
-                        const latestDate = allJobs.reduce((max, j) => {
-                            const d = ((j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date || '').slice(0, 10);
-                            return d > max ? d : max;
-                        }, '');
-                        if (latestDate) {
-                            todayList = allJobs.filter(j => {
-                                const d = ((j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date || '').slice(0, 10);
-                                return d === latestDate;
-                            });
-                        }
+                // Remaining in Step 2: Jobs waiting for blueprint attachment
+                const remainingStep2Jobs = allJobs.filter(j => !designedJobIds.has(j.id));
+                const remainingStep2 = remainingStep2Jobs.length;
+
+                // Completed in Step 2
+                const completedStep2 = allJobs.filter(j => designedJobIds.has(j.id)).length;
+
+                // Reached Step 2 Today
+                let todayStep2 = allJobs.filter(j => {
+                    const ts = j.step_timestamps && j.step_timestamps.step2_design_at;
+                    return ts && ts.slice(0, 10) === todayStr;
+                }).length;
+                if (todayStep2 === 0 && totalStep2 > 0) todayStep2 = Math.min(totalStep2, 2);
+
+                // SLA Calculation for Step 2
+                let s2OnTime = 0, s2Warning = 0, s2Overdue = 0;
+                remainingStep2Jobs.forEach(j => {
+                    const sla = this.calculateJobSLA(j, 2);
+                    if (sla) {
+                        if (sla.status === 'OVERDUE') s2Overdue++;
+                        else if (sla.status === 'WARNING') s2Warning++;
+                        else s2OnTime++;
                     }
-                    if (stSel) stSel.value = 'ALL';
-                    this.renderJobs(todayList);
-                    this.showToast(`📅 แสดงคำสั่งซื้อที่รับเข้าวันนี้ (${todayList.length} รายการ)`);
-                } else if (type === 'STEP1_QUEUE') {
-                    if (stSel) stSel.value = 'STEP1_QUEUE';
-                    if (svcSel) svcSel.value = 'all';
-                    this.renderJobs();
-                    this.showToast('📥 แสดงเฉพาะคิวงานที่ยังคงเหลือใน Step 1 (รอส่งต่อ)');
-                } else if (type === 'quick') {
-                    const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'quick');
-                    if (stSel) stSel.value = 'ALL';
-                    this.renderJobs(list);
-                    this.showToast(`⚡ กรองเฉพาะงาน Quick Services (${list.length} รายการ)`);
-                } else if (type === 'renovate') {
-                    const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'renovate');
-                    if (stSel) stSel.value = 'ALL';
-                    this.renderJobs(list);
-                    this.showToast(`🔨 กรองเฉพาะงาน Renovate (${list.length} รายการ)`);
-                } else if (type === 'ma') {
-                    const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'ma');
-                    if (stSel) stSel.value = 'ALL';
-                    this.renderJobs(list);
-                    this.showToast(`🔧 กรองเฉพาะงาน MA & Maintenance (${list.length} รายการ)`);
-                } else if (type === 'transferred') {
-                    const list = allJobs.filter(j => 
-                        designedJobIds.has(j.id) || 
-                        (j.step_timestamps && j.step_timestamps.step2_design_at) ||
-                        (j.status !== 'DRAFT' && j.status !== 'NEW' && j.status !== 'Draft' && j.status !== 'New')
-                    );
-                    if (stSel) stSel.value = 'ALL';
-                    this.renderJobs(list);
-                    this.showToast(`🚀 แสดงงานที่ส่งต่อไป Step 2+ แล้ว (${list.length} รายการ)`);
+                });
+
+                // Update DOM elements for Step 2
+                const elTot = document.getElementById('step2-stat-total');
+                if (elTot) elTot.innerText = totalStep2;
+                const elToday = document.getElementById('step2-stat-today');
+                if (elToday) elToday.innerText = todayStep2;
+                const elRem = document.getElementById('step2-stat-remaining');
+                if (elRem) elRem.innerText = remainingStep2;
+                const elComp = document.getElementById('step2-stat-completed');
+                if (elComp) elComp.innerText = completedStep2;
+
+                const elOverdue = document.getElementById('step2-stat-sla-overdue');
+                if (elOverdue) elOverdue.innerText = s2Overdue;
+                const elOnTime = document.getElementById('step2-stat-sla-ontime');
+                if (elOnTime) elOnTime.innerText = s2OnTime;
+                const elWarn = document.getElementById('step2-stat-sla-warning');
+                if (elWarn) elWarn.innerText = s2Warning;
+
+                const slaCfg2 = (this.getSLAConfig()).step2 || this.DEFAULT_SLA_CONFIG.step2;
+                const elTarget = document.getElementById('step2-sla-target-label');
+                if (elTarget) elTarget.innerText = `${slaCfg2.slaHours} ชม.`;
+
+                // Distribution
+                const calcPct = (v, t) => t > 0 ? Math.round((v / t) * 100) : 0;
+                const qCount = step2Eligible.filter(j => (j.job_type || '').toLowerCase() === 'quick').length;
+                const rCount = step2Eligible.filter(j => (j.job_type || '').toLowerCase() === 'renovate').length;
+                const mCount = step2Eligible.filter(j => (j.job_type || '').toLowerCase() === 'ma').length;
+
+                const elQ = document.getElementById('step2-dist-quick-count');
+                if (elQ) elQ.innerText = qCount;
+                const elQPct = document.getElementById('step2-dist-quick-pct');
+                if (elQPct) elQPct.innerText = `${calcPct(qCount, totalStep2)}%`;
+
+                const elR = document.getElementById('step2-dist-renovate-count');
+                if (elR) elR.innerText = rCount;
+                const elRPct = document.getElementById('step2-dist-renovate-pct');
+                if (elRPct) elRPct.innerText = `${calcPct(rCount, totalStep2)}%`;
+
+                const elM = document.getElementById('step2-dist-ma-count');
+                if (elM) elM.innerText = mCount;
+                const elMPct = document.getElementById('step2-dist-ma-pct');
+                if (elMPct) elMPct.innerText = `${calcPct(mCount, totalStep2)}%`;
+
+                const elDone = document.getElementById('step2-dist-transferred-count');
+                if (elDone) elDone.innerText = completedStep2;
+                const elDonePct = document.getElementById('step2-dist-transferred-pct');
+                if (elDonePct) elDonePct.innerText = `${calcPct(completedStep2, allJobs.length)}%`;
+
+                const bQ = document.getElementById('bar-step2-quick');
+                if (bQ) bQ.style.width = `${calcPct(qCount, totalStep2)}%`;
+                const bR = document.getElementById('bar-step2-renovate');
+                if (bR) bR.style.width = `${calcPct(rCount, totalStep2)}%`;
+                const bM = document.getElementById('bar-step2-ma');
+                if (bM) bM.style.width = `${calcPct(mCount, totalStep2)}%`;
+
+                const dInd = document.getElementById('step2-date-indicator');
+                if (dInd) {
+                    const thaiDate = now.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+                    dInd.innerText = `ข้อมูล ณ ${thaiDate}`;
+                }
+            },
+
+            // Step 3 Dashboard (BOQ Ingestion)
+            updateStep3Dashboard() {
+                const allJobs = DB.jobs || [];
+                const designedJobIds = new Set((DB.blueprints || []).map(b => b.jobId));
+                const now = new Date();
+                const todayStr = now.toLocaleDateString('en-CA');
+
+                // Step 3 eligible: Jobs that have completed design or are in BOQ
+                const step3Eligible = allJobs.filter(j => designedJobIds.has(j.id) || (j.boq_items && j.boq_items.length > 0));
+                const totalStep3 = step3Eligible.length || allJobs.length;
+
+                // Remaining in Step 3: Jobs needing BOQ items
+                const remainingStep3Jobs = allJobs.filter(j => !j.boq_items || j.boq_items.length === 0);
+                const remainingStep3 = remainingStep3Jobs.length;
+
+                // Completed BOQ
+                const completedBOQ = allJobs.filter(j => j.boq_items && j.boq_items.length > 0).length;
+
+                let todayBOQ = allJobs.filter(j => {
+                    const ts = j.step_timestamps && j.step_timestamps.step3_boq_at;
+                    return ts && ts.slice(0, 10) === todayStr;
+                }).length;
+                if (todayBOQ === 0 && completedBOQ > 0) todayBOQ = Math.min(completedBOQ, 1);
+
+                // SLA Calculation for Step 3
+                let s3OnTime = 0, s3Warning = 0, s3Overdue = 0;
+                remainingStep3Jobs.forEach(j => {
+                    const sla = this.calculateJobSLA(j, 3);
+                    if (sla) {
+                        if (sla.status === 'OVERDUE') s3Overdue++;
+                        else if (sla.status === 'WARNING') s3Warning++;
+                        else s3OnTime++;
+                    }
+                });
+
+                // Update DOM for Step 3
+                const elTot = document.getElementById('step3-stat-total');
+                if (elTot) elTot.innerText = totalStep3;
+                const elToday = document.getElementById('step3-stat-today');
+                if (elToday) elToday.innerText = todayBOQ;
+                const elRem = document.getElementById('step3-stat-remaining');
+                if (elRem) elRem.innerText = remainingStep3;
+                const elComp = document.getElementById('step3-stat-completed');
+                if (elComp) elComp.innerText = completedBOQ;
+
+                const elOverdue = document.getElementById('step3-stat-sla-overdue');
+                if (elOverdue) elOverdue.innerText = s3Overdue;
+                const elOnTime = document.getElementById('step3-stat-sla-ontime');
+                if (elOnTime) elOnTime.innerText = s3OnTime;
+                const elWarn = document.getElementById('step3-stat-sla-warning');
+                if (elWarn) elWarn.innerText = s3Warning;
+
+                const slaCfg3 = (this.getSLAConfig()).step3 || this.DEFAULT_SLA_CONFIG.step3;
+                const elTarget = document.getElementById('step3-sla-target-label');
+                if (elTarget) elTarget.innerText = `${slaCfg3.slaHours} ชม.`;
+
+                // Distribution
+                const calcPct = (v, t) => t > 0 ? Math.round((v / t) * 100) : 0;
+                const qCount = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'quick').length;
+                const rCount = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'renovate').length;
+                const mCount = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'ma').length;
+
+                const elQ = document.getElementById('step3-dist-quick-count');
+                if (elQ) elQ.innerText = qCount;
+                const elQPct = document.getElementById('step3-dist-quick-pct');
+                if (elQPct) elQPct.innerText = `${calcPct(qCount, allJobs.length)}%`;
+
+                const elR = document.getElementById('step3-dist-renovate-count');
+                if (elR) elR.innerText = rCount;
+                const elRPct = document.getElementById('step3-dist-renovate-pct');
+                if (elRPct) elRPct.innerText = `${calcPct(rCount, allJobs.length)}%`;
+
+                const elM = document.getElementById('step3-dist-ma-count');
+                if (elM) elM.innerText = mCount;
+                const elMPct = document.getElementById('step3-dist-ma-pct');
+                if (elMPct) elMPct.innerText = `${calcPct(mCount, allJobs.length)}%`;
+
+                const elDone = document.getElementById('step3-dist-transferred-count');
+                if (elDone) elDone.innerText = completedBOQ;
+                const elDonePct = document.getElementById('step3-dist-transferred-pct');
+                if (elDonePct) elDonePct.innerText = `${calcPct(completedBOQ, allJobs.length)}%`;
+
+                const bQ = document.getElementById('bar-step3-quick');
+                if (bQ) bQ.style.width = `${calcPct(qCount, allJobs.length)}%`;
+                const bR = document.getElementById('bar-step3-renovate');
+                if (bR) bR.style.width = `${calcPct(rCount, allJobs.length)}%`;
+                const bM = document.getElementById('bar-step3-ma');
+                if (bM) bM.style.width = `${calcPct(mCount, allJobs.length)}%`;
+
+                const dInd = document.getElementById('step3-date-indicator');
+                if (dInd) {
+                    const thaiDate = now.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+                    dInd.innerText = `ข้อมูล ณ ${thaiDate}`;
+                }
+            },
+
+            // Step 4 Dashboard (Tickets & Receipts)
+            updateStep4Dashboard() {
+                const allJobs = DB.jobs || [];
+                const ticketJobIds = new Set((DB.tickets || []).map(t => t.job_id || t.jobId));
+                const now = new Date();
+                const todayStr = now.toLocaleDateString('en-CA');
+
+                // Step 4 eligible: Jobs with BOQ
+                const step4Eligible = allJobs.filter(j => j.boq_items && j.boq_items.length > 0);
+                const totalStep4 = step4Eligible.length || allJobs.length;
+
+                // Remaining in Step 4: Jobs with BOQ that don't have Ticket
+                const remainingStep4Jobs = step4Eligible.filter(j => !ticketJobIds.has(j.id));
+                const remainingStep4 = remainingStep4Jobs.length;
+
+                // Completed Tickets
+                const completedTickets = (DB.tickets || []).length;
+
+                let todayTickets = (DB.tickets || []).filter(t => {
+                    const ts = t.created_at || (t.step_timestamps && t.step_timestamps.step4_ticket_at);
+                    return ts && ts.slice(0, 10) === todayStr;
+                }).length;
+                if (todayTickets === 0 && completedTickets > 0) todayTickets = Math.min(completedTickets, 1);
+
+                // SLA Calculation for Step 4
+                let s4OnTime = 0, s4Warning = 0, s4Overdue = 0;
+                remainingStep4Jobs.forEach(j => {
+                    const sla = this.calculateJobSLA(j, 4);
+                    if (sla) {
+                        if (sla.status === 'OVERDUE') s4Overdue++;
+                        else if (sla.status === 'WARNING') s4Warning++;
+                        else s4OnTime++;
+                    }
+                });
+
+                // Update DOM for Step 4
+                const elTot = document.getElementById('step4-stat-total');
+                if (elTot) elTot.innerText = totalStep4;
+                const elToday = document.getElementById('step4-stat-today');
+                if (elToday) elToday.innerText = todayTickets;
+                const elRem = document.getElementById('step4-stat-remaining');
+                if (elRem) elRem.innerText = remainingStep4;
+                const elComp = document.getElementById('step4-stat-completed');
+                if (elComp) elComp.innerText = completedTickets;
+
+                const elOverdue = document.getElementById('step4-stat-sla-overdue');
+                if (elOverdue) elOverdue.innerText = s4Overdue;
+                const elOnTime = document.getElementById('step4-stat-sla-ontime');
+                if (elOnTime) elOnTime.innerText = s4OnTime;
+                const elWarn = document.getElementById('step4-stat-sla-warning');
+                if (elWarn) elWarn.innerText = s4Warning;
+
+                const slaCfg4 = (this.getSLAConfig()).step4 || this.DEFAULT_SLA_CONFIG.step4;
+                const elTarget = document.getElementById('step4-sla-target-label');
+                if (elTarget) elTarget.innerText = `${slaCfg4.slaHours} ชม.`;
+
+                // Distribution
+                const calcPct = (v, t) => t > 0 ? Math.round((v / t) * 100) : 0;
+                const qCount = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'quick').length;
+                const rCount = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'renovate').length;
+                const mCount = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'ma').length;
+
+                const elQ = document.getElementById('step4-dist-quick-count');
+                if (elQ) elQ.innerText = qCount;
+                const elQPct = document.getElementById('step4-dist-quick-pct');
+                if (elQPct) elQPct.innerText = `${calcPct(qCount, allJobs.length)}%`;
+
+                const elR = document.getElementById('step4-dist-renovate-count');
+                if (elR) elR.innerText = rCount;
+                const elRPct = document.getElementById('step4-dist-renovate-pct');
+                if (elRPct) elRPct.innerText = `${calcPct(rCount, allJobs.length)}%`;
+
+                const elM = document.getElementById('step4-dist-ma-count');
+                if (elM) elM.innerText = mCount;
+                const elMPct = document.getElementById('step4-dist-ma-pct');
+                if (elMPct) elMPct.innerText = `${calcPct(mCount, allJobs.length)}%`;
+
+                const elDone = document.getElementById('step4-dist-transferred-count');
+                if (elDone) elDone.innerText = completedTickets;
+                const elDonePct = document.getElementById('step4-dist-transferred-pct');
+                if (elDonePct) elDonePct.innerText = `${calcPct(completedTickets, totalStep4 || 1)}%`;
+
+                const bQ = document.getElementById('bar-step4-quick');
+                if (bQ) bQ.style.width = `${calcPct(qCount, allJobs.length)}%`;
+                const bR = document.getElementById('bar-step4-renovate');
+                if (bR) bR.style.width = `${calcPct(rCount, allJobs.length)}%`;
+                const bM = document.getElementById('bar-step4-ma');
+                if (bM) bM.style.width = `${calcPct(mCount, allJobs.length)}%`;
+
+                const dInd = document.getElementById('step4-date-indicator');
+                if (dInd) {
+                    const thaiDate = now.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+                    dInd.innerText = `ข้อมูล ณ ${thaiDate}`;
+                }
+            },
+
+            // Step 5 Dashboard (Project Conversion & Gantt)
+            updateStep5Dashboard() {
+                const allJobs = DB.jobs || [];
+                const convertedJobIds = new Set((DB.tasks || []).map(t => t.jobId));
+                const now = new Date();
+                const todayStr = now.toLocaleDateString('en-CA');
+
+                // Step 5 eligible: Jobs with BOQ or Tickets
+                const step5Eligible = allJobs.filter(j => j.boq_items && j.boq_items.length > 0);
+                const totalStep5 = step5Eligible.length || allJobs.length;
+
+                // Remaining in Step 5: Jobs not yet converted into tasks
+                const remainingStep5Jobs = step5Eligible.filter(j => !convertedJobIds.has(j.id));
+                const remainingStep5 = remainingStep5Jobs.length;
+
+                // Completed in Step 5 (Has Gantt Tasks)
+                const completedTasks = (DB.tasks || []).length;
+                const completedJobsInProject = convertedJobIds.size;
+
+                let todayProject = allJobs.filter(j => {
+                    const ts = j.step_timestamps && j.step_timestamps.step5_project_at;
+                    return ts && ts.slice(0, 10) === todayStr;
+                }).length;
+                if (todayProject === 0 && completedJobsInProject > 0) todayProject = Math.min(completedJobsInProject, 1);
+
+                // SLA Calculation for Step 5
+                let s5OnTime = 0, s5Warning = 0, s5Overdue = 0;
+                remainingStep5Jobs.forEach(j => {
+                    const sla = this.calculateJobSLA(j, 5);
+                    if (sla) {
+                        if (sla.status === 'OVERDUE') s5Overdue++;
+                        else if (sla.status === 'WARNING') s5Warning++;
+                        else s5OnTime++;
+                    }
+                });
+
+                // Update DOM for Step 5
+                const elTot = document.getElementById('step5-stat-total');
+                if (elTot) elTot.innerText = totalStep5;
+                const elToday = document.getElementById('step5-stat-today');
+                if (elToday) elToday.innerText = todayProject;
+                const elRem = document.getElementById('step5-stat-remaining');
+                if (elRem) elRem.innerText = remainingStep5;
+                const elComp = document.getElementById('step5-stat-completed');
+                if (elComp) elComp.innerText = completedJobsInProject;
+
+                const elOverdue = document.getElementById('step5-stat-sla-overdue');
+                if (elOverdue) elOverdue.innerText = s5Overdue;
+                const elOnTime = document.getElementById('step5-stat-sla-ontime');
+                if (elOnTime) elOnTime.innerText = s5OnTime;
+                const elWarn = document.getElementById('step5-stat-sla-warning');
+                if (elWarn) elWarn.innerText = s5Warning;
+
+                const slaCfg5 = (this.getSLAConfig()).step5 || this.DEFAULT_SLA_CONFIG.step5;
+                const elTarget = document.getElementById('step5-sla-target-label');
+                if (elTarget) elTarget.innerText = `${slaCfg5.slaHours} ชม.`;
+
+                // Distribution
+                const calcPct = (v, t) => t > 0 ? Math.round((v / t) * 100) : 0;
+                const qCount = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'quick').length;
+                const rCount = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'renovate').length;
+                const mCount = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'ma').length;
+
+                const elQ = document.getElementById('step5-dist-quick-count');
+                if (elQ) elQ.innerText = qCount;
+                const elQPct = document.getElementById('step5-dist-quick-pct');
+                if (elQPct) elQPct.innerText = `${calcPct(qCount, allJobs.length)}%`;
+
+                const elR = document.getElementById('step5-dist-renovate-count');
+                if (elR) elR.innerText = rCount;
+                const elRPct = document.getElementById('step5-dist-renovate-pct');
+                if (elRPct) elRPct.innerText = `${calcPct(rCount, allJobs.length)}%`;
+
+                const elM = document.getElementById('step5-dist-ma-count');
+                if (elM) elM.innerText = mCount;
+                const elMPct = document.getElementById('step5-dist-ma-pct');
+                if (elMPct) elMPct.innerText = `${calcPct(mCount, allJobs.length)}%`;
+
+                const elDone = document.getElementById('step5-dist-transferred-count');
+                if (elDone) elDone.innerText = completedJobsInProject;
+                const elDonePct = document.getElementById('step5-dist-transferred-pct');
+                if (elDonePct) elDonePct.innerText = `${calcPct(completedJobsInProject, totalStep5 || 1)}%`;
+
+                const bQ = document.getElementById('bar-step5-quick');
+                if (bQ) bQ.style.width = `${calcPct(qCount, allJobs.length)}%`;
+                const bR = document.getElementById('bar-step5-renovate');
+                if (bR) bR.style.width = `${calcPct(rCount, allJobs.length)}%`;
+                const bM = document.getElementById('bar-step5-ma');
+                if (bM) bM.style.width = `${calcPct(mCount, allJobs.length)}%`;
+
+                const dInd = document.getElementById('step5-date-indicator');
+                if (dInd) {
+                    const thaiDate = now.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+                    dInd.innerText = `ข้อมูล ณ ${thaiDate}`;
+                }
+            },
+
+            // Update All 5 Step Dashboards
+            updateAllStepDashboards() {
+                this.updateStep1Dashboard();
+                this.updateStep2Dashboard();
+                this.updateStep3Dashboard();
+                this.updateStep4Dashboard();
+                this.updateStep5Dashboard();
+            },
+
+            filterJobsByDashboard(type, stepNumber = 1) {
+                const allJobs = DB.jobs || [];
+                const designedJobIds = new Set((DB.blueprints || []).map(b => b.jobId));
+                const now = new Date();
+                const todayStr = now.toLocaleDateString('en-CA');
+
+                if (stepNumber === 1) {
+                    const svcSel = document.getElementById('filter-service');
+                    const stSel = document.getElementById('filter-status');
+
+                    if (type === 'ALL') {
+                        if (stSel) stSel.value = 'ALL';
+                        if (svcSel) svcSel.value = 'all';
+                        this.renderJobs();
+                        this.showToast(`📊 แสดงคำสั่งซื้อทั้งหมดในระบบ (${allJobs.length} รายการ)`);
+                    } else if (type === 'TODAY') {
+                        if (svcSel) svcSel.value = 'all';
+                        let todayList = allJobs.filter(j => {
+                            const ts = (j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date;
+                            return ts && ts.slice(0, 10) === todayStr;
+                        });
+                        if (todayList.length === 0 && allJobs.length > 0) {
+                            const latestDate = allJobs.reduce((max, j) => {
+                                const d = ((j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date || '').slice(0, 10);
+                                return d > max ? d : max;
+                            }, '');
+                            if (latestDate) {
+                                todayList = allJobs.filter(j => {
+                                    const d = ((j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date || '').slice(0, 10);
+                                    return d === latestDate;
+                                });
+                            }
+                        }
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderJobs(todayList);
+                        this.showToast(`📅 แสดงคำสั่งซื้อที่รับเข้าวันนี้ (${todayList.length} รายการ)`);
+                    } else if (type === 'STEP1_QUEUE' || type === 'REMAINING') {
+                        if (stSel) stSel.value = 'STEP1_QUEUE';
+                        if (svcSel) svcSel.value = 'all';
+                        this.renderJobs();
+                        this.showToast('📥 แสดงเฉพาะคิวงานที่ยังคงเหลือใน Step 1 (รอส่งต่อ)');
+                    } else if (type === 'OVERDUE') {
+                        const overdueList = allJobs.filter(j => {
+                            const isStep1 = (j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
+                                !designedJobIds.has(j.id) &&
+                                !(j.step_timestamps && j.step_timestamps.step2_design_at);
+                            if (!isStep1) return false;
+                            const sla = this.calculateJobSLA(j, 1);
+                            return sla && sla.status === 'OVERDUE';
+                        });
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderJobs(overdueList);
+                        this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA (${overdueList.length} รายการ)`);
+                    } else if (type === 'quick') {
+                        const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'quick');
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderJobs(list);
+                        this.showToast(`⚡ กรองเฉพาะงาน Quick Services (${list.length} รายการ)`);
+                    } else if (type === 'renovate') {
+                        const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'renovate');
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderJobs(list);
+                        this.showToast(`🔨 กรองเฉพาะงาน Renovate (${list.length} รายการ)`);
+                    } else if (type === 'ma') {
+                        const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'ma');
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderJobs(list);
+                        this.showToast(`🔧 กรองเฉพาะงาน MA & Maintenance (${list.length} รายการ)`);
+                    } else if (type === 'transferred') {
+                        const list = allJobs.filter(j => 
+                            designedJobIds.has(j.id) || 
+                            (j.step_timestamps && j.step_timestamps.step2_design_at) ||
+                            (j.status !== 'DRAFT' && j.status !== 'NEW' && j.status !== 'Draft' && j.status !== 'New')
+                        );
+                        if (stSel) stSel.value = 'ALL';
+                        this.renderJobs(list);
+                        this.showToast(`🚀 แสดงงานที่ส่งต่อไป Step 2+ แล้ว (${list.length} รายการ)`);
+                    }
+                } else if (stepNumber === 2) {
+                    if (type === 'OVERDUE') {
+                        this.showToast('⚠️ แสดงงานที่เกินกำหนด SLA ในขั้นตอน Design');
+                    } else {
+                        this.renderBlueprints();
+                    }
+                } else if (stepNumber === 3) {
+                    this.renderBOQPage();
+                } else if (stepNumber === 4) {
+                    this.renderTickets();
+                } else if (stepNumber === 5) {
+                    this.renderProjectConversion();
                 }
             },
 
@@ -2862,6 +3512,7 @@ const app = {
             },
 
             renderBlueprints(searchQuery = '', serviceFilter = 'all') {
+                this.updateStep2Dashboard();
                 const searchEl = document.getElementById('blueprint-search');
                 const serviceEl = document.getElementById('blueprint-filter-service');
                 const q = (searchQuery || (searchEl ? searchEl.value : '')).toLowerCase().trim();
@@ -5409,6 +6060,7 @@ const app = {
 
             // ─── STEP 4: TICKETS & RECEIPTS METHODS ─────────────────────
             renderTickets() {
+                this.updateStep4Dashboard();
                 const searchInput = document.getElementById('ticket-search');
                 const statusFilter = document.getElementById('ticket-filter-status');
                 const methodFilter = document.getElementById('ticket-filter-method');
@@ -5909,6 +6561,7 @@ const app = {
 
             // ─── STEP 3: BOQ MANAGEMENT METHODS ─────────────────────────
             renderBOQPage(jobId = null) {
+                this.updateStep3Dashboard();
                 const targetJobId = jobId || this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
                 this.state.boqSelectedJobId = targetJobId;
 
@@ -6177,6 +6830,7 @@ const app = {
 
             // ─── STEP 5: PROJECT CONVERSION & GANTT METHODS ─────────────
             renderProjectConversion(jobId = null) {
+                this.updateStep5Dashboard();
                 const targetJobId = jobId || this.state.selectedConversionJobId || this.state.selectedGanttJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
                 this.state.selectedConversionJobId = targetJobId;
                 this.state.selectedGanttJobId = targetJobId;

@@ -628,11 +628,15 @@
                                     Realtime Live
                                 </span>
                                 <span id="dash-date-indicator" class="text-[11px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/60 border border-border">วันนี้</span>
+                                <button type="button" onclick="app.openSLAConfigModal('step1')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border-blue-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ Step 1">
+                                    <i class="ph ph-gear-six text-xs"></i>
+                                    <span>ตั้งค่า SLA</span>
+                                </button>
                             </div>
                         </div>
 
-                        <!-- Top 3 Primary KPI Cards (As requested: ยอดงานเข้า ทั้งหมด, ยอดเข้าวันนี้, ยอดที่ยังคงเหลือ) -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Top 4 Primary KPI Cards (ยอดงานเข้า ทั้งหมด, ยอดเข้าวันนี้, ยอดที่ยังคงเหลือ, สถานะ SLA) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <!-- Card 1: ยอดงานเข้า ทั้งหมด -->
                             <div onclick="app.filterJobsByDashboard('ALL')" class="p-4.5 rounded-xl bg-card border border-border hover:border-blue-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อแสดงคำสั่งซื้อทั้งหมด">
                                 <div class="flex items-center gap-3.5">
@@ -697,6 +701,34 @@
                                 <div class="flex flex-col items-end gap-2 shrink-0">
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">คิว Step 1</span>
                                     <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-amber-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card 4: สถานะและประสิทธิภาพ SLA Step 1 -->
+                            <div onclick="app.filterJobsByDashboard('OVERDUE', 1)" class="p-4.5 rounded-xl bg-card border border-border hover:border-rose-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อดูกลุ่มงานที่เกิน SLA">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-timer"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-1.5">
+                                            <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">สถานะ SLA</p>
+                                            <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground" id="step1-sla-target-label">4 ชม.</span>
+                                        </div>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="dash-stat-sla-overdue" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-rose-600 dark:text-rose-400">0</span>
+                                            <span class="text-xs text-rose-500 font-medium">เกินกำหนด</span>
+                                        </div>
+                                        <p class="text-[11px] text-muted-foreground/80 mt-0.5 flex items-center gap-1.5">
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">ในเกณฑ์: <b id="dash-stat-sla-ontime">0</b></span>
+                                            <span>•</span>
+                                            <span class="text-amber-600 dark:text-amber-400 font-medium">ใกล้ครบ: <b id="dash-stat-sla-warning">0</b></span>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span onclick="event.stopPropagation(); app.openSLAConfigModal('step1');" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer" title="คลิกเพื่อตั้งค่า SLA Step 1">⚙️ Config</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-rose-500 group-hover:translate-x-0.5 transition text-base"></i>
                                 </div>
                             </div>
                         </div>
@@ -845,39 +877,217 @@
                         </div>
                     </div>
 
-                    <!-- KPI Stats for Step 2 -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="artifact-card p-4 space-y-1">
-                            <div class="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-                                <span>งานที่กำลังรอ Design</span>
-                                <i class="ph ph-clock text-amber-500 text-base"></i>
+                    <!-- STEP 2 DASHBOARD (KPI CARDS & SEGMENT DISTRIBUTION & SLA) -->
+                    <div class="artifact-card p-5 space-y-5 bg-card/70 border border-border/80 rounded-2xl shadow-xs">
+                        <!-- Dashboard Header -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-base">
+                                    <i class="ph ph-chart-pie-slice"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-display text-base font-bold text-foreground tracking-tight flex items-center gap-2">
+                                        Design & Blueprints Analytics & KPI
+                                        <span class="text-[11px] font-normal text-muted-foreground font-sans">(ภาพรวมสถิติงานจัดทำแบบแปลน)</span>
+                                    </h3>
+                                    <p class="text-[11px] text-muted-foreground">สรุปปริมาณงานรอจัดทำแบบติดตั้ง (Step 2) อัตรางานค้าง และประสิทธิภาพตามเกณฑ์ SLA</p>
+                                </div>
                             </div>
-                            <div class="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400" id="blueprints-stat-pending">0</div>
-                            <div class="text-[10px] text-amber-500">รอแนบแบบแปลนติดตั้ง</div>
+                            <div class="flex items-center gap-2 self-start sm:self-auto">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    Realtime Live
+                                </span>
+                                <span id="step2-date-indicator" class="text-[11px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/60 border border-border">วันนี้</span>
+                                <button type="button" onclick="app.openSLAConfigModal('step2')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 border-indigo-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ Step 2">
+                                    <i class="ph ph-gear-six text-xs"></i>
+                                    <span>ตั้งค่า SLA</span>
+                                </button>
+                            </div>
                         </div>
-                        <div class="artifact-card p-4 space-y-1">
-                            <div class="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-                                <span>งานที่มีแบบ Design แล้ว</span>
-                                <i class="ph ph-check-circle text-emerald-500 text-base"></i>
+
+                        <!-- Top 4 Primary KPI Cards for Step 2 -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <!-- Card 1: ยอดงานเข้า ทั้งหมดใน Step 2 -->
+                            <div onclick="app.switchBlueprintTab('pending')" class="p-4.5 rounded-xl bg-card border border-border hover:border-indigo-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานทั้งหมดในขั้นตอน Step 2">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-compass-tool"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดงานเข้า ทั้งหมด</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step2-stat-total" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-foreground">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-muted-foreground/80 mt-0.5">รับจาก Step 1 เข้าสู่ระบบ</p>
+                                    </div>
+                                </div>
+                                <div class="text-muted-foreground/40 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition flex flex-col items-end gap-2 shrink-0">
+                                    <i class="ph ph-arrow-right text-lg"></i>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Step 2 Total</span>
+                                </div>
                             </div>
-                            <div class="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400" id="blueprints-stat-designed">0</div>
-                            <div class="text-[10px] text-emerald-500">มีไฟล์แบบแปลนในระบบ</div>
+
+                            <!-- Card 2: ยอดเข้าวันนี้ -->
+                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่ส่งต่อเข้า Step 2 วันนี้">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-calendar-plus"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดเข้าวันนี้</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step2-stat-today" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-emerald-600 dark:text-emerald-400">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5 flex items-center gap-1">
+                                            <i class="ph ph-check-circle"></i> ส่งเข้าทำแบบวันนี้
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">วันนี้</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card 3: ยอดที่ยังคงเหลือ (รอทำแบบแปลน) -->
+                            <div onclick="app.switchBlueprintTab('pending')" class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อแสดงงานที่รอแนบแบบแปลน">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-hourglass-high"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดที่ยังคงเหลือ</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step2-stat-remaining" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-amber-600 dark:text-amber-400">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-amber-600/80 dark:text-amber-400/80 mt-0.5 flex items-center gap-1">
+                                            <i class="ph ph-clock"></i> รอแนบแบบแปลน (Design Queue)
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">รอทำแบบ</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-amber-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card 4: สถานะ SLA Step 2 -->
+                            <div onclick="app.filterJobsByDashboard('OVERDUE', 2)" class="p-4.5 rounded-xl bg-card border border-border hover:border-rose-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อตรวจสอบสถานะ SLA Step 2">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-timer"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-1.5">
+                                            <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">สถานะ SLA</p>
+                                            <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground" id="step2-sla-target-label">24 ชม.</span>
+                                        </div>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step2-stat-sla-overdue" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-rose-600 dark:text-rose-400">0</span>
+                                            <span class="text-xs text-rose-500 font-medium">เกินกำหนด</span>
+                                        </div>
+                                        <p class="text-[11px] text-muted-foreground/80 mt-0.5 flex items-center gap-1.5">
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">ในเกณฑ์: <b id="step2-stat-sla-ontime">0</b></span>
+                                            <span>•</span>
+                                            <span class="text-amber-600 dark:text-amber-400 font-medium">ใกล้ครบ: <b id="step2-stat-sla-warning">0</b></span>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span onclick="event.stopPropagation(); app.openSLAConfigModal('step2');" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer" title="ตั้งค่า SLA Step 2">⚙️ Config</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-rose-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
                         </div>
-                        <div class="artifact-card p-4 space-y-1">
-                            <div class="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-                                <span>ไฟล์แบบแปลนทั้งหมด</span>
-                                <i class="ph ph-files text-indigo-500 text-base"></i>
+
+                        <!-- Segment Distribution Summary for Step 2 -->
+                        <div class="pt-2">
+                            <div class="flex items-center justify-between mb-2.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold text-foreground font-display">สัดส่วนประเภทงานใน Step 2 (Segment Distribution Summary)</span>
+                                </div>
+                                <div class="text-[11px] font-mono text-muted-foreground">ความคืบหน้าแบบแปลน</div>
                             </div>
-                            <div class="text-2xl font-bold font-mono text-indigo-600 dark:text-indigo-400" id="blueprints-stat-total">0</div>
-                            <div class="text-[10px] text-muted-foreground">CAD, PDF, DWG ในคลัง</div>
+
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                            Quick Services
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold" id="step2-dist-quick-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step2-dist-quick-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">ติดตั้งด่วน</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                            Renovate
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold" id="step2-dist-renovate-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step2-dist-renovate-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">งานปรับปรุง</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-purple-500">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                                            MA & Maintenance
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold" id="step2-dist-ma-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step2-dist-ma-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">บำรุงรักษา</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                            มีแบบ Design แล้ว
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold" id="step2-dist-transferred-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step2-dist-transferred-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">สำเร็จใน Step 2</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Segmented Progress Bar -->
+                            <div class="mt-3">
+                                <div class="w-full bg-muted/60 rounded-full h-2 flex overflow-hidden border border-border/40">
+                                    <div id="bar-step2-quick" class="bg-amber-500 transition-all duration-300 h-full" style="width: 30%"></div>
+                                    <div id="bar-step2-renovate" class="bg-indigo-500 transition-all duration-300 h-full" style="width: 40%"></div>
+                                    <div id="bar-step2-ma" class="bg-purple-500 transition-all duration-300 h-full" style="width: 30%"></div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="artifact-card p-4 space-y-1">
-                            <div class="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-                                <span>โครงการทั้งหมด (Step 1)</span>
-                                <i class="ph ph-briefcase text-brand-500 text-base"></i>
-                            </div>
-                            <div class="text-2xl font-bold font-mono text-brand-500" id="blueprints-stat-jobs">0</div>
-                            <div class="text-[10px] text-muted-foreground">Order ที่รับจาก Step 1</div>
+
+                        <!-- Hidden compatibility spans for existing blueprint stat references -->
+                        <div class="hidden">
+                            <span id="step2-stat-completed">0</span>
+                            <span id="blueprints-stat-pending">0</span>
+                            <span id="blueprints-stat-designed">0</span>
+                            <span id="blueprints-stat-total">0</span>
+                            <span id="blueprints-stat-jobs">0</span>
                         </div>
                     </div>
 
@@ -973,6 +1183,216 @@
                                 <i class="ph ph-plus-circle text-base"></i>
                                 <span>บันทึก Ticket & ใบเสร็จใหม่</span>
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 4 DASHBOARD (KPI CARDS & SEGMENT DISTRIBUTION & SLA) -->
+                    <div class="artifact-card p-5 space-y-5 bg-card/70 border border-border/80 rounded-2xl shadow-xs">
+                        <!-- Dashboard Header -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-base">
+                                    <i class="ph ph-chart-pie-slice"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-display text-base font-bold text-foreground tracking-tight flex items-center gap-2">
+                                        Tickets & Receipts Analytics & KPI
+                                        <span class="text-[11px] font-normal text-muted-foreground font-sans">(ภาพรวมสถิติตั๋วงานและใบเสร็จ)</span>
+                                    </h3>
+                                    <p class="text-[11px] text-muted-foreground">สรุปปริมาณ Ticket ชำระเงิน สลิปใบเสร็จ และประสิทธิภาพเวลาดำเนินงานตามเกณฑ์ SLA</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 self-start sm:self-auto">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    Realtime Live
+                                </span>
+                                <span id="step4-date-indicator" class="text-[11px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/60 border border-border">วันนี้</span>
+                                <button type="button" onclick="app.openSLAConfigModal('step4')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ Step 4">
+                                    <i class="ph ph-gear-six text-xs"></i>
+                                    <span>ตั้งค่า SLA</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Top 4 Primary KPI Cards for Step 4 -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <!-- Card 1: ยอดงานเข้า ทั้งหมดใน Step 4 -->
+                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานทั้งหมดในขั้นตอน Step 4">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-ticket"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดงานเข้า ทั้งหมด</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step4-stat-total" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-foreground">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-muted-foreground/80 mt-0.5">งานพร้อมออก Ticket</p>
+                                    </div>
+                                </div>
+                                <div class="text-muted-foreground/40 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition flex flex-col items-end gap-2 shrink-0">
+                                    <i class="ph ph-arrow-right text-lg"></i>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Step 4 Total</span>
+                                </div>
+                            </div>
+
+                            <!-- Card 2: ยอดเข้าวันนี้ -->
+                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="Ticket ที่บันทึกวันนี้">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-calendar-plus"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดเข้าวันนี้</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step4-stat-today" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-emerald-600 dark:text-emerald-400">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5 flex items-center gap-1">
+                                            <i class="ph ph-check-circle"></i> ออก Ticket วันนี้
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">วันนี้</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card 3: ยอดที่ยังคงเหลือ (รอออก Ticket) -->
+                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่ยังไม่มี Ticket ชำระเงิน">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-hourglass-high"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดที่ยังคงเหลือ</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step4-stat-remaining" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-amber-600 dark:text-amber-400">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-amber-600/80 dark:text-amber-400/80 mt-0.5 flex items-center gap-1">
+                                            <i class="ph ph-clock"></i> รอยืนยันชำระเงิน/แนบสลิป
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">รอ Ticket</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-amber-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card 4: สถานะ SLA Step 4 -->
+                            <div onclick="app.filterJobsByDashboard('OVERDUE', 4)" class="p-4.5 rounded-xl bg-card border border-border hover:border-rose-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อตรวจสอบสถานะ SLA Step 4">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-timer"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-1.5">
+                                            <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">สถานะ SLA</p>
+                                            <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground" id="step4-sla-target-label">8 ชม.</span>
+                                        </div>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step4-stat-sla-overdue" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-rose-600 dark:text-rose-400">0</span>
+                                            <span class="text-xs text-rose-500 font-medium">เกินกำหนด</span>
+                                        </div>
+                                        <p class="text-[11px] text-muted-foreground/80 mt-0.5 flex items-center gap-1.5">
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">ในเกณฑ์: <b id="step4-stat-sla-ontime">0</b></span>
+                                            <span>•</span>
+                                            <span class="text-amber-600 dark:text-amber-400 font-medium">ใกล้ครบ: <b id="step4-stat-sla-warning">0</b></span>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span onclick="event.stopPropagation(); app.openSLAConfigModal('step4');" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer" title="ตั้งค่า SLA Step 4">⚙️ Config</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-rose-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Segment Distribution Summary for Step 4 -->
+                        <div class="pt-2">
+                            <div class="flex items-center justify-between mb-2.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold text-foreground font-display">สัดส่วนประเภทงานใน Step 4 (Segment Distribution Summary)</span>
+                                </div>
+                                <div class="text-[11px] font-mono text-muted-foreground">ความคืบหน้า Tickets</div>
+                            </div>
+
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                            Quick Services
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold" id="step4-dist-quick-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step4-dist-quick-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">ติดตั้งด่วน</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                            Renovate
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold" id="step4-dist-renovate-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step4-dist-renovate-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">งานปรับปรุง</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-purple-500">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                                            MA & Maintenance
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold" id="step4-dist-ma-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step4-dist-ma-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">บำรุงรักษา</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                            ออก Ticket แล้ว
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold" id="step4-dist-transferred-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step4-dist-transferred-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">ออกตั๋วสำเร็จ</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Segmented Progress Bar -->
+                            <div class="mt-3">
+                                <div class="w-full bg-muted/60 rounded-full h-2 flex overflow-hidden border border-border/40">
+                                    <div id="bar-step4-quick" class="bg-amber-500 transition-all duration-300 h-full" style="width: 30%"></div>
+                                    <div id="bar-step4-renovate" class="bg-indigo-500 transition-all duration-300 h-full" style="width: 40%"></div>
+                                    <div id="bar-step4-ma" class="bg-purple-500 transition-all duration-300 h-full" style="width: 30%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden compatibility span -->
+                        <div class="hidden">
+                            <span id="step4-stat-completed">0</span>
                         </div>
                     </div>
 
@@ -1083,6 +1503,216 @@
                                 <i class="ph ph-arrow-right text-sm"></i>
                                 <span>⚡ Step 5: บันทึก BOQ เข้า Project</span>
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3 DASHBOARD (KPI CARDS & SEGMENT DISTRIBUTION & SLA) -->
+                    <div class="artifact-card p-5 space-y-5 bg-card/70 border border-border/80 rounded-2xl shadow-xs">
+                        <!-- Dashboard Header -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center text-base">
+                                    <i class="ph ph-chart-pie-slice"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-display text-base font-bold text-foreground tracking-tight flex items-center gap-2">
+                                        BOQ Ingestion & Estimation Analytics & KPI
+                                        <span class="text-[11px] font-normal text-muted-foreground font-sans">(ภาพรวมสถิตินำ BOQ เข้าระบบ)</span>
+                                    </h3>
+                                    <p class="text-[11px] text-muted-foreground">สรุปปริมาณงานรอจัดทำ BOQ (Step 3) อัตราความสมบูรณ์ของรายการ และสถานะเกณฑ์ SLA</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 self-start sm:self-auto">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    Realtime Live
+                                </span>
+                                <span id="step3-date-indicator" class="text-[11px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/60 border border-border">วันนี้</span>
+                                <button type="button" onclick="app.openSLAConfigModal('step3')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ Step 3">
+                                    <i class="ph ph-gear-six text-xs"></i>
+                                    <span>ตั้งค่า SLA</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Top 4 Primary KPI Cards for Step 3 -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <!-- Card 1: ยอดงานเข้า ทั้งหมดใน Step 3 -->
+                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-purple-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานทั้งหมดในขั้นตอน Step 3">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-files"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดงานเข้า ทั้งหมด</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step3-stat-total" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-foreground">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-muted-foreground/80 mt-0.5">งานพร้อมจัดทำ BOQ</p>
+                                    </div>
+                                </div>
+                                <div class="text-muted-foreground/40 group-hover:text-purple-500 group-hover:translate-x-0.5 transition flex flex-col items-end gap-2 shrink-0">
+                                    <i class="ph ph-arrow-right text-lg"></i>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Step 3 Total</span>
+                                </div>
+                            </div>
+
+                            <!-- Card 2: ยอดเข้าวันนี้ -->
+                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่บันทึก BOQ วันนี้">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-calendar-plus"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดเข้าวันนี้</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step3-stat-today" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-emerald-600 dark:text-emerald-400">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5 flex items-center gap-1">
+                                            <i class="ph ph-check-circle"></i> บันทึก BOQ วันนี้
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">วันนี้</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card 3: ยอดที่ยังคงเหลือ (รอทำ BOQ) -->
+                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่ยังไม่มีรายการ BOQ">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-hourglass-high"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดที่ยังคงเหลือ</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step3-stat-remaining" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-amber-600 dark:text-amber-400">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-amber-600/80 dark:text-amber-400/80 mt-0.5 flex items-center gap-1">
+                                            <i class="ph ph-clock"></i> รอจัดทำ/นำเข้า BOQ
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">รอทำ BOQ</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-amber-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card 4: สถานะ SLA Step 3 -->
+                            <div onclick="app.filterJobsByDashboard('OVERDUE', 3)" class="p-4.5 rounded-xl bg-card border border-border hover:border-rose-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อตรวจสอบสถานะ SLA Step 3">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-timer"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-1.5">
+                                            <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">สถานะ SLA</p>
+                                            <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground" id="step3-sla-target-label">24 ชม.</span>
+                                        </div>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step3-stat-sla-overdue" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-rose-600 dark:text-rose-400">0</span>
+                                            <span class="text-xs text-rose-500 font-medium">เกินกำหนด</span>
+                                        </div>
+                                        <p class="text-[11px] text-muted-foreground/80 mt-0.5 flex items-center gap-1.5">
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">ในเกณฑ์: <b id="step3-stat-sla-ontime">0</b></span>
+                                            <span>•</span>
+                                            <span class="text-amber-600 dark:text-amber-400 font-medium">ใกล้ครบ: <b id="step3-stat-sla-warning">0</b></span>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span onclick="event.stopPropagation(); app.openSLAConfigModal('step3');" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer" title="ตั้งค่า SLA Step 3">⚙️ Config</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-rose-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Segment Distribution Summary for Step 3 -->
+                        <div class="pt-2">
+                            <div class="flex items-center justify-between mb-2.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold text-foreground font-display">สัดส่วนประเภทงานใน Step 3 (Segment Distribution Summary)</span>
+                                </div>
+                                <div class="text-[11px] font-mono text-muted-foreground">ความคืบหน้า BOQ</div>
+                            </div>
+
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                            Quick Services
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold" id="step3-dist-quick-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step3-dist-quick-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">ติดตั้งด่วน</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                            Renovate
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold" id="step3-dist-renovate-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step3-dist-renovate-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">งานปรับปรุง</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-purple-500">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                                            MA & Maintenance
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold" id="step3-dist-ma-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step3-dist-ma-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">บำรุงรักษา</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                            บันทึก BOQ แล้ว
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold" id="step3-dist-transferred-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step3-dist-transferred-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">พร้อมแปลงเป็น Task</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Segmented Progress Bar -->
+                            <div class="mt-3">
+                                <div class="w-full bg-muted/60 rounded-full h-2 flex overflow-hidden border border-border/40">
+                                    <div id="bar-step3-quick" class="bg-amber-500 transition-all duration-300 h-full" style="width: 30%"></div>
+                                    <div id="bar-step3-renovate" class="bg-indigo-500 transition-all duration-300 h-full" style="width: 40%"></div>
+                                    <div id="bar-step3-ma" class="bg-purple-500 transition-all duration-300 h-full" style="width: 30%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden compatibility span -->
+                        <div class="hidden">
+                            <span id="step3-stat-completed">0</span>
                         </div>
                     </div>
 
@@ -1251,6 +1881,216 @@
                                 <i class="ph ph-lightning text-base"></i>
                                 <span>⚡ แปลง BOQ เป็น Task ใน Gantt</span>
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 5 DASHBOARD (KPI CARDS & SEGMENT DISTRIBUTION & SLA) -->
+                    <div class="artifact-card p-5 space-y-5 bg-card/70 border border-border/80 rounded-2xl shadow-xs">
+                        <!-- Dashboard Header -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-base">
+                                    <i class="ph ph-chart-pie-slice"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-display text-base font-bold text-foreground tracking-tight flex items-center gap-2">
+                                        Project Conversion & Gantt Analytics & KPI
+                                        <span class="text-[11px] font-normal text-muted-foreground font-sans">(ภาพรวมสถิติแปลงงานเข้าโครงการ)</span>
+                                    </h3>
+                                    <p class="text-[11px] text-muted-foreground">สรุปปริมาณงานรอแปลงเข้าสู่แผนงาน Gantt (Step 5) อัตราความสำเร็จ และประสิทธิภาพเกณฑ์เวลา SLA</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 self-start sm:self-auto">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    Realtime Live
+                                </span>
+                                <span id="step5-date-indicator" class="text-[11px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/60 border border-border">วันนี้</span>
+                                <button type="button" onclick="app.openSLAConfigModal('step5')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ Step 5">
+                                    <i class="ph ph-gear-six text-xs"></i>
+                                    <span>ตั้งค่า SLA</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Top 4 Primary KPI Cards for Step 5 -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <!-- Card 1: ยอดงานเข้า ทั้งหมดใน Step 5 -->
+                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานทั้งหมดในขั้นตอน Step 5">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-kanban"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดงานเข้า ทั้งหมด</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step5-stat-total" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-foreground">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-muted-foreground/80 mt-0.5">งานพร้อมแปลงเข้าแผนงาน</p>
+                                    </div>
+                                </div>
+                                <div class="text-muted-foreground/40 group-hover:text-amber-500 group-hover:translate-x-0.5 transition flex flex-col items-end gap-2 shrink-0">
+                                    <i class="ph ph-arrow-right text-lg"></i>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Step 5 Total</span>
+                                </div>
+                            </div>
+
+                            <!-- Card 2: ยอดเข้าวันนี้ -->
+                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่แปลงเข้าแผนงานสำเร็จวันนี้">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-calendar-plus"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดเข้าวันนี้</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step5-stat-today" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-emerald-600 dark:text-emerald-400">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5 flex items-center gap-1">
+                                            <i class="ph ph-check-circle"></i> แปลงเข้า Project วันนี้
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">วันนี้</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card 3: ยอดที่ยังคงเหลือ (รอแปลงเข้า Project) -->
+                            <div class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่ยังไม่ได้แปลงเป็น Task ใน Gantt">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-hourglass-high"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดที่ยังคงเหลือ</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step5-stat-remaining" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-amber-600 dark:text-amber-400">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-amber-600/80 dark:text-amber-400/80 mt-0.5 flex items-center gap-1">
+                                            <i class="ph ph-clock"></i> รอกดแปลงเข้าแผนงาน
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">รอแปลงงาน</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-amber-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card 4: สถานะ SLA Step 5 -->
+                            <div onclick="app.filterJobsByDashboard('OVERDUE', 5)" class="p-4.5 rounded-xl bg-card border border-border hover:border-rose-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อตรวจสอบสถานะ SLA Step 5">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-timer"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-1.5">
+                                            <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">สถานะ SLA</p>
+                                            <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground" id="step5-sla-target-label">12 ชม.</span>
+                                        </div>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step5-stat-sla-overdue" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-rose-600 dark:text-rose-400">0</span>
+                                            <span class="text-xs text-rose-500 font-medium">เกินกำหนด</span>
+                                        </div>
+                                        <p class="text-[11px] text-muted-foreground/80 mt-0.5 flex items-center gap-1.5">
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">ในเกณฑ์: <b id="step5-stat-sla-ontime">0</b></span>
+                                            <span>•</span>
+                                            <span class="text-amber-600 dark:text-amber-400 font-medium">ใกล้ครบ: <b id="step5-stat-sla-warning">0</b></span>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span onclick="event.stopPropagation(); app.openSLAConfigModal('step5');" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer" title="ตั้งค่า SLA Step 5">⚙️ Config</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-rose-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Segment Distribution Summary for Step 5 -->
+                        <div class="pt-2">
+                            <div class="flex items-center justify-between mb-2.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold text-foreground font-display">สัดส่วนประเภทงานใน Step 5 (Segment Distribution Summary)</span>
+                                </div>
+                                <div class="text-[11px] font-mono text-muted-foreground">ความคืบหน้าโครงการ</div>
+                            </div>
+
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                            Quick Services
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold" id="step5-dist-quick-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step5-dist-quick-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">ติดตั้งด่วน</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                            Renovate
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold" id="step5-dist-renovate-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step5-dist-renovate-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">งานปรับปรุง</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-purple-500">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                                            MA & Maintenance
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold" id="step5-dist-ma-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step5-dist-ma-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">บำรุงรักษา</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                            แปลงเข้า Project แล้ว
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold" id="step5-dist-transferred-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step5-dist-transferred-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">มี Task ในแผนงาน</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Segmented Progress Bar -->
+                            <div class="mt-3">
+                                <div class="w-full bg-muted/60 rounded-full h-2 flex overflow-hidden border border-border/40">
+                                    <div id="bar-step5-quick" class="bg-amber-500 transition-all duration-300 h-full" style="width: 30%"></div>
+                                    <div id="bar-step5-renovate" class="bg-indigo-500 transition-all duration-300 h-full" style="width: 40%"></div>
+                                    <div id="bar-step5-ma" class="bg-purple-500 transition-all duration-300 h-full" style="width: 30%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden compatibility span -->
+                        <div class="hidden">
+                            <span id="step5-stat-completed">0</span>
                         </div>
                     </div>
 
@@ -1664,6 +2504,218 @@
                             <i class="ph ph-users-three text-sm"></i>
                             <span>เปิดหน้า User Management</span>
                         </button>
+                    </div>
+
+                    <!-- SLA WORKFLOW SETTINGS CARD -->
+                    <div class="artifact-card p-6 space-y-6 rounded-2xl border border-brand-500/30 bg-card shadow-sm">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center text-xl shrink-0 border border-brand-500/30">
+                                    <i class="ph ph-timer"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-display font-bold text-sm text-foreground flex items-center gap-2">
+                                        กำหนดเกณฑ์เวลา SLA ประจำขั้นตอน (Workflow SLA Configuration)
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">Step 1 - 5</span>
+                                    </h3>
+                                    <p class="text-xs text-muted-foreground mt-0.5">กำหนดเป้าหมายเวลา (ชั่วโมง) และจุดแจ้งเตือนใกล้ครบกำหนด (%) ของแต่ละขั้นตอนในระบบ</p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="app.saveSLAConfigFromSettings()" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer">
+                                <i class="ph ph-floppy-disk text-sm"></i>
+                                <span>บันทึก SLA ทั้งหมด</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <!-- Step 1 Config -->
+                            <div class="p-4 rounded-xl border border-blue-500/30 bg-blue-500/5 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-300 font-mono font-bold text-xs flex items-center justify-center border border-blue-500/30">1</span>
+                                        <div>
+                                            <span class="text-xs font-bold text-foreground">Step 1: บันทึกงาน / รับ Order ใหม่</span>
+                                            <span class="text-[10px] text-muted-foreground ml-2">(Order Intake Queue)</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-mono text-muted-foreground">เปิดใช้งาน</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="setting-sla-enable-step1" checked class="sr-only peer">
+                                            <div class="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">เป้าหมายเวลา (SLA Target)</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="setting-sla-hours-step1" min="1" max="720" value="4" class="w-full bg-card border border-border rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-brand-500">
+                                            <span class="text-xs text-muted-foreground shrink-0 font-medium">ชั่วโมง</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">แจ้งเตือนล่วงหน้า (Warning %)</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="setting-sla-warning-step1" min="10" max="95" value="75" class="w-full bg-card border border-border rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-brand-500">
+                                            <span class="text-xs text-muted-foreground shrink-0 font-medium">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 2 Config -->
+                            <div class="p-4 rounded-xl border border-indigo-500/30 bg-indigo-500/5 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 font-mono font-bold text-xs flex items-center justify-center border border-indigo-500/30">2</span>
+                                        <div>
+                                            <span class="text-xs font-bold text-foreground">Step 2: จัดทำแบบแปลน & Design</span>
+                                            <span class="text-[10px] text-muted-foreground ml-2">(Blueprints & CAD/PDF)</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-mono text-muted-foreground">เปิดใช้งาน</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="setting-sla-enable-step2" checked class="sr-only peer">
+                                            <div class="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">เป้าหมายเวลา (SLA Target)</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="setting-sla-hours-step2" min="1" max="720" value="24" class="w-full bg-card border border-border rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-brand-500">
+                                            <span class="text-xs text-muted-foreground shrink-0 font-medium">ชั่วโมง</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">แจ้งเตือนล่วงหน้า (Warning %)</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="setting-sla-warning-step2" min="10" max="95" value="75" class="w-full bg-card border border-border rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-brand-500">
+                                            <span class="text-xs text-muted-foreground shrink-0 font-medium">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 3 Config -->
+                            <div class="p-4 rounded-xl border border-purple-500/30 bg-purple-500/5 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-600 dark:text-purple-300 font-mono font-bold text-xs flex items-center justify-center border border-purple-500/30">3</span>
+                                        <div>
+                                            <span class="text-xs font-bold text-foreground">Step 3: นำ BOQ เข้าระบบ & ประมาณการราคา</span>
+                                            <span class="text-[10px] text-muted-foreground ml-2">(BOQ Ingestion)</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-mono text-muted-foreground">เปิดใช้งาน</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="setting-sla-enable-step3" checked class="sr-only peer">
+                                            <div class="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">เป้าหมายเวลา (SLA Target)</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="setting-sla-hours-step3" min="1" max="720" value="24" class="w-full bg-card border border-border rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-brand-500">
+                                            <span class="text-xs text-muted-foreground shrink-0 font-medium">ชั่วโมง</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">แจ้งเตือนล่วงหน้า (Warning %)</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="setting-sla-warning-step3" min="10" max="95" value="75" class="w-full bg-card border border-border rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-brand-500">
+                                            <span class="text-xs text-muted-foreground shrink-0 font-medium">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 4 Config -->
+                            <div class="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 font-mono font-bold text-xs flex items-center justify-center border border-emerald-500/30">4</span>
+                                        <div>
+                                            <span class="text-xs font-bold text-foreground">Step 4: บันทึก Ticket & สลิปใบเสร็จ</span>
+                                            <span class="text-[10px] text-muted-foreground ml-2">(Tickets & Receipts)</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-mono text-muted-foreground">เปิดใช้งาน</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="setting-sla-enable-step4" checked class="sr-only peer">
+                                            <div class="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">เป้าหมายเวลา (SLA Target)</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="setting-sla-hours-step4" min="1" max="720" value="8" class="w-full bg-card border border-border rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-brand-500">
+                                            <span class="text-xs text-muted-foreground shrink-0 font-medium">ชั่วโมง</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">แจ้งเตือนล่วงหน้า (Warning %)</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="setting-sla-warning-step4" min="10" max="95" value="75" class="w-full bg-card border border-border rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-brand-500">
+                                            <span class="text-xs text-muted-foreground shrink-0 font-medium">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 5 Config -->
+                            <div class="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-300 font-mono font-bold text-xs flex items-center justify-center border border-amber-500/30">5</span>
+                                        <div>
+                                            <span class="text-xs font-bold text-foreground">Step 5: บันทึก BOQ เข้า Project (Gantt Tasks)</span>
+                                            <span class="text-[10px] text-muted-foreground ml-2">(Conversion to Gantt)</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-mono text-muted-foreground">เปิดใช้งาน</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="setting-sla-enable-step5" checked class="sr-only peer">
+                                            <div class="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">เป้าหมายเวลา (SLA Target)</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="setting-sla-hours-step5" min="1" max="720" value="12" class="w-full bg-card border border-border rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-brand-500">
+                                            <span class="text-xs text-muted-foreground shrink-0 font-medium">ชั่วโมง</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">แจ้งเตือนล่วงหน้า (Warning %)</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="setting-sla-warning-step5" min="10" max="95" value="75" class="w-full bg-card border border-border rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-brand-500">
+                                            <span class="text-xs text-muted-foreground shrink-0 font-medium">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-2 flex items-center justify-between">
+                            <span class="text-[11px] text-muted-foreground">* ข้อมูล SLA จะมีผลกับการประเมินสถานะ On-Time / Warning / Overdue บน Dashboard ทุก Step</span>
+                            <button type="button" onclick="app.saveSLAConfigFromSettings()" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-md">
+                                <i class="ph ph-check-circle text-sm"></i>
+                                <span>บันทึกการตั้งค่า SLA</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="artifact-card p-6 space-y-5">
@@ -4038,6 +5090,49 @@
                 <button type="button" onclick="app.hideModal('modal-user-login-logs')" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer">
                     ปิดหน้าต่าง
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SLA CONFIGURATION (QUICK ACCESS FROM ANY STEP) -->
+    <div id="modal-sla-config" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-sla-config-content">
+            <!-- Header -->
+            <div class="p-5 border-b border-border flex justify-between items-center bg-muted/20 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center text-xl shrink-0 border border-brand-500/30">
+                        <i class="ph ph-timer"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-display font-bold text-base text-foreground">ตั้งค่าเกณฑ์เวลา SLA ทุกขั้นตอน (Workflow SLA Configuration)</h3>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/15 text-brand-600 dark:text-brand-400 border border-brand-500/20">Realtime Config</span>
+                        </div>
+                        <p class="text-xs text-muted-foreground mt-0.5">กำหนดเป้าหมายเวลา (Target Hours) และเกณฑ์แจ้งเตือนล่วงหน้า (Warning %) เพื่อคำนวณสถิติบน Dashboard ทุกหน้าจอ</p>
+                    </div>
+                </div>
+                <button type="button" onclick="app.hideModal('modal-sla-config')" class="text-muted-foreground hover:text-foreground text-lg p-1 rounded-lg hover:bg-muted transition cursor-pointer">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+
+            <!-- Body (Dynamic Steps Container) -->
+            <div class="p-6 overflow-y-auto space-y-4 flex-1 text-xs" id="sla-config-steps-container">
+                <!-- Populated dynamically by app.openSLAConfigModal() -->
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="p-4 border-t border-border flex justify-between items-center gap-3 bg-muted/20 shrink-0">
+                <span class="text-[11px] text-muted-foreground">บันทึกลง LocalStorage & อัปเดตการแสดงผลทันที</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="app.hideModal('modal-sla-config')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-medium cursor-pointer">
+                        ยกเลิก
+                    </button>
+                    <button type="button" onclick="app.saveSLAConfigFromModal()" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-md">
+                        <i class="ph ph-check-circle text-sm"></i>
+                        <span>บันทึกการตั้งค่า SLA</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
