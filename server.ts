@@ -588,6 +588,7 @@ export interface CoreJob {
   customer_id: number;
   status: JobStatus;
   job_type?: string;
+  step_timestamps?: any;
   property_type?: string;
   project_type?: string;
   project_sub_type?: string;
@@ -1664,6 +1665,7 @@ app.get('/api/v1/jobs', requireAuth, (req: Request, res: Response) => {
         pmt_accepted: (job as any).pmt_accepted !== undefined ? (job as any).pmt_accepted : job.status !== JobStatus.DRAFT,
         pmt_accepted_at: (job as any).pmt_accepted_at || null,
         job_type: (job as any).job_type || 'quick',
+        step_timestamps: (job as any).step_timestamps || null,
         created_at: job.created_at
       };
     });
@@ -1732,6 +1734,7 @@ app.get('/api/v1/jobs/:id', requireAuth, (req: Request, res: Response) => {
       pmt_accepted: (job as any).pmt_accepted !== undefined ? (job as any).pmt_accepted : job.status !== JobStatus.DRAFT,
       pmt_accepted_at: (job as any).pmt_accepted_at || null,
       job_type: (job as any).job_type || 'quick',
+      step_timestamps: (job as any).step_timestamps || null,
       created_at: job.created_at
     }
   });
@@ -1747,7 +1750,7 @@ app.patch('/api/v1/jobs/:id', requireAuth, (req: Request, res: Response) => {
     return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
   }
 
-  const { special_instructions, additional_notes, assigned_tech, plan_date, status, overall_progress, photos, pmt_accepted, pmt_accepted_at, job_type } = req.body;
+  const { special_instructions, additional_notes, assigned_tech, plan_date, status, overall_progress, photos, pmt_accepted, pmt_accepted_at, job_type, step_timestamps } = req.body;
 
   if (special_instructions !== undefined) job.special_instructions = special_instructions;
   if (additional_notes !== undefined) job.additional_notes = additional_notes;
@@ -1759,6 +1762,7 @@ app.patch('/api/v1/jobs/:id', requireAuth, (req: Request, res: Response) => {
   if (pmt_accepted !== undefined) (job as any).pmt_accepted = pmt_accepted;
   if (pmt_accepted_at !== undefined) (job as any).pmt_accepted_at = pmt_accepted_at;
   if (job_type !== undefined) (job as any).job_type = job_type;
+  if (step_timestamps !== undefined) (job as any).step_timestamps = step_timestamps;
 
   return res.json({
     success: true,
@@ -1769,7 +1773,8 @@ app.patch('/api/v1/jobs/:id', requireAuth, (req: Request, res: Response) => {
       photos: job.photos || [],
       status: job.status,
       pmt_accepted: (job as any).pmt_accepted,
-      job_type: (job as any).job_type
+      job_type: (job as any).job_type,
+      step_timestamps: (job as any).step_timestamps
     },
     message: 'บันทึกข้อมูลงานเรียบร้อยแล้ว'
   });
@@ -1839,7 +1844,7 @@ app.delete('/api/v1/jobs/:id/photos/:photoId', requireAuth, (req: Request, res: 
 
 app.post('/api/v1/jobs', requireAuth, (req: Request, res: Response) => {
   try {
-    const { firstName, lastName, phone, address, lat, lng, service, tech, date } = req.body;
+    const { firstName, lastName, phone, address, lat, lng, service, tech, date, job_type } = req.body;
     if (!firstName || !lastName) {
       return res.status(400).json({ success: false, error: { code: 'INVALID_PAYLOAD', message: 'firstName and lastName are required' } });
     }
@@ -1873,6 +1878,7 @@ app.post('/api/v1/jobs', requireAuth, (req: Request, res: Response) => {
       plan_date: date || new Date().toISOString().split('T')[0],
       status: JobStatus.DRAFT,
       overall_progress: 0,
+      job_type: job_type || 'quick',
       created_at: new Date().toISOString()
     };
     coreJobStore.unshift(newJob);

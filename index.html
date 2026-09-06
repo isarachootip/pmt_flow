@@ -3492,13 +3492,28 @@
                     </div>
                     <div>
                         <label class="block text-[11px] font-medium text-muted-foreground mb-1">ประเภทบริการ</label>
-                        <select id="cj-service" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                        <select id="cj-service" onchange="app.onModalServiceChange(this.value)" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
                             <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                            <option value="ติดตั้งเครื่องปรับอากาศ">ติดตั้งเครื่องปรับอากาศ</option>
+                            <option value="ติดตั้ง Solar Rooftop">ติดตั้ง Solar Rooftop</option>
+                            <option value="ติดตั้ง Digital Door Lock & CCTV">ติดตั้ง Digital Door Lock & CCTV</option>
                             <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
                             <option value="Renovate ครัว">Renovate ครัว</option>
                             <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
                         </select>
                     </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-[11px] font-medium text-muted-foreground">ประเภทกระบวนการ (Pipeline Flow)</label>
+                        <span id="cj-job-type-hint" class="text-[10px] text-amber-500 font-medium">⚡ งาน Quick จะข้าม Step 2 & 3 ตรงไป Step 4</span>
+                    </div>
+                    <select id="cj-job-type" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs font-semibold text-brand-600 dark:text-brand-400 focus:outline-none focus:border-brand-500 cursor-pointer">
+                        <option value="quick" selected>⚡ Quick Services (บริการด่วน/ติดตั้ง — ข้ามไป Step 4 ทันที)</option>
+                        <option value="renovate">🔨 Renovate (รีโนเวท/ต่อเติม — ผ่านครบ Step 1-5)</option>
+                        <option value="ma">🔧 MA / Maintenance (บำรุงรักษาตามสัญญา)</option>
+                    </select>
                 </div>
 
                 <div>
