@@ -993,47 +993,67 @@ const app = {
                     return;
                 }
 
-                // 1. Clear storage flags
+                // 1. Clear storage flags & wipe downstream collections
                 try {
                     localStorage.removeItem('pmt_jobs_cleared_v8');
                     localStorage.removeItem('pmt_jobs_cleared_v7');
                     localStorage.removeItem('pmt_jobs_cleared_v5');
                     localStorage.removeItem('pmt_jobs_cleared_v3');
-                    localStorage.removeItem('pmt_tasks');
-                    localStorage.removeItem('pmt_blueprints');
-                    localStorage.removeItem('pmt_tickets');
-                    localStorage.removeItem('pmt_qc_bookings');
+                    localStorage.removeItem('pmt_ma_contracts');
+                    localStorage.removeItem('pmt_ma_rounds');
+                    localStorage.setItem('pmt_tasks', JSON.stringify([]));
+                    localStorage.setItem('pmt_blueprints', JSON.stringify([]));
+                    localStorage.setItem('pmt_tickets', JSON.stringify([]));
+                    localStorage.setItem('pmt_qc_bookings', JSON.stringify([]));
+                    localStorage.setItem('pmt_ma_contracts', JSON.stringify([]));
+                    localStorage.setItem('pmt_ma_rounds', JSON.stringify([]));
                 } catch(e) {}
 
-                // 2. Tell backend server to seed the 10 INT orders
+                // 2. Tell backend server to seed ONLY the 10 initial INT orders and wipe downstream stores
                 try {
-                    await fetch('/api/v1/jobs/reset', { method: 'POST' });
+                    const headers = (window.auth && typeof window.auth.getHeaders === 'function') ? window.auth.getHeaders() : { 'Content-Type': 'application/json' };
+                    await fetch('/api/v1/jobs/reset', { method: 'POST', headers });
                 } catch(e) {
                     console.warn('Server reset failed, continuing with local mock:', e);
                 }
 
-                // 3. Populate local DB with 10 pure Step 1 jobs (0% Draft)
+                // 3. Populate local DB with 10 pure Step 1 jobs (0% Draft) starting completely from scratch
                 const mockOrders = this.getINTMockOrders();
                 const currentIso = new Date().toISOString();
                 const currentDate = currentIso.slice(0, 10);
                 mockOrders.forEach(o => {
-                    if (!o.step_timestamps) o.step_timestamps = {};
-                    o.step_timestamps.step1_order_at = currentIso;
+                    o.step_timestamps = {
+                        step1_order_at: currentIso
+                    };
                     o.date = currentDate;
+                    o.status = 'DRAFT';
+                    o.progress = 0;
+                    o.pmt_accepted = false;
+                    o.pmt_accepted_at = null;
+                    o.boq_items = [];
+                    o.boq_discount = 0;
+                    o.boq_grand_total = 0;
+                    o.photos = [];
                 });
                 DB.jobs = JSON.parse(JSON.stringify(mockOrders));
                 DB.tasks = [];
                 DB.blueprints = [];
                 DB.tickets = [];
                 DB.qcBookings = [];
+                DB.maContracts = [];
+                DB.maRounds = [];
+
                 this.persistJobs();
                 this.persistBlueprints();
                 this.persistTickets();
                 try {
                     localStorage.setItem('pmt_tasks', JSON.stringify([]));
                     localStorage.setItem('pmt_qc_bookings', JSON.stringify([]));
+                    localStorage.setItem('pmt_ma_contracts', JSON.stringify([]));
+                    localStorage.setItem('pmt_ma_rounds', JSON.stringify([]));
                 } catch (e) {}
 
+                // 4. Update UI across all views
                 if (this.state.currentView === 'jobs') this.renderJobs();
                 if (this.state.currentView === 'dashboard') this.renderDashboard();
                 if (this.state.currentView === 'gantt') this.renderGantt();
@@ -1041,10 +1061,12 @@ const app = {
                 if (this.state.currentView === 'csat') this.renderCSAT();
                 if (this.state.currentView === 'blueprints') this.renderBlueprints();
                 if (this.state.currentView === 'tickets') this.renderTickets();
+                if (this.state.currentView === 'ma-contracts') this.renderMAContracts();
 
                 this.updateStepBadges();
+                this.updateStep1Dashboard();
 
-                this.showToast(`📥 จำลองรับ Order จาก INT System สำเร็จ ${DB.jobs.length} งาน (ทุกงานอยู่ที่ Step 1 ความคืบหน้า 0% พร้อมเริ่มต้นกระบวนการ)`);
+                this.showToast(`📥 Import จำลองรับ Order จาก INT สำเร็จ ${DB.jobs.length} งาน (สร้างเฉพาะ Transaction เริ่มต้นระบบ Step 1 ทุกงาน 0% Draft พร้อมเริ่มต้นใหม่ทั้งหมด)`);
             },
 
             init() {
@@ -11852,7 +11874,7 @@ const app = {
                         fetch('/api/ma-contracts').then(r => r.ok ? r.json() : null),
                         fetch('/api/ma-checklist-templates').then(r => r.ok ? r.json() : null)
                     ]);
-                    if (Array.isArray(resContracts) && resContracts.length > 0) {
+                    if (Array.isArray(resContracts)) {
                         DB.maContracts = resContracts;
                     }
                     if (Array.isArray(resTemplates) && resTemplates.length > 0) {
@@ -11862,7 +11884,7 @@ const app = {
                         this.renderMAContracts();
                     }
                     const sidebarMa = document.getElementById('sidebar-ma-count');
-                    if (sidebarMa) sidebarMa.innerText = DB.maContracts.length;
+                    if (sidebarMa) sidebarMa.innerText = (DB.maContracts || []).length;
                 } catch (err) {
                     // local fallback
                 }

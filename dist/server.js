@@ -470,6 +470,11 @@ function seedInitialCoreData(populateMocks = false) {
     exports.coreJobServiceStore.length = 0;
     exports.coreTaskStore.length = 0;
     exports.coreQCBookingStore.length = 0;
+    exports.coreVisitCheckinStore.length = 0;
+    exports.coreSitePhotoStore.length = 0;
+    exports.stagingSurveyStore.length = 0;
+    exports.maContractStore.length = 0;
+    exports.maRoundStore.length = 0;
     if (!populateMocks) {
         console.log('[CORE STORE] Initialized with empty core jobs store (Clean State).');
         return;
@@ -683,6 +688,20 @@ function seedInitialCoreData(populateMocks = false) {
             created_at: '2026-09-04T07:30:00Z'
         }
     ];
+    const nowIso = new Date().toISOString();
+    mockJobs.forEach(j => {
+        j.pmt_accepted = false;
+        j.pmt_accepted_at = null;
+        j.step_timestamps = {
+            step1_order_at: nowIso
+        };
+        j.boq_items = [];
+        j.boq_discount = 0;
+        j.boq_grand_total = 0;
+        j.photos = [];
+        j.overall_progress = 0;
+        j.status = JobStatus.DRAFT;
+    });
     exports.coreJobStore.push(...mockJobs);
     console.log(`[CORE SEED] Seeded ${mockJobs.length} core jobs in coreJobStore.`);
 }
@@ -1558,10 +1577,17 @@ app.post('/api/v1/jobs/reset-status', (req, res) => {
 });
 app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], (req, res) => {
     seedInitialCoreData(true);
-    seedInitialStagingData();
+    seedInitialStagingData(false);
+    exports.coreTaskStore.length = 0;
+    exports.coreQCBookingStore.length = 0;
+    exports.coreVisitCheckinStore.length = 0;
+    exports.coreSitePhotoStore.length = 0;
+    exports.stagingSurveyStore.length = 0;
+    exports.maContractStore.length = 0;
+    exports.maRoundStore.length = 0;
     return res.json({
         success: true,
-        message: 'จำลองและ Reset รายการ 10 คำสั่งซื้อจาก INT เข้าสู่ระบบ PMT สำเร็จ',
+        message: 'จำลองและ Reset รายการ 10 คำสั่งซื้อจาก INT เข้าสู่ระบบ PMT สำเร็จ (สร้างเฉพาะ Transaction เริ่มต้นระบบ Step 1 ทั้งหมด)',
         total_jobs: exports.coreJobStore.length
     });
 });

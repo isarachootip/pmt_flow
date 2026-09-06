@@ -776,6 +776,11 @@ export function seedInitialCoreData(populateMocks: boolean = false) {
   coreJobServiceStore.length = 0;
   coreTaskStore.length = 0;
   coreQCBookingStore.length = 0;
+  coreVisitCheckinStore.length = 0;
+  coreSitePhotoStore.length = 0;
+  stagingSurveyStore.length = 0;
+  maContractStore.length = 0;
+  maRoundStore.length = 0;
 
   if (!populateMocks) {
     console.log('[CORE STORE] Initialized with empty core jobs store (Clean State).');
@@ -993,6 +998,20 @@ export function seedInitialCoreData(populateMocks: boolean = false) {
       created_at: '2026-09-04T07:30:00Z' 
     }
   ];
+  const nowIso = new Date().toISOString();
+  mockJobs.forEach(j => {
+    (j as any).pmt_accepted = false;
+    (j as any).pmt_accepted_at = null;
+    (j as any).step_timestamps = {
+      step1_order_at: nowIso
+    };
+    (j as any).boq_items = [];
+    (j as any).boq_discount = 0;
+    (j as any).boq_grand_total = 0;
+    j.photos = [];
+    j.overall_progress = 0;
+    j.status = JobStatus.DRAFT;
+  });
   coreJobStore.push(...mockJobs);
   console.log(`[CORE SEED] Seeded ${mockJobs.length} core jobs in coreJobStore.`);
 }
@@ -1937,10 +1956,17 @@ app.post('/api/v1/jobs/reset-status', (req: Request, res: Response) => {
 
 app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], (req: Request, res: Response) => {
   seedInitialCoreData(true);
-  seedInitialStagingData();
+  seedInitialStagingData(false);
+  coreTaskStore.length = 0;
+  coreQCBookingStore.length = 0;
+  coreVisitCheckinStore.length = 0;
+  coreSitePhotoStore.length = 0;
+  stagingSurveyStore.length = 0;
+  maContractStore.length = 0;
+  maRoundStore.length = 0;
   return res.json({
     success: true,
-    message: 'จำลองและ Reset รายการ 10 คำสั่งซื้อจาก INT เข้าสู่ระบบ PMT สำเร็จ',
+    message: 'จำลองและ Reset รายการ 10 คำสั่งซื้อจาก INT เข้าสู่ระบบ PMT สำเร็จ (สร้างเฉพาะ Transaction เริ่มต้นระบบ Step 1 ทั้งหมด)',
     total_jobs: coreJobStore.length
   });
 });
