@@ -590,6 +590,10 @@
                                 <span>ล้างข้อมูลโครงการ</span>
                             </button>
                             <div class="flex items-center gap-2 shrink-0">
+                                <button onclick="app.showStep1TrainingGuide()" class="btn-artifact-secondary text-brand-600 dark:text-brand-400 hover:bg-brand-500/10 border-brand-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 1 (Training Screen Guide)">
+                                    <i class="ph ph-graduation-cap text-brand-500 text-sm"></i>
+                                    <span>คู่มือ Training Step 1</span>
+                                </button>
                                 <button onclick="app.exportAllJobsAuditCSV()" class="btn-artifact-secondary text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="ดาวน์โหลดรายงานสรุปเวลา Timestamp ทุก Step ของทุกโครงการเพื่อนำไปทำ Report">
                                     <i class="ph ph-file-csv text-emerald-500 text-sm"></i>
                                     <span>Export รายงาน Timestamps</span>
@@ -823,7 +827,7 @@
                             <span class="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-300 flex items-center justify-center font-bold text-xs shrink-0">📥</span>
                             <div>
                                 <span class="font-bold">คิวงาน Step 1 (Order Intake Queue):</span>
-                                <span class="text-muted-foreground ml-1">แสดงเฉพาะ Order ใหม่จาก INT ที่รอรับเข้าระบบ PMT เมื่อกดยืนยันรับเข้า รายการจะย้ายเข้าสู่ Step 2 (บันทึก Design) หรือย้ายเข้าสู่ Step 4 (บันทึก Ticket & ใบเสร็จ) ทันทีสำหรับงานด่วน (Quick Services)</span>
+                                <span class="text-muted-foreground ml-1">แสดงเฉพาะ Order ใหม่จาก INT ที่รอรับเข้าระบบ PMT โดยคลิกที่รายการเพื่อเปิดดูรายละเอียดหน้างานและกดยืนยันรับเข้าสู่ระบบ</span>
                             </div>
                         </div>
                         <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold shrink-0">Single State Queue</span>
@@ -840,7 +844,6 @@
                                         <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
                                         <th class="px-5 py-3.5">สถานะ</th>
                                         <th class="px-5 py-3.5">ขั้นตอน (Stage)</th>
-                                        <th class="px-5 py-3.5 text-right">การจัดการ</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-border" id="jobs-table-body">

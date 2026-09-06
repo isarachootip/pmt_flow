@@ -1466,8 +1466,42 @@ const app = {
                     this.renderSLASettingsPanel();
                 }
 
+                if(view === 'faq') {
+                    if (!this.state.currentFaqTab) this.state.currentFaqTab = 'training';
+                    this.switchFaqTab(this.state.currentFaqTab);
+                }
+
                 // Update sidebar badges
                 this.updateStepBadges();
+            },
+
+            showStep1TrainingGuide() {
+                this.state.currentFaqTab = 'training';
+                this.navigate('faq');
+                this.switchFaqTab('training');
+            },
+
+            switchFaqTab(tabKey) {
+                this.state.currentFaqTab = tabKey;
+                const tabs = ['training', 'pipeline', 'faq'];
+                tabs.forEach(t => {
+                    const btn = document.getElementById(`faq-tab-${t}`);
+                    const content = document.getElementById(`faq-content-${t}`);
+                    if (btn) {
+                        if (t === tabKey) {
+                            btn.className = 'px-4 py-2 text-xs font-semibold rounded-xl bg-brand-500 text-white shadow-xs flex items-center gap-1.5 transition-all cursor-pointer';
+                        } else {
+                            btn.className = 'px-4 py-2 text-xs font-medium rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 flex items-center gap-1.5 transition-all cursor-pointer';
+                        }
+                    }
+                    if (content) {
+                        if (t === tabKey) {
+                            content.classList.remove('hidden');
+                        } else {
+                            content.classList.add('hidden');
+                        }
+                    }
+                });
             },
 
             showToast(msg) {
@@ -1827,7 +1861,7 @@ const app = {
                     const isQuick = this.isQuickJob(j);
 
                     return `
-                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group" onclick="app.navigate('job-detail', '${j.id}')">
+                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group" onclick="app.navigate('job-detail', '${j.id}')" title="คลิกเพื่อดูรายละเอียดงาน ${j.id}">
                         <td class="px-5 py-4 font-mono font-semibold text-brand-500">${j.id}</td>
                         <td class="px-5 py-4">
                             <div class="text-foreground font-medium group-hover:text-brand-500 transition">${j.customer}</div>
@@ -1887,25 +1921,12 @@ const app = {
                                 </div>
                             `}
                         </td>
-                        <td class="px-5 py-4 text-right">
-                            ${isJobInStep1 ? `
-                                <button type="button" onclick="event.stopPropagation(); app.acceptJobToPMT('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold ${isQuick ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'} text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="${isQuick ? 'บันทึกรับ Order นี้เข้าสู่ระบบ PMT และข้ามขั้นตอน Design & BOQ ย้ายเข้าสู่ Step 4 (บันทึก Ticket & ใบเสร็จ) ทันที' : 'บันทึกรับ Order นี้เข้าสู่ระบบ PMT และย้ายเข้าสู่ State 2 (บันทึก Design)'}">
-                                    <i class="ph ${isQuick ? 'ph-lightning-bold text-amber-300' : 'ph-check-circle'} text-xs"></i>
-                                    <span>${isQuick ? 'รับเข้า (ไป Step 4)' : 'รับเข้าระบบ PMT'}</span>
-                                    <i class="ph ph-arrow-right-bold text-xs"></i>
-                                </button>
-                            ` : `
-                                <button class="text-muted-foreground group-hover:text-brand-500 p-1 rounded hover:bg-muted transition">
-                                    <i class="ph ph-caret-right text-base"></i>
-                                </button>
-                            `}
-                        </td>
                     </tr>
                 `}).join('');
 
                 document.getElementById('jobs-table-body').innerHTML = html || `
                     <tr>
-                        <td colspan="7" class="px-5 py-12 text-center">
+                        <td colspan="6" class="px-5 py-12 text-center">
                             <div class="max-w-md mx-auto space-y-3">
                                 <div class="w-12 h-12 mx-auto rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center text-2xl font-bold shadow-xs">
                                     <i class="ph ph-tray"></i>
