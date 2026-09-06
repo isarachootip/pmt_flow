@@ -5853,6 +5853,36 @@
                 </div>
             </div>
         </div>
+    <!-- ============================================================================= -->
+    <!-- MODAL: DAILY TECHNICIAN WORK LOG (บันทึกงานช่างประจำวัน เชื่อมโยง GANTT)       -->
+    <!-- ============================================================================= -->
+    <div id="modal-daily-work-log" onclick="if(event.target === this) app.closeDailyWorkLogModal()" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-daily-work-log-content">
+            <!-- Modal Header -->
+            <div class="p-4 sm:p-5 border-b border-border flex items-center justify-between gap-4 bg-muted/20 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center text-xl border border-cyan-500/20 shrink-0">
+                        <i class="ph ph-notebook"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="font-display font-bold text-base text-foreground">บันทึกงานช่างประจำวัน (Daily Technician Work Log)</h3>
+                            <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20" id="dwl-modal-job-id">JOB-</span>
+                            <span class="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground font-medium" id="dwl-modal-customer">ลูกค้า</span>
+                        </div>
+                        <p class="text-xs text-muted-foreground mt-0.5" id="dwl-modal-subtitle">บันทึกความคืบหน้ารายวันตามแผนงานใน Gantt Chart พร้อมรูปถ่ายและจองตรวจ QC</p>
+                    </div>
+                </div>
+                <button type="button" onclick="app.closeDailyWorkLogModal()" class="w-8 h-8 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center transition cursor-pointer">
+                    <i class="ph ph-x text-base"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body Container (Dynamic Content) -->
+            <div id="modal-daily-work-log-body" class="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6">
+                <!-- Injected via app.renderDailyWorkLogs(taskId) -->
+            </div>
+        </div>
     </div>
 
     <!-- ============================================================================= -->

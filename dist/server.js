@@ -8,7 +8,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.maChecklistTemplateStore = exports.maRoundStore = exports.maContractStore = exports.coreQCBookingStore = exports.coreTaskStore = exports.coreSitePhotoStore = exports.coreVisitCheckinStore = exports.coreJobServiceStore = exports.coreJobStore = exports.coreCustomerStore = exports.stagingSurveyStore = exports.StagingProcessStatus = exports.sysLoginLogStore = exports.sysSessionStore = exports.sysUserStore = exports.UserRole = exports.JobStatus = void 0;
+exports.maChecklistTemplateStore = exports.maRoundStore = exports.maContractStore = exports.coreDailyWorkLogStore = exports.coreQCBookingStore = exports.coreTaskStore = exports.coreSitePhotoStore = exports.coreVisitCheckinStore = exports.coreJobServiceStore = exports.coreJobStore = exports.coreCustomerStore = exports.stagingSurveyStore = exports.StagingProcessStatus = exports.sysLoginLogStore = exports.sysSessionStore = exports.sysUserStore = exports.UserRole = exports.JobStatus = void 0;
 exports.calculateQCBookingDate = calculateQCBookingDate;
 exports.syncQCBookingForTask = syncQCBookingForTask;
 exports.removeQCBookingForTask = removeQCBookingForTask;
@@ -379,15 +379,11 @@ var StagingProcessStatus;
     StagingProcessStatus["VALIDATION_FAILED"] = "VALIDATION_FAILED";
     StagingProcessStatus["ERROR"] = "ERROR";
 })(StagingProcessStatus || (exports.StagingProcessStatus = StagingProcessStatus = {}));
-// Calculate QC Booking Date (5 days before task plan_end_date)
+// Calculate QC Booking Date: The inspection date is the target plan_end_date (completion date)
 function calculateQCBookingDate(endDateStr, daysBefore = 5) {
     if (!endDateStr)
         return '';
-    const d = new Date(endDateStr);
-    if (isNaN(d.getTime()))
-        return endDateStr;
-    d.setDate(d.getDate() - daysBefore);
-    return d.toISOString().slice(0, 10);
+    return endDateStr;
 }
 // =============================================================================
 // MIDDLEWARES
@@ -415,6 +411,7 @@ exports.coreVisitCheckinStore = [];
 exports.coreSitePhotoStore = [];
 exports.coreTaskStore = [];
 exports.coreQCBookingStore = [];
+exports.coreDailyWorkLogStore = [];
 exports.maContractStore = [];
 exports.maRoundStore = [];
 // Helper: Sync or create QC booking for a given task
@@ -1552,6 +1549,7 @@ const wipeAllTransactions = (req, res) => {
     exports.coreVisitCheckinStore.length = 0;
     exports.coreSitePhotoStore.length = 0;
     exports.coreQCBookingStore.length = 0;
+    exports.coreDailyWorkLogStore.length = 0;
     exports.stagingSurveyStore.length = 0;
     exports.maContractStore.length = 0;
     exports.maRoundStore.length = 0;
@@ -1571,6 +1569,7 @@ app.post('/api/v1/jobs/reset-status', (req, res) => {
     });
     exports.coreTaskStore.length = 0;
     exports.coreQCBookingStore.length = 0;
+    exports.coreDailyWorkLogStore.length = 0;
     return res.json({
         success: true,
         message: 'ถอยสถานะของทุก Job กลับสู่จุดเริ่มต้น (DRAFT / 0%) เรียบร้อย',
@@ -1582,6 +1581,7 @@ app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], (req, res) => {
     seedInitialStagingData(false);
     exports.coreTaskStore.length = 0;
     exports.coreQCBookingStore.length = 0;
+    exports.coreDailyWorkLogStore.length = 0;
     exports.coreVisitCheckinStore.length = 0;
     exports.coreSitePhotoStore.length = 0;
     exports.stagingSurveyStore.length = 0;
@@ -1989,6 +1989,77 @@ app.post('/api/v1/qc/bookings/sync-all', requireAuth, async (req, res) => {
         total: exports.coreQCBookingStore.length,
         data: exports.coreQCBookingStore
     });
+});
+// =============================================================================
+// DAILY TECHNICIAN WORK LOGS API (บันทึกงานช่างประจำวัน ตามแผนงาน Gantt)
+// =============================================================================
+// GET /api/v1/jobs/:id/daily-logs — Get all daily work logs for a job
+app.get('/api/v1/jobs/:id/daily-logs', requireAuth, async (req, res) => {
+    const { id } = req.params;
+    const logs = exports.coreDailyWorkLogStore.filter(l => String(l.job_id) === String(id) || l.job_no === id);
+    return res.json({ success: true, total: logs.length, data: logs });
+});
+// POST /api/v1/jobs/:id/daily-logs — Create new daily work log
+app.post('/api/v1/jobs/:id/daily-logs', requireAuth, async (req, res) => {
+    const { id } = req.params;
+    const payload = req.body;
+    const newLog = {
+        id: payload.id || `LOG_${Date.now()}`,
+        job_id: id,
+        job_no: payload.job_no || (id.startsWith('JOB') ? id : `JOB20260900${id}`),
+        task_id: payload.task_id || `T_${id}_1`,
+        task_name: payload.task_name || 'งานบริการติดตั้ง',
+        log_date: payload.log_date || new Date().toISOString().slice(0, 10),
+        day_number: Number(payload.day_number) || 1,
+        total_days: Number(payload.total_days) || 1,
+        technician: payload.technician || 'Team B (ประเสริฐ)',
+        recorded_by: payload.recorded_by || 'ช่างหน้างาน',
+        reporter_role: payload.reporter_role || 'TECH',
+        progress_percent: Number(payload.progress_percent) || 0,
+        work_description: payload.work_description || '',
+        issues: payload.issues || '',
+        materials_used: payload.materials_used || '',
+        photos: Array.isArray(payload.photos) ? payload.photos : [],
+        is_completed: Boolean(payload.is_completed || payload.progress_percent >= 100),
+        created_at: new Date().toISOString()
+    };
+    exports.coreDailyWorkLogStore.push(newLog);
+    // If completed, update task and job status to QC_PENDING
+    if (newLog.is_completed) {
+        const task = exports.coreTaskStore.find(t => String(t.id) === String(newLog.task_id));
+        if (task) {
+            task.status = 'DONE';
+            task.progress_percent = 100;
+        }
+        const targetJob = exports.coreJobStore.find(j => String(j.id) === String(id) || j.job_no === id);
+        if (targetJob) {
+            targetJob.status = JobStatus.QC_PENDING;
+            targetJob.overall_progress = 85;
+        }
+        // Confirm QC Booking on the completion end date
+        const booking = exports.coreQCBookingStore.find(b => String(b.task_id) === String(newLog.task_id));
+        if (booking) {
+            booking.status = 'CONFIRMED';
+            booking.confirmed_at = new Date().toISOString();
+            booking.confirmed_by = newLog.recorded_by;
+        }
+    }
+    return res.status(201).json({
+        success: true,
+        message: newLog.is_completed
+            ? 'ช่างบันทึกสำเร็จ 100%! ส่งมอบงานเข้าคิวตรวจคุณภาพ QC ล่วงหน้าเรียบร้อย'
+            : 'บันทึกความคืบหน้างานช่างประจำวันเรียบร้อย',
+        data: newLog
+    });
+});
+// DELETE /api/v1/daily-logs/:logId — Delete daily work log
+app.delete('/api/v1/daily-logs/:logId', requireAuth, async (req, res) => {
+    const { logId } = req.params;
+    const idx = exports.coreDailyWorkLogStore.findIndex(l => l.id === logId);
+    if (idx !== -1) {
+        exports.coreDailyWorkLogStore.splice(idx, 1);
+    }
+    return res.json({ success: true, message: 'ลบรายการบันทึกงานประจำวันเรียบร้อย' });
 });
 // =============================================================================
 // 5. QC INSPECTION & AFTER SALE CSAT API (Req #10 & #11)

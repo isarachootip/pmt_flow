@@ -49,6 +49,13 @@ const app = {
                     localStorage.setItem('pmt_tasks', JSON.stringify(DB.tasks || []));
                     localStorage.setItem('pmt_qc_bookings', JSON.stringify(DB.qcBookings || []));
                     localStorage.setItem('pmt_tickets', JSON.stringify(DB.tickets || []));
+                    localStorage.setItem('pmt_daily_work_logs', JSON.stringify(DB.dailyWorkLogs || []));
+                } catch (e) {}
+            },
+
+            persistDailyWorkLogs() {
+                try {
+                    localStorage.setItem('pmt_daily_work_logs', JSON.stringify(DB.dailyWorkLogs || []));
                 } catch (e) {}
             },
 
@@ -1069,6 +1076,72 @@ const app = {
                 this.showToast(`📥 Import จำลองรับ Order จาก INT สำเร็จ ${DB.jobs.length} งาน (สร้างเฉพาะ Transaction เริ่มต้นระบบ Step 1 ทุกงาน 0% Draft พร้อมเริ่มต้นใหม่ทั้งหมด)`);
             },
 
+            getInitialDailyWorkLogs() {
+                return [
+                    {
+                        id: 'LOG_20260907_001',
+                        jobId: 'JOB202609002',
+                        taskId: 'T_JOB202609002_1',
+                        taskName: 'งาน set ระบบ ไฟ',
+                        logDate: '2026-09-07',
+                        dayNumber: 1,
+                        totalDays: 3,
+                        technician: 'Team B (ประเสริฐ)',
+                        recordedBy: 'ช่างประเสริฐ (หัวหน้าชุดติดตั้ง)',
+                        reporterRole: 'TECH',
+                        progressPercent: 35,
+                        workDescription: 'เข้าหน้างาน ตรวจสอบจุดติดตั้ง รื้อถอนระบบสายไฟเดิม เดินท่อร้อยสายไฟหลัก EMT 1/2 นิ้ว และติดตั้งกล่องพักสายไฟ 4x4 จำนวน 6 จุด',
+                        issues: 'พื้นที่ติดตั้งมีความชื้นเล็กน้อย ได้ทำการเป่าแห้งและซีลท่อกันชื้นเรียบร้อย',
+                        materialsUsed: 'ท่อร้อยสายไฟ EMT 1/2 นิ้ว (30 ม.), กล่องพักสาย 4x4 (6 ชิ้น), พุกและสกรูยึด',
+                        photos: [
+                            {
+                                id: 'ph_log_1',
+                                url: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&auto=format&fit=crop&q=60',
+                                title: 'รูปก่อนเริ่มงาน: ตรวจสอบแนวเดินท่อไฟเดิมและพื้นที่ติดตั้ง',
+                                phase: 'BEFORE',
+                                uploadedAt: '2026-09-07T09:30:00.000Z'
+                            },
+                            {
+                                id: 'ph_log_2',
+                                url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&auto=format&fit=crop&q=60',
+                                title: 'รูประหว่างทำ: เดินท่อร้อยสายไฟ EMT และยึดกล่องพักสายไฟ',
+                                phase: 'DURING',
+                                uploadedAt: '2026-09-07T15:45:00.000Z'
+                            }
+                        ],
+                        isCompleted: false,
+                        createdAt: '2026-09-07T17:00:00.000Z'
+                    },
+                    {
+                        id: 'LOG_20260908_002',
+                        jobId: 'JOB202609002',
+                        taskId: 'T_JOB202609002_1',
+                        taskName: 'งาน set ระบบ ไฟ',
+                        logDate: '2026-09-08',
+                        dayNumber: 2,
+                        totalDays: 3,
+                        technician: 'Team B (ประเสริฐ)',
+                        recordedBy: 'ช่างประเสริฐ (หัวหน้าชุดติดตั้ง)',
+                        reporterRole: 'TECH',
+                        progressPercent: 70,
+                        workDescription: 'ร้อยสายไฟ THW 2.5 และ 4.0 sq.mm. เข้าจุดเต้ารับ 8 จุด และสวิตช์ไฟ 4 จุด ติดตั้งโคมไฟดาวน์ไลท์ LED ฝังฝ้า',
+                        issues: 'ไม่มีปัญหา การดำเนินงานราบรื่นตามแผนงาน',
+                        materialsUsed: 'สายไฟ THW 2.5/4.0 Yazaki, เต้ารับ/สวิตช์ Panasonic Wide Series 8 ชุด, โคมไฟ LED 4 ชุด',
+                        photos: [
+                            {
+                                id: 'ph_log_3',
+                                url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&auto=format&fit=crop&q=60',
+                                title: 'รูประหว่างทำ: เดินสายไฟเข้าตู้พักสายไฟและต่อสายดิน',
+                                phase: 'DURING',
+                                uploadedAt: '2026-09-08T14:30:00.000Z'
+                            }
+                        ],
+                        isCompleted: false,
+                        createdAt: '2026-09-08T17:30:00.000Z'
+                    }
+                ];
+            },
+
             init() {
                 // Initialize theme
                 const savedTheme = localStorage.getItem('pmt-theme') || 'dark';
@@ -1203,6 +1276,23 @@ const app = {
                     DB.blueprints = [];
                 }
 
+                // Restore saved daily work logs
+                const savedDailyLogs = localStorage.getItem('pmt_daily_work_logs');
+                if (savedDailyLogs && !isExplicitlyCleared) {
+                    try {
+                        const parsedDailyLogs = JSON.parse(savedDailyLogs);
+                        if (Array.isArray(parsedDailyLogs) && parsedDailyLogs.length > 0) {
+                            DB.dailyWorkLogs = parsedDailyLogs;
+                        } else {
+                            DB.dailyWorkLogs = this.getInitialDailyWorkLogs();
+                        }
+                    } catch (e) {
+                        DB.dailyWorkLogs = this.getInitialDailyWorkLogs();
+                    }
+                } else {
+                    DB.dailyWorkLogs = this.getInitialDailyWorkLogs();
+                }
+
                 // Step Timestamps Audit: Ensure all jobs have step_timestamps initialized for reporting
                 if (Array.isArray(DB.jobs)) {
                     DB.jobs.forEach(j => {
@@ -1248,6 +1338,50 @@ const app = {
                             j.step_timestamps.step5_project_at = "2026-09-04T13:20:05.000Z";
                         } else if (!hasTasks && j.status === 'DRAFT') {
                             delete j.step_timestamps.step5_project_at;
+                        }
+                    });
+                }
+
+                // Ensure default BOQ & Tasks for JOB202609002 (คุณสมศรี สุขใจ)
+                const jobSomsri = (DB.jobs || []).find(j => j.id === 'JOB202609002');
+                if (jobSomsri) {
+                    if (!jobSomsri.boq_items || jobSomsri.boq_items.length === 0) {
+                        jobSomsri.boq_items = [
+                            { id: 'boq_item_1', name: 'งาน set ระบบ ไฟ (เดินท่อร้อยสายไฟและติดตั้งเต้ารับ)', unit: 'จุด', qty: 12, unit_price: 1500, amount: 18000 },
+                            { id: 'boq_item_2', name: 'งานติดตั้ง หลังคา และฉนวนกันความร้อน', unit: 'ตร.ม.', qty: 45, unit_price: 1200, amount: 54000 }
+                        ];
+                    }
+                }
+                if (!DB.tasks) DB.tasks = [];
+                const somsriTasks = DB.tasks.filter(t => t.jobId === 'JOB202609002');
+                if (somsriTasks.length === 0) {
+                    DB.tasks.push({
+                        id: 'T_JOB202609002_1',
+                        jobId: 'JOB202609002',
+                        name: 'งาน set ระบบ ไฟ',
+                        start: '2026-09-07',
+                        end: '2026-09-09',
+                        days: 3,
+                        tech: 'Team B (ประเสริฐ)',
+                        status: 'IN_PROGRESS',
+                        progress: 70
+                    });
+                    DB.tasks.push({
+                        id: 'T_JOB202609002_2',
+                        jobId: 'JOB202609002',
+                        name: 'งานติดตั้ง หลังคา',
+                        start: '2026-09-13',
+                        end: '2026-09-16',
+                        days: 4,
+                        tech: 'Team B (ประเสริฐ)',
+                        status: 'TODO',
+                        progress: 0
+                    });
+                }
+                if (Array.isArray(DB.dailyWorkLogs)) {
+                    DB.dailyWorkLogs.forEach(l => {
+                        if (l.jobId === 'JOB202609002' && (!l.taskId || l.taskId === '')) {
+                            l.taskId = 'T_JOB202609002_1';
                         }
                     });
                 }
@@ -9656,10 +9790,8 @@ const app = {
 
             calculateQCBookingDate(endDateStr, daysBefore = 5) {
                 if (!endDateStr) return '';
-                const d = new Date(endDateStr);
-                if (isNaN(d.getTime())) return endDateStr;
-                d.setDate(d.getDate() - daysBefore);
-                return d.toISOString().slice(0, 10);
+                // วันนัดตรวจ QC คือวันสิ้นสุดงานตามแผนงาน (เช่น 09/09) โดยระบบจองคิวช่าง QC ล่วงหน้าไว้พร้อม
+                return endDateStr;
             },
 
             syncQCBookingsFromTasks() {
@@ -10437,19 +10569,45 @@ const app = {
 
                         const cleanName = (t.name || '').replace(/"/g, '&quot;');
                         const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
-                        const rawQcDate = qcBooking ? qcBooking.qcBookingDate : this.calculateQCBookingDate(t.end || t.start, 5);
+                        const rawQcDate = qcBooking ? qcBooking.qcBookingDate : (t.end || t.start);
                         const qcDateDisplay = this.formatDateDMY(rawQcDate);
                         const isQCConfirmed = qcBooking && qcBooking.status === 'CONFIRMED';
                         const qcBadgeHtml = isQCConfirmed 
-                            ? `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="จองตรวจ QC: ${qcDateDisplay} (ยืนยันช่าง QC แล้ว: ${qcBooking.assignedQCTech})">
+                            ? `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="จองตรวจ QC วันสิ้นสุดงาน: ${qcDateDisplay} (ยืนยันช่าง QC แล้ว: ${qcBooking.assignedQCTech})">
                                 <i class="ph ph-check-circle text-xs"></i>
                                 <span>QC: ${qcDateDisplay} (Confirmed)</span>
                               </button>`
-                            : `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 hover:bg-amber-500/25 transition cursor-pointer" title="จองช่าง QC ล่วงหน้า 5 วันก่อนวันสิ้นสุด - คลิกเพื่อยืนยันช่าง QC">
+                            : `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 hover:bg-amber-500/25 transition cursor-pointer" title="จองช่าง QC ล่วงหน้า วันตรวจ: ${qcDateDisplay} (วันสิ้นสุดงาน) - คลิกเพื่อยืนยันช่าง QC">
                                 <i class="ph ph-calendar-check text-xs"></i>
                                 <span>จอง QC: ${qcDateDisplay}</span>
                                 <span class="underline font-bold ml-0.5">Confirm</span>
                               </button>`;
+
+                        // Daily work log status for this task
+                        const taskLogs = (DB.dailyWorkLogs || []).filter(l => 
+                            String(l.taskId) === String(t.id) || 
+                            (String(l.jobId) === String(targetJob.id) && l.taskName === t.name)
+                        );
+                        const logCount = taskLogs.length;
+                        const latestLog = logCount > 0 ? taskLogs[taskLogs.length - 1] : null;
+                        const latestPct = latestLog ? (latestLog.progressPercent || 0) : (t.progress || 0);
+                        const isTaskCompleted = taskLogs.some(l => l.isCompleted) || t.status === 'DONE';
+
+                        const dailyLogBadgeHtml = isTaskCompleted
+                            ? `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="ดูบันทึกงานช่างประจำวัน (${logCount} วัน เสร็จสมบูรณ์ 100%)">
+                                <i class="ph ph-check-circle text-xs"></i>
+                                <span>บันทึกช่าง (${logCount} วัน: 100%)</span>
+                              </button>`
+                            : (logCount > 0
+                                ? `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 flex items-center gap-1 hover:bg-blue-500/25 transition cursor-pointer" title="คลิกเพื่อบันทึกงานช่างประจำวัน (บันทึกแล้ว ${logCount} วัน คืบหน้า ${latestPct}%)">
+                                    <i class="ph ph-note-pencil text-xs"></i>
+                                    <span>บันทึกช่าง (${logCount} วัน: ${latestPct}%)</span>
+                                  </button>`
+                                : `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-medium bg-muted/60 hover:bg-blue-500/10 hover:text-blue-600 text-muted-foreground border border-border flex items-center gap-1 transition cursor-pointer" title="คลิกเพื่อบันทึกงานช่างประจำวัน">
+                                    <i class="ph ph-plus-circle text-xs"></i>
+                                    <span>+ บันทึกงานประจำวัน</span>
+                                  </button>`
+                            );
 
                         return `
                         <tr class="hover:bg-muted/20 transition gantt-list-row">
@@ -10470,6 +10628,9 @@ const app = {
                             </td>
                             <td class="py-2.5 px-3 whitespace-nowrap">
                                 ${qcBadgeHtml}
+                            </td>
+                            <td class="py-2.5 px-3 whitespace-nowrap">
+                                ${dailyLogBadgeHtml}
                             </td>
                             <td class="py-2.5 px-3">
                                 <select onchange="app.updateGanttTaskField('${t.id}', 'tech', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-xs text-foreground font-medium focus:outline-none cursor-pointer">
@@ -10511,6 +10672,10 @@ const app = {
                                         <p class="text-[11px] text-muted-foreground mt-1">${targetJob.service} • มุมมองตารางรายการ (List View) กำหนดวันเริ่ม-สิ้นสุด และระบบจองช่าง QC ล่วงหน้า 5 วันอัตโนมัติ</p>
                                     </div>
                                     <div class="flex items-center gap-2 shrink-0">
+                                        <button type="button" onclick="app.openDailyWorkLogModalForJob('${selectedJobFilter}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-blue-600 dark:text-blue-400 border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 cursor-pointer shadow-xs" title="บันทึกงานช่างประจำวันโดย QC ทีม / ช่างติดตั้ง">
+                                            <i class="ph ph-notebook text-sm"></i>
+                                            <span>📝 บันทึกงานประจำวัน</span>
+                                        </button>
                                         <button type="button" onclick="app.addGanttTask('${selectedJobFilter}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-700 hover:to-brand-700 text-white cursor-pointer">
                                             <i class="ph ph-plus-circle text-sm"></i>
                                             <span>+ แทรก Task งาน</span>
@@ -10536,14 +10701,15 @@ const app = {
                                                 <th class="py-3 px-3.5 w-36 font-bold">วันเริ่ม (Start)</th>
                                                 <th class="py-3 px-3.5 w-36 font-bold">วันสิ้นสุด (End)</th>
                                                 <th class="py-3 px-2.5 text-center w-20 font-bold">ระยะเวลา</th>
-                                                <th class="py-3 px-3.5 w-44 font-bold text-brand-600 dark:text-brand-400">จองตรวจ QC (D-5)</th>
+                                                <th class="py-3 px-3.5 w-44 font-bold text-brand-600 dark:text-brand-400">จองตรวจ QC (วันสิ้นสุด)</th>
+                                                <th class="py-3 px-3.5 w-44 font-bold text-blue-600 dark:text-blue-400">บันทึกงานประจำวัน</th>
                                                 <th class="py-3 px-3.5 w-48 font-bold">ช่างผู้รับผิดชอบ</th>
                                                 <th class="py-3 px-3.5 w-28 font-bold">สถานะ</th>
                                                 <th class="py-3 px-2.5 w-12 text-center font-bold">ลบ</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-border">
-                                            ${taskRowsHtml || '<tr><td colspan="9" class="py-8 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
+                                            ${taskRowsHtml || '<tr><td colspan="10" class="py-8 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
                                         </tbody>
                                     </table>
                                 </div>
@@ -10634,6 +10800,7 @@ const app = {
                                 <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2">
                                     <span>📅 ${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} (${taskDays} วัน)</span>
                                     <span onclick="app.openQCFromTask('${t.id}')" class="text-brand-500 hover:underline cursor-pointer flex items-center gap-0.5" title="คลิกเพื่อดูการจองช่าง QC"><i class="ph ph-shield-check text-[11px]"></i> จอง QC: ${qcDateDisplay}</span>
+                                    <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-blue-500 hover:underline cursor-pointer flex items-center gap-0.5" title="เปิดบันทึกงานช่างประจำวัน"><i class="ph ph-notebook text-[11px]"></i> บันทึกช่าง</button>
                                 </div>
                             </div>
                             <div class="flex-1 relative h-full flex items-center">
@@ -10659,6 +10826,10 @@ const app = {
                                     <p class="text-[11px] text-muted-foreground mt-1">${targetJob.service} • กำหนดวันเริ่ม-สิ้นสุด และเลือกช่างผู้รับผิดชอบในแต่ละ Task ได้โดยตรง ระบบจะสร้างงานจองช่าง QC ล่วงหน้า 5 วันอัตโนมัติ</p>
                                 </div>
                                 <div class="flex items-center gap-2 shrink-0">
+                                    <button type="button" onclick="app.openDailyWorkLogModalForJob('${selectedJobFilter}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-blue-600 dark:text-blue-400 border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 cursor-pointer shadow-xs" title="บันทึกงานช่างประจำวันโดย QC ทีม / ช่างติดตั้ง">
+                                        <i class="ph ph-notebook text-sm"></i>
+                                        <span>📝 บันทึกงานประจำวัน</span>
+                                    </button>
                                     <button type="button" onclick="app.addGanttTask('${selectedJobFilter}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-700 hover:to-brand-700 text-white cursor-pointer">
                                         <i class="ph ph-plus-circle text-sm"></i>
                                         <span>+ แทรก Task งาน</span>
@@ -10682,14 +10853,15 @@ const app = {
                                             <th class="py-2.5 px-3 w-36">วันเริ่ม (Start Date)</th>
                                             <th class="py-2.5 px-3 w-36">วันสิ้นสุด (End Date)</th>
                                             <th class="py-2.5 px-2 text-center w-20">ระยะเวลา</th>
-                                            <th class="py-2.5 px-3 w-44 font-bold text-brand-600 dark:text-brand-400">จองตรวจ QC (D-5)</th>
+                                            <th class="py-2.5 px-3 w-44 font-bold text-brand-600 dark:text-brand-400">จองตรวจ QC (วันสิ้นสุด)</th>
+                                            <th class="py-2.5 px-3 w-44 font-bold text-blue-600 dark:text-blue-400">บันทึกงานประจำวัน</th>
                                             <th class="py-2.5 px-3 w-48">ช่างผู้รับผิดชอบ</th>
                                             <th class="py-2.5 px-3 w-28">สถานะ</th>
                                             <th class="py-2.5 px-2 w-10 text-center">ลบ</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-border">
-                                        ${taskRowsHtml || '<tr><td colspan="9" class="py-6 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
+                                        ${taskRowsHtml || '<tr><td colspan="10" class="py-6 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
                                     </tbody>
                                 </table>
                             </div>
@@ -10777,19 +10949,45 @@ const app = {
                         const custName = targetJob.customer || 'ลูกค้า';
 
                         const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
-                        const rawQcDate = qcBooking ? qcBooking.qcBookingDate : this.calculateQCBookingDate(t.end || t.start, 5);
+                        const rawQcDate = qcBooking ? qcBooking.qcBookingDate : (t.end || t.start);
                         const qcDateDisplay = this.formatDateDMY(rawQcDate);
                         const isQCConfirmed = qcBooking && qcBooking.status === 'CONFIRMED';
                         const qcBadgeHtml = isQCConfirmed 
-                            ? `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="จองตรวจ QC: ${qcDateDisplay} (ยืนยันช่าง QC แล้ว: ${qcBooking.assignedQCTech})">
+                            ? `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="จองตรวจ QC วันสิ้นสุดงาน: ${qcDateDisplay} (ยืนยันช่าง QC แล้ว: ${qcBooking.assignedQCTech})">
                                 <i class="ph ph-check-circle text-xs"></i>
                                 <span>QC: ${qcDateDisplay} (Confirmed)</span>
                               </button>`
-                            : `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 hover:bg-amber-500/25 transition cursor-pointer" title="จองช่าง QC ล่วงหน้า 5 วันก่อนวันสิ้นสุด - คลิกเพื่อยืนยันช่าง QC">
+                            : `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 hover:bg-amber-500/25 transition cursor-pointer" title="จองช่าง QC ล่วงหน้า วันตรวจ: ${qcDateDisplay} (วันสิ้นสุดงาน) - คลิกเพื่อยืนยันช่าง QC">
                                 <i class="ph ph-calendar-check text-xs"></i>
                                 <span>จอง QC: ${qcDateDisplay}</span>
                                 <span class="underline font-bold ml-0.5">Confirm</span>
                               </button>`;
+
+                        // Daily work log status for this task
+                        const taskLogs = (DB.dailyWorkLogs || []).filter(l => 
+                            String(l.taskId) === String(t.id) || 
+                            (String(l.jobId) === String(t.jobId) && l.taskName === t.name)
+                        );
+                        const logCount = taskLogs.length;
+                        const latestLog = logCount > 0 ? taskLogs[taskLogs.length - 1] : null;
+                        const latestPct = latestLog ? (latestLog.progressPercent || 0) : (t.progress || 0);
+                        const isTaskCompleted = taskLogs.some(l => l.isCompleted) || t.status === 'DONE';
+
+                        const dailyLogBadgeHtml = isTaskCompleted
+                            ? `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="ดูบันทึกงานช่างประจำวัน (${logCount} วัน เสร็จสมบูรณ์ 100%)">
+                                <i class="ph ph-check-circle text-xs"></i>
+                                <span>บันทึกช่าง (${logCount} วัน: 100%)</span>
+                              </button>`
+                            : (logCount > 0
+                                ? `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 flex items-center gap-1 hover:bg-blue-500/25 transition cursor-pointer" title="คลิกเพื่อบันทึกงานช่างประจำวัน (บันทึกแล้ว ${logCount} วัน คืบหน้า ${latestPct}%)">
+                                    <i class="ph ph-note-pencil text-xs"></i>
+                                    <span>บันทึกช่าง (${logCount} วัน: ${latestPct}%)</span>
+                                  </button>`
+                                : `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-medium bg-muted/60 hover:bg-blue-500/10 hover:text-blue-600 text-muted-foreground border border-border flex items-center gap-1 transition cursor-pointer" title="คลิกเพื่อบันทึกงานช่างประจำวัน">
+                                    <i class="ph ph-plus-circle text-xs"></i>
+                                    <span>+ บันทึกงานประจำวัน</span>
+                                  </button>`
+                            );
 
                         return `
                         <tr class="hover:bg-muted/20 transition gantt-list-row">
@@ -10816,6 +11014,9 @@ const app = {
                             </td>
                             <td class="py-2.5 px-3 whitespace-nowrap">
                                 ${qcBadgeHtml}
+                            </td>
+                            <td class="py-2.5 px-3 whitespace-nowrap">
+                                ${dailyLogBadgeHtml}
                             </td>
                             <td class="py-2.5 px-3">
                                 <select onchange="app.updateGanttTaskField('${t.id}', 'tech', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-xs text-foreground font-medium focus:outline-none cursor-pointer">
@@ -10883,7 +11084,8 @@ const app = {
                                             <th class="py-3 px-3 w-36 font-bold">วันเริ่ม (Start)</th>
                                             <th class="py-3 px-3 w-36 font-bold">วันสิ้นสุด (End)</th>
                                             <th class="py-3 px-2 text-center w-20 font-bold">ระยะเวลา</th>
-                                            <th class="py-3 px-3 w-44 font-bold text-brand-600 dark:text-brand-400">จองตรวจ QC (D-5)</th>
+                                            <th class="py-3 px-3 w-44 font-bold text-brand-600 dark:text-brand-400">จองตรวจ QC (วันสิ้นสุด)</th>
+                                            <th class="py-3 px-3 w-44 font-bold text-blue-600 dark:text-blue-400">บันทึกงานประจำวัน</th>
                                             <th class="py-3 px-3 w-48 font-bold">ช่างผู้รับผิดชอบ</th>
                                             <th class="py-3 px-3 w-28 font-bold">สถานะ</th>
                                             <th class="py-3 px-2 w-10 text-center font-bold">ลบ</th>
@@ -10972,6 +11174,7 @@ const app = {
                             <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2">
                                 <span>📅 ${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} (${taskDays} วัน)</span>
                                 <span onclick="app.openQCFromTask('${t.id}')" class="text-brand-500 hover:underline cursor-pointer flex items-center gap-0.5" title="คลิกเพื่อดูการจองช่าง QC"><i class="ph ph-shield-check text-[11px]"></i> จอง QC: ${qcDateDisplay}</span>
+                                <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-blue-500 hover:underline cursor-pointer flex items-center gap-0.5" title="เปิดบันทึกงานช่างประจำวัน"><i class="ph ph-notebook text-[11px]"></i> บันทึกช่าง</button>
                             </div>
                         </div>
                         <div class="flex-1 relative h-full flex items-center">
@@ -10991,6 +11194,521 @@ const app = {
                     ${rowsHtml}
                 `;
                 container.innerHTML = html;
+            },
+
+            // ─── DAILY WORK LOGS ENGINE (บันทึกงานช่างประจำวัน) ───────────
+            openDailyWorkLogModal(taskId) {
+                let task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
+                let jobId = task ? task.jobId : this.state.selectedGanttJobId;
+                if (!jobId || jobId === 'all') jobId = 'JOB202609002';
+                
+                // If no specific task was found, find first task of this job or create virtual reference
+                if (!task) {
+                    const jobTasks = (DB.tasks || []).filter(t => t.jobId === jobId);
+                    if (jobTasks.length > 0) {
+                        task = jobTasks[0];
+                        taskId = task.id;
+                    }
+                }
+                
+                const job = (DB.jobs || []).find(j => j.id === jobId) || {};
+
+                this.state.activeDailyLogTaskId = taskId;
+                this.state.activeDailyLogJobId = jobId;
+
+                const modal = document.getElementById('modal-daily-work-log');
+                const content = document.getElementById('modal-daily-work-log-content');
+                if (!modal) return;
+
+                const taskName = task ? task.name : (job.service || 'งาน set ระบบ ไฟ');
+                const startDate = task ? task.start : '2026-09-07';
+                const endDate = task ? (task.end || task.start) : '2026-09-09';
+                const days = task ? (task.days || 3) : 3;
+                const tech = task ? (task.tech || job.tech || 'Team B (ประเสริฐ)') : (job.tech || 'Team B (ประเสริฐ)');
+
+                const elJobId = document.getElementById('dwl-modal-job-id');
+                if (elJobId) elJobId.innerText = jobId;
+                const elCust = document.getElementById('dwl-modal-customer');
+                if (elCust) elCust.innerText = `${job.customer || 'คุณสมศรี สุขใจ'} • ${job.phone || '082-222-3333'}`;
+                const elSub = document.getElementById('dwl-modal-subtitle');
+                if (elSub) elSub.innerText = `Task: "${taskName}" • แผนงาน: ${this.formatDateDMY(startDate)} ถึง ${this.formatDateDMY(endDate)} (${days} วัน) • ช่าง: ${tech} • วันนัดตรวจ QC: ${this.formatDateDMY(endDate)}`;
+
+                this.renderDailyWorkLogs(taskId);
+
+                modal.classList.remove('hidden-view');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    if (content) content.classList.remove('scale-95');
+                }, 10);
+            },
+
+            openDailyWorkLogModalForJob(jobId) {
+                const jobTasks = (DB.tasks || []).filter(t => t.jobId === jobId);
+                const firstTask = jobTasks.length > 0 ? jobTasks[0] : null;
+                this.openDailyWorkLogModal(firstTask ? firstTask.id : `T_${jobId}_1`);
+            },
+
+            closeDailyWorkLogModal() {
+                const modal = document.getElementById('modal-daily-work-log');
+                const content = document.getElementById('modal-daily-work-log-content');
+                if (!modal) return;
+                modal.classList.add('opacity-0');
+                if (content) content.classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden-view');
+                }, 200);
+            },
+
+            renderDailyWorkLogs(taskId) {
+                const container = document.getElementById('modal-daily-work-log-body');
+                if (!container) return;
+
+                const jobId = this.state.activeDailyLogJobId || 'JOB202609002';
+                const job = (DB.jobs || []).find(j => j.id === jobId) || {};
+                const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
+                
+                const taskName = task ? task.name : 'งาน set ระบบ ไฟ';
+                const startDateStr = task ? (task.start || '2026-09-07') : '2026-09-07';
+                const endDateStr = task ? (task.end || '2026-09-09') : '2026-09-09';
+                const taskDays = task ? (task.days || 3) : 3;
+
+                // Fetch logs for this task or job
+                const allLogs = DB.dailyWorkLogs || [];
+                const taskLogs = allLogs.filter(l => 
+                    (taskId && String(l.taskId) === String(taskId)) || 
+                    (String(l.jobId) === String(jobId) && (l.taskName === taskName || !task))
+                );
+
+                // Sort logs by logDate
+                taskLogs.sort((a, b) => new Date(a.logDate || '2026-01-01') - new Date(b.logDate || '2026-01-01'));
+
+                const maxProgress = taskLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
+                const isCompleted = taskLogs.some(l => l.isCompleted) || (task && task.status === 'DONE') || (job && (job.status === 'QC_PENDING' || job.status === 'QC_PASSED'));
+
+                // Determine next day number & suggest next date
+                let nextDayNum = taskLogs.length + 1;
+                let nextDate = endDateStr;
+                if (taskLogs.length > 0) {
+                    const lastLog = taskLogs[taskLogs.length - 1];
+                    if (lastLog.logDate) {
+                        const d = new Date(lastLog.logDate);
+                        d.setDate(d.getDate() + 1);
+                        nextDate = d.toISOString().slice(0, 10);
+                        if (new Date(nextDate) > new Date(endDateStr)) nextDate = endDateStr;
+                    }
+                } else {
+                    nextDate = startDateStr;
+                }
+
+                // Daily Timeline Steps Pills
+                const timelineStepHtml = Array.from({ length: taskDays }).map((_, i) => {
+                    const dayIdx = i + 1;
+                    const d = new Date(startDateStr);
+                    d.setDate(d.getDate() + i);
+                    const dStr = d.toISOString().slice(0, 10);
+                    const dayLog = taskLogs.find(l => Number(l.dayNumber) === dayIdx || l.logDate === dStr);
+                    const isDayDone = dayLog && (dayLog.progressPercent > 0 || dayLog.isCompleted);
+                    const isLastDay = dayIdx === taskDays;
+
+                    return `
+                    <div class="flex-1 min-w-[120px] p-2.5 rounded-xl border ${isDayDone ? 'bg-emerald-500/10 border-emerald-500/30' : (isLastDay ? 'bg-amber-500/10 border-amber-500/30' : 'bg-muted/40 border-border')} transition flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="font-bold ${isDayDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}">วันที่ ${dayIdx} (${this.formatDateDMY(dStr).slice(0, 5)})</span>
+                            ${isDayDone 
+                                ? `<span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">✓ ${dayLog.progressPercent}%</span>`
+                                : (isLastDay ? `<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold">นัดตรวจ QC</span>` : `<span class="text-[10px] text-muted-foreground">รอลงบันทึก</span>`)}
+                        </div>
+                        <div class="text-[10px] text-muted-foreground mt-1 truncate">
+                            ${isDayDone ? (dayLog.workDescription || 'บันทึกแล้ว') : (isLastDay ? 'วันสิ้นสุดงาน & ตรวจ QC' : 'ตามแผนงาน')}
+                        </div>
+                    </div>`;
+                }).join('');
+
+                // Existing Logs Cards
+                const logsCardsHtml = taskLogs.map(l => {
+                    const photosHtml = (l.photos || []).map(p => `
+                        <div class="relative w-16 h-16 rounded-lg overflow-hidden border border-border group cursor-pointer shrink-0" onclick="app.showLightbox('${p.url}', '${p.title}', 'รูปบันทึกงานประจำวัน', '${l.workDescription}', '${l.recordedBy}')" title="${p.title}">
+                            <img src="${p.url}" class="w-full h-full object-cover group-hover:scale-105 transition duration-150">
+                            <span class="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[8px] text-center font-mono py-0.2">${p.phase || 'SITE'}</span>
+                        </div>
+                    `).join('');
+
+                    return `
+                    <div class="p-4 rounded-2xl bg-card border border-border shadow-xs hover:border-cyan-500/30 transition space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 text-xs font-bold font-mono flex items-center justify-center border border-cyan-500/30">D${l.dayNumber || 1}</span>
+                                <span class="font-bold text-xs text-foreground font-mono">📅 ${this.formatDateDMY(l.logDate)}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-md ${l.isCompleted ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold' : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold'}">
+                                    ความคืบหน้า ${l.progressPercent}% ${l.isCompleted ? '✓ ช่างบันทึกสำเร็จ' : ''}
+                                </span>
+                            </div>
+                            <button type="button" onclick="app.deleteDailyWorkLog('${l.id}', '${taskId}')" class="text-muted-foreground hover:text-rose-500 p-1 rounded-md transition cursor-pointer" title="ลบบันทึกนี้">
+                                <i class="ph ph-trash text-sm"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs text-foreground bg-muted/30 p-2.5 rounded-xl border border-border/60">${l.workDescription}</p>
+                        ${l.materialsUsed ? `<div class="text-[11px] text-muted-foreground flex items-center gap-1.5"><i class="ph ph-wrench text-cyan-500"></i> <span>อุปกรณ์/อะไหล่: <strong>${l.materialsUsed}</strong></span></div>` : ''}
+                        ${l.issues ? `<div class="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5"><i class="ph ph-warning-circle text-amber-500"></i> <span>ข้อสังเกต: ${l.issues}</span></div>` : ''}
+                        ${photosHtml ? `
+                            <div class="pt-1">
+                                <div class="text-[10px] text-muted-foreground mb-1.5 font-medium">รูปภาพหน้างาน (${(l.photos || []).length} รูป):</div>
+                                <div class="flex items-center gap-2 flex-wrap">${photosHtml}</div>
+                            </div>
+                        ` : ''}
+                        <div class="text-[10px] text-muted-foreground/80 flex items-center justify-between pt-1 border-t border-border/50">
+                            <span>ผู้บันทึก: <strong>${l.recordedBy}</strong> (${l.reporterRole === 'QC' ? 'QC Team' : 'ช่างหน้างาน'})</span>
+                            <span>บันทึกเมื่อ: ${new Date(l.createdAt || Date.now()).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</span>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                container.innerHTML = `
+                    <!-- Top Milestone & QC Booking Header Banner -->
+                    <div class="p-4 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-brand-500/10 to-emerald-500/10 border border-cyan-500/20 shadow-xs space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-bold text-foreground flex items-center gap-2">
+                                    <i class="ph ph-chart-line-up text-cyan-500 text-base"></i>
+                                    <span>ความคืบหน้างานตามแผนงาน Gantt: <strong class="text-cyan-600 dark:text-cyan-400">${taskName}</strong></span>
+                                </div>
+                                <p class="text-[11px] text-muted-foreground mt-0.5">ช่วงเวลา: <strong>${this.formatDateDMY(startDateStr)} - ${this.formatDateDMY(endDateStr)}</strong> (${taskDays} วัน) • นัดตรวจ QC: <strong class="text-emerald-600 dark:text-emerald-400">${this.formatDateDMY(endDateStr)} (วันสิ้นสุดงาน)</strong></p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-3 py-1 rounded-xl text-xs font-mono font-bold ${isCompleted ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40' : 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30'}">
+                                    ${isCompleted ? '✓ ช่างบันทึกสำเร็จ 100%' : `ความคืบหน้ารวม ${maxProgress}%`}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="w-full bg-muted/60 h-2.5 rounded-full overflow-hidden border border-border">
+                            <div class="bg-gradient-to-r from-cyan-500 to-emerald-500 h-full rounded-full transition-all duration-300" style="width: ${Math.min(100, Math.max(isCompleted ? 100 : 5, maxProgress))}%;"></div>
+                        </div>
+
+                        <!-- Daily Steps Grid -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                            ${timelineStepHtml}
+                        </div>
+                    </div>
+
+                    <!-- Main Grid: History (Left) & New Log Form (Right) -->
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <!-- Left Column: Existing Logs Trail -->
+                        <div class="lg:col-span-6 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-display font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                    <i class="ph ph-clock-counter-clockwise text-cyan-500 text-sm"></i>
+                                    ประวัติการบันทึกงานประจำวัน (${taskLogs.length} รายการ)
+                                </h4>
+                                <span class="text-[10px] text-muted-foreground">เรียงตามวันที่</span>
+                            </div>
+
+                            <div class="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+                                ${logsCardsHtml || `
+                                    <div class="py-12 text-center text-muted-foreground text-xs space-y-2 border border-dashed border-border rounded-2xl p-6">
+                                        <i class="ph ph-notebook text-3xl text-muted-foreground/60 block"></i>
+                                        <div>ยังไม่มีบันทึกงานประจำวันสำหรับ Task นี้</div>
+                                        <p class="text-[11px]">กรอกฟอร์มด้านขวาเพื่อเริ่มบันทึกงานของช่างในแต่ละวัน</p>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Add / Edit Daily Log Form -->
+                        <div class="lg:col-span-6">
+                            <div class="p-5 rounded-2xl bg-muted/20 border border-border space-y-4 shadow-xs">
+                                <div class="flex items-center justify-between pb-2 border-b border-border">
+                                    <h4 class="font-display font-bold text-xs uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                                        <i class="ph ph-plus-circle text-brand-500 text-sm"></i>
+                                        ลงบันทึกงานประจำวันใหม่
+                                    </h4>
+                                    <span class="text-[10px] font-mono text-muted-foreground">รอบที่ ${nextDayNum} / ${taskDays} วัน</span>
+                                </div>
+
+                                <form onsubmit="event.preventDefault(); app.saveDailyWorkLog('${taskId}');" class="space-y-3.5">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-[11px] font-medium text-foreground mb-1">วันที่บันทึก (Work Date): <span class="text-rose-500">*</span></label>
+                                            <input type="date" id="dwl-input-date" value="${nextDate}" class="w-full bg-card border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer" required>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] font-medium text-foreground mb-1">วันที่ในแผนงาน (Day #):</label>
+                                            <input type="number" id="dwl-input-day-num" value="${nextDayNum}" min="1" max="${taskDays + 5}" class="w-full bg-card border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs font-mono text-foreground focus:outline-none" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-[11px] font-medium text-foreground mb-1">ผู้บันทึก (Recorded By):</label>
+                                            <input type="text" id="dwl-input-recorded-by" value="ช่างประเสริฐ (หัวหน้าชุดติดตั้ง)" class="w-full bg-card border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none" required>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] font-medium text-foreground mb-1">บทบาทผู้บันทึก:</label>
+                                            <select id="dwl-input-role" class="w-full bg-card border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none cursor-pointer font-medium">
+                                                <option value="TECH">ช่างหน้างาน (Technician)</option>
+                                                <option value="QC">เจ้าหน้าที่ QC ทีม (QC Inspector)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div class="flex items-center justify-between mb-1">
+                                            <label class="text-[11px] font-medium text-foreground">ความคืบหน้าสะสมรวม (%):</label>
+                                            <span class="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-400" id="dwl-progress-val">${Math.min(100, Math.max(maxProgress, nextDayNum >= taskDays ? 100 : Math.round((nextDayNum / taskDays) * 100)))}%</span>
+                                        </div>
+                                        <input type="range" id="dwl-input-progress" min="0" max="100" step="5" value="${Math.min(100, Math.max(maxProgress, nextDayNum >= taskDays ? 100 : Math.round((nextDayNum / taskDays) * 100)))}" oninput="document.getElementById('dwl-progress-val').innerText = this.value + '%'; if(Number(this.value) === 100) document.getElementById('dwl-input-completed').checked = true;" class="w-full accent-cyan-500 cursor-pointer">
+                                        <div class="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
+                                            <button type="button" onclick="document.getElementById('dwl-input-progress').value = 35; document.getElementById('dwl-progress-val').innerText = '35%';" class="hover:text-foreground cursor-pointer">35% (Day 1)</button>
+                                            <button type="button" onclick="document.getElementById('dwl-input-progress').value = 70; document.getElementById('dwl-progress-val').innerText = '70%';" class="hover:text-foreground cursor-pointer">70% (Day 2)</button>
+                                            <button type="button" onclick="document.getElementById('dwl-input-progress').value = 100; document.getElementById('dwl-progress-val').innerText = '100%'; document.getElementById('dwl-input-completed').checked = true;" class="text-emerald-600 font-bold hover:underline cursor-pointer">100% (สำเร็จ)</button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-[11px] font-medium text-foreground mb-1">รายละเอียดงานที่ทำในวันนี้ (Daily Accomplishment): <span class="text-rose-500">*</span></label>
+                                        <textarea id="dwl-input-desc" rows="2.5" class="w-full bg-card border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none transition" placeholder="เช่น ต่อสายเมนเข้าตู้ Consumer Unit, ทดสอบเบรกเกอร์กันดูด RCBO Safe-T-Cut, ตรวจวัดแรงดันไฟทุกจุด 220V ปกติ และทำความสะอาดพื้นที่ 100%..." required></textarea>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-[11px] font-medium text-muted-foreground mb-1">อุปกรณ์/อะไหล่ที่ติดตั้ง:</label>
+                                            <input type="text" id="dwl-input-materials" placeholder="เช่น สายไฟ THW, ตู้เบรกเกอร์, เต้ารับ 8 ชุด" class="w-full bg-card border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] font-medium text-muted-foreground mb-1">ปัญหา / อุปสรรคหน้างาน:</label>
+                                            <input type="text" id="dwl-input-issues" placeholder="เช่น ไม่มีปัญหา หรือ ฝนตกชั่วคราว" class="w-full bg-card border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none">
+                                        </div>
+                                    </div>
+
+                                    <!-- Quick Attach Photo Preset Simulator -->
+                                    <div>
+                                        <div class="flex items-center justify-between mb-1">
+                                            <label class="text-[11px] font-medium text-foreground">แนบรูปถ่ายหน้างาน:</label>
+                                            <span class="text-[10px] text-muted-foreground" id="dwl-attached-photos-count">แนบแล้ว 0 รูป</span>
+                                        </div>
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <button type="button" onclick="app.addMockPhotoToDailyLog('BEFORE')" class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1 cursor-pointer hover:border-cyan-500">
+                                                <i class="ph ph-camera"></i> + รูปก่อนทำ (Before)
+                                            </button>
+                                            <button type="button" onclick="app.addMockPhotoToDailyLog('DURING')" class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1 cursor-pointer hover:border-cyan-500">
+                                                <i class="ph ph-camera"></i> + รูประหว่างทำ (During)
+                                            </button>
+                                            <button type="button" onclick="app.addMockPhotoToDailyLog('AFTER')" class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1 cursor-pointer text-emerald-600 dark:text-emerald-400 hover:border-emerald-500">
+                                                <i class="ph ph-check-square"></i> + รูปงานเสร็จ (After)
+                                            </button>
+                                        </div>
+                                        <div id="dwl-attached-photos-preview" class="flex items-center gap-2 flex-wrap pt-2 empty:hidden"></div>
+                                    </div>
+
+                                    <!-- Completion Checkbox Card -->
+                                    <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 transition">
+                                        <input type="checkbox" id="dwl-input-completed" class="mt-0.5 accent-emerald-600 w-4 h-4 cursor-pointer" ${isCompleted || nextDayNum >= taskDays ? 'checked' : ''}>
+                                        <label for="dwl-input-completed" class="text-xs text-foreground font-medium cursor-pointer">
+                                            <strong class="text-emerald-700 dark:text-emerald-300 block">☑️ ช่างบันทึกสำเร็จ (งานติดตั้งเสร็จสมบูรณ์ 100%)</strong>
+                                            <span class="text-[11px] text-muted-foreground block mt-0.5">ระบบจะปรับสถานะ Task เป็น DONE, ยืนยันจองช่าง QC ณ วันสิ้นสุด (${this.formatDateDMY(endDateStr)}) และส่งงานเข้าสู่คิวรอตรวจรับรองคุณภาพ QC ทันที</span>
+                                        </label>
+                                    </div>
+
+                                    <!-- Form Action Buttons -->
+                                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
+                                        <button type="button" onclick="app.closeDailyWorkLogModal()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium cursor-pointer">
+                                            ยกเลิก
+                                        </button>
+                                        <button type="submit" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 cursor-pointer flex items-center gap-1.5">
+                                            <i class="ph ph-floppy-disk text-sm"></i>
+                                            <span>💾 บันทึกความคืบหน้ารายวัน</span>
+                                        </button>
+                                        <button type="button" onclick="app.completeDailyWorkAndMoveToQC('${taskId}')" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white cursor-pointer">
+                                            <i class="ph ph-paper-plane-tilt text-sm"></i>
+                                            <span>🚀 ยืนยันสำเร็จ & ส่งตรวจ QC</span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Reset attached photos temporary array
+                this.state.currentDailyLogAttachedPhotos = [];
+            },
+
+            addMockPhotoToDailyLog(phase = 'DURING') {
+                if (!this.state.currentDailyLogAttachedPhotos) this.state.currentDailyLogAttachedPhotos = [];
+                const sampleUrls = {
+                    'BEFORE': 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=800&auto=format&fit=crop&q=60',
+                    'DURING': 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=60',
+                    'AFTER': 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=800&auto=format&fit=crop&q=60'
+                };
+                const photo = {
+                    id: `ph_dwl_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                    url: sampleUrls[phase] || sampleUrls['DURING'],
+                    title: `รูปหน้างาน (${phase}) แนบเมื่อ ${new Date().toLocaleTimeString('th-TH')}`,
+                    phase: phase,
+                    uploadedAt: new Date().toISOString()
+                };
+                this.state.currentDailyLogAttachedPhotos.push(photo);
+
+                const countEl = document.getElementById('dwl-attached-photos-count');
+                if (countEl) countEl.innerText = `แนบแล้ว ${this.state.currentDailyLogAttachedPhotos.length} รูป`;
+
+                const preview = document.getElementById('dwl-attached-photos-preview');
+                if (preview) {
+                    preview.innerHTML = this.state.currentDailyLogAttachedPhotos.map((p, idx) => `
+                        <div class="relative w-14 h-14 rounded-lg overflow-hidden border border-border group">
+                            <img src="${p.url}" class="w-full h-full object-cover">
+                            <span class="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[8px] text-center font-mono py-0.2">${p.phase}</span>
+                            <button type="button" onclick="app.removeMockDailyPhoto(${idx})" class="absolute top-0.5 right-0.5 w-4 h-4 bg-rose-500 text-white rounded-full flex items-center justify-center text-[10px] opacity-80 hover:opacity-100 cursor-pointer">×</button>
+                        </div>
+                    `).join('');
+                }
+                this.showToast(`📷 แนบรูปภาพหน้างาน (${phase}) เรียบร้อย`);
+            },
+
+            removeMockDailyPhoto(idx) {
+                if (this.state.currentDailyLogAttachedPhotos) {
+                    this.state.currentDailyLogAttachedPhotos.splice(idx, 1);
+                    const countEl = document.getElementById('dwl-attached-photos-count');
+                    if (countEl) countEl.innerText = `แนบแล้ว ${this.state.currentDailyLogAttachedPhotos.length} รูป`;
+                    const preview = document.getElementById('dwl-attached-photos-preview');
+                    if (preview) {
+                        preview.innerHTML = this.state.currentDailyLogAttachedPhotos.map((p, i) => `
+                            <div class="relative w-14 h-14 rounded-lg overflow-hidden border border-border group">
+                                <img src="${p.url}" class="w-full h-full object-cover">
+                                <span class="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[8px] text-center font-mono py-0.2">${p.phase}</span>
+                                <button type="button" onclick="app.removeMockDailyPhoto(${i})" class="absolute top-0.5 right-0.5 w-4 h-4 bg-rose-500 text-white rounded-full flex items-center justify-center text-[10px] opacity-80 hover:opacity-100 cursor-pointer">×</button>
+                            </div>
+                        `).join('');
+                    }
+                }
+            },
+
+            saveDailyWorkLog(taskId, forceComplete = false) {
+                const jobId = this.state.activeDailyLogJobId || 'JOB202609002';
+                const job = (DB.jobs || []).find(j => j.id === jobId) || {};
+                const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
+
+                const dateVal = document.getElementById('dwl-input-date')?.value || new Date().toISOString().slice(0, 10);
+                const dayNumVal = Number(document.getElementById('dwl-input-day-num')?.value) || 1;
+                const recByVal = document.getElementById('dwl-input-recorded-by')?.value || 'ช่างหน้างาน';
+                const roleVal = document.getElementById('dwl-input-role')?.value || 'TECH';
+                let progressVal = Number(document.getElementById('dwl-input-progress')?.value) || 0;
+                let descVal = document.getElementById('dwl-input-desc')?.value || '';
+                const matVal = document.getElementById('dwl-input-materials')?.value || '';
+                const issuesVal = document.getElementById('dwl-input-issues')?.value || '';
+                let isCompletedVal = document.getElementById('dwl-input-completed')?.checked || false;
+
+                if (forceComplete) {
+                    progressVal = 100;
+                    isCompletedVal = true;
+                    if (!descVal) descVal = 'งานติดตั้งเสร็จสมบูรณ์ 100% ตรวจสอบระบบเรียบร้อย พร้อมส่งมอบให้ทีม QC ตรวจรับรองคุณภาพ';
+                }
+
+                if (!descVal.trim()) {
+                    alert('กรุณาระบุรายละเอียดงานที่ทำในวันนี้');
+                    return;
+                }
+
+                const photos = Array.isArray(this.state.currentDailyLogAttachedPhotos) && this.state.currentDailyLogAttachedPhotos.length > 0
+                    ? [...this.state.currentDailyLogAttachedPhotos]
+                    : [
+                        {
+                            id: `ph_dwl_${Date.now()}`,
+                            url: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=800&auto=format&fit=crop&q=60',
+                            title: `รูปหน้างานวันที่ ${dayNumVal} (${isCompletedVal ? 'เสร็จสมบูรณ์' : 'ระหว่างทำ'})`,
+                            phase: isCompletedVal ? 'AFTER' : 'DURING',
+                            uploadedAt: new Date().toISOString()
+                        }
+                    ];
+
+                const newLog = {
+                    id: `LOG_${Date.now()}`,
+                    jobId: jobId,
+                    taskId: taskId,
+                    taskName: task ? task.name : 'งาน set ระบบ ไฟ',
+                    logDate: dateVal,
+                    dayNumber: dayNumVal,
+                    totalDays: task ? (task.days || 3) : 3,
+                    technician: task ? (task.tech || job.tech || 'Team B (ประเสริฐ)') : 'Team B (ประเสริฐ)',
+                    recordedBy: recByVal,
+                    reporterRole: roleVal,
+                    progressPercent: progressVal,
+                    workDescription: descVal,
+                    issues: issuesVal,
+                    materialsUsed: matVal,
+                    photos: photos,
+                    isCompleted: isCompletedVal,
+                    createdAt: new Date().toISOString()
+                };
+
+                if (!DB.dailyWorkLogs) DB.dailyWorkLogs = [];
+                DB.dailyWorkLogs.push(newLog);
+                this.persistDailyWorkLogs();
+
+                // If completed (ช่างบันทึกสำเร็จ), update Task & Job Status to QC_PENDING
+                if (isCompletedVal) {
+                    if (task) {
+                        task.status = 'DONE';
+                        task.days = task.days || 3;
+                    }
+                    if (job) {
+                        job.status = 'QC_PENDING';
+                        job.progress = 85;
+                        if (!job.step_timestamps) job.step_timestamps = {};
+                        job.step_timestamps.qc_pending_at = new Date().toISOString();
+                        this.recordStepTimestamp(job.id, 'qc_pending_at', job.step_timestamps.qc_pending_at, 'ช่างบันทึกงานเสร็จสมบูรณ์ ส่งต่อเข้าคิวรอตรวจรับรองคุณภาพ QC');
+                    }
+                    // Auto-confirm QC booking on the End Date
+                    const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(taskId) || b.jobId === jobId);
+                    if (qcBooking) {
+                        qcBooking.status = 'CONFIRMED';
+                        qcBooking.confirmedAt = new Date().toISOString();
+                        qcBooking.confirmedBy = recByVal;
+                        qcBooking.qcBookingDate = task ? (task.end || task.start) : dateVal;
+                    }
+                    this.persistJobs();
+                    this.updateQCBadges();
+                    this.updateStepBadges();
+
+                    // Background API sync
+                    fetch(`/api/v1/jobs/${jobId}/daily-logs`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newLog)
+                    }).catch(() => {});
+
+                    this.showToast(`🚀 ช่างบันทึกสำเร็จ 100%! ส่งต่อโครงการ ${jobId} เข้าคิวตรวจคุณภาพ QC ล่วงหน้า (วันที่ ${this.formatDateDMY(newLog.logDate)}) เรียบร้อย`);
+                    this.closeDailyWorkLogModal();
+                    this.renderGantt();
+                    return;
+                }
+
+                // If not completed, normal sync
+                fetch(`/api/v1/jobs/${jobId}/daily-logs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newLog)
+                }).catch(() => {});
+
+                this.showToast(`💾 บันทึกความคืบหน้าวันที่ ${dayNumVal} (${progressVal}%) สำเร็จ`);
+                this.renderDailyWorkLogs(taskId);
+                this.renderGantt();
+            },
+
+            completeDailyWorkAndMoveToQC(taskId) {
+                if (!confirm('ยืนยันว่าช่างได้ดำเนินการติดตั้งเสร็จสมบูรณ์ 100% และต้องการส่งต่อให้ทีม QC เข้าตรวจใช่หรือไม่?')) return;
+                this.saveDailyWorkLog(taskId, true);
+            },
+
+            deleteDailyWorkLog(logId, taskId) {
+                if (!confirm('คุณต้องการลบรายการบันทึกนี้ใช่หรือไม่?')) return;
+                DB.dailyWorkLogs = (DB.dailyWorkLogs || []).filter(l => l.id !== logId);
+                this.persistDailyWorkLogs();
+                fetch(`/api/v1/daily-logs/${logId}`, { method: 'DELETE' }).catch(() => {});
+                this.showToast('🗑️ ลบบันทึกงานประจำวันเรียบร้อย');
+                this.renderDailyWorkLogs(taskId);
+                this.renderGantt();
             },
 
             renderQC() {
@@ -11255,6 +11973,93 @@ const app = {
                     return;
                 }
 
+                // Daily Work Logs for this Job
+                const jobDailyLogs = (DB.dailyWorkLogs || []).filter(l => String(l.jobId) === String(id));
+                jobDailyLogs.sort((a, b) => new Date(a.logDate || '2026-01-01') - new Date(b.logDate || '2026-01-01'));
+
+                let dailyLogSectionHtml = '';
+                if (jobDailyLogs.length > 0) {
+                    const totalPhotos = jobDailyLogs.reduce((sum, l) => sum + (l.photos ? l.photos.length : 0), 0);
+                    const maxPct = jobDailyLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
+                    const isAllDone = jobDailyLogs.some(l => l.isCompleted) || maxPct === 100 || job.status === 'QC_PENDING' || job.status === 'QC_PASSED';
+
+                    dailyLogSectionHtml = `
+                    <div class="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20 mb-6 space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center text-base font-bold shadow-xs">
+                                    <i class="ph ph-notebook"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-foreground flex items-center gap-2">
+                                        <span>บันทึกงานช่างประจำวัน (Daily Field Logs)</span>
+                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${isAllDone ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30'}">
+                                            บันทึกแล้ว ${jobDailyLogs.length} วัน • คืบหน้ารวม ${maxPct}% ${isAllDone ? '✓ ส่งตรวจ QC แล้ว' : ''}
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-muted-foreground mt-0.5">รายงานผลงานภาคสนาม ปัญหาที่พบ วัสดุที่ใช้ และภาพถ่ายขั้นตอนการทำงานเพื่อใช้ประกอบการตรวจ QC</p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="app.openDailyWorkLogModalForJob('${id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-blue-600 dark:text-blue-400 border border-blue-500/30 bg-card hover:bg-blue-500/10 cursor-pointer shadow-xs shrink-0">
+                                <i class="ph ph-note-pencil text-sm"></i>
+                                <span>เปิดดูบันทึก & เพิ่มรูป (${totalPhotos} รูป)</span>
+                            </button>
+                        </div>
+
+                        <!-- Daily Log Day Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
+                            ${jobDailyLogs.map(l => {
+                                const photosCount = (l.photos || []).length;
+                                return `
+                                <div class="p-3 rounded-xl bg-card border border-border shadow-xs space-y-2 hover:border-blue-500/40 transition flex flex-col justify-between">
+                                    <div class="space-y-1.5">
+                                        <div class="flex items-center justify-between">
+                                            <span class="font-bold text-xs text-foreground flex items-center gap-1.5">
+                                                <span class="w-5 h-5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center text-[10px] font-mono font-bold">D${l.dayNumber || 1}</span>
+                                                <span>วันที่ ${this.formatDateDMY(l.logDate)}</span>
+                                            </span>
+                                            <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                                ${l.progressPercent || 0}%
+                                            </span>
+                                        </div>
+                                        <p class="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                                            ${l.workDescription || '-'}
+                                        </p>
+                                        ${photosCount > 0 ? `
+                                        <div class="flex items-center gap-1.5 pt-1 overflow-x-auto pb-0.5">
+                                            ${(l.photos || []).slice(0, 3).map(p => `
+                                                <img src="${p.url}" alt="${p.title}" onclick="app.showLightbox('${p.url}', '${p.title}', 'รูปบันทึกงานประจำวัน Day ${l.dayNumber}', '${l.workDescription}', '${l.recordedBy || 'ช่าง'}')" class="w-12 h-12 rounded-lg object-cover border border-border cursor-pointer hover:scale-105 hover:border-blue-500 transition shrink-0 shadow-xs" title="${p.title}">
+                                            `).join('')}
+                                            ${photosCount > 3 ? `<span class="text-[10px] font-mono text-muted-foreground pl-1 font-semibold">+${photosCount - 3}</span>` : ''}
+                                        </div>
+                                        ` : '<div class="text-[10px] text-muted-foreground italic py-1">ไม่มีรูปภาพ</div>'}
+                                    </div>
+                                    <div class="text-[10px] text-muted-foreground flex items-center justify-between pt-2 border-t border-border/60 mt-1">
+                                        <span class="truncate max-w-[130px]"><i class="ph ph-user text-[11px]"></i> ${l.recordedBy || l.technician || 'ช่าง'}</span>
+                                        <button type="button" onclick="app.openDailyWorkLogModal('${l.taskId || ''}')" class="text-blue-500 hover:underline font-semibold cursor-pointer">ดูรายละเอียด</button>
+                                    </div>
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                    `;
+                } else {
+                    dailyLogSectionHtml = `
+                    <div class="p-3.5 rounded-2xl bg-muted/20 border border-dashed border-border mb-6 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <i class="ph ph-notebook text-muted-foreground text-lg"></i>
+                            <div class="text-xs text-muted-foreground">
+                                ยังไม่มีบันทึกงานช่างประจำวันสำหรับโครงการนี้
+                            </div>
+                        </div>
+                        <button type="button" onclick="app.openDailyWorkLogModalForJob('${id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 cursor-pointer">
+                            <i class="ph ph-plus text-xs"></i>
+                            <span>+ บันทึกงานช่างประจำวัน</span>
+                        </button>
+                    </div>
+                    `;
+                }
+
                 let formHtml = `
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-border mb-6">
                         <div>
@@ -11267,6 +12072,8 @@ const app = {
                             <i class="ph ph-camera text-sm"></i> ดูรูปภาพหน้างาน (${5 + (job.photos?.length || 0)} รูป)
                         </button>
                     </div>
+
+                    ${dailyLogSectionHtml}
 
                     <div class="space-y-3 mb-6">
                         <div class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Checklist มาตรฐานความปลอดภัยและคุณภาพ (On-site Inspection)</div>

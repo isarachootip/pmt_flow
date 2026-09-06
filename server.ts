@@ -680,13 +680,37 @@ export interface QCBooking {
   created_at: string;
 }
 
-// Calculate QC Booking Date (5 days before task plan_end_date)
+export interface CoreDailyWorkLog {
+  id: string;
+  job_id: number | string;
+  job_no?: string;
+  task_id: number | string;
+  task_name: string;
+  log_date: string;
+  day_number: number;
+  total_days: number;
+  technician: string;
+  recorded_by: string;
+  reporter_role: 'TECH' | 'QC';
+  progress_percent: number;
+  work_description: string;
+  issues?: string;
+  materials_used?: string;
+  photos: Array<{
+    id: string;
+    url: string;
+    title: string;
+    phase: 'BEFORE' | 'DURING' | 'AFTER';
+    uploaded_at: string;
+  }>;
+  is_completed: boolean;
+  created_at: string;
+}
+
+// Calculate QC Booking Date: The inspection date is the target plan_end_date (completion date)
 export function calculateQCBookingDate(endDateStr: string, daysBefore: number = 5): string {
   if (!endDateStr) return '';
-  const d = new Date(endDateStr);
-  if (isNaN(d.getTime())) return endDateStr;
-  d.setDate(d.getDate() - daysBefore);
-  return d.toISOString().slice(0, 10);
+  return endDateStr;
 }
 
 // =============================================================================
@@ -718,6 +742,7 @@ export const coreVisitCheckinStore: CoreVisitCheckin[] = [];
 export const coreSitePhotoStore: CoreSitePhoto[] = [];
 export const coreTaskStore: CoreTask[] = [];
 export const coreQCBookingStore: QCBooking[] = [];
+export const coreDailyWorkLogStore: CoreDailyWorkLog[] = [];
 
 export interface MAServiceItem {
   id: string;
@@ -1976,6 +2001,7 @@ const wipeAllTransactions = (req: Request, res: Response) => {
   coreVisitCheckinStore.length = 0;
   coreSitePhotoStore.length = 0;
   coreQCBookingStore.length = 0;
+  coreDailyWorkLogStore.length = 0;
   stagingSurveyStore.length = 0;
   maContractStore.length = 0;
   maRoundStore.length = 0;
@@ -1997,6 +2023,7 @@ app.post('/api/v1/jobs/reset-status', (req: Request, res: Response) => {
   });
   coreTaskStore.length = 0;
   coreQCBookingStore.length = 0;
+  coreDailyWorkLogStore.length = 0;
   return res.json({
     success: true,
     message: 'ถอยสถานะของทุก Job กลับสู่จุดเริ่มต้น (DRAFT / 0%) เรียบร้อย',
@@ -2009,6 +2036,7 @@ app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], (req: Request, res
   seedInitialStagingData(false);
   coreTaskStore.length = 0;
   coreQCBookingStore.length = 0;
+  coreDailyWorkLogStore.length = 0;
   coreVisitCheckinStore.length = 0;
   coreSitePhotoStore.length = 0;
   stagingSurveyStore.length = 0;
@@ -2451,6 +2479,83 @@ app.post('/api/v1/qc/bookings/sync-all', requireAuth, async (req: Request, res: 
     total: coreQCBookingStore.length,
     data: coreQCBookingStore
   });
+});
+
+// =============================================================================
+// DAILY TECHNICIAN WORK LOGS API (บันทึกงานช่างประจำวัน ตามแผนงาน Gantt)
+// =============================================================================
+
+// GET /api/v1/jobs/:id/daily-logs — Get all daily work logs for a job
+app.get('/api/v1/jobs/:id/daily-logs', requireAuth, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const logs = coreDailyWorkLogStore.filter(l => String(l.job_id) === String(id) || l.job_no === id);
+  return res.json({ success: true, total: logs.length, data: logs });
+});
+
+// POST /api/v1/jobs/:id/daily-logs — Create new daily work log
+app.post('/api/v1/jobs/:id/daily-logs', requireAuth, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const payload = req.body;
+  const newLog: CoreDailyWorkLog = {
+    id: payload.id || `LOG_${Date.now()}`,
+    job_id: id,
+    job_no: payload.job_no || (id.startsWith('JOB') ? id : `JOB20260900${id}`),
+    task_id: payload.task_id || `T_${id}_1`,
+    task_name: payload.task_name || 'งานบริการติดตั้ง',
+    log_date: payload.log_date || new Date().toISOString().slice(0, 10),
+    day_number: Number(payload.day_number) || 1,
+    total_days: Number(payload.total_days) || 1,
+    technician: payload.technician || 'Team B (ประเสริฐ)',
+    recorded_by: payload.recorded_by || 'ช่างหน้างาน',
+    reporter_role: payload.reporter_role || 'TECH',
+    progress_percent: Number(payload.progress_percent) || 0,
+    work_description: payload.work_description || '',
+    issues: payload.issues || '',
+    materials_used: payload.materials_used || '',
+    photos: Array.isArray(payload.photos) ? payload.photos : [],
+    is_completed: Boolean(payload.is_completed || payload.progress_percent >= 100),
+    created_at: new Date().toISOString()
+  };
+  coreDailyWorkLogStore.push(newLog);
+
+  // If completed, update task and job status to QC_PENDING
+  if (newLog.is_completed) {
+    const task = coreTaskStore.find(t => String(t.id) === String(newLog.task_id));
+    if (task) {
+      task.status = 'DONE';
+      task.progress_percent = 100;
+    }
+    const targetJob = coreJobStore.find(j => String(j.id) === String(id) || j.job_no === id);
+    if (targetJob) {
+      targetJob.status = JobStatus.QC_PENDING;
+      targetJob.overall_progress = 85;
+    }
+    // Confirm QC Booking on the completion end date
+    const booking = coreQCBookingStore.find(b => String(b.task_id) === String(newLog.task_id));
+    if (booking) {
+      booking.status = 'CONFIRMED';
+      booking.confirmed_at = new Date().toISOString();
+      booking.confirmed_by = newLog.recorded_by;
+    }
+  }
+
+  return res.status(201).json({
+    success: true,
+    message: newLog.is_completed
+      ? 'ช่างบันทึกสำเร็จ 100%! ส่งมอบงานเข้าคิวตรวจคุณภาพ QC ล่วงหน้าเรียบร้อย'
+      : 'บันทึกความคืบหน้างานช่างประจำวันเรียบร้อย',
+    data: newLog
+  });
+});
+
+// DELETE /api/v1/daily-logs/:logId — Delete daily work log
+app.delete('/api/v1/daily-logs/:logId', requireAuth, async (req: Request, res: Response) => {
+  const { logId } = req.params;
+  const idx = coreDailyWorkLogStore.findIndex(l => l.id === logId);
+  if (idx !== -1) {
+    coreDailyWorkLogStore.splice(idx, 1);
+  }
+  return res.json({ success: true, message: 'ลบรายการบันทึกงานประจำวันเรียบร้อย' });
 });
 
 // =============================================================================

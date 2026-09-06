@@ -5,6 +5,7 @@ const DB = {
             tickets: [],
             tasks: [],
             qcBookings: [],
+            dailyWorkLogs: [],
             qcChecklist: [
                 { id: 'Q1', text: 'ความสะอาดพื้นที่หน้างาน (Site Cleanliness)', mandatory: true },
                 { id: 'Q2', text: 'ระบบน้ำไม่รั่วซึม และแรงดันน้ำปกติ (Pressure Test)', mandatory: true },
