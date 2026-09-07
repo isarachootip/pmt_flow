@@ -44,22 +44,24 @@ window.auth =  {
 
         showLoginOverlay() {
             const overlay = document.getElementById('login-overlay');
-            const pageContainer = document.getElementById('page-container');
             if (overlay) {
                 overlay.style.setProperty('display', 'flex', 'important');
                 overlay.classList.remove('hidden');
+                const uInput = document.getElementById('login-username');
+                if (uInput) setTimeout(() => uInput.focus(), 150);
             }
+            const pageContainer = document.getElementById('page-container');
             if (pageContainer) {
-                pageContainer.style.setProperty('display', 'none', 'important');
+                pageContainer.style.removeProperty('display');
             }
         },
         hideLoginOverlay() {
             const overlay = document.getElementById('login-overlay');
-            const pageContainer = document.getElementById('page-container');
             if (overlay) {
                 overlay.style.setProperty('display', 'none', 'important');
                 overlay.classList.add('hidden');
             }
+            const pageContainer = document.getElementById('page-container');
             if (pageContainer) {
                 pageContainer.style.removeProperty('display');
             }
