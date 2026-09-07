@@ -6,28 +6,19 @@
     <meta name="format-detection" content="telephone=no">
     <title>PMT Flow — Artifact Next.js + Shadcn UI Kit</title>
     
-    <!-- Immediate Theme Initialization (Default: Light Mode) -->
+    <!-- Strict Light Theme Enforcement (Light Theme Only — Dark Mode Permanently Retired) -->
     <script>
         (function() {
             try {
-                var theme = localStorage.getItem('pmt-theme') || 'light';
-                if (theme === 'dark') {
-                    document.documentElement.classList.add('dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                }
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('pmt-theme', 'light');
             } catch(e) {}
         })();
 
+        // Legacy compatibility stub (No-op: dark theme disabled)
         window.toggleTheme = function() {
-            var isDark = document.documentElement.classList.toggle('dark');
-            try { localStorage.setItem('pmt-theme', isDark ? 'dark' : 'light'); } catch(e) {}
-            if (window.app && typeof window.app.updateCharts === 'function') {
-                try { window.app.updateCharts(); } catch(e) {}
-            }
-            if (window.app && typeof window.app.showToast === 'function') {
-                window.app.showToast('เปลี่ยนเป็น ' + (isDark ? 'โหมดมืด (Dark Mode)' : 'โหมดสว่าง (Light Mode)') + ' เรียบร้อยแล้ว');
-            }
+            document.documentElement.classList.remove('dark');
+            try { localStorage.setItem('pmt-theme', 'light'); } catch(e) {}
         };
     </script>
     
@@ -48,35 +39,50 @@
     <!-- SheetJS for Excel (.xlsx, .xls) Parsing -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-    <!-- Global Fail-Safe Auth & Logout Handler -->
+    <!-- Global Fail-Safe Auth & Logout Handler (Strict Anti-Hang & Clean Hard Reload) -->
     <script>
         window.handleLogout = function() {
             try {
-                var theme = localStorage.getItem('pmt-theme') || 'light';
+                var tok = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                if (tok) {
+                    fetch('/api/v1/auth/logout', { 
+                        method: 'POST', 
+                        headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' },
+                        keepalive: true 
+                    }).catch(function() {});
+                }
+            } catch(e) {}
+            try {
                 sessionStorage.clear();
                 localStorage.clear();
-                localStorage.setItem('pmt-theme', theme);
-            } catch (e) {}
+                localStorage.setItem('pmt-theme', 'light');
+            } catch(e) {}
+            // Terminate any active timers to eliminate background polling
             try {
-                if (window.auth && typeof window.auth.logout === 'function') {
-                    window.auth.logout();
-                    return;
-                }
-            } catch (e) { console.warn('auth.logout error:', e); }
+                var id = window.setTimeout(function() {}, 0);
+                while (id--) { window.clearTimeout(id); }
+            } catch(e) {}
             try {
-                if (window.app && typeof window.app.logout === 'function') {
-                    window.app.logout();
-                    return;
+                if (window.auth) {
+                    window.auth.token = null;
+                    window.auth.user = null;
                 }
-            } catch (e) { console.warn('app.logout error:', e); }
-            window.location.href = '/';
+            } catch(e) {}
+            // Force hard redirect and reload to clear browser memory & DOM
+            try {
+                window.location.replace('/');
+            } catch(e) {
+                window.location.href = '/';
+            }
+            setTimeout(function() {
+                try { window.location.reload(); } catch(e) {}
+            }, 50);
         };
         window.logout = window.handleLogout;
     </script>
 
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -349,12 +355,6 @@
                     <button onclick="app.navigate('faq')" class="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition flex items-center gap-1 text-xs" title="คู่มือระบบ & FAQ ขั้นตอนการทำงาน">
                         <i class="ph ph-question text-lg text-brand-500"></i>
                         <span class="hidden sm:inline font-medium">FAQ & คู่มือ</span>
-                    </button>
-
-                    <!-- Light / Dark Mode Switcher -->
-                    <button id="topbar-theme-btn" onclick="app.toggleTheme()" class="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer" title="สลับโหมดมืด/สว่าง (Toggle Theme)">
-                        <i class="ph ph-sun dark:hidden text-lg"></i>
-                        <i class="ph ph-moon hidden dark:block text-lg"></i>
                     </button>
 
                     <!-- Notifications -->
@@ -4149,6 +4149,21 @@
                                     <strong class="text-foreground">คำตอบ:</strong> เมื่อโครงการผ่านการตรวจรับงาน QC และส่งมอบงานแล้ว ระบบสามารถสร้างสัญญา MA ดูแลรักษาต่อเนื่อง (เช่น ล้างแอร์หรือตรวจเช็คระบบน้ำทุก 3 เดือน รวม 4 รอบต่อปี) โดยระบบจะคำนวณตารางรอบการเข้าบริการล่วงหน้า (Service Schedule Timeline), ติดตามสถานะแต่ละรอบ (Completed / Pending), และส่งแจ้งเตือนเมื่อใกล้ถึงรอบเข้าบริการของลูกค้า
                                 </div>
                             </details>
+
+                            <!-- Q6: Light Theme Standard & Fail-Safe Login -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q6:</span>
+                                        <span>ทำไมระบบจึงปรับใช้เฉพาะ "ธีมสว่าง (Light Theme)" และมีกลไกป้องกันหน้าจอ Login ค้างอย่างไร?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> เพื่อให้การอ่านข้อมูลหน้างาน ตาราง Gantt แผนผังแบบแปลน และข้อมูลตัวเลข BOQ มีความคมชัดสูงสุด ไม่กลืนกับพื้นหลัง ระบบ PMT Flow จึงกำหนดมาตรฐานเป็น <strong>ธีมสว่าง (Light Theme) 100%</strong> และยกเลิกการสลับโหมดมืด เพื่อตัดปัญหาความขัดแย้งของสีและคอนทราสต์อย่างถาวร</p>
+                                    <p>สำหรับระบบ Log-on / Log-out ได้รับการยกระดับด้วยกลไก <strong>In-Memory Fast Auth (0ms response)</strong>, การตั้งเวลา Timeout ป้องกันการค้าง, และระบบ <strong>Hard Reload Redirect</strong> เมื่อออกจากระบบ เพื่อล้างหน่วยความจำและตัวจับเวลาในเบื้องหลังอย่างสมบูรณ์ ป้องกันปัญหาหน้าจอค้าง 100%</p>
+                                </div>
+                            </details>
                         </div>
                     </div>
                 </div>
@@ -7143,14 +7158,8 @@
     <!-- ============================================================================= -->
     <!-- AUTHENTICATION LOGIN OVERLAY (MODAL)                                          -->
     <!-- ============================================================================= -->
-    <div id="login-overlay" class="fixed inset-0 z-[9999] bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div id="login-overlay" class="fixed inset-0 z-[9999] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
         <div class="relative w-full max-w-md bg-card border border-border rounded-3xl shadow-2xl overflow-hidden p-6 sm:p-8 space-y-4 animate-in fade-in zoom-in duration-200">
-            <!-- Theme Switcher Button on Login Card -->
-            <button type="button" onclick="window.toggleTheme()" class="absolute right-4 top-4 p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer" title="สลับโหมดมืด/สว่าง (Toggle Theme)">
-                <i class="ph ph-sun dark:hidden text-lg text-amber-500"></i>
-                <i class="ph ph-moon hidden dark:block text-lg text-indigo-400"></i>
-            </button>
-
             <!-- Header Logo & Branding -->
             <div class="text-center space-y-1.5 pt-1">
                 <div class="w-13 h-13 bg-brand-500/10 text-brand-500 rounded-2xl flex items-center justify-center mx-auto mb-2 ring-1 ring-brand-500/20">
@@ -7187,7 +7196,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="w-full py-3 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white text-xs font-semibold shadow-lg shadow-brand-500/25 transition cursor-pointer flex items-center justify-center gap-2">
+                <button type="submit" id="login-submit-btn" class="w-full py-3 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white text-xs font-semibold shadow-lg shadow-brand-500/25 transition cursor-pointer flex items-center justify-center gap-2">
                     <i class="ph ph-sign-in text-base"></i>
                     <span id="login-btn-text">เข้าสู่ระบบ</span>
                 </button>

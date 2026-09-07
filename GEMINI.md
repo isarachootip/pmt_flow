@@ -12,12 +12,15 @@
 - **Skill Specification Reference**: Always follow [pmt_flow_skill.md](file:///c:/atgv/pmt_flow/pmt_flow_skill.md) for complete requirements on RBAC, User Management, Log-in/Log-off authentication, and the 7-step pipeline.
 - **Mandatory User Log-in & Logout System**:
   - **First-line Gatekeeper**: Unauthenticated access must be strictly blocked by `#login-overlay`, and all views must be protected via `app.navigate` auth guards.
-  - **Strict Log-off Redirect**: All logout actions (`sidebar-auth-btn`, `topbar-auth-btn`, `modal-my-profile`, `window.handleLogout`) MUST wipe auth tokens and **hard redirect to `/` (`window.location.href = '/'`)** to cleanly return to the login screen without residual memory or background polling.
+  - **Strict Log-off Hard Reload**: All logout actions (`sidebar-auth-btn`, `topbar-auth-btn`, `modal-my-profile`, `window.handleLogout`, `auth.logout`) MUST wipe auth tokens, cancel all timers/polling, and **hard reload to `/` (`window.location.replace('/'); window.location.reload();`)** to cleanly return to the login screen without residual memory or background polling.
   - **DOM Integrity & Anti-Blank Screen**: `#login-overlay` MUST always be a top-level direct child of `<body>` (never nested inside any modal or container). All modals must have balanced closing `</div>` tags. Never set `display: none !important` on `#page-container` in `showLoginOverlay()` to avoid blank screen or Chart.js canvas crashes.
 - **Mandatory User Management**: The system MUST retain and protect the User Management functionality:
   - 4 Roles: `ADMIN`, `AE`, `QC`, `CONTACT_CENTER` with consistent `window.roleBadge(role)` UI.
   - User CRUD, Password Reset modal, Soft delete (is_active toggle), and Login Audit Logs.
   - Resilience: Always provide fallback seed data and isolated try/catch error boundaries.
+
+## ☀️ THEME STANDARD: STRICT LIGHT THEME ONLY (NO DARK MODE)
+- **Mandatory Pure Light Theme**: ทุกหน้าจอต้องแสดงผลใน **ธีมสว่าง (Light Theme) 100%** ห้ามมีปุ่มสลับธีมมืด (Dark Mode Toggle) และตัดการประมวลผลคลาส `.dark` ออกอย่างถาวร เพื่อให้อ่านตัวหนังสือ แผนงาน Gantt และแบบแปลนได้คมชัดสูงสุด และตัดปัญหาหน้าจอค้างหรือสีกลืนกับพื้นหลัง
 
 ## 📅 DATE FORMAT STANDARD: DD/MM/YYYY
 - **Mandatory Across All Views**: ทุกหน้าจอ (All Screens & Views) ต้องแสดงผลวันที่ในรูปแบบ **`DD/MM/YYYY`** (เช่น `07/09/2026`) หากมีเวลาประกอบให้ใช้ `DD/MM/YYYY HH:mm` หรือ `DD/MM/YYYY HH:mm:ss`.

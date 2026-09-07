@@ -18,24 +18,25 @@
             --ring: #7c3aed;
         }
 
+        /* Light Theme Standard — Dark Mode Permanently Retired */
         .dark {
-            --background: #09090b;
-            --foreground: #f4f4f5;
-            --card: #121215;
-            --card-foreground: #f4f4f5;
-            --popover: #121215;
-            --popover-foreground: #f4f4f5;
-            --primary: #8b5cf6;
+            --background: #f8fafc;
+            --foreground: #09090b;
+            --card: #ffffff;
+            --card-foreground: #09090b;
+            --popover: #ffffff;
+            --popover-foreground: #09090b;
+            --primary: #7c3aed;
             --primary-foreground: #ffffff;
-            --secondary: #18181b;
-            --secondary-foreground: #f4f4f5;
-            --muted: #18181b;
-            --muted-foreground: #a1a1aa;
-            --accent: #18181b;
-            --accent-foreground: #f4f4f5;
-            --border: rgba(255, 255, 255, 0.08);
-            --input: rgba(255, 255, 255, 0.12);
-            --ring: #8b5cf6;
+            --secondary: #f4f4f5;
+            --secondary-foreground: #18181b;
+            --muted: #f4f4f5;
+            --muted-foreground: #71717a;
+            --accent: #f4f4f5;
+            --accent-foreground: #18181b;
+            --border: #e4e4e7;
+            --input: #e4e4e7;
+            --ring: #7c3aed;
         }
 
         /* Custom Scrollbar */

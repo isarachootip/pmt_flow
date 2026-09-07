@@ -515,9 +515,17 @@ app.post('/api/v1/auth/login', async (req, res) => {
     if (!username || !password) {
         return res.status(400).json({ success: false, error: { code: 'MISSING_CREDENTIALS', message: 'กรุณากรอก username และ password' } });
     }
-    let user = await (0, database_1.dbGetUser)(username);
-    if (!user) {
-        user = exports.sysUserStore.find(u => u.username === username || u.email === username);
+    const queryUser = String(username || '').trim().toLowerCase();
+    // Check fast in-memory user store first for 0ms instantaneous response (prevents DB query hang)
+    let user = exports.sysUserStore.find(u => u.username.toLowerCase() === queryUser || (u.email && u.email.toLowerCase() === queryUser));
+    if (!user && database_1.isDatabaseConnected) {
+        try {
+            user = await Promise.race([
+                (0, database_1.dbGetUser)(username),
+                new Promise((resolve) => setTimeout(() => resolve(null), 1500))
+            ]);
+        }
+        catch (e) { }
     }
     const log = { id: Date.now(), username, user_id: user?.id || null, success: false, ip_address: ip, fail_reason: null, created_at: new Date().toISOString() };
     if (!user) {
@@ -557,11 +565,13 @@ app.post('/api/v1/auth/login', async (req, res) => {
     });
 });
 // POST /api/v1/auth/logout
-app.post('/api/v1/auth/logout', requireAuth, (req, res) => {
+app.post('/api/v1/auth/logout', (req, res) => {
     const token = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
-    const session = exports.sysSessionStore.find(s => s.token === token);
-    if (session)
-        session.revoked_at = new Date().toISOString();
+    if (token) {
+        const session = exports.sysSessionStore.find(s => s.token === token);
+        if (session)
+            session.revoked_at = new Date().toISOString();
+    }
     return res.json({ success: true, message: 'Logout สำเร็จ' });
 });
 // GET /api/v1/auth/me

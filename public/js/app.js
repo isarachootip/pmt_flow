@@ -44,15 +44,17 @@ const app = {
 
             logout() {
                 try {
-                    var theme = localStorage.getItem('pmt-theme') || 'light';
                     localStorage.clear();
                     sessionStorage.clear();
-                    localStorage.setItem('pmt-theme', theme);
+                    localStorage.setItem('pmt-theme', 'light');
                 } catch(e) {}
                 if (window.auth && typeof window.auth.logout === 'function') {
                     window.auth.logout();
+                } else if (window.handleLogout) {
+                    window.handleLogout();
                 } else {
-                    window.location.href = '/';
+                    try { window.location.replace('/'); } catch(e) { window.location.href = '/'; }
+                    setTimeout(() => { try { window.location.reload(); } catch(e) {} }, 50);
                 }
             },
 
@@ -1263,13 +1265,9 @@ const app = {
             },
 
             init() {
-                // Initialize theme (Default: Light Mode)
-                const savedTheme = localStorage.getItem('pmt-theme') || 'light';
-                if(savedTheme === 'dark') {
-                    document.documentElement.classList.add('dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                }
+                // Strict Light Theme Initialization (Light Mode Only)
+                document.documentElement.classList.remove('dark');
+                try { localStorage.setItem('pmt-theme', 'light'); } catch(e) {}
 
                 // Auto-Wipe & Fresh Clean Slate v8 (Fulfilling: "ล้างข้อมูล Transaction ทั้งหมด")
                 const FRESH_RESET_KEY = 'pmt_clean_reset_v8';
@@ -1646,16 +1644,9 @@ const app = {
             },
 
             toggleTheme() {
-                const isDark = document.documentElement.classList.toggle('dark');
-                try {
-                    localStorage.setItem('pmt-theme', isDark ? 'dark' : 'light');
-                } catch(e) {}
-                try {
-                    this.updateCharts();
-                } catch(err) {
-                    console.warn('Charts update warning:', err);
-                }
-                this.showToast(`เปลี่ยนเป็น ${isDark ? 'โหมดมืด (Dark Mode)' : 'โหมดสว่าง (Light Mode)'} เรียบร้อยแล้ว`);
+                // Dark mode retired: Permanently Light Theme Only
+                document.documentElement.classList.remove('dark');
+                try { localStorage.setItem('pmt-theme', 'light'); } catch(e) {}
             },
 
             toggleSidebar() {
@@ -2127,115 +2118,118 @@ const app = {
             },
 
             updateCharts() {
-                const isDark = document.documentElement.classList.contains('dark');
-                const textColor = isDark ? '#a1a1aa' : '#71717a';
-                const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+                try {
+                    const textColor = '#71717a';
+                    const gridColor = 'rgba(0,0,0,0.06)';
 
-                // 1. Performance Area Chart
-                const perfCtx = document.getElementById('performanceChart');
-                if(perfCtx) {
-                    let oldPerf = Chart.getChart("performanceChart");
-                    if(oldPerf) oldPerf.destroy();
+                    // 1. Performance Area Chart
+                    const perfCtx = document.getElementById('performanceChart');
+                    if(perfCtx && typeof Chart !== 'undefined') {
+                        let oldPerf = Chart.getChart("performanceChart");
+                        if(oldPerf) oldPerf.destroy();
 
-                    new Chart(perfCtx.getContext('2d'), {
-                        type: 'line',
-                        data: {
-                            labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8'],
-                            datasets: [
-                                {
-                                    label: 'งานที่ส่งมอบแล้ว (Current)',
-                                    data: [12, 19, 15, 26, 22, 30, 28, 35],
-                                    borderColor: '#8b5cf6',
-                                    backgroundColor: 'rgba(139, 92, 246, 0.12)',
-                                    fill: true,
-                                    tension: 0.4,
-                                    borderWidth: 2.5,
-                                    pointRadius: 3,
-                                    pointBackgroundColor: '#8b5cf6'
+                        new Chart(perfCtx.getContext('2d'), {
+                            type: 'line',
+                            data: {
+                                labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8'],
+                                datasets: [
+                                    {
+                                        label: 'งานที่ส่งมอบแล้ว (Current)',
+                                        data: [12, 19, 15, 26, 22, 30, 28, 35],
+                                        borderColor: '#8b5cf6',
+                                        backgroundColor: 'rgba(139, 92, 246, 0.12)',
+                                        fill: true,
+                                        tension: 0.4,
+                                        borderWidth: 2.5,
+                                        pointRadius: 3,
+                                        pointBackgroundColor: '#8b5cf6'
+                                    },
+                                    {
+                                        label: 'เป้าหมาย (Target)',
+                                        data: [10, 15, 18, 22, 25, 27, 30, 32],
+                                        borderColor: 'rgba(0,0,0,0.2)',
+                                        borderDash: [5, 5],
+                                        fill: false,
+                                        tension: 0.4,
+                                        borderWidth: 1.5,
+                                        pointRadius: 0
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                        backgroundColor: '#ffffff',
+                                        titleColor: '#09090b',
+                                        bodyColor: '#71717a',
+                                        borderColor: 'rgba(0,0,0,0.1)',
+                                        borderWidth: 1,
+                                        cornerRadius: 8,
+                                        padding: 10
+                                    }
                                 },
-                                {
-                                    label: 'เป้าหมาย (Target)',
-                                    data: [10, 15, 18, 22, 25, 27, 30, 32],
-                                    borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
-                                    borderDash: [5, 5],
-                                    fill: false,
-                                    tension: 0.4,
-                                    borderWidth: 1.5,
-                                    pointRadius: 0
+                                scales: {
+                                    x: { grid: { color: gridColor }, ticks: { color: textColor, font: { family: 'Inter', size: 11 } } },
+                                    y: { grid: { color: gridColor }, ticks: { color: textColor, font: { family: 'Inter', size: 11 } } }
                                 }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { display: false },
-                                tooltip: {
-                                    backgroundColor: isDark ? '#18181b' : '#ffffff',
-                                    titleColor: isDark ? '#f4f4f5' : '#09090b',
-                                    bodyColor: isDark ? '#a1a1aa' : '#71717a',
-                                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-                                    borderWidth: 1,
-                                    cornerRadius: 8,
-                                    padding: 10
-                                }
-                            },
-                            scales: {
-                                x: { grid: { color: gridColor }, ticks: { color: textColor, font: { family: 'Inter', size: 11 } } },
-                                y: { grid: { color: gridColor }, ticks: { color: textColor, font: { family: 'Inter', size: 11 } } }
                             }
-                        }
-                    });
-                }
+                        });
+                    }
 
-                // 2. Status Donut Chart
-                const ctx = document.getElementById('dashboardChart');
-                if(ctx) {
-                    let chartStatus = Chart.getChart("dashboardChart");
-                    if (chartStatus) chartStatus.destroy();
+                    // 2. Status Donut Chart
+                    const ctx = document.getElementById('dashboardChart');
+                    if(ctx && typeof Chart !== 'undefined') {
+                        let chartStatus = Chart.getChart("dashboardChart");
+                        if (chartStatus) chartStatus.destroy();
 
-                    const draftCount = DB.jobs.filter(j => j.status === 'DRAFT').length;
-                    const progressCount = DB.jobs.filter(j => j.status === 'IN_PROGRESS').length;
-                    const qcPendingCount = DB.jobs.filter(j => j.status === 'QC_PENDING').length;
-                    const qcPassedCount = DB.jobs.filter(j => j.status === 'QC_PASSED').length;
-                    const afterSaleCount = DB.jobs.filter(j => j.status === 'AFTER_SALE' || j.status === 'CLOSED').length;
+                        const draftCount = (DB.jobs || []).filter(j => j.status === 'DRAFT').length;
+                        const progressCount = (DB.jobs || []).filter(j => j.status === 'IN_PROGRESS').length;
+                        const qcPendingCount = (DB.jobs || []).filter(j => j.status === 'QC_PENDING').length;
+                        const qcPassedCount = (DB.jobs || []).filter(j => j.status === 'QC_PASSED').length;
+                        const afterSaleCount = (DB.jobs || []).filter(j => j.status === 'AFTER_SALE' || j.status === 'CLOSED').length;
 
-                    new Chart(ctx.getContext('2d'), {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['Draft', 'In Progress', 'QC Pending', 'QC Passed', 'After Sale & Closed'],
-                            datasets: [{
-                                data: [draftCount, progressCount, qcPendingCount, qcPassedCount, afterSaleCount],
-                                backgroundColor: [
-                                    '#71717a',
-                                    '#f59e0b',
-                                    '#8b5cf6',
-                                    '#10b981',
-                                    '#0ea5e9'
-                                ],
-                                borderColor: isDark ? '#121215' : '#ffffff',
-                                borderWidth: 3,
-                                hoverOffset: 6
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { display: false },
-                                tooltip: {
-                                    backgroundColor: isDark ? '#18181b' : '#ffffff',
-                                    titleColor: isDark ? '#f4f4f5' : '#09090b',
-                                    bodyColor: isDark ? '#a1a1aa' : '#71717a',
-                                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-                                    borderWidth: 1,
-                                    padding: 10,
-                                    cornerRadius: 8
-                                }
+                        new Chart(ctx.getContext('2d'), {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Draft', 'In Progress', 'QC Pending', 'QC Passed', 'After Sale & Closed'],
+                                datasets: [{
+                                    data: [draftCount, progressCount, qcPendingCount, qcPassedCount, afterSaleCount],
+                                    backgroundColor: [
+                                        '#71717a',
+                                        '#f59e0b',
+                                        '#8b5cf6',
+                                        '#10b981',
+                                        '#0ea5e9'
+                                    ],
+                                    borderColor: '#ffffff',
+                                    borderWidth: 3,
+                                    hoverOffset: 6
+                                }]
                             },
-                            cutout: '72%'
-                        }
-                    });
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                        backgroundColor: '#ffffff',
+                                        titleColor: '#09090b',
+                                        bodyColor: '#71717a',
+                                        borderColor: 'rgba(0,0,0,0.1)',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        cornerRadius: 8
+                                    }
+                                },
+                                cutout: '72%'
+                            }
+                        });
+                    }
+                } catch(err) {
+                    console.warn('[updateCharts Error]', err);
                 }
             },
 

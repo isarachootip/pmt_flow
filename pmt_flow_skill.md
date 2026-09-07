@@ -59,26 +59,27 @@
    - มีฟอร์มระบุชื่อผู้ใช้งาน/อีเมล, รหัสผ่าน พร้อมปุ่มเปิด/ปิดการมองเห็นรหัสผ่าน (Password Visibility Toggle)
    - มีข้อความแจ้งเตือนข้อผิดพลาด (Error Alert) แสดงผลชัดเจนเมื่อรหัสผ่านไม่ถูกต้อง หรือบัญชีถูกระงับ
 2. **การตรวจสอบสิทธิ์ผ่าน Backend API (`/api/v1/auth/login`)**:
-   - ตรวจสอบความถูกต้องของ Username/Email และ Hash รหัสผ่าน
+   - ตรวจสอบความถูกต้องของ Username/Email และ Hash รหัสผ่าน โดยค้นหาจาก In-Memory Store ก่อนเพื่อความเร็วระดับ 0ms (Zero-Latency) ป้องกันอาการหน้าจอหมุนค้าง
+   - มีกลไก Timeout Guard (AbortController 6.5 วินาที) และ Local Fallback Mode สำหรับบัญชีทดสอบ ป้องกันระบบค้างกรณีเครือข่ายขัดข้อง
    - ตรวจสอบสถานะการเปิดใช้งาน (`is_active === true`) หากบัญชีถูกปิดการใช้งานต้องปฏิเสธด้วยรหัส `USER_INACTIVE`
-   - ออก Session Token (Bearer Token อายุ 8 ชั่วโมง) และเก็บลงทั้ง `sessionStorage` และ `localStorage` เพื่อรองรับการเปิดใช้งานต่อเนื่อง
+   - ออก Session Token (Bearer Token อายุ 8 ชั่วโมง) และเก็บลงทั้ง `sessionStorage` และ `localStorage`
 3. **การบันทึกประวัติความปลอดภัย (Login Audit Trail)**:
    - บันทึกทุกความพยายามเข้าใช้งาน (ทั้งสำเร็จและไม่สำเร็จ) พร้อม IP Address, User Agent และสาเหตุความล้มเหลว เพื่อใช้ตรวจสอบในหน้า User Management
 
 ### 2.2 ข้อกำหนดมาตรฐานการออกจากระบบ (Strict Log-off / Logout Specification)
-1. **การคืนสถานะสู่หน้าจอ Login อย่างสมบูรณ์ (Mandatory Hard Redirect to Login Screen)**:
-   - **หัวใจสำคัญ**: เมื่อผู้ใช้กดออกจากระบบ (Log off) จากจุดใดก็ตามในระบบ ต้องคืนสถานะและนำทางกลับไปยังหน้าจอ Log-in (`window.location.href = '/'`) เสมอ
-   - **ห้ามเพียงแค่เปิด Modal ทับหน้าจอเดิม**: การออกจากระบบต้องทำให้เบราว์เซอร์ล้าง In-memory State, Background Polling (`setInterval` ดึงข้อมูล), Event Listeners และ Modal ที่เปิดค้างอยู่ทั้งหมด
+1. **การคืนสถานะสู่หน้าจอ Login อย่างสมบูรณ์ (Mandatory Hard Reload Redirect to Login Screen)**:
+   - **หัวใจสำคัญ**: เมื่อผู้ใช้กดออกจากระบบ (Log off) จากจุดใดก็ตามในระบบ ต้องคืนสถานะและรีเฟรชหน้าจอใหม่อย่างสมบูรณ์ (`window.location.replace('/'); window.location.reload();`) เสมอ
+   - **ห้ามเพียงแค่เปิด Modal ทับหน้าจอเดิม**: การออกจากระบบต้องสั่งยกเลิก Background Polling / Timers (`clearTimeout`, `clearInterval`) ทั้งหมด เพื่อตัดการดึงข้อมูลในเบื้องหลังอย่างเด็ดขาด
 2. **ลำดับขั้นตอนการ Log off ที่ต้องปฏิบัติอย่างเคร่งครัด**:
-   - ส่งคำขอไปยังเซิร์ฟเวอร์ `POST /api/v1/auth/logout` เพื่อเพิกถอน Token (Revoke Session)
+   - ส่งคำขอไปยังเซิร์ฟเวอร์ `POST /api/v1/auth/logout` แบบ `keepalive: true` เพื่อเพิกถอน Token
    - ล้างข้อมูล Token และ User ใน Storage ทั้งหมด: `sessionStorage.clear()`, `localStorage.clear()`
-   - **การอนุรักษ์ธีมของผู้ใช้**: ต้องจัดเก็บและกู้คืนค่าธีม `pmt-theme` (Dark/Light) ไว้เสมอเพื่อไม่ให้หน้าจอวาบขาว (Flash of unstyled theme)
-   - สั่งนำทางทันทีด้วย **`window.location.href = '/'`** เพื่อให้เบราว์เซอร์โหลดหน้าเว็บใหม่และเปิดหน้าจอ Login ต้อนรับผู้ใช้
+   - **มาตรฐานธีมสว่างบริสุทธิ์ (Strict Light Theme Only)**: กำหนดค่าธีม `pmt-theme` เป็น `'light'` เสมอ และปลดคลาส `'dark'` ออกอย่างถาวร (ไม่มีการสลับโหมดมืด เพื่อตัดปัญหาความขัดแย้งของคอนทราสต์)
+   - สั่งนำทางทันทีด้วย **`window.location.replace('/'); window.location.reload();`** เพื่อให้เบราว์เซอร์ล้างหน่วยความจำและโหลดหน้าจอ Login สดใหม่ 100%
 3. **จุดเชื่อมโยงปุ่ม Log off ในระบบ (All Logout Entrypoints)**:
    - ปุ่มใน Topbar มุมขวาบน (`#topbar-auth-btn`)
    - ปุ่มใน Sidebar มุมซ้ายล่าง (`#sidebar-auth-btn`)
    - ปุ่มในโมดอลข้อมูลโปรไฟล์ส่วนตัว (`#modal-my-profile`)
-   - ทุกปุ่มต้องผูกกับ `window.handleLogout()` หรือ `auth.logout()` ที่มีการรับประกัน Fail-safe Redirect
+   - ทุกปุ่มต้องผูกกับ `window.handleLogout()` หรือ `auth.logout()` ที่มีการรับประกัน Fail-safe Hard Reload
 
 ### 2.3 การป้องกันการเข้าถึงหน้าจอและ API (Route & Action Guards)
 - **Navigation Guard**: ฟังก์ชัน `app.navigate(view)` ต้องตรวจสอบสถานะการ Login เสมอ หากยังไม่ได้เข้าสู่ระบบ ต้องเรียก `auth.showLoginOverlay()` และระงับการเปลี่ยนหน้าจอทันที
