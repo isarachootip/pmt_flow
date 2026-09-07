@@ -1854,9 +1854,13 @@ const app = {
                 }
                 
                 try {
+                    const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
                     const res = await fetch('/api/v1/jobs', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        },
                         body: JSON.stringify({ firstName, lastName, service, job_type: jobType, lat, lng, phone, address, tech, date, special_instructions, additional_notes })
                     });
                     if (res.ok) {

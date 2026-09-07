@@ -3217,7 +3217,7 @@ function formatContractWithRounds(c: MAContract) {
 }
 
 // 1. Get Checklist Templates
-app.get(['/api/ma-checklist-templates', '/api/v1/ma-checklist-templates'], requireAuth, (req: Request, res: Response) => {
+app.get(['/api/ma-checklist-templates', '/api/v1/ma-checklist-templates'], (req: Request, res: Response) => {
   return res.json(maChecklistTemplateStore);
 });
 

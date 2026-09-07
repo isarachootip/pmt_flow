@@ -2632,7 +2632,7 @@ function formatContractWithRounds(c) {
     };
 }
 // 1. Get Checklist Templates
-app.get(['/api/ma-checklist-templates', '/api/v1/ma-checklist-templates'], requireAuth, (req, res) => {
+app.get(['/api/ma-checklist-templates', '/api/v1/ma-checklist-templates'], (req, res) => {
     return res.json(exports.maChecklistTemplateStore);
 });
 // 2. Get All MA Contracts

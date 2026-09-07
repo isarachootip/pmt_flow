@@ -1,3 +1,41 @@
+// Universal Fetch Auth Interceptor: Automatically attach Bearer token to all /api/ requests
+(function() {
+    if (window._pmtFetchIntercepted) return;
+    window._pmtFetchIntercepted = true;
+    const _nativeFetch = window.fetch;
+    window.fetch = function(resource, init) {
+        try {
+            const url = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
+            if (url && (url.startsWith('/api/') || url.includes('/api/')) && !url.includes('/api/v1/auth/login')) {
+                const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                if (token) {
+                    init = init || {};
+                    let headers = init.headers;
+                    if (!headers) {
+                        headers = {};
+                    }
+                    if (headers instanceof Headers) {
+                        if (!headers.has('Authorization')) {
+                            headers.set('Authorization', `Bearer ${token}`);
+                        }
+                    } else if (Array.isArray(headers)) {
+                        const hasAuth = headers.some(([k]) => String(k).toLowerCase() === 'authorization');
+                        if (!hasAuth) {
+                            headers.push(['Authorization', `Bearer ${token}`]);
+                        }
+                    } else if (typeof headers === 'object') {
+                        if (!headers['Authorization'] && !headers['authorization']) {
+                            headers['Authorization'] = `Bearer ${token}`;
+                        }
+                    }
+                    init.headers = headers;
+                }
+            }
+        } catch(e) {}
+        return _nativeFetch.call(this, resource, init);
+    };
+})();
+
 // Auth Module
 window.auth =  {
         token: null,
