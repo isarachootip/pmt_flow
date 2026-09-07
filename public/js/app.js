@@ -1765,6 +1765,16 @@ const app = {
                 this.switchFaqTab('training');
             },
 
+            showStep6TrainingGuide() {
+                if (typeof window.openTrainingDoc === 'function') {
+                    window.openTrainingDoc('คู่มือการใช้งาน_Step6_ตรวจรับรองคุณภาพQC.md', 'โมดูล 6: คู่มือการควบคุมคุณภาพและการจองช่าง QC (Step 6)');
+                } else {
+                    this.state.currentFaqTab = 'training';
+                    this.navigate('faq');
+                    this.switchFaqTab('training');
+                }
+            },
+
             switchFaqTab(tabKey) {
                 this.state.currentFaqTab = tabKey;
                 const tabs = ['training', 'pipeline', 'faq'];
