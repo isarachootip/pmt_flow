@@ -162,7 +162,11 @@ window.auth =  {
         onLogin() {
             this.hideLoginOverlay();
             this.updateUI();
-            if (typeof app !== 'undefined') app.navigate('dashboard');
+            if (typeof app !== 'undefined') {
+                if (typeof app.fetchJobsFromApi === 'function') app.fetchJobsFromApi();
+                if (typeof app.fetchMAFromApi === 'function') app.fetchMAFromApi();
+                app.navigate('dashboard');
+            }
         },
 
         updateUI() {

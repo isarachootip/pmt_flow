@@ -1598,8 +1598,9 @@ const app = {
                             }
                             const remoteJobs = json.data;
                             if (remoteJobs.length > 0) {
-                                const localOnly = DB.jobs.filter(lj => !remoteJobs.some(rj => rj.id === lj.id));
+                                const localOnly = (DB.jobs || []).filter(lj => !remoteJobs.some(rj => String(rj.id) === String(lj.id) || String(rj.job_no) === String(lj.job_no)));
                                 const mergedRemote = remoteJobs.map(rj => {
+                                    const localMatch = (DB.jobs || []).find(lj => String(lj.id) === String(rj.id) || String(lj.job_no) === String(rj.job_no));
                                     let finalStatus = (localMatch && localMatch.status) || rj.status || 'DRAFT';
                                     if (finalStatus === 'NEW') finalStatus = 'DRAFT';
                                     if (!localMatch) return { ...rj, status: finalStatus };
@@ -1607,6 +1608,11 @@ const app = {
                                     return { 
                                         ...rj, 
                                         ...localMatch, 
+                                        customer: rj.customer || localMatch.customer,
+                                        phone: rj.phone || localMatch.phone,
+                                        address: rj.address || localMatch.address,
+                                        service: rj.service || localMatch.service,
+                                        job_type: rj.job_type || localMatch.job_type,
                                         status: finalStatus,
                                         progress: (finalStatus === 'DRAFT') && !localMatch.step_timestamps?.step2_design_at ? 0 : (localMatch.progress ?? rj.progress ?? 0),
                                         special_instructions: localMatch.special_instructions !== undefined ? localMatch.special_instructions : (rj.special_instructions || ''),
@@ -1631,7 +1637,7 @@ const app = {
                         }
                     }
                 } catch (err) {
-                    // fallback to local state
+                    console.error('[API POLL JOBS ERROR]', err);
                 }
             },
 
