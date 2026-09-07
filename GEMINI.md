@@ -8,8 +8,11 @@
   - Never stop after only editing local files; the live server must receive the update.
 - **Production URL**: Always inform the user that changes are being deployed to `https://vibepmt.online` and advise hard refresh (`Ctrl + F5`) for web cache.
 
-## 👥 USER MANAGEMENT & CORE SYSTEM SCOPE
-- **Skill Specification Reference**: Always follow [pmt_flow_skill.md](file:///c:/atgv/pmt_flow/pmt_flow_skill.md) for complete requirements on RBAC, User Management, and the 7-step pipeline.
+## 👥 USER MANAGEMENT & AUTHENTICATION SYSTEM SCOPE
+- **Skill Specification Reference**: Always follow [pmt_flow_skill.md](file:///c:/atgv/pmt_flow/pmt_flow_skill.md) for complete requirements on RBAC, User Management, Log-in/Log-off authentication, and the 7-step pipeline.
+- **Mandatory User Log-in & Logout System**:
+  - **First-line Gatekeeper**: Unauthenticated access must be strictly blocked by `#login-overlay`, and all views must be protected via `app.navigate` auth guards.
+  - **Strict Log-off Redirect**: All logout actions (`sidebar-auth-btn`, `topbar-auth-btn`, `modal-my-profile`, `window.handleLogout`) MUST wipe auth tokens and **hard redirect to `/` (`window.location.href = '/'`)** to cleanly return to the login screen without residual memory or background polling.
 - **Mandatory User Management**: The system MUST retain and protect the User Management functionality:
   - 4 Roles: `ADMIN`, `AE`, `QC`, `CONTACT_CENTER` with consistent `window.roleBadge(role)` UI.
   - User CRUD, Password Reset modal, Soft delete (is_active toggle), and Login Audit Logs.
