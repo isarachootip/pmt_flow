@@ -11782,17 +11782,37 @@ const app = {
                 this.renderDailyLogJobQueue();
             },
 
+            toggleDailyLogQueueVisibility() {
+                const list = document.getElementById('daily-log-job-queue-list');
+                const controls = document.getElementById('daily-log-queue-controls');
+                const toggleText = document.getElementById('daily-log-queue-toggle-text');
+                const toggleIcon = document.getElementById('daily-log-queue-toggle-icon');
+                if (!list) return;
+                const isHidden = list.classList.contains('hidden');
+                if (isHidden) {
+                    list.classList.remove('hidden');
+                    if (controls) controls.classList.remove('hidden');
+                    if (toggleText) toggleText.innerText = 'ย่อคิวงาน';
+                    if (toggleIcon) toggleIcon.className = 'ph ph-caret-up text-xs';
+                } else {
+                    list.classList.add('hidden');
+                    if (controls) controls.classList.add('hidden');
+                    if (toggleText) toggleText.innerText = 'แสดงคิวงานทั้งหมด';
+                    if (toggleIcon) toggleIcon.className = 'ph ph-caret-down text-xs';
+                }
+            },
+
             setDailyLogQueueFilter(filterType) {
                 this.state.dailyLogFilterStatus = filterType;
                 const btnAll = document.getElementById('daily-log-tab-filter-all');
                 const btnPending = document.getElementById('daily-log-tab-filter-pending');
                 const btnDone = document.getElementById('daily-log-tab-filter-done');
                 [btnAll, btnPending, btnDone].forEach(b => {
-                    if (b) b.className = 'flex-1 py-1 rounded-lg font-medium transition cursor-pointer text-center text-muted-foreground hover:text-foreground';
+                    if (b) b.className = 'px-3 py-1 rounded-lg font-medium transition cursor-pointer text-center text-muted-foreground hover:text-foreground';
                 });
                 const activeBtn = filterType === 'all' ? btnAll : (filterType === 'pending' ? btnPending : btnDone);
                 if (activeBtn) {
-                    activeBtn.className = 'flex-1 py-1 rounded-lg font-semibold transition cursor-pointer text-center bg-card text-foreground shadow-xs';
+                    activeBtn.className = 'px-3 py-1 rounded-lg font-semibold transition cursor-pointer text-center bg-card text-foreground shadow-xs';
                 }
                 this.renderDailyLogJobQueue();
             },
@@ -11843,7 +11863,7 @@ const app = {
 
                 if (filteredJobs.length === 0) {
                     listContainer.innerHTML = `
-                        <div class="py-12 text-center text-muted-foreground text-xs p-4 rounded-2xl border border-dashed border-border bg-muted/10 space-y-2">
+                        <div class="col-span-full py-8 text-center text-muted-foreground text-xs p-4 rounded-2xl border border-dashed border-border bg-muted/10 space-y-2">
                             <i class="ph ph-magnifying-glass text-2xl text-muted-foreground/60"></i>
                             <div class="font-medium">ไม่พบงานที่ตรงกับเงื่อนไขการค้นหา</div>
                             <button type="button" onclick="app.setDailyLogQueueFilter('all'); document.getElementById('daily-log-queue-search').value = ''; app.onDailyLogQueueSearch('');" class="text-[11px] text-cyan-600 hover:underline cursor-pointer">ล้างตัวกรอง</button>
@@ -11869,32 +11889,35 @@ const app = {
 
                     let statusBadgeHtml = '';
                     if (isCompleted) {
-                        statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1 shrink-0"><i class="ph ph-check-circle"></i> เสร็จสมบูรณ์ (รอ QC)</span>`;
+                        statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1 shrink-0"><i class="ph ph-check-circle"></i> รอ QC</span>`;
                     } else if (hasTodayLog) {
-                        statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-teal-500/15 text-teal-600 dark:text-teal-400 font-mono flex items-center gap-1 shrink-0"><i class="ph ph-check"></i> บันทึกแล้ว (${maxProgress}%)</span>`;
+                        statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-teal-500/15 text-teal-600 dark:text-teal-400 font-mono flex items-center gap-1 shrink-0"><i class="ph ph-check"></i> บันทึกแล้ว</span>`;
                     } else {
-                        statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono flex items-center gap-1 shrink-0 animate-pulse"><i class="ph ph-warning-circle"></i> ค้างลงวันนี้</span>`;
+                        statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono flex items-center gap-1 shrink-0 animate-pulse"><i class="ph ph-warning-circle"></i> ค้างลง</span>`;
                     }
 
                     return `
-                    <div onclick="app.selectDailyLogJob('${j.id}')" class="p-3.5 rounded-2xl border transition cursor-pointer space-y-2 group ${isSelected ? 'bg-cyan-500/10 border-cyan-500 shadow-sm ring-1 ring-cyan-500/30' : (isTopNew ? 'border-cyan-500/40 bg-cyan-500/[0.03]' : 'bg-card border-border hover:border-cyan-500/40 hover:bg-muted/30')}">
-                        <div class="flex items-start justify-between gap-2">
+                    <div onclick="app.selectDailyLogJob('${j.id}', true, true)" class="p-3 rounded-xl border transition cursor-pointer space-y-2 group shadow-2xs ${isSelected ? 'bg-cyan-500/10 border-cyan-500 shadow-sm ring-2 ring-cyan-500/40' : (isTopNew ? 'border-cyan-500/40 bg-cyan-500/[0.03]' : 'bg-card border-border hover:border-cyan-500/40 hover:bg-muted/30')}">
+                        <div class="flex items-start justify-between gap-1.5">
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-1.5 flex-wrap">
                                     <span class="font-mono text-xs font-bold ${isSelected ? 'text-cyan-600 dark:text-cyan-400' : 'text-foreground group-hover:text-cyan-500'}">${j.id}</span>
                                     ${isTopNew ? `
-                                        <span class="badge-new-item text-[8px] py-0 px-1.5" title="สถานะล่าสุด (NEW!)">
+                                        <span class="badge-new-item text-[8px] py-0 px-1" title="สถานะล่าสุด (NEW!)">
                                             <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
                                         </span>
                                     ` : ''}
-                                    <span class="text-xs font-semibold text-foreground truncate">${j.customer}</span>
                                 </div>
-                                <div class="text-[11px] text-muted-foreground truncate mt-0.5 flex items-center gap-1">
+                                <div class="text-xs font-semibold text-foreground truncate mt-0.5">${j.customer}</div>
+                                <div class="text-[11px] text-muted-foreground truncate flex items-center gap-1 mt-0.5">
                                     <i class="ph ph-wrench text-cyan-500 text-xs shrink-0"></i>
                                     <span class="truncate">${taskName}</span>
                                 </div>
                             </div>
-                            ${statusBadgeHtml}
+                            <div class="flex flex-col items-end gap-1">
+                                ${statusBadgeHtml}
+                                <span class="font-mono text-[10px] font-bold text-foreground">${maxProgress}%</span>
+                            </div>
                         </div>
 
                         <div class="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t border-border/50">
@@ -11902,7 +11925,7 @@ const app = {
                                 <i class="ph ph-user text-cyan-500"></i> ${techName}
                             </span>
                             <span class="font-mono flex items-center gap-1 shrink-0">
-                                <i class="ph ph-notebook text-purple-500"></i> ${jobLogs.length} วัน (${maxProgress}%)
+                                <i class="ph ph-notebook text-purple-500"></i> ${jobLogs.length} วัน
                             </span>
                         </div>
 
@@ -11914,7 +11937,7 @@ const app = {
                 }).join('');
             },
 
-            selectDailyLogJob(jobId, shouldRerenderQueue = true) {
+            selectDailyLogJob(jobId, shouldRerenderQueue = true, shouldScroll = false) {
                 this.state.dailyLogSelectedJobId = jobId;
                 const jobTasks = (DB.tasks || []).filter(t => t.jobId === jobId);
                 let selectedTaskId = this.state.dailyLogSelectedTaskId;
@@ -11934,6 +11957,11 @@ const app = {
                     this.renderDailyLogJobQueue();
                 }
                 this.renderDailyLogsPageContent();
+
+                if (shouldScroll) {
+                    const el = document.getElementById('daily-logs-page-container');
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             },
 
             onDailyLogJobSelect(jobId) {
@@ -12213,7 +12241,7 @@ const app = {
                         </div>
 
                         <!-- Level 2: Daily Steps Grid (Interactive Stepper) -->
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1.5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 pt-1.5">
                             ${timelineStepHtml}
                         </div>
                     </div>

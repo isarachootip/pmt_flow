@@ -2498,47 +2498,61 @@
                         </div>
                     </div>
 
-                    <!-- Master-Detail Split Grid (Left: Job Queue, Right: Progressive Detail Workspace) -->
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                        <!-- Left Column: Master Job Queue (lg:col-span-4) -->
-                        <div class="lg:col-span-4 flex flex-col space-y-3">
-                            <div class="artifact-card p-4 space-y-3 shadow-xs">
-                                <div class="flex items-center justify-between">
-                                    <h3 class="font-display font-bold text-xs uppercase tracking-wider text-foreground flex items-center gap-2">
-                                        <i class="ph ph-list-checks text-base text-cyan-500"></i>
-                                        <span>คิวงานช่าง (Job Queue)</span>
-                                    </h3>
-                                    <span id="daily-log-queue-count-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">0 รายการ</span>
+                    <!-- Master-Detail Stacked Layout (Top: Master Job Queue & Overview / Bottom: Full-Width Action & Detail) -->
+                    <div class="space-y-6">
+                        <!-- Top Section: Master Job Queue & Filter Strip -->
+                        <div class="artifact-card p-4 space-y-3.5 shadow-xs border border-border/80 bg-card/60 backdrop-blur-xs rounded-2xl">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-7 h-7 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center text-sm border border-cyan-500/20">
+                                        <i class="ph ph-list-checks"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-display font-bold text-xs uppercase tracking-wider text-foreground flex items-center gap-2">
+                                            <span>คิวงานช่าง (Master Job Queue)</span>
+                                            <span id="daily-log-queue-count-badge" class="px-2 py-0.2 rounded-full text-[10px] font-mono font-bold bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">0 รายการ</span>
+                                        </h3>
+                                        <p class="text-[11px] text-muted-foreground mt-0.5">คลิกเลือกโครงการเพื่อลงเวลาปฏิบัติงานช่าง ตรวจสอบความคืบหน้ารายวัน หรือดูประวัติงานย้อนหลัง</p>
+                                    </div>
                                 </div>
-                                
+                                <div class="flex items-center gap-2">
+                                    <button type="button" onclick="app.toggleDailyLogQueueVisibility()" class="btn-artifact-secondary px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer shadow-2xs" title="ย่อหรือขยายแถบคิวงาน">
+                                        <span id="daily-log-queue-toggle-text">ย่อคิวงาน</span>
+                                        <i id="daily-log-queue-toggle-icon" class="ph ph-caret-up text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Search & Quick Filters Bar -->
+                            <div id="daily-log-queue-controls" class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                                 <!-- Search Box -->
-                                <div class="relative">
+                                <div class="relative flex-1 max-w-md">
                                     <i class="ph ph-magnifying-glass absolute left-3 top-2.5 text-muted-foreground text-xs"></i>
-                                    <input type="text" id="daily-log-queue-search" oninput="app.onDailyLogQueueSearch(this.value)" placeholder="ค้นหา Job, ช่าง, ลูกค้า..." class="w-full pl-8 pr-3 py-2 bg-muted/40 border border-border focus:border-cyan-500 rounded-xl text-xs text-foreground focus:outline-none placeholder:text-muted-foreground/70 transition">
+                                    <input type="text" id="daily-log-queue-search" oninput="app.onDailyLogQueueSearch(this.value)" placeholder="ค้นหา Job, ช่าง, ลูกค้า, บริการ..." class="w-full pl-8 pr-3 py-1.5 bg-muted/40 border border-border focus:border-cyan-500 rounded-xl text-xs text-foreground focus:outline-none placeholder:text-muted-foreground/70 transition">
                                 </div>
 
                                 <!-- Filter Buttons -->
-                                <div class="flex items-center gap-1 p-1 bg-muted/50 rounded-xl border border-border text-[11px]">
-                                    <button type="button" id="daily-log-tab-filter-all" onclick="app.setDailyLogQueueFilter('all')" class="flex-1 py-1 rounded-lg font-semibold transition cursor-pointer text-center bg-card text-foreground shadow-xs">
+                                <div class="flex items-center gap-1 p-1 bg-muted/50 rounded-xl border border-border text-[11px] shrink-0">
+                                    <button type="button" id="daily-log-tab-filter-all" onclick="app.setDailyLogQueueFilter('all')" class="px-3 py-1 rounded-lg font-semibold transition cursor-pointer text-center bg-card text-foreground shadow-xs">
                                         ทั้งหมด
                                     </button>
-                                    <button type="button" id="daily-log-tab-filter-pending" onclick="app.setDailyLogQueueFilter('pending')" class="flex-1 py-1 rounded-lg font-medium transition cursor-pointer text-center text-muted-foreground hover:text-foreground">
+                                    <button type="button" id="daily-log-tab-filter-pending" onclick="app.setDailyLogQueueFilter('pending')" class="px-3 py-1 rounded-lg font-medium transition cursor-pointer text-center text-muted-foreground hover:text-foreground">
                                         ⚠️ ค้างลงวันนี้
                                     </button>
-                                    <button type="button" id="daily-log-tab-filter-done" onclick="app.setDailyLogQueueFilter('done')" class="flex-1 py-1 rounded-lg font-medium transition cursor-pointer text-center text-muted-foreground hover:text-foreground">
+                                    <button type="button" id="daily-log-tab-filter-done" onclick="app.setDailyLogQueueFilter('done')" class="px-3 py-1 rounded-lg font-medium transition cursor-pointer text-center text-muted-foreground hover:text-foreground">
                                         ✓ บันทึกแล้ว
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Scrollable Job Queue List Container -->
-                            <div id="daily-log-job-queue-list" class="space-y-2.5 max-h-[720px] overflow-y-auto pr-1">
+                            <!-- Responsive Master Job Queue Grid (Top Master Strip) -->
+                            <div id="daily-log-job-queue-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[360px] overflow-y-auto pr-1">
                                 <!-- Populated dynamically by app.renderDailyLogJobQueue() -->
                             </div>
                         </div>
 
-                        <!-- Right Column: Progressive Workspace (lg:col-span-8) -->
-                        <div id="daily-logs-page-container" class="lg:col-span-8 space-y-5">
+                        <!-- Bottom Section: Selected Job Workspace (Master Overview + Action & Detail) -->
+                        <div id="daily-logs-page-container" class="space-y-5">
                             <!-- Injected dynamically via app.renderDailyLogsPageContent() -->
                         </div>
                     </div>
@@ -6334,11 +6348,11 @@
 
     <!-- APPLICATION JAVASCRIPT LOGIC -->
     <!-- APPLICATION SCRIPTS -->
-    <script src="./public/js/db.js?v=1.5.3"></script>
-    <script src="./public/js/auth.js?v=1.5.3"></script>
-    <script src="./public/js/app.js?v=1.5.3"></script>
-    <script src="./public/js/userMgmt.js?v=1.5.3"></script>
-    <script src="./public/js/app.hooks.js?v=1.5.3"></script>
+    <script src="./public/js/db.js?v=1.5.4"></script>
+    <script src="./public/js/auth.js?v=1.5.4"></script>
+    <script src="./public/js/app.js?v=1.5.4"></script>
+    <script src="./public/js/userMgmt.js?v=1.5.4"></script>
+    <script src="./public/js/app.hooks.js?v=1.5.4"></script>
 
 </body>
 </html>
