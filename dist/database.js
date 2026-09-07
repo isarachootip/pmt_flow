@@ -333,22 +333,33 @@ async function dbUpdateJob(jobNoOrId, updates) {
     if (!exports.isDatabaseConnected)
         return;
     try {
-        const isId = typeof jobNoOrId === 'number' || !isNaN(Number(jobNoOrId));
-        const whereCol = isId ? 'id' : 'job_no';
+        const target = String(jobNoOrId);
         if (updates.status !== undefined) {
-            await exports.pool.query(`UPDATE core_jobs SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE ${whereCol} = $2`, [updates.status, jobNoOrId]);
+            await exports.pool.query(`UPDATE core_jobs SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE job_no = $2 OR (id::text = $2)`, [updates.status, target]);
         }
         if (updates.overall_progress !== undefined) {
-            await exports.pool.query(`UPDATE core_jobs SET overall_progress = $1, updated_at = CURRENT_TIMESTAMP WHERE ${whereCol} = $2`, [updates.overall_progress, jobNoOrId]);
+            await exports.pool.query(`UPDATE core_jobs SET overall_progress = $1, updated_at = CURRENT_TIMESTAMP WHERE job_no = $2 OR (id::text = $2)`, [updates.overall_progress, target]);
         }
         if (updates.photos !== undefined) {
-            await exports.pool.query(`UPDATE core_jobs SET photos = $1, updated_at = CURRENT_TIMESTAMP WHERE ${whereCol} = $2`, [JSON.stringify(updates.photos), jobNoOrId]);
+            await exports.pool.query(`UPDATE core_jobs SET photos = $1, updated_at = CURRENT_TIMESTAMP WHERE job_no = $2 OR (id::text = $2)`, [JSON.stringify(updates.photos), target]);
         }
         if (updates.tasks !== undefined) {
-            await exports.pool.query(`UPDATE core_jobs SET tasks = $1, updated_at = CURRENT_TIMESTAMP WHERE ${whereCol} = $2`, [JSON.stringify(updates.tasks), jobNoOrId]);
+            await exports.pool.query(`UPDATE core_jobs SET tasks = $1, updated_at = CURRENT_TIMESTAMP WHERE job_no = $2 OR (id::text = $2)`, [JSON.stringify(updates.tasks), target]);
         }
         if (updates.step_timestamps !== undefined) {
-            await exports.pool.query(`UPDATE core_jobs SET step_timestamps = $1, updated_at = CURRENT_TIMESTAMP WHERE ${whereCol} = $2`, [JSON.stringify(updates.step_timestamps), jobNoOrId]);
+            await exports.pool.query(`UPDATE core_jobs SET step_timestamps = $1, updated_at = CURRENT_TIMESTAMP WHERE job_no = $2 OR (id::text = $2)`, [JSON.stringify(updates.step_timestamps), target]);
+        }
+        if (updates.ticket_no !== undefined) {
+            await exports.pool.query(`UPDATE core_jobs SET ticket_no = $1, updated_at = CURRENT_TIMESTAMP WHERE job_no = $2 OR (id::text = $2)`, [updates.ticket_no, target]);
+        }
+        if (updates.booking_no !== undefined) {
+            await exports.pool.query(`UPDATE core_jobs SET booking_no = $1, updated_at = CURRENT_TIMESTAMP WHERE job_no = $2 OR (id::text = $2)`, [updates.booking_no, target]);
+        }
+        if (updates.assigned_tech !== undefined) {
+            await exports.pool.query(`UPDATE core_jobs SET assigned_tech = $1, updated_at = CURRENT_TIMESTAMP WHERE job_no = $2 OR (id::text = $2)`, [updates.assigned_tech, target]);
+        }
+        if (updates.job_type !== undefined) {
+            await exports.pool.query(`UPDATE core_jobs SET job_type = $1, updated_at = CURRENT_TIMESTAMP WHERE job_no = $2 OR (id::text = $2)`, [updates.job_type, target]);
         }
     }
     catch (err) {

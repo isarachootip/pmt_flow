@@ -1711,6 +1711,20 @@ app.patch('/api/v1/jobs/:id', requireAuth, (req, res) => {
         job.qc_inspection_type = qc_inspection_type;
     if (qc_passed_at !== undefined)
         job.qc_passed_at = qc_passed_at;
+    // Persist updates to PostgreSQL core_jobs
+    (0, database_1.dbUpdateJob)(job.job_no || job.id, {
+        status: job.status,
+        overall_progress: job.overall_progress,
+        step_timestamps: job.step_timestamps,
+        photos: job.photos,
+        tasks: job.tasks,
+        ticket_no: job.ticket_no,
+        booking_no: job.booking_no,
+        assigned_tech: job.assigned_tech,
+        job_type: job.job_type,
+        special_instructions: job.special_instructions,
+        additional_notes: job.additional_notes
+    }).catch((err) => console.error('[DB] Error updating job in PostgreSQL:', err.message));
     return res.json({
         success: true,
         data: {
@@ -1818,6 +1832,7 @@ app.post('/api/v1/jobs', requireAuth, (req, res) => {
             created_at: new Date().toISOString()
         };
         exports.coreJobStore.unshift(newJob);
+        (0, database_1.dbSaveJob)(newJob).catch((err) => console.error('[DB] Error saving new job to PostgreSQL:', err.message));
         return res.status(201).json({
             success: true,
             data: newJob,

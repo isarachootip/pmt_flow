@@ -315,9 +315,13 @@ const app = {
                 this.persistJobs();
 
                 // Background API sync if available
+                const authToken = sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
                 fetch(`/api/v1/jobs/${jobId}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+                    },
                     body: JSON.stringify({
                         step_timestamps: job.step_timestamps
                     })
@@ -3585,9 +3589,13 @@ const app = {
                 this.persistJobs();
 
                 // Sync with backend server
+                const syncToken = sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
                 fetch(`/api/v1/jobs/${id}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(syncToken ? { 'Authorization': `Bearer ${syncToken}` } : {})
+                    },
                     body: JSON.stringify({
                         status: 'IN_PROGRESS',
                         overall_progress: job.progress,
