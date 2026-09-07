@@ -3649,41 +3649,41 @@
                         </div>
                     </div>
 
-                    <!-- KPI METRICS BANNER -->
+                    <!-- KPI METRICS BANNER (Clickable Filters) -->
                     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                        <div class="artifact-card p-4 rounded-xl border border-border bg-card flex items-center justify-between">
+                        <div class="artifact-card p-4 rounded-xl border border-border bg-card flex items-center justify-between cursor-pointer hover:border-cyan-500/50 hover:shadow-md transition-all group" onclick="app.filterApiLogsByStatus('ALL')" title="คลิกเพื่อแสดงรายการทั้งหมด">
                             <div>
-                                <span class="text-[11px] font-medium text-muted-foreground">ยิงเข้ามาทั้งหมด (Total)</span>
+                                <span class="text-[11px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">ยิงเข้ามาทั้งหมด (Total)</span>
                                 <div class="text-2xl font-bold font-mono text-foreground mt-1" id="api-log-kpi-total">0</div>
                             </div>
-                            <div class="w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground flex items-center justify-center text-lg">
+                            <div class="w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground flex items-center justify-center text-lg group-hover:bg-cyan-500/10 group-hover:text-cyan-500 transition-colors">
                                 <i class="ph ph-hash"></i>
                             </div>
                         </div>
-                        <div class="artifact-card p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between">
+                        <div class="artifact-card p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between cursor-pointer hover:border-emerald-500 hover:shadow-md transition-all group" onclick="app.filterApiLogsByStatus('2xx')" title="คลิกเพื่อกรองเฉพาะ 2xx Success">
                             <div>
                                 <span class="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">สำเร็จ (2xx Success)</span>
                                 <div class="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1" id="api-log-kpi-2xx">0</div>
                             </div>
-                            <div class="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
                                 <i class="ph ph-check-circle"></i>
                             </div>
                         </div>
-                        <div class="artifact-card p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 flex items-center justify-between">
+                        <div class="artifact-card p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 flex items-center justify-between cursor-pointer hover:border-amber-500 hover:shadow-md transition-all group" onclick="app.filterApiLogsByStatus('4xx')" title="คลิกเพื่อกรองเฉพาะ 4xx Client Error">
                             <div>
                                 <span class="text-[11px] font-medium text-amber-600 dark:text-amber-400">ผิดพลาดฝั่งผู้ส่ง (4xx Client Error)</span>
                                 <div class="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1" id="api-log-kpi-4xx">0</div>
                             </div>
-                            <div class="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-lg">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
                                 <i class="ph ph-warning"></i>
                             </div>
                         </div>
-                        <div class="artifact-card p-4 rounded-xl border border-rose-500/30 bg-rose-500/5 flex items-center justify-between">
+                        <div class="artifact-card p-4 rounded-xl border border-rose-500/30 bg-rose-500/5 flex items-center justify-between cursor-pointer hover:border-rose-500 hover:shadow-md transition-all group" onclick="app.filterApiLogsByStatus('5xx')" title="คลิกเพื่อกรองเฉพาะ 5xx Server Error">
                             <div>
                                 <span class="text-[11px] font-medium text-rose-600 dark:text-rose-400">เซิร์ฟเวอร์ผิดพลาด (5xx Error)</span>
                                 <div class="text-2xl font-bold font-mono text-rose-600 dark:text-rose-400 mt-1" id="api-log-kpi-5xx">0</div>
                             </div>
-                            <div class="w-10 h-10 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center text-lg">
+                            <div class="w-10 h-10 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
                                 <i class="ph ph-x-circle"></i>
                             </div>
                         </div>
@@ -6334,11 +6334,11 @@
 
     <!-- APPLICATION JAVASCRIPT LOGIC -->
     <!-- APPLICATION SCRIPTS -->
-    <script src="./public/js/db.js?v=1.5.0"></script>
-    <script src="./public/js/auth.js?v=1.5.0"></script>
-    <script src="./public/js/app.js?v=1.5.0"></script>
-    <script src="./public/js/userMgmt.js?v=1.5.0"></script>
-    <script src="./public/js/app.hooks.js?v=1.5.0"></script>
+    <script src="./public/js/db.js?v=1.5.1"></script>
+    <script src="./public/js/auth.js?v=1.5.1"></script>
+    <script src="./public/js/app.js?v=1.5.1"></script>
+    <script src="./public/js/userMgmt.js?v=1.5.1"></script>
+    <script src="./public/js/app.hooks.js?v=1.5.1"></script>
 
 </body>
 </html>

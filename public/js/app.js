@@ -14692,6 +14692,17 @@ const app = {
                 this.renderApiLogs();
             },
 
+            filterApiLogsByStatus(status) {
+                const statusSelect = document.getElementById('api-log-filter-status');
+                const hideRoutineCheck = document.getElementById('api-log-hide-routine');
+                if (statusSelect) statusSelect.value = status;
+                if (status === '2xx' || status === 'ALL') {
+                    // When user clicks 2xx or Total, uncheck hide routine so they can see all records
+                    if (hideRoutineCheck) hideRoutineCheck.checked = false;
+                }
+                this.renderApiLogs();
+            },
+
             renderApiLogs() {
                 const logs = this.state.apiLogs || [];
                 const summary = this.state.apiLogSummary || {
@@ -14718,13 +14729,16 @@ const app = {
                 const hideRoutine = document.getElementById('api-log-hide-routine')?.checked !== false;
 
                 let filtered = logs.filter(item => {
-                    if (hideRoutine && item.method === 'GET' && (
+                    const isRoutine = item.method === 'GET' && (
                         item.path === '/api/v1/jobs' || 
                         item.path === '/api/ma-contracts' || 
                         item.path === '/api/v1/ma-contracts' ||
                         item.path === '/api/ma-checklist-templates' ||
                         item.path === '/api/v1/ma-checklist-templates'
-                    )) {
+                    );
+                    // Only hide routine polling if it is SUCCESS (2xx). Never hide errors (4xx/5xx) so they are always visible!
+                    // Also if user explicitly chose 2xx filter, don't hide it either!
+                    if (hideRoutine && isRoutine && item.status >= 200 && item.status < 300 && statusVal !== '2xx') {
                         return false;
                     }
                     if (methodVal !== 'ALL' && item.method.toUpperCase() !== methodVal.toUpperCase()) {
@@ -14752,6 +14766,7 @@ const app = {
                 if (!tbody) return;
 
                 if (filtered.length === 0) {
+                    const hasHiddenRoutine = hideRoutine && logs.length > 0;
                     tbody.innerHTML = `
                         <tr>
                             <td colspan="8" class="py-12 text-center text-muted-foreground">
@@ -14760,7 +14775,14 @@ const app = {
                                         <i class="ph ph-magnifying-glass"></i>
                                     </div>
                                     <span class="font-semibold text-foreground text-sm">ไม่พบประวัติการยิง API ในเงื่อนไขนี้</span>
-                                    <p class="text-xs text-muted-foreground max-w-sm">คุณสามารถทดสอบยิง API ได้ผ่าน <a href="/docs" target="_blank" class="text-cyan-500 underline font-medium">Swagger Docs</a> หรือส่งคำขอผ่าน Postman เข้ามาที่เซิร์ฟเวอร์</p>
+                                    ${hasHiddenRoutine ? `
+                                        <div class="mt-1 flex items-center gap-2">
+                                            <span class="text-xs text-amber-500 font-medium">ระบบซ่อน Routine Polling อัตโนมัติไว้ (${logs.length} รายการ)</span>
+                                            <button type="button" onclick="document.getElementById('api-log-hide-routine').checked = false; app.filterApiLogs();" class="text-xs text-cyan-600 dark:text-cyan-400 font-bold underline cursor-pointer hover:opacity-80">คลิกที่นี่เพื่อแสดงทั้งหมด</button>
+                                        </div>
+                                    ` : `
+                                        <p class="text-xs text-muted-foreground max-w-sm">คุณสามารถทดสอบยิง API ได้ผ่าน <a href="/docs" target="_blank" class="text-cyan-500 underline font-medium">Swagger Docs</a> หรือส่งคำขอผ่าน Postman เข้ามาที่เซิร์ฟเวอร์</p>
+                                    `}
                                 </div>
                             </td>
                         </tr>
