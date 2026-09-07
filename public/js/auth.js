@@ -365,16 +365,14 @@ window.auth =  {
             const tok = this.token;
             this.token = null;
             this.user = null;
-            const currentTheme = localStorage.getItem('pmt-theme');
+            const currentTheme = localStorage.getItem('pmt-theme') || 'light';
             try { sessionStorage.removeItem('pmt_token'); } catch(e) {}
             try { sessionStorage.removeItem('pmt_user'); } catch(e) {}
             try { localStorage.removeItem('pmt_token'); } catch(e) {}
             try { localStorage.removeItem('pmt_user'); } catch(e) {}
             try { localStorage.clear(); } catch(e) {}
             try { sessionStorage.clear(); } catch(e) {}
-            if (currentTheme) {
-                try { localStorage.setItem('pmt-theme', currentTheme); } catch(e) {}
-            }
+            try { localStorage.setItem('pmt-theme', currentTheme); } catch(e) {}
             this.updateUI();
             this.showLoginOverlay();
             if (tok) {

@@ -40,10 +40,10 @@ const app = {
 
             logout() {
                 try {
-                    var theme = localStorage.getItem('pmt-theme');
+                    var theme = localStorage.getItem('pmt-theme') || 'light';
                     localStorage.clear();
                     sessionStorage.clear();
-                    if (theme) localStorage.setItem('pmt-theme', theme);
+                    localStorage.setItem('pmt-theme', theme);
                 } catch(e) {}
                 if (window.auth && typeof window.auth.logout === 'function') {
                     window.auth.logout();
@@ -1231,8 +1231,8 @@ const app = {
             },
 
             init() {
-                // Initialize theme
-                const savedTheme = localStorage.getItem('pmt-theme') || 'dark';
+                // Initialize theme (Default: Light Mode)
+                const savedTheme = localStorage.getItem('pmt-theme') || 'light';
                 if(savedTheme === 'dark') {
                     document.documentElement.classList.add('dark');
                 } else {
