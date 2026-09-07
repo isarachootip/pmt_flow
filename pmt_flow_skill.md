@@ -84,6 +84,17 @@
 - **Navigation Guard**: ฟังก์ชัน `app.navigate(view)` ต้องตรวจสอบสถานะการ Login เสมอ หากยังไม่ได้เข้าสู่ระบบ ต้องเรียก `auth.showLoginOverlay()` และระงับการเปลี่ยนหน้าจอทันที
 - **API Guard**: ทุก Endpoint ที่เป็นข้อมูลลับหรือการปฏิบัติงาน ต้องมี `requireAuth` Middleware ตรวจสอบ Bearer Token เสมอ
 
+### 2.4 ข้อกำหนดโครงสร้าง DOM และการแสดงผลหน้าจอ Login (DOM Integrity & Anti-Blank Screen Safeguards)
+1. **ตำแหน่งใน DOM Tree บังคับ (Top-Level Direct Child of `<body>`)**:
+   - คอมโพเนนต์ **`#login-overlay` ต้องอยู่ระดับบนสุด เป็น Direct Child ของ `<body>` เสมอ**
+   - **ข้อห้ามเด็ดขาด (Strict Prohibition)**: ห้ามนำ `#login-overlay` ไปซ้อนอยู่ภายใน Modal อื่น หรือ Container ย่อยใดๆ เด็ดขาด
+   - **การปิดแท็ก HTML (Tag Balancing)**: ทุก Modal ใน `index.html` ต้องมีแท็กปิด `</div>` อย่างครบถ้วนสมบูรณ์ เพื่อป้องกันไม่ให้โมดอลอื่นครอบคลุม `#login-overlay` ซึ่งจะทำให้คลาส `.hidden-view` (`display: none !important;`) ของโมดอลแม่ไปล็อกไม่ให้หน้าต่าง Log-in แสดงผล
+2. **การป้องกันหน้าจอว่างเปล่าสีขาว (Anti-Blank Screen Standard)**:
+   - ฟังก์ชัน `auth.showLoginOverlay()` **ห้ามสั่งซ่อน `#page-container` ด้วย `display: none !important;` เด็ดขาด** เพราะจะทำให้หน้าจอกลางกลายเป็นสีขาวว่างเปล่า และทำให้ไลบรารี Chart.js พัง (Crash) เนื่องจากไม่สามารถคำนวณขนาด Canvas ได้
+   - ให้ใช้คุณสมบัติของ `#login-overlay` ที่มี `fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md` ปูทับหน้าจอทั้งหมดแทน ซึ่งจะสร้างภาพเบลอสวยงาม และไม่ทำให้ Layout หรือ Canvas ใน DOM เสียหาย
+3. **การส่งโฟกัสอัตโนมัติ (Auto-focus)**:
+   - เมื่อ `#login-overlay` แสดงผลขึ้นมา ต้องตั้งเวลา (Timeout ~150ms) ให้ Cursor โฟกัสไปที่ช่องกรอกชื่อผู้ใช้ (`#login-username`) ทันที พร้อมให้ผู้ใช้กดแป้นพิมพ์ได้เลย
+
 ---
 
 ## 📅 3. มาตรฐานการแสดงผลวันที่ทุกหน้าจอ (Date Display Standard: DD/MM/YYYY)

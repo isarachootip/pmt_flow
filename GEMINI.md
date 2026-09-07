@@ -13,6 +13,7 @@
 - **Mandatory User Log-in & Logout System**:
   - **First-line Gatekeeper**: Unauthenticated access must be strictly blocked by `#login-overlay`, and all views must be protected via `app.navigate` auth guards.
   - **Strict Log-off Redirect**: All logout actions (`sidebar-auth-btn`, `topbar-auth-btn`, `modal-my-profile`, `window.handleLogout`) MUST wipe auth tokens and **hard redirect to `/` (`window.location.href = '/'`)** to cleanly return to the login screen without residual memory or background polling.
+  - **DOM Integrity & Anti-Blank Screen**: `#login-overlay` MUST always be a top-level direct child of `<body>` (never nested inside any modal or container). All modals must have balanced closing `</div>` tags. Never set `display: none !important` on `#page-container` in `showLoginOverlay()` to avoid blank screen or Chart.js canvas crashes.
 - **Mandatory User Management**: The system MUST retain and protect the User Management functionality:
   - 4 Roles: `ADMIN`, `AE`, `QC`, `CONTACT_CENTER` with consistent `window.roleBadge(role)` UI.
   - User CRUD, Password Reset modal, Soft delete (is_active toggle), and Login Audit Logs.
