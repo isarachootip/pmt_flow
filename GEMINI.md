@@ -27,3 +27,7 @@
 - **Mandatory 24-Hour Clock**: ทุกหน้าจอและฟอร์มบันทึกเวลาต้องใช้ระบบ **24 ชั่วโมง (`00:00 - 23:59 น.` หรือ `HH:mm`)** เช่น `07:00`, `08:30`, `12:00`, `13:00`, `17:00`
 - **Prohibited Formats**: ห้ามแสดงผลหรือมีปุ่ม `AM` / `PM` บน UI เด็ดขาด (ห้ามใช้ Native `<input type="time">` ของเบราว์เซอร์ ให้ใช้ Custom 24-Hour Dropdown และปุ่ม Quick Shift Presets เสมอ).
 - **Daily Technician Work Log**: ต้องรักษาหน้าจอทำงานประจำวันของช่าง (`page-daily-logs`) และโมดอลใน Gantt Chart พร้อมช่องแนบรูปถ่าย 5 รูปและ Lightbox Preview เสมอ.
+
+## 📚 MANDATORY ONLINE SYSTEM MANUAL UPDATE UPON ANY PROCESS CHANGE
+- **Strict Mandatory Rule**: ทุกครั้งที่มีการปรับปรุง แก้ไข หรือเพิ่มเติม Process / Workflow ในระบบ (เช่น Step 1 ถึง Step 7, Quick Services Jump, QC Online/On-site, Daily Work Logs) เมื่อโค้ดได้รับการแก้ไขและ Build ผ่านเรียบร้อยแล้ว **จะต้อง Update ตัวคู่มือระบบ Online (`doc/*.md` และหน้าจอ `page-faq` ใน `index.html`) ควบคู่ไปด้วยเสมอ** ห้ามปล่อยให้คู่มือระบบไม่สอดคล้องกับพฤติกรรมจริงของระบบ (100% Code & Documentation Sync).
+

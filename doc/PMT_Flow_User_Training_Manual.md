@@ -48,14 +48,25 @@ flowchart LR
 
 ---
 
-## 3. ขั้นตอนการปฏิบัติงานมาตรฐาน 5 ขั้นตอน
+## 3. ขั้นตอนการปฏิบัติงานมาตรฐานของระบบ PMT Flow (Pipeline Architecture)
+
+ระบบ PMT Flow รองรับการไหลของงาน 2 สายหลัก:
+- **Renovate Projects**: Step 1 ➔ Step 2 ➔ Step 3 ➔ Step 4 ➔ Step 5 ➔ Step 6 (On-site QC) ➔ Step 7 (CSAT)
+- **Quick Services**: Step 1 ➔ Step 4 ➔ **ข้าม Step 5 เข้าสู่ Step 6 (QC Online จากภาพถ่าย Visit Plan) ทันที** ➔ Step 7 (CSAT)
 
 ```mermaid
 graph TD
-    S1["Step 1: รับ Order จาก INT/AE ➔ กดรับเข้า PMT"] --> S2["Step 2: ช่าง Check-in GPS ➔ บันทึกรูปหน้างาน & QC Notes"]
-    S2 --> S3["Step 3: ตรวจแบบแปลน (Blueprints) ➔ บันทึก/นำเข้า BOQ"]
-    S3 --> S4["Step 4: ตรวจรับรองคุณภาพ (QC Checklist)"]
-    S4 --> S5["Step 5: ประเมิน CSAT 5 ดาว ➔ ปิดงานส่งระบบ BMT"]
+    S1["Step 1: รับ Order Intake (INT / AE)"] --> S2["Step 2: บันทึกแบบแปลน (Blueprints & CAD)"]
+    S2 --> S3["Step 3: นำ BOQ เข้าระบบ & ประมาณการราคา"]
+    S3 --> S4["Step 4: บันทึก Ticket & แนบสลิปชำระเงิน"]
+    
+    S4 -->|งาน Renovate| S5["Step 5: แปลง BOQ เข้า Project & Gantt"]
+    S5 --> S6R["Step 6: ตรวจรับรอง On-site & จองช่าง QC Lead"]
+    
+    S4 -->|งาน Quick Services| S6Q["Step 6: QC Online (ตรวจรูปถ่าย Visit Plan)"]
+    
+    S6R --> S7["Step 7: ความพึงพอใจลูกค้า CSAT & ปิดงาน BMT / สัญญา MA"]
+    S6Q --> S7
 ```
 
 ---

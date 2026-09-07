@@ -3727,7 +3727,7 @@
                                         <span class="text-[10px] text-muted-foreground font-mono">Module 4</span>
                                     </div>
                                     <h4 class="font-display font-bold text-xs text-foreground group-hover:text-emerald-500 transition">Step 4: บันทึก Ticket & ใบเสร็จ</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">เปิด Work Ticket, จองช่างผ่าน INT API, แนบสลิปเงินโอน, ยืนยันการชำระเงิน</p>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">เปิด Work Ticket, ซิงค์จองช่าง INT, แนบสลิปเงินโอน (งาน Quick ข้ามเข้า QC Online ทันที / Renovate เข้า Step 5)</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
                                     <button onclick="app.navigate('tickets')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
@@ -3747,7 +3747,7 @@
                                         <span class="text-[10px] text-muted-foreground font-mono">Module 5</span>
                                     </div>
                                     <h4 class="font-display font-bold text-xs text-foreground group-hover:text-amber-500 transition">Step 5: บันทึก BOQ เข้า Project & Gantt</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">Labor-to-Task Rule, คำนวณวันเริ่ม-จบ, มอบหมาย Crew ช่าง, Gantt Timeline</p>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">Labor-to-Task Rule สำหรับงาน Renovate, คำนวณวันเริ่ม-จบ, มอบหมายช่าง, Gantt Timeline (งาน Quick ข้ามขั้นตอนนี้)</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
                                     <button onclick="app.navigate('project-conversion')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
@@ -3767,7 +3767,7 @@
                                         <span class="text-[10px] text-muted-foreground font-mono">Module 6</span>
                                     </div>
                                     <h4 class="font-display font-bold text-xs text-foreground group-hover:text-teal-500 transition">Step 6: ตรวจคุณภาพ QC & จองช่าง Renovate</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">UX/UI สไตล์ Step 1, แยก Quick/Renovate, Draft QC จองช่างล่วงหน้า 24-Hr, ให้คะแนนงานย่อย BOQ 1-5 ดาว, Gating ส่งต่อ CSAT 100%</p>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">ตรวจ QC Online งานด่วน (รูป Visit Plan), จองคิวช่าง Renovate 24-Hr, ให้คะแนนงานย่อย BOQ 1-5 ดาว, Gating ส่งต่อ CSAT 100%</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
                                     <button onclick="app.navigate('qc')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
@@ -3925,7 +3925,7 @@
                                     </div>
                                     <span class="status-pill status-in-progress font-mono text-[10px]">IN_PROGRESS (60%)</span>
                                 </div>
-                                <p class="text-xs text-muted-foreground leading-relaxed">แปลงเฉพาะรายการ <strong>"ค่าแรง/งานบริการ" (Labor Items Only)</strong> เข้าสู่แผนงาน Gantt Timeline อัตโนมัติ (คัดกรองค่าวัสดุออก) ระบุวันเวลาเริ่ม-สิ้นสุด และมอบหมายช่างผู้รับผิดชอบ</p>
+                                <p class="text-xs text-muted-foreground leading-relaxed">สำหรับงาน Renovate: แปลงเฉพาะรายการ <strong>"ค่าแรง/งานบริการ" (Labor Items Only)</strong> เข้าสู่แผนงาน Gantt Timeline อัตโนมัติ (คัดกรองค่าวัสดุออก) ระบุวันเวลาเริ่ม-สิ้นสุด และมอบหมายช่าง (ส่วนงาน Quick Services ระบบจะข้ามขั้นตอนนี้และส่งตรงไปยัง QC Online ทันทีที่บันทึกจ่ายเงิน)</p>
                                 <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
                                     <span class="flex items-center gap-1"><i class="ph ph-calendar-check text-amber-500"></i> ผู้รับผิดชอบ: Project Planner / หัวหน้าช่าง</span>
                                     <span class="font-mono text-amber-600 dark:text-amber-400">Labor-to-Task Rule</span>
@@ -3957,10 +3957,10 @@
                                     </div>
                                     <span class="status-pill status-qc-passed font-mono text-[10px]">QC_PASSED (100%)</span>
                                 </div>
-                                <p class="text-xs text-muted-foreground leading-relaxed">ผู้ตรวจ QC ตรวจสอบตามเกณฑ์ความปลอดภัย 4 ด้าน (ความสะอาด, แรงดันน้ำ/ไฟ, ซิลิโคน, คู่มือ/ใบรับประกัน) หาก PASS จะส่งเรื่องต่อไปยัง Contact Center ทันที (หาก FAIL จะส่งกลับให้แก้ไข)</p>
+                                <p class="text-xs text-muted-foreground leading-relaxed">ตรวจรับรอง 2 รูปแบบ: <strong>1) Quick Services</strong> ตรวจแบบ Online ผ่านรูปถ่าย Visit Plan 5 หมวดหมู่ <strong>2) Renovate</strong> ตรวจ On-site พร้อมให้คะแนนงานย่อย BOQ 1-5 ดาว เมื่อประเมินผ่าน 100% จึงส่งต่อไปยัง CSAT</p>
                                 <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
                                     <span class="flex items-center gap-1"><i class="ph ph-shield-check text-emerald-500"></i> ผู้รับผิดชอบ: เจ้าหน้าที่ QC Inspector</span>
-                                    <span class="font-mono text-emerald-600 dark:text-emerald-400">4-Point Safety Checklist</span>
+                                    <span class="font-mono text-emerald-600 dark:text-emerald-400">Online & On-site QC</span>
                                 </div>
                             </div>
 

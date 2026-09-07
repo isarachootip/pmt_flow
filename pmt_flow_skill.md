@@ -183,13 +183,19 @@
 
 ## 🔄 6. ภาพรวมขอบเขต Flow งาน 5+2 ขั้นตอน (Pipeline Scope)
 
-ระบบ PMT Flow ควบคุมกระบวนการตั้งแต่ต้นน้ำถึงปลายน้ำ:
+ระบบ PMT Flow ควบคุมกระบวนการตั้งแต่ต้นน้ำถึงปลายน้ำ โดยแบ่งประเภทงานออกเป็น 2 สายหลัก:
+- **Renovate Projects (งานปรับปรุง/ต่อเติม)**: ดำเนินงานครบ 7 ขั้นตอน (Step 1 ➔ Step 2 ➔ Step 3 ➔ Step 4 ➔ Step 5 ➔ Step 6 [On-site QC & Advance Booking] ➔ Step 7)
+- **Quick Services (งานบริการติดตั้งด่วน)**: ดำเนินงานแบบ Fast-track (Step 1 ➔ Step 4 ➔ ข้าม Step 5 ตรงเข้า Step 6 [QC Online จากภาพถ่าย Visit Plan] ➔ Step 7)
+
+รายละเอียดขั้นตอน:
 1. **Step 1: บันทึกคิวงานรับคำสั่งซื้อ (Order Intake)** - รับงานจากภายนอก/INT หรือสร้าง Order ภายใน
 2. **Step 2: บันทึก Design & แบบแปลนติดตั้ง (Blueprints & CAD)** - แนบแบบแปลน 2D/3D และแบบติดตั้ง
 3. **Step 3: นำ BOQ เข้าระบบ & ประมาณการราคา (Bill of Quantities)** - บันทึกรายการวัสดุ-อุปกรณ์ ค่าแรง ค่าติดตั้ง
-4. **Step 4: บันทึก Ticket & แนบใบเสร็จ (Tickets & Receipts)** - บันทึกเบิกจ่าย ใบเสร็จ และปัญหาหน้างาน
-5. **Step 5: บันทึก BOQ เข้า Project & แผนงาน Gantt** - แปลงวัสดุและช่างเข้าสู่ Project Timeline
-6. **QC Inspection (ตรวจคุณภาพ)** - ตรวจรับรองงานตามเกณฑ์มาตรฐานพร้อมรูปถ่าย
+4. **Step 4: บันทึก Ticket & แนบใบเสร็จ (Tickets & Receipts)** - บันทึกเบิกจ่าย ใบเสร็จ และปัญหาหน้างาน (สำหรับงาน Quick เมื่อบันทึกเสร็จสิ้นจะข้าม Step 5 ไปยัง State QC Online ทันที)
+5. **Step 5: บันทึก BOQ เข้า Project & แผนงาน Gantt** - แปลงวัสดุและช่างเข้าสู่ Project Timeline (เฉพาะงาน Renovate ที่ต้องแปลง BOQ เป็น Task แผนงาน)
+6. **QC Inspection (ตรวจคุณภาพ)** - ตรวจรับรองงานตามเกณฑ์มาตรฐาน:
+   - **Quick Services**: ตรวจแบบ Online จากภาพถ่าย Visit Plan 5 หมวดหมู่ ไม่ต้องจองคิวช่าง On-site
+   - **Renovate Projects**: จองคิวช่าง QC Lead ล่วงหน้า และประเมินให้คะแนนแยกตาม BOQ Sub-Tasks
 7. **CSAT & MA Contracts** - ประเมินความพึงพอใจลูกค้าและติดตามสัญญาบำรุงรักษาหลังการขาย
 
 ---
@@ -197,3 +203,30 @@
 ## 🛡️ 7. ข้อบังคับด้านความปลอดภัยและ Deployment
 1. **API Authentication**: ทุก Endpoint ภายใต้ `/api/v1/users` ต้องผ่าน Middleware `requireAuth` และ `requireRole(ADMIN)`
 2. **Production First**: โค้ดทั้งหมดต้องทดสอบและ Build (`npm run build`) พร้อมผลักดันขึ้น `git push origin main` เพื่อให้อัปเดตสู่ระบบจริงที่ `https://vibepmt.online` เสมอ
+
+---
+
+## 📚 8. ข้อบังคับการปรับปรุงคู่มือระบบ Online ทุกครั้งที่มีการแก้ไข Process (Mandatory Online System Manual Update)
+
+**🚨 ข้อบังคับสูงสุด (Strict Mandatory Rule):**
+ทุกครั้งที่มีการปรับปรุง พัฒนา หรือเปลี่ยนแปลงกระบวนการทำงาน (Workflow / Process / Business Logic / State Transition / UI Flow) ในระบบ PMT Flow ไม่ว่าจะเป็นส่วนงานใด:
+1. **การอัปเดตคู่มือระบบ Online ทันที (Synchronous Manual Updates)**:
+   - เมื่อทำการแก้ไขโค้ดและทดสอบความถูกต้องเรียบร้อยแล้ว **จะต้องทำการอัปเดตเอกสารคู่มือระบบ Online ที่เกี่ยวข้องควบคู่ไปด้วยเสมอ**
+   - ห้ามปิดงานหรือหยุดการทำงานโดยไม่ได้อัปเดตคู่มือระบบเด็ดขาด
+2. **ขอบเขตเอกสารคู่มือที่ต้องปรับปรุง**:
+   - **ไฟล์คู่มือการใช้งานในโฟลเดอร์ `doc/`**:
+     - `doc/คู่มือการใช้งาน_Step1_คิวงานรับคำสั่งซื้อใหม่.md`
+     - `doc/คู่มือการใช้งาน_Step2_บันทึกแบบแปลนติดตั้ง.md`
+     - `doc/คู่มือการใช้งาน_Step3_นำBOQเข้าระบบ.md`
+     - `doc/คู่มือการใช้งาน_Step4_บันทึกTicketและใบเสร็จ.md`
+     - `doc/คู่มือการใช้งาน_Step5_บันทึกBOQเข้าProjectและGantt.md`
+     - `doc/คู่มือการใช้งาน_Step6_ตรวจรับรองคุณภาพQC.md`
+     - `doc/คู่มือการใช้งาน_Step7_CSATและบริการหลังการขาย.md`
+     - `doc/คู่มือการใช้งาน_การเข้าหน้างานและCheckIn.md`
+     - `doc/คู่มือการใช้งาน_แดชบอร์ดและจัดการผู้ใช้งาน.md`
+     - `doc/PMT_Flow_User_Training_Manual.md` และ `doc/PMT_Training_Curriculum_Master.md`
+   - **หน้าจอศูนย์รวมคู่มือฝึกอบรมและ FAQ ภายในระบบ (`page-faq` ใน `index.html`)**:
+     - อัปเดตเนื้อหาในโมดูลที่เกี่ยวข้อง, ผังขั้นตอน End-to-End Workflow, และตาราง Status Transition Reference Table ให้ตรงกับ Process ล่าสุด
+3. **การรับประกันความสอดคล้อง (100% Documentation & Live Code Sync)**:
+   - เอกสารและคู่มือทั้งหมดต้องเปิดอ่านได้จริงบนระบบ Online (`https://vibepmt.online`) ผ่านเมนู **"คู่มือ & FAQ ระบบ"** (`nav-faq`) เพื่อให้เจ้าหน้าที่ปฏิบัติงาน, วิทยากรผู้ฝึกอบรม (Trainer), และผู้บริหาร ได้รับข้อมูลที่ถูกต้องตรงกับระบบจริงเสมอ
+
