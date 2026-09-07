@@ -508,14 +508,17 @@ const requireRole = (...roles) => (req, res, next) => {
 // AUTH API — Login / Logout / Me
 // =============================================================================
 // POST /api/v1/auth/login
-app.post('/api/v1/auth/login', (req, res) => {
+app.post('/api/v1/auth/login', async (req, res) => {
     const { username, password } = req.body || {};
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
     const ua = req.headers['user-agent'] || '';
     if (!username || !password) {
         return res.status(400).json({ success: false, error: { code: 'MISSING_CREDENTIALS', message: 'กรุณากรอก username และ password' } });
     }
-    const user = exports.sysUserStore.find(u => u.username === username || u.email === username);
+    let user = await (0, database_1.dbGetUser)(username);
+    if (!user) {
+        user = exports.sysUserStore.find(u => u.username === username || u.email === username);
+    }
     const log = { id: Date.now(), username, user_id: user?.id || null, success: false, ip_address: ip, fail_reason: null, created_at: new Date().toISOString() };
     if (!user) {
         log.fail_reason = 'USER_NOT_FOUND';
@@ -596,8 +599,12 @@ app.post('/api/v1/auth/change-password', requireAuth, (req, res) => {
 // USER MANAGEMENT API (Admin only)
 // =============================================================================
 // GET /api/v1/users — list all users
-app.get('/api/v1/users', requireAuth, requireRole(UserRole.ADMIN), (req, res) => {
-    const users = exports.sysUserStore.map(u => ({
+app.get('/api/v1/users', requireAuth, requireRole(UserRole.ADMIN), async (req, res) => {
+    let list = await (0, database_1.dbLoadUsers)();
+    if (!list || list.length === 0) {
+        list = exports.sysUserStore;
+    }
+    const users = list.map(u => ({
         id: u.id, user_code: u.user_code, username: u.username, email: u.email,
         full_name: u.full_name, role: u.role, is_active: u.is_active,
         last_login_at: u.last_login_at, created_at: u.created_at
@@ -704,8 +711,11 @@ app.delete('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req, 
     return res.json({ success: true, message: `ปิดการใช้งานผู้ใช้ ${user.username} สำเร็จ` });
 });
 // GET /api/v1/users/login-logs — Login audit log (Admin only)
-app.get('/api/v1/auth/login-logs', requireAuth, requireRole(UserRole.ADMIN), (req, res) => {
-    const logs = [...exports.sysLoginLogStore].reverse().slice(0, 100);
+app.get('/api/v1/auth/login-logs', requireAuth, requireRole(UserRole.ADMIN), async (req, res) => {
+    let logs = await (0, database_1.dbLoadLoginLogs)(100);
+    if (!logs || logs.length === 0) {
+        logs = [...exports.sysLoginLogStore].reverse().slice(0, 100);
+    }
     return res.json({ success: true, total: logs.length, data: logs });
 });
 // =============================================================================
@@ -1462,6 +1472,7 @@ function convertStagingToCorePmt(stagingRecord) {
             created_at: new Date().toISOString()
         };
         exports.coreJobStore.push(newCoreJob);
+        (0, database_1.dbSaveJob)(newCoreJob).catch(err => console.error('[DB] Failed to save converted job:', err.message));
         // 3. Insert Job Services
         if (Array.isArray(payload.job_details)) {
             payload.job_details.forEach((item, idx) => {
@@ -1692,64 +1703,53 @@ app.post('/api/v1/staging/seed', requireAuth, (req, res) => {
 });
 // =============================================================================
 // 1.2 CORE JOBS APIS (List, Get, Create for Web Dashboard & Automation)
-app.get('/api/v1/jobs', requireAuth, (req, res) => {
+app.get('/api/v1/jobs', requireAuth, async (req, res) => {
     const { status, service, search } = req.query;
     try {
-        let results = exports.coreJobStore.map(job => {
-            const cust = exports.coreCustomerStore.find(c => c.id === job.customer_id) || job.customer || job.customer_data;
-            let customerFullName = 'ไม่ระบุชื่อ';
-            if (cust) {
-                if (cust.name) {
-                    customerFullName = cust.name;
-                }
-                else if (cust.first_name || cust.last_name) {
-                    customerFullName = `คุณ${cust.first_name || ''} ${cust.last_name || ''}`.trim();
-                }
-            }
-            else if (typeof job.customer === 'string') {
-                customerFullName = job.customer;
-            }
-            const primaryService = (job.services && job.services[0]) || job.project_sub_type || 'งานติดตั้ง';
-            return {
-                id: job.job_no || `JOB-${job.id}`,
-                jobId: job.id,
-                job_no: job.job_no,
-                external_ref_id: job.external_ref_id,
-                customer: customerFullName,
-                firstName: cust?.first_name || (customerFullName.replace(/^คุณ/, '').trim().split(' ')[0] || ''),
-                lastName: cust?.last_name || (customerFullName.replace(/^คุณ/, '').trim().split(' ').slice(1).join(' ') || ''),
-                phone: cust?.phone || '',
-                address: cust?.address || '',
-                lat: cust?.lat || 13.7563,
-                lng: cust?.lng || 100.5018,
-                service: primaryService,
-                services: job.services || [primaryService],
-                status: job.status,
-                date: job.plan_date || (job.created_at ? job.created_at.split('T')[0] : '2026-09-05'),
-                progress: job.overall_progress || 0,
-                tech: job.assigned_tech || 'Team A (สมศักดิ์)',
-                special_instructions: job.special_instructions || '',
-                additional_notes: job.additional_notes || '',
-                photos: job.photos || [],
-                pmt_accepted: job.pmt_accepted !== undefined ? job.pmt_accepted : (job.status !== JobStatus.DRAFT && job.status !== JobStatus.NEW),
-                pmt_accepted_at: job.pmt_accepted_at || null,
-                job_type: job.job_type || 'quick',
-                step_timestamps: job.step_timestamps || null,
-                created_at: job.created_at
-            };
+        let results = await (0, database_1.dbLoadJobs)({
+            status: typeof status === 'string' ? status : undefined,
+            service: typeof service === 'string' ? service : undefined,
+            search: typeof search === 'string' ? search : undefined
         });
-        if (status && status !== 'all') {
-            results = results.filter(j => j.status === status);
-        }
-        if (service && service !== 'all') {
-            results = results.filter(j => j.service === service || (j.services && j.services.includes(String(service))));
-        }
-        if (search) {
-            const q = String(search).toLowerCase();
-            results = results.filter(j => j.id.toLowerCase().includes(q) ||
-                j.customer.toLowerCase().includes(q) ||
-                j.phone.includes(q) ||
-                j.service.toLowerCase().includes(q));
+        if (!results || results.length === 0) {
+            results = exports.coreJobStore.map(job => {
+                const cust = exports.coreCustomerStore.find(c => c.id === job.customer_id) || job.customer || job.customer_data;
+                let customerFullName = 'ไม่ระบุชื่อ';
+                if (cust) {
+                    if (cust.name)
+                        customerFullName = cust.name;
+                    else if (cust.first_name || cust.last_name)
+                        customerFullName = `คุณ${cust.first_name || ''} ${cust.last_name || ''}`.trim();
+                }
+                const primaryService = (job.services && job.services[0]) || job.project_sub_type || 'งานติดตั้ง';
+                return {
+                    id: job.job_no || `JOB-${job.id}`,
+                    jobId: job.id,
+                    job_no: job.job_no,
+                    external_ref_id: job.external_ref_id,
+                    customer: customerFullName,
+                    firstName: cust?.first_name || '',
+                    lastName: cust?.last_name || '',
+                    phone: cust?.phone || '',
+                    address: cust?.address || '',
+                    lat: cust?.lat || 13.7563,
+                    lng: cust?.lng || 100.5018,
+                    service: primaryService,
+                    services: job.services || [primaryService],
+                    status: job.status,
+                    date: job.plan_date || (job.created_at ? job.created_at.split('T')[0] : '2026-09-08'),
+                    progress: job.overall_progress || 0,
+                    tech: job.assigned_tech || 'Team A (สมศักดิ์)',
+                    special_instructions: job.special_instructions || '',
+                    additional_notes: job.additional_notes || '',
+                    photos: job.photos || [],
+                    pmt_accepted: job.pmt_accepted !== undefined ? job.pmt_accepted : (job.status !== JobStatus.DRAFT && job.status !== JobStatus.NEW),
+                    pmt_accepted_at: job.pmt_accepted_at || null,
+                    job_type: job.job_type || 'quick',
+                    step_timestamps: job.step_timestamps || null,
+                    created_at: job.created_at
+                };
+            });
         }
         // Helper to extract maximum timestamp across all workflow steps and status changes
         const getJobLatestTime = (job) => {
@@ -1793,120 +1793,49 @@ app.get('/api/v1/jobs', requireAuth, (req, res) => {
         return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
     }
 });
-app.get('/api/v1/jobs/:id', requireAuth, (req, res) => {
+app.get('/api/v1/jobs/:id', requireAuth, async (req, res) => {
     const param = req.params.id;
-    const numId = Number(param);
-    const job = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+    let job = await (0, database_1.dbGetJob)(param);
+    if (!job) {
+        const numId = Number(param);
+        job = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+    }
     if (!job) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
     }
-    const cust = exports.coreCustomerStore.find(c => c.id === job.customer_id);
-    const primaryService = (job.services && job.services[0]) || job.project_sub_type || 'งานติดตั้ง';
     return res.json({
         success: true,
-        data: {
-            id: job.job_no || `JOB-${job.id}`,
-            jobId: job.id,
-            job_no: job.job_no,
-            external_ref_id: job.external_ref_id,
-            customer: cust ? `${cust.first_name} ${cust.last_name}`.trim() : 'ไม่ระบุชื่อ',
-            firstName: cust?.first_name || '',
-            lastName: cust?.last_name || '',
-            phone: cust?.phone || '',
-            address: cust?.address || '',
-            lat: cust?.lat || 13.7563,
-            lng: cust?.lng || 100.5018,
-            service: primaryService,
-            services: job.services || [primaryService],
-            status: job.status,
-            date: job.plan_date || (job.created_at ? job.created_at.split('T')[0] : '2026-09-05'),
-            progress: job.overall_progress || 0,
-            tech: job.assigned_tech || 'Team A (สมศักดิ์)',
-            special_instructions: job.special_instructions || '',
-            additional_notes: job.additional_notes || '',
-            photos: job.photos || [],
-            pmt_accepted: job.pmt_accepted !== undefined ? job.pmt_accepted : (job.status !== JobStatus.DRAFT && job.status !== JobStatus.NEW),
-            pmt_accepted_at: job.pmt_accepted_at || null,
-            job_type: job.job_type || 'quick',
-            step_timestamps: job.step_timestamps || null,
-            created_at: job.created_at
-        }
+        data: job
     });
 });
 // Update Job Details (Special Instructions, Additional Notes, Tech, etc.)
-app.patch('/api/v1/jobs/:id', requireAuth, (req, res) => {
+app.patch('/api/v1/jobs/:id', requireAuth, async (req, res) => {
     const param = req.params.id;
+    const updatedJob = await (0, database_1.dbUpdateJob)(param, req.body);
+    // Also sync in-memory store if present
     const numId = Number(param);
-    const job = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
-    if (!job) {
+    const memJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+    if (memJob) {
+        Object.assign(memJob, req.body);
+    }
+    if (!updatedJob && !memJob) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
     }
-    const { special_instructions, additional_notes, assigned_tech, plan_date, status, overall_progress, photos, pmt_accepted, pmt_accepted_at, job_type, step_timestamps, step3_confirmed, qc_inspection_type, qc_passed_at } = req.body;
-    if (special_instructions !== undefined)
-        job.special_instructions = special_instructions;
-    if (additional_notes !== undefined)
-        job.additional_notes = additional_notes;
-    if (assigned_tech !== undefined)
-        job.assigned_tech = assigned_tech;
-    if (plan_date !== undefined)
-        job.plan_date = plan_date;
-    if (status !== undefined)
-        job.status = status;
-    if (overall_progress !== undefined)
-        job.overall_progress = overall_progress;
-    if (photos !== undefined)
-        job.photos = photos;
-    if (pmt_accepted !== undefined)
-        job.pmt_accepted = pmt_accepted;
-    if (pmt_accepted_at !== undefined)
-        job.pmt_accepted_at = pmt_accepted_at;
-    if (job_type !== undefined)
-        job.job_type = job_type;
-    if (step_timestamps !== undefined)
-        job.step_timestamps = step_timestamps;
-    if (step3_confirmed !== undefined)
-        job.step3_confirmed = step3_confirmed;
-    if (qc_inspection_type !== undefined)
-        job.qc_inspection_type = qc_inspection_type;
-    if (qc_passed_at !== undefined)
-        job.qc_passed_at = qc_passed_at;
-    // Persist updates to PostgreSQL core_jobs
-    (0, database_1.dbUpdateJob)(job.job_no || job.id, {
-        status: job.status,
-        overall_progress: job.overall_progress,
-        step_timestamps: job.step_timestamps,
-        photos: job.photos,
-        tasks: job.tasks,
-        ticket_no: job.ticket_no,
-        booking_no: job.booking_no,
-        assigned_tech: job.assigned_tech,
-        job_type: job.job_type,
-        special_instructions: job.special_instructions,
-        additional_notes: job.additional_notes
-    }).catch((err) => console.error('[DB] Error updating job in PostgreSQL:', err.message));
+    const resultData = updatedJob || memJob;
     return res.json({
         success: true,
-        data: {
-            id: job.job_no || `JOB-${job.id}`,
-            special_instructions: job.special_instructions,
-            additional_notes: job.additional_notes,
-            photos: job.photos || [],
-            status: job.status,
-            pmt_accepted: job.pmt_accepted,
-            job_type: job.job_type,
-            step_timestamps: job.step_timestamps,
-            step3_confirmed: job.step3_confirmed,
-            qc_inspection_type: job.qc_inspection_type,
-            qc_passed_at: job.qc_passed_at
-        },
+        data: resultData,
         message: 'บันทึกข้อมูลงานเรียบร้อยแล้ว'
     });
 });
 // Upload Additional Site Photo
-app.post('/api/v1/jobs/:id/photos', requireAuth, (req, res) => {
+app.post('/api/v1/jobs/:id/photos', requireAuth, async (req, res) => {
     const param = req.params.id;
-    const numId = Number(param);
-    const job = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+    let job = await (0, database_1.dbGetJob)(param);
+    if (!job) {
+        const numId = Number(param);
+        job = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+    }
     if (!job) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
     }
@@ -1929,6 +1858,7 @@ app.post('/api/v1/jobs/:id/photos', requireAuth, (req, res) => {
         uploaded_at: new Date().toISOString()
     };
     job.photos.push(newPhoto);
+    await (0, database_1.dbUpdateJob)(param, { photos: job.photos });
     return res.status(201).json({
         success: true,
         data: newPhoto,
@@ -1937,16 +1867,20 @@ app.post('/api/v1/jobs/:id/photos', requireAuth, (req, res) => {
     });
 });
 // Delete Site Photo
-app.delete('/api/v1/jobs/:id/photos/:photoId', requireAuth, (req, res) => {
+app.delete('/api/v1/jobs/:id/photos/:photoId', requireAuth, async (req, res) => {
     const param = req.params.id;
     const photoId = req.params.photoId;
-    const numId = Number(param);
-    const job = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+    let job = await (0, database_1.dbGetJob)(param);
+    if (!job) {
+        const numId = Number(param);
+        job = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+    }
     if (!job) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
     }
     if (job.photos) {
         job.photos = job.photos.filter((p) => p.id !== photoId);
+        await (0, database_1.dbUpdateJob)(param, { photos: job.photos });
     }
     return res.json({
         success: true,
@@ -1954,7 +1888,7 @@ app.delete('/api/v1/jobs/:id/photos/:photoId', requireAuth, (req, res) => {
         message: 'ลบรูปภาพเรียบร้อยแล้ว'
     });
 });
-app.post('/api/v1/jobs', requireAuth, (req, res) => {
+app.post('/api/v1/jobs', requireAuth, async (req, res) => {
     try {
         const { firstName, lastName, phone, address, lat, lng, service, tech, date, job_type } = req.body;
         if (!firstName || !lastName) {
@@ -1966,9 +1900,10 @@ app.post('/api/v1/jobs', requireAuth, (req, res) => {
         const runningSeq = Math.floor(1 + Math.random() * 999);
         const runningStr = String(runningSeq).padStart(3, '0');
         const jobNo = `JOB${yyyy}${mm}${runningStr}`;
-        const customer = {
+        const customerData = {
             id: Date.now() + Math.floor(Math.random() * 100),
             customer_code: `CUST-${Date.now()}`,
+            name: `คุณ${firstName} ${lastName}`.trim(),
             first_name: firstName,
             last_name: lastName,
             phone: phone || '089-000-0000',
@@ -1976,22 +1911,26 @@ app.post('/api/v1/jobs', requireAuth, (req, res) => {
             lat: Number(lat) || 13.7563,
             lng: Number(lng) || 100.5018
         };
-        exports.coreCustomerStore.push(customer);
         const newJob = {
             id: Date.now(),
             job_no: jobNo,
             external_ref_id: `WEB-${Date.now()}`,
-            customer_id: customer.id,
+            customer_id: customerData.id,
+            customer: customerData,
+            customer_data: customerData,
             services: [service || 'งานติดตั้ง'],
             assigned_tech: tech || 'Team A (สมศักดิ์)',
             plan_date: date || new Date().toISOString().split('T')[0],
             status: JobStatus.DRAFT,
             overall_progress: 0,
             job_type: job_type || 'quick',
+            tasks: [],
+            photos: [],
+            boq_items: [],
             created_at: new Date().toISOString()
         };
+        await (0, database_1.dbSaveJob)(newJob);
         exports.coreJobStore.unshift(newJob);
-        (0, database_1.dbSaveJob)(newJob).catch((err) => console.error('[DB] Error saving new job to PostgreSQL:', err.message));
         return res.status(201).json({
             success: true,
             data: newJob,
@@ -2002,7 +1941,8 @@ app.post('/api/v1/jobs', requireAuth, (req, res) => {
         return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
     }
 });
-const wipeAllTransactions = (req, res) => {
+const wipeAllTransactions = async (req, res) => {
+    await (0, database_1.dbWipeAllTransactions)();
     exports.coreJobStore.length = 0;
     exports.coreTaskStore.length = 0;
     exports.coreCustomerStore.length = 0;
@@ -2014,7 +1954,7 @@ const wipeAllTransactions = (req, res) => {
     exports.stagingSurveyStore.length = 0;
     exports.maContractStore.length = 0;
     exports.maRoundStore.length = 0;
-    console.log('[SYSTEM] Wiped all transactions across Core Jobs, Tasks, QC, Staging, and MA.');
+    console.log('[SYSTEM] Wiped all transactions across Core Jobs, Tasks, QC, Staging, and MA in PostgreSQL.');
     return res.json({
         success: true,
         message: 'ลบข้อมูลโครงการและรายการ Transaction ทั้งหมดเรียบร้อยแล้ว (0 รายการ)',
@@ -2023,10 +1963,14 @@ const wipeAllTransactions = (req, res) => {
 };
 app.delete(['/api/v1/jobs', '/api/v1/system/wipe-transactions'], wipeAllTransactions);
 app.post(['/api/v1/system/wipe-transactions', '/api/v1/jobs/wipe-all'], wipeAllTransactions);
-app.post('/api/v1/jobs/reset-status', (req, res) => {
+app.post('/api/v1/jobs/reset-status', async (req, res) => {
+    const count = await (0, database_1.dbResetJobStatus)();
     exports.coreJobStore.forEach(j => {
         j.status = JobStatus.DRAFT;
         j.overall_progress = 0;
+        j.photos = [];
+        j.boq_items = [];
+        j.pmt_accepted = false;
     });
     exports.coreTaskStore.length = 0;
     exports.coreQCBookingStore.length = 0;
@@ -2034,10 +1978,12 @@ app.post('/api/v1/jobs/reset-status', (req, res) => {
     return res.json({
         success: true,
         message: 'ถอยสถานะของทุก Job กลับสู่จุดเริ่มต้น (DRAFT / 0%) เรียบร้อย',
-        total_jobs: exports.coreJobStore.length
+        total_jobs: count || exports.coreJobStore.length
     });
 });
-app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], (req, res) => {
+app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], async (req, res) => {
+    await (0, database_1.dbWipeAllTransactions)();
+    const count = await (0, database_1.dbSeedMockJobs)();
     seedInitialCoreData(true);
     seedInitialStagingData(false);
     exports.coreTaskStore.length = 0;
@@ -2050,8 +1996,8 @@ app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], (req, res) => {
     exports.maRoundStore.length = 0;
     return res.json({
         success: true,
-        message: 'จำลองและ Reset รายการ 10 คำสั่งซื้อจาก INT เข้าสู่ระบบ PMT สำเร็จ (สร้างเฉพาะ Transaction เริ่มต้นระบบ Step 1 ทั้งหมด)',
-        total_jobs: exports.coreJobStore.length
+        message: 'จำลองและ Reset รายการ 10 คำสั่งซื้อจาก INT เข้าสู่ระบบ PMT สำเร็จ (บันทึกลงฐานข้อมูล PostgreSQL core_jobs เริ่มต้น Step 1 ทั้งหมด)',
+        total_jobs: count || exports.coreJobStore.length
     });
 });
 // =============================================================================
@@ -2074,11 +2020,14 @@ app.post('/api/v1/jobs/:id/checkin', requireAuth, async (req, res) => {
                 }
             });
         }
-        // Update job status if present in coreJobStore
-        const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
-        if (targetJob) {
-            targetJob.status = JobStatus.SURVEYED;
-            targetJob.overall_progress = Math.max(targetJob.overall_progress, 30);
+        // Update job status in PostgreSQL and coreJobStore
+        const targetJob = await (0, database_1.dbGetJob)(param);
+        const newProgress = Math.max(targetJob?.progress || targetJob?.overall_progress || 0, 30);
+        await (0, database_1.dbUpdateJob)(param, { status: JobStatus.SURVEYED, overall_progress: newProgress });
+        const memJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+        if (memJob) {
+            memJob.status = JobStatus.SURVEYED;
+            memJob.overall_progress = newProgress;
         }
         // Rule: Geo-fence Check (Default 400m - Configurable) (Req #2, OQ-A07)
         const configRadius = 400; // meters
@@ -2086,7 +2035,7 @@ app.post('/api/v1/jobs/:id/checkin', requireAuth, async (req, res) => {
         const isInRadius = distanceMeters <= configRadius;
         const checkinLog = {
             id: Date.now(),
-            job_id: targetJob ? targetJob.id : numId,
+            job_id: targetJob ? targetJob.jobId || targetJob.id : numId,
             checkin_at: new Date().toISOString(),
             lat,
             lng,
@@ -2128,7 +2077,8 @@ app.post('/api/v1/jobs/:id/designs', requireAuth, async (req, res) => {
     return res.status(201).json({ success: true, data: designFile });
 });
 app.post('/api/v1/jobs/:id/boq', requireAuth, async (req, res) => {
-    const jobId = Number(req.params.id);
+    const param = req.params.id;
+    const jobId = isNaN(Number(param)) ? param : Number(param);
     const { items, discount_amount = 0 } = req.body;
     // Calculate BOQ (Req #6)
     const subtotal = items.reduce((sum, item) => sum + (item.qty * item.unit_price), 0);
@@ -2145,6 +2095,13 @@ app.post('/api/v1/jobs/:id/boq', requireAuth, async (req, res) => {
         items,
         created_at: new Date().toISOString()
     };
+    await (0, database_1.dbUpdateJob)(param, {
+        boq_items: items,
+        boq_subtotal: subtotal,
+        boq_discount: discount_amount,
+        boq_grand_total: grandTotal,
+        status: JobStatus.BOQ
+    });
     const targetJob = exports.coreJobStore.find(j => j.id === jobId || j.job_no === String(req.params.id) || String(j.id) === String(req.params.id));
     if (targetJob) {
         targetJob.boq_items = items;
@@ -2172,7 +2129,14 @@ function sortTasksByStartDate(tasks) {
 app.get('/api/v1/jobs/:id/tasks', requireAuth, async (req, res) => {
     const param = req.params.id;
     const numId = Number(param);
-    const tasks = exports.coreTaskStore.filter(t => t.job_id === numId || t.job_no === param || String(t.job_id) === param);
+    const job = await (0, database_1.dbGetJob)(param);
+    let tasks = [];
+    if (job && Array.isArray(job.tasks)) {
+        tasks = job.tasks;
+    }
+    if (tasks.length === 0) {
+        tasks = exports.coreTaskStore.filter(t => t.job_id === numId || t.job_no === param || String(t.job_id) === param);
+    }
     const sorted = sortTasksByStartDate([...tasks]);
     return res.json({ success: true, total: sorted.length, data: sorted });
 });
@@ -2184,16 +2148,10 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', requireAuth, async (req, res) => {
     if (!Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ success: false, error: { code: 'EMPTY_ITEMS', message: 'รายการ BOQ ต้องไม่ว่างเปล่า' } });
     }
-    // Remove existing tasks for this job if replacing
-    const isAppend = req.body.mode === 'append';
-    if (!isAppend) {
-        for (let i = exports.coreTaskStore.length - 1; i >= 0; i--) {
-            if (exports.coreTaskStore[i].job_id === numId || exports.coreTaskStore[i].job_no === param || String(exports.coreTaskStore[i].job_id) === param) {
-                exports.coreTaskStore.splice(i, 1);
-            }
-        }
-    }
+    const job = await (0, database_1.dbGetJob)(param);
     const baseDate = base_start_date || new Date().toISOString().slice(0, 10);
+    const jobNo = job?.job_no || (typeof param === 'string' && param.startsWith('JOB') ? param : `JOB20260900${numId}`);
+    const customerName = job?.customer || 'ลูกค้า';
     const newTasks = items.map((item, idx) => {
         let startStr = item.start_date || item.start;
         let endStr = item.end_date || item.end;
@@ -2218,7 +2176,7 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', requireAuth, async (req, res) => {
         return {
             id: `T_${param}_${Date.now()}_${idx + 1}`,
             job_id: numId,
-            job_no: typeof param === 'string' && param.startsWith('JOB') ? param : `JOB20260900${numId}`,
+            job_no: jobNo,
             task_name: item.task_name || item.name || `งานติดตั้ง ${idx + 1}`,
             plan_start_date: startStr,
             plan_end_date: endStr,
@@ -2231,24 +2189,52 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', requireAuth, async (req, res) => {
             created_at: new Date().toISOString()
         };
     });
-    exports.coreTaskStore.push(...newTasks);
-    newTasks.forEach(t => syncQCBookingForTask(t));
-    // Sync to coreJobStore
-    const targetJobForBOQ = exports.coreJobStore.find(j => j.id === numId || j.job_no === param || String(j.id) === param);
-    if (targetJobForBOQ) {
-        if (!targetJobForBOQ.boq_items || targetJobForBOQ.boq_items.length === 0) {
-            targetJobForBOQ.boq_items = items.map((it) => ({
-                name: it.task_name || it.name,
-                qty: it.qty || 1,
-                unit: it.unit || 'งาน',
-                price: it.price || 0,
-                labor_price: it.labor_price || it.price || 0
-            }));
+    const isAppend = req.body.mode === 'append';
+    let existingTasks = (job && Array.isArray(job.tasks)) ? job.tasks : [];
+    let updatedTasks = isAppend ? [...existingTasks, ...newTasks] : [...newTasks];
+    const boqItems = items.map((it) => ({
+        name: it.task_name || it.name,
+        qty: it.qty || 1,
+        unit: it.unit || 'งาน',
+        price: it.price || 0,
+        labor_price: it.labor_price || it.price || 0
+    }));
+    // Save directly to PostgreSQL core_jobs
+    await (0, database_1.dbUpdateJob)(param, { tasks: updatedTasks, boq_items: boqItems });
+    // Sync QC Bookings into core_qc_bookings in PostgreSQL
+    for (const t of newTasks) {
+        const qcBooking = {
+            id: `QCB_${t.id}`,
+            job_id: t.job_id,
+            job_no: jobNo,
+            task_id: t.id,
+            task_name: t.task_name,
+            customer_name: customerName,
+            plan_start_date: t.plan_start_date,
+            plan_end_date: t.plan_end_date,
+            qc_booking_date: calculateQCBookingDate(t.plan_end_date, 5),
+            days_before: 5,
+            assigned_tech: t.assigned_tech,
+            assigned_qc_tech: 'วิชัย ตรวจดี (ช่าง QC Lead)',
+            status: 'PENDING_CONFIRM',
+            confirmed_at: null,
+            confirmed_by: null,
+            remarks: '',
+            created_at: new Date().toISOString()
+        };
+        await (0, database_1.dbSaveQCBooking)(qcBooking);
+    }
+    // Also sync in-memory store for fallback
+    if (!isAppend) {
+        for (let i = exports.coreTaskStore.length - 1; i >= 0; i--) {
+            if (exports.coreTaskStore[i].job_id === numId || exports.coreTaskStore[i].job_no === param || String(exports.coreTaskStore[i].job_id) === param) {
+                exports.coreTaskStore.splice(i, 1);
+            }
         }
     }
-    // Auto-sort all tasks for this job by start date
-    const jobTasks = exports.coreTaskStore.filter(t => t.job_id === numId || t.job_no === param || String(t.job_id) === param);
-    const sorted = sortTasksByStartDate(jobTasks);
+    exports.coreTaskStore.push(...newTasks);
+    newTasks.forEach(t => syncQCBookingForTask(t));
+    const sorted = sortTasksByStartDate([...updatedTasks]);
     return res.status(201).json({
         success: true,
         message: `นำเข้าและแปลง BOQ เป็น Task ปฏิบัติงาน ${newTasks.length} รายการ และสร้างคิวจองช่าง QC ล่วงหน้า 5 วันเรียบร้อย`,
@@ -2264,9 +2250,8 @@ app.post('/api/v1/jobs/:id/tasks', requireAuth, async (req, res) => {
     if (!task_name) {
         return res.status(400).json({ success: false, error: { code: 'MISSING_TASK_NAME', message: 'กรุณาระบุชื่อ Task' } });
     }
-    // Check Business Rule: แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart
-    const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param || String(j.id) === param);
-    if (targetJob && (!targetJob.boq_items || targetJob.boq_items.length === 0) && !allow_bypass) {
+    const job = await (0, database_1.dbGetJob)(param);
+    if (job && (!job.boq_items || job.boq_items.length === 0) && !allow_bypass) {
         return res.status(400).json({
             success: false,
             error: {
@@ -2290,10 +2275,12 @@ app.post('/api/v1/jobs/:id/tasks', requireAuth, async (req, res) => {
         days = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
     }
     const techList = assignees || [assigned_tech];
+    const jobNo = job?.job_no || (typeof param === 'string' && param.startsWith('JOB') ? param : `JOB20260900${numId}`);
+    const customerName = job?.customer || 'ลูกค้า';
     const newTask = {
         id: `T_${param}_${Date.now()}`,
         job_id: numId,
-        job_no: typeof param === 'string' && param.startsWith('JOB') ? param : `JOB20260900${numId}`,
+        job_no: jobNo,
         task_name,
         plan_start_date: startStr,
         plan_end_date: endStr,
@@ -2304,11 +2291,32 @@ app.post('/api/v1/jobs/:id/tasks', requireAuth, async (req, res) => {
         progress_percent: 0,
         created_at: new Date().toISOString()
     };
+    let tasks = (job && Array.isArray(job.tasks)) ? [...job.tasks, newTask] : [newTask];
+    await (0, database_1.dbUpdateJob)(param, { tasks });
+    // QC Booking in DB
+    const qcBooking = {
+        id: `QCB_${newTask.id}`,
+        job_id: newTask.job_id,
+        job_no: jobNo,
+        task_id: newTask.id,
+        task_name: newTask.task_name,
+        customer_name: customerName,
+        plan_start_date: newTask.plan_start_date,
+        plan_end_date: newTask.plan_end_date,
+        qc_booking_date: calculateQCBookingDate(newTask.plan_end_date, 5),
+        days_before: 5,
+        assigned_tech: newTask.assigned_tech,
+        assigned_qc_tech: 'วิชัย ตรวจดี (ช่าง QC Lead)',
+        status: 'PENDING_CONFIRM',
+        confirmed_at: null,
+        confirmed_by: null,
+        remarks: '',
+        created_at: new Date().toISOString()
+    };
+    await (0, database_1.dbSaveQCBooking)(qcBooking);
     exports.coreTaskStore.push(newTask);
-    const qcBooking = syncQCBookingForTask(newTask);
-    // Auto-sort all tasks for this job by start date
-    const jobTasks = exports.coreTaskStore.filter(t => t.job_id === numId || t.job_no === param || String(t.job_id) === param);
-    const sorted = sortTasksByStartDate(jobTasks);
+    syncQCBookingForTask(newTask);
+    const sorted = sortTasksByStartDate([...tasks]);
     return res.status(201).json({
         success: true,
         message: 'สร้าง/แทรก Task และจองช่าง QC ล่วงหน้า 5 วันเรียบร้อย',
@@ -2321,8 +2329,10 @@ app.post('/api/v1/jobs/:id/tasks', requireAuth, async (req, res) => {
 app.post('/api/v1/jobs/:id/tasks/reorder', requireAuth, async (req, res) => {
     const param = req.params.id;
     const numId = isNaN(Number(param)) ? param : Number(param);
-    const jobTasks = exports.coreTaskStore.filter(t => t.job_id === numId || t.job_no === param || String(t.job_id) === param);
-    const sorted = sortTasksByStartDate(jobTasks);
+    const job = await (0, database_1.dbGetJob)(param);
+    const jobTasks = (job && Array.isArray(job.tasks)) ? job.tasks : exports.coreTaskStore.filter(t => t.job_id === numId || t.job_no === param || String(t.job_id) === param);
+    const sorted = sortTasksByStartDate([...jobTasks]);
+    await (0, database_1.dbUpdateJob)(param, { tasks: sorted });
     return res.json({
         success: true,
         message: 'จัดเรียงรายการ Task ตามวันเริ่มต้นเรียบร้อย',
@@ -2332,7 +2342,12 @@ app.post('/api/v1/jobs/:id/tasks/reorder', requireAuth, async (req, res) => {
 // PUT /api/v1/jobs/:id/tasks/:taskId — Update Task (Start Date, End Date, Technician, Status, etc.)
 app.put('/api/v1/jobs/:id/tasks/:taskId', requireAuth, async (req, res) => {
     const { id, taskId } = req.params;
-    const task = exports.coreTaskStore.find(t => String(t.id) === taskId);
+    const job = await (0, database_1.dbGetJob)(id);
+    let tasks = job && Array.isArray(job.tasks) ? job.tasks : exports.coreTaskStore.filter(t => String(t.job_id) === id || t.job_no === id);
+    let task = tasks.find(t => String(t.id) === taskId);
+    if (!task) {
+        task = exports.coreTaskStore.find(t => String(t.id) === taskId);
+    }
     if (!task) {
         return res.status(404).json({ success: false, error: { code: 'TASK_NOT_FOUND', message: 'ไม่พบ Task' } });
     }
@@ -2357,29 +2372,60 @@ app.put('/api/v1/jobs/:id/tasks/:taskId', requireAuth, async (req, res) => {
         task.assignees = assignees;
     if (status !== undefined)
         task.status = status;
-    // Sync / update QC booking for this task (recalculate 5 days before new end date)
+    await (0, database_1.dbUpdateJob)(id, { tasks });
+    // Update QC booking
+    const qcDate = calculateQCBookingDate(task.plan_end_date, 5);
+    await (0, database_1.dbSaveQCBooking)({
+        id: `QCB_${task.id}`,
+        task_id: task.id,
+        task_name: task.task_name,
+        plan_start_date: task.plan_start_date,
+        plan_end_date: task.plan_end_date,
+        qc_booking_date: qcDate,
+        assigned_tech: task.assigned_tech
+    });
     const qcBooking = syncQCBookingForTask(task);
     return res.json({ success: true, message: 'อัปเดต Task และวันจองตรวจ QC สำเร็จ', data: task, qc_booking: qcBooking });
 });
 // DELETE /api/v1/jobs/:id/tasks/:taskId — Delete Task
 app.delete('/api/v1/jobs/:id/tasks/:taskId', requireAuth, async (req, res) => {
     const { id, taskId } = req.params;
-    const idx = exports.coreTaskStore.findIndex(t => String(t.id) === taskId);
-    if (idx === -1) {
-        return res.status(404).json({ success: false, error: { code: 'TASK_NOT_FOUND', message: 'ไม่พบ Task' } });
+    const job = await (0, database_1.dbGetJob)(id);
+    if (job && Array.isArray(job.tasks)) {
+        const filtered = job.tasks.filter((t) => String(t.id) !== taskId);
+        await (0, database_1.dbUpdateJob)(id, { tasks: filtered });
     }
-    exports.coreTaskStore.splice(idx, 1);
+    await (0, database_1.dbDeleteQCBookingByTask)(taskId);
+    const idx = exports.coreTaskStore.findIndex(t => String(t.id) === taskId);
+    if (idx !== -1)
+        exports.coreTaskStore.splice(idx, 1);
     removeQCBookingForTask(taskId);
     return res.json({ success: true, message: 'ลบ Task และยกเลิกการจอง QC สำเร็จ' });
 });
 // GET /api/v1/tasks/gantt — Get all tasks structured for Gantt Timeline view
 app.get('/api/v1/tasks/gantt', requireAuth, async (req, res) => {
     const jobId = req.query.job_id;
-    let tasks = exports.coreTaskStore;
+    let allTasks = [];
     if (jobId && jobId !== 'all') {
-        tasks = tasks.filter(t => t.job_no === jobId || String(t.job_id) === jobId);
+        const job = await (0, database_1.dbGetJob)(jobId);
+        if (job && Array.isArray(job.tasks)) {
+            allTasks = job.tasks;
+        }
     }
-    const sorted = sortTasksByStartDate([...tasks]);
+    else {
+        const jobs = await (0, database_1.dbLoadJobs)();
+        jobs.forEach(j => {
+            if (Array.isArray(j.tasks))
+                allTasks.push(...j.tasks);
+        });
+    }
+    if (allTasks.length === 0) {
+        allTasks = exports.coreTaskStore;
+        if (jobId && jobId !== 'all') {
+            allTasks = allTasks.filter(t => t.job_no === jobId || String(t.job_id) === jobId);
+        }
+    }
+    const sorted = sortTasksByStartDate([...allTasks]);
     return res.json({
         success: true,
         total: sorted.length,
@@ -2392,45 +2438,47 @@ app.get('/api/v1/tasks/gantt', requireAuth, async (req, res) => {
 // GET /api/v1/qc/bookings — List all QC Bookings (filter by job_id, status)
 app.get('/api/v1/qc/bookings', requireAuth, async (req, res) => {
     const { job_id, status } = req.query;
-    let list = exports.coreQCBookingStore;
-    if (job_id && job_id !== 'all') {
-        list = list.filter(b => String(b.job_id) === String(job_id) || b.job_no === String(job_id));
-    }
-    if (status && status !== 'all') {
-        list = list.filter(b => b.status === status);
-    }
+    const list = await (0, database_1.dbLoadQCBookings)(job_id && job_id !== 'all' ? String(job_id) : undefined, status && status !== 'all' ? String(status) : undefined);
     return res.json({ success: true, total: list.length, data: list });
 });
 // PUT /api/v1/qc/bookings/:id/confirm — Confirm QC Technician Booking
 app.put('/api/v1/qc/bookings/:id/confirm', requireAuth, async (req, res) => {
     const { id } = req.params;
     const { qc_tech, confirmed_by, remarks } = req.body;
+    const updated = await (0, database_1.dbConfirmQCBooking)(id, qc_tech, confirmed_by, remarks);
     const booking = exports.coreQCBookingStore.find(b => b.id === id || String(b.task_id) === id);
-    if (!booking) {
+    if (booking) {
+        booking.status = 'CONFIRMED';
+        booking.confirmed_at = new Date().toISOString();
+        if (qc_tech)
+            booking.assigned_qc_tech = qc_tech;
+        if (confirmed_by)
+            booking.confirmed_by = confirmed_by;
+        if (remarks !== undefined)
+            booking.remarks = remarks;
+    }
+    const result = updated || booking;
+    if (!result) {
         return res.status(404).json({ success: false, error: { code: 'BOOKING_NOT_FOUND', message: 'ไม่พบรายการจอง QC' } });
     }
-    booking.status = 'CONFIRMED';
-    booking.confirmed_at = new Date().toISOString();
-    if (qc_tech)
-        booking.assigned_qc_tech = qc_tech;
-    if (confirmed_by)
-        booking.confirmed_by = confirmed_by;
-    if (remarks !== undefined)
-        booking.remarks = remarks;
     return res.json({
         success: true,
-        message: `ยืนยันการจองช่าง QC (${booking.assigned_qc_tech}) สำหรับ "${booking.task_name}" เรียบร้อยแล้ว`,
-        data: booking
+        message: `ยืนยันการจองช่าง QC (${result.assigned_qc_tech || 'QC Technician'}) สำหรับ "${result.task_name}" เรียบร้อยแล้ว`,
+        data: result
     });
 });
 // PUT /api/v1/qc/bookings/:id — Update QC Booking (Change QC tech, date, remarks, status)
 app.put('/api/v1/qc/bookings/:id', requireAuth, async (req, res) => {
     const { id } = req.params;
-    const booking = exports.coreQCBookingStore.find(b => b.id === id || String(b.task_id) === id);
+    const { assigned_qc_tech, qc_booking_date, remarks, status } = req.body;
+    const bookings = await (0, database_1.dbLoadQCBookings)();
+    let booking = bookings.find((b) => String(b.id) === id || String(b.task_id) === id);
+    if (!booking) {
+        booking = exports.coreQCBookingStore.find(b => b.id === id || String(b.task_id) === id);
+    }
     if (!booking) {
         return res.status(404).json({ success: false, error: { code: 'BOOKING_NOT_FOUND', message: 'ไม่พบรายการจอง QC' } });
     }
-    const { assigned_qc_tech, qc_booking_date, remarks, status } = req.body;
     if (assigned_qc_tech !== undefined)
         booking.assigned_qc_tech = assigned_qc_tech;
     if (qc_booking_date !== undefined)
@@ -2439,16 +2487,46 @@ app.put('/api/v1/qc/bookings/:id', requireAuth, async (req, res) => {
         booking.remarks = remarks;
     if (status !== undefined)
         booking.status = status;
+    await (0, database_1.dbSaveQCBooking)(booking);
+    const memBooking = exports.coreQCBookingStore.find(b => b.id === id || String(b.task_id) === id);
+    if (memBooking) {
+        if (assigned_qc_tech !== undefined)
+            memBooking.assigned_qc_tech = assigned_qc_tech;
+        if (qc_booking_date !== undefined)
+            memBooking.qc_booking_date = qc_booking_date;
+        if (remarks !== undefined)
+            memBooking.remarks = remarks;
+        if (status !== undefined)
+            memBooking.status = status;
+    }
     return res.json({ success: true, message: 'อัปเดตข้อมูลการจอง QC เรียบร้อย', data: booking });
 });
 // POST /api/v1/qc/bookings/sync-all — Sync QC bookings from all existing tasks
 app.post('/api/v1/qc/bookings/sync-all', requireAuth, async (req, res) => {
-    exports.coreTaskStore.forEach(task => syncQCBookingForTask(task));
+    const jobs = await (0, database_1.dbLoadJobs)();
+    for (const job of jobs) {
+        if (Array.isArray(job.tasks)) {
+            for (const task of job.tasks) {
+                syncQCBookingForTask(task);
+                const qcDate = calculateQCBookingDate(task.plan_end_date, 5);
+                await (0, database_1.dbSaveQCBooking)({
+                    id: `QCB_${task.id}`,
+                    task_id: task.id,
+                    task_name: task.task_name,
+                    plan_start_date: task.plan_start_date,
+                    plan_end_date: task.plan_end_date,
+                    qc_booking_date: qcDate,
+                    assigned_tech: task.assigned_tech
+                });
+            }
+        }
+    }
+    const dbBookings = await (0, database_1.dbLoadQCBookings)();
     return res.json({
         success: true,
-        message: `ซิงค์งานจองตรวจ QC จากรายการ Task ทั้งหมด (${exports.coreTaskStore.length} tasks) เรียบร้อย`,
-        total: exports.coreQCBookingStore.length,
-        data: exports.coreQCBookingStore
+        message: `ซิงค์งานจองตรวจ QC จากรายการ Task ทั้งหมดในฐานข้อมูลเรียบร้อย`,
+        total: dbBookings.length,
+        data: dbBookings
     });
 });
 // =============================================================================
@@ -2457,23 +2535,17 @@ app.post('/api/v1/qc/bookings/sync-all', requireAuth, async (req, res) => {
 // GET /api/v1/daily-logs — Get all daily work logs across all jobs or filtered
 app.get('/api/v1/daily-logs', requireAuth, async (req, res) => {
     const { jobId, taskId } = req.query;
-    let logs = [...exports.coreDailyWorkLogStore];
-    if (jobId) {
-        logs = logs.filter(l => String(l.job_id) === String(jobId) || l.job_no === String(jobId));
-    }
-    if (taskId) {
-        logs = logs.filter(l => String(l.task_id) === String(taskId));
-    }
+    const logs = await (0, database_1.dbLoadDailyWorkLogs)(jobId ? String(jobId) : undefined, taskId ? String(taskId) : undefined);
     return res.json({ success: true, total: logs.length, data: logs });
 });
 // GET /api/v1/jobs/:id/daily-logs — Get all daily work logs for a job
 app.get('/api/v1/jobs/:id/daily-logs', requireAuth, async (req, res) => {
     const { id } = req.params;
-    const logs = exports.coreDailyWorkLogStore.filter(l => String(l.job_id) === String(id) || l.job_no === id);
+    const logs = await (0, database_1.dbLoadDailyWorkLogs)(id);
     return res.json({ success: true, total: logs.length, data: logs });
 });
 // Helper to create and process daily work log
-function handleCreateDailyLog(payload, jobIdParam) {
+async function handleCreateDailyLog(payload, jobIdParam) {
     const id = jobIdParam || payload.job_id || payload.jobId || 'JOB202609002';
     const newLog = {
         id: payload.id || `LOG_${Date.now()}`,
@@ -2499,13 +2571,29 @@ function handleCreateDailyLog(payload, jobIdParam) {
         is_completed: Boolean(payload.is_completed || payload.isCompleted || (payload.progress_percent >= 100) || (payload.progressPercent >= 100)),
         created_at: payload.created_at || payload.createdAt || new Date().toISOString()
     };
+    // Persist to PostgreSQL database
+    await (0, database_1.dbSaveDailyWorkLog)(newLog);
     exports.coreDailyWorkLogStore.push(newLog);
-    // If completed, update task and job status to QC_PENDING
+    // If completed, update task and job status to QC_PENDING in DB
     if (newLog.is_completed) {
-        const task = exports.coreTaskStore.find(t => String(t.id) === String(newLog.task_id));
-        if (task) {
-            task.status = 'DONE';
-            task.progress_percent = 100;
+        const job = await (0, database_1.dbGetJob)(id);
+        if (job) {
+            const tasks = Array.isArray(job.tasks) ? [...job.tasks] : [];
+            const task = tasks.find((t) => String(t.id) === String(newLog.task_id));
+            if (task) {
+                task.status = 'DONE';
+                task.progress_percent = 100;
+            }
+            await (0, database_1.dbUpdateJob)(id, {
+                tasks,
+                status: JobStatus.QC_PENDING,
+                overall_progress: 85
+            });
+        }
+        const memTask = exports.coreTaskStore.find(t => String(t.id) === String(newLog.task_id));
+        if (memTask) {
+            memTask.status = 'DONE';
+            memTask.progress_percent = 100;
         }
         const targetJob = exports.coreJobStore.find(j => String(j.id) === String(id) || j.job_no === id);
         if (targetJob) {
@@ -2513,6 +2601,7 @@ function handleCreateDailyLog(payload, jobIdParam) {
             targetJob.overall_progress = 85;
         }
         // Confirm QC Booking on the completion end date
+        await (0, database_1.dbConfirmQCBooking)(String(newLog.task_id), undefined, newLog.recorded_by);
         const booking = exports.coreQCBookingStore.find(b => String(b.task_id) === String(newLog.task_id));
         if (booking) {
             booking.status = 'CONFIRMED';
@@ -2525,7 +2614,7 @@ function handleCreateDailyLog(payload, jobIdParam) {
 // POST /api/v1/jobs/:id/daily-logs — Create new daily work log for job
 app.post('/api/v1/jobs/:id/daily-logs', requireAuth, async (req, res) => {
     const { id } = req.params;
-    const newLog = handleCreateDailyLog(req.body, id);
+    const newLog = await handleCreateDailyLog(req.body, id);
     return res.status(201).json({
         success: true,
         message: newLog.is_completed
@@ -2536,7 +2625,7 @@ app.post('/api/v1/jobs/:id/daily-logs', requireAuth, async (req, res) => {
 });
 // POST /api/v1/daily-logs — Create new daily work log
 app.post('/api/v1/daily-logs', requireAuth, async (req, res) => {
-    const newLog = handleCreateDailyLog(req.body);
+    const newLog = await handleCreateDailyLog(req.body);
     return res.status(201).json({
         success: true,
         message: newLog.is_completed
@@ -2548,6 +2637,7 @@ app.post('/api/v1/daily-logs', requireAuth, async (req, res) => {
 // DELETE /api/v1/daily-logs/:logId — Delete daily work log
 app.delete('/api/v1/daily-logs/:logId', requireAuth, async (req, res) => {
     const { logId } = req.params;
+    await (0, database_1.dbDeleteDailyWorkLog)(logId);
     const idx = exports.coreDailyWorkLogStore.findIndex(l => l.id === logId);
     if (idx !== -1) {
         exports.coreDailyWorkLogStore.splice(idx, 1);
@@ -2565,17 +2655,23 @@ app.post('/api/v1/jobs/:id/qc-inspection', requireAuth, async (req, res) => {
     const hasMandatoryFail = Array.isArray(items) && items.some((it) => it.is_mandatory && it.result === 'FAIL');
     const overallResult = hasMandatoryFail ? 'FAIL' : 'PASS';
     const nextStatus = overallResult === 'PASS' ? JobStatus.QC_PASSED : JobStatus.IN_PROGRESS;
-    // Update target job in coreJobStore
+    const overallProgress = overallResult === 'PASS' ? 100 : 80;
+    // Persist to PostgreSQL database
+    const updatedJob = await (0, database_1.dbUpdateJob)(param, {
+        status: nextStatus,
+        overall_progress: overallProgress,
+        qc_passed_at: overallResult === 'PASS' ? new Date().toISOString() : null
+    });
     const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
     if (targetJob) {
         targetJob.status = nextStatus;
-        targetJob.overall_progress = overallResult === 'PASS' ? 100 : 80;
+        targetJob.overall_progress = overallProgress;
     }
     return res.status(200).json({
         success: true,
         data: {
             inspection_id: Date.now(),
-            job_id: targetJob ? targetJob.id : numId,
+            job_id: updatedJob ? updatedJob.id : (targetJob ? targetJob.id : numId),
             overall_result: overallResult,
             is_rework_required: hasMandatoryFail,
             next_job_status: nextStatus,
@@ -2592,6 +2688,11 @@ app.post('/api/v1/jobs/:id/after-sale/csat', requireAuth, async (req, res) => {
     const { csat_score, customer_feedback } = req.body;
     const csatResult = csat_score >= 3 ? 'PASS' : 'FAIL';
     const nextStatus = csatResult === 'PASS' ? JobStatus.CLOSED : JobStatus.IN_PROGRESS;
+    const overallProgress = csatResult === 'PASS' ? 100 : undefined;
+    const updatePayload = { status: nextStatus };
+    if (overallProgress !== undefined)
+        updatePayload.overall_progress = overallProgress;
+    const updatedJob = await (0, database_1.dbUpdateJob)(param, updatePayload);
     const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
     if (targetJob) {
         targetJob.status = nextStatus;
@@ -2602,7 +2703,7 @@ app.post('/api/v1/jobs/:id/after-sale/csat', requireAuth, async (req, res) => {
         success: true,
         data: {
             case_no: `AS-${Date.now()}`,
-            job_id: targetJob ? targetJob.id : numId,
+            job_id: updatedJob ? updatedJob.id : (targetJob ? targetJob.id : numId),
             csat_score,
             csat_result: csatResult,
             customer_feedback,
@@ -2617,24 +2718,32 @@ app.post('/api/v1/jobs/:id/close-and-export-bmt', requireAuth, async (req, res) 
     try {
         const param = req.params.id;
         const numId = Number(param);
+        const updatedJob = await (0, database_1.dbUpdateJob)(param, {
+            status: JobStatus.CLOSED,
+            overall_progress: 100
+        });
         const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
         if (targetJob) {
             targetJob.status = JobStatus.CLOSED;
             targetJob.overall_progress = 100;
         }
+        const jobNo = updatedJob?.job_no || targetJob?.job_no || (String(param).startsWith('JOB') ? param : `JOB20260900${param}`);
+        const customerName = updatedJob?.customer_name || targetJob?.customer_name || 'นาย สมชาย ใจดี';
+        const customerPhone = updatedJob?.customer_phone || targetJob?.customer_phone || '081-234-5678';
+        const customerAddress = updatedJob?.customer_address || targetJob?.customer_address || '123/45 ถ.พหลโยธิน กรุงเทพฯ';
         const bmtPayload = {
-            job_no: targetJob?.job_no || `JOB202609001`,
+            job_no: jobNo,
             bmt_export_timestamp: new Date().toISOString(),
             customer: {
-                name: 'นาย สมชาย ใจดี',
-                phone: '081-234-5678',
-                address: '123/45 ถ.พหลโยธิน กรุงเทพฯ'
+                name: customerName,
+                phone: customerPhone,
+                address: customerAddress
             },
             qc_passed_tasks: [
                 {
                     task_id: 101,
-                    task_name: 'ติดตั้งเครื่องทำน้ำอุ่น',
-                    technician: 'ช่าง สมศักดิ์',
+                    task_name: updatedJob?.service_type || 'บริการติดตั้งและตรวจสอบ',
+                    technician: updatedJob?.assigned_team || 'ช่าง สมศักดิ์',
                     qc_passed_at: new Date().toISOString()
                 }
             ],
@@ -2644,7 +2753,7 @@ app.post('/api/v1/jobs/:id/close-and-export-bmt', requireAuth, async (req, res) 
         return res.status(200).json({
             success: true,
             data: {
-                job_id: targetJob ? targetJob.id : numId,
+                job_id: updatedJob ? updatedJob.id : (targetJob ? targetJob.id : numId),
                 status: JobStatus.CLOSED,
                 bmt_response_ref: `BMT-REF-${Math.floor(100000 + Math.random() * 900000)}`,
                 exported_payload: bmtPayload
@@ -2716,10 +2825,10 @@ exports.maChecklistTemplateStore = [
     }
 ];
 // Helper: Format contract with round counts
-function formatContractWithRounds(c) {
-    const rounds = exports.maRoundStore.filter(r => r.contract_id === c.id);
+async function formatContractWithRounds(c) {
+    const rounds = await (0, database_1.dbLoadMARounds)(c.id);
     const totalRoundsCount = rounds.length > 0 ? rounds.length : (c.total_rounds || 0);
-    const completedRounds = rounds.filter(r => r.status === 'Completed').length;
+    const completedRounds = rounds.filter((r) => r.status === 'Completed').length;
     return {
         ...c,
         total_rounds_count: totalRoundsCount,
@@ -2731,30 +2840,41 @@ app.get(['/api/ma-checklist-templates', '/api/v1/ma-checklist-templates'], (req,
     return res.json(exports.maChecklistTemplateStore);
 });
 // 2. Get All MA Contracts
-app.get(['/api/ma-contracts', '/api/v1/ma-contracts'], requireAuth, (req, res) => {
-    const formatted = exports.maContractStore.map(formatContractWithRounds);
+app.get(['/api/ma-contracts', '/api/v1/ma-contracts'], requireAuth, async (req, res) => {
+    const contracts = await (0, database_1.dbLoadMAContracts)();
+    const formatted = await Promise.all(contracts.map(formatContractWithRounds));
     return res.json(formatted);
 });
 // 3. Get Single MA Contract by ID (with rounds)
-app.get(['/api/ma-contracts/:id', '/api/v1/ma-contracts/:id'], requireAuth, (req, res) => {
-    const contract = exports.maContractStore.find(c => c.id === req.params.id);
+app.get(['/api/ma-contracts/:id', '/api/v1/ma-contracts/:id'], requireAuth, async (req, res) => {
+    const contract = await (0, database_1.dbGetMAContract)(req.params.id);
     if (!contract) {
-        return res.status(404).json({ error: 'ไม่พบสัญญา MA ที่ระบุ' });
+        const memContract = exports.maContractStore.find(c => c.id === req.params.id);
+        if (!memContract) {
+            return res.status(404).json({ error: 'ไม่พบสัญญา MA ที่ระบุ' });
+        }
+        const memRounds = exports.maRoundStore
+            .filter(r => r.contract_id === memContract.id)
+            .sort((a, b) => a.round_number - b.round_number);
+        return res.json({
+            ...(await formatContractWithRounds(memContract)),
+            rounds: memRounds
+        });
     }
-    const rounds = exports.maRoundStore
-        .filter(r => r.contract_id === contract.id)
-        .sort((a, b) => a.round_number - b.round_number);
+    const rounds = await (0, database_1.dbLoadMARounds)(contract.id);
+    rounds.sort((a, b) => a.round_number - b.round_number);
     return res.json({
-        ...formatContractWithRounds(contract),
+        ...(await formatContractWithRounds(contract)),
         rounds
     });
 });
 // 4. Create New MA Contract
-app.post(['/api/ma-contracts', '/api/v1/ma-contracts'], requireAuth, (req, res) => {
+app.post(['/api/ma-contracts', '/api/v1/ma-contracts'], requireAuth, async (req, res) => {
     try {
         const body = req.body;
         const year = new Date().getFullYear();
-        const count = exports.maContractStore.length + 1;
+        const existing = await (0, database_1.dbLoadMAContracts)();
+        const count = existing.length + 1;
         const contractNo = body.contract_no || `MAC-${year}-${String(count).padStart(4, '0')}`;
         const newId = `mac_${Date.now()}`;
         // Extract customer and site names from notes if not directly provided
@@ -2796,6 +2916,7 @@ app.post(['/api/ma-contracts', '/api/v1/ma-contracts'], requireAuth, (req, res) 
             created_by: body.created_by || 'admin',
             created_at: new Date().toISOString()
         };
+        await (0, database_1.dbSaveMAContract)(newContract);
         exports.maContractStore.unshift(newContract);
         // Auto generate rounds if not created externally
         if (req.query.auto_rounds !== 'false' && newContract.total_rounds > 0) {
@@ -2803,7 +2924,7 @@ app.post(['/api/ma-contracts', '/api/v1/ma-contracts'], requireAuth, (req, res) 
             for (let i = 1; i <= newContract.total_rounds; i++) {
                 const roundDate = new Date(startDate);
                 roundDate.setMonth(roundDate.getMonth() + (newContract.frequency_months * (i - 1)));
-                exports.maRoundStore.push({
+                const roundData = {
                     id: `mar_${Date.now()}_${i}`,
                     contract_id: newId,
                     project_id: null,
@@ -2813,17 +2934,19 @@ app.post(['/api/ma-contracts', '/api/v1/ma-contracts'], requireAuth, (req, res) 
                     status: 'Scheduled',
                     notes: null,
                     created_at: new Date().toISOString()
-                });
+                };
+                await (0, database_1.dbSaveMARound)(roundData);
+                exports.maRoundStore.push(roundData);
             }
         }
-        return res.status(201).json(formatContractWithRounds(newContract));
+        return res.status(201).json(await formatContractWithRounds(newContract));
     }
     catch (err) {
         return res.status(500).json({ error: err.message });
     }
 });
 // 5. Create MA Round
-app.post(['/api/ma-rounds', '/api/v1/ma-rounds'], requireAuth, (req, res) => {
+app.post(['/api/ma-rounds', '/api/v1/ma-rounds'], requireAuth, async (req, res) => {
     try {
         const { contract_id, round_number, scheduled_date, status, notes } = req.body;
         if (!contract_id || !round_number || !scheduled_date) {
@@ -2840,6 +2963,7 @@ app.post(['/api/ma-rounds', '/api/v1/ma-rounds'], requireAuth, (req, res) => {
             notes: notes || null,
             created_at: new Date().toISOString()
         };
+        await (0, database_1.dbSaveMARound)(newRound);
         exports.maRoundStore.push(newRound);
         return res.status(201).json(newRound);
     }
@@ -2848,28 +2972,45 @@ app.post(['/api/ma-rounds', '/api/v1/ma-rounds'], requireAuth, (req, res) => {
     }
 });
 // 6. Update MA Round (Mark Completed or Reschedule)
-app.patch(['/api/ma-rounds/:id', '/api/v1/ma-rounds/:id'], requireAuth, (req, res) => {
+app.patch(['/api/ma-rounds/:id', '/api/v1/ma-rounds/:id'], requireAuth, async (req, res) => {
     try {
-        const round = exports.maRoundStore.find(r => r.id === req.params.id);
-        if (!round) {
-            return res.status(404).json({ error: 'ไม่พบรอบบริการที่ระบุ' });
-        }
         const { status, scheduled_date, actual_date, notes } = req.body;
+        const updates = {};
         if (status)
-            round.status = status;
+            updates.status = status;
         if (scheduled_date)
-            round.scheduled_date = scheduled_date;
+            updates.scheduled_date = scheduled_date;
         if (actual_date !== undefined)
-            round.actual_date = actual_date;
+            updates.actual_date = actual_date;
         if (notes !== undefined)
-            round.notes = notes;
+            updates.notes = notes;
+        await (0, database_1.dbUpdateMARound)(req.params.id, updates);
         // If all rounds of contract are completed, mark contract completed
-        const contractRounds = exports.maRoundStore.filter(r => r.contract_id === round.contract_id);
-        const contract = exports.maContractStore.find(c => c.id === round.contract_id);
-        if (contract && contractRounds.length > 0 && contractRounds.every(r => r.status === 'Completed')) {
-            contract.status = 'Completed';
+        const rounds = await (0, database_1.dbLoadMARounds)();
+        const currentRound = rounds.find((r) => r.id === req.params.id);
+        if (currentRound) {
+            const contractRounds = rounds.filter((r) => r.contract_id === currentRound.contract_id);
+            if (contractRounds.length > 0 && contractRounds.every((r) => r.status === 'Completed')) {
+                await (0, database_1.dbSaveMAContract)({ id: currentRound.contract_id, status: 'Completed' });
+            }
         }
-        return res.json(round);
+        const round = exports.maRoundStore.find(r => r.id === req.params.id);
+        if (round) {
+            if (status)
+                round.status = status;
+            if (scheduled_date)
+                round.scheduled_date = scheduled_date;
+            if (actual_date !== undefined)
+                round.actual_date = actual_date;
+            if (notes !== undefined)
+                round.notes = notes;
+            const contractRoundsMem = exports.maRoundStore.filter(r => r.contract_id === round.contract_id);
+            const contractMem = exports.maContractStore.find(c => c.id === round.contract_id);
+            if (contractMem && contractRoundsMem.length > 0 && contractRoundsMem.every(r => r.status === 'Completed')) {
+                contractMem.status = 'Completed';
+            }
+        }
+        return res.json(currentRound || round || { id: req.params.id, ...updates });
     }
     catch (err) {
         return res.status(500).json({ error: err.message });
@@ -2877,7 +3018,12 @@ app.patch(['/api/ma-rounds/:id', '/api/v1/ma-rounds/:id'], requireAuth, (req, re
 });
 async function hydrateFromDatabase() {
     try {
-        const dbJobs = await (0, database_1.dbLoadJobs)();
+        let dbJobs = await (0, database_1.dbLoadJobs)();
+        if (!dbJobs || dbJobs.length === 0) {
+            console.log('[DB HYDRATE] core_jobs table is empty. Auto-seeding 10 mock jobs into PostgreSQL...');
+            await (0, database_1.dbSeedMockJobs)();
+            dbJobs = await (0, database_1.dbLoadJobs)();
+        }
         if (dbJobs && dbJobs.length > 0) {
             exports.coreJobStore.length = 0;
             exports.coreJobStore.push(...dbJobs);
