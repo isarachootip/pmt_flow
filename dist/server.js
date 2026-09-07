@@ -203,6 +203,39 @@ app.get('/openapi.yaml', (req, res) => {
         return res.sendFile(localOpenapi);
     return res.status(404).send('openapi.yaml not found');
 });
+// Export API Specification for Google Sheets & Excel
+app.get(['/SPMT_API_Specification_GoogleSheets.xlsx', '/docs/excel', '/docs/sheet'], (req, res) => {
+    const filePaths = [
+        path_1.default.join(__dirname, '../public/downloads/SPMT_API_Specification_GoogleSheets.xlsx'),
+        path_1.default.join(__dirname, './public/downloads/SPMT_API_Specification_GoogleSheets.xlsx'),
+        path_1.default.join(__dirname, '../SPMT_API_Specification_GoogleSheets.xlsx'),
+        path_1.default.join(__dirname, './SPMT_API_Specification_GoogleSheets.xlsx')
+    ];
+    for (const p of filePaths) {
+        if (fs_1.default.existsSync(p)) {
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', 'attachment; filename="SPMT_API_Specification_GoogleSheets.xlsx"');
+            return res.sendFile(p);
+        }
+    }
+    return res.status(404).send('Excel file not found');
+});
+app.get(['/api_spec.csv', '/docs/csv'], (req, res) => {
+    const filePaths = [
+        path_1.default.join(__dirname, '../public/api_spec.csv'),
+        path_1.default.join(__dirname, './public/api_spec.csv'),
+        path_1.default.join(__dirname, '../api_spec.csv'),
+        path_1.default.join(__dirname, './api_spec.csv')
+    ];
+    for (const p of filePaths) {
+        if (fs_1.default.existsSync(p)) {
+            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            return res.sendFile(p);
+        }
+    }
+    return res.status(404).send('CSV file not found');
+});
 const renderSwaggerDocs = (req, res) => {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(`
@@ -213,8 +246,70 @@ const renderSwaggerDocs = (req, res) => {
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <title>SPMT API Documentation (Swagger UI)</title>
       <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+      <style>
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .export-banner {
+          background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+          color: white;
+          padding: 14px 24px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 16px;
+          border-bottom: 2px solid #3b82f6;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .export-info { display: flex; align-items: center; gap: 14px; }
+        .export-icon {
+          width: 40px; height: 40px; background: rgba(59, 130, 246, 0.25);
+          border: 1px solid rgba(147, 197, 253, 0.3); border-radius: 10px;
+          display: flex; align-items: center; justify-content: center; font-size: 22px;
+        }
+        .export-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .btn-sheet {
+          background: #10b981; color: white; padding: 8px 16px; border-radius: 8px;
+          font-weight: 600; font-size: 13px; text-decoration: none; display: inline-flex;
+          align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+          transition: all 0.2s ease;
+        }
+        .btn-sheet:hover { background: #059669; transform: translateY(-1px); }
+        .btn-csv {
+          background: #3b82f6; color: white; padding: 8px 16px; border-radius: 8px;
+          font-weight: 600; font-size: 13px; text-decoration: none; display: inline-flex;
+          align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+          transition: all 0.2s ease;
+        }
+        .btn-csv:hover { background: #2563eb; transform: translateY(-1px); }
+        .gsheet-hint {
+          font-size: 11px; color: #cbd5e1; background: rgba(0,0,0,0.3);
+          padding: 6px 12px; border-radius: 6px; font-family: Consolas, monospace;
+        }
+      </style>
     </head>
     <body>
+      <div class="export-banner">
+        <div class="export-info">
+          <div class="export-icon">📊</div>
+          <div>
+            <div style="font-weight: 700; font-size: 16px; letter-spacing: -0.01em;">
+              SPMT API Specification — Google Sheets & Excel Export
+            </div>
+            <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">
+              สรุปเหตุการณ์ที่เรียกใช้, ระบบผู้เรียก (Caller), ระบบผู้รับ (Receiver), และวัตถุประสงค์
+            </div>
+          </div>
+        </div>
+        <div class="export-actions">
+          <span class="gsheet-hint">=IMPORTDATA("https://vibepmt.online/api_spec.csv")</span>
+          <a href="/SPMT_API_Specification_GoogleSheets.xlsx" class="btn-sheet" download>
+            <span>📥</span> ดาวน์โหลด Excel (.xlsx) สำหรับ Google Sheets
+          </a>
+          <a href="/api_spec.csv" class="btn-csv" download>
+            <span>📄</span> ดาวน์โหลด CSV
+          </a>
+        </div>
+      </div>
       <div id="swagger-ui"></div>
       <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js" crossorigin></script>
       <script>
