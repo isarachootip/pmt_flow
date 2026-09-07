@@ -16,6 +16,155 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// =============================================================================
+// INBOUND API REQUEST LOGGER & PERSISTENT STORAGE
+// =============================================================================
+export interface ApiRequestLog {
+  id: string;
+  timestamp: string;
+  method: string;
+  path: string;
+  ip: string;
+  status: number;
+  duration_ms: number;
+  headers: Record<string, string>;
+  body: any;
+  response_body?: any;
+}
+
+const DATA_DIR = path.join(process.cwd(), 'data');
+const LOGS_FILE = path.join(DATA_DIR, 'inbound_api_logs.json');
+export const sysApiLogStore: ApiRequestLog[] = [];
+
+function loadPersistedApiLogs() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (fs.existsSync(LOGS_FILE)) {
+      const raw = fs.readFileSync(LOGS_FILE, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        sysApiLogStore.push(...parsed.slice(0, 500));
+        console.log(`[API LOGS] Loaded ${sysApiLogStore.length} persisted inbound logs.`);
+      }
+    }
+  } catch (err) {
+    console.error('[API LOGS] Failed to load persisted logs:', err);
+  }
+}
+
+let saveLogsTimeout: NodeJS.Timeout | null = null;
+function persistApiLogs() {
+  if (saveLogsTimeout) return;
+  saveLogsTimeout = setTimeout(() => {
+    saveLogsTimeout = null;
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      fs.writeFileSync(LOGS_FILE, JSON.stringify(sysApiLogStore.slice(0, 500), null, 2), 'utf8');
+    } catch (err) {
+      console.error('[API LOGS] Failed to persist logs:', err);
+    }
+  }, 200);
+}
+loadPersistedApiLogs();
+
+// Inbound API Logger Middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (!req.path.startsWith('/api/')) return next();
+  if (req.path.startsWith('/api/v1/system/api-logs')) return next();
+
+  const startTime = Date.now();
+  const logId = `REQ-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  // Sanitize headers
+  const safeHeaders: Record<string, string> = {};
+  for (const [k, v] of Object.entries(req.headers)) {
+    if (k.toLowerCase() === 'authorization') {
+      const val = String(v);
+      safeHeaders[k] = val.startsWith('Bearer ') ? `Bearer ${val.slice(7, 13)}...***` : '***';
+    } else {
+      safeHeaders[k] = String(v);
+    }
+  }
+
+  // Sanitize body (mask passwords)
+  let safeBody: any = null;
+  if (req.body && typeof req.body === 'object') {
+    try {
+      safeBody = JSON.parse(JSON.stringify(req.body));
+      if (safeBody.password) safeBody.password = '******';
+      if (safeBody.current_password) safeBody.current_password = '******';
+      if (safeBody.new_password) safeBody.new_password = '******';
+    } catch (e) {
+      safeBody = req.body;
+    }
+  }
+
+  // Intercept response
+  let capturedResponseBody: any = null;
+  const originalJson = res.json.bind(res);
+  const originalSend = res.send.bind(res);
+
+  res.json = function (body: any) {
+    capturedResponseBody = body;
+    return originalJson(body);
+  };
+
+  res.send = function (body: any) {
+    if (!capturedResponseBody) {
+      try {
+        capturedResponseBody = typeof body === 'string' ? JSON.parse(body) : body;
+      } catch (e) {
+        capturedResponseBody = typeof body === 'string' ? body.slice(0, 1000) : body;
+      }
+    }
+    return originalSend(body);
+  };
+
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() ||
+               req.ip ||
+               req.socket?.remoteAddress ||
+               'unknown';
+
+    const logEntry: ApiRequestLog = {
+      id: logId,
+      timestamp: new Date().toISOString(),
+      method: req.method,
+      path: req.originalUrl || req.url,
+      ip: ip,
+      status: res.statusCode,
+      duration_ms: duration,
+      headers: safeHeaders,
+      body: safeBody,
+      response_body: capturedResponseBody
+    };
+
+    // Filter repeated routine polling GET /jobs and /ma-contracts
+    const isRoutineGet = req.method === 'GET' && (req.path === '/api/v1/jobs' || req.path === '/api/ma-contracts' || req.path === '/api/v1/ma-contracts');
+    if (isRoutineGet && res.statusCode === 200) {
+      const lastLog = sysApiLogStore[0];
+      if (lastLog && lastLog.method === 'GET' && lastLog.path === logEntry.path && lastLog.status === 200) {
+        lastLog.timestamp = logEntry.timestamp;
+        lastLog.duration_ms = logEntry.duration_ms;
+        return;
+      }
+    }
+
+    sysApiLogStore.unshift(logEntry);
+    if (sysApiLogStore.length > 500) {
+      sysApiLogStore.pop();
+    }
+    persistApiLogs();
+  });
+
+  next();
+});
+
 // Global No-Cache Middleware for Production Browser Anti-Caching
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
@@ -471,6 +620,62 @@ app.delete('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req: 
 app.get('/api/v1/auth/login-logs', requireAuth, requireRole(UserRole.ADMIN), (req: AuthRequest, res: Response) => {
   const logs = [...sysLoginLogStore].reverse().slice(0, 100);
   return res.json({ success: true, total: logs.length, data: logs });
+});
+
+// =============================================================================
+// SYSTEM INBOUND API LOGS ENDPOINTS
+// =============================================================================
+app.get('/api/v1/system/api-logs', requireAuth, (req: Request, res: Response) => {
+  const { status, method, search, limit = '200' } = req.query;
+  let results = [...sysApiLogStore];
+
+  if (method && typeof method === 'string' && method !== 'ALL') {
+    results = results.filter(l => l.method.toUpperCase() === method.toUpperCase());
+  }
+
+  if (status && typeof status === 'string' && status !== 'ALL') {
+    if (status === '2xx') results = results.filter(l => l.status >= 200 && l.status < 300);
+    else if (status === '4xx') results = results.filter(l => l.status >= 400 && l.status < 500);
+    else if (status === '5xx') results = results.filter(l => l.status >= 500);
+    else {
+      const statusCode = Number(status);
+      if (!isNaN(statusCode)) results = results.filter(l => l.status === statusCode);
+    }
+  }
+
+  if (search && typeof search === 'string' && search.trim() !== '') {
+    const q = search.toLowerCase().trim();
+    results = results.filter(l =>
+      l.path.toLowerCase().includes(q) ||
+      l.ip.toLowerCase().includes(q) ||
+      (l.method && l.method.toLowerCase().includes(q)) ||
+      JSON.stringify(l.body || '').toLowerCase().includes(q) ||
+      JSON.stringify(l.response_body || '').toLowerCase().includes(q)
+    );
+  }
+
+  const max = Math.min(Number(limit) || 200, 500);
+  const paged = results.slice(0, max);
+
+  const summary = {
+    total: sysApiLogStore.length,
+    success_2xx: sysApiLogStore.filter(l => l.status >= 200 && l.status < 300).length,
+    client_error_4xx: sysApiLogStore.filter(l => l.status >= 400 && l.status < 500).length,
+    server_error_5xx: sysApiLogStore.filter(l => l.status >= 500).length,
+  };
+
+  return res.json({
+    success: true,
+    summary,
+    total: results.length,
+    data: paged
+  });
+});
+
+app.delete('/api/v1/system/api-logs', requireAuth, requireRole(UserRole.ADMIN), (req: Request, res: Response) => {
+  sysApiLogStore.length = 0;
+  persistApiLogs();
+  return res.json({ success: true, message: 'ล้างประวัติ Inbound API Logs เรียบร้อยแล้ว' });
 });
 
 

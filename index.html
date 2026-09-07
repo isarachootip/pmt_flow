@@ -266,9 +266,16 @@
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400 font-mono font-bold">Admin</span>
                         </a>
-                        <a href="#" onclick="app.navigate('settings')" class="nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
+                        <a href="#" onclick="app.navigate('settings')" class="nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-settings">
                             <i class="ph ph-gear text-base"></i>
                             <span>ตั้งค่าระบบ & API</span>
+                        </a>
+                        <a href="#" id="nav-api-logs" onclick="app.navigate('api-logs')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
+                            <div class="flex items-center gap-2.5">
+                                <i class="ph ph-terminal-window text-base text-cyan-500"></i>
+                                <span class="font-medium text-foreground">Inbound API Logs</span>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-mono font-bold" id="sidebar-api-logs-count">0</span>
                         </a>
                         <a href="#" onclick="app.navigate('faq')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-faq">
                             <div class="flex items-center gap-2.5">
@@ -2798,6 +2805,26 @@
                         </button>
                     </div>
 
+                    <!-- Direct Access Card to Inbound API Logs -->
+                    <div class="artifact-card p-5 rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 via-card to-cyan-500/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                        <div class="flex items-center gap-3.5">
+                            <div class="w-11 h-11 rounded-xl bg-cyan-500/15 text-cyan-500 flex items-center justify-center text-xl shrink-0 border border-cyan-500/30">
+                                <i class="ph ph-terminal-window"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="font-display font-bold text-sm text-foreground">ประวัติการยิง API ขาเข้า (Inbound API Logs)</h3>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30">Live Monitor</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground mt-0.5">ตรวจสอบทุก Request ที่ยิงเข้ามายัง /api/* ทั้งแบบสำเร็จ (2xx) และ Error (4xx, 5xx) ดู Headers, Body Payload และ Response ละเอียด</p>
+                            </div>
+                        </div>
+                        <button onclick="app.navigate('api-logs')" class="btn-artifact-primary px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 shadow-md cursor-pointer hover:scale-[1.02] transition-transform bg-cyan-600 hover:bg-cyan-700 text-white border-none">
+                            <i class="ph ph-terminal-window text-sm"></i>
+                            <span>ดูประวัติการยิง API</span>
+                        </button>
+                    </div>
+
                     <!-- SLA WORKFLOW SETTINGS CARD -->
                     <div class="artifact-card p-6 space-y-6 rounded-2xl border border-brand-500/30 bg-card shadow-sm">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border">
@@ -3584,6 +3611,157 @@
                                     <strong class="text-foreground">คำตอบ:</strong> เมื่อโครงการผ่านการตรวจรับงาน QC และส่งมอบงานแล้ว ระบบสามารถสร้างสัญญา MA ดูแลรักษาต่อเนื่อง (เช่น ล้างแอร์หรือตรวจเช็คระบบน้ำทุก 3 เดือน รวม 4 รอบต่อปี) โดยระบบจะคำนวณตารางรอบการเข้าบริการล่วงหน้า (Service Schedule Timeline), ติดตามสถานะแต่ละรอบ (Completed / Pending), และส่งแจ้งเตือนเมื่อใกล้ถึงรอบเข้าบริการของลูกค้า
                                 </div>
                             </details>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- INBOUND API REQUEST LOGS PAGE -->
+                <div id="page-api-logs" class="page-view hidden-view space-y-6">
+                    <!-- Header -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-10 h-10 rounded-xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0 border border-cyan-500/30">
+                                    <i class="ph ph-terminal-window text-xl"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h1 class="text-xl font-bold font-display text-foreground">ประวัติการยิง API ขาเข้า (Inbound API Logs)</h1>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">Live Traffic</span>
+                                    </div>
+                                    <p class="text-xs text-muted-foreground mt-0.5">ตรวจสอบทุก Request ที่ยิงเข้ามายัง /api/* ทั้งผลสำเร็จ (2xx) และข้อผิดพลาด (4xx, 5xx) พร้อม Payload & Headers</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                            <a href="/docs" target="_blank" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+                                <i class="ph ph-book-open text-sm"></i>
+                                <span>Swagger UI Docs</span>
+                            </a>
+                            <button type="button" onclick="app.clearApiLogs()" class="px-3.5 py-2 rounded-xl text-xs font-semibold border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition flex items-center gap-1.5 cursor-pointer">
+                                <i class="ph ph-trash text-sm"></i>
+                                <span>ล้างประวัติ Log</span>
+                            </button>
+                            <button type="button" onclick="app.fetchApiLogs(true)" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-sm">
+                                <i class="ph ph-arrows-clockwise text-sm" id="api-log-refresh-spinner"></i>
+                                <span>รีเฟรชสด</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- KPI METRICS BANNER -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div class="artifact-card p-4 rounded-xl border border-border bg-card flex items-center justify-between">
+                            <div>
+                                <span class="text-[11px] font-medium text-muted-foreground">ยิงเข้ามาทั้งหมด (Total)</span>
+                                <div class="text-2xl font-bold font-mono text-foreground mt-1" id="api-log-kpi-total">0</div>
+                            </div>
+                            <div class="w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground flex items-center justify-center text-lg">
+                                <i class="ph ph-hash"></i>
+                            </div>
+                        </div>
+                        <div class="artifact-card p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between">
+                            <div>
+                                <span class="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">สำเร็จ (2xx Success)</span>
+                                <div class="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1" id="api-log-kpi-2xx">0</div>
+                            </div>
+                            <div class="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg">
+                                <i class="ph ph-check-circle"></i>
+                            </div>
+                        </div>
+                        <div class="artifact-card p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 flex items-center justify-between">
+                            <div>
+                                <span class="text-[11px] font-medium text-amber-600 dark:text-amber-400">ผิดพลาดฝั่งผู้ส่ง (4xx Client Error)</span>
+                                <div class="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1" id="api-log-kpi-4xx">0</div>
+                            </div>
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-lg">
+                                <i class="ph ph-warning"></i>
+                            </div>
+                        </div>
+                        <div class="artifact-card p-4 rounded-xl border border-rose-500/30 bg-rose-500/5 flex items-center justify-between">
+                            <div>
+                                <span class="text-[11px] font-medium text-rose-600 dark:text-rose-400">เซิร์ฟเวอร์ผิดพลาด (5xx Error)</span>
+                                <div class="text-2xl font-bold font-mono text-rose-600 dark:text-rose-400 mt-1" id="api-log-kpi-5xx">0</div>
+                            </div>
+                            <div class="w-10 h-10 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center text-lg">
+                                <i class="ph ph-x-circle"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CONTROLS & FILTER TOOLBAR -->
+                    <div class="artifact-card p-4 rounded-xl border border-border bg-card space-y-3">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                            <div class="flex-1 relative">
+                                <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+                                <input type="text" id="api-log-search" oninput="app.filterApiLogs()" placeholder="ค้นหา Path, Client IP, หรือเนื้อหา Payload..." class="w-full pl-9 pr-3.5 py-2 bg-muted/40 border border-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-cyan-500 transition">
+                            </div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <!-- Method Filter -->
+                                <select id="api-log-filter-method" onchange="app.filterApiLogs()" class="bg-muted/40 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-cyan-500 cursor-pointer">
+                                    <option value="ALL">ทุก Method</option>
+                                    <option value="POST">POST (ส่งข้อมูลเข้า)</option>
+                                    <option value="GET">GET (เรียกดู)</option>
+                                    <option value="PATCH">PATCH (อัปเดต)</option>
+                                    <option value="DELETE">DELETE (ลบ)</option>
+                                </select>
+
+                                <!-- Status Filter -->
+                                <select id="api-log-filter-status" onchange="app.filterApiLogs()" class="bg-muted/40 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-cyan-500 cursor-pointer">
+                                    <option value="ALL">ทุกสถานะ HTTP</option>
+                                    <option value="2xx">2xx สำเร็จ (Success)</option>
+                                    <option value="4xx">4xx ข้อผิดพลาด (Client Error)</option>
+                                    <option value="5xx">5xx ขัดข้อง (Server Error)</option>
+                                </select>
+
+                                <!-- Auto-Refresh Toggle -->
+                                <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition">
+                                    <input type="checkbox" id="api-log-autorefresh" checked onchange="app.toggleApiLogAutoRefresh(this.checked)" class="w-3.5 h-3.5 rounded text-cyan-600 focus:ring-cyan-500">
+                                    <span class="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="api-log-live-dot"></span>
+                                        Auto-Refresh (3s)
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Secondary Filters -->
+                        <div class="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
+                            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                                <input type="checkbox" id="api-log-hide-routine" checked onchange="app.filterApiLogs()" class="w-3.5 h-3.5 rounded text-cyan-600 focus:ring-cyan-500">
+                                <span>ซ่อน Routine Polling อัตโนมัติ (GET /api/v1/jobs)</span>
+                            </label>
+                            <span id="api-log-table-summary" class="font-mono text-[11px]">แสดง 0 รายการ</span>
+                        </div>
+                    </div>
+
+                    <!-- LOGS TABLE -->
+                    <div class="artifact-card rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-muted/50 border-b border-border text-muted-foreground font-semibold">
+                                        <th class="py-3 px-4 w-44">วัน-เวลา (DD/MM/YYYY)</th>
+                                        <th class="py-3 px-3 w-20">Method</th>
+                                        <th class="py-3 px-4">URL Path / Endpoint</th>
+                                        <th class="py-3 px-3 w-28 text-center">Status</th>
+                                        <th class="py-3 px-3 w-28">Client IP</th>
+                                        <th class="py-3 px-3 w-20 text-right">เวลา (ms)</th>
+                                        <th class="py-3 px-4">สรุปผลลัพธ์</th>
+                                        <th class="py-3 px-4 w-32 text-center">การกระทำ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="api-log-table-body" class="divide-y divide-border">
+                                    <tr>
+                                        <td colspan="8" class="py-12 text-center text-muted-foreground">
+                                            <div class="flex flex-col items-center justify-center gap-2">
+                                                <i class="ph ph-spinner animate-spin text-2xl text-cyan-500"></i>
+                                                <span>กำลังโหลดประวัติ API Logs...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -6068,6 +6246,78 @@
                             <div class="font-semibold leading-tight truncate">ตรวจคุณภาพ (QC)</div>
                             <div class="text-[9px] text-muted-foreground truncate">qc.wichai</div>
                         </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL API LOG DETAIL & PAYLOAD INSPECTOR -->
+    <div id="modal-api-log-detail" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border flex flex-col max-h-[90vh]">
+            <!-- Modal Header -->
+            <div class="px-5 py-4 border-b border-border flex items-center justify-between bg-muted/30">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 flex items-center justify-center text-lg shrink-0 border border-cyan-500/30">
+                        <i class="ph ph-code"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span id="modal-api-log-method" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-600 dark:text-cyan-300">POST</span>
+                            <h3 class="font-display font-bold text-sm text-foreground truncate max-w-md" id="modal-api-log-path">/api/v1/jobs/survey-report</h3>
+                            <span id="modal-api-log-status" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">201 Created</span>
+                        </div>
+                        <div class="text-[11px] text-muted-foreground flex items-center gap-3 mt-0.5 flex-wrap">
+                            <span id="modal-api-log-time" class="font-mono">07/09/2026 12:00:00 น.</span>
+                            <span>•</span>
+                            <span id="modal-api-log-ip" class="font-mono">IP: 127.0.0.1</span>
+                            <span>•</span>
+                            <span id="modal-api-log-duration" class="font-mono">15 ms</span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" onclick="app.hideModal('modal-api-log-detail')" class="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer">
+                    <i class="ph ph-x text-base"></i>
+                </button>
+            </div>
+
+            <!-- Tab Buttons -->
+            <div class="px-5 pt-3 pb-0 border-b border-border flex items-center gap-2 bg-muted/10">
+                <button type="button" id="tab-btn-req-body" onclick="app.switchApiLogTab('body')" class="px-3.5 py-2 text-xs font-semibold border-b-2 border-cyan-500 text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5 cursor-pointer">
+                    <i class="ph ph-file-arrow-up text-sm"></i>
+                    <span>Request Body (Payload ขาเข้า)</span>
+                </button>
+                <button type="button" id="tab-btn-res-body" onclick="app.switchApiLogTab('response')" class="px-3.5 py-2 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 cursor-pointer">
+                    <i class="ph ph-file-arrow-down text-sm"></i>
+                    <span>Response Body (ตอบกลับ)</span>
+                </button>
+                <button type="button" id="tab-btn-headers" onclick="app.switchApiLogTab('headers')" class="px-3.5 py-2 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 cursor-pointer">
+                    <i class="ph ph-list text-sm"></i>
+                    <span>Request Headers</span>
+                </button>
+            </div>
+
+            <!-- Tab Content / Code Viewer -->
+            <div class="p-5 overflow-y-auto flex-1 bg-zinc-950 font-mono text-xs text-zinc-200">
+                <div class="flex items-center justify-between pb-2 mb-2 border-b border-zinc-800 text-[11px] text-zinc-400">
+                    <span id="modal-api-log-tab-title">Request Body (JSON)</span>
+                    <button type="button" onclick="app.copyCurrentApiLogJson()" class="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center gap-1 text-[11px] cursor-pointer transition">
+                        <i class="ph ph-copy"></i>
+                        <span>คัดลอก JSON</span>
+                    </button>
+                </div>
+                <pre class="overflow-x-auto p-2 leading-relaxed selection:bg-cyan-500/30 whitespace-pre-wrap"><code id="modal-api-log-code"></code></pre>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-5 py-3 border-t border-border bg-muted/30 flex items-center justify-between">
+                <span class="text-[11px] text-muted-foreground font-mono" id="modal-api-log-id">REQ-0000</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="app.copyCurrentApiLogJson()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 cursor-pointer">
+                        <i class="ph ph-copy"></i> คัดลอก JSON
+                    </button>
+                    <button type="button" onclick="app.hideModal('modal-api-log-detail')" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-medium cursor-pointer">
+                        ปิดหน้าต่าง
                     </button>
                 </div>
             </div>

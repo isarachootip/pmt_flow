@@ -1525,6 +1525,7 @@ const app = {
                 this.navigate('dashboard');
                 this.fetchJobsFromApi();
                 this.fetchMAFromApi();
+                this.fetchApiLogs();
                 // Polling sync every 3 seconds for live updates
                 setInterval(() => {
                     this.fetchJobsFromApi();
@@ -1650,6 +1651,7 @@ const app = {
                     'csat': 'ความพึงพอใจลูกค้า (CSAT Survey)',
                     'ma-contracts': 'บริการหลังการขาย & สัญญา MA',
                     'settings': 'ตั้งค่าระบบ & API',
+                    'api-logs': 'ประวัติการยิง API ขาเข้า (Inbound API Request Logs)',
                     'faq': 'คู่มือระบบ & คำถามที่พบบ่อย (Workflow Guide & FAQ)',
                     'users': 'จัดการผู้ใช้งาน'
                 };
@@ -1688,6 +1690,15 @@ const app = {
                 }
                 if(view === 'settings') {
                     this.renderSLASettingsPanel();
+                }
+                if(view === 'api-logs') {
+                    this.renderApiLogs();
+                    this.fetchApiLogs();
+                    if (this.state.apiLogAutoRefresh !== false) {
+                        this.startApiLogAutoRefresh();
+                    }
+                } else {
+                    this.stopApiLogAutoRefresh();
                 }
 
                 if(view === 'faq') {
@@ -2242,6 +2253,12 @@ const app = {
                 if (sidebarCsat) {
                     const csatPending = allJobs.filter(j => j.status === 'QC_PASSED').length;
                     sidebarCsat.innerText = csatPending;
+                }
+
+                // Inbound API Logs
+                const sidebarApiLogs = document.getElementById('sidebar-api-logs-count');
+                if (sidebarApiLogs && this.state && this.state.apiLogs) {
+                    sidebarApiLogs.innerText = this.state.apiLogs.length;
                 }
 
                 // Update All 5 Step Dashboards
@@ -14288,6 +14305,357 @@ const app = {
                 }
 
                 this.showModal('modal-ma-checklist');
+            },
+
+            // =========================================================================
+            // INBOUND API LOGS METHODS
+            // =========================================================================
+            async fetchApiLogs(showToast = false) {
+                const spinner = document.getElementById('api-log-refresh-spinner');
+                if (spinner) spinner.classList.add('animate-spin');
+
+                try {
+                    const token = sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                    const res = await fetch('/api/v1/system/api-logs?limit=300', { headers });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const json = await res.json();
+                    if (json.success && Array.isArray(json.data)) {
+                        this.state.apiLogs = json.data;
+                        this.state.apiLogSummary = json.summary || {
+                            total: json.data.length,
+                            success_2xx: json.data.filter(l => l.status >= 200 && l.status < 300).length,
+                            client_error_4xx: json.data.filter(l => l.status >= 400 && l.status < 500).length,
+                            server_error_5xx: json.data.filter(l => l.status >= 500).length
+                        };
+
+                        // Update sidebar count
+                        const sidebarBadge = document.getElementById('sidebar-api-logs-count');
+                        if (sidebarBadge) sidebarBadge.innerText = this.state.apiLogSummary.total;
+
+                        this.renderApiLogs();
+                        if (showToast) this.showToast('🔄 รีเฟรชประวัติ Inbound API Logs ล่าสุดแล้ว');
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch API logs:', err);
+                    if (showToast) this.showToast('⚠️ ไม่สามารถดึงประวัติ API Logs ได้');
+                } finally {
+                    if (spinner) {
+                        setTimeout(() => spinner.classList.remove('animate-spin'), 400);
+                    }
+                }
+            },
+
+            startApiLogAutoRefresh() {
+                this.stopApiLogAutoRefresh();
+                this.state.apiLogAutoRefreshTimer = setInterval(() => {
+                    if (this.state.currentView === 'api-logs') {
+                        this.fetchApiLogs(false);
+                    }
+                }, 3000);
+            },
+
+            stopApiLogAutoRefresh() {
+                if (this.state.apiLogAutoRefreshTimer) {
+                    clearInterval(this.state.apiLogAutoRefreshTimer);
+                    this.state.apiLogAutoRefreshTimer = null;
+                }
+            },
+
+            toggleApiLogAutoRefresh(enabled) {
+                this.state.apiLogAutoRefresh = Boolean(enabled);
+                const dot = document.getElementById('api-log-live-dot');
+                if (enabled) {
+                    if (dot) dot.classList.add('bg-emerald-500', 'animate-pulse');
+                    if (dot) dot.classList.remove('bg-zinc-500');
+                    this.startApiLogAutoRefresh();
+                    this.showToast('เปิดการรีเฟรชประวัติ API สดทุก 3 วินาที');
+                } else {
+                    if (dot) dot.classList.remove('bg-emerald-500', 'animate-pulse');
+                    if (dot) dot.classList.add('bg-zinc-500');
+                    this.stopApiLogAutoRefresh();
+                    this.showToast('หยุดการรีเฟรชอัตโนมัติชั่วคราว');
+                }
+            },
+
+            filterApiLogs() {
+                this.renderApiLogs();
+            },
+
+            renderApiLogs() {
+                const logs = this.state.apiLogs || [];
+                const summary = this.state.apiLogSummary || {
+                    total: logs.length,
+                    success_2xx: logs.filter(l => l.status >= 200 && l.status < 300).length,
+                    client_error_4xx: logs.filter(l => l.status >= 400 && l.status < 500).length,
+                    server_error_5xx: logs.filter(l => l.status >= 500).length
+                };
+
+                // Update KPI Cards
+                const kpiTotal = document.getElementById('api-log-kpi-total');
+                const kpi2xx = document.getElementById('api-log-kpi-2xx');
+                const kpi4xx = document.getElementById('api-log-kpi-4xx');
+                const kpi5xx = document.getElementById('api-log-kpi-5xx');
+                if (kpiTotal) kpiTotal.innerText = summary.total;
+                if (kpi2xx) kpi2xx.innerText = summary.success_2xx;
+                if (kpi4xx) kpi4xx.innerText = summary.client_error_4xx;
+                if (kpi5xx) kpi5xx.innerText = summary.server_error_5xx;
+
+                // Apply Filters
+                const searchVal = (document.getElementById('api-log-search')?.value || '').toLowerCase().trim();
+                const methodVal = document.getElementById('api-log-filter-method')?.value || 'ALL';
+                const statusVal = document.getElementById('api-log-filter-status')?.value || 'ALL';
+                const hideRoutine = document.getElementById('api-log-hide-routine')?.checked !== false;
+
+                let filtered = logs.filter(item => {
+                    if (hideRoutine && item.method === 'GET' && (item.path === '/api/v1/jobs' || item.path === '/api/ma-contracts' || item.path === '/api/v1/ma-contracts')) {
+                        return false;
+                    }
+                    if (methodVal !== 'ALL' && item.method.toUpperCase() !== methodVal.toUpperCase()) {
+                        return false;
+                    }
+                    if (statusVal !== 'ALL') {
+                        if (statusVal === '2xx' && (item.status < 200 || item.status >= 300)) return false;
+                        if (statusVal === '4xx' && (item.status < 400 || item.status >= 500)) return false;
+                        if (statusVal === '5xx' && item.status < 500) return false;
+                    }
+                    if (searchVal) {
+                        const inPath = (item.path || '').toLowerCase().includes(searchVal);
+                        const inIp = (item.ip || '').toLowerCase().includes(searchVal);
+                        const inBody = JSON.stringify(item.body || '').toLowerCase().includes(searchVal);
+                        const inRes = JSON.stringify(item.response_body || '').toLowerCase().includes(searchVal);
+                        if (!inPath && !inIp && !inBody && !inRes) return false;
+                    }
+                    return true;
+                });
+
+                const summaryLabel = document.getElementById('api-log-table-summary');
+                if (summaryLabel) summaryLabel.innerText = `แสดง ${filtered.length} จากทั้งหมด ${logs.length} รายการ`;
+
+                const tbody = document.getElementById('api-log-table-body');
+                if (!tbody) return;
+
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="py-12 text-center text-muted-foreground">
+                                <div class="flex flex-col items-center justify-center gap-2">
+                                    <div class="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center text-2xl text-muted-foreground">
+                                        <i class="ph ph-magnifying-glass"></i>
+                                    </div>
+                                    <span class="font-semibold text-foreground text-sm">ไม่พบประวัติการยิง API ในเงื่อนไขนี้</span>
+                                    <p class="text-xs text-muted-foreground max-w-sm">คุณสามารถทดสอบยิง API ได้ผ่าน <a href="/docs" target="_blank" class="text-cyan-500 underline font-medium">Swagger Docs</a> หรือส่งคำขอผ่าน Postman เข้ามาที่เซิร์ฟเวอร์</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                tbody.innerHTML = filtered.map(log => {
+                    // Method badge styling
+                    let methodBadgeClass = 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-300 border-zinc-500/30';
+                    if (log.method === 'POST') methodBadgeClass = 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30';
+                    else if (log.method === 'GET') methodBadgeClass = 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30';
+                    else if (log.method === 'PATCH' || log.method === 'PUT') methodBadgeClass = 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30';
+                    else if (log.method === 'DELETE') methodBadgeClass = 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30';
+
+                    // Status badge styling
+                    let statusBadgeClass = 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30';
+                    let statusIcon = 'ph-check-circle';
+                    if (log.status >= 400 && log.status < 500) {
+                        statusBadgeClass = 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30';
+                        statusIcon = 'ph-warning-circle';
+                    } else if (log.status >= 500) {
+                        statusBadgeClass = 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30';
+                        statusIcon = 'ph-x-circle';
+                    }
+
+                    // Format Time: DD/MM/YYYY HH:mm:ss น. (24-hour strictly)
+                    const timeStr = this.formatDateTime(log.timestamp);
+
+                    // Summary snippet
+                    let summaryText = '-';
+                    if (log.response_body) {
+                        if (log.response_body.message) {
+                            summaryText = log.response_body.message;
+                        } else if (log.response_body.error && log.response_body.error.message) {
+                            summaryText = `❌ ${log.response_body.error.message}`;
+                        } else if (log.response_body.data && log.response_body.data.job_no) {
+                            summaryText = `✅ สร้างงาน: ${log.response_body.data.job_no}`;
+                        }
+                    } else if (log.body) {
+                        if (log.body.job_info?.job_number) summaryText = `Job: ${log.body.job_info.job_number}`;
+                        else if (log.body.external_ref_id) summaryText = `Ref: ${log.body.external_ref_id}`;
+                        else if (log.body.username) summaryText = `User: ${log.body.username}`;
+                    }
+
+                    return `
+                        <tr class="hover:bg-muted/30 transition-colors border-b border-border">
+                            <td class="py-3 px-4 font-mono text-[11px] text-foreground font-medium whitespace-nowrap">
+                                ${timeStr}
+                            </td>
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${methodBadgeClass}">
+                                    ${log.method}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 font-mono text-xs font-semibold text-foreground break-all">
+                                ${log.path}
+                            </td>
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${statusBadgeClass}">
+                                    <i class="ph ${statusIcon}"></i>
+                                    ${log.status}
+                                </span>
+                            </td>
+                            <td class="py-3 px-3 font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                                ${log.ip}
+                            </td>
+                            <td class="py-3 px-3 font-mono text-[11px] text-muted-foreground text-right whitespace-nowrap">
+                                ${log.duration_ms} ms
+                            </td>
+                            <td class="py-3 px-4 text-[11px] text-muted-foreground truncate max-w-xs" title="${summaryText.replace(/"/g, '&quot;')}">
+                                ${summaryText}
+                            </td>
+                            <td class="py-3 px-4 text-center whitespace-nowrap">
+                                <button type="button" onclick="app.openApiLogDetail('${log.id}')" class="px-2.5 py-1 rounded-lg bg-muted hover:bg-cyan-500/10 hover:text-cyan-600 dark:hover:text-cyan-400 border border-border text-[11px] font-medium transition inline-flex items-center gap-1 cursor-pointer">
+                                    <i class="ph ph-eye"></i> ดูข้อมูล
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            },
+
+            openApiLogDetail(logId) {
+                const logs = this.state.apiLogs || [];
+                const log = logs.find(l => l.id === logId);
+                if (!log) return;
+
+                this.state.currentSelectedApiLog = log;
+                this.state.currentApiLogTab = 'body';
+
+                // Set Header Info
+                const methodEl = document.getElementById('modal-api-log-method');
+                const pathEl = document.getElementById('modal-api-log-path');
+                const statusEl = document.getElementById('modal-api-log-status');
+                const timeEl = document.getElementById('modal-api-log-time');
+                const ipEl = document.getElementById('modal-api-log-ip');
+                const durationEl = document.getElementById('modal-api-log-duration');
+                const idEl = document.getElementById('modal-api-log-id');
+
+                if (methodEl) methodEl.innerText = log.method;
+                if (pathEl) pathEl.innerText = log.path;
+                if (statusEl) {
+                    statusEl.innerText = `${log.status}`;
+                    statusEl.className = log.status >= 400 
+                        ? 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400' 
+                        : 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
+                }
+                if (timeEl) timeEl.innerText = this.formatDateTime(log.timestamp);
+                if (ipEl) ipEl.innerText = `Client IP: ${log.ip}`;
+                if (durationEl) durationEl.innerText = `${log.duration_ms} ms`;
+                if (idEl) idEl.innerText = `Log ID: ${log.id}`;
+
+                this.switchApiLogTab('body');
+                this.showModal('modal-api-log-detail');
+            },
+
+            switchApiLogTab(tab) {
+                this.state.currentApiLogTab = tab;
+                const log = this.state.currentSelectedApiLog;
+                if (!log) return;
+
+                const tabBtnBody = document.getElementById('tab-btn-req-body');
+                const tabBtnRes = document.getElementById('tab-btn-res-body');
+                const tabBtnHeaders = document.getElementById('tab-btn-headers');
+                const titleEl = document.getElementById('modal-api-log-tab-title');
+                const codeEl = document.getElementById('modal-api-log-code');
+
+                // Reset button styles
+                [tabBtnBody, tabBtnRes, tabBtnHeaders].forEach(b => {
+                    if (b) {
+                        b.classList.remove('border-cyan-500', 'text-cyan-600', 'dark:text-cyan-400');
+                        b.classList.add('border-transparent', 'text-muted-foreground');
+                    }
+                });
+
+                let content = '';
+                if (tab === 'body') {
+                    if (tabBtnBody) {
+                        tabBtnBody.classList.add('border-cyan-500', 'text-cyan-600', 'dark:text-cyan-400');
+                        tabBtnBody.classList.remove('border-transparent', 'text-muted-foreground');
+                    }
+                    if (titleEl) titleEl.innerText = 'Request Body (Payload ขาเข้า)';
+                    content = log.body ? JSON.stringify(log.body, null, 2) : '/* ไม่มีข้อมูล Request Body (Empty Body) */';
+                } else if (tab === 'response') {
+                    if (tabBtnRes) {
+                        tabBtnRes.classList.add('border-cyan-500', 'text-cyan-600', 'dark:text-cyan-400');
+                        tabBtnRes.classList.remove('border-transparent', 'text-muted-foreground');
+                    }
+                    if (titleEl) titleEl.innerText = `Response Body (HTTP Status: ${log.status})`;
+                    content = log.response_body ? JSON.stringify(log.response_body, null, 2) : '/* ไม่มี Response Body */';
+                } else if (tab === 'headers') {
+                    if (tabBtnHeaders) {
+                        tabBtnHeaders.classList.add('border-cyan-500', 'text-cyan-600', 'dark:text-cyan-400');
+                        tabBtnHeaders.classList.remove('border-transparent', 'text-muted-foreground');
+                    }
+                    if (titleEl) titleEl.innerText = 'Request Headers (ข้อมูลส่วนหัว HTTP)';
+                    content = log.headers ? JSON.stringify(log.headers, null, 2) : '/* ไม่มี Request Headers */';
+                }
+
+                if (codeEl) codeEl.innerText = content;
+            },
+
+            copyCurrentApiLogJson() {
+                const codeEl = document.getElementById('modal-api-log-code');
+                if (codeEl && codeEl.innerText) {
+                    navigator.clipboard.writeText(codeEl.innerText).then(() => {
+                        this.showToast('📋 คัดลอก JSON ไปยัง Clipboard เรียบร้อยแล้ว');
+                    }).catch(() => {
+                        this.showToast('⚠️ ไม่สามารถคัดลอกได้');
+                    });
+                }
+            },
+
+            async clearApiLogs() {
+                if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างประวัติ Inbound API Logs ทั้งหมด?')) return;
+                try {
+                    const token = sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                    const res = await fetch('/api/v1/system/api-logs', { method: 'DELETE', headers });
+                    const json = await res.json();
+                    if (json.success) {
+                        this.state.apiLogs = [];
+                        this.state.apiLogSummary = { total: 0, success_2xx: 0, client_error_4xx: 0, server_error_5xx: 0 };
+                        this.renderApiLogs();
+                        const sidebarBadge = document.getElementById('sidebar-api-logs-count');
+                        if (sidebarBadge) sidebarBadge.innerText = '0';
+                        this.showToast('ล้างประวัติ Inbound API Logs เรียบร้อยแล้ว');
+                    } else {
+                        this.showToast(json.error?.message || 'ไม่สามารถล้างประวัติ Log ได้');
+                    }
+                } catch (err) {
+                    this.showToast('⚠️ เกิดข้อผิดพลาดในการล้าง Log');
+                }
+            },
+
+            formatDateTime(isoStr) {
+                if (!isoStr) return '-';
+                try {
+                    const d = new Date(isoStr);
+                    if (isNaN(d.getTime())) return isoStr;
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const year = d.getFullYear();
+                    const hours = String(d.getHours()).padStart(2, '0');
+                    const mins = String(d.getMinutes()).padStart(2, '0');
+                    const secs = String(d.getSeconds()).padStart(2, '0');
+                    return `${day}/${month}/${year} ${hours}:${mins}:${secs} น.`;
+                } catch (e) {
+                    return isoStr;
+                }
             }
         };
 
