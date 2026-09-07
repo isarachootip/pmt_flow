@@ -2900,19 +2900,23 @@ const app = {
                 const now = new Date();
                 const todayStr = now.toLocaleDateString('en-CA');
 
-                // Step 5 eligible: Jobs with BOQ or Tickets
-                const step5Eligible = allJobs.filter(j => j.boq_items && j.boq_items.length > 0);
-                const totalStep5 = step5Eligible.length || allJobs.length;
+                // Step 5 eligible: Renovate/Non-quick jobs with BOQ or Step 5 timestamps (Quick jobs skip Step 5 directly to QC Online)
+                const step5Eligible = allJobs.filter(j => !this.isQuickJob(j) && ((j.boq_items && j.boq_items.length > 0) || (j.step_timestamps && j.step_timestamps.step5_project_at)));
+                const totalStep5 = step5Eligible.length;
 
-                // Remaining in Step 5: Jobs not yet converted into tasks
+                // Remaining in Step 5: Renovate jobs not yet converted into tasks
                 const remainingStep5Jobs = step5Eligible.filter(j => !convertedJobIds.has(j.id));
                 const remainingStep5 = remainingStep5Jobs.length;
 
                 // Completed in Step 5 (Has Gantt Tasks)
                 const completedTasks = (DB.tasks || []).length;
-                const completedJobsInProject = convertedJobIds.size;
+                const completedJobsInProject = Array.from(convertedJobIds).filter(jid => {
+                    const j = allJobs.find(x => x.id === jid);
+                    return j ? !this.isQuickJob(j) : true;
+                }).length;
 
                 let todayProject = allJobs.filter(j => {
+                    if (this.isQuickJob(j)) return false;
                     const ts = j.step_timestamps && j.step_timestamps.step5_project_at;
                     return ts && ts.slice(0, 10) === todayStr;
                 }).length;
@@ -3832,12 +3836,23 @@ const app = {
             },
 
             goToQC(id) {
+                const job = (DB.jobs || []).find(j => j.id === id);
+                if (job && this.isQuickJob(job)) {
+                    this.state.qcSegmentFilter = 'quick';
+                }
                 this.state.qcTab = 'inspection';
                 this.navigate('qc');
                 this.switchQCTab('inspection');
+                if (job && this.isQuickJob(job)) {
+                    this.filterQCBySegment('quick');
+                }
                 setTimeout(() => {
                     this.selectQCJob(id);
-                }, 50);
+                }, 80);
+            },
+
+            selectQCJob(id) {
+                this.openQCDetailModal(id);
             },
 
             completeJob() {
@@ -4130,12 +4145,49 @@ const app = {
                             </div>
                         `;
                     } else {
-                        actionButtons = `
-                            ${checkinBadge}
-                            <span class="text-xs text-emerald-500 font-semibold flex items-center gap-1.5 bg-emerald-500/10 px-3 py-2 rounded-lg border border-emerald-500/20">
-                                <i class="ph ph-check-circle text-sm"></i> รับเข้าระบบ PMT แล้ว
-                            </span>
-                        `;
+                        const hasTkt = (DB.tickets || []).some(t => (t.job_id || t.jobId) === job.id) || job.ticket_id;
+                        if (isQuick) {
+                            if (job.status === 'QC_PENDING') {
+                                actionButtons = `
+                                    ${checkinBadge}
+                                    <button onclick="event.stopPropagation(); app.goToQC('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ไปตรวจคุณภาพ QC Online (ภาพถ่ายหน้างาน)">
+                                        <i class="ph ph-globe text-xs"></i>
+                                        <span>รอตรวจ QC Online ➔</span>
+                                    </button>
+                                `;
+                            } else if (job.status === 'QC_PASSED') {
+                                actionButtons = `
+                                    ${checkinBadge}
+                                    <button onclick="event.stopPropagation(); app.navigate('csat')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ผ่าน QC แล้ว ไปประเมิน CSAT">
+                                        <i class="ph ph-check-circle text-xs"></i>
+                                        <span>ผ่าน QC แล้ว (ไป CSAT)</span>
+                                    </button>
+                                `;
+                            } else if (!hasTkt) {
+                                actionButtons = `
+                                    ${checkinBadge}
+                                    <button onclick="event.stopPropagation(); app.openCreateTicketModal('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="บันทึกจ่ายเงินและออก Ticket เพื่อส่งตรงไป QC Online">
+                                        <i class="ph ph-receipt text-xs"></i>
+                                        <span>บันทึกจ่ายเงิน (ไป QC Online)</span>
+                                    </button>
+                                `;
+                            } else {
+                                actionButtons = `
+                                    ${checkinBadge}
+                                    <button onclick="event.stopPropagation(); app.goToQC('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ไปตรวจคุณภาพ QC Online">
+                                        <i class="ph ph-globe text-xs"></i>
+                                        <span>ไปตรวจ QC Online ➔</span>
+                                    </button>
+                                `;
+                            }
+                        } else {
+                            actionButtons = `
+                                ${checkinBadge}
+                                <span class="text-xs text-emerald-500 font-semibold flex items-center gap-1.5 bg-emerald-500/10 px-3 py-2 rounded-lg border border-emerald-500/20">
+                                    <i class="ph ph-check-circle text-sm"></i> รับเข้าระบบ PMT แล้ว
+                                </span>
+                            `;
+                        }
                     }
 
                     const step1Class = "w-3.5 h-3.5 bg-emerald-500 text-white flex items-center justify-center rounded-full ring-4 ring-card text-[9px] font-bold";
@@ -7976,15 +8028,16 @@ const app = {
                 this.updateStepBadges();
                 this.updateQCBadges();
                 this.hideModal('modal-create-ticket');
-                if (this.state.currentView === 'tickets') {
-                    this.switchTicketTab('library');
-                    this.renderTickets();
-                } else {
-                    this.renderTickets();
-                }
                 if (isQuick) {
-                    this.showToast(`✅ บันทึก Ticket ${ticketNo} & แนบสลิปสำเร็จ! งานประเภท Quick ถูกส่งไปตั้งรอที่คิว QC Online ทันที`);
+                    this.showToast(`⚡ บันทึกจ่ายเงิน Ticket ${ticketNo} สำเร็จ! ข้ามขั้นตอน Step 5 ย้าย Order [${jobId}] เข้าสู่ State QC เพื่อรอตรวจ QC แบบ Online ทันที`);
+                    this.goToQC(jobId);
                 } else {
+                    if (this.state.currentView === 'tickets') {
+                        this.switchTicketTab('library');
+                        this.renderTickets();
+                    } else {
+                        this.renderTickets();
+                    }
                     this.showToast(`✅ บันทึก Ticket ${ticketNo}, ใบเสร็จ และย้ายเข้าสู่ State 5 (บันทึก BOQ เข้า Project) สำเร็จ`);
                 }
             },
@@ -9511,6 +9564,7 @@ const app = {
                     }
                     if (convStatusFilter === 'STEP5_QUEUE') {
                         tableJobs = tableJobs.filter(j => 
+                            !this.isQuickJob(j) &&
                             j.pmt_accepted &&
                             ((j.step_timestamps && j.step_timestamps.step5_project_at) ||
                              (DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id) ||
@@ -9518,10 +9572,10 @@ const app = {
                             !convertedJobIds.has(j.id)
                         );
                         if (tableJobs.length === 0) {
-                            tableJobs = allJobs.filter(j => !convertedJobIds.has(j.id));
+                            tableJobs = allJobs.filter(j => !this.isQuickJob(j) && !convertedJobIds.has(j.id));
                         }
                     } else if (convStatusFilter === 'NOT_CONVERTED') {
-                        tableJobs = tableJobs.filter(j => !convertedJobIds.has(j.id));
+                        tableJobs = tableJobs.filter(j => !this.isQuickJob(j) && !convertedJobIds.has(j.id));
                     } else if (convStatusFilter === 'CONVERTED') {
                         tableJobs = tableJobs.filter(j => convertedJobIds.has(j.id));
                     }
@@ -9615,7 +9669,7 @@ const app = {
                 };
 
                 // Badge counters (unfiltered total counts)
-                const totalPendingCount = allJobs.filter(j => !convertedJobIds.has(j.id)).length;
+                const totalPendingCount = allJobs.filter(j => !this.isQuickJob(j) && !convertedJobIds.has(j.id)).length;
                 const totalConvertedCount = allJobs.filter(j => convertedJobIds.has(j.id)).length;
                 const badgePending = document.getElementById('tab-conversion-pending-badge');
                 const badgeLibrary = document.getElementById('tab-conversion-library-badge');
@@ -9628,7 +9682,7 @@ const app = {
                 const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
                 const sFilter = serviceFilterEl ? serviceFilterEl.value : 'all';
 
-                let pendingJobs = allJobs.filter(j => !convertedJobIds.has(j.id));
+                let pendingJobs = allJobs.filter(j => !this.isQuickJob(j) && !convertedJobIds.has(j.id));
                 let convertedJobs = allJobs.filter(j => convertedJobIds.has(j.id));
 
                 if (q) {
@@ -13676,6 +13730,11 @@ const app = {
                     }
                 }
 
+                // If job is Quick and has no photos, populate from Visit Plan
+                if (this.isQuickJob(job) && (!job.photos || job.photos.length === 0)) {
+                    job.photos = this.getSampleVisitPlanPhotos(job);
+                }
+
                 // If job has photos from earlier stages, distribute them into subtasks
                 if (Array.isArray(job.photos) && job.photos.length > 0) {
                     job.photos.forEach((p, pIdx) => {
@@ -13726,12 +13785,18 @@ const app = {
                 // Render Renovate QC Booking & Dispatch Section
                 this.renderQCBookingSection(job);
 
+                // Quick Service Online Banner Toggle
+                const quickBanner = document.getElementById('qc-quick-online-banner');
+                if (quickBanner) {
+                    quickBanner.style.display = isQuick ? 'flex' : 'none';
+                }
+
                 // Header elements
                 const elId = document.getElementById('qc-detail-job-id');
                 if (elId) elId.innerText = job.id;
                 const elType = document.getElementById('qc-detail-type-badge');
                 if (elType) {
-                    elType.innerText = isQuick ? 'QUICK SERVICE' : 'RENOVATE PROJECT';
+                    elType.innerText = isQuick ? 'QUICK SERVICE (QC ONLINE)' : 'RENOVATE PROJECT';
                     elType.className = isQuick 
                         ? 'px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/10 text-amber-600 border border-amber-500/20'
                         : 'px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-indigo-500/10 text-indigo-600 border border-indigo-500/20';
@@ -13755,7 +13820,7 @@ const app = {
                         elStatus.innerText = 'Confirm คิวช่างแล้ว';
                         elStatus.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30';
                     } else {
-                        elStatus.innerText = isQuick ? 'รอตรวจ Online' : 'รอตรวจ On-site';
+                        elStatus.innerText = isQuick ? 'รอตรวจ Online (ภาพถ่าย Visit Plan)' : 'รอตรวจ On-site';
                         elStatus.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30';
                     }
                 }
@@ -13949,8 +14014,8 @@ const app = {
                 if (!card) return;
 
                 const isQuick = this.isQuickJob(job);
-                // Renovate projects or jobs with qc_booking show the booking card
-                if (isQuick && !job.qc_booking) {
+                // Quick jobs are QC Online only; Renovate projects show the on-site booking card
+                if (isQuick) {
                     card.style.display = 'none';
                     if (banner) banner.style.display = 'none';
                     return;
