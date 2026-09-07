@@ -904,6 +904,10 @@
                                 <option value="NO_DESIGN">รอแนบแบบแปลน (Pending Design)</option>
                                 <option value="HAS_DESIGN">แนบแบบแปลนแล้ว (Designed)</option>
                             </select>
+                            <button onclick="app.showStep2TrainingGuide()" class="btn-artifact-secondary text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 border-indigo-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 2 (Blueprints & Design)">
+                                <i class="ph ph-graduation-cap text-indigo-500 text-sm"></i>
+                                <span>คู่มือ Training Step 2</span>
+                            </button>
                             <button onclick="app.openUploadBlueprintModal()" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer">
                                 <i class="ph ph-upload-simple text-sm"></i>
                                 <span>+ บันทึก / อัปโหลดแบบแปลนใหม่</span>
@@ -1261,6 +1265,10 @@
                                 <option value="HAS_TICKET">ออก Ticket แล้ว (Has Ticket)</option>
                                 <option value="VERIFIED">ตรวจสอบแล้ว (Verified)</option>
                             </select>
+                            <button onclick="app.showStep4TrainingGuide()" class="btn-artifact-secondary text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 4 (Tickets & Receipts)">
+                                <i class="ph ph-graduation-cap text-emerald-500 text-sm"></i>
+                                <span>คู่มือ Training Step 4</span>
+                            </button>
                             <button onclick="app.openCreateTicketModal()" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
                                 <i class="ph ph-plus-circle text-sm"></i>
                                 <span>+ บันทึก Ticket & ใบเสร็จใหม่</span>
@@ -1629,6 +1637,10 @@
                                 <option value="NO_BOQ">รอจัดทำ BOQ (Pending BOQ)</option>
                                 <option value="HAS_BOQ">มีรายการ BOQ แล้ว (BOQ Ready)</option>
                             </select>
+                            <button onclick="app.showStep3TrainingGuide()" class="btn-artifact-secondary text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 3 (BOQ & Pricing)">
+                                <i class="ph ph-graduation-cap text-purple-500 text-sm"></i>
+                                <span>คู่มือ Training Step 3</span>
+                            </button>
                             <button onclick="app.openImportBOQModal(app.state.boqSelectedJobId)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs bg-purple-600 hover:bg-purple-700 text-white cursor-pointer">
                                 <i class="ph ph-file-arrow-up text-sm"></i>
                                 <span>📥 นำเข้า Excel / vFIX</span>
@@ -1989,6 +2001,10 @@
                                 <option value="NOT_CONVERTED">รอแปลงเข้า Project (Not Converted)</option>
                                 <option value="CONVERTED">แปลงเป็น Task แล้ว (Converted)</option>
                             </select>
+                            <button onclick="app.showStep5TrainingGuide()" class="btn-artifact-secondary text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 5 (BOQ to Project & Gantt)">
+                                <i class="ph ph-graduation-cap text-amber-500 text-sm"></i>
+                                <span>คู่มือ Training Step 5</span>
+                            </button>
                             <button onclick="app.openConvertBOQToTasksModal(app.state.selectedConversionJobId || app.state.selectedGanttJobId)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white cursor-pointer">
                                 <i class="ph ph-lightning text-sm"></i>
                                 <span>⚡ แปลง BOQ เป็น Task ใน Gantt</span>
@@ -3067,6 +3083,10 @@
                             <p class="text-xs text-muted-foreground mt-1">Contact Center โทรสอบถามประเมินผลความพึงพอใจ 0-5 ดาว หลังงานผ่าน QC และส่งต่อเข้าสู่บริการหลังการขาย</p>
                         </div>
                         <div class="flex items-center gap-2.5 flex-wrap">
+                            <button onclick="app.showStep7TrainingGuide()" class="btn-artifact-secondary text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border-blue-500/30 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 7 (CSAT & Services)">
+                                <i class="ph ph-graduation-cap text-blue-500 text-sm"></i>
+                                <span>คู่มือ Training Step 7</span>
+                            </button>
                             <button onclick="app.seedCSATDemoJobs()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 shadow-xs cursor-pointer" title="จำลองข้อมูลงานผ่าน QC เข้าสู่ CSAT เพื่อทดสอบระบบ">
                                 <i class="ph ph-sparkle-fill text-amber-500"></i>
                                 <span>⚡ จำลองงานเข้า CSAT (Demo)</span>

@@ -1760,14 +1760,68 @@ const app = {
             },
 
             showStep1TrainingGuide() {
-                this.state.currentFaqTab = 'training';
-                this.navigate('faq');
-                this.switchFaqTab('training');
+                if (typeof window.openTrainingDoc === 'function') {
+                    window.openTrainingDoc('คู่มือการใช้งาน_Step1_คิวงานรับคำสั่งซื้อใหม่.md', 'โมดูล 1: Step 1 — คิวงานรับคำสั่งซื้อใหม่');
+                } else {
+                    this.state.currentFaqTab = 'training';
+                    this.navigate('faq');
+                    this.switchFaqTab('training');
+                }
+            },
+
+            showStep2TrainingGuide() {
+                if (typeof window.openTrainingDoc === 'function') {
+                    window.openTrainingDoc('คู่มือการใช้งาน_Step2_บันทึกแบบแปลนติดตั้ง.md', 'โมดูล 2: Step 2 — บันทึกแบบแปลนติดตั้ง');
+                } else {
+                    this.state.currentFaqTab = 'training';
+                    this.navigate('faq');
+                    this.switchFaqTab('training');
+                }
+            },
+
+            showStep3TrainingGuide() {
+                if (typeof window.openTrainingDoc === 'function') {
+                    window.openTrainingDoc('คู่มือการใช้งาน_Step3_นำBOQเข้าระบบ.md', 'โมดูล 3: Step 3 — นำ BOQ เข้าระบบ & ราคา');
+                } else {
+                    this.state.currentFaqTab = 'training';
+                    this.navigate('faq');
+                    this.switchFaqTab('training');
+                }
+            },
+
+            showStep4TrainingGuide() {
+                if (typeof window.openTrainingDoc === 'function') {
+                    window.openTrainingDoc('คู่มือการใช้งาน_Step4_บันทึกTicketและใบเสร็จ.md', 'โมดูล 4: Step 4 — บันทึก Ticket & ใบเสร็จ');
+                } else {
+                    this.state.currentFaqTab = 'training';
+                    this.navigate('faq');
+                    this.switchFaqTab('training');
+                }
+            },
+
+            showStep5TrainingGuide() {
+                if (typeof window.openTrainingDoc === 'function') {
+                    window.openTrainingDoc('คู่มือการใช้งาน_Step5_บันทึกBOQเข้าProjectและGantt.md', 'โมดูล 5: Step 5 — บันทึก BOQ เข้า Project & Gantt');
+                } else {
+                    this.state.currentFaqTab = 'training';
+                    this.navigate('faq');
+                    this.switchFaqTab('training');
+                }
             },
 
             showStep6TrainingGuide() {
                 if (typeof window.openTrainingDoc === 'function') {
                     window.openTrainingDoc('คู่มือการใช้งาน_Step6_ตรวจรับรองคุณภาพQC.md', 'โมดูล 6: คู่มือการควบคุมคุณภาพและการจองช่าง QC (Step 6)');
+                } else {
+                    this.state.currentFaqTab = 'training';
+                    this.navigate('faq');
+                    this.switchFaqTab('training');
+                }
+            },
+
+            showStep7TrainingGuide() {
+                if (typeof window.openTrainingDoc === 'function') {
+                    window.openTrainingDoc('คู่มือการใช้งาน_Step7_CSATและบริการหลังการขาย.md', 'โมดูล 7: Step 7 — CSAT และบริการหลังการขาย');
                 } else {
                     this.state.currentFaqTab = 'training';
                     this.navigate('faq');
