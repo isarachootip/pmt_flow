@@ -4764,6 +4764,116 @@
 
             <!-- Modal Body (Scrollable) -->
             <div class="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+                <!-- Informational Banner for Renovate Draft QC -->
+                <div id="qc-renovate-draft-banner" class="hidden p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 items-start gap-2.5 text-xs">
+                    <i class="ph ph-calendar-star text-amber-500 text-base mt-0.5 shrink-0"></i>
+                    <div class="space-y-0.5">
+                        <p class="font-bold text-amber-700 dark:text-amber-300">📌 โครงการนี้อยู่ในสถานะ Draft QC (สร้างอัตโนมัติเมื่อบันทึกเข้า Gantt Chart Step 5)</p>
+                        <p class="text-muted-foreground text-[11px]">คุณสามารถทำการเลือกวันนัดหมาย จัดสรรช่าง QC และกด <strong>"✓ ยืนยันการจองช่าง (Confirm Booking)"</strong> ล่วงหน้าได้ทันที เมื่อทีมช่างดำเนินงานตามผังเสร็จสิ้น จึงทำการตรวจประเมิน ให้คะแนนงานย่อย และอนุมัติส่งมอบ CSAT (Step 7)</p>
+                    </div>
+                </div>
+
+                <!-- Renovate Dedicated QC Booking & Confirmation Card -->
+                <div id="qc-renovate-booking-card" class="p-5 rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/5 via-card to-brand-500/5 space-y-4 shadow-sm">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/70 pb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center text-lg shrink-0 border border-amber-500/30">
+                                <i class="ph ph-calendar-check"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-display font-bold text-foreground text-xs sm:text-sm flex items-center gap-2">
+                                    <span>ระบบจองช่าง QC & Confirm นัดหมาย (Renovate QC Booking)</span>
+                                    <span id="qc-booking-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 border border-amber-500/30">
+                                        รอการยืนยันคิวช่าง
+                                    </span>
+                                </h4>
+                                <p class="text-[11px] text-muted-foreground">
+                                    สร้างคิวจองช่างรอในสถานะ Draft QC อัตโนมัติเมื่อโครงการบันทึกเข้า Gantt Chart เพื่อวางแผนจัดสรรช่างและ Confirm คิวล่วงหน้า
+                                </p>
+                            </div>
+                        </div>
+                        <div id="qc-booking-action-buttons" class="flex items-center gap-2 shrink-0">
+                            <!-- Injected by JS: Save Booking / Confirm Booking buttons -->
+                        </div>
+                    </div>
+
+                    <!-- Booking Input Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <!-- Inspection Date -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-[11px] font-semibold text-foreground flex items-center gap-1">
+                                    <i class="ph ph-calendar text-brand-500"></i>
+                                    <span>วันนัดตรวจ QC:</span>
+                                </label>
+                                <span id="qc-booking-date-preview" class="text-[10px] font-mono font-bold text-brand-600 dark:text-brand-400">DD/MM/YYYY</span>
+                            </div>
+                            <input type="date" id="qc-booking-date-input" onchange="app.handleQCBookingDateChange(this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none transition">
+                            <div class="flex items-center gap-1 mt-1.5 flex-wrap">
+                                <span class="text-[9px] text-muted-foreground">ล่วงหน้า:</span>
+                                <button type="button" onclick="app.setQCBookingDatePreset('end')" class="px-1.5 py-0.5 rounded text-[9px] font-medium bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer">วันจบงาน Gantt</button>
+                                <button type="button" onclick="app.setQCBookingDatePreset('plus3')" class="px-1.5 py-0.5 rounded text-[9px] font-medium bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer">+3 วัน</button>
+                                <button type="button" onclick="app.setQCBookingDatePreset('plus5')" class="px-1.5 py-0.5 rounded text-[9px] font-medium bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer">+5 วัน</button>
+                            </div>
+                        </div>
+
+                        <!-- Inspection Time (24-Hour STRICT, NO AM/PM) -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-[11px] font-semibold text-foreground flex items-center gap-1">
+                                    <i class="ph ph-clock text-brand-500"></i>
+                                    <span>เวลานัดตรวจ (ระบบ 24 ชม.):</span>
+                                </label>
+                                <span class="text-[9px] font-mono text-muted-foreground">00:00 - 23:59 น.</span>
+                            </div>
+                            <select id="qc-booking-time-select" class="w-full bg-card border border-border focus:border-brand-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none transition">
+                                <option value="08:30">08:30 น. (ช่วงเช้าตรู่)</option>
+                                <option value="09:00" selected>09:00 น. (รอบเช้าหลัก)</option>
+                                <option value="10:00">10:00 น.</option>
+                                <option value="11:00">11:00 น.</option>
+                                <option value="13:00">13:00 น. (รอบบ่าย)</option>
+                                <option value="13:30">13:30 น. (รอบบ่ายหลัก)</option>
+                                <option value="14:00">14:00 น.</option>
+                                <option value="15:00">15:00 น.</option>
+                                <option value="16:00">16:00 น.</option>
+                            </select>
+                            <div class="flex items-center gap-1 mt-1.5">
+                                <button type="button" onclick="document.getElementById('qc-booking-time-select').value='09:00'" class="px-2 py-0.5 rounded text-[9px] font-medium bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer">☀️ 09:00 น.</button>
+                                <button type="button" onclick="document.getElementById('qc-booking-time-select').value='13:30'" class="px-2 py-0.5 rounded text-[9px] font-medium bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer">🌤️ 13:30 น.</button>
+                            </div>
+                        </div>
+
+                        <!-- Assigned QC Tech / Inspector -->
+                        <div>
+                            <label class="block text-[11px] font-semibold text-foreground mb-1 flex items-center gap-1">
+                                <i class="ph ph-user-check text-brand-500"></i>
+                                <span>ช่าง / ทีมตรวจ QC ที่นัดหมาย:</span>
+                            </label>
+                            <select id="qc-booking-tech-select" class="w-full bg-card border border-border focus:border-brand-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none transition">
+                                <option value="วิชัย ตรวจดี (ช่าง QC Lead)">วิชัย ตรวจดี (ช่าง QC Lead - สถาปัตย์ & โครงสร้าง)</option>
+                                <option value="อนุสรณ์ วงศ์ไทย (QC Specialist)">อนุสรณ์ วงศ์ไทย (QC Specialist - ระบบไฟ/สุขาภิบาล)</option>
+                                <option value="กฤษณะ สถิตย์ (QC Inspector)">กฤษณะ สถิตย์ (QC Inspector - ตกแต่งภายใน & สี)</option>
+                                <option value="สมเกียรติ มั่นคง (QC Renovate Lead)">สมเกียรติ มั่นคง (QC Renovate Lead)</option>
+                                <option value="สมศักดิ์ แซ่ตั้ง (QC Supervisor)">สมศักดิ์ แซ่ตั้ง (QC Supervisor)</option>
+                            </select>
+                            <div class="text-[10px] text-muted-foreground mt-1.5 flex items-center gap-1">
+                                <i class="ph ph-shield-check text-emerald-500"></i>
+                                <span>มีใบรับรองมาตรฐานช่างตรวจ QC หน้างาน</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Booking Remarks & Confirmed Info -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-border/50">
+                        <div class="flex-1">
+                            <input type="text" id="qc-booking-remarks-input" placeholder="ระบุข้อตกลงการนัดหมาย เช่น เบอร์ติดต่อหน้างาน, จุดนัดพบ, รหัสผ่านเข้าโครงการ..." class="w-full bg-card border border-border focus:border-brand-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none transition">
+                        </div>
+                        <div id="qc-booking-confirmed-meta" class="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5 shrink-0">
+                            <!-- Confirmed by & at -->
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Evaluation Progress Banner & Gating Indicator -->
                 <div id="qc-detail-progress-card" class="p-4 rounded-2xl bg-muted/40 border border-border space-y-3">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
