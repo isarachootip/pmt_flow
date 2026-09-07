@@ -145,6 +145,31 @@
         .status-draft::before { background: #71717a; }
         .dark .status-draft { color: #a1a1aa; }
 
+        .status-new { background: rgba(244, 63, 94, 0.12); color: #e11d48; border-color: rgba(244, 63, 94, 0.32); font-weight: 700; }
+        .status-new::before { background: #f43f5e; box-shadow: 0 0 6px #f43f5e; }
+        .dark .status-new { color: #fb7185; }
+
+        .badge-new-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.12rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #f43f5e, #f97316);
+            color: #ffffff !important;
+            box-shadow: 0 2px 6px rgba(244, 63, 94, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            animation: pulse-new-badge 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-new-badge {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.93; transform: scale(1.04); }
+        }
+
         .status-in-progress { background: rgba(245, 158, 11, 0.12); color: #d97706; border-color: rgba(245, 158, 11, 0.25); }
         .status-in-progress::before { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
         .dark .status-in-progress { color: #fbbf24; }

@@ -686,8 +686,10 @@ const app = {
                     return;
                 }
                 (DB.jobs || []).forEach(job => {
-                    job.status = 'DRAFT';
+                    job.status = 'NEW';
                     job.progress = 0;
+                    job.pmt_accepted = false;
+                    job.pmt_accepted_at = null;
                     job.step_timestamps = { step1_order_at: job.step_timestamps?.step1_order_at || new Date().toISOString() };
                     job.boq_items = [];
                     job.boq_discount = 0;
@@ -698,6 +700,7 @@ const app = {
                     delete job.blueprint_zone;
                     delete job.blueprint_count;
                 });
+                DB.jobs = this.sortJobsDescending(DB.jobs || []);
                 DB.tasks = [];
                 DB.blueprints = [];
                 DB.tickets = [];
@@ -1049,16 +1052,19 @@ const app = {
                     console.warn('Server reset failed, continuing with local mock:', e);
                 }
 
-                // 3. Populate local DB with 10 pure Step 1 jobs (0% Draft) starting completely from scratch
+                // 3. Populate local DB with 10 pure Step 1 jobs (0% NEW) starting completely from scratch
                 const mockOrders = this.getINTMockOrders();
-                const currentIso = new Date().toISOString();
-                const currentDate = currentIso.slice(0, 10);
-                mockOrders.forEach(o => {
+                const baseTime = Date.now();
+                const currentDate = new Date().toISOString().slice(0, 10);
+                mockOrders.forEach((o, idx) => {
+                    // Chronological arrival timestamp: JOB010 is newest (now), JOB001 arrived earliest
+                    const jobIso = new Date(baseTime - (mockOrders.length - 1 - idx) * 12 * 60000).toISOString();
                     o.step_timestamps = {
-                        step1_order_at: currentIso
+                        step1_order_at: jobIso
                     };
+                    o.created_at = jobIso;
                     o.date = currentDate;
-                    o.status = 'DRAFT';
+                    o.status = 'NEW';
                     o.progress = 0;
                     o.pmt_accepted = false;
                     o.pmt_accepted_at = null;
@@ -1067,7 +1073,7 @@ const app = {
                     o.boq_grand_total = 0;
                     o.photos = [];
                 });
-                DB.jobs = JSON.parse(JSON.stringify(mockOrders));
+                DB.jobs = this.sortJobsDescending(JSON.parse(JSON.stringify(mockOrders)));
                 DB.tasks = [];
                 DB.blueprints = [];
                 DB.tickets = [];
@@ -1283,7 +1289,7 @@ const app = {
                     try {
                         const parsed = JSON.parse(savedJobs);
                         if (Array.isArray(parsed)) {
-                            DB.jobs = parsed;
+                            DB.jobs = this.sortJobsDescending(parsed);
                         } else {
                             DB.jobs = [];
                         }
@@ -1572,14 +1578,14 @@ const app = {
                                     return { 
                                         ...rj, 
                                         ...localMatch, 
-                                        status: localMatch.status || rj.status || 'DRAFT',
-                                        progress: (localMatch.status === 'DRAFT' || rj.status === 'DRAFT') && !localMatch.step_timestamps?.step2_design_at ? 0 : (localMatch.progress ?? rj.progress ?? 0),
+                                        status: localMatch.status || rj.status || 'NEW',
+                                        progress: (localMatch.status === 'DRAFT' || localMatch.status === 'NEW' || rj.status === 'DRAFT' || rj.status === 'NEW') && !localMatch.step_timestamps?.step2_design_at ? 0 : (localMatch.progress ?? rj.progress ?? 0),
                                         special_instructions: localMatch.special_instructions !== undefined ? localMatch.special_instructions : (rj.special_instructions || ''),
                                         additional_notes: localMatch.additional_notes !== undefined ? localMatch.additional_notes : (rj.additional_notes || ''),
                                         photos: combinedPhotos
                                     };
                                 });
-                                DB.jobs = [...localOnly, ...mergedRemote];
+                                DB.jobs = this.sortJobsDescending([...localOnly, ...mergedRemote]);
                                 this.persistJobs();
                                 if (this.state.currentView === 'jobs') this.renderJobs();
                                 if (this.state.currentView === 'dashboard') this.renderDashboard();
@@ -1855,7 +1861,7 @@ const app = {
                         lng: parseFloat(lng),
                         phone: phone,
                         service: service,
-                        status: 'DRAFT',
+                        status: 'NEW',
                         date: date,
                         progress: 0,
                         address: address,
@@ -1865,14 +1871,16 @@ const app = {
                         photos: [],
                         boq_items: [],
                         boq_discount: 0,
+                        created_at: nowIso,
                         step_timestamps: {
                             step1_order_at: nowIso
                         },
                         step_timestamps_history: [
-                            { stepKey: 'step1_order_at', timestamp: nowIso, note: 'บันทึกเปิดงานใหม่ / รับ Order' }
+                            { stepKey: 'step1_order_at', timestamp: nowIso, note: 'บันทึกเปิดงานใหม่ / รับ Order (NEW!)' }
                         ]
                     });
-                    this.showToast(`สร้างงาน ${newId} (ลูกค้า: ${fullName}) สำเร็จแล้ว`);
+                    DB.jobs = this.sortJobsDescending(DB.jobs);
+                    this.showToast(`สร้างงาน ${newId} (ลูกค้า: ${fullName}) สำเร็จแล้ว [สถานะ: NEW!]`);
                     if(this.state.currentView === 'jobs') this.renderJobs();
                     if(this.state.currentView === 'dashboard') this.renderDashboard();
                 }
@@ -1887,9 +1895,28 @@ const app = {
                 if (noteEl) noteEl.value = '';
             },
 
-            getStatusHtml(status) {
-                const s = status.toLowerCase().replace('_', '-');
+            sortJobsDescending(jobList) {
+                if (!Array.isArray(jobList)) return [];
+                return [...jobList].sort((a, b) => {
+                    const timeA = new Date((a.step_timestamps && (a.step_timestamps.step1_order_at || a.step_timestamps.created_at)) || a.created_at || a.date || 0).getTime();
+                    const timeB = new Date((b.step_timestamps && (b.step_timestamps.step1_order_at || b.step_timestamps.created_at)) || b.created_at || b.date || 0).getTime();
+                    if (timeB !== timeA) return timeB - timeA;
+                    return String(b.id || b.job_no || '').localeCompare(String(a.id || a.job_no || ''));
+                });
+            },
+
+            isTop3LatestJob(jobOrId) {
+                const id = typeof jobOrId === 'object' ? (jobOrId.id || jobOrId.job_no) : jobOrId;
+                const sorted = this.sortJobsDescending(DB.jobs || []);
+                const top3 = sorted.slice(0, 3);
+                return top3.some(j => (j.id === id || j.job_no === id));
+            },
+
+            getStatusHtml(status, isNew = false) {
+                const raw = (status || 'NEW').toUpperCase();
+                const s = raw.toLowerCase().replace('_', '-');
                 const labelMap = {
+                    'NEW': 'NEW!',
                     'DRAFT': 'Draft',
                     'IN_PROGRESS': 'In Progress',
                     'QC_PENDING': 'QC Pending',
@@ -1897,20 +1924,36 @@ const app = {
                     'AFTER_SALE': 'After Sale',
                     'CLOSED': 'Closed'
                 };
-                return `<span class="status-pill status-${s}">${labelMap[status] || status}</span>`;
+                if (raw === 'NEW' || isNew) {
+                    return `<span class="status-pill status-new font-bold inline-flex items-center gap-1"><i class="ph ph-sparkle-fill text-amber-400 text-xs"></i> NEW!</span>`;
+                }
+                return `<span class="status-pill status-${s}">${labelMap[raw] || raw}</span>`;
             },
 
             renderDashboard() {
                 document.getElementById('kpi-progress').innerText = DB.jobs.filter(j => j.status==='IN_PROGRESS').length;
                 document.getElementById('kpi-qc').innerText = DB.jobs.filter(j => j.status==='QC_PASSED' || j.status==='AFTER_SALE' || j.status==='CLOSED').length;
                 
-                // Recent Jobs Table
-                const recentRows = DB.jobs.slice(0, 4).map(j => `
-                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer" onclick="app.navigate('job-detail', '${j.id}')">
-                        <td class="py-3 font-mono font-semibold text-brand-500">${j.id}</td>
-                        <td class="py-3 font-medium text-foreground">${j.customer}</td>
+                // Recent Jobs Table (Sorted descending so newest jobs are at the top)
+                const sortedJobs = this.sortJobsDescending(DB.jobs || []);
+                const recentRows = sortedJobs.slice(0, 5).map((j, idx) => {
+                    const isTop3 = idx < 3;
+                    return `
+                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer ${isTop3 ? 'bg-rose-500/[0.02]' : ''}" onclick="app.navigate('job-detail', '${j.id}')">
+                        <td class="py-3 font-mono font-semibold text-brand-500">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span>${j.id}</span>
+                                ${isTop3 ? `<span class="badge-new-item" title="3 รายการล่าสุดที่รับเข้า (NEW!)"><i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!</span>` : ''}
+                            </div>
+                        </td>
+                        <td class="py-3 font-medium text-foreground">
+                            <div class="flex items-center gap-1.5">
+                                <span>${j.customer}</span>
+                                ${isTop3 ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="รายการใหม่ล่าสุด"></span>` : ''}
+                            </div>
+                        </td>
                         <td class="py-3 text-muted-foreground">${j.service}</td>
-                        <td class="py-3">${this.getStatusHtml(j.status)}</td>
+                        <td class="py-3">${this.getStatusHtml(isTop3 && (j.status === 'DRAFT' || j.status === 'NEW' || !j.status) ? 'NEW' : j.status, isTop3)}</td>
                         <td class="py-3 text-right">
                             <div class="inline-flex items-center gap-2">
                                 <span class="font-mono text-muted-foreground">${j.progress}%</span>
@@ -1920,7 +1963,8 @@ const app = {
                             </div>
                         </td>
                     </tr>
-                `).join('');
+                    `;
+                }).join('');
                 document.getElementById('dashboard-recent-jobs').innerHTML = recentRows || '<tr><td colspan="5" class="py-6 text-center text-xs text-muted-foreground">ยังไม่มีรายการงานล่าสุดในระบบ</td></tr>';
 
                 // Alerts
@@ -2078,6 +2122,9 @@ const app = {
                     );
                 }
 
+                // CRITICAL RULE: Sort jobs descending so the 3 latest incoming jobs are always on top!
+                list = this.sortJobsDescending(list);
+
                 // Contextual banner display
                 const bannerEl = document.getElementById('step1-queue-banner');
                 if (bannerEl) {
@@ -2086,7 +2133,8 @@ const app = {
 
                 const isStep1Queue = (!jobList);
 
-                const html = list.map(j => {
+                const html = list.map((j, idx) => {
+                    const isTop3New = idx < 3;
                     const isJobInStep1 = !j.pmt_accepted &&
                         (j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
                         !designedJobIds.has(j.id) &&
@@ -2095,10 +2143,22 @@ const app = {
                     const isQuick = this.isQuickJob(j);
 
                     return `
-                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group" onclick="app.navigate('job-detail', '${j.id}')" title="คลิกเพื่อดูรายละเอียดงาน ${j.id}">
-                        <td class="px-5 py-4 font-mono font-semibold text-brand-500">${j.id}</td>
+                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTop3New ? 'bg-rose-500/[0.02] dark:bg-rose-500/[0.03]' : ''}" onclick="app.navigate('job-detail', '${j.id}')" title="คลิกเพื่อดูรายละเอียดงาน ${j.id}">
+                        <td class="px-5 py-4 font-mono font-semibold text-brand-500">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span>${j.id}</span>
+                                ${isTop3New ? `
+                                    <span class="badge-new-item" title="3 รายการล่าสุดที่รับเข้า (NEW!)">
+                                        <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                    </span>
+                                ` : ''}
+                            </div>
+                        </td>
                         <td class="px-5 py-4">
-                            <div class="text-foreground font-medium group-hover:text-brand-500 transition">${j.customer}</div>
+                            <div class="text-foreground font-medium group-hover:text-brand-500 transition flex items-center gap-1.5">
+                                <span>${j.customer}</span>
+                                ${isTop3New ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="รายการใหม่ล่าสุด"></span>` : ''}
+                            </div>
                             <div class="text-[11px] text-muted-foreground font-mono">${j.phone}</div>
                         </td>
                         <td class="px-5 py-4 text-muted-foreground">
@@ -2112,20 +2172,20 @@ const app = {
                         <td class="px-5 py-4 text-muted-foreground">
                             <span class="text-xs">${j.tech}</span>
                         </td>
-                        <td class="px-5 py-4">${this.getStatusHtml(j.status)}</td>
+                        <td class="px-5 py-4">${this.getStatusHtml(isTop3New && (j.status === 'DRAFT' || j.status === 'NEW' || !j.status) ? 'NEW' : j.status, isTop3New)}</td>
                         <td class="px-5 py-4 w-48">
                             ${isJobInStep1 ? `
                                 <div class="space-y-1">
                                     <div class="flex items-center gap-1.5 flex-wrap">
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 inline-flex items-center gap-1">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${isTop3New ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30' : 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30'} inline-flex items-center gap-1">
+                                            <span class="w-1.5 h-1.5 rounded-full ${isTop3New ? 'bg-rose-500' : 'bg-blue-500'} animate-pulse"></span>
                                             Step 1 (0%)
                                         </span>
-                                        <span class="text-[10px] font-medium text-amber-600 dark:text-amber-400">รอรับเข้า PMT</span>
+                                        <span class="text-[10px] font-medium ${isTop3New ? 'text-rose-600 dark:text-rose-400 font-semibold' : 'text-amber-600 dark:text-amber-400'}">${isTop3New ? 'เข้าใหม่ล่าสุด' : 'รอรับเข้า PMT'}</span>
                                         ${this.calculateJobSLA(j, 1) ? this.calculateJobSLA(j, 1).badgeHtml : ''}
                                     </div>
                                     <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                                        <div class="bg-blue-500 h-1.5 rounded-full" style="width: 15%"></div>
+                                        <div class="${isTop3New ? 'bg-gradient-to-r from-rose-500 to-amber-500' : 'bg-blue-500'} h-1.5 rounded-full" style="width: 15%"></div>
                                     </div>
                                 </div>
                             ` : `
@@ -3682,20 +3742,20 @@ const app = {
                 const hasBOQ = (job.boq_items && job.boq_items.length > 0) || (job.boq_grand_total > 0);
                 const hasTasks = (DB.tasks && DB.tasks.some(t => t.jobId === job.id));
                 const hasTimestamp = Boolean(job.step_timestamps && (job.step_timestamps.step1_accepted_at || job.step_timestamps.step2_design_at || job.step_timestamps.step4_ticket_at));
-                const isAccepted = Boolean(job.pmt_accepted || job.status !== 'DRAFT' || hasBlueprints || hasBOQ || hasTasks || hasTimestamp);
+                const isAccepted = Boolean(job.pmt_accepted || (job.status !== 'DRAFT' && job.status !== 'NEW' && job.status !== 'Draft' && job.status !== 'New') || hasBlueprints || hasBOQ || hasTasks || hasTimestamp);
                 const isQuick = this.isQuickJob(job);
 
-                if (isAccepted && (!job.pmt_accepted || job.status === 'DRAFT')) {
+                if (isAccepted && (!job.pmt_accepted || job.status === 'DRAFT' || job.status === 'NEW')) {
                     job.pmt_accepted = true;
-                    if (job.status === 'DRAFT') {
+                    if (job.status === 'DRAFT' || job.status === 'NEW') {
                         job.status = 'IN_PROGRESS';
                         job.progress = Math.max(job.progress || 0, isQuick ? 60 : 45);
                     }
                     this.persistJobs();
                 }
 
-                const isDraft = !isAccepted && job.status === 'DRAFT';
-                const isInProgress = job.status === 'IN_PROGRESS' || job.status === 'SURVEYED' || (isAccepted && job.status === 'DRAFT');
+                const isDraft = !isAccepted && (job.status === 'DRAFT' || job.status === 'NEW');
+                const isInProgress = job.status === 'IN_PROGRESS' || job.status === 'SURVEYED' || (isAccepted && (job.status === 'DRAFT' || job.status === 'NEW'));
                 const isQcPending = job.status === 'QC_PENDING';
                 const isQcPassed = job.status === 'QC_PASSED';
                 const isAfterSale = job.status === 'AFTER_SALE';
@@ -4206,16 +4266,16 @@ const app = {
                             <button onclick="app.navigate('jobs')" class="p-1.5 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer">
                                 <i class="ph ph-arrow-left text-sm"></i>
                             </button>
-                            <div>
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-2 flex-wrap">
                                     <h2 class="font-display text-lg font-bold text-foreground tracking-tight">${job.id}</h2>
+                                    ${this.isTop3LatestJob(job) ? `<span class="badge-new-item" title="3 รายการล่าสุดที่รับเข้า (NEW!)"><i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!</span>` : ''}
                                     <span class="text-xs text-muted-foreground">/ ${job.customer}</span>
                                 </div>
                                 <p class="text-[11px] text-muted-foreground">นัดติดตั้ง: <strong class="text-foreground font-medium">${job.date}</strong> ${job.start_time ? `<span class="text-brand-600 dark:text-brand-400 font-mono font-medium">(${job.start_time}${job.end_time ? ' - ' + job.end_time : ''} น.)</span>` : ''} • ผู้รับผิดชอบ: <strong class="text-foreground font-semibold">${job.tech}</strong></p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            ${this.getStatusHtml(job.status)}
+                            ${this.getStatusHtml(this.isTop3LatestJob(job) && (job.status === 'DRAFT' || job.status === 'NEW' || !job.status) ? 'NEW' : job.status, this.isTop3LatestJob(job))}
                         </div>
                     </div>
 

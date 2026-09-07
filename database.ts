@@ -239,7 +239,7 @@ export async function dbSaveLoginLog(log: any): Promise<void> {
 export async function dbLoadJobs(): Promise<any[]> {
   if (!isDatabaseConnected) return [];
   try {
-    const res = await pool.query('SELECT * FROM core_jobs ORDER BY id ASC');
+    const res = await pool.query('SELECT * FROM core_jobs ORDER BY created_at DESC, id DESC');
     return res.rows.map(row => ({
       ...row,
       step_timestamps: row.step_timestamps || {},

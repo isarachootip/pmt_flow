@@ -252,7 +252,7 @@ async function dbLoadJobs() {
     if (!exports.isDatabaseConnected)
         return [];
     try {
-        const res = await exports.pool.query('SELECT * FROM core_jobs ORDER BY id ASC');
+        const res = await exports.pool.query('SELECT * FROM core_jobs ORDER BY created_at DESC, id DESC');
         return res.rows.map(row => ({
             ...row,
             step_timestamps: row.step_timestamps || {},

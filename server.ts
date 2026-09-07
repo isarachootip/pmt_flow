@@ -268,6 +268,7 @@ app.get('/api-docs', renderSwaggerDocs);
 // TYPES & INTERFACES
 // =============================================================================
 export enum JobStatus {
+  NEW = 'NEW',
   DRAFT = 'DRAFT',
   SURVEYED = 'SURVEYED',
   DESIGN = 'DESIGN',
@@ -1418,22 +1419,26 @@ export function seedInitialCoreData(populateMocks: boolean = false) {
       created_at: '2026-09-04T07:30:00Z' 
     }
   ];
-  const nowIso = new Date().toISOString();
-  mockJobs.forEach(j => {
+  const baseTime = Date.now();
+  mockJobs.forEach((j, idx) => {
     (j as any).pmt_accepted = false;
     (j as any).pmt_accepted_at = null;
+    const jobIso = new Date(baseTime - (mockJobs.length - 1 - idx) * 12 * 60000).toISOString();
     (j as any).step_timestamps = {
-      step1_order_at: nowIso
+      step1_order_at: jobIso
     };
+    j.created_at = jobIso;
     (j as any).boq_items = [];
     (j as any).boq_discount = 0;
     (j as any).boq_grand_total = 0;
     j.photos = [];
     j.overall_progress = 0;
-    j.status = JobStatus.DRAFT;
+    j.status = JobStatus.NEW;
   });
+  // Sort descending so newest is first in coreJobStore
+  mockJobs.sort((a, b) => new Date((b as any).created_at).getTime() - new Date((a as any).created_at).getTime());
   coreJobStore.push(...mockJobs);
-  console.log(`[CORE SEED] Seeded ${mockJobs.length} core jobs in coreJobStore.`);
+  console.log(`[CORE SEED] Seeded ${mockJobs.length} core jobs in coreJobStore (Status NEW, sorted descending).`);
 }
 
 // =============================================================================
@@ -1504,7 +1509,7 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
       services: payload.services || ['ติดตั้งเครื่องทำน้ำอุ่น'],
       assigned_tech: payload.technician?.name || 'Team A (สมศักดิ์)',
       plan_date: payload.appointment?.date || new Date().toISOString().split('T')[0],
-      status: JobStatus.DRAFT,
+      status: JobStatus.NEW,
       overall_progress: 0,
       created_at: new Date().toISOString()
     };
@@ -2101,7 +2106,7 @@ app.get('/api/v1/jobs', requireAuth, (req: Request, res: Response) => {
         special_instructions: job.special_instructions || '',
         additional_notes: job.additional_notes || '',
         photos: job.photos || [],
-        pmt_accepted: (job as any).pmt_accepted !== undefined ? (job as any).pmt_accepted : job.status !== JobStatus.DRAFT,
+        pmt_accepted: (job as any).pmt_accepted !== undefined ? (job as any).pmt_accepted : (job.status !== JobStatus.DRAFT && job.status !== JobStatus.NEW),
         pmt_accepted_at: (job as any).pmt_accepted_at || null,
         job_type: (job as any).job_type || 'quick',
         step_timestamps: (job as any).step_timestamps || null,
@@ -2124,6 +2129,14 @@ app.get('/api/v1/jobs', requireAuth, (req: Request, res: Response) => {
         j.service.toLowerCase().includes(q)
       );
     }
+
+    // Sort descending so latest incoming jobs are always on top
+    results.sort((a, b) => {
+      const timeA = new Date((a.step_timestamps && a.step_timestamps.step1_order_at) || a.created_at || a.date || 0).getTime();
+      const timeB = new Date((b.step_timestamps && b.step_timestamps.step1_order_at) || b.created_at || b.date || 0).getTime();
+      if (timeB !== timeA) return timeB - timeA;
+      return String(b.job_no || b.id || '').localeCompare(String(a.job_no || a.id || ''));
+    });
 
     return res.json({
       success: true,
@@ -2170,7 +2183,7 @@ app.get('/api/v1/jobs/:id', requireAuth, (req: Request, res: Response) => {
       special_instructions: job.special_instructions || '',
       additional_notes: job.additional_notes || '',
       photos: job.photos || [],
-      pmt_accepted: (job as any).pmt_accepted !== undefined ? (job as any).pmt_accepted : job.status !== JobStatus.DRAFT,
+      pmt_accepted: (job as any).pmt_accepted !== undefined ? (job as any).pmt_accepted : (job.status !== JobStatus.DRAFT && job.status !== JobStatus.NEW),
       pmt_accepted_at: (job as any).pmt_accepted_at || null,
       job_type: (job as any).job_type || 'quick',
       step_timestamps: (job as any).step_timestamps || null,
@@ -2336,7 +2349,7 @@ app.post('/api/v1/jobs', requireAuth, (req: Request, res: Response) => {
       services: [service || 'งานติดตั้ง'],
       assigned_tech: tech || 'Team A (สมศักดิ์)',
       plan_date: date || new Date().toISOString().split('T')[0],
-      status: JobStatus.DRAFT,
+      status: JobStatus.NEW,
       overall_progress: 0,
       job_type: job_type || 'quick',
       created_at: new Date().toISOString()
@@ -2379,7 +2392,7 @@ app.post(['/api/v1/system/wipe-transactions', '/api/v1/jobs/wipe-all'], wipeAllT
 
 app.post('/api/v1/jobs/reset-status', (req: Request, res: Response) => {
   coreJobStore.forEach(j => {
-    j.status = JobStatus.DRAFT;
+    j.status = JobStatus.NEW;
     j.overall_progress = 0;
   });
   coreTaskStore.length = 0;
