@@ -39,11 +39,15 @@ const app = {
             },
 
             logout() {
+                try {
+                    var theme = localStorage.getItem('pmt-theme');
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    if (theme) localStorage.setItem('pmt-theme', theme);
+                } catch(e) {}
                 if (window.auth && typeof window.auth.logout === 'function') {
                     window.auth.logout();
                 } else {
-                    try { localStorage.clear(); } catch(e) {}
-                    try { sessionStorage.clear(); } catch(e) {}
                     window.location.href = '/';
                 }
             },

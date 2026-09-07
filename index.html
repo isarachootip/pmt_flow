@@ -41,21 +41,23 @@
     <script>
         window.handleLogout = function() {
             try {
+                var theme = localStorage.getItem('pmt-theme');
+                sessionStorage.clear();
+                localStorage.clear();
+                if (theme) localStorage.setItem('pmt-theme', theme);
+            } catch (e) {}
+            try {
                 if (window.auth && typeof window.auth.logout === 'function') {
-                    return window.auth.logout();
+                    window.auth.logout();
+                    return;
                 }
             } catch (e) { console.warn('auth.logout error:', e); }
             try {
                 if (window.app && typeof window.app.logout === 'function') {
-                    return window.app.logout();
+                    window.app.logout();
+                    return;
                 }
             } catch (e) { console.warn('app.logout error:', e); }
-            try {
-                sessionStorage.clear();
-                var theme = localStorage.getItem('pmt-theme');
-                localStorage.clear();
-                if (theme) localStorage.setItem('pmt-theme', theme);
-            } catch (e) {}
             window.location.href = '/';
         };
         window.logout = window.handleLogout;
@@ -6026,11 +6028,11 @@
 
     <!-- APPLICATION JAVASCRIPT LOGIC -->
     <!-- APPLICATION SCRIPTS -->
-    <script src="./public/js/db.js?v=1.3.8"></script>
-    <script src="./public/js/auth.js?v=1.3.8"></script>
-    <script src="./public/js/app.js?v=1.3.8"></script>
-    <script src="./public/js/userMgmt.js?v=1.3.8"></script>
-    <script src="./public/js/app.hooks.js?v=1.3.8"></script>
+    <script src="./public/js/db.js?v=1.3.9"></script>
+    <script src="./public/js/auth.js?v=1.3.9"></script>
+    <script src="./public/js/app.js?v=1.3.9"></script>
+    <script src="./public/js/userMgmt.js?v=1.3.9"></script>
+    <script src="./public/js/app.hooks.js?v=1.3.9"></script>
 
 </body>
 </html>
