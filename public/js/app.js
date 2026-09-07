@@ -14726,7 +14726,7 @@ const app = {
                 const searchVal = (document.getElementById('api-log-search')?.value || '').toLowerCase().trim();
                 const methodVal = document.getElementById('api-log-filter-method')?.value || 'ALL';
                 const statusVal = document.getElementById('api-log-filter-status')?.value || 'ALL';
-                const hideRoutine = document.getElementById('api-log-hide-routine')?.checked !== false;
+                const hideRoutine = document.getElementById('api-log-hide-routine')?.checked === true;
 
                 let filtered = logs.filter(item => {
                     const isRoutine = item.method === 'GET' && (
@@ -14815,14 +14815,29 @@ const app = {
 
                     // Summary snippet
                     let summaryText = '-';
-                    if (log.response_body) {
-                        if (log.response_body.message) {
-                            summaryText = log.response_body.message;
-                        } else if (log.response_body.error && log.response_body.error.message) {
-                            summaryText = `❌ ${log.response_body.error.message}`;
-                        } else if (log.response_body.data && log.response_body.data.job_no) {
+                    if (log.status >= 200 && log.status < 300) {
+                        if (log.path.includes('/api/v1/jobs') && log.method === 'GET') {
+                            const count = Array.isArray(log.response_body?.data) ? log.response_body.data.length : '';
+                            summaryText = `✅ ดึงข้อมูลโครงการ (Jobs) สำเร็จ ${count !== '' ? `(${count} รายการ)` : ''}`;
+                        } else if (log.path.includes('/api/ma-contracts') && log.method === 'GET') {
+                            const count = Array.isArray(log.response_body) ? log.response_body.length : '';
+                            summaryText = `✅ ดึงสัญญา MA สำเร็จ ${count !== '' ? `(${count} สัญญา)` : ''}`;
+                        } else if (log.path.includes('/api/ma-checklist-templates') && log.method === 'GET') {
+                            const count = Array.isArray(log.response_body) ? log.response_body.length : '';
+                            summaryText = `✅ ดึงเทมเพลต Checklist สำเร็จ ${count !== '' ? `(${count} แบบ)` : ''}`;
+                        } else if (log.path.includes('/api/v1/auth/login')) {
+                            summaryText = `✅ เข้าสู่ระบบสำเร็จ (${log.body?.username || ''})`;
+                        } else if (log.response_body?.data?.job_no) {
                             summaryText = `✅ สร้างงาน: ${log.response_body.data.job_no}`;
+                        } else if (log.response_body?.message) {
+                            summaryText = `✅ ${log.response_body.message}`;
+                        } else {
+                            summaryText = `✅ ดำเนินการสำเร็จ (200 OK)`;
                         }
+                    } else if (log.response_body?.error?.message) {
+                        summaryText = `❌ ${log.response_body.error.message}`;
+                    } else if (log.response_body?.message) {
+                        summaryText = log.response_body.message;
                     } else if (log.body) {
                         if (log.body.job_info?.job_number) summaryText = `Job: ${log.body.job_info.job_number}`;
                         else if (log.body.external_ref_id) summaryText = `Ref: ${log.body.external_ref_id}`;
