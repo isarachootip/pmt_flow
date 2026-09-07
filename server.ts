@@ -169,8 +169,14 @@ app.use((req: Request, res: Response, next: NextFunction) => {
       response_body: capturedResponseBody
     };
 
-    // Filter repeated routine polling GET /jobs and /ma-contracts
-    const isRoutineGet = req.method === 'GET' && (req.path === '/api/v1/jobs' || req.path === '/api/ma-contracts' || req.path === '/api/v1/ma-contracts');
+    // Filter repeated routine polling GET /jobs, /ma-contracts, and /ma-checklist-templates
+    const isRoutineGet = req.method === 'GET' && (
+      req.path === '/api/v1/jobs' || 
+      req.path === '/api/ma-contracts' || 
+      req.path === '/api/v1/ma-contracts' ||
+      req.path === '/api/ma-checklist-templates' ||
+      req.path === '/api/v1/ma-checklist-templates'
+    );
     if (isRoutineGet && res.statusCode === 200) {
       const lastLog = sysApiLogStore[0];
       if (lastLog && lastLog.method === 'GET' && lastLog.path === logEntry.path && lastLog.status === 200) {
@@ -2151,10 +2157,32 @@ app.get('/api/v1/jobs', requireAuth, (req: Request, res: Response) => {
       );
     }
 
-    // Sort descending so latest incoming jobs are always on top
+    // Helper to extract maximum timestamp across all workflow steps and status changes
+    const getJobLatestTime = (job: any): number => {
+      let maxTime = 0;
+      if (job.step_timestamps && typeof job.step_timestamps === 'object') {
+        for (const val of Object.values(job.step_timestamps)) {
+          if (val) {
+            const t = new Date(String(val)).getTime();
+            if (!isNaN(t) && t > maxTime) maxTime = t;
+          }
+        }
+      }
+      if (job.created_at) {
+        const t = new Date(job.created_at).getTime();
+        if (!isNaN(t) && t > maxTime) maxTime = t;
+      }
+      if (job.date) {
+        const t = new Date(job.date).getTime();
+        if (!isNaN(t) && t > maxTime) maxTime = t;
+      }
+      return maxTime;
+    };
+
+    // Sort descending so latest updated / latest status jobs are always on top
     results.sort((a, b) => {
-      const timeA = new Date((a.step_timestamps && a.step_timestamps.step1_order_at) || a.created_at || a.date || 0).getTime();
-      const timeB = new Date((b.step_timestamps && b.step_timestamps.step1_order_at) || b.created_at || b.date || 0).getTime();
+      const timeA = getJobLatestTime(a);
+      const timeB = getJobLatestTime(b);
       if (timeB !== timeA) return timeB - timeA;
       return String(b.job_no || b.id || '').localeCompare(String(a.job_no || a.id || ''));
     });

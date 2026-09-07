@@ -766,9 +766,17 @@ window.userMgmt =  {
                 return;
             }
 
+            // Sort descending so latest login attempt is always on top
+            this.filteredLogs.sort((a, b) => {
+                const timeB = new Date(b.created_at || b.timestamp || 0).getTime();
+                const timeA = new Date(a.created_at || a.timestamp || 0).getTime();
+                return timeB - timeA;
+            });
+
             if (info) info.innerText = `แสดง ${this.filteredLogs.length} จากทั้งหมด ${this.loginLogs.length} รายการ`;
 
-            tbody.innerHTML = this.filteredLogs.map(log => {
+            tbody.innerHTML = this.filteredLogs.map((log, idx) => {
+                const isTopNew = idx === 0;
                 const isSuccess = log.success === true || log.status === 'SUCCESS';
                 const dateVal = log.created_at || log.timestamp;
                 const time = dateVal ? (window.formatDateTimeDMY ? window.formatDateTimeDMY(dateVal, true) : new Date(dateVal).toLocaleDateString('en-GB') + ' ' + new Date(dateVal).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })) : '-';
@@ -776,8 +784,17 @@ window.userMgmt =  {
                 const reasonVal = log.fail_reason || log.reason || '';
 
                 return `
-                    <tr class="hover:bg-muted/30 transition-colors">
-                        <td class="px-5 py-3 text-muted-foreground font-mono text-[11px] whitespace-nowrap">${time}</td>
+                    <tr class="hover:bg-muted/30 transition-colors ${isTopNew ? 'bg-indigo-500/[0.03]' : ''}">
+                        <td class="px-5 py-3 text-muted-foreground font-mono text-[11px] whitespace-nowrap">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span>${time}</span>
+                                ${isTopNew ? `
+                                    <span class="badge-new-item text-[8px] py-0 px-1.5" title="บันทึกล่าสุด (NEW!)">
+                                        <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                    </span>
+                                ` : ''}
+                            </div>
+                        </td>
                         <td class="px-5 py-3">
                             <div>
                                 <p class="font-medium text-foreground text-xs">${log.full_name || log.username}</p>

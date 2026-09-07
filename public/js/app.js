@@ -463,6 +463,16 @@ const app = {
                 const steps = data.steps;
                 this.state.auditReportTargetJobId = targetJobId;
 
+                // Identify the latest active/completed step in the 5-step pipeline
+                let latestActiveStepIdx = -1;
+                for (let i = steps.length - 1; i >= 0; i--) {
+                    if (steps[i].isDone) {
+                        latestActiveStepIdx = i;
+                        break;
+                    }
+                }
+                if (latestActiveStepIdx === -1 && steps.length > 0) latestActiveStepIdx = 0;
+
                 const bodyEl = document.getElementById('step-audit-report-body');
                 if (!bodyEl) return;
 
@@ -509,22 +519,30 @@ const app = {
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-border">
-                                ${steps.map(s => {
+                                ${steps.map((s, sIdx) => {
                                     const isDone = s.isDone;
+                                    const isLatestActive = sIdx === latestActiveStepIdx;
                                     const tsFormatted = s.timestamp ? this.formatTimestamp(s.timestamp) : '<span class="text-muted-foreground/60 italic text-[11px]">- ยังไม่ดำเนินการ -</span>';
                                     const statusPill = isDone
                                         ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 inline-flex items-center gap-1"><i class="ph ph-check-circle-bold"></i> บันทึกแล้ว</span>'
                                         : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25 inline-flex items-center gap-1"><i class="ph ph-hourglass-bold"></i> รอดำเนินการ</span>';
 
                                     return `
-                                    <tr class="hover:bg-muted/30 transition ${isDone ? '' : 'opacity-70'}">
+                                    <tr class="hover:bg-muted/30 transition ${isDone ? '' : 'opacity-70'} ${isLatestActive ? 'bg-amber-500/[0.04]' : ''}">
                                         <td class="px-4 py-3.5 text-center">
                                             <span class="w-6 h-6 rounded-full inline-flex items-center justify-center font-bold text-xs font-mono ${isDone ? 'bg-emerald-500 text-white shadow-xs' : 'bg-muted text-muted-foreground border border-border'}">
                                                 ${s.stepNumber}
                                             </span>
                                         </td>
                                         <td class="px-4 py-3.5">
-                                            <div class="font-bold text-foreground text-xs">${s.name}</div>
+                                            <div class="font-bold text-foreground text-xs flex items-center gap-1.5 flex-wrap">
+                                                <span>${s.name}</span>
+                                                ${isLatestActive ? `
+                                                    <span class="badge-new-item text-[8px] py-0 px-1.5" title="สถานะ/ขั้นตอนล่าสุด">
+                                                        <i class="ph ph-sparkle-fill text-yellow-200"></i> ล่าสุด (NEW!)
+                                                    </span>
+                                                ` : ''}
+                                            </div>
                                             <div class="text-[10px] text-muted-foreground">${s.category}</div>
                                         </td>
                                         <td class="px-4 py-3.5 whitespace-nowrap">
@@ -1545,7 +1563,14 @@ const app = {
 
             async fetchJobsFromApi() {
                 try {
-                    const res = await fetch('/api/v1/jobs');
+                    const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                    if (!token) return;
+                    const res = await fetch('/api/v1/jobs', {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
                     if (res.ok) {
                         const json = await res.json();
                         if (json.success && Array.isArray(json.data)) {
@@ -1895,21 +1920,52 @@ const app = {
                 if (noteEl) noteEl.value = '';
             },
 
+            getJobLatestTimestamp(job) {
+                if (!job) return 0;
+                let maxTime = 0;
+                if (job.step_timestamps_history && Array.isArray(job.step_timestamps_history)) {
+                    job.step_timestamps_history.forEach(h => {
+                        const t = new Date(h.recorded_at || h.timestamp || 0).getTime();
+                        if (t > maxTime) maxTime = t;
+                    });
+                }
+                if (job.step_timestamps && typeof job.step_timestamps === 'object') {
+                    Object.values(job.step_timestamps).forEach(val => {
+                        if (val) {
+                            const t = new Date(val).getTime();
+                            if (t > maxTime) maxTime = t;
+                        }
+                    });
+                }
+                const tUpdated = new Date(job.updated_at || job.last_status_change_at || 0).getTime();
+                if (tUpdated > maxTime) maxTime = tUpdated;
+                const tCreated = new Date(job.created_at || 0).getTime();
+                if (tCreated > maxTime) maxTime = tCreated;
+                const tDate = new Date(job.date ? `${job.date}T00:00:00Z` : 0).getTime();
+                if (tDate > maxTime) maxTime = tDate;
+                return maxTime;
+            },
+
             sortJobsDescending(jobList) {
                 if (!Array.isArray(jobList)) return [];
                 return [...jobList].sort((a, b) => {
-                    const timeA = new Date((a.step_timestamps && (a.step_timestamps.step1_order_at || a.step_timestamps.created_at)) || a.created_at || a.date || 0).getTime();
-                    const timeB = new Date((b.step_timestamps && (b.step_timestamps.step1_order_at || b.step_timestamps.created_at)) || b.created_at || b.date || 0).getTime();
+                    const timeA = this.getJobLatestTimestamp(a);
+                    const timeB = this.getJobLatestTimestamp(b);
                     if (timeB !== timeA) return timeB - timeA;
                     return String(b.id || b.job_no || '').localeCompare(String(a.id || a.job_no || ''));
                 });
             },
 
-            isTop3LatestJob(jobOrId) {
+            isTopLatestJob(jobOrId, list = null, topCount = 3) {
                 const id = typeof jobOrId === 'object' ? (jobOrId.id || jobOrId.job_no) : jobOrId;
-                const sorted = this.sortJobsDescending(DB.jobs || []);
-                const top3 = sorted.slice(0, 3);
-                return top3.some(j => (j.id === id || j.job_no === id));
+                const baseList = list || DB.jobs || [];
+                const sorted = this.sortJobsDescending(baseList);
+                const topItems = sorted.slice(0, topCount);
+                return topItems.some(j => (j.id === id || j.job_no === id));
+            },
+
+            isTop3LatestJob(jobOrId) {
+                return this.isTopLatestJob(jobOrId, DB.jobs || [], 3);
             },
 
             getStatusHtml(status, isNew = false) {
@@ -1924,8 +1980,11 @@ const app = {
                     'AFTER_SALE': 'After Sale',
                     'CLOSED': 'Closed'
                 };
-                if (raw === 'NEW' || isNew) {
+                if (raw === 'NEW') {
                     return `<span class="status-pill status-new font-bold inline-flex items-center gap-1"><i class="ph ph-sparkle-fill text-amber-400 text-xs"></i> NEW!</span>`;
+                }
+                if (isNew) {
+                    return `<span class="status-pill status-${s} inline-flex items-center gap-1 font-semibold">${labelMap[raw] || raw} <span class="badge-new-item text-[8px] py-0 px-1.5 shadow-none" title="สถานะล่าสุด"><i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!</span></span>`;
                 }
                 return `<span class="status-pill status-${s}">${labelMap[raw] || raw}</span>`;
             },
@@ -1967,12 +2026,15 @@ const app = {
                 }).join('');
                 document.getElementById('dashboard-recent-jobs').innerHTML = recentRows || '<tr><td colspan="5" class="py-6 text-center text-xs text-muted-foreground">ยังไม่มีรายการงานล่าสุดในระบบ</td></tr>';
 
-                // Alerts
-                const alerts = DB.jobs.filter(j => j.status !== 'CLOSED' && j.status !== 'QC_PASSED');
-                const alertsHtml = alerts.length ? alerts.map(j => `
-                    <div class="p-3 rounded-xl bg-muted/40 border border-border hover:border-brand-500/40 transition-all cursor-pointer group" onclick="app.navigate('job-detail', '${j.id}')">
+                // Alerts (Sorted descending so newest alert is on top)
+                const alerts = this.sortJobsDescending(DB.jobs.filter(j => j.status !== 'CLOSED' && j.status !== 'QC_PASSED'));
+                const alertsHtml = alerts.length ? alerts.map((j, idx) => `
+                    <div class="p-3 rounded-xl bg-muted/40 border border-border hover:border-brand-500/40 transition-all cursor-pointer group ${idx === 0 ? 'bg-rose-500/[0.02]' : ''}" onclick="app.navigate('job-detail', '${j.id}')">
                         <div class="flex items-center justify-between mb-1">
-                            <span class="font-mono text-[11px] font-semibold text-brand-500">${j.id}</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-mono text-[11px] font-semibold text-brand-500">${j.id}</span>
+                                ${idx === 0 ? `<span class="badge-new-item text-[8px] py-0 px-1.5" title="สถานะล่าสุด"><i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!</span>` : ''}
+                            </div>
                             <span class="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
                                 <i class="ph ph-clock"></i> ${j.date}
                             </span>
@@ -1980,7 +2042,7 @@ const app = {
                         <div class="text-xs font-medium text-foreground group-hover:text-brand-500 transition truncate">${j.customer}</div>
                         <div class="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
                             <span class="text-[10px] text-muted-foreground truncate">${j.service}</span>
-                            ${this.getStatusHtml(j.status)}
+                            ${this.getStatusHtml(j.status, idx === 0)}
                         </div>
                     </div>
                 `).join('') : '<div class="text-xs text-muted-foreground text-center py-6">ไม่มีงานที่ใกล้ครบกำหนดในขณะนี้</div>';
@@ -4397,6 +4459,8 @@ const app = {
                         tableJobs = tableJobs.filter(j => blueprintsByJob[j.id] && blueprintsByJob[j.id].length > 0);
                     }
                 }
+                // CRITICAL RULE: Sort jobs descending so latest status is always on top!
+                tableJobs = this.sortJobsDescending(tableJobs);
 
                 const bpTableBody = document.getElementById('blueprints-table-body');
                 if (bpTableBody) {
@@ -4413,7 +4477,8 @@ const app = {
                             </tr>
                         `;
                     } else {
-                        bpTableBody.innerHTML = tableJobs.map(j => {
+                        bpTableBody.innerHTML = tableJobs.map((j, idx) => {
+                            const isTopNew = idx < 3;
                             const jBps = blueprintsByJob[j.id] || [];
                             const hasBps = jBps.length > 0;
                             const stageHtml = this.renderStageWithSLA(j, 2);
@@ -4445,10 +4510,22 @@ const app = {
                             `;
 
                             return `
-                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group" onclick="app.navigate('job-detail', '${j.id}')">
-                                    <td class="px-5 py-4 font-mono font-semibold text-indigo-600 dark:text-indigo-400">${j.id}</td>
+                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTopNew ? 'bg-rose-500/[0.02]' : ''}" onclick="app.navigate('job-detail', '${j.id}')">
+                                    <td class="px-5 py-4 font-mono font-semibold text-indigo-600 dark:text-indigo-400">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span>${j.id}</span>
+                                            ${isTopNew ? `
+                                                <span class="badge-new-item" title="สถานะล่าสุด (NEW!)">
+                                                    <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                                </span>
+                                            ` : ''}
+                                        </div>
+                                    </td>
                                     <td class="px-5 py-4">
-                                        <div class="text-foreground font-medium group-hover:text-indigo-500 transition">${j.customer}</div>
+                                        <div class="text-foreground font-medium group-hover:text-indigo-500 transition flex items-center gap-1.5">
+                                            <span>${j.customer}</span>
+                                            ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="สถานะล่าสุด"></span>` : ''}
+                                        </div>
                                         <div class="text-[11px] text-muted-foreground font-mono">${j.phone || '-'}</div>
                                     </td>
                                     <td class="px-5 py-4 text-muted-foreground">
@@ -4458,7 +4535,7 @@ const app = {
                                         </div>
                                     </td>
                                     <td class="px-5 py-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
-                                    <td class="px-5 py-4">${this.getStatusHtml(j.status)}</td>
+                                    <td class="px-5 py-4">${this.getStatusHtml(j.status, isTopNew)}</td>
                                     <td class="px-5 py-4 w-48">${stageHtml}</td>
                                     <td class="px-5 py-4 text-right">${actionButtons}</td>
                                 </tr>
@@ -4468,7 +4545,7 @@ const app = {
                 }
 
                 // 1. Calculate and filter project queue (keeps all active jobs accessible for adding multi-zones)
-                let queueJobs = allJobs;
+                let queueJobs = this.sortJobsDescending(allJobs);
                 if (q) {
                     queueJobs = queueJobs.filter(j => {
                         const jBps = blueprintsByJob[j.id] || [];
@@ -7130,6 +7207,7 @@ const app = {
                         tableJobs = tableJobs.filter(j => (ticketsByJob[j.id] || []).some(t => t.status === 'VERIFIED'));
                     }
                 }
+                tableJobs = this.sortJobsDescending(tableJobs);
 
                 const tktTableBody = document.getElementById('tickets-jobs-table-body');
                 if (tktTableBody) {
@@ -7146,7 +7224,8 @@ const app = {
                             </tr>
                         `;
                     } else {
-                        tktTableBody.innerHTML = tableJobs.map(j => {
+                        tktTableBody.innerHTML = tableJobs.map((j, idx) => {
+                            const isTopNew = idx < 3;
                             const jobTickets = ticketsByJob[j.id] || [];
                             const hasTicket = jobTickets.length > 0;
                             const stageHtml = this.renderStageWithSLA(j, 4);
@@ -7166,13 +7245,11 @@ const app = {
                                     </button>
                                     ` : (isSentToStep5 ? `
                                     <button onclick="event.stopPropagation(); app.navigate('project-conversion', '${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 inline-flex items-center gap-1 cursor-pointer" title="งานนี้ส่งเข้า Step 5 เรียบร้อยแล้ว (คลิกเพื่อเปิดดูใน Step 5)">
-                                        <i class="ph ph-check-circle text-xs text-amber-500"></i>
                                         <span>อยู่ในคิว Step 5</span>
                                     </button>
                                     ` : `
                                     <button onclick="event.stopPropagation(); app.proceedJobToConversion('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ส่งต่อไปยัง Step 5 แปลงเข้า Project">
                                         <span>แปลงเข้า Project (ไป Step 5)</span>
-                                        <i class="ph ph-arrow-right-bold text-xs"></i>
                                     </button>
                                     `)}
                                 </div>
@@ -7184,10 +7261,22 @@ const app = {
                             `;
 
                             return `
-                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group" onclick="app.openJobTicketsDetail('${j.id}')">
-                                    <td class="px-5 py-4 font-mono font-semibold text-emerald-600 dark:text-emerald-400">${j.id}</td>
+                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTopNew ? 'bg-rose-500/[0.02]' : ''}" onclick="app.openJobTicketsDetail('${j.id}')">
+                                    <td class="px-5 py-4 font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span>${j.id}</span>
+                                            ${isTopNew ? `
+                                                <span class="badge-new-item" title="สถานะล่าสุด (NEW!)">
+                                                    <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                                </span>
+                                            ` : ''}
+                                        </div>
+                                    </td>
                                     <td class="px-5 py-4">
-                                        <div class="text-foreground font-medium group-hover:text-emerald-500 transition">${j.customer}</div>
+                                        <div class="text-foreground font-medium group-hover:text-emerald-500 transition flex items-center gap-1.5">
+                                            <span>${j.customer}</span>
+                                            ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="สถานะล่าสุด"></span>` : ''}
+                                        </div>
                                         <div class="text-[11px] text-muted-foreground font-mono">${j.phone || '-'}</div>
                                     </td>
                                     <td class="px-5 py-4 text-muted-foreground">
@@ -7197,7 +7286,7 @@ const app = {
                                         </div>
                                     </td>
                                     <td class="px-5 py-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
-                                    <td class="px-5 py-4">${this.getStatusHtml(j.status)}</td>
+                                    <td class="px-5 py-4">${this.getStatusHtml(j.status, isTopNew)}</td>
                                     <td class="px-5 py-4 w-48">${stageHtml}</td>
                                     <td class="px-5 py-4 text-right">${actionButtons}</td>
                                 </tr>
@@ -7215,7 +7304,7 @@ const app = {
                 const mFilter = methodFilterEl ? methodFilterEl.value : 'all';
 
                 // 1. Calculate pending queue jobs (waiting for ticket or with tickets)
-                let pendingJobs = allJobs;
+                let pendingJobs = this.sortJobsDescending(allJobs);
                 if (q) {
                     pendingJobs = pendingJobs.filter(j => 
                         (j.id && j.id.toLowerCase().includes(q)) ||
@@ -8084,6 +8173,7 @@ const app = {
                 }
 
                 // Render Top Standard Work Order List Table (#boq-jobs-table-body)
+                tableJobs = this.sortJobsDescending(tableJobs);
                 const boqTableBody = document.getElementById('boq-jobs-table-body');
                 if (boqTableBody) {
                     if (tableJobs.length === 0) {
@@ -8099,7 +8189,8 @@ const app = {
                             </tr>
                         `;
                     } else {
-                        boqTableBody.innerHTML = tableJobs.map(j => {
+                        boqTableBody.innerHTML = tableJobs.map((j, idx) => {
+                            const isTopNew = idx < 3;
                             const items = j.boq_items || [];
                             const hasBOQ = items.length > 0;
                             const stageHtml = this.renderStageWithSLA(j, 3);
@@ -8143,10 +8234,22 @@ const app = {
                             `;
 
                             return `
-                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSelected ? 'bg-purple-500/5' : ''}" onclick="app.openManageBOQModal('${j.id}')">
-                                    <td class="px-5 py-4 font-mono font-semibold text-purple-600 dark:text-purple-400">${j.id}</td>
+                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSelected ? 'bg-purple-500/5' : (isTopNew ? 'bg-rose-500/[0.02]' : '')}" onclick="app.openManageBOQModal('${j.id}')">
+                                    <td class="px-5 py-4 font-mono font-semibold text-purple-600 dark:text-purple-400">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span>${j.id}</span>
+                                            ${isTopNew ? `
+                                                <span class="badge-new-item" title="สถานะล่าสุด (NEW!)">
+                                                    <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                                </span>
+                                            ` : ''}
+                                        </div>
+                                    </td>
                                     <td class="px-5 py-4">
-                                        <div class="text-foreground font-medium group-hover:text-purple-500 transition">${j.customer}</div>
+                                        <div class="text-foreground font-medium group-hover:text-purple-500 transition flex items-center gap-1.5">
+                                            <span>${j.customer}</span>
+                                            ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="สถานะล่าสุด"></span>` : ''}
+                                        </div>
                                         <div class="text-[11px] text-muted-foreground font-mono">${j.phone || '-'}</div>
                                     </td>
                                     <td class="px-5 py-4 text-muted-foreground">
@@ -8156,7 +8259,7 @@ const app = {
                                         </div>
                                     </td>
                                     <td class="px-5 py-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
-                                    <td class="px-5 py-4">${this.getStatusHtml(j.status)}</td>
+                                    <td class="px-5 py-4">${this.getStatusHtml(j.status, isTopNew)}</td>
                                     <td class="px-5 py-4 w-48">${stageHtml}</td>
                                     <td class="px-5 py-4 text-right">${actionButtons}</td>
                                 </tr>
@@ -8171,7 +8274,7 @@ const app = {
                 const q = (searchEl ? searchEl.value : '').toLowerCase().trim();
                 const sFilter = (serviceEl ? serviceEl.value : 'all');
 
-                let filteredJobs = allJobs;
+                let filteredJobs = this.sortJobsDescending(allJobs);
                 if (q) {
                     filteredJobs = filteredJobs.filter(j => {
                         const itemsText = (j.boq_items || []).map(it => it.name).join(' ').toLowerCase();
@@ -9345,6 +9448,8 @@ const app = {
                     }
                 }
 
+                // Render Top Standard Work Order List Table (#conversion-jobs-table-body)
+                tableJobs = this.sortJobsDescending(tableJobs);
                 const convTableBody = document.getElementById('conversion-jobs-table-body');
                 if (convTableBody) {
                     if (tableJobs.length === 0) {
@@ -9360,7 +9465,8 @@ const app = {
                             </tr>
                         `;
                     } else {
-                        convTableBody.innerHTML = tableJobs.map(j => {
+                        convTableBody.innerHTML = tableJobs.map((j, idx) => {
+                            const isTopNew = idx < 3;
                             const jobTasks = (DB.tasks || []).filter(t => t.jobId === j.id);
                             const hasTasks = jobTasks.length > 0;
                             const stageHtml = this.renderStageWithSLA(j, 5);
@@ -9385,10 +9491,22 @@ const app = {
                             `;
 
                             return `
-                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSelected ? 'bg-amber-500/5' : ''}" onclick="app.renderProjectConversion('${j.id}')">
-                                    <td class="px-5 py-4 font-mono font-semibold text-amber-600 dark:text-amber-400">${j.id}</td>
+                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSelected ? 'bg-amber-500/5' : (isTopNew ? 'bg-rose-500/[0.02]' : '')}" onclick="app.renderProjectConversion('${j.id}')">
+                                    <td class="px-5 py-4 font-mono font-semibold text-amber-600 dark:text-amber-400">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span>${j.id}</span>
+                                            ${isTopNew ? `
+                                                <span class="badge-new-item" title="สถานะล่าสุด (NEW!)">
+                                                    <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                                </span>
+                                            ` : ''}
+                                        </div>
+                                    </td>
                                     <td class="px-5 py-4">
-                                        <div class="text-foreground font-medium group-hover:text-amber-500 transition">${j.customer}</div>
+                                        <div class="text-foreground font-medium group-hover:text-amber-500 transition flex items-center gap-1.5">
+                                            <span>${j.customer}</span>
+                                            ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="สถานะล่าสุด"></span>` : ''}
+                                        </div>
                                         <div class="text-[11px] text-muted-foreground font-mono">${j.phone || '-'}</div>
                                     </td>
                                     <td class="px-5 py-4 text-muted-foreground">
@@ -9398,7 +9516,7 @@ const app = {
                                         </div>
                                     </td>
                                     <td class="px-5 py-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
-                                    <td class="px-5 py-4">${this.getStatusHtml(j.status)}</td>
+                                    <td class="px-5 py-4">${this.getStatusHtml(j.status, isTopNew)}</td>
                                     <td class="px-5 py-4 w-48">${stageHtml}</td>
                                     <td class="px-5 py-4 text-right">${actionButtons}</td>
                                 </tr>
@@ -10155,8 +10273,11 @@ const app = {
 
                 const isListView = (this.state.projectViewMode === 'list');
 
+                const sortedJobs = this.sortJobsDescending(DB.jobs || []);
+
                 if (isListView) {
-                    const jobsHtml = DB.jobs.map(job => {
+                    const jobsHtml = sortedJobs.map((job, idx) => {
+                        const isTopNew = idx < 3;
                         const isSelected = selectedFilter === job.id;
                         const boqCount = (job.boq_items || []).length;
                         const taskCount = (DB.tasks || []).filter(t => t.jobId === job.id).length;
@@ -10168,18 +10289,24 @@ const app = {
 
                         return `
                         <tr onclick="app.selectGanttJob('${job.id}')" 
-                            class="gantt-project-list-row transition-colors cursor-pointer group ${isSelected ? 'bg-brand-500/15 ring-1 ring-inset ring-brand-500/50' : 'hover:bg-muted/40'}">
+                            class="gantt-project-list-row transition-colors cursor-pointer group ${isSelected ? 'bg-brand-500/15 ring-1 ring-inset ring-brand-500/50' : (isTopNew ? 'bg-rose-500/[0.02]' : 'hover:bg-muted/40')}">
                             <td class="py-2.5 px-3">
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-1.5 flex-wrap">
                                     <span class="font-mono text-xs font-bold ${isSelected ? 'text-brand-600 dark:text-brand-400' : 'text-foreground'} flex items-center gap-1 group-hover:text-brand-500 transition">
                                         <i class="ph ph-folder-open text-xs text-brand-500"></i> ${job.id}
                                     </span>
+                                    ${isTopNew ? `
+                                        <span class="badge-new-item text-[8px] py-0 px-1.5" title="สถานะล่าสุด (NEW!)">
+                                            <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                        </span>
+                                    ` : ''}
                                     <span class="text-[10px] px-1.5 py-0.5 rounded font-medium bg-muted text-muted-foreground max-w-[200px] truncate" title="${job.service || '-'}">${job.service || '-'}</span>
                                 </div>
                             </td>
                             <td class="py-2.5 px-3">
-                                <div class="text-xs font-semibold text-foreground truncate max-w-[160px]" title="${custName}">
-                                    ${custName}
+                                <div class="text-xs font-semibold text-foreground truncate max-w-[160px] flex items-center gap-1" title="${custName}">
+                                    <span>${custName}</span>
+                                    ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="สถานะล่าสุด"></span>` : ''}
                                 </div>
                                 <div class="text-[10px] text-muted-foreground font-mono truncate max-w-[160px]">${job.phone || '-'}</div>
                             </td>
@@ -10260,7 +10387,7 @@ const app = {
                                 <input type="text" 
                                        id="gantt-project-list-search" 
                                        oninput="app.filterGanttProjectTable(this.value)" 
-                                       placeholder="ค้นหาตามรหัส Job, ชื่อลูกค้า, หรืองานบริการ..." 
+                                       placeholder="ค้นหาตามรหัส Job, ชื่อลูกค้า, หรือนานบริการ..." 
                                        class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-card border border-border text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 text-foreground" />
                             </div>
                             <div class="flex items-center gap-3 text-muted-foreground text-[11px]">
@@ -10294,9 +10421,10 @@ const app = {
                     return;
                 }
 
-                // Default: Card View
+                // Default: Card View (Sorted descending with latest status on top)
                 stripEl.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3';
-                const cardsHtml = DB.jobs.map(job => {
+                const cardsHtml = sortedJobs.map((job, idx) => {
+                    const isTopNew = idx < 3;
                     const isSelected = selectedFilter === job.id;
                     const boqCount = (job.boq_items || []).length;
                     const taskCount = (DB.tasks || []).filter(t => t.jobId === job.id).length;
@@ -10307,16 +10435,18 @@ const app = {
                     
                     return `
                     <div onclick="app.selectGanttJob('${job.id}')" 
-                         class="artifact-card p-3 rounded-xl border transition-all cursor-pointer group hover:scale-[1.02] hover:shadow-md ${isSelected ? 'border-brand-500 bg-brand-500/10 ring-2 ring-brand-500/30' : 'border-border hover:border-brand-500/50 bg-card'}"
+                         class="artifact-card p-3 rounded-xl border transition-all cursor-pointer group hover:scale-[1.02] hover:shadow-md ${isSelected ? 'border-brand-500 bg-brand-500/10 ring-2 ring-brand-500/30' : (isTopNew ? 'border-rose-500/40 bg-rose-500/[0.02]' : 'border-border hover:border-brand-500/50 bg-card')}"
                          title="คลิกเพื่อเลือกโครงการ ${job.id} และกำหนดตารางงาน (Gantt Schedule)">
                         <div class="flex items-center justify-between gap-1 mb-1.5">
-                            <span class="font-mono text-xs font-bold text-brand-500 flex items-center gap-1 group-hover:text-purple-600 transition">
+                            <span class="font-mono text-xs font-bold text-brand-500 flex items-center gap-1 group-hover:text-purple-600 transition flex-wrap">
                                 <i class="ph ph-folder-open text-xs"></i> ${job.id}
+                                ${isTopNew ? `<span class="badge-new-item text-[8px] py-0 px-1.5" title="สถานะล่าสุด (NEW!)"><i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!</span>` : ''}
                             </span>
                             <span class="text-[9px] px-1.5 py-0.5 rounded font-medium bg-muted text-muted-foreground">${job.service}</span>
                         </div>
-                        <div class="text-xs font-semibold text-foreground group-hover:text-brand-500 transition truncate" title="${job.customer}">
-                            ${job.customer}
+                        <div class="text-xs font-semibold text-foreground group-hover:text-brand-500 transition truncate flex items-center gap-1" title="${job.customer}">
+                            <span>${job.customer}</span>
+                            ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="สถานะล่าสุด"></span>` : ''}
                         </div>
                         <div class="mt-2 pt-2 border-t border-border flex items-center justify-between text-[10px]">
                             <span class="flex items-center gap-1 font-mono ${hasBOQ ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-amber-600 dark:text-amber-400 font-medium'}">
@@ -11720,8 +11850,12 @@ const app = {
                     return;
                 }
 
-                listContainer.innerHTML = filteredJobs.map(j => {
+                // Sort descending so latest updated/status job is always at top
+                const sortedDailyJobs = this.sortJobsDescending(filteredJobs);
+
+                listContainer.innerHTML = sortedDailyJobs.map((j, idx) => {
                     const isSelected = j.id === selectedJobId;
+                    const isTopNew = this.isTopLatestJob(j.id, sortedDailyJobs, 1);
                     const jobTasks = allTasks.filter(t => t.jobId === j.id);
                     const jobLogs = allLogs.filter(l => String(l.jobId) === String(j.id));
                     const hasTodayLog = jobLogs.some(l => l.logDate === todayStr || (l.createdAt && l.createdAt.startsWith(todayStr)));
@@ -11741,11 +11875,16 @@ const app = {
                     }
 
                     return `
-                    <div onclick="app.selectDailyLogJob('${j.id}')" class="p-3.5 rounded-2xl border transition cursor-pointer space-y-2 group ${isSelected ? 'bg-cyan-500/10 border-cyan-500 shadow-sm ring-1 ring-cyan-500/30' : 'bg-card border-border hover:border-cyan-500/40 hover:bg-muted/30'}">
+                    <div onclick="app.selectDailyLogJob('${j.id}')" class="p-3.5 rounded-2xl border transition cursor-pointer space-y-2 group ${isSelected ? 'bg-cyan-500/10 border-cyan-500 shadow-sm ring-1 ring-cyan-500/30' : (isTopNew ? 'border-cyan-500/40 bg-cyan-500/[0.03]' : 'bg-card border-border hover:border-cyan-500/40 hover:bg-muted/30')}">
                         <div class="flex items-start justify-between gap-2">
                             <div class="min-w-0 flex-1">
-                                <div class="flex items-center gap-1.5">
+                                <div class="flex items-center gap-1.5 flex-wrap">
                                     <span class="font-mono text-xs font-bold ${isSelected ? 'text-cyan-600 dark:text-cyan-400' : 'text-foreground group-hover:text-cyan-500'}">${j.id}</span>
+                                    ${isTopNew ? `
+                                        <span class="badge-new-item text-[8px] py-0 px-1.5" title="สถานะล่าสุด (NEW!)">
+                                            <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                        </span>
+                                    ` : ''}
                                     <span class="text-xs font-semibold text-foreground truncate">${j.customer}</span>
                                 </div>
                                 <div class="text-[11px] text-muted-foreground truncate mt-0.5 flex items-center gap-1">
@@ -11881,7 +12020,13 @@ const app = {
                     (taskId && String(l.taskId) === String(taskId)) || 
                     (String(l.jobId) === String(jobId) && (l.taskName === taskName || !task))
                 );
-                taskLogs.sort((a, b) => new Date(a.logDate || '2026-01-01') - new Date(b.logDate || '2026-01-01'));
+                // Sort task logs descending so latest day / latest entry is at top
+                taskLogs.sort((a, b) => {
+                    const timeB = new Date(b.createdAt || b.logDate || '2026-01-01').getTime();
+                    const timeA = new Date(a.createdAt || a.logDate || '2026-01-01').getTime();
+                    if (timeB !== timeA) return timeB - timeA;
+                    return (Number(b.dayNumber) || 0) - (Number(a.dayNumber) || 0);
+                });
 
                 const maxProgress = taskLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
                 const isCompleted = taskLogs.some(l => l.isCompleted) || (task && task.status === 'DONE') || (job && (job.status === 'QC_PENDING' || job.status === 'QC_PASSED'));
@@ -11890,7 +12035,7 @@ const app = {
                 let nextDayNum = taskLogs.length + 1;
                 let nextDate = endDateStr;
                 if (taskLogs.length > 0) {
-                    const lastLog = taskLogs[taskLogs.length - 1];
+                    const lastLog = taskLogs[0]; // latest log since sorted descending
                     if (lastLog.logDate) {
                         const d = new Date(lastLog.logDate);
                         d.setDate(d.getDate() + 1);
@@ -11954,8 +12099,8 @@ const app = {
                     </div>`;
                 }).join('');
 
-                // Existing Logs History Cards
-                const logsCardsHtml = taskLogs.map(l => {
+                // Existing Logs History Cards (Latest on top with NEW badge)
+                const logsCardsHtml = taskLogs.map((l, idx) => {
                     const photosCount = (l.photos || []).length;
                     const photosHtml = (l.photos || []).map((p, pIdx) => `
                         <div class="relative w-20 h-20 rounded-xl overflow-hidden border border-border group cursor-pointer shrink-0 shadow-xs hover:border-cyan-500 transition" onclick="app.showLightbox('${p.url}', '${p.title || `รูปที่ ${pIdx + 1}`}', 'บันทึกช่าง วันที่ ${l.dayNumber} • ${p.phase || 'SITE'}', '${l.workDescription}', '${l.recordedBy} (${l.logDate})')" title="${p.title || 'คลิกเพื่อดูรูปขนาดใหญ่'}">
@@ -11968,11 +12113,16 @@ const app = {
                     `).join('');
 
                     return `
-                    <div id="daily-log-card-${l.id}" class="p-4 rounded-2xl bg-card border border-border shadow-xs hover:border-cyan-500/40 transition space-y-3">
+                    <div id="daily-log-card-${l.id}" class="p-4 rounded-2xl bg-card border ${idx === 0 ? 'border-cyan-500/50 ring-1 ring-cyan-500/30' : 'border-border'} shadow-xs hover:border-cyan-500/40 transition space-y-3">
                         <div class="flex items-center justify-between flex-wrap gap-2">
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <span class="w-7 h-7 rounded-xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 text-xs font-bold font-mono flex items-center justify-center border border-cyan-500/30">D${l.dayNumber || 1}</span>
                                 <span class="font-bold text-xs text-foreground font-mono">📅 ${this.formatDateDMY(l.logDate)}</span>
+                                ${idx === 0 ? `
+                                    <span class="badge-new-item" title="บันทึกล่าสุด">
+                                        <i class="ph ph-sparkle-fill text-yellow-200"></i> บันทึกล่าสุด (NEW!)
+                                    </span>
+                                ` : ''}
                                 <span class="text-[10px] px-2 py-0.5 rounded-md ${l.isCompleted ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold' : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold'}">
                                     ความคืบหน้า ${l.progressPercent}% ${l.isCompleted ? '✓ ช่างบันทึกสำเร็จ' : ''}
                                 </span>
@@ -12373,7 +12523,13 @@ const app = {
                     (String(l.jobId) === String(jobId) && (l.taskName === taskName || !task))
                 );
 
-                taskLogs.sort((a, b) => new Date(a.logDate || '2026-01-01') - new Date(b.logDate || '2026-01-01'));
+                // Sort descending so latest day is at top
+                taskLogs.sort((a, b) => {
+                    const timeB = new Date(b.createdAt || b.logDate || '2026-01-01').getTime();
+                    const timeA = new Date(a.createdAt || a.logDate || '2026-01-01').getTime();
+                    if (timeB !== timeA) return timeB - timeA;
+                    return (Number(b.dayNumber) || 0) - (Number(a.dayNumber) || 0);
+                });
 
                 const maxProgress = taskLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
                 const isCompleted = taskLogs.some(l => l.isCompleted) || (task && task.status === 'DONE') || (job && (job.status === 'QC_PENDING' || job.status === 'QC_PASSED'));
@@ -12382,7 +12538,7 @@ const app = {
                 let nextDayNum = taskLogs.length + 1;
                 let nextDate = endDateStr;
                 if (taskLogs.length > 0) {
-                    const lastLog = taskLogs[taskLogs.length - 1];
+                    const lastLog = taskLogs[0]; // latest log since sorted descending
                     if (lastLog.logDate) {
                         const d = new Date(lastLog.logDate);
                         d.setDate(d.getDate() + 1);
@@ -12417,8 +12573,8 @@ const app = {
                     </div>`;
                 }).join('');
 
-                // Existing Logs Cards
-                const logsCardsHtml = taskLogs.map(l => {
+                // Existing Logs Cards (Latest on top with NEW badge)
+                const logsCardsHtml = taskLogs.map((l, idx) => {
                     const photosCount = (l.photos || []).length;
                     const photosHtml = (l.photos || []).map((p, pIdx) => `
                         <div class="relative w-16 h-16 rounded-xl overflow-hidden border border-border group cursor-pointer shrink-0 shadow-xs hover:border-cyan-500 transition" onclick="app.showLightbox('${p.url}', '${p.title || `รูปที่ ${pIdx + 1}`}', 'บันทึกช่าง วันที่ ${l.dayNumber} • ${p.phase || 'SITE'}', '${l.workDescription}', '${l.recordedBy} (${l.logDate})')" title="${p.title || 'คลิกเพื่อดูรูปขนาดใหญ่'}">
@@ -12431,11 +12587,16 @@ const app = {
                     `).join('');
 
                     return `
-                    <div class="p-4 rounded-2xl bg-card border border-border shadow-xs hover:border-cyan-500/30 transition space-y-2.5">
+                    <div class="p-4 rounded-2xl bg-card border ${idx === 0 ? 'border-cyan-500/50 ring-1 ring-cyan-500/30' : 'border-border'} shadow-xs hover:border-cyan-500/30 transition space-y-2.5">
                         <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <span class="w-6 h-6 rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 text-xs font-bold font-mono flex items-center justify-center border border-cyan-500/30">D${l.dayNumber || 1}</span>
                                 <span class="font-bold text-xs text-foreground font-mono">📅 ${this.formatDateDMY(l.logDate)}</span>
+                                ${idx === 0 ? `
+                                    <span class="badge-new-item text-[8px] py-0 px-1.5" title="บันทึกล่าสุด">
+                                        <i class="ph ph-sparkle-fill text-yellow-200"></i> บันทึกล่าสุด (NEW!)
+                                    </span>
+                                ` : ''}
                                 <span class="text-[10px] px-2 py-0.5 rounded-md ${l.isCompleted ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold' : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold'}">
                                     ความคืบหน้า ${l.progressPercent}% ${l.isCompleted ? '✓ ช่างบันทึกสำเร็จ' : ''}
                                 </span>
@@ -12826,9 +12987,16 @@ const app = {
                 const currentTab = this.state.qcTab || 'bookings';
 
                 if (currentTab === 'bookings') {
-                    const bookings = DB.qcBookings || [];
-                    const listHtml = bookings.map(b => {
+                    // Sort bookings descending so latest booking date is at top
+                    const bookings = [...(DB.qcBookings || [])].sort((a, b) => {
+                        const timeB = new Date(b.qcBookingDate || b.createdAt || '2026-01-01').getTime();
+                        const timeA = new Date(a.qcBookingDate || a.createdAt || '2026-01-01').getTime();
+                        return timeB - timeA;
+                    });
+
+                    const listHtml = bookings.map((b, bIdx) => {
                         const isConfirmed = b.status === 'CONFIRMED';
+                        const isTopNew = bIdx === 0;
                         const statusBadge = isConfirmed
                             ? `<span class="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 font-bold flex items-center gap-1"><i class="ph ph-check-circle"></i> ยืนยันแล้ว</span>`
                             : `<span class="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 font-bold flex items-center gap-1"><i class="ph ph-clock"></i> รอ Confirm</span>`;
@@ -12836,13 +13004,18 @@ const app = {
                         const isSelected = this.state.selectedQCBookingId === b.id;
                         const cardBg = isSelected 
                             ? 'bg-brand-500/10 border-brand-500 ring-1 ring-brand-500/40' 
-                            : 'bg-muted/40 border-border hover:border-brand-500/40';
+                            : (isTopNew ? 'bg-brand-500/[0.03] border-brand-500/30' : 'bg-muted/40 border-border hover:border-brand-500/40');
 
                         return `
                         <div class="p-3.5 rounded-xl ${cardBg} border transition-all cursor-pointer group" onclick="app.selectQCBooking('${b.id}')">
                             <div class="flex items-center justify-between mb-1">
-                                <div class="flex items-center gap-1.5">
+                                <div class="flex items-center gap-1.5 flex-wrap">
                                     <span class="font-mono text-xs font-bold text-brand-500">${b.jobId}</span>
+                                    ${isTopNew ? `
+                                        <span class="badge-new-item text-[8px] py-0 px-1.5" title="คิวจองล่าสุด (NEW!)">
+                                            <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                        </span>
+                                    ` : ''}
                                     <span class="text-[10px] text-muted-foreground font-mono truncate max-w-[90px]" title="${b.taskId}">(${b.taskId})</span>
                                 </div>
                                 ${statusBadge}
@@ -12886,21 +13059,27 @@ const app = {
                         `;
                     }
                 } else {
-                    // Pending Inspection Tab
-                    const qcJobs = DB.jobs.filter(j => j.status === 'QC_PENDING');
-                    const listHtml = qcJobs.map(j => {
+                    // Pending Inspection Tab (Sorted descending with latest on top)
+                    const qcJobs = this.sortJobsDescending(DB.jobs.filter(j => j.status === 'QC_PENDING'));
+                    const listHtml = qcJobs.map((j, jIdx) => {
                         const isQuick = this.isQuickJob(j) || j.qc_inspection_type === 'ONLINE';
+                        const isTopNew = this.isTopLatestJob(j.id, qcJobs, 1);
                         const isSelected = (this.state.selectedQCJobId === j.id);
                         const cardBg = isSelected 
                             ? (isQuick ? 'bg-cyan-500/10 border-cyan-500 ring-1 ring-cyan-500/40' : 'bg-brand-500/10 border-brand-500 ring-1 ring-brand-500/40') 
-                            : 'bg-muted/40 border-border hover:border-brand-500/40';
+                            : (isTopNew ? 'border-brand-500/30 bg-brand-500/[0.03]' : 'bg-muted/40 border-border hover:border-brand-500/40');
                         const photoCount = (j.photos && j.photos.length > 0) ? j.photos.length : 5;
 
                         return `
                         <div class="p-3.5 rounded-xl ${cardBg} border transition-all cursor-pointer group" onclick="app.selectQCJob('${j.id}')">
                             <div class="flex items-center justify-between mb-1">
-                                <div class="flex items-center gap-1.5">
+                                <div class="flex items-center gap-1.5 flex-wrap">
                                     <span class="font-mono text-xs font-bold ${isQuick ? 'text-cyan-600 dark:text-cyan-400' : 'text-brand-500'}">${j.id}</span>
+                                    ${isTopNew ? `
+                                        <span class="badge-new-item text-[8px] py-0 px-1.5" title="สถานะล่าสุด (NEW!)">
+                                            <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                        </span>
+                                    ` : ''}
                                     ${isQuick ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase bg-amber-500/10 text-amber-600 border border-amber-500/20">QUICK</span>` : ''}
                                 </div>
                                 ${isQuick ? `
@@ -13623,17 +13802,33 @@ const app = {
                     return;
                 }
 
-                container.innerHTML = filtered.map(j => {
+                // Sort descending so latest updated / completed jobs are at top
+                const sortedFiltered = this.sortJobsDescending(filtered);
+
+                container.innerHTML = sortedFiltered.map((j, idx) => {
                     const isEvaluated = (j.status === 'AFTER_SALE' || j.status === 'CLOSED');
+                    const isTopNew = this.isTopLatestJob(j.id, sortedFiltered, 1);
                     return `
-                        <tr class="hover:bg-muted/40 transition-colors">
-                            <td class="px-5 py-4 font-mono font-semibold text-brand-500 cursor-pointer" onclick="app.navigate('job-detail', '${j.id}')">${j.id}</td>
+                        <tr class="hover:bg-muted/40 transition-colors ${isTopNew ? 'bg-rose-500/[0.02]' : ''}">
+                            <td class="px-5 py-4 font-mono font-semibold text-brand-500 cursor-pointer" onclick="app.navigate('job-detail', '${j.id}')">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span>${j.id}</span>
+                                    ${isTopNew ? `
+                                        <span class="badge-new-item text-[8px] py-0 px-1.5" title="สถานะล่าสุด (NEW!)">
+                                            <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </td>
                             <td class="px-5 py-4">
-                                <div class="text-foreground font-medium">${j.customer}</div>
+                                <div class="text-foreground font-medium flex items-center gap-1">
+                                    <span>${j.customer}</span>
+                                    ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="สถานะล่าสุด"></span>` : ''}
+                                </div>
                                 <div class="text-[11px] text-muted-foreground font-mono">${j.phone}</div>
                             </td>
                             <td class="px-5 py-4 text-muted-foreground">${j.service}</td>
-                            <td class="px-5 py-4 text-muted-foreground font-mono">${j.date}</td>
+                            <td class="px-5 py-4 text-muted-foreground font-mono">📅 ${this.formatDateDMY(j.date)}</td>
                             <td class="px-5 py-4">
                                 ${isEvaluated ? 
                                 '<div class="flex items-center gap-1.5"><div class="flex text-amber-400 text-sm gap-0.5"><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i></div><span class="text-[11px] font-bold text-amber-500 font-mono">5.0</span></div>' : 
@@ -13739,13 +13934,22 @@ const app = {
                     return;
                 }
 
-                container.innerHTML = afterSaleJobs.map(j => {
+                // Sort descending so latest updated / completed jobs are at top
+                const sortedAfterSaleJobs = this.sortJobsDescending(afterSaleJobs);
+
+                container.innerHTML = sortedAfterSaleJobs.map((j, idx) => {
                     const isClosed = j.status === 'CLOSED';
+                    const isTopNew = this.isTopLatestJob(j.id, sortedAfterSaleJobs, 1);
                     return `
-                        <div class="artifact-card p-5 rounded-2xl border border-border bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:border-brand-500/40 transition">
+                        <div class="artifact-card p-5 rounded-2xl border ${isTopNew ? 'border-brand-500/50 ring-1 ring-brand-500/20' : 'border-border'} bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:border-brand-500/40 transition">
                             <div class="space-y-1.5 flex-1">
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <span class="font-mono font-bold text-sm text-brand-500 cursor-pointer" onclick="app.navigate('job-detail', '${j.id}')">${j.id}</span>
+                                    ${isTopNew ? `
+                                        <span class="badge-new-item text-[8px] py-0 px-1.5" title="สถานะล่าสุด (NEW!)">
+                                            <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                        </span>
+                                    ` : ''}
                                     <span class="text-[11px] font-bold px-2 py-0.5 rounded-full border ${isClosed ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20' : 'text-sky-600 bg-sky-500/10 border-sky-500/20'}">
                                         ${isClosed ? 'Closed & ส่ง BMT แล้ว' : 'บริการหลังการขาย (After Sale)'}
                                     </span>
@@ -13758,7 +13962,7 @@ const app = {
                                 <div class="text-xs text-muted-foreground flex items-center gap-3 flex-wrap">
                                     <span><i class="ph ph-wrench text-muted-foreground"></i> ${j.service}</span>
                                     <span>·</span>
-                                    <span><i class="ph ph-calendar text-muted-foreground"></i> ส่งมอบ: ${j.date}</span>
+                                    <span><i class="ph ph-calendar text-muted-foreground"></i> ส่งมอบ: ${this.formatDateDMY(j.date)}</span>
                                     <span>·</span>
                                     <span class="text-amber-500 font-medium inline-flex items-center gap-0.5">
                                         <i class="ph ph-star-fill text-xs"></i> CSAT: 5.0
@@ -13808,9 +14012,15 @@ const app = {
             // =========================================================
             async fetchMAFromApi() {
                 try {
+                    const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                    if (!token) return;
+                    const headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    };
                     const [resContracts, resTemplates] = await Promise.all([
-                        fetch('/api/ma-contracts').then(r => r.ok ? r.json() : null),
-                        fetch('/api/ma-checklist-templates').then(r => r.ok ? r.json() : null)
+                        fetch('/api/ma-contracts', { headers }).then(r => r.ok ? r.json() : null),
+                        fetch('/api/ma-checklist-templates', { headers }).then(r => r.ok ? r.json() : null)
                     ]);
                     if (Array.isArray(resContracts)) {
                         DB.maContracts = resContracts;
@@ -13838,7 +14048,12 @@ const app = {
             },
 
             renderMAContracts() {
-                const contracts = DB.maContracts || [];
+                // Sort contracts descending so latest contract is on top
+                const contracts = [...(DB.maContracts || [])].sort((a, b) => {
+                    const timeB = new Date(b.updated_at || b.created_at || b.start_date || '2026-01-01').getTime();
+                    const timeA = new Date(a.updated_at || a.created_at || a.start_date || '2026-01-01').getTime();
+                    return timeB - timeA;
+                });
                 const totalContracts = contracts.length;
                 const activeContracts = contracts.filter(c => c.status === 'Active').length;
                 const totalRounds = contracts.reduce((s, c) => s + (parseInt(c.total_rounds_count) || parseInt(c.total_rounds) || 0), 0);
@@ -13869,7 +14084,8 @@ const app = {
                     return;
                 }
 
-                container.innerHTML = contracts.map(c => {
+                container.innerHTML = contracts.map((c, idx) => {
+                    const isTopNew = idx === 0;
                     const isExpanded = (this.state.maExpandedId === c.id);
                     const tRounds = parseInt(c.total_rounds_count) || parseInt(c.total_rounds) || 0;
                     const cRounds = parseInt(c.completed_rounds) || 0;
@@ -13903,12 +14119,17 @@ const app = {
                     else if (c.status === 'Cancelled') statusBadgeClass = 'text-rose-600 bg-rose-500/10 border-rose-500/20';
 
                     return `
-                        <div class="artifact-card rounded-2xl border border-border bg-card overflow-hidden transition-all shadow-sm">
+                        <div class="artifact-card rounded-2xl border ${isTopNew ? 'border-brand-500/50 ring-1 ring-brand-500/20' : 'border-border'} bg-card overflow-hidden transition-all shadow-sm">
                             <!-- Card Header (Click to Toggle) -->
                             <div class="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer hover:bg-muted/30 transition select-none" onclick="app.toggleMAContract('${c.id}')">
                                 <div class="flex-1 min-w-0 space-y-1.5">
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <span class="font-extrabold text-sm sm:text-base text-foreground tracking-tight">${c.contract_no || c.id}</span>
+                                        ${isTopNew ? `
+                                            <span class="badge-new-item text-[8px] py-0 px-1.5" title="สัญญา MA ล่าสุด (NEW!)">
+                                                <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                            </span>
+                                        ` : ''}
                                         <span class="text-[11px] font-bold px-2 py-0.5 rounded-full border ${statusBadgeClass}">${c.status}</span>
                                         <span class="text-[11px] text-muted-foreground bg-muted border border-border/80 px-2 py-0.5 rounded-full">🔧 ${c.service_type}</span>
                                     </div>
@@ -14023,7 +14244,12 @@ const app = {
                     this.state.maExpandedId = id;
                     // fetch latest detail for this contract
                     try {
-                        const res = await fetch(`/api/ma-contracts/${id}`);
+                        const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                        const headers = {
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        };
+                        const res = await fetch(`/api/ma-contracts/${id}`, { headers });
                         if (res.ok) {
                             const detail = await res.json();
                             const idx = DB.maContracts.findIndex(c => c.id === id);
@@ -14242,9 +14468,13 @@ const app = {
 
                 // Submit to backend API
                 try {
+                    const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
                     const res = await fetch('/api/ma-contracts', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        },
                         body: JSON.stringify(payload)
                     });
                     if (res.ok) {
@@ -14297,9 +14527,13 @@ const app = {
                 const today = new Date().toISOString().split('T')[0];
 
                 try {
+                    const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
                     await fetch(`/api/ma-rounds/${roundId}`, {
                         method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        },
                         body: JSON.stringify({
                             status: 'Completed',
                             actual_date: today
@@ -14324,9 +14558,13 @@ const app = {
                 if (!newDate) return;
 
                 try {
+                    const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
                     await fetch(`/api/ma-rounds/${roundId}`, {
                         method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        },
                         body: JSON.stringify({
                             status: 'Rescheduled',
                             scheduled_date: newDate
@@ -14476,7 +14714,13 @@ const app = {
                 const hideRoutine = document.getElementById('api-log-hide-routine')?.checked !== false;
 
                 let filtered = logs.filter(item => {
-                    if (hideRoutine && item.method === 'GET' && (item.path === '/api/v1/jobs' || item.path === '/api/ma-contracts' || item.path === '/api/v1/ma-contracts')) {
+                    if (hideRoutine && item.method === 'GET' && (
+                        item.path === '/api/v1/jobs' || 
+                        item.path === '/api/ma-contracts' || 
+                        item.path === '/api/v1/ma-contracts' ||
+                        item.path === '/api/ma-checklist-templates' ||
+                        item.path === '/api/v1/ma-checklist-templates'
+                    )) {
                         return false;
                     }
                     if (methodVal !== 'ALL' && item.method.toUpperCase() !== methodVal.toUpperCase()) {
@@ -14520,7 +14764,8 @@ const app = {
                     return;
                 }
 
-                tbody.innerHTML = filtered.map(log => {
+                tbody.innerHTML = filtered.map((log, idx) => {
+                    const isTopNew = idx === 0;
                     // Method badge styling
                     let methodBadgeClass = 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-300 border-zinc-500/30';
                     if (log.method === 'POST') methodBadgeClass = 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30';
@@ -14559,9 +14804,16 @@ const app = {
                     }
 
                     return `
-                        <tr class="hover:bg-muted/30 transition-colors border-b border-border">
+                        <tr class="hover:bg-muted/30 transition-colors border-b border-border ${isTopNew ? 'bg-indigo-500/[0.03]' : ''}">
                             <td class="py-3 px-4 font-mono text-[11px] text-foreground font-medium whitespace-nowrap">
-                                ${timeStr}
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span>${timeStr}</span>
+                                    ${isTopNew ? `
+                                        <span class="badge-new-item text-[8px] py-0 px-1.5" title="บันทึก API ล่าสุด (NEW!)">
+                                            <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                        </span>
+                                    ` : ''}
+                                </div>
                             </td>
                             <td class="py-3 px-3 whitespace-nowrap">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${methodBadgeClass}">
