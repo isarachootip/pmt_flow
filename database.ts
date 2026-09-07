@@ -123,7 +123,12 @@ export async function initDatabase(): Promise<boolean> {
         ADD COLUMN IF NOT EXISTS pmt_accepted_at TIMESTAMP WITH TIME ZONE,
         ADD COLUMN IF NOT EXISTS step3_confirmed BOOLEAN DEFAULT FALSE,
         ADD COLUMN IF NOT EXISTS qc_inspection_type VARCHAR(50),
-        ADD COLUMN IF NOT EXISTS qc_passed_at TIMESTAMP WITH TIME ZONE;
+        ADD COLUMN IF NOT EXISTS qc_passed_at TIMESTAMP WITH TIME ZONE,
+        ADD COLUMN IF NOT EXISTS csat_score NUMERIC DEFAULT NULL,
+        ADD COLUMN IF NOT EXISTS csat_remarks TEXT,
+        ADD COLUMN IF NOT EXISTS csat_photos JSONB DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS csat_surveyor VARCHAR(150),
+        ADD COLUMN IF NOT EXISTS csat_evaluated_at TIMESTAMP WITH TIME ZONE;
 
       ALTER TABLE core_daily_work_logs
         ADD COLUMN IF NOT EXISTS additional_details TEXT,
@@ -336,6 +341,11 @@ export function mapDbJobRow(row: any): any {
     step3_confirmed: Boolean(row.step3_confirmed),
     qc_inspection_type: row.qc_inspection_type || null,
     qc_passed_at: row.qc_passed_at || null,
+    csat_score: row.csat_score !== null && row.csat_score !== undefined ? Number(row.csat_score) : null,
+    csat_remarks: row.csat_remarks || '',
+    csat_photos: Array.isArray(row.csat_photos) ? row.csat_photos : [],
+    csat_surveyor: row.csat_surveyor || '',
+    csat_evaluated_at: row.csat_evaluated_at || null,
     job_type: row.job_type || 'quick',
     step_timestamps: row.step_timestamps || {},
     created_at: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
@@ -477,16 +487,16 @@ export async function dbUpdateJob(jobNoOrId: string | number, updates: any): Pro
     const values: any[] = [];
     let idx = 1;
 
-    const jsonbFields = ['step_timestamps', 'services', 'customer_data', 'tasks', 'photos', 'boq_items'];
+    const jsonbFields = ['step_timestamps', 'services', 'customer_data', 'tasks', 'photos', 'boq_items', 'csat_photos'];
     const stringFields = [
       'external_ref_id', 'booking_no', 'ticket_no', 'status', 'job_type',
       'property_type', 'project_type', 'project_sub_type', 'store_code',
       'agent_name', 'assigned_tech', 'plan_date', 'special_instructions',
-      'additional_notes', 'qc_inspection_type'
+      'additional_notes', 'qc_inspection_type', 'csat_remarks', 'csat_surveyor'
     ];
-    const numFields = ['customer_id', 'overall_progress', 'boq_discount', 'boq_subtotal', 'boq_grand_total'];
+    const numFields = ['customer_id', 'overall_progress', 'boq_discount', 'boq_subtotal', 'boq_grand_total', 'csat_score'];
     const boolFields = ['pmt_accepted', 'step3_confirmed'];
-    const dateFields = ['pmt_accepted_at', 'qc_passed_at'];
+    const dateFields = ['pmt_accepted_at', 'qc_passed_at', 'csat_evaluated_at'];
 
     for (const [key, val] of Object.entries(updates)) {
       if (val === undefined) continue;

@@ -35,7 +35,11 @@ const app = {
                 dailyLogSelectedTaskId: 'T_JOB202609002_1',
                 dailyLogPhotoSlots: [null, null, null, null, null],
                 currentDailyLogStartTime: '08:30',
-                currentDailyLogEndTime: '17:00'
+                currentDailyLogEndTime: '17:00',
+                csatFilter: 'all',
+                csatServiceFilter: 'all',
+                csatEvaluatingJobId: null,
+                csatPhotos: []
             },
 
             logout() {
@@ -10077,11 +10081,37 @@ const app = {
 
             formatDateDMY(dateStr) {
                 if (!dateStr) return '-';
-                const parts = String(dateStr).split('-');
-                if (parts.length === 3) {
-                    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-                }
-                return dateStr;
+                try {
+                    const cleanDate = String(dateStr).split('T')[0];
+                    const parts = cleanDate.split('-');
+                    if (parts.length === 3 && parts[0].length === 4) {
+                        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    }
+                    const d = new Date(dateStr);
+                    if (!isNaN(d.getTime())) {
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const year = d.getFullYear();
+                        return `${day}/${month}/${year}`;
+                    }
+                } catch(e) {}
+                return String(dateStr);
+            },
+
+            formatDateTimeDMY(isoStr) {
+                if (!isoStr) return '-';
+                try {
+                    const d = new Date(isoStr);
+                    if (!isNaN(d.getTime())) {
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const year = d.getFullYear();
+                        const hours = String(d.getHours()).padStart(2, '0');
+                        const minutes = String(d.getMinutes()).padStart(2, '0');
+                        return `${day}/${month}/${year} ${hours}:${minutes} น.`;
+                    }
+                } catch(e) {}
+                return String(isoStr);
             },
 
             calculateQCBookingDate(endDateStr, daysBefore = 5) {
@@ -13785,56 +13815,178 @@ const app = {
 
             setCSATFilter(filter) {
                 this.state.csatFilter = filter;
-                ['all', 'pending', 'completed'].forEach(f => {
+                ['all', 'today', 'pending', 'completed'].forEach(f => {
                     const btn = document.getElementById(`csat-tab-${f}`);
                     if (btn) {
                         if (f === filter) {
-                            btn.classList.add('bg-card', 'text-foreground', 'shadow-sm');
-                            btn.classList.remove('text-muted-foreground');
+                            btn.className = 'px-3 py-1 rounded-lg text-xs font-semibold bg-card text-foreground shadow-xs transition';
                         } else {
-                            btn.classList.remove('bg-card', 'text-foreground', 'shadow-sm');
-                            btn.classList.add('text-muted-foreground');
+                            btn.className = 'px-3 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground transition';
                         }
                     }
                 });
                 this.renderCSAT();
             },
 
+            setCSATServiceFilter(service) {
+                this.state.csatServiceFilter = service;
+                const selectEl = document.getElementById('csat-service-filter');
+                if (selectEl) selectEl.value = service;
+
+                // Highlight active segment card
+                ['quick', 'renovate', 'ma'].forEach(cat => {
+                    const card = document.getElementById(`csat-dist-card-${cat}`);
+                    if (card) {
+                        if (service === cat) {
+                            card.classList.add('ring-2', 'ring-brand-500', 'bg-muted/80');
+                        } else {
+                            card.classList.remove('ring-2', 'ring-brand-500', 'bg-muted/80');
+                        }
+                    }
+                });
+                this.renderCSAT();
+            },
+
+            isJobTodayCSAT(job, todayStr) {
+                if (!job) return false;
+                const tToday = todayStr || new Date().toISOString().slice(0, 10);
+                const qcPassedAt = job.qc_passed_at || (job.step_timestamps && job.step_timestamps.qc_passed_at);
+                if (qcPassedAt && String(qcPassedAt).startsWith(tToday)) return true;
+                if (job.date && String(job.date).startsWith(tToday)) return true;
+                return false;
+            },
+
             renderCSAT() {
                 const allEligible = (DB.jobs || []).filter(j => j.status === 'QC_PASSED' || j.status === 'AFTER_SALE' || j.status === 'CLOSED');
-                const pendingJobs = (DB.jobs || []).filter(j => j.status === 'QC_PASSED');
-                const completedJobs = (DB.jobs || []).filter(j => j.status === 'AFTER_SALE' || j.status === 'CLOSED');
+                const todayStr = new Date().toISOString().slice(0, 10);
 
-                // Update KPI stats on CSAT page
+                const pendingJobs = allEligible.filter(j => j.status === 'QC_PASSED');
+                const completedJobs = allEligible.filter(j => j.status === 'AFTER_SALE' || j.status === 'CLOSED');
+                const todayJobs = allEligible.filter(j => this.isJobTodayCSAT(j, todayStr));
+
+                // 1. Calculate CSAT Average Score (0 - 5.0)
+                const evaluatedScores = completedJobs
+                    .map(j => (j.csat_score !== undefined && j.csat_score !== null) ? Number(j.csat_score) : 5)
+                    .filter(score => !isNaN(score));
+                
+                let avgScoreText = '0.0';
+                if (evaluatedScores.length > 0) {
+                    const sum = evaluatedScores.reduce((acc, curr) => acc + curr, 0);
+                    avgScoreText = (sum / evaluatedScores.length).toFixed(2);
+                } else if (completedJobs.length > 0) {
+                    avgScoreText = '5.0';
+                }
+
+                // 2. Update 4 CSAT KPI Cards
+                const elTotal = document.getElementById('csat-stat-total');
+                if (elTotal) elTotal.innerText = allEligible.length;
+                const elToday = document.getElementById('csat-stat-today');
+                if (elToday) elToday.innerText = todayJobs.length;
                 const elPending = document.getElementById('csat-stat-pending');
                 if (elPending) elPending.innerText = pendingJobs.length;
                 const elCompleted = document.getElementById('csat-stat-completed');
                 if (elCompleted) elCompleted.innerText = completedJobs.length;
                 const elAvg = document.getElementById('csat-stat-avg');
-                if (elAvg) elAvg.innerText = '4.92';
+                if (elAvg) elAvg.innerText = avgScoreText;
+                const elRespRate = document.getElementById('csat-stat-response-rate');
+                if (elRespRate) {
+                    elRespRate.innerText = allEligible.length > 0 ? `${Math.round((completedJobs.length / allEligible.length) * 100)}%` : '100%';
+                }
 
-                // Update sidebar badge
+                // 3. Update Sidebar Badge
                 const sidebarCsat = document.getElementById('sidebar-csat-count');
                 if (sidebarCsat) {
                     sidebarCsat.innerText = pendingJobs.length;
                     sidebarCsat.style.display = pendingJobs.length > 0 ? '' : 'none';
                 }
 
+                // 4. Update Segment Distribution Summary (Quick, Renovate, MA, Done)
+                const totalCount = allEligible.length;
+                const quickCount = allEligible.filter(j => (j.job_type === 'quick' || !j.job_type)).length;
+                const renovateCount = allEligible.filter(j => j.job_type === 'renovate').length;
+                const maCount = allEligible.filter(j => j.job_type === 'ma').length;
+                const doneCount = completedJobs.length;
+
+                const setElemText = (id, txt) => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerText = txt;
+                };
+
+                setElemText('csat-dist-quick-count', quickCount);
+                setElemText('csat-dist-quick-pct', totalCount > 0 ? `${Math.round((quickCount / totalCount) * 100)}%` : '0%');
+                setElemText('csat-dist-renovate-count', renovateCount);
+                setElemText('csat-dist-renovate-pct', totalCount > 0 ? `${Math.round((renovateCount / totalCount) * 100)}%` : '0%');
+                setElemText('csat-dist-ma-count', maCount);
+                setElemText('csat-dist-ma-pct', totalCount > 0 ? `${Math.round((maCount / totalCount) * 100)}%` : '0%');
+                setElemText('csat-dist-done-count', doneCount);
+                setElemText('csat-dist-done-pct', totalCount > 0 ? `${Math.round((doneCount / totalCount) * 100)}%` : '0%');
+
+                const ratioLabel = document.getElementById('csat-dist-ratio-label');
+                if (ratioLabel) {
+                    ratioLabel.innerText = `รวม ${totalCount} งานใน CSAT`;
+                }
+
+                // 5. Apply Status Filter
                 const curFilter = this.state.csatFilter || 'all';
                 let filtered = allEligible;
-                if (curFilter === 'pending') filtered = pendingJobs;
-                else if (curFilter === 'completed') filtered = completedJobs;
+                if (curFilter === 'today') {
+                    filtered = todayJobs;
+                } else if (curFilter === 'pending') {
+                    filtered = pendingJobs;
+                } else if (curFilter === 'completed') {
+                    filtered = completedJobs;
+                }
 
+                // 6. Apply Service Filter
+                const serviceFilter = this.state.csatServiceFilter || 'all';
+                if (serviceFilter !== 'all') {
+                    if (serviceFilter === 'quick') {
+                        filtered = filtered.filter(j => (j.job_type === 'quick' || !j.job_type));
+                    } else if (serviceFilter === 'renovate') {
+                        filtered = filtered.filter(j => j.job_type === 'renovate');
+                    } else if (serviceFilter === 'ma') {
+                        filtered = filtered.filter(j => j.job_type === 'ma');
+                    }
+                }
+
+                // 7. Apply Search Keyword Filter
+                const searchInput = document.getElementById('csat-search-input');
+                const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+                if (query) {
+                    filtered = filtered.filter(j => {
+                        const id = String(j.id || '').toLowerCase();
+                        const cust = String(j.customer || '').toLowerCase();
+                        const phone = String(j.phone || '').toLowerCase();
+                        const srv = String(j.service || '').toLowerCase();
+                        const remarks = String(j.csat_remarks || '').toLowerCase();
+                        return id.includes(query) || cust.includes(query) || phone.includes(query) || srv.includes(query) || remarks.includes(query);
+                    });
+                }
+
+                // 8. Update Table Count Summary
                 const summaryEl = document.getElementById('csat-count-summary');
                 if (summaryEl) {
-                    summaryEl.innerText = `แสดง ${filtered.length} รายการ (รอโทรประเมิน ${pendingJobs.length} งาน)`;
+                    summaryEl.innerText = `แสดง ${filtered.length} รายการ (รอโทร ${pendingJobs.length} | ผ่าน QC วันนี้ ${todayJobs.length})`;
                 }
 
                 const container = document.getElementById('csat-table-body');
                 if (!container) return;
 
                 if (filtered.length === 0) {
-                    container.innerHTML = '<tr><td colspan="6" class="px-5 py-8 text-center text-muted-foreground">ไม่มีรายการในหมวดนี้</td></tr>';
+                    container.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="px-5 py-12 text-center text-muted-foreground">
+                                <div class="flex flex-col items-center justify-center gap-2">
+                                    <span class="text-3xl">📭</span>
+                                    <p class="font-medium text-foreground text-sm">ไม่มีรายการงานในหมวดหมู่นี้</p>
+                                    <p class="text-xs text-muted-foreground">คลิกปุ่มด้านล่างเพื่อจำลองข้อมูลงานผ่าน QC เข้าสู่ CSAT ได้ทันที</p>
+                                    <button onclick="app.seedCSATDemoJobs()" class="mt-2 btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm cursor-pointer">
+                                        <i class="ph ph-sparkle-fill"></i> จำลองงานเข้า CSAT (Demo Jobs)
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
                     return;
                 }
 
@@ -13843,55 +13995,587 @@ const app = {
 
                 container.innerHTML = sortedFiltered.map((j, idx) => {
                     const isEvaluated = (j.status === 'AFTER_SALE' || j.status === 'CLOSED');
-                    const isTopNew = this.isTopLatestJob(j.id, sortedFiltered, 1);
+                    const isToday = this.isJobTodayCSAT(j, todayStr);
+                    const isTopNew = this.isTopLatestJob(j.id, sortedFiltered, 1) || (isToday && j.status === 'QC_PASSED');
+
+                    // Service Type badge
+                    const jt = (j.job_type || 'quick').toUpperCase();
+                    let badgeClass = 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20';
+                    let badgeText = 'QUICK SERVICES';
+                    if (jt === 'RENOVATE') {
+                        badgeClass = 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/20';
+                        badgeText = 'RENOVATE';
+                    } else if (jt === 'MA') {
+                        badgeClass = 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/20';
+                        badgeText = 'MA & MAINTENANCE';
+                    }
+
+                    // CSAT Score rendering
+                    let scoreHtml = '';
+                    if (isEvaluated) {
+                        const score = (j.csat_score !== undefined && j.csat_score !== null) ? Number(j.csat_score) : 5;
+                        if (score === 0) {
+                            scoreHtml = `
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="px-2 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400 font-mono font-bold text-[11px] border border-rose-500/25">⚠️ 0.0 / 5.0</span>
+                                    </div>
+                                    <div class="text-[10px] text-rose-500 font-semibold mt-0.5">ไม่พอใจอย่างยิ่ง / มีปัญหา</div>
+                                </div>
+                            `;
+                        } else {
+                            let stars = '';
+                            for (let s = 1; s <= 5; s++) {
+                                if (s <= score) {
+                                    stars += '<i class="ph ph-star-fill"></i>';
+                                } else {
+                                    stars += '<i class="ph ph-star text-muted-foreground/30"></i>';
+                                }
+                            }
+                            scoreHtml = `
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="flex text-amber-400 text-xs gap-0.5">${stars}</div>
+                                        <span class="text-xs font-bold text-amber-500 font-mono">${score}.0</span>
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        // Photo badge if attached
+                        if (j.csat_photos && j.csat_photos.length > 0) {
+                            scoreHtml += `
+                                <button type="button" onclick="app.viewCSATPhotos('${j.id}')" class="mt-1 inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition cursor-pointer font-medium" title="คลิกดูรูปถ่ายประเมิน">
+                                    <i class="ph ph-image"></i> ${j.csat_photos.length} รูปถ่าย
+                                </button>
+                            `;
+                        }
+
+                        // Remarks snippet
+                        if (j.csat_remarks) {
+                            scoreHtml += `<div class="text-[11px] text-muted-foreground line-clamp-1 italic mt-0.5 max-w-[220px]" title="${j.csat_remarks}">"${j.csat_remarks}"</div>`;
+                        }
+                    } else {
+                        scoreHtml = `
+                            <span class="text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg text-[11px] font-medium inline-flex items-center gap-1.5">
+                                <i class="ph ph-phone-call animate-pulse"></i> รอโทรประเมิน
+                            </span>
+                        `;
+                    }
+
+                    // Action buttons
+                    let actionHtml = '';
+                    if (!isEvaluated) {
+                        actionHtml = `
+                            <button class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 ml-auto shadow-xs cursor-pointer hover:scale-105 transition-transform" onclick="app.openCSATModal('${j.id}')">
+                                <i class="ph ph-phone-call"></i> โทรประเมิน (0-5 ดาว)
+                            </button>
+                        `;
+                    } else {
+                        actionHtml = `
+                            <div class="flex items-center justify-end gap-1.5 flex-wrap">
+                                <button class="btn-artifact-secondary px-2.5 py-1 text-[11px] rounded-lg text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer" onclick="app.openCSATModal('${j.id}')" title="ดูรายละเอียดหรือแก้ไขผลประเมิน">
+                                    <i class="ph ph-pencil-simple"></i> ดู/แก้ไข
+                                </button>
+                                ${j.status === 'CLOSED' ? `
+                                    <span class="text-emerald-500 text-[11px] font-medium flex items-center gap-1">
+                                        <i class="ph ph-check-circle"></i> ปิดงาน BMT
+                                    </span>
+                                ` : `
+                                    <button class="btn-artifact-primary px-3 py-1 text-[11px] rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 flex items-center gap-1 shadow-xs cursor-pointer" onclick="app.closeJob('${j.id}')" title="ปิดงานส่งต่อระบบ BMT">
+                                        <i class="ph ph-check"></i> ปิดงาน BMT
+                                    </button>
+                                `}
+                                <button class="btn-artifact-secondary px-2 py-1 text-[11px] rounded-lg text-indigo-500 hover:bg-indigo-500/10 cursor-pointer" onclick="app.navigate('ma-contracts')" title="ไปยังบริการหลังการขาย & สัญญา MA">
+                                    MA ➔
+                                </button>
+                            </div>
+                        `;
+                    }
+
                     return `
-                        <tr class="hover:bg-muted/40 transition-colors ${isTopNew ? 'bg-rose-500/[0.02]' : ''}">
-                            <td class="px-5 py-4 font-mono font-semibold text-brand-500 cursor-pointer" onclick="app.navigate('job-detail', '${j.id}')">
-                                <div class="flex items-center gap-1.5 flex-wrap">
-                                    <span>${j.id}</span>
+                        <tr class="hover:bg-muted/40 transition-colors ${isTopNew ? 'bg-rose-500/[0.03]' : ''}">
+                            <td class="px-5 py-4 font-mono font-semibold text-brand-500">
+                                <div class="flex flex-col items-start gap-1">
+                                    <span class="cursor-pointer hover:underline" onclick="app.navigate('job-detail', '${j.id}')">${j.id}</span>
                                     ${isTopNew ? `
-                                        <span class="badge-new-item text-[8px] py-0 px-1.5" title="สถานะล่าสุด (NEW!)">
+                                        <span class="badge-new-item" title="สถานะล่าสุด (NEW!)">
                                             <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
                                         </span>
                                     ` : ''}
                                 </div>
                             </td>
                             <td class="px-5 py-4">
-                                <div class="text-foreground font-medium flex items-center gap-1">
-                                    <span>${j.customer}</span>
-                                    ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="สถานะล่าสุด"></span>` : ''}
+                                <div class="text-foreground font-medium flex items-center gap-1.5">
+                                    <span>${j.customer || '-'}</span>
+                                    ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="งานเข้าใหม่"></span>` : ''}
                                 </div>
-                                <div class="text-[11px] text-muted-foreground font-mono">${j.phone}</div>
+                                <div class="text-[11px] text-muted-foreground font-mono flex items-center gap-1 mt-0.5">
+                                    <i class="ph ph-phone"></i> <span>${j.phone || '-'}</span>
+                                </div>
+                                <div class="text-[11px] text-muted-foreground/80 line-clamp-1 max-w-[200px] mt-0.5" title="${j.address || ''}">${j.address || '-'}</div>
                             </td>
-                            <td class="px-5 py-4 text-muted-foreground">${j.service}</td>
-                            <td class="px-5 py-4 text-muted-foreground font-mono">📅 ${this.formatDateDMY(j.date)}</td>
                             <td class="px-5 py-4">
-                                ${isEvaluated ? 
-                                '<div class="flex items-center gap-1.5"><div class="flex text-amber-400 text-sm gap-0.5"><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i></div><span class="text-[11px] font-bold text-amber-500 font-mono">5.0</span></div>' : 
-                                '<span class="text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded text-[11px] font-medium inline-flex items-center gap-1"><i class="ph ph-phone"></i> รอโทรสัมภาษณ์</span>'}
+                                <div class="space-y-1">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${badgeClass}">${badgeText}</span>
+                                    <div class="text-xs text-muted-foreground line-clamp-2 max-w-[260px]" title="${j.service || ''}">${j.service || '-'}</div>
+                                </div>
+                            </td>
+                            <td class="px-5 py-4 font-mono text-xs text-muted-foreground">
+                                <div class="flex items-center gap-1 text-foreground">
+                                    <i class="ph ph-calendar-check text-emerald-500"></i>
+                                    <span>${this.formatDateDMY(j.qc_passed_at || j.date)}</span>
+                                </div>
+                                ${isToday ? `
+                                    <span class="mt-1 inline-block px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-mono">
+                                        เข้าวันนี้
+                                    </span>
+                                ` : ''}
+                            </td>
+                            <td class="px-5 py-4">
+                                ${scoreHtml}
                             </td>
                             <td class="px-5 py-4 text-right">
-                                ${j.status === 'CLOSED' ? 
-                                '<div class="flex items-center justify-end gap-2"><span class="text-emerald-500 text-xs font-medium"><i class="ph ph-check"></i> ปิดงาน (BMT)</span><button class="btn-artifact-secondary px-2.5 py-1 text-[11px] rounded" onclick="app.navigate(\'ma-contracts\')">บริการหลังการขาย ➔</button></div>' :
-                                (j.status === 'AFTER_SALE' ? 
-                                '<div class="flex items-center justify-end gap-2"><button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs" onclick="app.closeJob(\''+j.id+'\')">Close & ส่ง BMT</button><button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs" onclick="app.navigate(\'ma-contracts\')">บริการหลังการขาย ➔</button></div>' : 
-                                '<button class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 ml-auto font-medium" onclick="app.markCSAT(\''+j.id+'\')"><i class="ph ph-phone-call"></i> บันทึกโทร (5 ดาว)</button>')
-                                }
+                                ${actionHtml}
                             </td>
                         </tr>
                     `;
                 }).join('');
             },
 
-            markCSAT(id) {
-                const job = DB.jobs.find(j => j.id === id);
-                if(job) {
-                    job.status = 'AFTER_SALE';
-                    this.showToast(`บันทึกผลการประเมิน CSAT 5 ดาว สำหรับ ${id} แล้ว ส่งต่องานเข้าสู่บริการหลังการขาย`);
-                    this.renderCSAT();
-                    if(this.state.currentView === 'job-detail') this.renderJobDetail();
-                    if(this.state.currentView === 'dashboard') this.renderDashboard();
+            openCSATModal(jobId) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) {
+                    this.showToast('⚠️ ไม่พบข้อมูลงาน ' + jobId);
+                    return;
                 }
+                this.state.csatEvaluatingJobId = jobId;
+
+                // Summary elements
+                const elJobId = document.getElementById('csat-modal-job-id');
+                if (elJobId) elJobId.innerText = job.id;
+                const elCustomer = document.getElementById('csat-modal-customer');
+                if (elCustomer) elCustomer.innerText = job.customer || '-';
+                const elPhone = document.getElementById('csat-modal-phone');
+                if (elPhone) elPhone.innerText = job.phone || '-';
+                const elServiceText = document.getElementById('csat-modal-service-text');
+                if (elServiceText) elServiceText.innerText = job.service || '-';
+                const elAddress = document.getElementById('csat-modal-address');
+                if (elAddress) elAddress.innerText = `ที่อยู่หน้างาน: ${job.address || '-'}`;
+                const elQcDate = document.getElementById('csat-modal-qc-date');
+                if (elQcDate) elQcDate.innerText = `📅 ผ่าน QC: ${this.formatDateDMY(job.qc_passed_at || job.date)}`;
+
+                // Service badge
+                const elBadge = document.getElementById('csat-modal-service-badge');
+                if (elBadge) {
+                    const jt = (job.job_type || 'quick').toUpperCase();
+                    if (jt === 'RENOVATE') {
+                        elBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20';
+                        elBadge.innerText = 'RENOVATE';
+                    } else if (jt === 'MA') {
+                        elBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/20';
+                        elBadge.innerText = 'MA & MAINTENANCE';
+                    } else {
+                        elBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20';
+                        elBadge.innerText = 'QUICK SERVICES';
+                    }
+                }
+
+                // Initial score
+                const initialScore = (job.csat_score !== undefined && job.csat_score !== null) ? Number(job.csat_score) : 5;
+                this.selectCSATScore(initialScore);
+
+                // Initial photos
+                this.state.csatPhotos = Array.isArray(job.csat_photos) ? JSON.parse(JSON.stringify(job.csat_photos)) : [];
+                this.renderCSATModalPhotos();
+
+                // Initial feedback and remarks
+                const feedbackEl = document.getElementById('csat-feedback-text');
+                if (feedbackEl) feedbackEl.value = job.csat_remarks || '';
+                const remarksEl = document.getElementById('csat-remarks-text');
+                if (remarksEl) remarksEl.value = job.additional_notes || '';
+
+                // Surveyor & Datetime (24-hour DD/MM/YYYY HH:mm น.)
+                const surveyorEl = document.getElementById('csat-surveyor-input');
+                if (surveyorEl) {
+                    const currentUser = (window.auth && window.auth.user && window.auth.user.name) || 'Contact Center Officer';
+                    surveyorEl.value = job.csat_surveyor || currentUser;
+                }
+                const dtEl = document.getElementById('csat-datetime-input');
+                if (dtEl) {
+                    if (job.csat_evaluated_at) {
+                        dtEl.value = this.formatDateTimeDMY(job.csat_evaluated_at);
+                    } else {
+                        dtEl.value = this.formatDateTimeDMY(new Date().toISOString());
+                    }
+                }
+
+                this.showModal('modal-csat-eval');
+            },
+
+            selectCSATScore(score) {
+                score = Number(score);
+                if (isNaN(score) || score < 0) score = 0;
+                if (score > 5) score = 5;
+                const inputEl = document.getElementById('csat-current-score');
+                if (inputEl) inputEl.value = score;
+
+                // Update 6 score buttons
+                const scoreDescs = {
+                    0: { text: '0.0 - ไม่พึงพอใจอย่างยิ่ง / ปัญหาหนัก', class: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30', exp: 'ลูกค้าไม่พึงพอใจอย่างยิ่ง หรือมีข้อร้องเรียนเกี่ยวกับคุณภาพงาน/การบริการ ต้องส่งเรื่องแก้ไขด่วน' },
+                    1: { text: '1.0 - ต้องปรับปรุงมาก / ต่ำกว่าเกณฑ์', class: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30', exp: 'มีจุดบกพร่องหลายจุด หรือการบริการไม่เป็นไปตามข้อตกลง ต้องติดตามปรับปรุง' },
+                    2: { text: '2.0 - พอใช้ / มีจุดต้องแก้ไข', class: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30', exp: 'งานผ่านเกณฑ์ขั้นต่ำ แต่ลูกค้ายังไม่ประทับใจ มีข้อเสนอแนะให้ปรับปรุง' },
+                    3: { text: '3.0 - ปานกลาง / ตามมาตรฐาน', class: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30', exp: 'ส่งมอบงานได้ตรงตามมาตรฐานทั่วไป ไม่พบข้อบกพร่องสำคัญ' },
+                    4: { text: '4.0 - ดีมาก / พึงพอใจ', class: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30', exp: 'ลูกค้ามีความพึงพอใจในคุณภาพงานและการให้บริการของทีมช่างเป็นอย่างดี' },
+                    5: { text: '5.0 - ยอดเยี่ยม ดีเลิศ', class: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30', exp: 'ลูกค้าพึงพอใจสูงสุด ยินดีแนะนำบอกต่อ และพร้อมต่อยอดสู่สัญญาบริการ MA' }
+                };
+
+                for (let s = 0; s <= 5; s++) {
+                    const btn = document.getElementById(`csat-btn-score-${s}`);
+                    if (btn) {
+                        if (s === score) {
+                            btn.className = `csat-score-btn p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition cursor-pointer shadow-xs ${
+                                s === 0 ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/10 text-rose-600' :
+                                s <= 2 ? 'border-orange-500 ring-2 ring-orange-500/20 bg-orange-500/10 text-orange-600' :
+                                s === 3 ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/10 text-amber-600' :
+                                s === 4 ? 'border-teal-500 ring-2 ring-teal-500/20 bg-teal-500/10 text-teal-600' :
+                                'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/10 text-emerald-600'
+                            }`;
+                        } else {
+                            btn.className = 'csat-score-btn p-2 rounded-xl border border-border hover:border-muted-foreground/40 flex flex-col items-center justify-center gap-1 transition cursor-pointer bg-card text-foreground';
+                        }
+                    }
+                }
+
+                // Update badge & explanation
+                const info = scoreDescs[score] || scoreDescs[5];
+                const badgeEl = document.getElementById('csat-score-desc-badge');
+                if (badgeEl) {
+                    badgeEl.className = `px-2.5 py-0.5 rounded-full font-bold text-[11px] border ${info.class}`;
+                    badgeEl.innerText = info.text;
+                }
+                const expEl = document.getElementById('csat-score-explanation');
+                if (expEl) {
+                    expEl.innerText = info.exp;
+                }
+
+                // Update stars visual
+                const starsContainer = document.getElementById('csat-interactive-stars');
+                if (starsContainer) {
+                    let starsHtml = '';
+                    for (let i = 1; i <= 5; i++) {
+                        if (score === 0) {
+                            starsHtml += `<i class="ph ph-star text-muted-foreground/30 hover:scale-110 transition cursor-pointer" onclick="app.selectCSATScore(${i})" title="${i} ดาว"></i>`;
+                        } else if (i <= score) {
+                            starsHtml += `<i class="ph ph-star-fill text-amber-400 hover:scale-110 transition cursor-pointer" onclick="app.selectCSATScore(${i})" title="${i} ดาว"></i>`;
+                        } else {
+                            starsHtml += `<i class="ph ph-star text-muted-foreground/30 hover:scale-110 transition cursor-pointer" onclick="app.selectCSATScore(${i})" title="${i} ดาว"></i>`;
+                        }
+                    }
+                    starsContainer.innerHTML = starsHtml;
+                }
+            },
+
+            renderCSATModalPhotos() {
+                const container = document.getElementById('csat-photos-container');
+                const label = document.getElementById('csat-photo-count-label');
+                if (!container) return;
+                const photos = this.state.csatPhotos || [];
+                if (label) label.innerText = `(${photos.length} รูป)`;
+
+                if (photos.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full text-center text-muted-foreground py-4" id="csat-photos-empty">
+                            <i class="ph ph-image text-2xl text-muted-foreground/40 block mb-1"></i>
+                            <span>ยังไม่มีรูปภาพประกอบ (สามารถคลิก "+ แนบรูปถ่าย" หรือ "ดึงรูปจาก QC")</span>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = photos.map((p, idx) => `
+                    <div class="relative group rounded-xl overflow-hidden border border-border bg-card shadow-xs aspect-video flex items-center justify-center">
+                        <img src="${p.url}" alt="${p.name || 'CSAT Photo'}" class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform" onclick="app.showLightbox('${p.url}', '${p.name || 'รูปถ่ายผลการประเมิน CSAT'}', 'CSAT Review Photo', 'แนบประกอบการประเมินความพึงพอใจลูกค้า', '${p.uploaded_at ? app.formatDateTimeDMY(p.uploaded_at) : 'ล่าสุด'}')">
+                        <button type="button" onclick="app.removeCSATPhoto(${idx})" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/70 hover:bg-rose-600 text-white flex items-center justify-center text-xs transition shadow-sm cursor-pointer" title="ลบรูปภาพ">
+                            <i class="ph ph-trash"></i>
+                        </button>
+                        <div class="absolute bottom-0 inset-x-0 bg-black/60 backdrop-blur-xs p-1 text-[9px] text-white truncate px-1.5 font-mono">
+                            ${p.name || `รูปที่ ${idx + 1}`}
+                        </div>
+                    </div>
+                `).join('');
+            },
+
+            handleCSATPhotoSelect(event) {
+                const files = event.target.files;
+                if (!files || files.length === 0) return;
+                let loaded = 0;
+                Array.from(files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        if (!this.state.csatPhotos) this.state.csatPhotos = [];
+                        this.state.csatPhotos.push({
+                            id: `csat_p_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                            name: file.name,
+                            url: e.target.result,
+                            uploaded_at: new Date().toISOString()
+                        });
+                        loaded++;
+                        if (loaded === files.length) {
+                            this.renderCSATModalPhotos();
+                            this.showToast(`📷 แนบรูปภาพสำเร็จ ${files.length} รูป`);
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                });
+                event.target.value = '';
+            },
+
+            removeCSATPhoto(index) {
+                if (!this.state.csatPhotos) return;
+                this.state.csatPhotos.splice(index, 1);
+                this.renderCSATModalPhotos();
+                this.showToast('🗑️ ลบรูปภาพเรียบร้อย');
+            },
+
+            pullQCPhotosToCSAT() {
+                const jobId = this.state.csatEvaluatingJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+                let qcPhotos = [];
+                if (Array.isArray(job.photos) && job.photos.length > 0) {
+                    qcPhotos = job.photos;
+                } else if (typeof this.getSampleVisitPlanPhotos === 'function') {
+                    qcPhotos = this.getSampleVisitPlanPhotos(job);
+                }
+                if (qcPhotos.length === 0) {
+                    this.showToast('ℹ️ ไม่พบรูปภาพจากขั้นตอน QC');
+                    return;
+                }
+                if (!this.state.csatPhotos) this.state.csatPhotos = [];
+                qcPhotos.forEach(p => {
+                    this.state.csatPhotos.push({
+                        id: `csat_qc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                        name: p.title || 'รูปถ่ายหน้างาน QC',
+                        url: p.url,
+                        uploaded_at: p.uploaded_at || new Date().toISOString()
+                    });
+                });
+                this.renderCSATModalPhotos();
+                this.showToast(`🔄 ดึงรูปถ่ายจากขั้นตอน QC เข้ามาแล้ว ${qcPhotos.length} รูป`);
+            },
+
+            viewCSATPhotos(jobId) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job || !job.csat_photos || job.csat_photos.length === 0) {
+                    this.showToast('ℹ️ ไม่มีรูปภาพแนบในงานนี้');
+                    return;
+                }
+                const first = job.csat_photos[0];
+                this.showLightbox(
+                    first.url,
+                    first.name || `ภาพประกอบ CSAT (${job.id})`,
+                    `CSAT: ${job.csat_score !== undefined ? job.csat_score : 5} ★`,
+                    job.csat_remarks || 'รูปถ่ายประกอบการประเมินความพึงพอใจลูกค้า',
+                    this.formatDateTimeDMY(first.uploaded_at || job.csat_evaluated_at || new Date().toISOString())
+                );
+            },
+
+            appendCSATTag(tagText) {
+                const feedbackEl = document.getElementById('csat-feedback-text');
+                if (feedbackEl) {
+                    const current = feedbackEl.value.trim();
+                    feedbackEl.value = current ? `${current}, ${tagText}` : tagText;
+                    feedbackEl.focus();
+                }
+            },
+
+            submitCSATEvaluation(closeNow = false) {
+                const jobId = this.state.csatEvaluatingJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) {
+                    this.showToast('⚠️ ไม่พบข้อมูลงาน');
+                    return;
+                }
+
+                const scoreInput = document.getElementById('csat-current-score');
+                const score = scoreInput ? Number(scoreInput.value) : 5;
+                const feedbackEl = document.getElementById('csat-feedback-text');
+                const feedback = feedbackEl ? feedbackEl.value.trim() : '';
+                const remarksEl = document.getElementById('csat-remarks-text');
+                const remarks = remarksEl ? remarksEl.value.trim() : '';
+                const surveyorEl = document.getElementById('csat-surveyor-input');
+                const surveyor = surveyorEl ? surveyorEl.value.trim() : 'Contact Center Officer';
+                const nowIso = new Date().toISOString();
+
+                // Save properties to job
+                job.csat_score = score;
+                job.csat_remarks = feedback;
+                job.additional_notes = remarks || job.additional_notes || '';
+                job.csat_photos = Array.isArray(this.state.csatPhotos) ? [...this.state.csatPhotos] : [];
+                job.csat_surveyor = surveyor;
+                job.csat_evaluated_at = nowIso;
+                job.progress = 100;
+
+                if (closeNow) {
+                    job.status = 'CLOSED';
+                    if (!job.bmt_ref) {
+                        job.bmt_ref = `BMT-REF-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+                    }
+                } else {
+                    job.status = 'AFTER_SALE';
+                }
+
+                if (!job.step_timestamps) job.step_timestamps = {};
+                job.step_timestamps.csat_at = nowIso;
+                if (closeNow) job.step_timestamps.closed_at = nowIso;
+
+                this.persistJobs();
+                this.updateStepBadges();
+
+                // Background API sync
+                fetch(`/api/v1/jobs/${job.id}/after-sale/csat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        csat_score: score,
+                        customer_feedback: feedback,
+                        csat_remarks: remarks,
+                        csat_photos: job.csat_photos,
+                        csat_surveyor: surveyor,
+                        csat_evaluated_at: nowIso,
+                        close_now: closeNow
+                    })
+                }).catch(() => {});
+
+                this.hideModal('modal-csat-eval');
+                const msg = closeNow
+                    ? `✅ บันทึกผล CSAT ${score} ดาว สำหรับ ${job.id} และปิดงานส่งต่อระบบ BMT เรียบร้อยแล้ว`
+                    : `⭐ บันทึกผลการประเมิน CSAT ${score} ดาว สำหรับ ${job.id} แล้ว ส่งต่องานเข้าสู่บริการหลังการขาย`;
+                this.showToast(msg);
+
+                this.renderCSAT();
+                if (this.state.currentView === 'job-detail') this.renderJobDetail();
+                if (this.state.currentView === 'dashboard') this.renderDashboard();
+                if (this.state.currentView === 'ma-contracts') this.renderMAContracts();
+            },
+
+            markCSAT(id) {
+                this.openCSATModal(id);
+            },
+
+            seedCSATDemoJobs() {
+                if (!DB.jobs) DB.jobs = [];
+                const todayIso = new Date().toISOString();
+                const todayStr = todayIso.slice(0, 10);
+                const sampleVisitPhotos = [
+                    { id: 'csat_demo_p1', name: 'รูปตรวจสอบระบบหลังส่งมอบ.jpg', url: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=800&auto=format&fit=crop&q=80', uploaded_at: todayIso },
+                    { id: 'csat_demo_p2', name: 'ภาพความเรียบร้อยของหน้างาน.jpg', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&auto=format&fit=crop&q=80', uploaded_at: todayIso }
+                ];
+
+                // Demo Job 1: Quick Services entered today (waiting for CSAT, NEW!)
+                let job1 = DB.jobs.find(j => j.id === 'JOB202609010');
+                if (!job1) {
+                    job1 = {
+                        id: 'JOB202609010',
+                        job_no: 'JOB202609010',
+                        customer: 'คุณเบญจวรรณ พัฒนศิริ',
+                        phone: '095-432-1098',
+                        address: '88/14 หมู่บ้านลัดดารมย์ ราชพฤกษ์ กรุงเทพฯ',
+                        service: 'ติดตั้งเครื่องชาร์จรถยนต์ไฟฟ้า EV Charger 22kW พร้อมชุดตัดไฟ Safe-T-Cut',
+                        job_type: 'quick'
+                    };
+                    DB.jobs.unshift(job1);
+                }
+                job1.status = 'QC_PASSED';
+                job1.date = todayStr;
+                job1.qc_passed_at = todayIso;
+                job1.csat_score = null;
+                job1.csat_remarks = '';
+                job1.csat_photos = [];
+                job1.progress = 100;
+                if (!job1.step_timestamps) job1.step_timestamps = {};
+                job1.step_timestamps.qc_passed_at = todayIso;
+
+                // Demo Job 2: Renovate entered today (waiting for CSAT, NEW!)
+                let job2 = DB.jobs.find(j => j.id === 'JOB202609009');
+                if (!job2) {
+                    job2 = {
+                        id: 'JOB202609009',
+                        job_no: 'JOB202609009',
+                        customer: 'คุณกิตติศักดิ์ เจริญกิจพาณิชย์',
+                        phone: '082-345-6789',
+                        address: '55/3 อาคารสีลมคอมเพล็กซ์ ชั้น 18 ถนนสีลม เขตบางรัก กรุงเทพฯ',
+                        service: 'รีโนเวทห้องน้ำ Universal Design ปูกระเบื้อง R11 ติดตั้งราวจับสแตนเลส',
+                        job_type: 'renovate'
+                    };
+                    DB.jobs.unshift(job2);
+                }
+                job2.status = 'QC_PASSED';
+                job2.date = todayStr;
+                job2.qc_passed_at = new Date(Date.now() - 3600000).toISOString();
+                job2.csat_score = null;
+                job2.csat_remarks = '';
+                job2.csat_photos = [];
+                job2.progress = 100;
+                if (!job2.step_timestamps) job2.step_timestamps = {};
+                job2.step_timestamps.qc_passed_at = job2.qc_passed_at;
+
+                // Demo Job 3: MA & Maintenance evaluated 5 stars with photos
+                let job3 = DB.jobs.find(j => j.id === 'JOB202609008');
+                if (!job3) {
+                    job3 = {
+                        id: 'JOB202609008',
+                        job_no: 'JOB202609008',
+                        customer: 'คุณทักษ์ดนัย ฤทัยสวัสดิ์',
+                        phone: '089-123-4567',
+                        address: '124 ซอยสุขุมวิท 49 แขวงคลองตันเหนือ เขตวัฒนา กรุงเทพฯ',
+                        service: 'ตรวจเช็คระบบไฟฟ้าประจำปีและบำรุงรักษาเครื่องปรับอากาศ 5 เครื่อง',
+                        job_type: 'ma'
+                    };
+                    DB.jobs.unshift(job3);
+                }
+                job3.status = 'AFTER_SALE';
+                job3.date = todayStr;
+                job3.qc_passed_at = new Date(Date.now() - 7200000).toISOString();
+                job3.csat_score = 5;
+                job3.csat_remarks = 'ช่างบริการสุภาพมาก ตรงต่อเวลา งานติดตั้งเนี้ยบเรียบร้อย แนะนำวิธีดูแลชัดเจน ประทับใจมากค่ะ';
+                job3.csat_photos = sampleVisitPhotos;
+                job3.csat_surveyor = 'Contact Center Officer';
+                job3.csat_evaluated_at = todayIso;
+                job3.progress = 100;
+                if (!job3.step_timestamps) job3.step_timestamps = {};
+                job3.step_timestamps.qc_passed_at = job3.qc_passed_at;
+                job3.step_timestamps.csat_at = todayIso;
+
+                // Demo Job 4: Quick Services evaluated 4 stars
+                let job4 = DB.jobs.find(j => j.id === 'JOB202609007');
+                if (!job4) {
+                    job4 = {
+                        id: 'JOB202609007',
+                        job_no: 'JOB202609007',
+                        customer: 'คุณสุดารัตน์ พรหมประกาย',
+                        phone: '081-987-6543',
+                        address: '9/44 หมู่บ้านมัณฑนา ศรีนครินทร์-บางนา สมุทรปราการ',
+                        service: 'ติดตั้ง Digital Door Lock ระบบสแกนใบหน้าและบัตร RFID',
+                        job_type: 'quick'
+                    };
+                    DB.jobs.unshift(job4);
+                }
+                job4.status = 'AFTER_SALE';
+                job4.date = '2026-09-07';
+                job4.qc_passed_at = '2026-09-07T15:00:00.000Z';
+                job4.csat_score = 4;
+                job4.csat_remarks = 'ติดตั้งเรียบร้อยดี ช่างสอนวิธีตั้งรหัสผ่านและการใช้งานแอพเข้าใจง่าย';
+                job4.csat_photos = [];
+                job4.csat_surveyor = 'Contact Center Officer';
+                job4.csat_evaluated_at = '2026-09-07T16:30:00.000Z';
+                job4.progress = 100;
+
+                this.persistJobs();
+                this.updateStepBadges();
+                this.renderCSAT();
+                this.showToast('⚡ จำลองข้อมูลงานเข้า CSAT สำหรับทดสอบระบบเรียบร้อย (มีทั้งงานเข้าใหม่วันนี้, รอโทรประเมิน, และประเมินแล้ว)');
             },
 
             closeJob(id) {

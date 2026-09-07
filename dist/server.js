@@ -2685,28 +2685,44 @@ app.post('/api/v1/jobs/:id/qc-inspection', requireAuth, async (req, res) => {
 app.post('/api/v1/jobs/:id/after-sale/csat', requireAuth, async (req, res) => {
     const param = req.params.id;
     const numId = Number(param);
-    const { csat_score, customer_feedback } = req.body;
-    const csatResult = csat_score >= 3 ? 'PASS' : 'FAIL';
-    const nextStatus = csatResult === 'PASS' ? JobStatus.CLOSED : JobStatus.IN_PROGRESS;
-    const overallProgress = csatResult === 'PASS' ? 100 : undefined;
-    const updatePayload = { status: nextStatus };
-    if (overallProgress !== undefined)
-        updatePayload.overall_progress = overallProgress;
+    const { csat_score, customer_feedback, csat_remarks, csat_photos, csat_surveyor, csat_evaluated_at, close_now } = req.body;
+    const scoreNum = Number(csat_score);
+    const csatResult = scoreNum >= 3 ? 'PASS' : 'FAIL';
+    const nextStatus = close_now ? JobStatus.CLOSED : JobStatus.AFTER_SALE;
+    const overallProgress = 100;
+    const evalDate = csat_evaluated_at || new Date().toISOString();
+    const remarksText = csat_remarks || customer_feedback || '';
+    const updatePayload = {
+        status: nextStatus,
+        overall_progress: overallProgress,
+        csat_score: isNaN(scoreNum) ? 5 : scoreNum,
+        csat_remarks: remarksText,
+        csat_photos: Array.isArray(csat_photos) ? csat_photos : [],
+        csat_surveyor: csat_surveyor || '',
+        csat_evaluated_at: evalDate
+    };
     const updatedJob = await (0, database_1.dbUpdateJob)(param, updatePayload);
     const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
     if (targetJob) {
         targetJob.status = nextStatus;
-        if (csatResult === 'PASS')
-            targetJob.overall_progress = 100;
+        targetJob.overall_progress = 100;
+        targetJob.csat_score = isNaN(scoreNum) ? 5 : scoreNum;
+        targetJob.csat_remarks = remarksText;
+        targetJob.csat_photos = Array.isArray(csat_photos) ? csat_photos : [];
+        targetJob.csat_surveyor = csat_surveyor || '';
+        targetJob.csat_evaluated_at = evalDate;
     }
     return res.status(200).json({
         success: true,
         data: {
             case_no: `AS-${Date.now()}`,
             job_id: updatedJob ? updatedJob.id : (targetJob ? targetJob.id : numId),
-            csat_score,
+            csat_score: isNaN(scoreNum) ? 5 : scoreNum,
             csat_result: csatResult,
-            customer_feedback,
+            customer_feedback: remarksText,
+            csat_photos: Array.isArray(csat_photos) ? csat_photos : [],
+            csat_surveyor: csat_surveyor || '',
+            csat_evaluated_at: evalDate,
             next_job_status: nextStatus
         }
     });
