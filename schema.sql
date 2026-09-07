@@ -154,6 +154,19 @@ CREATE TABLE m_service_type (
     is_active BOOLEAN DEFAULT TRUE
 );
 
+-- Technicians Master
+CREATE TABLE m_technician (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES sys_users(id) ON DELETE SET NULL,
+    tech_code VARCHAR(30) UNIQUE NOT NULL,
+    full_name VARCHAR(150) NOT NULL,
+    phone VARCHAR(30),
+    skill_type VARCHAR(100),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Material / Price Standard Master (For BOQ)
 CREATE TABLE m_material (
     id BIGSERIAL PRIMARY KEY,

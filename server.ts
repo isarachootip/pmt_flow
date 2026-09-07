@@ -9,6 +9,31 @@ import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
 import fs from 'fs';
+import dotenv from 'dotenv';
+dotenv.config();
+
+import {
+  initDatabase,
+  isDatabaseConnected,
+  dbLoadUsers,
+  dbSaveUser,
+  dbUpdateUser,
+  dbDeleteUser,
+  dbSaveLoginLog,
+  dbLoadJobs,
+  dbSaveJob,
+  dbUpdateJob,
+  dbDeleteJob,
+  dbLoadDailyWorkLogs,
+  dbSaveDailyWorkLog,
+  dbDeleteDailyWorkLog,
+  dbLoadQCBookings,
+  dbSaveQCBooking,
+  dbLoadMAContracts,
+  dbSaveMAContract,
+  dbLoadMARounds,
+  dbSaveMARound
+} from './database';
 
 const app = express();
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -340,7 +365,7 @@ export const sysUserStore: SysUser[] = [];
 export const sysSessionStore: SysSession[] = [];
 export const sysLoginLogStore: SysLoginLog[] = [];
 
-function seedUsers() {
+async function seedUsers() {
   sysUserStore.length = 0;
   const users: Omit<SysUser, 'id'>[] = [
     { user_code: 'USR-001', username: 'admin',      email: 'admin@pmt.com',      full_name: 'ผู้ดูแลระบบ',       role: UserRole.ADMIN,          password_hash: hashPassword('Admin@1234'),  is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
@@ -351,8 +376,56 @@ function seedUsers() {
     { user_code: 'USR-005', username: 'qc.wichai',  email: 'wichai@pmt.local',   full_name: 'วิชัย ตรวจดี',      role: UserRole.QC,             password_hash: hashPassword('Qc@1234'),     is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
     { user_code: 'USR-006', username: 'cc.nipa',    email: 'nipa@pmt.local',     full_name: 'นิภา ใจดี',         role: UserRole.CONTACT_CENTER, password_hash: hashPassword('Cc@1234'),     is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
   ];
-  users.forEach((u, i) => sysUserStore.push({ id: i + 1, ...u }));
-  console.log(`[USER SEED] Seeded ${sysUserStore.length} users.`);
+
+  try {
+    const dbUsers = await dbLoadUsers();
+    if (dbUsers && dbUsers.length > 0) {
+      dbUsers.forEach((u) => {
+        sysUserStore.push({
+          id: Number(u.id),
+          user_code: u.user_code,
+          username: u.username,
+          email: u.email || '',
+          full_name: u.full_name,
+          role: u.role as UserRole,
+          password_hash: u.password_hash,
+          is_active: Boolean(u.is_active),
+          last_login_at: u.last_login_at ? new Date(u.last_login_at).toISOString() : null,
+          created_at: u.created_at ? new Date(u.created_at).toISOString() : new Date().toISOString()
+        });
+      });
+      console.log(`[USER SYNC] Loaded ${sysUserStore.length} users from PostgreSQL database.`);
+    } else {
+      users.forEach((u, i) => {
+        const newUser = { id: i + 1, ...u };
+        sysUserStore.push(newUser);
+        dbSaveUser(newUser).catch(() => {});
+      });
+      console.log(`[USER SEED] Seeded ${sysUserStore.length} default users.`);
+    }
+  } catch (err: any) {
+    users.forEach((u, i) => sysUserStore.push({ id: i + 1, ...u }));
+    console.log(`[USER SEED FALLBACK] Seeded ${sysUserStore.length} users in-memory.`);
+  }
+
+  // Ensure isarachootip@gmail.com is present in sysUserStore
+  const hasIsara = sysUserStore.some(u => u.email === 'isarachootip@gmail.com' || u.username === 'isarachootip@gmail.com');
+  if (!hasIsara) {
+    const isaraUser: SysUser = {
+      id: Date.now(),
+      user_code: 'USR-001B',
+      username: 'isarachootip@gmail.com',
+      email: 'isarachootip@gmail.com',
+      full_name: 'Isara Chootip',
+      role: UserRole.ADMIN,
+      password_hash: hashPassword('Admin@1234'),
+      is_active: true,
+      last_login_at: null,
+      created_at: '2026-09-01T00:00:00Z'
+    };
+    sysUserStore.push(isaraUser);
+    dbSaveUser(isaraUser).catch(() => {});
+  }
 
   if (sysLoginLogStore.length === 0) {
     sysLoginLogStore.push(
@@ -362,7 +435,7 @@ function seedUsers() {
     );
   }
 }
-seedUsers();
+seedUsers().catch(() => {});
 
 // Auth Middleware — verify Bearer token
 export interface AuthRequest extends Request {
@@ -430,16 +503,19 @@ app.post('/api/v1/auth/login', (req: Request, res: Response) => {
   if (!user) {
     log.fail_reason = 'USER_NOT_FOUND';
     sysLoginLogStore.push(log);
+    dbSaveLoginLog(log).catch(() => {});
     return res.status(401).json({ success: false, error: { code: 'INVALID_CREDENTIALS', message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' } });
   }
   if (!user.is_active) {
     log.fail_reason = 'INACTIVE';
     sysLoginLogStore.push(log);
+    dbSaveLoginLog(log).catch(() => {});
     return res.status(403).json({ success: false, error: { code: 'USER_INACTIVE', message: 'บัญชีนี้ถูกปิดการใช้งาน' } });
   }
   if (!verifyPassword(password, user.password_hash)) {
     log.fail_reason = 'WRONG_PASSWORD';
     sysLoginLogStore.push(log);
+    dbSaveLoginLog(log).catch(() => {});
     return res.status(401).json({ success: false, error: { code: 'INVALID_CREDENTIALS', message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' } });
   }
 
@@ -451,6 +527,8 @@ app.post('/api/v1/auth/login', (req: Request, res: Response) => {
   user.last_login_at = new Date().toISOString();
   log.success = true;
   sysLoginLogStore.push(log);
+  dbSaveLoginLog(log).catch(() => {});
+  dbUpdateUser(user.id, { last_login_at: user.last_login_at }).catch(() => {});
 
   return res.json({
     success: true,
@@ -482,6 +560,7 @@ app.patch('/api/v1/auth/profile', requireAuth, (req: AuthRequest, res: Response)
   const { full_name, email } = req.body || {};
   if (full_name && typeof full_name === 'string') u.full_name = full_name.trim();
   if (email !== undefined && typeof email === 'string') u.email = email.trim();
+  dbUpdateUser(u.id, { full_name: u.full_name, email: u.email }).catch(() => {});
   const { password_hash, ...safe } = u;
   return res.json({ success: true, message: 'อัปเดตข้อมูลส่วนตัวสำเร็จ', data: safe });
 });
@@ -497,6 +576,7 @@ app.post('/api/v1/auth/change-password', requireAuth, (req: AuthRequest, res: Re
     return res.status(400).json({ success: false, error: { code: 'WRONG_CURRENT_PASSWORD', message: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' } });
   }
   u.password_hash = hashPassword(new_password);
+  dbUpdateUser(u.id, { password_hash: u.password_hash }).catch(() => {});
   return res.json({ success: true, message: 'เปลี่ยนรหัสผ่านสำเร็จเรียบร้อย' });
 });
 
@@ -541,6 +621,7 @@ app.post('/api/v1/users', requireAuth, requireRole(UserRole.ADMIN), (req: AuthRe
     is_active: true, last_login_at: null, created_at: new Date().toISOString()
   };
   sysUserStore.push(newUser);
+  dbSaveUser(newUser).catch(() => {});
   const { password_hash, ...safe } = newUser;
   return res.status(201).json({ success: true, message: 'สร้างผู้ใช้สำเร็จ', data: safe });
 });
@@ -585,6 +666,7 @@ app.patch('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req: A
     user.password_hash = hashPassword(password);
   }
 
+  dbUpdateUser(user.id, req.body).catch(() => {});
   const { password_hash, ...safe } = user;
   return res.json({ success: true, message: 'อัปเดตข้อมูลสำเร็จ', data: safe });
 });
@@ -599,6 +681,7 @@ app.post('/api/v1/users/:id/reset-password', requireAuth, requireRole(UserRole.A
     return res.status(400).json({ success: false, error: { code: 'WEAK_PASSWORD', message: 'Password ต้องมีอย่างน้อย 6 ตัวอักษร' } });
   }
   user.password_hash = hashPassword(new_password);
+  dbUpdateUser(user.id, { password_hash: user.password_hash }).catch(() => {});
   // Revoke all active sessions for this user
   sysSessionStore.filter(s => s.user_id === user.id && !s.revoked_at).forEach(s => s.revoked_at = new Date().toISOString());
 
@@ -612,8 +695,9 @@ app.delete('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req: 
   if (user.user_code === 'USR-001' || user.username === 'admin') return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'ไม่สามารถลบ admin หลักได้' } });
 
   user.is_active = false;
+  dbUpdateUser(user.id, { is_active: false }).catch(() => {});
   sysSessionStore.filter(s => s.user_id === user.id && !s.revoked_at).forEach(s => s.revoked_at = new Date().toISOString());
-  return res.json({ success: true, message: `ปิดใช้งานบัญชี ${user.username} สำเร็จ` });
+  return res.json({ success: true, message: `ปิดการใช้งานผู้ใช้ ${user.username} สำเร็จ` });
 });
 
 // GET /api/v1/users/login-logs — Login audit log (Admin only)
@@ -3210,6 +3294,47 @@ app.patch(['/api/ma-rounds/:id', '/api/v1/ma-rounds/:id'], requireAuth, (req: Re
   }
 });
 
+export async function hydrateFromDatabase() {
+  try {
+    const dbJobs = await dbLoadJobs();
+    if (dbJobs && dbJobs.length > 0) {
+      coreJobStore.length = 0;
+      coreJobStore.push(...dbJobs);
+      console.log(`[DB HYDRATE] Loaded ${coreJobStore.length} jobs from PostgreSQL.`);
+    }
+
+    const dbLogs = await dbLoadDailyWorkLogs();
+    if (dbLogs && dbLogs.length > 0) {
+      coreDailyWorkLogStore.length = 0;
+      coreDailyWorkLogStore.push(...dbLogs);
+      console.log(`[DB HYDRATE] Loaded ${coreDailyWorkLogStore.length} daily work logs from PostgreSQL.`);
+    }
+
+    const dbBookings = await dbLoadQCBookings();
+    if (dbBookings && dbBookings.length > 0) {
+      coreQCBookingStore.length = 0;
+      coreQCBookingStore.push(...dbBookings);
+      console.log(`[DB HYDRATE] Loaded ${coreQCBookingStore.length} QC bookings from PostgreSQL.`);
+    }
+
+    const dbContracts = await dbLoadMAContracts();
+    if (dbContracts && dbContracts.length > 0) {
+      maContractStore.length = 0;
+      maContractStore.push(...dbContracts);
+      console.log(`[DB HYDRATE] Loaded ${maContractStore.length} MA contracts from PostgreSQL.`);
+    }
+
+    const dbRounds = await dbLoadMARounds();
+    if (dbRounds && dbRounds.length > 0) {
+      maRoundStore.length = 0;
+      maRoundStore.push(...dbRounds);
+      console.log(`[DB HYDRATE] Loaded ${maRoundStore.length} MA rounds from PostgreSQL.`);
+    }
+  } catch (err: any) {
+    console.error('[DB HYDRATE ERROR]', err.message);
+  }
+}
+
 // Global error protection
 process.on('uncaughtException', (err) => {
   console.error('[UNCAUGHT EXCEPTION]', err);
@@ -3220,7 +3345,16 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Start Server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 SPMT Production REST API Server running on port ${PORT}`);
+  try {
+    const connected = await initDatabase();
+    if (connected) {
+      await seedUsers();
+      await hydrateFromDatabase();
+    }
+  } catch (err: any) {
+    console.error('[SERVER BOOT ERROR]', err.message);
+  }
 });
 
