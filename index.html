@@ -2558,59 +2558,303 @@
                     </div>
                 </div>
 
-                <!-- 5. QC MODULE VIEW -->
+                <!-- 5. QC MODULE VIEW (Step 6) -->
                 <div id="page-qc" class="page-view hidden-view space-y-6">
+                    <!-- Page Header & Action Controls (Matching Step 1 UX/UI) -->
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="text-2xl">🛡️</span>
-                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">การตรวจคุณภาพงาน (QC Inspection)</h2>
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">Step 6</span>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">การตรวจรับรองคุณภาพ (Quality Control - Step 6)</h2>
                             </div>
-                            <p class="text-xs text-muted-foreground mt-0.5">ระบบจองช่าง QC ล่วงหน้า 5 วันก่อนวันสิ้นสุด Task และตรวจประเมินคุณภาพงาน</p>
+                            <p class="text-xs text-muted-foreground mt-0.5">คิวงานตรวจประเมินคุณภาพมาตรฐานงานติดตั้ง Quick Services (ตรวจรูปถ่าย Online) และ Renovate (ตรวจ On-site พร้อมให้คะแนนงานย่อยตาม BOQ)</p>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <button onclick="app.navigate('gantt')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
-                                <i class="ph ph-chart-bar text-sm text-brand-500"></i>
-                                <span>แผนงาน (Gantt Timeline)</span>
-                            </button>
-                            <button onclick="app.syncQCBookingsFromTasks(); app.renderQC(); app.showToast('🔄 ซิงค์ข้อมูลงานตรวจ QC จาก Gantt เรียบร้อย');" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 cursor-pointer" title="รีเฟรชข้อมูลการจอง QC จาก Task ทั้งหมด">
-                                <i class="ph ph-arrows-clockwise text-sm"></i>
-                                <span>ซิงค์งานจาก Gantt</span>
-                            </button>
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <!-- Segment Quick / Renovate Switcher Tabs -->
+                            <div class="flex items-center p-1 bg-muted/70 rounded-xl border border-border shadow-xs">
+                                <button type="button" id="qc-tab-seg-all" onclick="app.filterQCBySegment('all')" class="py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs">
+                                    <i class="ph ph-squares-four"></i>
+                                    <span>ทั้งหมด</span>
+                                    <span id="qc-tab-count-all" class="px-1.5 py-0.2 rounded-full text-[10px] bg-muted text-muted-foreground font-mono">0</span>
+                                </button>
+                                <button type="button" id="qc-tab-seg-quick" onclick="app.filterQCBySegment('quick')" class="py-1.5 px-3 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground">
+                                    <i class="ph ph-lightning text-amber-500"></i>
+                                    <span>งานด่วน (Quick)</span>
+                                    <span id="qc-tab-count-quick" class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 font-mono">0</span>
+                                </button>
+                                <button type="button" id="qc-tab-seg-renovate" onclick="app.filterQCBySegment('renovate')" class="py-1.5 px-3 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground">
+                                    <i class="ph ph-hammer text-indigo-500"></i>
+                                    <span>งานปรับปรุง (Renovate)</span>
+                                    <span id="qc-tab-count-renovate" class="px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-mono">0</span>
+                                </button>
+                            </div>
+
+                            <!-- Service Dropdown Filter -->
+                            <select id="qc-filter-service" onchange="app.renderQC()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-brand-500 cursor-pointer">
+                                <option value="all">ทุกประเภทบริการ</option>
+                                <option value="quick_all">เฉพาะกลุ่มงานด่วน (Quick Services)</option>
+                                <option value="renovate_all">เฉพาะกลุ่มงานรีโนเวท (Renovate)</option>
+                                <option value="ติดตั้งเครื่องชาร์จรถยนต์ไฟฟ้า EV Charger">ติดตั้งเครื่องชาร์จรถยนต์ไฟฟ้า EV Charger</option>
+                                <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                                <option value="ปั๊มน้ำ">ปั๊มน้ำ / ปั้มแท็งก์</option>
+                                <option value="Digital Door Lock">Digital Door Lock</option>
+                                <option value="รีโนเวทห้องน้ำผู้สูงอายุ">รีโนเวทห้องน้ำผู้สูงอายุ</option>
+                                <option value="ต่อเติมห้องครัว">ต่อเติมห้องครัว</option>
+                                <option value="Renovate ครัว">Renovate ครัว</option>
+                                <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
+                            </select>
+
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button onclick="app.exportQCReportCSV()" class="btn-artifact-secondary text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="ดาวน์โหลดรายงานสรุปการตรวจ QC">
+                                    <i class="ph ph-file-csv text-emerald-500 text-sm"></i>
+                                    <span>Export รายงาน QC</span>
+                                </button>
+                                <button onclick="app.simulateMockQCJobs()" class="btn-artifact-secondary isara-only text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer shadow-xs" title="จำลองงานเข้า QC เพื่อทดสอบการประเมินงานย่อยและให้คะแนน">
+                                    <i class="ph ph-lightning text-amber-500"></i>
+                                    <span>จำลองงานเข้า QC</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <!-- Left Queue with Tabs -->
-                        <div class="artifact-card p-5 flex flex-col h-[650px]">
-                            <!-- Tabs Switcher -->
-                            <div class="flex items-center gap-1 p-1 bg-muted/60 rounded-xl mb-4 border border-border">
-                                <button type="button" id="tab-qc-bookings" onclick="app.switchQCTab('bookings')" class="flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs">
-                                    <i class="ph ph-calendar-check text-brand-500"></i>
-                                    <span>จองช่าง QC (D-5)</span>
-                                    <span id="qc-bookings-badge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-brand-500/20 text-brand-600 dark:text-brand-400 font-mono">0</span>
-                                </button>
-                                <button type="button" id="tab-qc-inspection" onclick="app.switchQCTab('inspection')" class="flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground">
-                                    <i class="ph ph-clipboard-text"></i>
-                                    <span>รอตรวจ (Pending)</span>
-                                    <span id="qc-queue-count" class="px-1.5 py-0.2 rounded-full text-[10px] bg-muted text-muted-foreground font-mono">0</span>
-                                </button>
+                    <!-- QC ANALYTICS & KPI DASHBOARD (Matching Step 1 exactly) -->
+                    <div class="artifact-card p-5 space-y-5 bg-card/70 border border-border/80 rounded-2xl shadow-xs">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-base">
+                                    <i class="ph ph-shield-check"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-display text-base font-bold text-foreground tracking-tight flex items-center gap-2">
+                                        QC Inspection Analytics & KPI
+                                        <span class="text-[11px] font-normal text-muted-foreground font-sans">(ภาพรวมสถิติการตรวจคุณภาพ)</span>
+                                    </h3>
+                                    <p class="text-[11px] text-muted-foreground">สรุปปริมาณงานตรวจรับรองคุณภาพ อัตรางานค้างในคิว และสัดส่วนประเภทบริการ Quick & Renovate</p>
+                                </div>
                             </div>
-
-                            <div class="flex-1 overflow-y-auto space-y-2.5 pr-1" id="qc-queue-list">
-                                <!-- Populated by JS -->
+                            <div class="flex items-center gap-2 self-start sm:self-auto">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    Realtime Live
+                                </span>
+                                <span id="qc-dash-date-indicator" class="text-[11px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/60 border border-border">วันนี้</span>
+                                <button type="button" onclick="app.openSLAConfigModal('step6')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border-blue-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ QC">
+                                    <i class="ph ph-gear-six text-xs"></i>
+                                    <span>ตั้งค่า SLA</span>
+                                </button>
                             </div>
                         </div>
 
-                        <!-- Right Inspection / Confirmation Form -->
-                        <div class="lg:col-span-2 artifact-card p-6 overflow-y-auto h-[650px]" id="qc-form-container">
-                            <div class="h-full flex flex-col items-center justify-center text-center p-8">
-                                <div class="w-16 h-16 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground mb-4">
-                                    <i class="ph ph-clipboard-text text-3xl"></i>
+                        <!-- Top 4 Primary KPI Cards -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <!-- Card 1: ยอดงานเข้า ทั้งหมด -->
+                            <div onclick="app.filterQCByDashboard('ALL')" class="p-4.5 rounded-xl bg-card border border-border hover:border-blue-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อแสดงงาน QC ทั้งหมด">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-tray-arrow-down"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดงานเข้า ทั้งหมด</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="qc-stat-total" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-foreground">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-muted-foreground/80 mt-0.5">งานที่ส่งเข้า QC ทั้งหมด</p>
+                                    </div>
                                 </div>
-                                <h4 class="font-display font-medium text-foreground text-base mb-1">ยังไม่ได้เลือกรายการงาน</h4>
-                                <p class="text-xs text-muted-foreground max-w-sm">กรุณาเลือกงานจากคิวด้านซ้ายเพื่อเปิดใบนัดหมายจองช่าง QC หรือแบบฟอร์มตรวจสอบมาตรฐาน</p>
+                                <div class="text-muted-foreground/40 group-hover:text-blue-500 group-hover:translate-x-0.5 transition flex flex-col items-end gap-2 shrink-0">
+                                    <i class="ph ph-arrow-right text-lg"></i>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">All QC</span>
+                                </div>
                             </div>
+
+                            <!-- Card 2: ยอดเข้าวันนี้ -->
+                            <div onclick="app.filterQCByDashboard('TODAY')" class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อกรองเฉพาะงานที่เข้า QC วันนี้">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-calendar-plus"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดเข้าวันนี้</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="qc-stat-today" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-emerald-600 dark:text-emerald-400">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5 flex items-center gap-1">
+                                            <i class="ph ph-check-circle"></i> รับเข้า QC วันนี้
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">วันนี้</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card 3: ยอดที่ยังคงเหลือ (รอตรวจ) -->
+                            <div onclick="app.filterQCByDashboard('REMAINING')" class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อแสดงคิวงานที่ยังรอตรวจ QC">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-hourglass-high"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดที่ยังคงเหลือ</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="qc-stat-remaining" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-amber-600 dark:text-amber-400">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-amber-600/80 dark:text-amber-400/80 mt-0.5 flex items-center gap-1">
+                                            <i class="ph ph-clock"></i> รอตรวจและรับรอง
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">คิว QC</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-amber-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card 4: สถานะ SLA QC -->
+                            <div onclick="app.filterQCByDashboard('OVERDUE')" class="p-4.5 rounded-xl bg-card border border-border hover:border-rose-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อดูกลุ่มงานที่เกิน SLA">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-timer"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-1.5">
+                                            <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">สถานะ SLA QC</p>
+                                            <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground" id="qc-sla-target-label">24 ชม.</span>
+                                        </div>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="qc-stat-sla-overdue" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-rose-600 dark:text-rose-400">0</span>
+                                            <span class="text-xs text-rose-500 font-medium">เกินกำหนด</span>
+                                        </div>
+                                        <p class="text-[11px] text-muted-foreground/80 mt-0.5 flex items-center gap-1.5">
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">ในเกณฑ์: <b id="qc-stat-sla-ontime">0</b></span>
+                                            <span>•</span>
+                                            <span class="text-amber-600 dark:text-amber-400 font-medium">ใกล้ครบ: <b id="qc-stat-sla-warning">0</b></span>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span onclick="event.stopPropagation(); app.openSLAConfigModal('step6');" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer" title="ตั้งค่าเกณฑ์เวลา SLA Step 6">⚙️ Config</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-rose-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Segment Distribution Summary -->
+                        <div class="pt-2">
+                            <div class="flex items-center justify-between mb-2.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold text-foreground font-display">สัดส่วนประเภทงาน QC (Segment Distribution Summary)</span>
+                                    <span class="text-[10px] text-muted-foreground">คลิกการ์ดเพื่อกรองตามประเภท</span>
+                                </div>
+                                <div class="text-[11px] font-mono text-muted-foreground" id="qc-dist-ratio-label">100% สัดส่วนงาน</div>
+                            </div>
+
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                <!-- Quick Services -->
+                                <div onclick="app.filterQCBySegment('quick')" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500 hover:bg-muted/60 transition cursor-pointer group">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                            Quick Services
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold" id="qc-dist-quick-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="qc-dist-quick-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">ตรวจ Online รูปภาพ</span>
+                                    </div>
+                                </div>
+
+                                <!-- Renovate Projects -->
+                                <div onclick="app.filterQCBySegment('renovate')" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500 hover:bg-muted/60 transition cursor-pointer group">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                            Renovate
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold" id="qc-dist-renovate-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="qc-dist-renovate-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">ตรวจ On-site + BOQ</span>
+                                    </div>
+                                </div>
+
+                                <!-- QC Passed -->
+                                <div onclick="app.filterQCByDashboard('PASSED')" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500 hover:bg-muted/60 transition cursor-pointer group">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                            ผ่านเกณฑ์ (Passed)
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold" id="qc-dist-passed-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="qc-dist-passed-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">ส่งต่อ CSAT</span>
+                                    </div>
+                                </div>
+
+                                <!-- Defect / Rework -->
+                                <div onclick="app.filterQCByDashboard('REWORK')" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-rose-500 hover:bg-muted/60 transition cursor-pointer group">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-rose-600 dark:group-hover:text-rose-400 flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                                            รอแก้ไข (Defect)
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold" id="qc-dist-defect-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="qc-dist-defect-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">ส่งกลับแก้ไข</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Progress Bar -->
+                            <div class="mt-3">
+                                <div class="w-full bg-muted/60 rounded-full h-2 flex overflow-hidden border border-border/40" id="qc-segment-bar">
+                                    <div id="qc-bar-quick" class="bg-amber-500 transition-all duration-300 h-full" style="width: 50%" title="Quick Services"></div>
+                                    <div id="qc-bar-renovate" class="bg-indigo-500 transition-all duration-300 h-full" style="width: 50%" title="Renovate Projects"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contextual Queue Banner -->
+                    <div id="qc-queue-banner" class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-900 dark:text-emerald-200 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 flex items-center justify-center font-bold text-xs shrink-0">🛡️</span>
+                            <div>
+                                <span class="font-bold">คิวงานตรวจสอบคุณภาพ (QC Inspection Queue):</span>
+                                <span class="text-muted-foreground ml-1">แสดงรายการงานที่อยู่ในขั้นตอน QC คลิกที่รายการเพื่อเปิดดูรายละเอียด ประเมินและให้คะแนนงานย่อยตาม BOQ แนบรูปภาพเฉพาะแต่ละงาน และบันทึกผลส่งต่อ CSAT</span>
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold shrink-0">QC State Queue</span>
+                    </div>
+
+                    <!-- Jobs Table (Matching Step 1 exactly) -->
+                    <div class="artifact-card overflow-hidden shadow-sm">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
+                                    <tr>
+                                        <th class="px-5 py-3.5">เลขที่งาน</th>
+                                        <th class="px-5 py-3.5">ลูกค้า & เบอร์ติดต่อ</th>
+                                        <th class="px-5 py-3.5">ประเภทบริการ</th>
+                                        <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
+                                        <th class="px-5 py-3.5">สถานะ QC</th>
+                                        <th class="px-5 py-3.5">ขั้นตอน (STAGE) / SLA</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border" id="qc-jobs-table-body">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -4493,6 +4737,132 @@
                     </button>
                 </div>
             </form>
+    <!-- MODAL: QC JOB DETAIL & SUB-TASK EVALUATION WITH SCORING AND PHOTOS -->
+    <div id="modal-qc-job-detail" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-5 overflow-y-auto" onclick="if(event.target === this) app.hideModal('modal-qc-job-detail')">
+        <div class="artifact-card rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border my-auto" id="modal-qc-job-detail-content">
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-border flex justify-between items-start bg-muted/40 shrink-0">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span id="qc-detail-job-id" class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">JOB202609001</span>
+                        <span id="qc-detail-type-badge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/10 text-amber-600 border border-amber-500/20">QUICK SERVICE</span>
+                        <span id="qc-detail-status-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">รอตรวจ QC</span>
+                    </div>
+                    <h3 id="qc-detail-job-title" class="font-display font-bold text-lg text-foreground">รายละเอียดการตรวจรับรองคุณภาพ QC</h3>
+                    <p class="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+                        <span>ลูกค้า: <strong id="qc-detail-customer" class="text-foreground">-</strong></span>
+                        <span>•</span>
+                        <span>เบอร์ติดต่อ: <span id="qc-detail-phone" class="font-mono">-</span></span>
+                        <span>•</span>
+                        <span>ช่างหน้างาน: <strong id="qc-detail-tech" class="text-foreground">-</strong></span>
+                    </p>
+                </div>
+                <button onclick="app.hideModal('modal-qc-job-detail')" class="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition cursor-pointer">
+                    <i class="ph ph-x text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+                <!-- Evaluation Progress Banner & Gating Indicator -->
+                <div id="qc-detail-progress-card" class="p-4 rounded-2xl bg-muted/40 border border-border space-y-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-brand-500/15 text-brand-500 flex items-center justify-center text-base font-bold shrink-0">
+                                <i class="ph ph-chart-donut"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-display font-bold text-foreground text-xs flex items-center gap-2">
+                                    ความคืบหน้าการประเมินงานย่อยในโครงการ
+                                    <span id="qc-detail-completion-badge" class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400">ยังไม่ครบ</span>
+                                </h4>
+                                <p class="text-[11px] text-muted-foreground">ต้องประเมิน ให้คะแนน และแนบรูปภาพให้ครบทุกงานย่อย จึงจะสามารถส่งมอบต่อไปยังขั้นตอน CSAT (Step 7)</p>
+                            </div>
+                        </div>
+                        <div class="flex items-baseline gap-2 self-start sm:self-auto shrink-0">
+                            <span class="text-[11px] text-muted-foreground">คะแนนเฉลี่ยรวม:</span>
+                            <span id="qc-detail-avg-score" class="text-xl font-bold font-display text-foreground">0.0</span>
+                            <span class="text-amber-500 text-sm">⭐</span>
+                            <span class="text-[10px] text-muted-foreground font-mono">/ 5.0</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-[11px] text-muted-foreground mb-1">
+                            <span id="qc-detail-subtask-counts">ประเมินแล้ว 0 จาก 0 งานย่อย</span>
+                            <span id="qc-detail-progress-pct" class="font-mono font-bold text-foreground">0%</span>
+                        </div>
+                        <div class="w-full bg-muted rounded-full h-2 overflow-hidden border border-border/50">
+                            <div id="qc-detail-progress-bar" class="bg-gradient-to-r from-amber-500 to-emerald-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sub-tasks Evaluation List Container -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="font-display font-bold text-xs uppercase tracking-wider text-foreground">รายการงานย่อยที่ต้องประเมินและให้คะแนน (Sub-tasks / BOQ Items)</span>
+                            <span class="text-[10px] text-muted-foreground">(แยกประเมิน ให้คะแนน และแนบรูปภาพรายข้อ)</span>
+                        </div>
+                        <span id="qc-detail-subtask-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted text-foreground border border-border">0 งานย่อย</span>
+                    </div>
+
+                    <div id="qc-subtasks-list" class="space-y-4">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Overall Inspection Summary & Inspector Assignment -->
+                <div class="p-4.5 rounded-2xl bg-card border border-border space-y-3">
+                    <h4 class="font-display font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <i class="ph ph-user-check text-brand-500 text-sm"></i>
+                        ผู้รับผิดชอบการตรวจ & ข้อคิดเห็นภาพรวม (Inspector & Overall Remarks)
+                    </h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-medium text-foreground mb-1">ช่าง QC ผู้ตรวจรับรอง:</label>
+                            <select id="qc-modal-inspector" class="w-full bg-muted/40 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                                <option value="วิชัย ตรวจดี (ช่าง QC Lead)">วิชัย ตรวจดี (ช่าง QC Lead)</option>
+                                <option value="สมเกียรติ มั่นคง (QC Renovate & Maintenance)">สมเกียรติ มั่นคง (QC Renovate & Maintenance)</option>
+                                <option value="ช่างกิตติพงษ์ (QC งานระบบและไฟฟ้า)">ช่างกิตติพงษ์ (QC งานระบบและไฟฟ้า)</option>
+                                <option value="ช่างธนกฤต (QC งานปรับอากาศ)">ช่างธนกฤต (QC งานปรับอากาศ)</option>
+                                <option value="ช่างสมชาย (QC มาตรฐานทั่วไป)">ช่างสมชาย (QC มาตรฐานทั่วไป)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-foreground mb-1">วันที่ตรวจรับรอง (QC Date):</label>
+                            <input type="text" id="qc-modal-date" readonly class="w-full bg-muted/20 border border-border rounded-xl px-3 py-2 text-xs font-mono text-muted-foreground">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-foreground mb-1">หมายเหตุสรุปผลการตรวจภาพรวมทั้งโครงการ (Overall QC Remarks):</label>
+                        <textarea id="qc-modal-overall-remarks" rows="2" placeholder="ระบุข้อสังเกต ภาพรวมความเรียบร้อย หรือคำแนะนำสำหรับการส่งมอบงาน..." class="w-full bg-muted/40 border border-border rounded-xl p-2.5 text-xs text-foreground focus:outline-none focus:border-brand-500 resize-y"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer Buttons (With CSAT Gating Validation) -->
+            <div class="p-4 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/40 shrink-0">
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="app.hideModal('modal-qc-job-detail')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer">
+                        ปิดหน้าต่าง
+                    </button>
+                    <button type="button" onclick="app.saveCurrentQCSubtasksDraft()" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer" title="บันทึกคะแนน รูปภาพ และหมายเหตุแบบร่าง">
+                        <i class="ph ph-floppy-disk"></i>
+                        <span>บันทึกแบบร่าง</span>
+                    </button>
+                </div>
+                <div class="flex items-center gap-2.5">
+                    <button type="button" onclick="app.failCurrentQCJob()" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 border-rose-500/30 flex items-center gap-1.5 cursor-pointer">
+                        <i class="ph ph-arrow-u-down-left"></i>
+                        <span>❌ แจ้งช่างแก้ไขงาน (Rework)</span>
+                    </button>
+                    <button type="button" id="btn-qc-approve-csat" onclick="app.approveCurrentJobToCSAT()" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                        <i class="ph ph-check-circle text-base"></i>
+                        <span id="btn-qc-approve-csat-label">✓ อนุมัติผ่านเกณฑ์ QC & ส่งต่อ CSAT (Step 7)</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 

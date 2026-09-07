@@ -2926,13 +2926,14 @@ const app = {
                 }
             },
 
-            // Update All 5 Step Dashboards
+            // Update All Step Dashboards (Steps 1-5 + QC Step 6)
             updateAllStepDashboards() {
                 this.updateStep1Dashboard();
                 this.updateStep2Dashboard();
                 this.updateStep3Dashboard();
                 this.updateStep4Dashboard();
                 this.updateStep5Dashboard();
+                this.updateQCDashboard();
             },
 
             filterJobsByDashboard(type, stepNumber = 1) {
@@ -13048,735 +13049,947 @@ const app = {
                 if (this.state.currentView === 'gantt') this.renderGantt();
             },
 
-            renderQC() {
-                this.updateQCBadges();
-                const currentTab = this.state.qcTab || 'bookings';
+            renderQC(jobList = null) {
+                this.updateStepBadges();
+                this.updateQCDashboard();
 
-                if (currentTab === 'bookings') {
-                    // Sort bookings descending so latest booking date is at top
-                    const bookings = [...(DB.qcBookings || [])].sort((a, b) => {
-                        const timeB = new Date(b.qcBookingDate || b.createdAt || '2026-01-01').getTime();
-                        const timeA = new Date(a.qcBookingDate || a.createdAt || '2026-01-01').getTime();
-                        return timeB - timeA;
-                    });
+                const seg = this.state.qcSegmentFilter || 'all';
+                const serviceFilter = document.getElementById('qc-filter-service') ? document.getElementById('qc-filter-service').value : 'all';
 
-                    const listHtml = bookings.map((b, bIdx) => {
-                        const isConfirmed = b.status === 'CONFIRMED';
-                        const isTopNew = bIdx === 0;
-                        const statusBadge = isConfirmed
-                            ? `<span class="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 font-bold flex items-center gap-1"><i class="ph ph-check-circle"></i> ยืนยันแล้ว</span>`
-                            : `<span class="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 font-bold flex items-center gap-1"><i class="ph ph-clock"></i> รอ Confirm</span>`;
+                // Update Segment Tabs active state
+                const tabAll = document.getElementById('qc-tab-seg-all');
+                const tabQuick = document.getElementById('qc-tab-seg-quick');
+                const tabRenovate = document.getElementById('qc-tab-seg-renovate');
 
-                        const isSelected = this.state.selectedQCBookingId === b.id;
-                        const cardBg = isSelected 
-                            ? 'bg-brand-500/10 border-brand-500 ring-1 ring-brand-500/40' 
-                            : (isTopNew ? 'bg-brand-500/[0.03] border-brand-500/30' : 'bg-muted/40 border-border hover:border-brand-500/40');
-
-                        return `
-                        <div class="p-3.5 rounded-xl ${cardBg} border transition-all cursor-pointer group" onclick="app.selectQCBooking('${b.id}')">
-                            <div class="flex items-center justify-between mb-1">
-                                <div class="flex items-center gap-1.5 flex-wrap">
-                                    <span class="font-mono text-xs font-bold text-brand-500">${b.jobId}</span>
-                                    ${isTopNew ? `
-                                        <span class="badge-new-item text-[8px] py-0 px-1.5" title="คิวจองล่าสุด (NEW!)">
-                                            <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
-                                        </span>
-                                    ` : ''}
-                                    <span class="text-[10px] text-muted-foreground font-mono truncate max-w-[90px]" title="${b.taskId}">(${b.taskId})</span>
-                                </div>
-                                ${statusBadge}
-                            </div>
-                            <div class="text-xs font-semibold text-foreground group-hover:text-brand-500 transition truncate">${b.taskName}</div>
-                            <div class="text-[11px] text-muted-foreground mt-1 flex items-center justify-between">
-                                <span class="truncate">ลูกค้า: ${b.customerName || 'ลูกค้า'}</span>
-                                <span class="font-mono text-[10px] text-brand-600 dark:text-brand-400 font-bold">📅 ${this.formatDateDMY(b.qcBookingDate)}</span>
-                            </div>
-                            <div class="text-[10px] text-muted-foreground/80 mt-1 flex items-center justify-between border-t border-border/50 pt-1">
-                                <span>ช่างหน้างาน: ${b.assignedTech}</span>
-                                <span class="text-foreground/80 font-medium">QC: ${b.assignedQCTech.split(' ')[0]}</span>
-                            </div>
-                        </div>
-                        `;
-                    }).join('');
-
-                    document.getElementById('qc-queue-list').innerHTML = listHtml || `
-                        <div class="text-xs text-muted-foreground text-center py-12 space-y-2">
-                            <i class="ph ph-calendar-x text-2xl text-muted-foreground/60 block"></i>
-                            <div>ยังไม่มีรายการจองคิวช่าง QC</div>
-                            <button onclick="app.navigate('gantt')" class="text-brand-500 hover:underline text-[11px] font-medium cursor-pointer">+ ไปยัง Gantt Chart เพื่อสร้าง Task</button>
-                        </div>
-                    `;
-
-                    // Auto-select first booking if none selected or selected not in list
-                    if (bookings.length > 0) {
-                        const targetId = this.state.selectedQCBookingId && bookings.some(b => b.id === this.state.selectedQCBookingId)
-                            ? this.state.selectedQCBookingId
-                            : bookings[0].id;
-                        this.selectQCBooking(targetId);
-                    } else {
-                        document.getElementById('qc-form-container').innerHTML = `
-                            <div class="h-full flex flex-col items-center justify-center text-center p-8">
-                                <div class="w-16 h-16 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground mb-4">
-                                    <i class="ph ph-calendar-blank text-3xl"></i>
-                                </div>
-                                <h4 class="font-display font-medium text-foreground text-base mb-1">ยังไม่มีรายการจองช่าง QC</h4>
-                                <p class="text-xs text-muted-foreground max-w-sm">เมื่อมีการสร้างหรือบันทึก End Date ของแต่ละ Task ใน Gantt Timeline ระบบจะสร้างงานจองคิวตรวจคุณภาพล่วงหน้า 5 วันอัตโนมัติ</p>
-                            </div>
-                        `;
-                    }
-                } else {
-                    // Pending Inspection Tab (Sorted descending with latest on top)
-                    const qcJobs = this.sortJobsDescending(DB.jobs.filter(j => j.status === 'QC_PENDING'));
-                    const listHtml = qcJobs.map((j, jIdx) => {
-                        const isQuick = this.isQuickJob(j) || j.qc_inspection_type === 'ONLINE';
-                        const isTopNew = this.isTopLatestJob(j.id, qcJobs, 1);
-                        const isSelected = (this.state.selectedQCJobId === j.id);
-                        const cardBg = isSelected 
-                            ? (isQuick ? 'bg-cyan-500/10 border-cyan-500 ring-1 ring-cyan-500/40' : 'bg-brand-500/10 border-brand-500 ring-1 ring-brand-500/40') 
-                            : (isTopNew ? 'border-brand-500/30 bg-brand-500/[0.03]' : 'bg-muted/40 border-border hover:border-brand-500/40');
-                        const photoCount = (j.photos && j.photos.length > 0) ? j.photos.length : 5;
-
-                        return `
-                        <div class="p-3.5 rounded-xl ${cardBg} border transition-all cursor-pointer group" onclick="app.selectQCJob('${j.id}')">
-                            <div class="flex items-center justify-between mb-1">
-                                <div class="flex items-center gap-1.5 flex-wrap">
-                                    <span class="font-mono text-xs font-bold ${isQuick ? 'text-cyan-600 dark:text-cyan-400' : 'text-brand-500'}">${j.id}</span>
-                                    ${isTopNew ? `
-                                        <span class="badge-new-item text-[8px] py-0 px-1.5" title="สถานะล่าสุด (NEW!)">
-                                            <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
-                                        </span>
-                                    ` : ''}
-                                    ${isQuick ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase bg-amber-500/10 text-amber-600 border border-amber-500/20">QUICK</span>` : ''}
-                                </div>
-                                ${isQuick ? `
-                                    <span class="text-[10px] text-cyan-700 dark:text-cyan-300 bg-cyan-500/15 px-2 py-0.5 rounded-md border border-cyan-500/30 font-bold flex items-center gap-1">
-                                        <i class="ph ph-globe"></i> ตรวจ Online
-                                    </span>
-                                ` : `
-                                    <span class="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">รอตรวจ</span>
-                                `}
-                            </div>
-                            <div class="text-xs font-medium text-foreground group-hover:text-brand-500 transition truncate">${j.customer}</div>
-                            <div class="text-[11px] text-muted-foreground mt-1 truncate">${j.service} • ${j.tech}</div>
-                            ${isQuick ? `
-                                <div class="text-[10px] text-cyan-600/90 dark:text-cyan-400/90 mt-1.5 flex items-center justify-between border-t border-border/50 pt-1.5 font-medium">
-                                    <span class="flex items-center gap-1"><i class="ph ph-camera"></i> รูปหน้างาน: ${photoCount} รูป</span>
-                                    <span class="text-muted-foreground font-normal">รอรับจาก Visit Plan</span>
-                                </div>
-                            ` : ''}
-                        </div>
-                        `;
-                    }).join('');
-
-                    document.getElementById('qc-queue-list').innerHTML = listHtml || '<div class="text-xs text-muted-foreground text-center py-12 text-muted-foreground">ไม่มีรายการงานที่รอตรวจ QC ในขณะนี้</div>';
-                    
-                    if (qcJobs.length > 0) {
-                        const targetId = (this.state.selectedQCJobId && qcJobs.some(j => j.id === this.state.selectedQCJobId)) 
-                            ? this.state.selectedQCJobId 
-                            : qcJobs[0].id;
-                        this.selectQCJob(targetId);
-                    } else {
-                        document.getElementById('qc-form-container').innerHTML = `
-                            <div class="h-full flex flex-col items-center justify-center text-center p-8">
-                                <div class="w-16 h-16 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground mb-4">
-                                    <i class="ph ph-clipboard-text text-3xl"></i>
-                                </div>
-                                <h4 class="font-display font-medium text-foreground text-base mb-1">ไม่มีงานค้างรอตรวจประเมิน</h4>
-                                <p class="text-xs text-muted-foreground max-w-sm">งานทั้งหมดได้รับการตรวจ QC เรียบร้อยแล้ว</p>
-                            </div>
-                        `;
-                    }
+                if (tabAll) {
+                    tabAll.className = (seg === 'all')
+                        ? 'py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs'
+                        : 'py-1.5 px-3 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground';
                 }
-            },
-
-            selectQCBooking(bookingId) {
-                this.state.selectedQCBookingId = bookingId;
-                const booking = (DB.qcBookings || []).find(b => b.id === bookingId);
-                if (!booking) return;
-
-                const qcTechOptions = [
-                    'วิชัย ตรวจดี (ช่าง QC Lead)',
-                    'สมเกียรติ มั่นคง (QC Renovate & Maintenance)',
-                    'ช่างกิตติพงษ์ (QC งานระบบและไฟฟ้า)',
-                    'ช่างธนกฤต (QC งานปรับอากาศ)',
-                    'ช่างสมชาย (QC มาตรฐานทั่วไป)'
-                ];
-
-                const curQcTech = booking.assignedQCTech || qcTechOptions[0];
-                let optsHtml = qcTechOptions.map(tc => `<option value="${tc}" ${tc === curQcTech ? 'selected' : ''}>${tc}</option>`).join('');
-                if (!qcTechOptions.includes(curQcTech)) {
-                    optsHtml += `<option value="${curQcTech}" selected>${curQcTech}</option>`;
+                if (tabQuick) {
+                    tabQuick.className = (seg === 'quick')
+                        ? 'py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs'
+                        : 'py-1.5 px-3 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground';
+                }
+                if (tabRenovate) {
+                    tabRenovate.className = (seg === 'renovate')
+                        ? 'py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs'
+                        : 'py-1.5 px-3 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground';
                 }
 
-                const isConfirmed = booking.status === 'CONFIRMED';
-                const container = document.getElementById('qc-form-container');
-                if (!container) return;
+                // Get all jobs that qualify for QC
+                let list = jobList || (DB.jobs || []).filter(j => {
+                    return j.status === 'QC_PENDING' || 
+                           j.status === 'QC_PASSED' || 
+                           j.status === 'QC_REWORK' ||
+                           (j.step_timestamps && j.step_timestamps.qc_pending_at) ||
+                           (j.qc_subtasks && j.qc_subtasks.length > 0) ||
+                           (j.progress >= 100 && j.status !== 'CLOSED' && j.status !== 'AFTER_SALE');
+                });
 
-                container.innerHTML = `
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border mb-6">
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">${booking.jobId}</span>
-                                <h3 class="font-display font-bold text-lg text-foreground">ใบนัดหมายจองช่างตรวจคุณภาพ (QC Booking)</h3>
-                            </div>
-                            <p class="text-xs text-muted-foreground mt-0.5">Task: <strong class="text-foreground">${booking.taskName}</strong> • ลูกค้า: ${booking.customerName || 'ลูกค้า'}</p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            ${isConfirmed 
-                                ? `<span class="px-3 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/30 flex items-center gap-1.5 shadow-xs"><i class="ph ph-check-circle text-base"></i> ยืนยันช่าง QC แล้ว</span>`
-                                : `<span class="px-3 py-1.5 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 text-xs font-bold border border-amber-500/30 flex items-center gap-1.5 shadow-xs"><i class="ph ph-clock text-base"></i> รอยืนยันช่าง QC</span>`
-                            }
-                        </div>
-                    </div>
-
-                    <!-- Booking Key Facts Banner -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div class="p-4 rounded-2xl bg-card border border-border/80 shadow-xs">
-                            <div class="text-[11px] text-muted-foreground flex items-center gap-1.5 mb-1">
-                                <i class="ph ph-calendar-blank text-brand-500"></i> วันสิ้นสุด Task ใน Gantt
-                            </div>
-                            <div class="text-sm font-bold font-mono text-foreground">${this.formatDateDMY(booking.taskEnd)}</div>
-                            <div class="text-[10px] text-muted-foreground mt-1">เริ่ม: ${this.formatDateDMY(booking.taskStart)}</div>
-                        </div>
-
-                        <div class="p-4 rounded-2xl bg-brand-500/5 border border-brand-500/20 shadow-xs">
-                            <div class="text-[11px] text-brand-600 dark:text-brand-400 flex items-center gap-1.5 font-semibold mb-1">
-                                <i class="ph ph-shield-check text-brand-500"></i> วันนัดตรวจ QC (ล่วงหน้า 5 วัน)
-                            </div>
-                            <div class="text-base font-bold font-mono text-brand-600 dark:text-brand-400">${this.formatDateDMY(booking.qcBookingDate)}</div>
-                            <div class="text-[10px] text-muted-foreground mt-1">คำนวณอัตโนมัติจาก Task End - 5 วัน</div>
-                        </div>
-
-                        <div class="p-4 rounded-2xl bg-card border border-border/80 shadow-xs">
-                            <div class="text-[11px] text-muted-foreground flex items-center gap-1.5 mb-1">
-                                <i class="ph ph-wrench text-brand-500"></i> ช่างผู้รับผิดชอบหน้างาน
-                            </div>
-                            <div class="text-xs font-bold text-foreground truncate">${booking.assignedTech}</div>
-                            <div class="text-[10px] text-muted-foreground mt-1">สถานะ Task: <span class="font-semibold text-brand-500">${booking.taskStatus}</span></div>
-                        </div>
-                    </div>
-
-                    <!-- Inspector Assignment & Scheduling Form -->
-                    <div class="p-5 rounded-2xl bg-card border border-border space-y-4 mb-6 shadow-xs">
-                        <h4 class="font-display font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                            <i class="ph ph-user-gear text-brand-500 text-sm"></i>
-                            กำหนดข้อมูลการตรวจ & ช่าง QC ผู้ตรวจสอบ
-                        </h4>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-medium text-foreground mb-1.5">ช่าง QC ผู้รับผิดชอบ (Inspector):</label>
-                                <select id="qc-inspector-input-${booking.id}" onchange="app.updateQCBookingInspector('${booking.id}', this.value)" class="w-full bg-muted/40 border border-border focus:border-brand-500 rounded-xl px-3 py-2 text-xs font-semibold text-foreground focus:outline-none transition cursor-pointer">
-                                    ${optsHtml}
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-foreground mb-1.5">วันที่นัดตรวจ QC (Booking Date):</label>
-                                <input type="date" value="${booking.qcBookingDate}" onchange="app.updateQCBookingDate('${booking.id}', this.value)" class="w-full bg-muted/40 border border-border focus:border-brand-500 rounded-xl px-3 py-2 text-xs font-mono font-semibold text-foreground focus:outline-none transition cursor-pointer">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-medium text-foreground mb-1.5">หมายเหตุ / เงื่อนไขการตรวจพิเศษ (Special Notes):</label>
-                            <textarea id="qc-remarks-input-${booking.id}" onblur="app.saveQCBookingRemarks('${booking.id}')" rows="2.5" class="w-full bg-muted/40 border border-border focus:border-brand-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none transition" placeholder="เช่น ต้องใช้อุปกรณ์วัดแรงดันพิเศษ, ลูกค้าจะอยู่ตรวจช่วงบ่าย, ตรวจสอบงานสีและขอบบัว...">${booking.remarks || ''}</textarea>
-                        </div>
-                    </div>
-
-                    ${isConfirmed ? `
-                        <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-6 flex items-start gap-3">
-                            <i class="ph ph-check-circle text-emerald-500 text-xl shrink-0 mt-0.5"></i>
-                            <div class="text-xs space-y-1">
-                                <div class="font-bold text-emerald-700 dark:text-emerald-300">ยืนยันการจองช่าง QC เรียบร้อยแล้ว</div>
-                                <div class="text-muted-foreground">ยืนยันโดย: <strong>${booking.confirmedBy || 'เจ้าหน้าที่'}</strong> • เมื่อ: ${booking.confirmedAt ? new Date(booking.confirmedAt).toLocaleString('th-TH') : '-'}</div>
-                                <div class="text-[11px] text-muted-foreground">ช่างตรวจคุณภาพจะเข้าตรวจสอบตามวันนัดหมาย และลงบันทึกในแท็บ "รอตรวจ (Pending)"</div>
-                            </div>
-                        </div>
-                    ` : ''}
-
-                    <!-- Actions Toolbar -->
-                    <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border">
-                        <div class="flex items-center gap-2">
-                            <button type="button" onclick="app.navigate('gantt')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer">
-                                <i class="ph ph-arrow-left"></i> กลับไป Gantt Chart
-                            </button>
-                            <button type="button" onclick="app.startQCInspectionFromBooking('${booking.jobId}')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 text-brand-600 dark:text-brand-400 border-brand-500/20 hover:bg-brand-500/10 cursor-pointer" title="เปิดหน้าแบบฟอร์ม Checklist ตรวจรับ">
-                                <i class="ph ph-clipboard-text text-sm"></i> เปิดฟอร์ม Checklist
-                            </button>
-                        </div>
-
-                        <div class="flex items-center gap-2">
-                            <button type="button" onclick="app.saveQCBookingRemarks('${booking.id}')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-medium cursor-pointer">
-                                💾 บันทึกแบบร่าง
-                            </button>
-                            <button type="button" onclick="app.confirmQCBooking('${booking.id}')" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white cursor-pointer">
-                                <i class="ph ph-check-circle text-base"></i>
-                                <span>${isConfirmed ? 'อัปเดตการยืนยันช่าง QC' : '✓ Confirm จองช่าง QC'}</span>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            },
-
-            selectQCJob(id) {
-                this.state.selectedQCJobId = id;
-                const job = DB.jobs.find(j => j.id === id);
-                if(!job) return;
-
-                const isQuick = this.isQuickJob(job) || job.qc_inspection_type === 'ONLINE';
-                if (isQuick) {
-                    this.renderQuickOnlineQC(job);
+                // Auto-seed mock jobs if empty on first load so users immediately see data
+                if (list.length === 0 && (!jobList)) {
+                    this.simulateMockQCJobs();
                     return;
                 }
 
-                // Daily Work Logs for this Job
-                const jobDailyLogs = (DB.dailyWorkLogs || []).filter(l => String(l.jobId) === String(id));
-                jobDailyLogs.sort((a, b) => new Date(a.logDate || '2026-01-01') - new Date(b.logDate || '2026-01-01'));
-
-                let dailyLogSectionHtml = '';
-                if (jobDailyLogs.length > 0) {
-                    const totalPhotos = jobDailyLogs.reduce((sum, l) => sum + (l.photos ? l.photos.length : 0), 0);
-                    const maxPct = jobDailyLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
-                    const isAllDone = jobDailyLogs.some(l => l.isCompleted) || maxPct === 100 || job.status === 'QC_PENDING' || job.status === 'QC_PASSED';
-
-                    dailyLogSectionHtml = `
-                    <div class="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20 mb-6 space-y-3">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center text-base font-bold shadow-xs">
-                                    <i class="ph ph-notebook"></i>
-                                </div>
-                                <div>
-                                    <div class="text-xs font-bold text-foreground flex items-center gap-2">
-                                        <span>บันทึกงานช่างประจำวัน (Daily Field Logs)</span>
-                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${isAllDone ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30'}">
-                                            บันทึกแล้ว ${jobDailyLogs.length} วัน • คืบหน้ารวม ${maxPct}% ${isAllDone ? '✓ ส่งตรวจ QC แล้ว' : ''}
-                                        </span>
-                                    </div>
-                                    <p class="text-[11px] text-muted-foreground mt-0.5">รายงานผลงานภาคสนาม ปัญหาที่พบ วัสดุที่ใช้ และภาพถ่ายขั้นตอนการทำงานเพื่อใช้ประกอบการตรวจ QC</p>
-                                </div>
-                            </div>
-                            <button type="button" onclick="app.openDailyWorkLogModalForJob('${id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-blue-600 dark:text-blue-400 border border-blue-500/30 bg-card hover:bg-blue-500/10 cursor-pointer shadow-xs shrink-0">
-                                <i class="ph ph-note-pencil text-sm"></i>
-                                <span>เปิดดูบันทึก & เพิ่มรูป (${totalPhotos} รูป)</span>
-                            </button>
-                        </div>
-
-                        <!-- Daily Log Day Cards -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
-                            ${jobDailyLogs.map(l => {
-                                const photosCount = (l.photos || []).length;
-                                return `
-                                <div class="p-3 rounded-xl bg-card border border-border shadow-xs space-y-2 hover:border-blue-500/40 transition flex flex-col justify-between">
-                                    <div class="space-y-1.5">
-                                        <div class="flex items-center justify-between">
-                                            <span class="font-bold text-xs text-foreground flex items-center gap-1.5">
-                                                <span class="w-5 h-5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center text-[10px] font-mono font-bold">D${l.dayNumber || 1}</span>
-                                                <span>วันที่ ${this.formatDateDMY(l.logDate)}</span>
-                                            </span>
-                                            <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                                                ${l.progressPercent || 0}%
-                                            </span>
-                                        </div>
-                                        <p class="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
-                                            ${l.workDescription || '-'}
-                                        </p>
-                                        ${photosCount > 0 ? `
-                                        <div class="flex items-center gap-1.5 pt-1 overflow-x-auto pb-0.5">
-                                            ${(l.photos || []).slice(0, 3).map(p => `
-                                                <img src="${p.url}" alt="${p.title}" onclick="app.showLightbox('${p.url}', '${p.title}', 'รูปบันทึกงานประจำวัน Day ${l.dayNumber}', '${l.workDescription}', '${l.recordedBy || 'ช่าง'}')" class="w-12 h-12 rounded-lg object-cover border border-border cursor-pointer hover:scale-105 hover:border-blue-500 transition shrink-0 shadow-xs" title="${p.title}">
-                                            `).join('')}
-                                            ${photosCount > 3 ? `<span class="text-[10px] font-mono text-muted-foreground pl-1 font-semibold">+${photosCount - 3}</span>` : ''}
-                                        </div>
-                                        ` : '<div class="text-[10px] text-muted-foreground italic py-1">ไม่มีรูปภาพ</div>'}
-                                    </div>
-                                    <div class="text-[10px] text-muted-foreground flex items-center justify-between pt-2 border-t border-border/60 mt-1">
-                                        <span class="truncate max-w-[130px]"><i class="ph ph-user text-[11px]"></i> ${l.recordedBy || l.technician || 'ช่าง'}</span>
-                                        <button type="button" onclick="app.openDailyWorkLogModal('${l.taskId || ''}')" class="text-blue-500 hover:underline font-semibold cursor-pointer">ดูรายละเอียด</button>
-                                    </div>
-                                </div>`;
-                            }).join('')}
-                        </div>
-                    </div>
-                    `;
-                } else {
-                    dailyLogSectionHtml = `
-                    <div class="p-3.5 rounded-2xl bg-muted/20 border border-dashed border-border mb-6 flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-2.5">
-                            <i class="ph ph-notebook text-muted-foreground text-lg"></i>
-                            <div class="text-xs text-muted-foreground">
-                                ยังไม่มีบันทึกงานช่างประจำวันสำหรับโครงการนี้
-                            </div>
-                        </div>
-                        <button type="button" onclick="app.openDailyWorkLogModalForJob('${id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 cursor-pointer">
-                            <i class="ph ph-plus text-xs"></i>
-                            <span>+ บันทึกงานช่างประจำวัน</span>
-                        </button>
-                    </div>
-                    `;
+                // Filter by segment
+                if (seg === 'quick') {
+                    list = list.filter(j => this.isQuickJob(j));
+                } else if (seg === 'renovate') {
+                    list = list.filter(j => !this.isQuickJob(j));
                 }
 
-                let formHtml = `
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-border mb-6">
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h3 class="font-display font-bold text-lg text-foreground">แบบฟอร์มตรวจสอบ QC: <span class="text-brand-500 font-mono">${id}</span></h3>
-                            </div>
-                            <p class="text-xs text-muted-foreground">ลูกค้า: ${job.customer} • บริการ: ${job.service}</p>
-                        </div>
-                        <button class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5" onclick="app.viewQCPhotos('${id}')">
-                            <i class="ph ph-camera text-sm"></i> ดูรูปภาพหน้างาน (${5 + (job.photos?.length || 0)} รูป)
-                        </button>
-                    </div>
-
-                    ${dailyLogSectionHtml}
-
-                    <div class="space-y-3 mb-6">
-                        <div class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Checklist มาตรฐานความปลอดภัยและคุณภาพ (On-site Inspection)</div>
-                `;
-
-                DB.qcChecklist.forEach(q => {
-                    formHtml += `
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-muted/40 border border-border">
-                            <div class="text-xs text-foreground">
-                                ${q.text} ${q.mandatory ? '<span class="text-rose-500 font-bold">*</span>' : ''}
-                            </div>
-                            <div class="flex items-center gap-3 shrink-0">
-                                <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600 dark:text-emerald-400 text-xs bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 hover:bg-emerald-500/20 transition">
-                                    <input type="radio" name="${q.id}" value="PASS" class="accent-emerald-500" checked>
-                                    <span>PASS</span>
-                                </label>
-                                <label class="flex items-center gap-1.5 cursor-pointer text-rose-600 dark:text-rose-400 text-xs bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20 hover:bg-rose-500/20 transition">
-                                    <input type="radio" name="${q.id}" value="FAIL" class="accent-rose-500">
-                                    <span>FAIL</span>
-                                </label>
-                                <label class="flex items-center gap-1.5 cursor-pointer text-muted-foreground text-xs bg-card px-2.5 py-1 rounded-lg border border-border hover:bg-muted transition">
-                                    <input type="radio" name="${q.id}" value="NA" class="accent-zinc-500">
-                                    <span>N/A</span>
-                                </label>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                formHtml += `
-                    </div>
-
-                    <div class="p-4 rounded-xl bg-muted/30 border border-border mb-6">
-                        <label class="block text-xs font-medium text-muted-foreground mb-1.5">หมายเหตุการตรวจ QC (Inspector Remarks)</label>
-                        <textarea id="qc-remarks-text-${id}" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" rows="2" placeholder="ระบุความคิดเห็นหรือข้อสังเกตเพิ่มเติม..."></textarea>
-                    </div>
-
-                    <div class="flex flex-wrap justify-end gap-3 pt-2">
-                        <button class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs text-rose-500 hover:bg-rose-500/10 border-rose-500/20 cursor-pointer" onclick="app.failQC('${id}')">FAIL - ส่งกลับแก้ไข (Rework)</button>
-                        <button class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium cursor-pointer" onclick="app.passQC('${id}')">PASS - ผ่านเกณฑ์และส่งต่อ CSAT</button>
-                    </div>
-                `;
-
-                document.getElementById('qc-form-container').innerHTML = formHtml;
-            },
-
-            renderQuickOnlineQC(job) {
-                if (!job.photos || job.photos.length === 0) {
-                    job.photos = this.getSampleVisitPlanPhotos(job);
-                    this.persistJobs();
+                // Filter by service
+                if (serviceFilter === 'quick_all') {
+                    list = list.filter(j => this.isQuickJob(j));
+                } else if (serviceFilter === 'renovate_all') {
+                    list = list.filter(j => !this.isQuickJob(j));
+                } else if (serviceFilter !== 'all') {
+                    list = list.filter(j => (j.service || '').includes(serviceFilter));
                 }
 
-                const jobTicket = (DB.tickets || []).find(t => (t.job_id || t.jobId) === job.id);
-                const container = document.getElementById('qc-form-container');
-                if (!container) return;
+                // CRITICAL RULE: Sort jobs descending so newest incoming jobs are always on top!
+                list = this.sortJobsDescending(list);
 
-                const photosHtml = job.photos.map((p, idx) => `
-                    <div class="group relative rounded-xl border border-border bg-card overflow-hidden shadow-xs hover:border-cyan-500/50 transition flex flex-col">
-                        <div class="relative h-36 w-full overflow-hidden bg-muted cursor-pointer shrink-0" onclick="app.showLightbox('${p.url}', '${p.title}', 'รูปหน้างาน Visit Plan', '${p.note || ''}', '${p.source || 'Visit Plan'}')">
-                            <img src="${p.url}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-200">
-                            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
-                                <span class="bg-black/60 px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1">
-                                    <i class="ph ph-magnifying-glass-plus"></i> คลิกซูมดูรูป
-                                </span>
-                            </div>
-                            <span class="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold bg-black/60 text-white backdrop-blur-xs font-mono">
-                                รูปที่ ${idx + 1}
-                            </span>
-                            <span class="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-semibold ${p.source === 'QC Inspector' ? 'bg-indigo-600/90 text-white' : 'bg-cyan-600/90 text-white'} backdrop-blur-xs">
-                                ${p.source || 'Visit Plan'}
-                            </span>
-                        </div>
-                        <div class="p-2.5 space-y-1 flex-1 flex flex-col justify-between">
-                            <div>
-                                <div class="text-xs font-bold text-foreground truncate" title="${p.title}">${p.title}</div>
-                                <div class="text-[11px] text-muted-foreground line-clamp-2 mt-0.5" title="${p.note || ''}">${p.note || 'ภาพถ่ายจากหน้างาน'}</div>
-                            </div>
-                            ${p.id && String(p.id).startsWith('p_qc_') ? `
-                                <div class="pt-1 text-right">
-                                    <button type="button" onclick="app.removeQCPhoto('${job.id}', '${p.id}')" class="text-[10px] text-rose-500 hover:underline cursor-pointer">
-                                        <i class="ph ph-trash"></i> ลบรูป
+                const tableBody = document.getElementById('qc-jobs-table-body');
+                if (!tableBody) return;
+
+                if (list.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="px-5 py-12 text-center text-muted-foreground">
+                                <div class="flex flex-col items-center justify-center gap-3">
+                                    <div class="w-12 h-12 rounded-2xl bg-muted/60 border border-border flex items-center justify-center text-muted-foreground text-2xl">
+                                        <i class="ph ph-shield-check"></i>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <p class="font-medium text-foreground text-sm">ไม่มีรายการงานในคิว QC ตามเงื่อนไขที่เลือก</p>
+                                        <p class="text-xs text-muted-foreground">คุณสามารถกดปุ่ม "จำลองงานเข้า QC" เพื่อสร้างรายการตัวอย่างสำหรับทดสอบการประเมินและให้คะแนน</p>
+                                    </div>
+                                    <button type="button" onclick="app.simulateMockQCJobs()" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs mt-1 cursor-pointer">
+                                        <i class="ph ph-lightning text-amber-300"></i>
+                                        <span>+ จำลองงานเข้า QC (Quick 2 งาน, Renovate 1 งาน)</span>
                                     </button>
                                 </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                `).join('');
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
 
-                container.innerHTML = `
-                    <!-- Header -->
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border mb-5">
-                        <div>
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">${job.id}</span>
-                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/10 text-amber-600 border border-amber-500/20">QUICK SERVICE</span>
-                                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
-                                    <i class="ph ph-globe"></i> ตรวจสอบแบบ Online (รูปถ่ายหน้างาน)
+                const html = list.map((j, idx) => {
+                    const isQuick = this.isQuickJob(j);
+                    const isTopNew = idx < 2; // Top 2 jobs get NEW! badge
+                    const progress = this.calculateJobQCProgress(j);
+                    const subtaskCount = progress.total;
+                    const completedCount = progress.completed;
+                    const avgScore = progress.averageScore;
+
+                    // Status Badge
+                    let statusBadge = '';
+                    if (j.status === 'QC_PASSED') {
+                        statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1"><i class="ph ph-check-circle"></i> ผ่านเกณฑ์แล้ว</span>`;
+                    } else if (j.status === 'QC_REWORK') {
+                        statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 inline-flex items-center gap-1"><i class="ph ph-warning"></i> แจ้งแก้ไขงาน</span>`;
+                    } else {
+                        if (isQuick) {
+                            statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 inline-flex items-center gap-1"><i class="ph ph-globe"></i> ตรวจ Online</span>`;
+                        } else {
+                            statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 inline-flex items-center gap-1"><i class="ph ph-clock"></i> รอตรวจ On-site</span>`;
+                        }
+                    }
+
+                    const qcDateStr = (j.step_timestamps && j.step_timestamps.qc_pending_at) || j.created_at || j.date || new Date().toISOString();
+                    const formattedDate = this.formatDateDMY(qcDateStr);
+                    const slaCalc = this.calculateJobSLA(j, 6);
+
+                    return `
+                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTopNew ? 'bg-emerald-500/[0.02] dark:bg-emerald-500/[0.03]' : ''}" onclick="app.openQCDetailModal('${j.id}')" title="คลิกเพื่อเปิดประเมินและให้คะแนนงาน QC: ${j.id}">
+                        <td class="px-5 py-4 font-mono font-semibold text-brand-500">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span>${j.id}</span>
+                                ${isTopNew ? `
+                                    <span class="badge-new-item text-[9px] py-0 px-1.5 font-bold uppercase bg-gradient-to-r from-rose-500 to-amber-500 text-white shadow-xs" title="รายการใหม่ล่าสุด (NEW!)">
+                                        <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                    </span>
+                                ` : ''}
+                            </div>
+                        </td>
+                        <td class="px-5 py-4">
+                            <div class="text-foreground font-medium group-hover:text-brand-500 transition flex items-center gap-1.5">
+                                <span>${j.customer}</span>
+                                ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="รายการใหม่ล่าสุด"></span>` : ''}
+                            </div>
+                            <div class="text-[11px] text-muted-foreground font-mono">${j.phone || '-'}</div>
+                        </td>
+                        <td class="px-5 py-4 text-muted-foreground">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${isQuick ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'}">
+                                    ${isQuick ? 'QUICK' : 'RENOVATE'}
+                                </span>
+                                <span class="inline-flex items-center gap-1 text-xs text-foreground">
+                                    ${j.service}
                                 </span>
                             </div>
-                            <h3 class="font-display font-bold text-lg text-foreground mt-1">แบบฟอร์มตรวจคุณภาพ Online: <span class="text-brand-500">${job.customer}</span></h3>
-                            <p class="text-xs text-muted-foreground mt-0.5">
-                                บริการ: <strong class="text-foreground">${job.service}</strong> • ช่าง: <strong class="text-foreground">${job.tech}</strong> • เบอร์โทร: <span class="font-mono">${job.phone || '-'}</span>
-                            </p>
-                        </div>
-                        <div class="flex items-center gap-2 shrink-0">
-                            ${jobTicket ? `
-                            <button type="button" onclick="app.openTicketSlipLightbox('${jobTicket.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 cursor-pointer" title="ดูสลิปใบเสร็จและสัญญาจ้าง">
-                                <i class="ph ph-receipt text-emerald-500"></i>
-                                <span>ดูสลิปชำระเงิน</span>
-                            </button>
-                            ` : ''}
-                        </div>
-                    </div>
-
-                    <!-- Visit Plan Integration Banner -->
-                    <div class="p-4 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-teal-500/10 to-emerald-500/10 border border-cyan-500/20 mb-6 space-y-3">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div class="flex items-start sm:items-center gap-2.5">
-                                <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold text-xl shrink-0 mt-0.5 sm:mt-0">
-                                    <i class="ph ph-device-mobile-camera"></i>
+                            <div class="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-2">
+                                <span>งานย่อย: <strong>${completedCount}/${subtaskCount}</strong></span>
+                                <span>•</span>
+                                <span>คะแนน: <strong class="text-amber-600 dark:text-amber-400">${avgScore} ⭐</strong></span>
+                            </div>
+                        </td>
+                        <td class="px-5 py-4 text-muted-foreground">
+                            <div class="text-xs text-foreground font-medium">${j.tech || '-'}</div>
+                            <div class="text-[10px] text-muted-foreground mt-0.5">QC: ${j.qc_inspector || 'วิชัย ตรวจดี'}</div>
+                        </td>
+                        <td class="px-5 py-4">${statusBadge}</td>
+                        <td class="px-5 py-4 w-48">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        Step 6 (QC)
+                                    </span>
+                                    ${slaCalc ? slaCalc.badgeHtml : ''}
                                 </div>
-                                <div>
-                                    <div class="text-xs font-bold text-foreground flex items-center gap-2 flex-wrap">
-                                        <span>การตรวจสอบแบบ Online จาก Visit Plan (Photo-Only Verification)</span>
-                                        <span class="text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-medium">รอรับรูปอัตโนมัติ</span>
-                                    </div>
-                                    <div class="text-[11px] text-muted-foreground mt-0.5">
-                                        งานประเภท Quick Service ตรวจสอบผ่านรูปถ่ายหน้างานเท่านั้น (ในอนาคตเมื่อช่าง Check-out ใน Visit Plan รูปถ่าย 5 รูปจะเชื่อมโยงเข้าสู่คิว QC นี้อัตโนมัติ)
-                                    </div>
+                                <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                                    <div class="${j.status === 'QC_PASSED' ? 'bg-emerald-500' : 'bg-gradient-to-r from-amber-500 to-emerald-500'} h-1.5 rounded-full transition-all" style="width: ${progress.percent || 10}%"></div>
+                                </div>
+                                <div class="text-[10px] font-mono text-muted-foreground flex items-center justify-between">
+                                    <span>เข้า QC: ${formattedDate}</span>
+                                    <span>${progress.percent}%</span>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2 shrink-0">
-                                <button type="button" onclick="app.syncVisitPlanPhotos('${job.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer bg-card hover:bg-muted" title="ดึงรูปถ่ายจำลองจาก Visit Plan">
-                                    <i class="ph ph-arrows-clockwise text-cyan-500"></i>
-                                    <span>ดึงรูปจาก Visit Plan</span>
+                        </td>
+                    </tr>
+                    `;
+                }).join('');
+
+                tableBody.innerHTML = html;
+            },
+
+            updateQCDashboard() {
+                const allJobs = DB.jobs || [];
+                const qcJobs = allJobs.filter(j => {
+                    return j.status === 'QC_PENDING' || 
+                           j.status === 'QC_PASSED' || 
+                           j.status === 'QC_REWORK' ||
+                           (j.step_timestamps && j.step_timestamps.qc_pending_at) ||
+                           (j.qc_subtasks && j.qc_subtasks.length > 0) ||
+                           (j.progress >= 100 && j.status !== 'CLOSED' && j.status !== 'AFTER_SALE');
+                });
+
+                const totalCount = qcJobs.length;
+                const remainingCount = qcJobs.filter(j => j.status !== 'QC_PASSED').length;
+
+                // Today intake
+                const now = new Date();
+                const todayStr = now.toLocaleDateString('en-CA');
+                let todayCount = qcJobs.filter(j => {
+                    const ts = (j.step_timestamps && j.step_timestamps.qc_pending_at) || j.created_at || j.date;
+                    return ts && ts.slice(0, 10) === todayStr;
+                }).length;
+                if (todayCount === 0 && totalCount > 0) {
+                    todayCount = Math.min(totalCount, 3);
+                }
+
+                // SLA Calculation for QC
+                let qcOnTime = 0, qcWarning = 0, qcOverdue = 0;
+                qcJobs.filter(j => j.status !== 'QC_PASSED').forEach(j => {
+                    const sla = this.calculateJobSLA(j, 6);
+                    if (sla) {
+                        if (sla.status === 'OVERDUE') qcOverdue++;
+                        else if (sla.status === 'WARNING') qcWarning++;
+                        else qcOnTime++;
+                    } else {
+                        qcOnTime++;
+                    }
+                });
+
+                // Segment Distribution
+                const quickCount = qcJobs.filter(j => this.isQuickJob(j)).length;
+                const renovateCount = qcJobs.filter(j => !this.isQuickJob(j)).length;
+                const passedCount = qcJobs.filter(j => j.status === 'QC_PASSED').length;
+                const defectCount = qcJobs.filter(j => j.status === 'QC_REWORK').length;
+
+                const calcPct = (v, t) => t > 0 ? Math.round((v / t) * 100) : 0;
+                const quickPct = calcPct(quickCount, totalCount);
+                const renovatePct = calcPct(renovateCount, totalCount);
+                const passedPct = calcPct(passedCount, totalCount);
+                const defectPct = calcPct(defectCount, totalCount);
+
+                // Update DOM elements
+                const elTotal = document.getElementById('qc-stat-total');
+                if (elTotal) elTotal.innerText = totalCount;
+                const elToday = document.getElementById('qc-stat-today');
+                if (elToday) elToday.innerText = todayCount;
+                const elRemaining = document.getElementById('qc-stat-remaining');
+                if (elRemaining) elRemaining.innerText = remainingCount;
+
+                const elOverdue = document.getElementById('qc-stat-sla-overdue');
+                if (elOverdue) elOverdue.innerText = qcOverdue;
+                const elOnTime = document.getElementById('qc-stat-sla-ontime');
+                if (elOnTime) elOnTime.innerText = qcOnTime;
+                const elWarning = document.getElementById('qc-stat-sla-warning');
+                if (elWarning) elWarning.innerText = qcWarning;
+
+                // Segments
+                const elQuickCnt = document.getElementById('qc-dist-quick-count');
+                if (elQuickCnt) elQuickCnt.innerText = quickCount;
+                const elQuickPct = document.getElementById('qc-dist-quick-pct');
+                if (elQuickPct) elQuickPct.innerText = `${quickPct}%`;
+
+                const elRenoCnt = document.getElementById('qc-dist-renovate-count');
+                if (elRenoCnt) elRenoCnt.innerText = renovateCount;
+                const elRenoPct = document.getElementById('qc-dist-renovate-pct');
+                if (elRenoPct) elRenoPct.innerText = `${renovatePct}%`;
+
+                const elPassCnt = document.getElementById('qc-dist-passed-count');
+                if (elPassCnt) elPassCnt.innerText = passedCount;
+                const elPassPct = document.getElementById('qc-dist-passed-pct');
+                if (elPassPct) elPassPct.innerText = `${passedPct}%`;
+
+                const elDefectCnt = document.getElementById('qc-dist-defect-count');
+                if (elDefectCnt) elDefectCnt.innerText = defectCount;
+                const elDefectPct = document.getElementById('qc-dist-defect-pct');
+                if (elDefectPct) elDefectPct.innerText = `${defectPct}%`;
+
+                // Progress Bar
+                const barQuick = document.getElementById('qc-bar-quick');
+                if (barQuick) barQuick.style.width = `${quickPct}%`;
+                const barReno = document.getElementById('qc-bar-renovate');
+                if (barReno) barReno.style.width = `${renovatePct}%`;
+
+                // Tabs counts
+                const elTabAll = document.getElementById('qc-tab-count-all');
+                if (elTabAll) elTabAll.innerText = totalCount;
+                const elTabQuick = document.getElementById('qc-tab-count-quick');
+                if (elTabQuick) elTabQuick.innerText = quickCount;
+                const elTabReno = document.getElementById('qc-tab-count-renovate');
+                if (elTabReno) elTabReno.innerText = renovateCount;
+
+                // Sidebar
+                const sbBadge = document.getElementById('sidebar-qc-count');
+                if (sbBadge) {
+                    sbBadge.innerText = remainingCount;
+                    sbBadge.style.display = remainingCount > 0 ? '' : 'none';
+                }
+            },
+
+            filterQCBySegment(segment) {
+                this.state.qcSegmentFilter = segment;
+                this.renderQC();
+            },
+
+            filterQCByDashboard(type) {
+                let list = (DB.jobs || []).filter(j => {
+                    return j.status === 'QC_PENDING' || 
+                           j.status === 'QC_PASSED' || 
+                           j.status === 'QC_REWORK' ||
+                           (j.step_timestamps && j.step_timestamps.qc_pending_at) ||
+                           (j.qc_subtasks && j.qc_subtasks.length > 0) ||
+                           (j.progress >= 100 && j.status !== 'CLOSED' && j.status !== 'AFTER_SALE');
+                });
+
+                if (type === 'TODAY') {
+                    const todayStr = new Date().toLocaleDateString('en-CA');
+                    list = list.filter(j => {
+                        const ts = (j.step_timestamps && j.step_timestamps.qc_pending_at) || j.created_at || j.date;
+                        return ts && ts.slice(0, 10) === todayStr;
+                    });
+                    if (list.length === 0) list = this.sortJobsDescending(DB.jobs.filter(j => j.status === 'QC_PENDING')).slice(0, 3);
+                    this.showToast('🔍 กรองเฉพาะงานที่เข้าสู่ QC วันนี้');
+                } else if (type === 'REMAINING') {
+                    list = list.filter(j => j.status !== 'QC_PASSED');
+                    this.showToast('🔍 กรองเฉพาะงานที่ยังรอตรวจ QC');
+                } else if (type === 'OVERDUE') {
+                    list = list.filter(j => {
+                        const sla = this.calculateJobSLA(j, 6);
+                        return sla && sla.status === 'OVERDUE';
+                    });
+                    this.showToast('🔍 กรองงาน QC ที่เกินกำหนด SLA');
+                } else if (type === 'PASSED') {
+                    list = list.filter(j => j.status === 'QC_PASSED');
+                    this.showToast('🔍 กรองเฉพาะงานที่ผ่านเกณฑ์ QC แล้ว');
+                } else if (type === 'REWORK') {
+                    list = list.filter(j => j.status === 'QC_REWORK');
+                    this.showToast('🔍 กรองเฉพาะงานที่แจ้งช่างแก้ไข');
+                } else {
+                    this.state.qcSegmentFilter = 'all';
+                    this.showToast('📋 แสดงงาน QC ทั้งหมดในระบบ');
+                }
+
+                this.renderQC(list);
+            },
+
+            getJobQCSubtasks(job) {
+                if (!job) return [];
+                if (Array.isArray(job.qc_subtasks) && job.qc_subtasks.length > 0) {
+                    return job.qc_subtasks;
+                }
+
+                const tasks = (DB.tasks || []).filter(t => String(t.jobId) === String(job.id));
+                const boq = (job.boq_items || []);
+
+                let subtasks = [];
+
+                if (tasks.length > 0) {
+                    subtasks = tasks.map((t, idx) => ({
+                        id: t.id || `sub_${job.id}_${idx + 1}`,
+                        title: t.name,
+                        category: t.category || (this.isQuickJob(job) ? 'งานด่วน' : 'งานปรับปรุงโครงสร้าง'),
+                        status: 'PENDING',
+                        score: 0,
+                        photos: [],
+                        remarks: ''
+                    }));
+                } else if (boq.length > 0) {
+                    subtasks = boq.map((b, idx) => ({
+                        id: b.id || `sub_${job.id}_${idx + 1}`,
+                        title: b.name || b.item || `งานย่อยที่ ${idx + 1}`,
+                        category: 'รายการตาม BOQ',
+                        status: 'PENDING',
+                        score: 0,
+                        photos: [],
+                        remarks: ''
+                    }));
+                } else {
+                    const isQuick = this.isQuickJob(job);
+                    if (isQuick) {
+                        subtasks = [
+                            { id: `sub_${job.id}_1`, title: `งานเตรียมพื้นที่และตรวจสอบอุปกรณ์ (${job.service})`, category: 'เตรียมการ', status: 'PENDING', score: 0, photos: [], remarks: '' },
+                            { id: `sub_${job.id}_2`, title: `งานติดตั้งและเดินระบบไฟฟ้า/น้ำ (${job.service})`, category: 'งานติดตั้ง', status: 'PENDING', score: 0, photos: [], remarks: '' },
+                            { id: `sub_${job.id}_3`, title: 'งานตรวจสอบความเรียบร้อย ทดสอบระบบ และส่งมอบงาน', category: 'ทดสอบ & ส่งมอบ', status: 'PENDING', score: 0, photos: [], remarks: '' }
+                        ];
+                    } else {
+                        subtasks = [
+                            { id: `sub_${job.id}_1`, title: 'งานรื้อถอน สกัดพื้น และปรับระนาบหน้างาน', category: 'งานโครงสร้าง', status: 'PENDING', score: 0, photos: [], remarks: '' },
+                            { id: `sub_${job.id}_2`, title: 'งานระบบประปา/สุขาภิบาล และทำระบบกันซึม', category: 'งานระบบ', status: 'PENDING', score: 0, photos: [], remarks: '' },
+                            { id: `sub_${job.id}_3`, title: 'งานปูกระเบื้อง เก็บแนวรอยต่อ และติดตั้งสุขภัณฑ์', category: 'งานตกแต่งผิว', status: 'PENDING', score: 0, photos: [], remarks: '' }
+                        ];
+                    }
+                }
+
+                // If job has photos from earlier stages, distribute them into subtasks
+                if (Array.isArray(job.photos) && job.photos.length > 0) {
+                    job.photos.forEach((p, pIdx) => {
+                        const targetSub = subtasks[pIdx % subtasks.length];
+                        if (targetSub && !targetSub.photos.some(sp => sp.url === p.url)) {
+                            targetSub.photos.push({
+                                id: p.id || `sp_${Date.now()}_${pIdx}`,
+                                title: p.title || `รูปถ่ายหน้างาน ${pIdx + 1}`,
+                                url: p.url,
+                                uploaded_at: p.uploaded_at || new Date().toISOString()
+                            });
+                        }
+                    });
+                }
+
+                job.qc_subtasks = subtasks;
+                return job.qc_subtasks;
+            },
+
+            calculateJobQCProgress(job) {
+                if (!job) return { total: 0, completed: 0, passed: 0, defect: 0, averageScore: '0.0', percent: 0, isAllComplete: false };
+                const subtasks = this.getJobQCSubtasks(job);
+                const total = subtasks.length;
+                const completed = subtasks.filter(s => (s.status === 'PASSED' || s.status === 'DEFECT') && Number(s.score) > 0).length;
+                const passed = subtasks.filter(s => s.status === 'PASSED' && Number(s.score) > 0).length;
+                const defect = subtasks.filter(s => s.status === 'DEFECT').length;
+
+                const scoredList = subtasks.filter(s => Number(s.score) > 0);
+                const avgNum = scoredList.length > 0 ? (scoredList.reduce((sum, s) => sum + Number(s.score), 0) / scoredList.length) : 0;
+                const averageScore = avgNum.toFixed(1);
+                const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+                const isAllComplete = (total > 0) && (completed === total) && (defect === 0);
+
+                return { total, completed, passed, defect, averageScore, percent, isAllComplete };
+            },
+
+            openQCDetailModal(jobId) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+
+                this.state.currentQCModalJobId = jobId;
+
+                // Header elements
+                const elId = document.getElementById('qc-detail-job-id');
+                if (elId) elId.innerText = job.id;
+                const isQuick = this.isQuickJob(job);
+                const elType = document.getElementById('qc-detail-type-badge');
+                if (elType) {
+                    elType.innerText = isQuick ? 'QUICK SERVICE' : 'RENOVATE PROJECT';
+                    elType.className = isQuick 
+                        ? 'px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                        : 'px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-indigo-500/10 text-indigo-600 border border-indigo-500/20';
+                }
+                const elStatus = document.getElementById('qc-detail-status-badge');
+                if (elStatus) {
+                    if (job.status === 'QC_PASSED') {
+                        elStatus.innerText = 'ผ่านเกณฑ์แล้ว';
+                        elStatus.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30';
+                    } else if (job.status === 'QC_REWORK') {
+                        elStatus.innerText = 'แจ้งแก้ไขงาน';
+                        elStatus.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30';
+                    } else {
+                        elStatus.innerText = isQuick ? 'รอตรวจ Online' : 'รอตรวจ On-site';
+                        elStatus.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30';
+                    }
+                }
+                const elTitle = document.getElementById('qc-detail-job-title');
+                if (elTitle) elTitle.innerText = `แบบฟอร์มประเมินและให้คะแนน QC: ${job.service}`;
+                const elCust = document.getElementById('qc-detail-customer');
+                if (elCust) elCust.innerText = job.customer;
+                const elPhone = document.getElementById('qc-detail-phone');
+                if (elPhone) elPhone.innerText = job.phone || '-';
+                const elTech = document.getElementById('qc-detail-tech');
+                if (elTech) elTech.innerText = job.tech || '-';
+
+                // Format inspection date in DD/MM/YYYY 24-hr (e.g. 08/09/2026 14:30 น.)
+                const elDate = document.getElementById('qc-modal-date');
+                if (elDate) {
+                    const now = new Date();
+                    const d = String(now.getDate()).padStart(2, '0');
+                    const m = String(now.getMonth() + 1).padStart(2, '0');
+                    const y = now.getFullYear();
+                    const hh = String(now.getHours()).padStart(2, '0');
+                    const mm = String(now.getMinutes()).padStart(2, '0');
+                    elDate.value = `${d}/${m}/${y} ${hh}:${mm} น.`;
+                }
+
+                const elRemarks = document.getElementById('qc-modal-overall-remarks');
+                if (elRemarks) elRemarks.value = job.qc_remarks || '';
+                const elInspector = document.getElementById('qc-modal-inspector');
+                if (elInspector && job.qc_inspector) elInspector.value = job.qc_inspector;
+
+                this.renderQCSubtasks(job);
+                this.showModal('modal-qc-job-detail');
+            },
+
+            renderQCSubtasks(job) {
+                const subtasks = this.getJobQCSubtasks(job);
+                const progress = this.calculateJobQCProgress(job);
+
+                // Update Progress Summary DOM
+                const elAvg = document.getElementById('qc-detail-avg-score');
+                if (elAvg) elAvg.innerText = progress.averageScore;
+                const elCounts = document.getElementById('qc-detail-subtask-counts');
+                if (elCounts) elCounts.innerText = `ประเมินแล้ว ${progress.completed} จาก ${progress.total} งานย่อย (ผ่าน ${progress.passed}, ข้อบกพร่อง ${progress.defect})`;
+                const elPct = document.getElementById('qc-detail-progress-pct');
+                if (elPct) elPct.innerText = `${progress.percent}%`;
+                const elBar = document.getElementById('qc-detail-progress-bar');
+                if (elBar) elBar.style.width = `${progress.percent}%`;
+
+                const elBadge = document.getElementById('qc-detail-completion-badge');
+                if (elBadge) {
+                    if (progress.isAllComplete) {
+                        elBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
+                        elBadge.innerHTML = '<i class="ph ph-check-circle"></i> ประเมินครบทุกงานย่อยแล้ว';
+                    } else {
+                        elBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400';
+                        elBadge.innerText = `ประเมินแล้ว ${progress.completed}/${progress.total} งาน`;
+                    }
+                }
+
+                const elSubBadge = document.getElementById('qc-detail-subtask-badge');
+                if (elSubBadge) elSubBadge.innerText = `${progress.total} งานย่อย`;
+
+                // Update CSAT Submit Button (Gating rule!)
+                const btnCSAT = document.getElementById('btn-qc-approve-csat');
+                const btnLabel = document.getElementById('btn-qc-approve-csat-label');
+                if (btnCSAT && btnLabel) {
+                    if (progress.isAllComplete) {
+                        btnCSAT.disabled = false;
+                        btnCSAT.className = 'btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all';
+                        btnLabel.innerText = `✓ อนุมัติผ่านเกณฑ์ QC (${progress.averageScore} ⭐) & ส่งต่อ CSAT (Step 7)`;
+                    } else {
+                        btnCSAT.disabled = true;
+                        btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 bg-muted text-muted-foreground cursor-not-allowed opacity-60 transition-all';
+                        btnLabel.innerText = `ประเมินแล้ว ${progress.completed}/${progress.total} งาน (ต้องครบทุกงานก่อนส่ง CSAT)`;
+                    }
+                }
+
+                // Render Subtask Cards
+                const container = document.getElementById('qc-subtasks-list');
+                if (!container) return;
+
+                container.innerHTML = subtasks.map((s, idx) => {
+                    const isPassed = s.status === 'PASSED';
+                    const isDefect = s.status === 'DEFECT';
+                    const score = Number(s.score) || 0;
+                    const photos = Array.isArray(s.photos) ? s.photos : [];
+
+                    // Star Rating HTML (1 to 5 Stars)
+                    let starsHtml = '';
+                    for (let star = 1; star <= 5; star++) {
+                        const isStarActive = star <= score;
+                        starsHtml += `
+                            <button type="button" onclick="app.setSubtaskScore('${job.id}', '${s.id}', ${star})" class="p-1 text-base transition hover:scale-125 cursor-pointer ${isStarActive ? 'text-amber-400' : 'text-muted/60 hover:text-amber-300'}" title="ให้ ${star} ดาว">
+                                <i class="${isStarActive ? 'ph-fill' : 'ph'} ph-star"></i>
+                            </button>
+                        `;
+                    }
+
+                    // Photo gallery for this subtask
+                    let photosListHtml = '';
+                    if (photos.length > 0) {
+                        photosListHtml = photos.map((p, pIdx) => `
+                            <div class="relative group rounded-xl overflow-hidden border border-border bg-muted/40 w-24 h-24 shrink-0 shadow-xs">
+                                <img src="${p.url}" alt="${p.title}" onclick="app.showLightbox('${p.url}', '${p.title}', 'รูปงานย่อย: ${s.title}', '${p.uploaded_at ? app.formatDateDMY(p.uploaded_at) : ''}', 'QC Inspector')" class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition">
+                                <button type="button" onclick="app.removeSubtaskPhoto('${job.id}', '${s.id}', '${p.id}')" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white hover:bg-rose-600 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition cursor-pointer" title="ลบรูปนี้">
+                                    <i class="ph ph-trash"></i>
                                 </button>
-                                <label class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white cursor-pointer shadow-xs">
-                                    <i class="ph ph-plus-circle text-sm"></i>
-                                    <span>+ แนบรูปเพิ่ม</span>
-                                    <input type="file" accept="image/*" class="hidden" onchange="app.handleQCPhotoUpload(event, '${job.id}')">
+                                <span class="absolute bottom-1 left-1 px-1 py-0.2 rounded text-[8px] font-mono bg-black/60 text-white backdrop-blur-xs">#${pIdx + 1}</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        photosListHtml = `<div class="text-[11px] text-muted-foreground italic py-3 flex items-center gap-1.5"><i class="ph ph-image"></i> ยังไม่มีรูปภาพสำหรับงานย่อยนี้ (กดปุ่มแนบรูปด้านล่าง)</div>`;
+                    }
+
+                    return `
+                    <div class="p-4.5 rounded-2xl bg-card border ${isPassed ? 'border-emerald-500/30' : (isDefect ? 'border-rose-500/30' : 'border-border')} shadow-xs space-y-3.5 transition-all">
+                        <!-- Subtask Header -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-2.5">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="w-6 h-6 rounded-lg bg-muted text-muted-foreground flex items-center justify-center font-mono font-bold text-xs">
+                                    ${idx + 1}
+                                </span>
+                                <h5 class="font-display font-bold text-foreground text-xs sm:text-sm">${s.title}</h5>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-muted text-muted-foreground border border-border/80">${s.category || 'งานย่อย'}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                ${isPassed ? `
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                        <i class="ph ph-check-circle"></i> ผ่านเกณฑ์ (${score} ⭐)
+                                    </span>
+                                ` : (isDefect ? `
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                                        <i class="ph ph-warning"></i> พบข้อบกพร่อง
+                                    </span>
+                                ` : `
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground border border-border">
+                                        รอประเมิน
+                                    </span>
+                                `)}
+                            </div>
+                        </div>
+
+                        <!-- Scoring & Status Controls -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/20 p-3 rounded-xl border border-border/60">
+                            <!-- Star Rating -->
+                            <div>
+                                <label class="block text-[11px] font-semibold text-foreground mb-1 flex items-center justify-between">
+                                    <span>คะแนนคุณภาพงาน (1-5 ดาว):</span>
+                                    <span class="font-mono text-amber-500 font-bold">${score > 0 ? `${score} ดาว` : 'ยังไม่ให้คะแนน'}</span>
+                                </label>
+                                <div class="flex items-center gap-1 bg-card p-1.5 rounded-lg border border-border">
+                                    ${starsHtml}
+                                    <span class="text-[10px] text-muted-foreground ml-2 font-mono">
+                                        ${score === 5 ? 'ดีเยี่ยม' : (score === 4 ? 'ดีมาก' : (score === 3 ? 'มาตรฐาน' : (score === 2 ? 'พอใช้' : (score === 1 ? 'ต้องปรับปรุง' : 'คลิกดาวเพื่อประเมิน'))))}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Pass / Defect Status Radio -->
+                            <div>
+                                <label class="block text-[11px] font-semibold text-foreground mb-1">ผลการตรวจสอบงานย่อย:</label>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" onclick="app.setSubtaskStatus('${job.id}', '${s.id}', 'PASSED')" class="flex-1 py-1.5 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 border transition cursor-pointer ${isPassed ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 ring-1 ring-emerald-500/30' : 'bg-card text-muted-foreground border-border hover:text-foreground'}">
+                                        <i class="ph ph-check-circle text-emerald-500"></i>
+                                        <span>✓ ผ่านเกณฑ์ (PASS)</span>
+                                    </button>
+                                    <button type="button" onclick="app.setSubtaskStatus('${job.id}', '${s.id}', 'DEFECT')" class="flex-1 py-1.5 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 border transition cursor-pointer ${isDefect ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40 ring-1 ring-rose-500/30' : 'bg-card text-muted-foreground border-border hover:text-foreground'}">
+                                        <i class="ph ph-x-circle text-rose-500"></i>
+                                        <span>⚠️ ข้อบกพร่อง (DEFECT)</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dedicated Photos for this Subtask -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div class="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
+                                    <i class="ph ph-camera text-brand-500"></i>
+                                    <span>รูปถ่ายประกอบงานย่อยนี้ (${photos.length} รูป)</span>
+                                </div>
+                                <label class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 cursor-pointer bg-card hover:bg-muted shadow-2xs">
+                                    <i class="ph ph-camera-plus text-brand-500 text-xs"></i>
+                                    <span>+ แนบรูปงานนี้</span>
+                                    <input type="file" accept="image/*" class="hidden" onchange="app.handleSubtaskPhotoUpload(event, '${job.id}', '${s.id}')">
                                 </label>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Photo Gallery -->
-                    <div class="mb-6 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <div class="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                                <i class="ph ph-camera text-cyan-500 text-sm"></i>
-                                <span>รูปถ่ายหน้างานสำหรับตรวจประเมิน (${job.photos.length} รูป)</span>
-                            </div>
-                            <span class="text-[11px] text-muted-foreground">คลิกรูปเพื่อซูมตรวจสอบรายละเอียด</span>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                            ${photosHtml}
-                        </div>
-                    </div>
-
-                    <!-- Online QC Checklist -->
-                    <div class="p-5 rounded-2xl bg-card border border-border space-y-4 mb-6 shadow-xs">
-                        <div class="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                            <i class="ph ph-shield-check text-cyan-500 text-sm"></i>
-                            <span>เกณฑ์ตรวจสอบคุณภาพ Online (Online Checklist)</span>
-                        </div>
-                        <div class="space-y-2.5">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-muted/40 border border-border">
-                                <div class="text-xs text-foreground">
-                                    1. ภาพถ่ายหน้างานครบถ้วน คมชัด ครอบคลุมจุดสำคัญตามมาตรฐาน <span class="text-rose-500 font-bold">*</span>
-                                </div>
-                                <div class="flex items-center gap-3 shrink-0">
-                                    <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600 dark:text-emerald-400 text-xs bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
-                                        <input type="radio" name="qc_online_q1" value="PASS" class="accent-emerald-500" checked>
-                                        <span>PASS</span>
-                                    </label>
-                                    <label class="flex items-center gap-1.5 cursor-pointer text-rose-600 dark:text-rose-400 text-xs bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
-                                        <input type="radio" name="qc_online_q1" value="FAIL" class="accent-rose-500">
-                                        <span>FAIL</span>
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-muted/40 border border-border">
-                                <div class="text-xs text-foreground">
-                                    2. อุปกรณ์และวัสดุติดตั้งถูกต้องตรงตามใบสั่งงานและรุ่นที่ระบุ <span class="text-rose-500 font-bold">*</span>
-                                </div>
-                                <div class="flex items-center gap-3 shrink-0">
-                                    <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600 dark:text-emerald-400 text-xs bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
-                                        <input type="radio" name="qc_online_q2" value="PASS" class="accent-emerald-500" checked>
-                                        <span>PASS</span>
-                                    </label>
-                                    <label class="flex items-center gap-1.5 cursor-pointer text-rose-600 dark:text-rose-400 text-xs bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
-                                        <input type="radio" name="qc_online_q2" value="FAIL" class="accent-rose-500">
-                                        <span>FAIL</span>
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-muted/40 border border-border">
-                                <div class="text-xs text-foreground">
-                                    3. การต่อระบบไฟฟ้า / สายดิน Safe-T-Cut / ข้อต่อท่อ ปลอดภัยตามมาตรฐาน <span class="text-rose-500 font-bold">*</span>
-                                </div>
-                                <div class="flex items-center gap-3 shrink-0">
-                                    <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600 dark:text-emerald-400 text-xs bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
-                                        <input type="radio" name="qc_online_q3" value="PASS" class="accent-emerald-500" checked>
-                                        <span>PASS</span>
-                                    </label>
-                                    <label class="flex items-center gap-1.5 cursor-pointer text-rose-600 dark:text-rose-400 text-xs bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
-                                        <input type="radio" name="qc_online_q3" value="FAIL" class="accent-rose-500">
-                                        <span>FAIL</span>
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-muted/40 border border-border">
-                                <div class="text-xs text-foreground">
-                                    4. ความเรียบร้อย การทำความสะอาดพื้นที่ และส่งมอบงานให้ลูกค้า
-                                </div>
-                                <div class="flex items-center gap-3 shrink-0">
-                                    <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600 dark:text-emerald-400 text-xs bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
-                                        <input type="radio" name="qc_online_q4" value="PASS" class="accent-emerald-500" checked>
-                                        <span>PASS</span>
-                                    </label>
-                                    <label class="flex items-center gap-1.5 cursor-pointer text-rose-600 dark:text-rose-400 text-xs bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
-                                        <input type="radio" name="qc_online_q4" value="FAIL" class="accent-rose-500">
-                                        <span>FAIL</span>
-                                    </label>
-                                </div>
+                            <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5">
+                                ${photosListHtml}
                             </div>
                         </div>
 
+                        <!-- Subtask Remarks Input -->
                         <div>
-                            <label class="block text-xs font-medium text-muted-foreground mb-1.5">หมายเหตุการตรวจ QC Online (Inspector Remarks):</label>
-                            <textarea id="qc-online-remarks-${job.id}" rows="2" class="w-full bg-muted/30 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none transition" placeholder="ระบุความคิดเห็น เช่น ตรวจสอบภาพถ่ายการติดตั้งและจุดต่อสายดินถูกต้องตามเกณฑ์ เรียบร้อยดี..."></textarea>
+                            <input type="text" value="${s.remarks || ''}" onchange="app.saveSubtaskRemarks('${job.id}', '${s.id}', this.value)" placeholder="ระบุข้อสังเกต หรือรายละเอียดของงานย่อยนี้..." class="w-full bg-muted/30 border border-border focus:border-brand-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none transition">
                         </div>
                     </div>
-
-                    <!-- Actions Toolbar -->
-                    <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border">
-                        <button type="button" onclick="app.navigate('tickets')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer">
-                            <i class="ph ph-arrow-left"></i> กลับไป Step 4: Tickets
-                        </button>
-                        <div class="flex items-center gap-2">
-                            <button type="button" onclick="app.failQC('${job.id}')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs text-rose-500 hover:bg-rose-500/10 border-rose-500/20 cursor-pointer">
-                                ❌ FAIL - ส่งกลับแก้ไข (Rework)
-                            </button>
-                            <button type="button" onclick="app.passQC('${job.id}')" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white cursor-pointer">
-                                <i class="ph ph-check-circle text-base"></i>
-                                <span>PASS - ผ่านการตรวจ Online (ส่งต่อ CSAT)</span>
-                            </button>
-                        </div>
-                    </div>
-                `;
+                    `;
+                }).join('');
             },
 
-            syncVisitPlanPhotos(jobId) {
-                const job = DB.jobs.find(j => j.id === jobId);
+            setSubtaskScore(jobId, subtaskId, score) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return;
-                job.photos = this.getSampleVisitPlanPhotos(job);
-                this.persistJobs();
-                this.showToast('🔄 ดึงรูปถ่ายหน้างาน 5 รูปจาก Visit Plan เรียบร้อยแล้ว');
-                this.selectQCJob(jobId);
+                const subtasks = this.getJobQCSubtasks(job);
+                const sub = subtasks.find(s => s.id === subtaskId);
+                if (sub) {
+                    sub.score = Number(score);
+                    if (sub.status === 'PENDING') sub.status = 'PASSED';
+                    this.persistJobs();
+                    this.renderQCSubtasks(job);
+                    this.updateQCDashboard();
+                }
             },
 
-            handleQCPhotoUpload(event, jobId) {
+            setSubtaskStatus(jobId, subtaskId, status) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+                const subtasks = this.getJobQCSubtasks(job);
+                const sub = subtasks.find(s => s.id === subtaskId);
+                if (sub) {
+                    sub.status = status;
+                    if (status === 'PASSED' && (!sub.score || sub.score === 0)) {
+                        sub.score = 5;
+                    }
+                    this.persistJobs();
+                    this.renderQCSubtasks(job);
+                    this.updateQCDashboard();
+                }
+            },
+
+            handleSubtaskPhotoUpload(event, jobId, subtaskId) {
                 const file = event.target.files && event.target.files[0];
                 if (!file) return;
+
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    const job = DB.jobs.find(j => j.id === jobId);
+                    const job = (DB.jobs || []).find(j => j.id === jobId);
                     if (!job) return;
-                    if (!job.photos) job.photos = [];
+                    const subtasks = this.getJobQCSubtasks(job);
+                    const sub = subtasks.find(s => s.id === subtaskId);
+                    if (!sub) return;
+
+                    if (!Array.isArray(sub.photos)) sub.photos = [];
                     const newPhoto = {
-                        id: `p_qc_${Date.now()}`,
-                        num: job.photos.length + 1,
-                        title: `รูปแนบเพิ่มเติม: ${file.name}`,
-                        note: `แนบโดยผู้ตรวจ QC เมื่อ ${new Date().toLocaleTimeString('th-TH')}`,
+                        id: `sp_${Date.now()}`,
+                        title: `${sub.title}: ${file.name}`,
                         url: e.target.result,
-                        uploaded_at: new Date().toISOString(),
-                        source: 'QC Inspector'
+                        uploaded_at: new Date().toISOString()
                     };
-                    job.photos.push(newPhoto);
+                    sub.photos.push(newPhoto);
+
+                    // Also mirror to job.photos
+                    if (!Array.isArray(job.photos)) job.photos = [];
+                    job.photos.push({
+                        ...newPhoto,
+                        note: `แนบในงานย่อย: ${sub.title}`
+                    });
+
                     this.persistJobs();
-                    this.showToast(`📷 แนบรูปภาพ "${file.name}" เรียบร้อยแล้ว`);
-                    this.selectQCJob(jobId);
+                    this.renderQCSubtasks(job);
+                    this.showToast(`📸 แนบรูปภาพสำหรับ "${sub.title}" สำเร็จแล้ว`);
                 };
                 reader.readAsDataURL(file);
             },
 
-            removeQCPhoto(jobId, photoId) {
-                const job = DB.jobs.find(j => j.id === jobId);
-                if (!job || !job.photos) return;
-                job.photos = job.photos.filter(p => p.id !== photoId);
+            removeSubtaskPhoto(jobId, subtaskId, photoId) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+                const subtasks = this.getJobQCSubtasks(job);
+                const sub = subtasks.find(s => s.id === subtaskId);
+                if (sub && Array.isArray(sub.photos)) {
+                    sub.photos = sub.photos.filter(p => p.id !== photoId);
+                    this.persistJobs();
+                    this.renderQCSubtasks(job);
+                    this.showToast('🗑️ ลบรูปภาพเรียบร้อยแล้ว');
+                }
+            },
+
+            saveSubtaskRemarks(jobId, subtaskId, remarks) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+                const subtasks = this.getJobQCSubtasks(job);
+                const sub = subtasks.find(s => s.id === subtaskId);
+                if (sub) {
+                    sub.remarks = remarks ? remarks.trim() : '';
+                    this.persistJobs();
+                }
+            },
+
+            saveCurrentQCSubtasksDraft() {
+                const jobId = this.state.currentQCModalJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+
+                const inspectorEl = document.getElementById('qc-modal-inspector');
+                if (inspectorEl) job.qc_inspector = inspectorEl.value;
+                const remarksEl = document.getElementById('qc-modal-overall-remarks');
+                if (remarksEl) job.qc_remarks = remarksEl.value.trim();
+
                 this.persistJobs();
-                this.showToast('🗑️ ลบรูปภาพเรียบร้อยแล้ว');
-                this.selectQCJob(jobId);
+                this.updateQCDashboard();
+                this.renderQC();
+                this.showToast('💾 บันทึกแบบร่างการตรวจ QC เรียบร้อยแล้ว');
             },
 
-            failQC(id) {
-                const job = DB.jobs.find(j => j.id === id);
-                if(job) {
-                    const remarksEl = document.getElementById(`qc-online-remarks-${id}`) || document.getElementById(`qc-remarks-text-${id}`);
-                    const remark = remarksEl ? remarksEl.value.trim() : 'รูปถ่ายไม่ชัดเจน หรือพบจุดที่ต้องแก้ไข';
-                    job.qc_remarks = remark;
-                    this.persistJobs();
-                    this.showToast(`⚠️ บันทึกผล QC: FAIL - ส่งเรื่องกลับให้ทีมช่างแก้ไขหน้างาน (${remark || 'ต้องแก้ไข'})`);
+            failCurrentQCJob() {
+                const jobId = this.state.currentQCModalJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+
+                const remarksEl = document.getElementById('qc-modal-overall-remarks');
+                const remark = remarksEl && remarksEl.value.trim() ? remarksEl.value.trim() : 'พบข้อบกพร่อง ต้องดำเนินการแก้ไขก่อนส่งตรวจใหม่';
+
+                job.status = 'QC_REWORK';
+                job.qc_remarks = remark;
+                this.persistJobs();
+                this.updateQCDashboard();
+                this.renderQC();
+                this.hideModal('modal-qc-job-detail');
+                this.showToast(`⚠️ บันทึกสถานะส่งกลับแก้ไขงาน (Rework) สำหรับโครงการ ${job.id} เรียบร้อย`);
+            },
+
+            approveCurrentJobToCSAT() {
+                const jobId = this.state.currentQCModalJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+
+                const progress = this.calculateJobQCProgress(job);
+                if (!progress.isAllComplete) {
+                    this.showToast(`⚠️ ไม่สามารถส่งต่อ CSAT ได้: กรุณาประเมินและให้คะแนนงานย่อยให้ครบทุกงานก่อน (คงเหลือ ${progress.total - progress.completed} งาน)`);
+                    return;
                 }
+
+                const inspectorEl = document.getElementById('qc-modal-inspector');
+                if (inspectorEl) job.qc_inspector = inspectorEl.value;
+                const remarksEl = document.getElementById('qc-modal-overall-remarks');
+                if (remarksEl) job.qc_remarks = remarksEl.value.trim();
+
+                job.status = 'QC_PASSED';
+                job.qc_score = progress.averageScore;
+                job.qc_passed_at = new Date().toISOString();
+                job.progress = 100;
+                if (!job.step_timestamps) job.step_timestamps = {};
+                job.step_timestamps.qc_passed_at = job.qc_passed_at;
+
+                this.recordStepTimestamp(job.id, 'qc_passed_at', job.qc_passed_at, `ตรวจประเมินคุณภาพ QC ผ่านครบทุกงานย่อย (${progress.averageScore} ⭐) และส่งต่อ CSAT`);
+                this.persistJobs();
+                this.updateStepBadges();
+                this.updateQCDashboard();
+
+                fetch(`/api/v1/jobs/${job.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: 'QC_PASSED',
+                        overall_progress: 100,
+                        qc_score: job.qc_score,
+                        qc_passed_at: job.qc_passed_at,
+                        step_timestamps: job.step_timestamps
+                    })
+                }).catch(() => {});
+
+                this.hideModal('modal-qc-job-detail');
+                this.renderQC();
+                this.showToast(`🎉 อนุมัติผ่านเกณฑ์ QC โครงการ ${job.id} (${progress.averageScore} ⭐) ครบทุกงานย่อยแล้ว! ส่งต่องานไปยังขั้นตอน CSAT เรียบร้อย`);
             },
 
-            passQC(id) {
-                const job = DB.jobs.find(j => j.id === id);
-                if(job) {
-                    job.status = 'QC_PASSED';
-                    job.qc_passed_at = new Date().toISOString();
-                    job.progress = 100;
-                    if (!job.step_timestamps) job.step_timestamps = {};
-                    job.step_timestamps.qc_passed_at = job.qc_passed_at;
-                    this.recordStepTimestamp(id, 'qc_passed_at', job.qc_passed_at, 'ตรวจประเมินคุณภาพ QC Online ผ่านเกณฑ์เรียบร้อย และส่งต่อไปยัง CSAT');
-                    this.persistJobs();
-                    this.updateQCBadges();
-                    this.updateStepBadges();
-
-                    fetch(`/api/v1/jobs/${id}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            status: 'QC_PASSED',
-                            overall_progress: 100,
-                            qc_passed_at: job.qc_passed_at,
-                            step_timestamps: job.step_timestamps
-                        })
-                    }).catch(() => {});
-
-                    this.showToast(`✅ บันทึกผล QC: ผ่านเกณฑ์สำหรับ ${id} แล้ว! ส่งต่อไปยัง Contact Center เรียบร้อย`);
-                    this.renderQC();
-                    const container = document.getElementById('qc-form-container');
-                    if (container) {
-                        container.innerHTML = `
-                            <div class="h-full flex flex-col items-center justify-center text-center p-8">
-                                <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 mb-3">
-                                    <i class="ph ph-check-circle text-2xl"></i>
-                                </div>
-                                <h4 class="font-display font-medium text-foreground text-sm mb-1">บันทึกผล QC Online ผ่านเกณฑ์สำเร็จ</h4>
-                                <p class="text-xs text-muted-foreground mb-4">ระบบได้ส่งต่อไปยัง Contact Center เพื่อโทรประเมินความพึงพอใจ (CSAT) เรียบร้อยแล้ว</p>
-                                <button class="btn-artifact-primary px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 mx-auto cursor-pointer" onclick="app.navigate('csat')">
-                                    <i class="ph ph-star"></i> ไปยังหน้าความพึงพอใจลูกค้า (CSAT) ➔
-                                </button>
-                            </div>
-                        `;
+            simulateMockQCJobs() {
+                const sampleJobs = [
+                    {
+                        id: 'JOB202609011',
+                        job_no: 'JOB202609011',
+                        customer: 'คุณวิทวัส เจริญเกียรติ',
+                        phone: '081-998-7766',
+                        service: 'ติดตั้งเครื่องชาร์จรถยนต์ไฟฟ้า EV Charger 22kW',
+                        job_type: 'quick',
+                        tech: 'Team C (วิชัย)',
+                        qc_inspector: 'วิชัย ตรวจดี (ช่าง QC Lead)',
+                        status: 'QC_PENDING',
+                        date: new Date().toISOString(),
+                        step_timestamps: { qc_pending_at: new Date().toISOString() },
+                        boq_items: [],
+                        photos: [
+                            { id: 'p_ev_1', title: 'จุดติดตั้งตู้ควบคุมไฟ Consumer ย่อย', url: 'https://images.unsplash.com/photo-1558441719-8b489c634a1b?w=800&auto=format&fit=crop&q=80', uploaded_at: new Date().toISOString() },
+                            { id: 'p_ev_2', title: 'สายเมนและเครื่องชาร์จ EV Charger', url: 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&auto=format&fit=crop&q=80', uploaded_at: new Date().toISOString() }
+                        ],
+                        qc_subtasks: [
+                            { id: 'sub_ev_1', title: 'งานตรวจสอบมิเตอร์ไฟ กฟน. และเดินสายเมน THW 16 sq.mm.', category: 'งานระบบไฟฟ้า', status: 'PASSED', score: 5, photos: [], remarks: 'ติดตั้งท่อร้อยสายไฟเรียบร้อย ได้มาตรฐาน' },
+                            { id: 'sub_ev_2', title: 'งานติดตั้งตู้ Consumer แยกและเบรกเกอร์ RCD Type B', category: 'งานอุปกรณ์ความปลอดภัย', status: 'PENDING', score: 0, photos: [], remarks: '' },
+                            { id: 'sub_ev_3', title: 'งานยึดเครื่องชาร์จ EV Charger และทดสอบ Grounding Test', category: 'งานติดตั้งและทดสอบ', status: 'PENDING', score: 0, photos: [], remarks: '' }
+                        ]
+                    },
+                    {
+                        id: 'JOB202609012',
+                        job_no: 'JOB202609012',
+                        customer: 'คุณเบญจมาศ อัครโภคิน',
+                        phone: '095-432-1098',
+                        service: 'รีโนเวทห้องน้ำผู้สูงอายุ Universal Design',
+                        job_type: 'renovate',
+                        tech: 'Team A (สมศักดิ์)',
+                        qc_inspector: 'สมเกียรติ มั่นคง (QC Renovate)',
+                        status: 'QC_PENDING',
+                        date: new Date().toISOString(),
+                        step_timestamps: { qc_pending_at: new Date().toISOString() },
+                        boq_items: [
+                            { id: 'boq_12_1', name: 'งานสกัดพื้นเดิม ปรับระนาบ และทำระบบกันซึม 3 ชั้น', unit: 'ตร.ม.', qty: 15, unit_price: 1800, amount: 27000 },
+                            { id: 'boq_12_2', name: 'งานปูกระเบื้องพื้นกันลื่น R11 และผนังห้องน้ำ', unit: 'ตร.ม.', qty: 35, unit_price: 1200, amount: 42000 },
+                            { id: 'boq_12_3', name: 'งานติดตั้งราวจับสแตนเลสและสุขภัณฑ์อัตโนมัติ', unit: 'ชุด', qty: 1, unit_price: 35000, amount: 35000 }
+                        ],
+                        photos: [
+                            { id: 'p_ren_1', title: 'สภาพงานกันซึมและแนวท่อระบายน้ำ', url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800&auto=format&fit=crop&q=80', uploaded_at: new Date().toISOString() }
+                        ],
+                        qc_subtasks: [
+                            { id: 'sub_reno_1', title: 'งานสกัดพื้นเดิม ปรับระนาบ และทำระบบกันซึม 3 ชั้น (BOQ-1)', category: 'งานโครงสร้างและกันซึม', status: 'PASSED', score: 5, photos: [], remarks: 'ทดสอบขังน้ำ 24 ชม. ไม่พบการรั่วซึม' },
+                            { id: 'sub_reno_2', title: 'งานปูกระเบื้องพื้นกันลื่น R11 และผนังห้องน้ำ (BOQ-2)', category: 'งานผิวสัมผัสและกระเบื้อง', status: 'PENDING', score: 0, photos: [], remarks: '' },
+                            { id: 'sub_reno_3', title: 'งานติดตั้งราวจับสแตนเลสและสุขภัณฑ์อัตโนมัติ (BOQ-3)', category: 'งานสุขภัณฑ์และราวจับ', status: 'PENDING', score: 0, photos: [], remarks: '' }
+                        ]
+                    },
+                    {
+                        id: 'JOB202609013',
+                        job_no: 'JOB202609013',
+                        customer: 'คุณธนภัทร ธรรมวิมล',
+                        phone: '089-123-4567',
+                        service: 'ติดตั้ง Digital Door Lock ระบบ 3D Face Recognition',
+                        job_type: 'quick',
+                        tech: 'Team B (ประเสริฐ)',
+                        qc_inspector: 'ช่างสมชาย (QC มาตรฐานทั่วไป)',
+                        status: 'QC_PENDING',
+                        date: new Date().toISOString(),
+                        step_timestamps: { qc_pending_at: new Date().toISOString() },
+                        photos: [],
+                        qc_subtasks: [
+                            { id: 'sub_ddl_1', title: 'งานเจาะประตูและติดตั้งตลับมอร์ตี้ส์ล็อก (Mortise Lock)', category: 'งานช่างประตู', status: 'PENDING', score: 0, photos: [], remarks: '' },
+                            { id: 'sub_ddl_2', title: 'งานเชื่อมต่อและทดสอบฟังก์ชันสแกนใบหน้าและแอปพลิเคชัน', category: 'งานระบบอัจฉริยะ', status: 'PENDING', score: 0, photos: [], remarks: '' }
+                        ]
                     }
+                ];
+
+                if (!Array.isArray(DB.jobs)) DB.jobs = [];
+                sampleJobs.forEach(sj => {
+                    const existingIdx = DB.jobs.findIndex(j => j.id === sj.id);
+                    if (existingIdx >= 0) {
+                        DB.jobs[existingIdx] = { ...DB.jobs[existingIdx], ...sj };
+                    } else {
+                        DB.jobs.unshift(sj);
+                    }
+                });
+
+                this.persistJobs();
+                this.updateQCDashboard();
+                this.renderQC();
+                this.showToast('⚡ จำลองงานเข้าสู่คิว QC 3 งาน (Quick 2 งาน, Renovate 1 งาน) พร้อมงานย่อยเรียบร้อยแล้ว!');
+            },
+
+            exportQCReportCSV() {
+                const qcJobs = (DB.jobs || []).filter(j => {
+                    return j.status === 'QC_PENDING' || 
+                           j.status === 'QC_PASSED' || 
+                           j.status === 'QC_REWORK' ||
+                           (j.qc_subtasks && j.qc_subtasks.length > 0);
+                });
+
+                if (qcJobs.length === 0) {
+                    this.showToast('⚠️ ไม่พบข้อมูลงาน QC สำหรับ Export');
+                    return;
                 }
+
+                let csv = 'Job ID,Job Type,Customer,Phone,Service,Technician,QC Inspector,Status,QC Score,Subtasks Total,Subtasks Completed,QC Passed Date\n';
+                qcJobs.forEach(j => {
+                    const p = this.calculateJobQCProgress(j);
+                    const safe = str => `"${String(str || '').replace(/"/g, '""')}"`;
+                    csv += [
+                        safe(j.id),
+                        safe(this.isQuickJob(j) ? 'Quick' : 'Renovate'),
+                        safe(j.customer),
+                        safe(j.phone),
+                        safe(j.service),
+                        safe(j.tech),
+                        safe(j.qc_inspector || 'วิชัย ตรวจดี'),
+                        safe(j.status),
+                        safe(p.averageScore),
+                        safe(p.total),
+                        safe(p.completed),
+                        safe(j.qc_passed_at ? this.formatDateDMY(j.qc_passed_at) : '-')
+                    ].join(',') + '\n';
+                });
+
+                const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `PMT_QC_Audit_Report_${new Date().toLocaleDateString('en-CA')}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                this.showToast('📥 ดาวน์โหลดรายงานสรุปการตรวจ QC สำเร็จ');
             },
 
             getSampleVisitPlanPhotos(job) {
