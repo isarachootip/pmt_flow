@@ -704,7 +704,7 @@ const app = {
                     return;
                 }
                 (DB.jobs || []).forEach(job => {
-                    job.status = 'NEW';
+                    job.status = 'DRAFT';
                     job.progress = 0;
                     job.pmt_accepted = false;
                     job.pmt_accepted_at = null;
@@ -1082,7 +1082,7 @@ const app = {
                     };
                     o.created_at = jobIso;
                     o.date = currentDate;
-                    o.status = 'NEW';
+                    o.status = 'DRAFT';
                     o.progress = 0;
                     o.pmt_accepted = false;
                     o.pmt_accepted_at = null;
@@ -1307,6 +1307,9 @@ const app = {
                     try {
                         const parsed = JSON.parse(savedJobs);
                         if (Array.isArray(parsed)) {
+                            parsed.forEach(j => {
+                                if (j.status === 'NEW' || !j.status) j.status = 'DRAFT';
+                            });
                             DB.jobs = this.sortJobsDescending(parsed);
                         } else {
                             DB.jobs = [];
@@ -1597,14 +1600,15 @@ const app = {
                             if (remoteJobs.length > 0) {
                                 const localOnly = DB.jobs.filter(lj => !remoteJobs.some(rj => rj.id === lj.id));
                                 const mergedRemote = remoteJobs.map(rj => {
-                                    const localMatch = DB.jobs.find(lj => lj.id === rj.id);
-                                    if (!localMatch) return rj;
+                                    let finalStatus = (localMatch && localMatch.status) || rj.status || 'DRAFT';
+                                    if (finalStatus === 'NEW') finalStatus = 'DRAFT';
+                                    if (!localMatch) return { ...rj, status: finalStatus };
                                     const combinedPhotos = (localMatch.photos && localMatch.photos.length > 0) ? localMatch.photos : (rj.photos || []);
                                     return { 
                                         ...rj, 
                                         ...localMatch, 
-                                        status: localMatch.status || rj.status || 'NEW',
-                                        progress: (localMatch.status === 'DRAFT' || localMatch.status === 'NEW' || rj.status === 'DRAFT' || rj.status === 'NEW') && !localMatch.step_timestamps?.step2_design_at ? 0 : (localMatch.progress ?? rj.progress ?? 0),
+                                        status: finalStatus,
+                                        progress: (finalStatus === 'DRAFT') && !localMatch.step_timestamps?.step2_design_at ? 0 : (localMatch.progress ?? rj.progress ?? 0),
                                         special_instructions: localMatch.special_instructions !== undefined ? localMatch.special_instructions : (rj.special_instructions || ''),
                                         additional_notes: localMatch.additional_notes !== undefined ? localMatch.additional_notes : (rj.additional_notes || ''),
                                         photos: combinedPhotos
@@ -1890,7 +1894,7 @@ const app = {
                         lng: parseFloat(lng),
                         phone: phone,
                         service: service,
-                        status: 'NEW',
+                        status: 'DRAFT',
                         date: date,
                         progress: 0,
                         address: address,
@@ -1905,11 +1909,11 @@ const app = {
                             step1_order_at: nowIso
                         },
                         step_timestamps_history: [
-                            { stepKey: 'step1_order_at', timestamp: nowIso, note: 'บันทึกเปิดงานใหม่ / รับ Order (NEW!)' }
+                            { stepKey: 'step1_order_at', timestamp: nowIso, note: 'บันทึกเปิดงานใหม่ / รับ Order (Draft)' }
                         ]
                     });
                     DB.jobs = this.sortJobsDescending(DB.jobs);
-                    this.showToast(`สร้างงาน ${newId} (ลูกค้า: ${fullName}) สำเร็จแล้ว [สถานะ: NEW!]`);
+                    this.showToast(`สร้างงาน ${newId} (ลูกค้า: ${fullName}) สำเร็จแล้ว [สถานะ: Draft]`);
                     if(this.state.currentView === 'jobs') this.renderJobs();
                     if(this.state.currentView === 'dashboard') this.renderDashboard();
                 }
@@ -1973,10 +1977,10 @@ const app = {
             },
 
             getStatusHtml(status, isNew = false) {
-                const raw = (status || 'NEW').toUpperCase();
-                const s = raw.toLowerCase().replace('_', '-');
+                const raw = (status || 'DRAFT').toUpperCase();
+                const s = (raw === 'NEW' ? 'draft' : raw.toLowerCase().replace('_', '-'));
                 const labelMap = {
-                    'NEW': 'NEW!',
+                    'NEW': 'Draft',
                     'DRAFT': 'Draft',
                     'IN_PROGRESS': 'In Progress',
                     'QC_PENDING': 'QC Pending',
@@ -1984,12 +1988,6 @@ const app = {
                     'AFTER_SALE': 'After Sale',
                     'CLOSED': 'Closed'
                 };
-                if (raw === 'NEW') {
-                    return `<span class="status-pill status-new font-bold inline-flex items-center gap-1"><i class="ph ph-sparkle-fill text-amber-400 text-xs"></i> NEW!</span>`;
-                }
-                if (isNew) {
-                    return `<span class="status-pill status-${s} inline-flex items-center gap-1 font-semibold">${labelMap[raw] || raw} <span class="badge-new-item text-[8px] py-0 px-1.5 shadow-none" title="สถานะล่าสุด"><i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!</span></span>`;
-                }
                 return `<span class="status-pill status-${s}">${labelMap[raw] || raw}</span>`;
             },
 
@@ -2016,7 +2014,7 @@ const app = {
                             </div>
                         </td>
                         <td class="py-3 text-muted-foreground">${j.service}</td>
-                        <td class="py-3">${this.getStatusHtml(isTop3 && (j.status === 'DRAFT' || j.status === 'NEW' || !j.status) ? 'NEW' : j.status, isTop3)}</td>
+                        <td class="py-3">${this.getStatusHtml(j.status)}</td>
                         <td class="py-3 text-right">
                             <div class="inline-flex items-center gap-2">
                                 <span class="font-mono text-muted-foreground">${j.progress}%</span>
@@ -2238,7 +2236,7 @@ const app = {
                         <td class="px-5 py-4 text-muted-foreground">
                             <span class="text-xs">${j.tech}</span>
                         </td>
-                        <td class="px-5 py-4">${this.getStatusHtml(isTop3New && (j.status === 'DRAFT' || j.status === 'NEW' || !j.status) ? 'NEW' : j.status, isTop3New)}</td>
+                        <td class="px-5 py-4">${this.getStatusHtml(j.status)}</td>
                         <td class="px-5 py-4 w-48">
                             ${isJobInStep1 ? `
                                 <div class="space-y-1">
@@ -4341,7 +4339,7 @@ const app = {
                             </div>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            ${this.getStatusHtml(this.isTop3LatestJob(job) && (job.status === 'DRAFT' || job.status === 'NEW' || !job.status) ? 'NEW' : job.status, this.isTop3LatestJob(job))}
+                            ${this.getStatusHtml(job.status)}
                         </div>
                     </div>
 

@@ -1088,7 +1088,7 @@ function seedInitialCoreData(populateMocks = false) {
         j.boq_grand_total = 0;
         j.photos = [];
         j.overall_progress = 0;
-        j.status = JobStatus.NEW;
+        j.status = JobStatus.DRAFT;
         const cust = mockCustomers.find(c => c.id === j.customer_id);
         if (cust) {
             j.customer = {
@@ -1105,7 +1105,7 @@ function seedInitialCoreData(populateMocks = false) {
     // Sort descending so newest is first in coreJobStore
     mockJobs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     exports.coreJobStore.push(...mockJobs);
-    console.log(`[CORE SEED] Seeded ${mockJobs.length} core jobs in coreJobStore (Status NEW, sorted descending).`);
+    console.log(`[CORE SEED] Seeded ${mockJobs.length} core jobs in coreJobStore (Status DRAFT, sorted descending).`);
 }
 // =============================================================================
 // 1. INT INBOUND INTEGRATION API (Req #1)
@@ -1168,7 +1168,7 @@ app.post('/api/v1/integration/orders', async (req, res) => {
             services: payload.services || ['ติดตั้งเครื่องทำน้ำอุ่น'],
             assigned_tech: payload.technician?.name || 'Team A (สมศักดิ์)',
             plan_date: payload.appointment?.date || new Date().toISOString().split('T')[0],
-            status: JobStatus.NEW,
+            status: JobStatus.DRAFT,
             overall_progress: 0,
             created_at: new Date().toISOString()
         };
@@ -1985,7 +1985,7 @@ app.post('/api/v1/jobs', requireAuth, (req, res) => {
             services: [service || 'งานติดตั้ง'],
             assigned_tech: tech || 'Team A (สมศักดิ์)',
             plan_date: date || new Date().toISOString().split('T')[0],
-            status: JobStatus.NEW,
+            status: JobStatus.DRAFT,
             overall_progress: 0,
             job_type: job_type || 'quick',
             created_at: new Date().toISOString()
@@ -2025,7 +2025,7 @@ app.delete(['/api/v1/jobs', '/api/v1/system/wipe-transactions'], wipeAllTransact
 app.post(['/api/v1/system/wipe-transactions', '/api/v1/jobs/wipe-all'], wipeAllTransactions);
 app.post('/api/v1/jobs/reset-status', (req, res) => {
     exports.coreJobStore.forEach(j => {
-        j.status = JobStatus.NEW;
+        j.status = JobStatus.DRAFT;
         j.overall_progress = 0;
     });
     exports.coreTaskStore.length = 0;
