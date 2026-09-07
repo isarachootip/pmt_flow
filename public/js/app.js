@@ -1555,14 +1555,19 @@ const app = {
                     }
                 });
 
-                this.navigate('dashboard');
-                this.fetchJobsFromApi();
-                this.fetchMAFromApi();
-                this.fetchApiLogs();
-                // Polling sync every 3 seconds for live updates
-                setInterval(() => {
+                if (window.auth && window.auth.user) {
+                    this.navigate('dashboard');
                     this.fetchJobsFromApi();
                     this.fetchMAFromApi();
+                    this.fetchApiLogs();
+                }
+                // Polling sync every 3 seconds for live updates (only if logged in)
+                setInterval(() => {
+                    const tok = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                    if (tok) {
+                        this.fetchJobsFromApi();
+                        this.fetchMAFromApi();
+                    }
                 }, 3000);
             },
 
@@ -16200,10 +16205,14 @@ const app = {
                 if (spinner) spinner.classList.add('animate-spin');
 
                 try {
-                    const token = sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
-                    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                    const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                    if (!token) return; // Silent return if not logged in
+                    const headers = { 'Authorization': `Bearer ${token}` };
                     const res = await fetch('/api/v1/system/api-logs?limit=300', { headers });
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    if (!res.ok) {
+                        if (res.status === 401) return; // Silent return on 401
+                        throw new Error(`HTTP ${res.status}`);
+                    }
                     const json = await res.json();
                     if (json.success && Array.isArray(json.data)) {
                         this.state.apiLogs = json.data;

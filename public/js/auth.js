@@ -90,9 +90,15 @@ window.auth =  {
             const overlay = document.getElementById('login-overlay');
             if (overlay) {
                 overlay.style.setProperty('display', 'flex', 'important');
-                overlay.classList.remove('hidden');
+                overlay.classList.remove('hidden', 'hidden-view');
                 const uInput = document.getElementById('login-username');
                 if (uInput) setTimeout(() => uInput.focus(), 150);
+            }
+            // Hide all page views when unauthenticated to prevent exposed internal views
+            document.querySelectorAll('.page-view').forEach(p => p.classList.add('hidden-view'));
+            const mainWrapper = document.getElementById('app-main-wrapper');
+            if (mainWrapper) {
+                mainWrapper.classList.add('pointer-events-none', 'filter', 'blur-[2px]');
             }
             const pageContainer = document.getElementById('page-container');
             if (pageContainer) {
@@ -103,7 +109,11 @@ window.auth =  {
             const overlay = document.getElementById('login-overlay');
             if (overlay) {
                 overlay.style.setProperty('display', 'none', 'important');
-                overlay.classList.add('hidden');
+                overlay.classList.add('hidden', 'hidden-view');
+            }
+            const mainWrapper = document.getElementById('app-main-wrapper');
+            if (mainWrapper) {
+                mainWrapper.classList.remove('pointer-events-none', 'filter', 'blur-[2px]');
             }
             const pageContainer = document.getElementById('page-container');
             if (pageContainer) {
@@ -239,6 +249,7 @@ window.auth =  {
                 if (typeof app !== 'undefined') {
                     if (typeof app.fetchJobsFromApi === 'function') app.fetchJobsFromApi();
                     if (typeof app.fetchMAFromApi === 'function') app.fetchMAFromApi();
+                    if (typeof app.fetchApiLogs === 'function') app.fetchApiLogs();
                     if (typeof app.navigate === 'function') app.navigate('dashboard');
                 }
             } catch(e) {
@@ -252,6 +263,7 @@ window.auth =  {
             const roleEl = document.getElementById('sidebar-user-role');
             const avatarEl = document.getElementById('sidebar-avatar');
             const navUsers = document.getElementById('nav-users');
+            const topbarUserMgmtBtn = document.getElementById('topbar-user-mgmt-btn');
 
             const topbarAuthBtn = document.getElementById('topbar-auth-btn');
             const sidebarAuthBtn = document.getElementById('sidebar-auth-btn');
@@ -273,6 +285,10 @@ window.auth =  {
                 if (navUsers) {
                     navUsers.style.setProperty('display', 'none', 'important');
                     navUsers.classList.add('hidden');
+                }
+                if (topbarUserMgmtBtn) {
+                    topbarUserMgmtBtn.style.setProperty('display', 'none', 'important');
+                    topbarUserMgmtBtn.classList.add('hidden');
                 }
 
                 // Topbar auth button -> Green "เข้าสู่ระบบ"
@@ -313,10 +329,19 @@ window.auth =  {
             if (roleEl) roleEl.textContent = { ADMIN:'ผู้ดูแลระบบ (Admin)', AE:'Account Executive', QC:'Quality Control', CONTACT_CENTER:'Contact Center' }[u.role] || u.role;
             if (avatarEl) avatarEl.textContent = (u.full_name || 'ผ').charAt(0).toUpperCase();
 
-            // User Management nav
+            // User Management nav & topbar button
             if (navUsers) {
                 navUsers.style.setProperty('display', 'flex', 'important');
                 navUsers.classList.remove('hidden');
+            }
+            if (topbarUserMgmtBtn) {
+                if (u.role === 'ADMIN' || this.isIsaraChootip(u)) {
+                    topbarUserMgmtBtn.style.removeProperty('display');
+                    topbarUserMgmtBtn.classList.remove('hidden');
+                } else {
+                    topbarUserMgmtBtn.style.setProperty('display', 'none', 'important');
+                    topbarUserMgmtBtn.classList.add('hidden');
+                }
             }
 
             // Enable superadmin buttons for admin, superadmin, or isarachootip

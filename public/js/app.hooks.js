@@ -4,6 +4,7 @@
     const _origNavigate = app.navigate.bind(app);
     app.navigate = function(view, param=null) {
         if (!window.auth || !window.auth.user) {
+            document.querySelectorAll('.page-view').forEach(p => p.classList.add('hidden-view'));
             if (window.auth && typeof window.auth.showLoginOverlay === 'function') {
                 window.auth.showLoginOverlay();
             }
@@ -11,8 +12,9 @@
         }
         _origNavigate(view, param);
         if (view === 'users') {
-            userMgmt.load();
-            document.getElementById('topbar-breadcrumb').innerText = 'จัดการผู้ใช้งาน';
+            if (typeof userMgmt !== 'undefined') userMgmt.load();
+            const topCrumb = document.getElementById('topbar-breadcrumb');
+            if (topCrumb) topCrumb.innerText = 'จัดการผู้ใช้งาน';
         }
     };
 
