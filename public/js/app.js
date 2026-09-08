@@ -3433,12 +3433,13 @@ const app = {
             },
 
             openJobTicketsDetail(jobId) {
+                this.switchTicketTab('library');
                 const searchInput = document.getElementById('ticket-search');
                 if (searchInput) {
                     searchInput.value = jobId;
                     this.renderTickets();
                 }
-                const ticketsTable = document.getElementById('tickets-table-body');
+                const ticketsTable = document.getElementById('tickets-library-container') || document.getElementById('tickets-jobs-table-body');
                 if (ticketsTable) {
                     ticketsTable.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
@@ -7469,7 +7470,7 @@ const app = {
                 }
 
                 // 2. Filter issued tickets for Library tab
-                let filteredTickets = tickets;
+                let filteredTickets = [...tickets];
                 if (q) {
                     filteredTickets = filteredTickets.filter(t => 
                         (t.ticket_no && t.ticket_no.toLowerCase().includes(q)) ||
@@ -7486,6 +7487,12 @@ const app = {
                 if (mFilter && mFilter !== 'all') {
                     filteredTickets = filteredTickets.filter(t => (t.payment_method || '').includes(mFilter));
                 }
+                filteredTickets.sort((a, b) => {
+                    const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+                    const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+                    if (timeB !== timeA) return timeB - timeA;
+                    return String(b.ticket_no || b.id || '').localeCompare(String(a.ticket_no || a.id || ''));
+                });
 
                 // Update tab badges & counts
                 const pendingCount = allJobs.filter(j => !(ticketsByJob[j.id] && ticketsByJob[j.id].length > 0)).length;
@@ -7548,19 +7555,32 @@ const app = {
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-border">
-                                        ${pendingJobs.map(job => {
+                                        ${pendingJobs.map((job, idx) => {
+                                            const isTopNew = idx < 3;
                                             const jobTkts = ticketsByJob[job.id] || [];
                                             const hasTkt = jobTkts.length > 0;
                                             const grandTotal = job.boq_grand_total || (job.boq_items ? job.boq_items.reduce((s, it) => s + ((Number(it.qty) || 1) * (Number(it.price) || 0)), 0) : 25000);
                                             return `
-                                            <tr class="hover:bg-muted/30 transition">
+                                            <tr class="hover:bg-muted/30 transition-colors ${isTopNew ? 'bg-rose-500/[0.02]' : ''}">
                                                 <td class="py-3 px-4 font-mono font-bold text-foreground">
-                                                    <button type="button" onclick="app.openCreateTicketModal('${job.id}')" class="bg-muted hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-600 hover:border-emerald-500 px-2 py-0.5 rounded border border-border cursor-pointer transition font-mono font-bold text-xs" title="คลิกเพื่อออก Ticket">
-                                                        ${job.id}
-                                                    </button>
+                                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                                        <button type="button" onclick="app.openCreateTicketModal('${job.id}')" class="bg-muted hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-600 hover:border-emerald-500 px-2 py-0.5 rounded border border-border cursor-pointer transition font-mono font-bold text-xs" title="คลิกเพื่อออก Ticket">
+                                                            ${job.id}
+                                                        </button>
+                                                        ${isTopNew ? `
+                                                            <span class="badge-new-item text-[8px] py-0 px-1.5" title="คิวล่าสุด (NEW!)">
+                                                                <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                                            </span>
+                                                        ` : ''}
+                                                    </div>
                                                 </td>
                                                 <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${job.date || '-'}</td>
-                                                <td class="py-3 px-4 font-medium text-foreground">${job.customer}</td>
+                                                <td class="py-3 px-4 font-medium text-foreground">
+                                                    <div class="flex items-center gap-1.5">
+                                                        <span>${job.customer}</span>
+                                                        ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="คิวล่าสุด"></span>` : ''}
+                                                    </div>
+                                                </td>
                                                 <td class="py-3 px-4">
                                                     <div class="font-semibold text-brand-600 dark:text-brand-400 truncate max-w-[200px]" title="${job.service}">
                                                         ${job.service}
@@ -7583,7 +7603,7 @@ const app = {
                                                 <td class="py-3 px-4 text-center whitespace-nowrap">
                                                     <div class="flex items-center justify-center gap-2">
                                                         ${hasTkt ? (this.isQuickJob(job) ? `
-                                                        <button type="button" onclick="app.goToQC('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-cyan-600 hover:bg-cyan-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ไปตรวจคุณภาพ QC Online">
+                                                         <button type="button" onclick="app.goToQC('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-cyan-600 hover:bg-cyan-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ไปตรวจคุณภาพ QC Online">
                                                             <i class="ph ph-globe"></i>
                                                             <span>ไปตรวจ QC Online ➔</span>
                                                         </button>
@@ -7607,22 +7627,28 @@ const app = {
                             </div>
                         `;
                     } else {
-                        pendingContainer.innerHTML = pendingJobs.map(job => {
+                        pendingContainer.innerHTML = pendingJobs.map((job, idx) => {
+                            const isTopNew = idx < 3;
                             const jobTkts = ticketsByJob[job.id] || [];
                             const hasTkt = jobTkts.length > 0;
                             const grandTotal = job.boq_grand_total || (job.boq_items ? job.boq_items.reduce((s, it) => s + ((Number(it.qty) || 1) * (Number(it.price) || 0)), 0) : 25000);
                             return `
-                            <div class="artifact-card p-5 rounded-2xl border ${hasTkt ? 'border-emerald-500/30 bg-card' : 'border-border bg-card'} hover:border-emerald-500/60 transition duration-200 space-y-3.5 group shadow-xs">
+                            <div class="artifact-card p-5 rounded-2xl border ${hasTkt ? 'border-emerald-500/30 bg-card' : (isTopNew ? 'border-amber-500/40 bg-amber-500/[0.02]' : 'border-border bg-card')} hover:border-emerald-500/60 transition duration-200 space-y-3.5 group shadow-xs">
                                 <div class="flex items-start justify-between gap-2">
                                     <div class="flex items-start gap-3 min-w-0">
                                         <div class="w-10 h-10 rounded-xl ${hasTkt ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'} flex items-center justify-center shrink-0">
                                             <i class="ph ${hasTkt ? 'ph-check-circle' : 'ph-ticket'} text-xl"></i>
                                         </div>
                                         <div class="min-w-0">
-                                            <div class="flex items-center gap-2">
+                                            <div class="flex items-center gap-2 flex-wrap">
                                                 <button type="button" onclick="app.openCreateTicketModal('${job.id}')" class="font-mono font-bold text-xs text-foreground group-hover:text-emerald-600 transition">
                                                     ${job.id}
                                                 </button>
+                                                ${isTopNew ? `
+                                                    <span class="badge-new-item text-[8px] py-0 px-1.5" title="คิวล่าสุด (NEW!)">
+                                                        <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                                    </span>
+                                                ` : ''}
                                                 <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${job.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' : 'bg-indigo-500/10 text-indigo-600 border border-indigo-500/20'}">${job.job_type || 'quick'}</span>
                                             </div>
                                             <h4 class="font-semibold text-foreground text-xs truncate mt-0.5" title="${job.customer}">${job.customer}</h4>
@@ -7705,19 +7731,36 @@ const app = {
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-border">
-                                        ${filteredTickets.map(t => {
+                                        ${filteredTickets.map((t, idx) => {
+                                            const isTopNew = idx < 3;
                                             const job = allJobs.find(j => j.id === t.job_id);
                                             const cust = t.customer_name || (job ? job.customer : 'ลูกค้า');
                                             const amt = Number(t.amount) || 0;
                                             return `
-                                            <tr class="hover:bg-muted/30 transition">
+                                            <tr class="hover:bg-muted/30 transition-colors ${isTopNew ? 'bg-rose-500/[0.02]' : ''}">
                                                 <td class="py-3 px-4 font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                                                    <button type="button" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')" class="hover:underline cursor-pointer">
-                                                        ${t.ticket_no}
-                                                    </button>
+                                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                                        <button type="button" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')" class="hover:underline cursor-pointer font-mono font-bold">
+                                                            ${t.ticket_no}
+                                                        </button>
+                                                        ${isTopNew ? `
+                                                            <span class="badge-new-item text-[8px] py-0 px-1.5" title="Ticket บันทึกล่าสุด (NEW!)">
+                                                                <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                                            </span>
+                                                        ` : ''}
+                                                    </div>
                                                 </td>
-                                                <td class="py-3 px-4 font-mono font-bold text-foreground">${t.job_id}</td>
-                                                <td class="py-3 px-4 font-medium text-foreground">${cust}</td>
+                                                <td class="py-3 px-4 font-mono font-bold text-foreground">
+                                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                                        <span>${t.job_id}</span>
+                                                        ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="รายการใหม่ล่าสุด"></span>` : ''}
+                                                    </div>
+                                                </td>
+                                                <td class="py-3 px-4 font-medium text-foreground">
+                                                    <div class="flex items-center gap-1.5">
+                                                        <span>${cust}</span>
+                                                    </div>
+                                                </td>
                                                 <td class="py-3 px-4 text-muted-foreground">
                                                     <div class="font-mono text-foreground">${t.receipt_no || '-'}</div>
                                                     <div class="text-[10px] text-brand-600 font-mono">${t.contract_no || ''}</div>
@@ -7757,21 +7800,27 @@ const app = {
                             </div>
                         `;
                     } else {
-                        listContainer.innerHTML = filteredTickets.map(t => {
+                        listContainer.innerHTML = filteredTickets.map((t, idx) => {
+                            const isTopNew = idx < 3;
                             const job = allJobs.find(j => j.id === t.job_id);
                             const cust = t.customer_name || (job ? job.customer : 'ลูกค้า');
                             const amt = Number(t.amount) || 0;
                             return `
-                            <div class="artifact-card p-5 rounded-2xl space-y-4 border border-border hover:border-emerald-500/40 transition group shadow-xs">
+                            <div class="artifact-card p-5 rounded-2xl space-y-4 border ${isTopNew ? 'border-rose-500/40 bg-rose-500/[0.01] ring-1 ring-rose-500/20' : 'border-border bg-card'} hover:border-emerald-500/40 transition group shadow-xs">
                                 <!-- Card Top: Slip Preview & Badges -->
                                 <div class="aspect-video bg-muted/60 rounded-xl overflow-hidden relative border border-border group-hover:border-emerald-500/30 transition cursor-pointer" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')" title="คลิกขยายดูสลิปใบเสร็จ">
                                     <img src="${t.slip_url || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80'}" alt="${t.ticket_no}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                                     <div class="absolute top-3 right-3 flex items-center gap-1.5">
                                         <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${t.status === 'VERIFIED' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-amber-500 text-white shadow-sm'}">${t.status === 'VERIFIED' ? '✓ ตรวจสอบแล้ว' : '⏳ แนบสลิปแล้ว'}</span>
                                     </div>
-                                    <div class="absolute top-3 left-3 flex items-center gap-1.5">
+                                    <div class="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
                                         <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-black/60 backdrop-blur-xs text-white">${t.ticket_no}</span>
                                         <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-600/90 backdrop-blur-xs text-white">${t.job_id}</span>
+                                        ${isTopNew ? `
+                                            <span class="badge-new-item text-[8px] py-0 px-1.5" title="Ticket บันทึกล่าสุด (NEW!)">
+                                                <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                            </span>
+                                        ` : ''}
                                     </div>
                                     <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
                                         <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white" onclick="event.stopPropagation(); app.openTicketSlipLightbox('${t.id}', 'slip')">
