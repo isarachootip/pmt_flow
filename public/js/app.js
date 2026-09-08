@@ -18,7 +18,10 @@ const app = {
                     try { return localStorage.getItem('pmt_boq_view_mode') || 'list'; } catch (e) { return 'list'; }
                 })(),
                 ticketViewMode: (function() {
-                    try { return localStorage.getItem('pmt_ticket_view_mode') || 'list'; } catch (e) { return 'list'; }
+                    try {
+                        const m = localStorage.getItem('pmt_ticket_view_mode');
+                        return m === 'card' ? 'list' : (m || 'list');
+                    } catch (e) { return 'list'; }
                 })(),
                 conversionViewMode: (function() {
                     try { return localStorage.getItem('pmt_conversion_view_mode') || 'list'; } catch (e) { return 'list'; }
@@ -1417,16 +1420,24 @@ const app = {
                 if (savedTickets && !isExplicitlyCleared) {
                     try {
                         const parsedTickets = JSON.parse(savedTickets);
-                        if (Array.isArray(parsedTickets)) {
+                        if (Array.isArray(parsedTickets) && parsedTickets.length > 0) {
                             DB.tickets = parsedTickets;
+                            if (DB.tickets.length < 3) {
+                                const defaultMocks = this.getDefaultMockTickets();
+                                defaultMocks.forEach(mock => {
+                                    if (!DB.tickets.some(t => t.id === mock.id || t.ticket_no === mock.ticket_no)) {
+                                        DB.tickets.push(mock);
+                                    }
+                                });
+                            }
                         } else {
-                            DB.tickets = [];
+                            DB.tickets = this.getDefaultMockTickets();
                         }
                     } catch (e) {
-                        DB.tickets = [];
+                        DB.tickets = this.getDefaultMockTickets();
                     }
                 } else {
-                    DB.tickets = [];
+                    DB.tickets = this.getDefaultMockTickets();
                 }
 
                 // Restore saved blueprints
@@ -7303,7 +7314,66 @@ const app = {
             },
 
             getDefaultMockTickets() {
-                return [];
+                const now = Date.now();
+                return [
+                    {
+                        id: 'TKT-202609-003',
+                        ticket_no: 'TKT-202609-003',
+                        receipt_no: 'RC-VFIX-260901-003',
+                        contract_no: 'CTR-202609-003',
+                        job_id: 'JOB202609008',
+                        customer_name: 'คุณวรภัทร ชาญวิชิต',
+                        service: 'กั้นห้องกระจกบานเลื่อน Slim Frameless กระจกลามิเนต Acoustic เก็บเสียง สำหรับโฮมออฟฟิศ',
+                        amount: 42000,
+                        payment_date: '2026-09-08',
+                        payment_method: 'โอนเงิน',
+                        slip_url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80',
+                        slip_name: 'slip_kbank_transfer_003.jpg',
+                        contract_url: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80',
+                        contract_name: 'contract_frameless_003.pdf',
+                        status: 'VERIFIED',
+                        notes: 'ชำระงวดงานกั้นห้องกระจกบานเลื่อนเรียบร้อยครบถ้วน',
+                        created_at: new Date(now - 15 * 60 * 1000).toISOString()
+                    },
+                    {
+                        id: 'TKT-202609-002',
+                        ticket_no: 'TKT-202609-002',
+                        receipt_no: 'RC-VFIX-260901-002',
+                        contract_no: 'CTR-202609-002',
+                        job_id: 'JOB202609006',
+                        customer_name: 'คุณพรรณพิไล จารุวรรณ',
+                        service: 'รีโนเวทระเบียงสระว่ายน้ำ รื้อพื้นเดิมปูไม้เทียม WPC เกรดพรีเมียมพร้อมติดตั้งไฟ Solar Pathway',
+                        amount: 58500,
+                        payment_date: '2026-09-08',
+                        payment_method: 'บัตรเครดิต',
+                        slip_url: 'https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=600&auto=format&fit=crop&q=80',
+                        slip_name: 'slip_creditcard_002.jpg',
+                        contract_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=700&auto=format&fit=crop&q=80',
+                        contract_name: 'contract_deck_002.pdf',
+                        status: 'VERIFIED',
+                        notes: 'ชำระค่าติดตั้งระเบียงไม้เทียม WPC ผ่านบัตรเครดิตเรียบร้อย',
+                        created_at: new Date(now - 60 * 60 * 1000).toISOString()
+                    },
+                    {
+                        id: 'TKT-202609-001',
+                        ticket_no: 'TKT-202609-001',
+                        receipt_no: 'RC-VFIX-260901-001',
+                        contract_no: 'CTR-202609-001',
+                        job_id: 'JOB202609009',
+                        customer_name: 'คุณธีรภัทร อัศวโภคิน',
+                        service: 'Renovate ครัว Built-in ท็อปหินสังเคราะห์ พร้อมเดินระบบท่อน้ำดี-น้ำเสียและไฟใต้ตู้',
+                        amount: 49648,
+                        payment_date: '2026-09-07',
+                        payment_method: 'โอนเงิน',
+                        slip_url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80',
+                        slip_name: 'slip_kbank_transfer_001.jpg',
+                        contract_url: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80',
+                        contract_name: 'contract_kitchen_001.pdf',
+                        status: 'VERIFIED',
+                        notes: 'ชำระงวดมัดจำงาน Renovate ครัว Built-in เรียบร้อย',
+                        created_at: new Date(now - 3 * 60 * 60 * 1000).toISOString()
+                    }
+                ];
             },
 
             getDefaultMockBlueprints() {
@@ -7537,8 +7607,17 @@ const app = {
                     filteredTickets = filteredTickets.filter(t => (t.payment_method || '').includes(mFilter));
                 }
                 filteredTickets.sort((a, b) => {
-                    const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
-                    const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+                    const getTicketTime = (t) => {
+                        if (!t) return 0;
+                        if (t.created_at) { const time = new Date(t.created_at).getTime(); if (!isNaN(time) && time > 0) return time; }
+                        if (t.date) { const time = new Date(t.date).getTime(); if (!isNaN(time) && time > 0) return time; }
+                        if (t.payment_date) { const time = new Date(t.payment_date).getTime(); if (!isNaN(time) && time > 0) return time; }
+                        if (t.id && String(t.id).startsWith('TKT-')) { const num = Number(String(t.id).replace('TKT-', '')); if (!isNaN(num) && num > 0) return num; }
+                        if (t.id && String(t.id).startsWith('tkt_')) { const num = Number(String(t.id).replace('tkt_', '')); if (!isNaN(num) && num > 0) return num; }
+                        return 0;
+                    };
+                    const timeA = getTicketTime(a);
+                    const timeB = getTicketTime(b);
                     if (timeB !== timeA) return timeB - timeA;
                     return String(b.ticket_no || b.id || '').localeCompare(String(a.ticket_no || a.id || ''));
                 });
@@ -7617,7 +7696,7 @@ const app = {
                                                             ${job.id}
                                                         </button>
                                                         ${isTopNew ? `
-                                                            <span class="badge-new-item text-[8px] py-0 px-1.5" title="คิวล่าสุด (NEW!)">
+                                                            <span class="badge-new-item" title="คิวล่าสุด (NEW!)">
                                                                 <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
                                                             </span>
                                                         ` : ''}
@@ -7694,7 +7773,7 @@ const app = {
                                                     ${job.id}
                                                 </button>
                                                 ${isTopNew ? `
-                                                    <span class="badge-new-item text-[8px] py-0 px-1.5" title="คิวล่าสุด (NEW!)">
+                                                    <span class="badge-new-item" title="คิวล่าสุด (NEW!)">
                                                         <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
                                                     </span>
                                                 ` : ''}
@@ -7793,7 +7872,7 @@ const app = {
                                                             ${t.ticket_no}
                                                         </button>
                                                         ${isTopNew ? `
-                                                            <span class="badge-new-item text-[8px] py-0 px-1.5" title="Ticket บันทึกล่าสุด (NEW!)">
+                                                            <span class="badge-new-item" title="Ticket บันทึกล่าสุด (NEW!)">
                                                                 <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
                                                             </span>
                                                         ` : ''}
@@ -7866,7 +7945,7 @@ const app = {
                                         <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-black/60 backdrop-blur-xs text-white">${t.ticket_no}</span>
                                         <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-600/90 backdrop-blur-xs text-white">${t.job_id}</span>
                                         ${isTopNew ? `
-                                            <span class="badge-new-item text-[8px] py-0 px-1.5" title="Ticket บันทึกล่าสุด (NEW!)">
+                                            <span class="badge-new-item" title="Ticket บันทึกล่าสุด (NEW!)">
                                                 <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
                                             </span>
                                         ` : ''}
