@@ -244,7 +244,7 @@ export async function dbUpdateUser(id: number | string, fields: any): Promise<vo
     setClauses.push('updated_at = CURRENT_TIMESTAMP');
     values.push(id);
 
-    await pool.query(`UPDATE sys_users SET ${setClauses.join(', ')} WHERE id = $${idx} OR user_code = $${idx}`, values);
+    await pool.query(`UPDATE sys_users SET ${setClauses.join(', ')} WHERE id::text = $${idx} OR user_code = $${idx}`, values);
   } catch (err: any) {
     console.error('[DB] Error updating user:', err.message);
   }
@@ -253,7 +253,7 @@ export async function dbUpdateUser(id: number | string, fields: any): Promise<vo
 export async function dbDeleteUser(id: number | string): Promise<void> {
   if (!isDatabaseConnected) return;
   try {
-    await pool.query('DELETE FROM sys_users WHERE id = $1', [id]);
+    await pool.query('DELETE FROM sys_users WHERE id::text = $1 OR user_code = $1', [String(id)]);
   } catch (err: any) {
     console.error('[DB] Error deleting user:', err.message);
   }

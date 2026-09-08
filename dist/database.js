@@ -268,7 +268,7 @@ async function dbUpdateUser(id, fields) {
             return;
         setClauses.push('updated_at = CURRENT_TIMESTAMP');
         values.push(id);
-        await exports.pool.query(`UPDATE sys_users SET ${setClauses.join(', ')} WHERE id = $${idx} OR user_code = $${idx}`, values);
+        await exports.pool.query(`UPDATE sys_users SET ${setClauses.join(', ')} WHERE id::text = $${idx} OR user_code = $${idx}`, values);
     }
     catch (err) {
         console.error('[DB] Error updating user:', err.message);
@@ -278,7 +278,7 @@ async function dbDeleteUser(id) {
     if (!exports.isDatabaseConnected)
         return;
     try {
-        await exports.pool.query('DELETE FROM sys_users WHERE id = $1', [id]);
+        await exports.pool.query('DELETE FROM sys_users WHERE id::text = $1 OR user_code = $1', [String(id)]);
     }
     catch (err) {
         console.error('[DB] Error deleting user:', err.message);

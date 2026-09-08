@@ -759,7 +759,8 @@ app.get('/api/v1/users', requireAuth, requireRole(UserRole.ADMIN), async (req: A
 
 // GET /api/v1/users/:id
 app.get('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req: AuthRequest, res: Response) => {
-  const user = sysUserStore.find(u => u.id === Number(req.params.id));
+  const paramId = String(req.params.id);
+  const user = sysUserStore.find(u => String(u.id) === paramId || u.user_code === paramId || u.username === paramId || u.id === Number(paramId));
   if (!user) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบผู้ใช้' } });
   const { password_hash, ...safe } = user;
   return res.json({ success: true, data: safe });
@@ -791,7 +792,8 @@ app.post('/api/v1/users', requireAuth, requireRole(UserRole.ADMIN), (req: AuthRe
 
 // PATCH /api/v1/users/:id — update role / active / full_name / email / username / password
 app.patch('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req: AuthRequest, res: Response) => {
-  const user = sysUserStore.find(u => u.id === Number(req.params.id));
+  const paramId = String(req.params.id);
+  const user = sysUserStore.find(u => String(u.id) === paramId || u.user_code === paramId || u.username === paramId || u.id === Number(paramId));
   if (!user) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบผู้ใช้' } });
 
   const { full_name, username, email, role, is_active, password } = req.body || {};
@@ -836,7 +838,8 @@ app.patch('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req: A
 
 // POST /api/v1/users/:id/reset-password
 app.post('/api/v1/users/:id/reset-password', requireAuth, requireRole(UserRole.ADMIN), (req: AuthRequest, res: Response) => {
-  const user = sysUserStore.find(u => u.id === Number(req.params.id));
+  const paramId = String(req.params.id);
+  const user = sysUserStore.find(u => String(u.id) === paramId || u.user_code === paramId || u.username === paramId || u.id === Number(paramId));
   if (!user) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบผู้ใช้' } });
 
   const { new_password } = req.body || {};
@@ -853,7 +856,8 @@ app.post('/api/v1/users/:id/reset-password', requireAuth, requireRole(UserRole.A
 
 // DELETE /api/v1/users/:id — deactivate (soft delete)
 app.delete('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req: AuthRequest, res: Response) => {
-  const user = sysUserStore.find(u => u.id === Number(req.params.id));
+  const paramId = String(req.params.id);
+  const user = sysUserStore.find(u => String(u.id) === paramId || u.user_code === paramId || u.username === paramId || u.id === Number(paramId));
   if (!user) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบผู้ใช้' } });
   if (user.user_code === 'USR-001' || user.username === 'admin') return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'ไม่สามารถลบ admin หลักได้' } });
 

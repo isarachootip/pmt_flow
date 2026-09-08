@@ -247,14 +247,14 @@ window.userMgmt =  {
                         <td class="px-5 py-3.5 text-muted-foreground text-[11px]">${lastLogin}</td>
                         <td class="px-5 py-3.5 text-right">
                             <div class="flex items-center justify-end gap-1">
-                                <button onclick="userMgmt.openEdit(${u.id})" title="แก้ไขข้อมูล" class="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-brand-500 transition cursor-pointer">
+                                <button onclick="userMgmt.openEdit('${u.id}')" title="แก้ไขข้อมูล" class="p-1.5 rounded-lg hover:bg-brand-500/10 text-muted-foreground hover:text-brand-500 transition cursor-pointer">
                                     <i class="ph ph-pencil-simple text-sm"></i>
                                 </button>
-                                <button onclick="userMgmt.openResetPassword(${u.id})" title="รีเซ็ตรหัสผ่าน" class="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-amber-500 transition cursor-pointer">
+                                <button onclick="userMgmt.openResetPassword('${u.id}')" title="รีเซ็ตรหัสผ่าน" class="p-1.5 rounded-lg hover:bg-amber-500/10 text-muted-foreground hover:text-amber-500 transition cursor-pointer">
                                     <i class="ph ph-key text-sm"></i>
                                 </button>
-                                ${u.username !== 'admin' ? `
-                                    <button onclick="userMgmt.openToggleActive(${u.id})" title="${u.is_active ? 'ปิดใช้งานบัญชี' : 'เปิดใช้งานบัญชี'}" class="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-rose-500 transition cursor-pointer">
+                                ${u.username !== 'admin' && u.user_code !== 'USR-001' ? `
+                                    <button onclick="userMgmt.openToggleActive('${u.id}')" title="${u.is_active ? 'ปิดใช้งานบัญชี' : 'เปิดใช้งานบัญชี'}" class="p-1.5 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition cursor-pointer">
                                         <i class="ph ph-${u.is_active ? 'prohibit' : 'check-circle'} text-sm"></i>
                                     </button>
                                 ` : ''}
@@ -338,8 +338,13 @@ window.userMgmt =  {
         },
 
         openEdit(id) {
-            const u = this.users.find(x => x.id === id);
-            if (!u) return;
+            const idStr = String(id);
+            const u = this.users.find(x => String(x.id) === idStr || x.user_code === idStr || x.username === idStr);
+            if (!u) {
+                console.warn('[userMgmt] openEdit: user not found with id:', id, this.users);
+                if (typeof app !== 'undefined' && app.showToast) app.showToast('⚠️ ไม่พบข้อมูลผู้ใช้');
+                return;
+            }
 
             document.getElementById('user-form-id').value = u.id;
             document.getElementById('user-form-mode').value = 'edit';
@@ -498,7 +503,7 @@ window.userMgmt =  {
                 }
 
                 try {
-                    const res = await fetch('/api/v1/users/' + id, {
+                    const res = await fetch('/api/v1/users/' + encodeURIComponent(id), {
                         method: 'PATCH',
                         headers: auth.getHeaders(),
                         body: JSON.stringify(patchData)
@@ -509,7 +514,7 @@ window.userMgmt =  {
                         app.hideModal('modal-user-form');
 
                         // If currently logged-in user updated their own account, sync auth state
-                        if (auth.user && (auth.user.id === Number(id) || auth.user.user_code === json.data?.user_code)) {
+                        if (auth.user && (String(auth.user.id) === String(id) || auth.user.user_code === json.data?.user_code || auth.user.username === username)) {
                             auth.user.full_name = full_name;
                             auth.user.username = username;
                             auth.user.email = email;
@@ -526,14 +531,15 @@ window.userMgmt =  {
                     }
                 } catch(err) {
                     // Local fallback
-                    const u = this.users.find(x => x.id === Number(id));
+                    const idStr = String(id);
+                    const u = this.users.find(x => String(x.id) === idStr || x.user_code === idStr || x.username === idStr);
                     if (u) {
                         u.full_name = full_name;
                         u.username = username;
                         u.email = email;
                         u.role = role;
                         u.is_active = is_active;
-                        if (auth.user && (auth.user.id === Number(id) || auth.user.user_code === u.user_code)) {
+                        if (auth.user && (String(auth.user.id) === idStr || auth.user.user_code === u.user_code || auth.user.username === username)) {
                             auth.user.full_name = full_name;
                             auth.user.username = username;
                             auth.user.email = email;
@@ -554,8 +560,13 @@ window.userMgmt =  {
         },
 
         openResetPassword(id) {
-            const u = this.users.find(x => x.id === id);
-            if (!u) return;
+            const idStr = String(id);
+            const u = this.users.find(x => String(x.id) === idStr || x.user_code === idStr || x.username === idStr);
+            if (!u) {
+                console.warn('[userMgmt] openResetPassword: user not found with id:', id, this.users);
+                if (typeof app !== 'undefined' && app.showToast) app.showToast('⚠️ ไม่พบข้อมูลผู้ใช้');
+                return;
+            }
 
             document.getElementById('user-reset-pwd-id').value = u.id;
             document.getElementById('user-reset-pwd-name').innerText = u.full_name;
@@ -598,7 +609,7 @@ window.userMgmt =  {
             submitBtn.classList.add('opacity-70');
 
             try {
-                const res = await fetch(`/api/v1/users/${id}/reset-password`, {
+                const res = await fetch(`/api/v1/users/${encodeURIComponent(id)}/reset-password`, {
                     method: 'POST',
                     headers: auth.getHeaders(),
                     body: JSON.stringify({ new_password: newPwd })
@@ -621,8 +632,13 @@ window.userMgmt =  {
         },
 
         openToggleActive(id) {
-            const u = this.users.find(x => x.id === id);
-            if (!u) return;
+            const idStr = String(id);
+            const u = this.users.find(x => String(x.id) === idStr || x.user_code === idStr || x.username === idStr);
+            if (!u) {
+                console.warn('[userMgmt] openToggleActive: user not found with id:', id, this.users);
+                if (typeof app !== 'undefined' && app.showToast) app.showToast('⚠️ ไม่พบข้อมูลผู้ใช้');
+                return;
+            }
 
             this.selectedUserForToggle = u;
             document.getElementById('user-toggle-id').value = u.id;
@@ -675,9 +691,11 @@ window.userMgmt =  {
             submitBtn.disabled = true;
             submitBtn.classList.add('opacity-70');
 
+            const targetId = encodeURIComponent(u.id);
+
             try {
                 if (isDeactivating) {
-                    const res = await fetch('/api/v1/users/' + u.id, {
+                    const res = await fetch('/api/v1/users/' + targetId, {
                         method: 'DELETE',
                         headers: auth.getHeaders()
                     });
@@ -690,7 +708,7 @@ window.userMgmt =  {
                         app.showToast('❌ ' + (json.error?.message || 'เกิดข้อผิดพลาด'));
                     }
                 } else {
-                    const res = await fetch('/api/v1/users/' + u.id, {
+                    const res = await fetch('/api/v1/users/' + targetId, {
                         method: 'PATCH',
                         headers: auth.getHeaders(),
                         body: JSON.stringify({ is_active: true })
