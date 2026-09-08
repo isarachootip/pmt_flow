@@ -3849,42 +3849,39 @@ app.patch(['/api/ma-rounds/:id', '/api/v1/ma-rounds/:id'], requireAuth, async (r
 
 export async function hydrateFromDatabase() {
   try {
-    let dbJobs = await dbLoadJobs();
-    if (!dbJobs || dbJobs.length === 0) {
-      console.log('[DB HYDRATE] core_jobs table is empty. Auto-seeding 16 mock jobs (8 Quick, 8 Renovate) into PostgreSQL...');
-      await dbSeedMockJobs();
-      dbJobs = await dbLoadJobs();
-    }
+    const dbJobs = await dbLoadJobs();
+    coreJobStore.length = 0;
     if (dbJobs && dbJobs.length > 0) {
-      coreJobStore.length = 0;
       coreJobStore.push(...dbJobs);
       console.log(`[DB HYDRATE] Loaded ${coreJobStore.length} jobs from PostgreSQL.`);
+    } else {
+      console.log('[DB HYDRATE] core_jobs table is empty (0 jobs).');
     }
 
     const dbLogs = await dbLoadDailyWorkLogs();
+    coreDailyWorkLogStore.length = 0;
     if (dbLogs && dbLogs.length > 0) {
-      coreDailyWorkLogStore.length = 0;
       coreDailyWorkLogStore.push(...dbLogs);
       console.log(`[DB HYDRATE] Loaded ${coreDailyWorkLogStore.length} daily work logs from PostgreSQL.`);
     }
 
     const dbBookings = await dbLoadQCBookings();
+    coreQCBookingStore.length = 0;
     if (dbBookings && dbBookings.length > 0) {
-      coreQCBookingStore.length = 0;
       coreQCBookingStore.push(...dbBookings);
       console.log(`[DB HYDRATE] Loaded ${coreQCBookingStore.length} QC bookings from PostgreSQL.`);
     }
 
     const dbContracts = await dbLoadMAContracts();
+    maContractStore.length = 0;
     if (dbContracts && dbContracts.length > 0) {
-      maContractStore.length = 0;
       maContractStore.push(...dbContracts);
       console.log(`[DB HYDRATE] Loaded ${maContractStore.length} MA contracts from PostgreSQL.`);
     }
 
     const dbRounds = await dbLoadMARounds();
+    maRoundStore.length = 0;
     if (dbRounds && dbRounds.length > 0) {
-      maRoundStore.length = 0;
       maRoundStore.push(...dbRounds);
       console.log(`[DB HYDRATE] Loaded ${maRoundStore.length} MA rounds from PostgreSQL.`);
     }

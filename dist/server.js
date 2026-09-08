@@ -3202,38 +3202,36 @@ app.patch(['/api/ma-rounds/:id', '/api/v1/ma-rounds/:id'], requireAuth, async (r
 });
 async function hydrateFromDatabase() {
     try {
-        let dbJobs = await (0, database_1.dbLoadJobs)();
-        if (!dbJobs || dbJobs.length === 0) {
-            console.log('[DB HYDRATE] core_jobs table is empty. Auto-seeding 16 mock jobs (8 Quick, 8 Renovate) into PostgreSQL...');
-            await (0, database_1.dbSeedMockJobs)();
-            dbJobs = await (0, database_1.dbLoadJobs)();
-        }
+        const dbJobs = await (0, database_1.dbLoadJobs)();
+        exports.coreJobStore.length = 0;
         if (dbJobs && dbJobs.length > 0) {
-            exports.coreJobStore.length = 0;
             exports.coreJobStore.push(...dbJobs);
             console.log(`[DB HYDRATE] Loaded ${exports.coreJobStore.length} jobs from PostgreSQL.`);
         }
+        else {
+            console.log('[DB HYDRATE] core_jobs table is empty (0 jobs).');
+        }
         const dbLogs = await (0, database_1.dbLoadDailyWorkLogs)();
+        exports.coreDailyWorkLogStore.length = 0;
         if (dbLogs && dbLogs.length > 0) {
-            exports.coreDailyWorkLogStore.length = 0;
             exports.coreDailyWorkLogStore.push(...dbLogs);
             console.log(`[DB HYDRATE] Loaded ${exports.coreDailyWorkLogStore.length} daily work logs from PostgreSQL.`);
         }
         const dbBookings = await (0, database_1.dbLoadQCBookings)();
+        exports.coreQCBookingStore.length = 0;
         if (dbBookings && dbBookings.length > 0) {
-            exports.coreQCBookingStore.length = 0;
             exports.coreQCBookingStore.push(...dbBookings);
             console.log(`[DB HYDRATE] Loaded ${exports.coreQCBookingStore.length} QC bookings from PostgreSQL.`);
         }
         const dbContracts = await (0, database_1.dbLoadMAContracts)();
+        exports.maContractStore.length = 0;
         if (dbContracts && dbContracts.length > 0) {
-            exports.maContractStore.length = 0;
             exports.maContractStore.push(...dbContracts);
             console.log(`[DB HYDRATE] Loaded ${exports.maContractStore.length} MA contracts from PostgreSQL.`);
         }
         const dbRounds = await (0, database_1.dbLoadMARounds)();
+        exports.maRoundStore.length = 0;
         if (dbRounds && dbRounds.length > 0) {
-            exports.maRoundStore.length = 0;
             exports.maRoundStore.push(...dbRounds);
             console.log(`[DB HYDRATE] Loaded ${exports.maRoundStore.length} MA rounds from PostgreSQL.`);
         }

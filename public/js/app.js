@@ -822,6 +822,7 @@ const app = {
                 DB.blueprints = [];
                 DB.tickets = [];
                 DB.qcBookings = [];
+                DB.dailyWorkLogs = [];
                 DB.maContracts = [];
                 DB.maRounds = [];
                 try {
@@ -830,9 +831,11 @@ const app = {
                     localStorage.removeItem('pmt_blueprints');
                     localStorage.removeItem('pmt_tickets');
                     localStorage.removeItem('pmt_qc_bookings');
+                    localStorage.removeItem('pmt_daily_work_logs');
                     localStorage.removeItem('pmt_ma_contracts');
                     localStorage.removeItem('pmt_ma_rounds');
                     localStorage.removeItem('pmt_int_mock_10jobs_v4');
+                    localStorage.setItem('pmt_jobs_cleared_v9', 'true');
                     localStorage.setItem('pmt_jobs_cleared_v8', 'true');
                 } catch (e) {}
 
@@ -846,6 +849,7 @@ const app = {
                 this.persistJobs();
                 this.persistBlueprints();
                 this.persistTickets();
+                this.persistDailyWorkLogs();
                 this.updateStepBadges();
 
                 if (this.state.currentView === 'gantt') this.renderGantt();
@@ -856,7 +860,7 @@ const app = {
                 if (this.state.currentView === 'csat') this.renderCSAT();
                 if (this.state.currentView === 'ma-contracts') this.renderMAContracts();
 
-                this.showToast('🗑️ ล้างข้อมูลโครงการและรายการ Transaction ทั้งหมดเป็น 0 เรียบร้อยแล้ว (สามารถกด "จำลอง 16 งาน" หรือ "รับ Order ใหม่" ได้ทุกเมื่อ)');
+                this.showToast('🗑️ ล้างข้อมูลโครงการและรายการ Transaction ทั้งหมดเป็น 0 เรียบร้อยแล้ว พร้อมเริ่มนำเข้าใหม่ตั้งแต่ Step 1');
             },
 
             getINTMockOrders() {
@@ -1462,37 +1466,41 @@ const app = {
                 document.documentElement.classList.remove('dark');
                 try { localStorage.setItem('pmt-theme', 'light'); } catch(e) {}
 
-                // Auto-Wipe & Fresh Clean Slate v8 (Fulfilling: "ล้างข้อมูล Transaction ทั้งหมด")
-                const FRESH_RESET_KEY = 'pmt_clean_reset_v8';
+                // Auto-Wipe & Fresh Clean Slate v9 (Fulfilling: "ล้างข้อมูล Transaction ทั้งหมด เริ่มต้นนำเข้าตั้งแต่ step1")
+                const FRESH_RESET_KEY = 'pmt_clean_reset_v9';
                 if (localStorage.getItem(FRESH_RESET_KEY) !== 'true') {
                     try {
                         localStorage.setItem(FRESH_RESET_KEY, 'true');
-                        localStorage.setItem('pmt_jobs_cleared_v8', 'true');
+                        localStorage.setItem('pmt_jobs_cleared_v9', 'true');
                         localStorage.removeItem('pmt_jobs');
                         localStorage.removeItem('pmt_tasks');
                         localStorage.removeItem('pmt_blueprints');
                         localStorage.removeItem('pmt_tickets');
                         localStorage.removeItem('pmt_qc_bookings');
+                        localStorage.removeItem('pmt_daily_work_logs');
                         localStorage.removeItem('pmt_ma_contracts');
                         localStorage.removeItem('pmt_ma_rounds');
                         localStorage.removeItem('pmt_int_mock_10jobs_v4');
                         localStorage.removeItem('pmt_jobs_cleared_v3');
                         localStorage.removeItem('pmt_jobs_cleared_v5');
                         localStorage.removeItem('pmt_jobs_cleared_v7');
+                        localStorage.removeItem('pmt_jobs_cleared_v8');
                         DB.jobs = [];
                         DB.tasks = [];
                         DB.blueprints = [];
                         DB.tickets = [];
                         DB.qcBookings = [];
+                        DB.dailyWorkLogs = [];
                         DB.maContracts = [];
                         DB.maRounds = [];
                         this.persistJobs();
                         this.persistBlueprints();
                         this.persistTickets();
+                        this.persistDailyWorkLogs();
                     } catch(e) {}
                 }
 
-                const isExplicitlyCleared = localStorage.getItem('pmt_jobs_cleared_v8') === 'true';
+                const isExplicitlyCleared = localStorage.getItem('pmt_jobs_cleared_v9') === 'true' || localStorage.getItem('pmt_jobs_cleared_v8') === 'true';
 
                 // Restore saved jobs
                 const savedJobs = localStorage.getItem('pmt_jobs');
@@ -1563,22 +1571,14 @@ const app = {
                         const parsedTickets = JSON.parse(savedTickets);
                         if (Array.isArray(parsedTickets) && parsedTickets.length > 0) {
                             DB.tickets = parsedTickets;
-                            if (DB.tickets.length < 3) {
-                                const defaultMocks = this.getDefaultMockTickets();
-                                defaultMocks.forEach(mock => {
-                                    if (!DB.tickets.some(t => t.id === mock.id || t.ticket_no === mock.ticket_no)) {
-                                        DB.tickets.push(mock);
-                                    }
-                                });
-                            }
                         } else {
-                            DB.tickets = this.getDefaultMockTickets();
+                            DB.tickets = [];
                         }
                     } catch (e) {
-                        DB.tickets = this.getDefaultMockTickets();
+                        DB.tickets = [];
                     }
                 } else {
-                    DB.tickets = this.getDefaultMockTickets();
+                    DB.tickets = [];
                 }
 
                 // Restore saved blueprints
@@ -1606,13 +1606,13 @@ const app = {
                         if (Array.isArray(parsedDailyLogs) && parsedDailyLogs.length > 0) {
                             DB.dailyWorkLogs = parsedDailyLogs;
                         } else {
-                            DB.dailyWorkLogs = this.getInitialDailyWorkLogs();
+                            DB.dailyWorkLogs = [];
                         }
                     } catch (e) {
-                        DB.dailyWorkLogs = this.getInitialDailyWorkLogs();
+                        DB.dailyWorkLogs = [];
                     }
                 } else {
-                    DB.dailyWorkLogs = this.getInitialDailyWorkLogs();
+                    DB.dailyWorkLogs = [];
                 }
 
                 // Step Timestamps Audit: Ensure all jobs have step_timestamps initialized for reporting
@@ -1807,22 +1807,26 @@ const app = {
                         const json = await res.json();
                         if (json.success && Array.isArray(json.data)) {
                             if (json.data.length === 0) {
-                                // Only wipe out local jobs if user explicitly clicked "ล้างข้อมูลโครงการ" AND DB.jobs is empty
-                                if ((localStorage.getItem('pmt_jobs_cleared_v8') === 'true' || localStorage.getItem('pmt_jobs_cleared_v7') === 'true') && (!DB.jobs || DB.jobs.length === 0)) {
-                                    DB.jobs = [];
-                                    DB.tasks = [];
-                                    DB.blueprints = [];
-                                    this.persistJobs();
-                                    if (this.state.currentView === 'jobs') this.renderJobs();
-                                    if (this.state.currentView === 'dashboard') this.renderDashboard();
-                                    if (this.state.currentView === 'gantt') this.renderGantt();
-                                    if (this.state.currentView === 'qc') this.renderQC();
-                                    if (this.state.currentView === 'csat') this.renderCSAT();
-                                    if (this.state.currentView === 'blueprints') this.renderBlueprints();
-                                    const countEl = document.getElementById('sidebar-job-count');
-                                    if (countEl) countEl.innerText = '0';
-                                    return;
-                                }
+                                DB.jobs = [];
+                                DB.tasks = [];
+                                DB.blueprints = [];
+                                DB.tickets = [];
+                                DB.qcBookings = [];
+                                DB.dailyWorkLogs = [];
+                                this.persistJobs();
+                                this.persistBlueprints();
+                                this.persistTickets();
+                                this.persistDailyWorkLogs();
+                                this.updateStepBadges();
+                                if (this.state.currentView === 'jobs') this.renderJobs();
+                                if (this.state.currentView === 'dashboard') this.renderDashboard();
+                                if (this.state.currentView === 'gantt') this.renderGantt();
+                                if (this.state.currentView === 'qc') this.renderQC();
+                                if (this.state.currentView === 'csat') this.renderCSAT();
+                                if (this.state.currentView === 'blueprints') this.renderBlueprints();
+                                if (this.state.currentView === 'tickets') this.renderTickets();
+                                const countEl = document.getElementById('sidebar-job-count');
+                                if (countEl) countEl.innerText = '0';
                                 return;
                             }
                             const remoteJobs = json.data;
