@@ -15382,8 +15382,8 @@ const app = {
                     } else {
                         actionHtml = `
                             <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                                <button class="btn-artifact-secondary px-2.5 py-1 text-[11px] rounded-lg text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer" onclick="app.openCSATModal('${j.id}')" title="ดูรายละเอียดหรือแก้ไขผลประเมิน">
-                                    <i class="ph ph-pencil-simple"></i> ดู/แก้ไข
+                                <button class="btn-artifact-secondary px-2.5 py-1 text-[11px] rounded-lg text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer" onclick="app.openCSATModal('${j.id}')" title="ดูผลการประเมิน CSAT (โหมดดูข้อมูล)">
+                                    <i class="ph ph-eye"></i> ดูผลประเมิน
                                 </button>
                                 ${j.status === 'CLOSED' ? `
                                     <span class="text-emerald-500 text-[11px] font-medium flex items-center gap-1">
@@ -15459,9 +15459,25 @@ const app = {
                 }
                 this.state.csatEvaluatingJobId = jobId;
 
+                const isEvaluated = (job.csat_score !== undefined && job.csat_score !== null);
+                this.state.csatModalReadOnly = isEvaluated;
+
+                // Read-Only mode banner toggle
+                const roBanner = document.getElementById('csat-modal-readonly-banner');
+                if (roBanner) {
+                    roBanner.className = isEvaluated
+                        ? 'p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-400 flex items-center gap-2 font-medium'
+                        : 'hidden';
+                }
+
                 // Summary elements
                 const elJobId = document.getElementById('csat-modal-job-id');
-                if (elJobId) elJobId.innerText = job.id;
+                if (elJobId) {
+                    elJobId.innerText = isEvaluated ? `${job.id} • บันทึกผลแล้ว` : `${job.id} • รอประเมิน`;
+                    elJobId.className = isEvaluated
+                        ? 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono'
+                        : 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-mono';
+                }
                 const elCustomer = document.getElementById('csat-modal-customer');
                 if (elCustomer) elCustomer.innerText = job.customer || '-';
                 const elPhone = document.getElementById('csat-modal-phone');
@@ -15490,24 +15506,48 @@ const app = {
                 }
 
                 // Initial score
-                const initialScore = (job.csat_score !== undefined && job.csat_score !== null) ? Number(job.csat_score) : 5;
+                const initialScore = isEvaluated ? Number(job.csat_score) : 5;
                 this.selectCSATScore(initialScore);
 
                 // Initial photos
                 this.state.csatPhotos = Array.isArray(job.csat_photos) ? JSON.parse(JSON.stringify(job.csat_photos)) : [];
                 this.renderCSATModalPhotos();
 
-                // Initial feedback and remarks
+                // Photo actions toggle (hide in read-only mode)
+                const photoActions = document.getElementById('csat-photo-actions');
+                if (photoActions) photoActions.style.display = isEvaluated ? 'none' : 'flex';
+
+                // Quick tags toggle (hide in read-only mode)
+                const quickTags = document.getElementById('csat-quick-tags-container');
+                if (quickTags) quickTags.style.display = isEvaluated ? 'none' : 'flex';
+
+                // Feedback & Remarks (set readonly styling)
                 const feedbackEl = document.getElementById('csat-feedback-text');
-                if (feedbackEl) feedbackEl.value = job.csat_remarks || '';
+                if (feedbackEl) {
+                    feedbackEl.value = job.csat_remarks || '';
+                    feedbackEl.readOnly = isEvaluated;
+                    feedbackEl.className = isEvaluated
+                        ? 'w-full bg-muted/40 border border-border rounded-xl p-3 text-xs text-foreground cursor-not-allowed leading-relaxed select-text'
+                        : 'w-full bg-card border border-border rounded-xl p-3 text-xs text-foreground focus:outline-none focus:border-amber-500 shadow-xs leading-relaxed';
+                }
                 const remarksEl = document.getElementById('csat-remarks-text');
-                if (remarksEl) remarksEl.value = job.additional_notes || '';
+                if (remarksEl) {
+                    remarksEl.value = job.additional_notes || '';
+                    remarksEl.readOnly = isEvaluated;
+                    remarksEl.className = isEvaluated
+                        ? 'w-full bg-muted/40 border border-border rounded-xl p-3 text-xs text-foreground cursor-not-allowed leading-relaxed select-text'
+                        : 'w-full bg-card border border-border rounded-xl p-3 text-xs text-foreground focus:outline-none focus:border-amber-500 shadow-xs';
+                }
 
                 // Surveyor & Datetime (24-hour DD/MM/YYYY HH:mm น.)
                 const surveyorEl = document.getElementById('csat-surveyor-input');
                 if (surveyorEl) {
                     const currentUser = (window.auth && window.auth.user && window.auth.user.name) || 'Contact Center Officer';
                     surveyorEl.value = job.csat_surveyor || currentUser;
+                    surveyorEl.readOnly = isEvaluated;
+                    surveyorEl.className = isEvaluated
+                        ? 'w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground cursor-not-allowed'
+                        : 'w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-amber-500';
                 }
                 const dtEl = document.getElementById('csat-datetime-input');
                 if (dtEl) {
@@ -15516,17 +15556,34 @@ const app = {
                     } else {
                         dtEl.value = this.formatDateTimeDMY(new Date().toISOString());
                     }
+                    dtEl.readOnly = isEvaluated;
+                    dtEl.className = isEvaluated
+                        ? 'w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground font-mono cursor-not-allowed'
+                        : 'w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground font-mono focus:outline-none focus:border-amber-500';
                 }
+
+                // Toggle footer actions
+                const editActions = document.getElementById('csat-modal-editable-actions');
+                const roActions = document.getElementById('csat-modal-readonly-actions');
+                const cancelBtn = document.getElementById('csat-modal-cancel-btn');
+                if (editActions) editActions.style.display = isEvaluated ? 'none' : 'flex';
+                if (roActions) roActions.style.display = isEvaluated ? 'flex' : 'none';
+                if (cancelBtn) cancelBtn.style.display = isEvaluated ? 'none' : 'block';
 
                 this.showModal('modal-csat-eval');
             },
 
-            selectCSATScore(score) {
+            selectCSATScore(score, isUserClick = false) {
+                if (this.state.csatModalReadOnly && isUserClick) {
+                    return; // Ignore clicking when read-only
+                }
                 score = Number(score);
                 if (isNaN(score) || score < 0) score = 0;
                 if (score > 5) score = 5;
                 const inputEl = document.getElementById('csat-current-score');
                 if (inputEl) inputEl.value = score;
+
+                const isLocked = Boolean(this.state.csatModalReadOnly);
 
                 // Update 6 score buttons
                 const scoreDescs = {
@@ -15535,14 +15592,15 @@ const app = {
                     2: { text: '2.0 - พอใช้ / มีจุดต้องแก้ไข', class: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30', exp: 'งานผ่านเกณฑ์ขั้นต่ำ แต่ลูกค้ายังไม่ประทับใจ มีข้อเสนอแนะให้ปรับปรุง' },
                     3: { text: '3.0 - ปานกลาง / ตามมาตรฐาน', class: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30', exp: 'ส่งมอบงานได้ตรงตามมาตรฐานทั่วไป ไม่พบข้อบกพร่องสำคัญ' },
                     4: { text: '4.0 - ดีมาก / พึงพอใจ', class: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30', exp: 'ลูกค้ามีความพึงพอใจในคุณภาพงานและการให้บริการของทีมช่างเป็นอย่างดี' },
-                    5: { text: '5.0 - ยอดเยี่ยม ดีเลิศ', class: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30', exp: 'ลูกค้าพึงพอใจสูงสุด ยินดีแนะนำบอกต่อ และพร้อมต่อยอดสู่สัญญาบริการ MA' }
+                    5: { text: '5.0 - ยอดเยี่ยม ดีเลิศ', class: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30', exp: 'ลูกค้าพึงพอใจสูงสุด ยินดีแนะนำบอกต่อ และพร้อมใช้งานบริการต่อเนื่อง' }
                 };
 
                 for (let s = 0; s <= 5; s++) {
                     const btn = document.getElementById(`csat-btn-score-${s}`);
                     if (btn) {
+                        const pointerClass = isLocked ? 'pointer-events-none cursor-default' : 'cursor-pointer';
                         if (s === score) {
-                            btn.className = `csat-score-btn p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition cursor-pointer shadow-xs ${
+                            btn.className = `csat-score-btn p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition shadow-xs ${pointerClass} ${
                                 s === 0 ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/10 text-rose-600' :
                                 s <= 2 ? 'border-orange-500 ring-2 ring-orange-500/20 bg-orange-500/10 text-orange-600' :
                                 s === 3 ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/10 text-amber-600' :
@@ -15550,7 +15608,7 @@ const app = {
                                 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/10 text-emerald-600'
                             }`;
                         } else {
-                            btn.className = 'csat-score-btn p-2 rounded-xl border border-border hover:border-muted-foreground/40 flex flex-col items-center justify-center gap-1 transition cursor-pointer bg-card text-foreground';
+                            btn.className = `csat-score-btn p-2 rounded-xl border border-border ${isLocked ? 'opacity-40' : 'hover:border-muted-foreground/40'} flex flex-col items-center justify-center gap-1 transition ${pointerClass} bg-card text-foreground`;
                         }
                     }
                 }
@@ -15560,7 +15618,7 @@ const app = {
                 const badgeEl = document.getElementById('csat-score-desc-badge');
                 if (badgeEl) {
                     badgeEl.className = `px-2.5 py-0.5 rounded-full font-bold text-[11px] border ${info.class}`;
-                    badgeEl.innerText = info.text;
+                    badgeEl.innerText = isLocked ? `🔒 ${info.text} (ล็อกคะแนน)` : info.text;
                 }
                 const expEl = document.getElementById('csat-score-explanation');
                 if (expEl) {
@@ -15571,16 +15629,22 @@ const app = {
                 const starsContainer = document.getElementById('csat-interactive-stars');
                 if (starsContainer) {
                     let starsHtml = '';
+                    const starPointerClass = isLocked ? 'pointer-events-none cursor-default' : 'hover:scale-110 cursor-pointer';
                     for (let i = 1; i <= 5; i++) {
                         if (score === 0) {
-                            starsHtml += `<i class="ph ph-star text-muted-foreground/30 hover:scale-110 transition cursor-pointer" onclick="app.selectCSATScore(${i})" title="${i} ดาว"></i>`;
+                            starsHtml += `<i class="ph ph-star text-muted-foreground/30 ${starPointerClass} transition" onclick="app.selectCSATScore(${i}, true)" title="${i} ดาว"></i>`;
                         } else if (i <= score) {
-                            starsHtml += `<i class="ph ph-star-fill text-amber-400 hover:scale-110 transition cursor-pointer" onclick="app.selectCSATScore(${i})" title="${i} ดาว"></i>`;
+                            starsHtml += `<i class="ph ph-star-fill text-amber-400 ${starPointerClass} transition" onclick="app.selectCSATScore(${i}, true)" title="${i} ดาว"></i>`;
                         } else {
-                            starsHtml += `<i class="ph ph-star text-muted-foreground/30 hover:scale-110 transition cursor-pointer" onclick="app.selectCSATScore(${i})" title="${i} ดาว"></i>`;
+                            starsHtml += `<i class="ph ph-star text-muted-foreground/30 ${starPointerClass} transition" onclick="app.selectCSATScore(${i}, true)" title="${i} ดาว"></i>`;
                         }
                     }
                     starsContainer.innerHTML = starsHtml;
+                    if (isLocked) {
+                        starsContainer.className = 'flex items-center gap-1 text-2xl text-amber-400 pointer-events-none cursor-default opacity-90';
+                    } else {
+                        starsContainer.className = 'flex items-center gap-1 text-2xl text-amber-400 cursor-pointer';
+                    }
                 }
             },
 
@@ -15595,7 +15659,7 @@ const app = {
                     container.innerHTML = `
                         <div class="col-span-full text-center text-muted-foreground py-4" id="csat-photos-empty">
                             <i class="ph ph-image text-2xl text-muted-foreground/40 block mb-1"></i>
-                            <span>ยังไม่มีรูปภาพประกอบ (สามารถคลิก "+ แนบรูปถ่าย" หรือ "ดึงรูปจาก QC")</span>
+                            <span>${this.state.csatModalReadOnly ? 'ไม่มีรูปภาพแนบในผลการประเมินนี้' : 'ยังไม่มีรูปภาพประกอบ (สามารถคลิก "+ แนบรูปถ่าย" หรือ "ดึงรูปจาก QC")'}</span>
                         </div>
                     `;
                     return;
@@ -15604,9 +15668,11 @@ const app = {
                 container.innerHTML = photos.map((p, idx) => `
                     <div class="relative group rounded-xl overflow-hidden border border-border bg-card shadow-xs aspect-video flex items-center justify-center">
                         <img src="${p.url}" alt="${p.name || 'CSAT Photo'}" class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform" onclick="app.showLightbox('${p.url}', '${p.name || 'รูปถ่ายผลการประเมิน CSAT'}', 'CSAT Review Photo', 'แนบประกอบการประเมินความพึงพอใจลูกค้า', '${p.uploaded_at ? app.formatDateTimeDMY(p.uploaded_at) : 'ล่าสุด'}')">
-                        <button type="button" onclick="app.removeCSATPhoto(${idx})" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/70 hover:bg-rose-600 text-white flex items-center justify-center text-xs transition shadow-sm cursor-pointer" title="ลบรูปภาพ">
-                            <i class="ph ph-trash"></i>
-                        </button>
+                        ${this.state.csatModalReadOnly ? '' : `
+                            <button type="button" onclick="app.removeCSATPhoto(${idx})" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/70 hover:bg-rose-600 text-white flex items-center justify-center text-xs transition shadow-sm cursor-pointer" title="ลบรูปภาพ">
+                                <i class="ph ph-trash"></i>
+                            </button>
+                        `}
                         <div class="absolute bottom-0 inset-x-0 bg-black/60 backdrop-blur-xs p-1 text-[9px] text-white truncate px-1.5 font-mono">
                             ${p.name || `รูปที่ ${idx + 1}`}
                         </div>

@@ -4214,6 +4214,20 @@
                                     <p>สำหรับระบบ Log-on / Log-out ได้รับการยกระดับด้วยกลไก <strong>In-Memory Fast Auth (0ms response)</strong>, การตั้งเวลา Timeout ป้องกันการค้าง, และระบบ <strong>Hard Reload Redirect</strong> เมื่อออกจากระบบ เพื่อล้างหน่วยความจำและตัวจับเวลาในเบื้องหลังอย่างสมบูรณ์ ป้องกันปัญหาหน้าจอค้าง 100%</p>
                                 </div>
                             </details>
+
+                            <!-- Q7: CSAT Read-Only Policy -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q7:</span>
+                                        <span>หลังจากบันทึกผลการประเมินความพึงพอใจลูกค้า (CSAT) แล้ว สามารถแก้ไขคะแนนได้หรือไม่?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> <strong>ไม่สามารถแก้ไขคะแนนได้</strong> เพื่อรักษาความถูกต้อง โปร่งใส และป้องกันการแก้ไขผลการดำเนินงานย้อนหลัง (Audit Trail & Governance Integrity) โดยเมื่องานได้รับการประเมินแล้ว ปุ่มในตารางจะเปลี่ยนเป็น <code class="bg-muted px-1.5 py-0.5 rounded font-medium text-[11px]">👁️ ดูผลประเมิน</code> และหน้าต่างผลประเมินจะปรับเป็น <strong>"โหมดดูข้อมูลเท่านั้น (Read-Only Mode)"</strong> ล็อกคะแนนดาว ข้อคิดเห็น และรูปภาพประกอบ แต่เจ้าหน้าที่สามารถคลิกเข้ามาตรวจสอบข้อมูลย้อนหลังได้ตลอดเวลา</p>
+                                </div>
+                            </details>
                         </div>
                     </div>
                 </div>
@@ -5212,6 +5226,12 @@
 
             <!-- Modal Scrollable Body -->
             <div class="p-5 overflow-y-auto space-y-5 text-xs">
+                <!-- Read-Only Mode Banner -->
+                <div id="csat-modal-readonly-banner" class="hidden p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-400 items-center gap-2 font-medium">
+                    <i class="ph ph-lock-key text-base text-emerald-600 dark:text-emerald-400 shrink-0"></i>
+                    <span>บันทึกผลการประเมิน CSAT เรียบร้อยแล้ว (โหมดดูข้อมูลเท่านั้น — ล็อกคะแนนและข้อมูลเพื่อความโปร่งใส)</span>
+                </div>
+
                 <!-- Job Summary Strip -->
                 <div class="p-3.5 rounded-xl bg-muted/40 border border-border space-y-2">
                     <div class="flex flex-wrap items-center justify-between gap-2">
@@ -5242,7 +5262,7 @@
                     </div>
 
                     <!-- 6 Score Buttons (0 to 5) -->
-                    <div class="grid grid-cols-6 gap-2">
+                    <div class="grid grid-cols-6 gap-2" id="csat-score-buttons-grid">
                         <!-- Score 0 -->
                         <button type="button" onclick="app.selectCSATScore(0)" id="csat-btn-score-0" class="csat-score-btn p-2 rounded-xl border border-border hover:border-rose-500 flex flex-col items-center justify-center gap-1 transition cursor-pointer bg-card">
                             <span class="text-base">⚠️</span>
@@ -5305,7 +5325,7 @@
                             <span>บันทึกรูปภาพประกอบการประเมิน (Customer Photos & Handover Proof)</span>
                             <span class="text-[10px] text-muted-foreground font-normal" id="csat-photo-count-label">(0 รูป)</span>
                         </label>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2" id="csat-photo-actions">
                             <button type="button" onclick="app.pullQCPhotosToCSAT()" class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/10 cursor-pointer" title="ดึงรูปถ่ายจากขั้นตอน QC หน้างานมาประกอบผลประเมิน">
                                 <i class="ph ph-arrows-clockwise"></i> ดึงรูปจาก QC
                             </button>
@@ -5339,7 +5359,7 @@
                     </div>
 
                     <!-- Quick Tags -->
-                    <div class="flex flex-wrap items-center gap-1.5">
+                    <div id="csat-quick-tags-container" class="flex flex-wrap items-center gap-1.5">
                         <span class="text-[10px] text-muted-foreground mr-1">คำสำเร็จรูป:</span>
                         <button type="button" onclick="app.appendCSATTag('ช่างสุภาพและตรงต่อเวลา')" class="px-2 py-0.5 rounded-lg text-[10px] bg-muted hover:bg-muted/80 text-foreground border border-border transition cursor-pointer">👍 ตรงเวลา</button>
                         <button type="button" onclick="app.appendCSATTag('งานติดตั้งเรียบร้อยตามแบบ')" class="px-2 py-0.5 rounded-lg text-[10px] bg-muted hover:bg-muted/80 text-foreground border border-border transition cursor-pointer">✨ งานเนี้ยบ</button>
@@ -5372,14 +5392,20 @@
 
             <!-- Modal Footer Actions -->
             <div class="p-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-muted/20 shrink-0">
-                <button type="button" onclick="app.hideModal('modal-csat-eval')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs w-full sm:w-auto cursor-pointer">ยกเลิก</button>
-                <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                <button type="button" id="csat-modal-cancel-btn" onclick="app.hideModal('modal-csat-eval')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs w-full sm:w-auto cursor-pointer">ยกเลิก</button>
+                <div id="csat-modal-editable-actions" class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
                     <button type="button" onclick="app.submitCSATEvaluation(true)" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/25 cursor-pointer" title="บันทึกผล CSAT และส่งต่อปิดงาน BMT ทันที">
                         <i class="ph ph-check-square"></i> บันทึก & ปิดงาน BMT
                     </button>
                     <button type="button" onclick="app.submitCSATEvaluation(false)" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md cursor-pointer hover:scale-102 transition-transform">
                         <i class="ph ph-check-circle text-base"></i>
                         <span>บันทึกผล CSAT (ส่งต่อบริการหลังการขาย)</span>
+                    </button>
+                </div>
+                <div id="csat-modal-readonly-actions" class="hidden items-center justify-end w-full sm:w-auto">
+                    <button type="button" onclick="app.hideModal('modal-csat-eval')" class="btn-artifact-primary px-6 py-2 rounded-xl text-xs font-semibold cursor-pointer flex items-center gap-1.5">
+                        <i class="ph ph-x-circle text-base"></i>
+                        <span>ปิดหน้าต่าง</span>
                     </button>
                 </div>
             </div>
