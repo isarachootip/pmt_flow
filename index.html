@@ -5251,6 +5251,37 @@
                     </div>
                 </div>
 
+                <!-- QC Inspection & Site Photos Gallery (สำหรับเจ้าหน้าที่ Contact Center ตรวจสอบประกอบการประเมิน) -->
+                <div class="p-4 rounded-xl bg-blue-500/5 border border-blue-500/20 space-y-3" id="csat-qc-photos-section">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm font-bold shrink-0">
+                                <i class="ph ph-shield-check"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-foreground text-xs flex items-center gap-1.5">
+                                    <span>รูปถ่ายผลการตรวจรับรองคุณภาพจาก QC</span>
+                                    <span id="csat-qc-photos-count-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-mono">0 รูป</span>
+                                </h4>
+                                <p class="text-[10px] text-muted-foreground">ภาพถ่ายหน้างานจริงที่ผ่านการตรวจรับรองจาก QC เพื่อใช้ประกอบการพิจารณาโทรสนทนาประเมิน CSAT</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 text-[10px]">
+                            <span id="csat-qc-type-badge" class="px-2 py-0.5 rounded-md font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-mono">
+                                <i class="ph ph-video-camera"></i> QC Online
+                            </span>
+                            <span id="csat-qc-inspector-badge" class="px-2 py-0.5 rounded-md font-medium bg-muted text-muted-foreground border border-border">
+                                ผู้ตรวจ: วรเทพ ชำนาญการ (QC)
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Grid of QC Photos -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5" id="csat-qc-photos-grid">
+                        <!-- Populated by JS renderCSATQCPhotos(job) -->
+                    </div>
+                </div>
+
                 <!-- 1. CSAT Score 0 - 5 Rating Selection -->
                 <div class="space-y-3">
                     <div class="flex items-center justify-between">

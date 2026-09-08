@@ -15169,37 +15169,250 @@ const app = {
             },
 
             getSampleVisitPlanPhotos(job) {
-                const s = (job.service || '').toLowerCase();
+                const s = ((job && job.service) || '').toLowerCase();
                 const nowIso = new Date().toISOString();
 
-                if (s.includes('โซลาร์') || s.includes('solar')) {
+                // 1. EV Charger
+                if (s.includes('ev') || s.includes('ชาร์จ') || s.includes('charger')) {
                     return [
-                        { id: 'vp_1', num: 1, title: '1. สภาพโครงสร้างหลังคาและจุดติดตั้งแผง', note: 'ตรวจสอบความแข็งแรงโครงสร้างซีแพคโมเนีย ก่อนติดตั้งแผงโซลาร์เซลล์', url: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
-                        { id: 'vp_2', num: 2, title: '2. การติดตั้งราง Rail & Solar Mount', note: 'ยึด Rail แน่นหนาตามมุมลาดเอียง ทนแรงลมได้ดี ป้องกันน้ำรั่วซึม', url: 'https://images.unsplash.com/photo-1508873696983-2df57046475a?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
-                        { id: 'vp_3', num: 3, title: '3. แผงโซลาร์เซลล์ Solar Rooftop 5kW', note: 'ติดตั้งแผง Tier 1 ครบตามจำนวน 10 แผง จัดเรียงระนาบสวยงาม', url: 'https://images.unsplash.com/photo-1545208942-e1c9c916524b?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
-                        { id: 'vp_4', num: 4, title: '4. ระบบ Inverter & ตู้เบรกเกอร์ DC/AC', note: 'กล่อง Combiner, เบรกเกอร์ Surge Protection และระบบสายดิน ELCB', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
-                        { id: 'vp_5', num: 5, title: '5. ทดสอบผลิตไฟฟ้าและส่งมอบงาน', note: 'วัดค่าไฟ On-Grid ผลิตได้ตามมาตรฐาน ส่งมอบแอปพลิเคชันมอนิเตอร์', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' }
+                        { id: 'vp_ev_1', num: 1, title: '1. จุดติดตั้งตู้เบรกเกอร์ Main Panel และสายเมน', note: 'ตรวจสอบขนาดสายไฟ THW และลูกเซอร์กิตเบรกเกอร์ Main ก่อนเข้าตู้ EV', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_ev_2', num: 2, title: '2. การเดินท่อร้อยสายไฟ EMT และสายดินแท้', note: 'ตอกหลักดิน Ground Rod 2.4 ม. วัดค่าความต้านทานดิน < 5 โอห์ม', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_ev_3', num: 3, title: '3. ติดตั้ง Wallbox EV Charger เข้าผนัง', note: 'ยึดพุกแข็งแรง ระดับความสูงมาตรฐาน 1.20 ม. มีซีลกันน้ำ IP54/IP65', url: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_ev_4', num: 4, title: '4. ระบบเบรกเกอร์ Type B RCD & Safe-T-Cut', note: 'ตรวจเช็คระบบตัดไฟรั่ว DC 6mA และ AC 30mA ตามมาตรฐาน กฟน./กฟภ.', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_ev_5', num: 5, title: '5. ทดสอบชาร์จรถยนต์ไฟฟ้า Live Charging Test', note: 'วัดแรงดันไฟ 230V/400V ชาร์จไฟเข้าปกติ ส่งมอบบัตร RFID และคู่มือ', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' }
                     ];
                 }
 
-                if (s.includes('น้ำอุ่น') || s.includes('heater')) {
+                // 2. Renovate / Bathroom / Built-in
+                if (s.includes('renovate') || s.includes('รีโนเวท') || s.includes('ห้องน้ำ') || s.includes('bathroom') || s.includes('กระเบื้อง') || s.includes('ครัว') || s.includes('built-in')) {
                     return [
-                        { id: 'vp_1', num: 1, title: '1. สภาพผนังห้องน้ำก่อนเริ่มงาน', note: 'ตรวจจุดท่อน้ำดีและตำแหน่งเจาะยึดเครื่องทำน้ำอุ่น', url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
-                        { id: 'vp_2', num: 2, title: '2. การยึดตัวเครื่องระดับน้ำตรง', note: 'เจาะพุกยึดเครื่องทำน้ำอุ่น Stiebel Eltron 4500W มั่นคงแข็งแรง', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
-                        { id: 'vp_3', num: 3, title: '3. การต่อท่อน้ำดีและชุดฝักบัว', note: 'ข้อต่อเกลียวทองเหลืองพร้อมวาล์วเปิด-ปิด ทดสอบแรงดันน้ำไม่รั่วซึม', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
-                        { id: 'vp_4', num: 4, title: '4. ระบบสายดิน & เบรกเกอร์ Safe-T-Cut', note: 'เดินสายดินแท้ลง Ground Rod และเช็คเบรกเกอร์ ELCB', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
-                        { id: 'vp_5', num: 5, title: '5. ทดสอบปุ่ม Test ELCB และอุณหภูมิ', note: 'ระบบตัดไฟรั่วทำงานปกติ 100% น้ำอุ่นสม่ำเสมอ ส่งมอบคู่มือและใบรับประกัน', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' }
+                        { id: 'vp_ren_1', num: 1, title: '1. สภาพเดิมและการสกัดพื้นปรับระดับ', note: 'รื้อถอนสุขภัณฑ์เดิม สกัดกระเบื้องและปรับสโลปพื้นระบายน้ำ', url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_ren_2', num: 2, title: '2. ระบบท่อน้ำดี-น้ำเสีย และกันซึม 2 ชั้น', note: 'ทากันซึม Cement Base ชนิดยืดหยุ่นสูง ปูตาข่ายไฟเบอร์เสริมแรงตามมุม', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_ren_3', num: 3, title: '3. งานปูกระเบื้องผนัง-พื้น R11 กันลื่น', note: 'ปูกระเบื้องแนวเส้นตรง ร่องยาแนวยับยั้งเชื้อรา สโลปสู่ Floor Drain สมบูรณ์', url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_ren_4', num: 4, title: '4. ติดตั้งสุขภัณฑ์ ก๊อกน้ำ และราวจับสแตนเลส', note: 'ติดตั้งสุขภัณฑ์ระดับมาตรฐาน ยิงซิลิโคนกันเชื้อรารอบฐานแน่นหนา', url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_ren_5', num: 5, title: '5. ทดสอบขังน้ำ 24 ชม. และส่งมอบงาน', note: 'ทดสอบการระบายน้ำ ไม่มีรั่วซึม ทำความสะอาดห้องน้ำพร้อมส่งมอบ', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' }
+                    ];
+                }
+
+                // 3. Air Conditioner / HVAC
+                if (s.includes('แอร์') || s.includes('air') || s.includes('ac') || s.includes('ปรับอากาศ')) {
+                    return [
+                        { id: 'vp_air_1', num: 1, title: '1. จุดติดตั้งและเจาะร้อยท่อน้ำยา', note: 'วัดระดับเจาะรูลาดเอียงออกภายนอก ป้องกันน้ำทิ้งไหลย้อน', url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_air_2', num: 2, title: '2. ติดตั้งขายึดคอยล์ร้อนและยางกันสะเทือน', note: 'ยึดขาแขวนหนาพิเศษ ใส่ลูกยางลดแรงสั่นสะเทือนระบายอากาศได้ดี', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_air_3', num: 3, title: '3. การเดินท่อน้ำยาหุ้มฉนวน Armaflex & รางครอบท่อ', note: 'ใส่รางครอบท่อเก็บงานเรียบร้อย ท่อน้ำทิ้ง PVC หุ้มฉนวนป้องกันเหงื่อหยด', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_air_4', num: 4, title: '4. แวคคั่มระบบสุญญากาศและเช็คแรงดันน้ำยา', note: 'ทำ Vacuum นาน 30 นาที ค่าเกจ์คงที่ ไม่มีการรั่วซึมในระบบ', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_air_5', num: 5, title: '5. วัดอุณหภูมิลมเย็น 18-20°C และส่งมอบงาน', note: 'วัดกระแสไฟฟ้าตามสเปกเครื่อง ทดสอบรีโมทคอนโทรล แนะนำการล้างแผ่นกรอง', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' }
+                    ];
+                }
+
+                // 4. Solar Rooftop
+                if (s.includes('โซลาร์') || s.includes('solar')) {
+                    return [
+                        { id: 'vp_sol_1', num: 1, title: '1. สภาพโครงสร้างหลังคาและจุดติดตั้งแผง', note: 'ตรวจสอบความแข็งแรงโครงสร้างซีแพคโมเนีย ก่อนติดตั้งแผงโซลาร์เซลล์', url: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_sol_2', num: 2, title: '2. การติดตั้งราง Rail & Solar Mount', note: 'ยึด Rail แน่นหนาตามมุมลาดเอียง ทนแรงลมได้ดี ป้องกันน้ำรั่วซึม', url: 'https://images.unsplash.com/photo-1508873696983-2df57046475a?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_sol_3', num: 3, title: '3. แผงโซลาร์เซลล์ Solar Rooftop Tier 1', note: 'ติดตั้งแผง Tier 1 ครบตามจำนวน จัดเรียงระนาบสวยงาม', url: 'https://images.unsplash.com/photo-1545208942-e1c9c916524b?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_sol_4', num: 4, title: '4. ระบบ Inverter & ตู้เบรกเกอร์ DC/AC', note: 'กล่อง Combiner, เบรกเกอร์ Surge Protection และระบบสายดิน ELCB', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_sol_5', num: 5, title: '5. ทดสอบผลิตไฟฟ้า On-Grid และส่งมอบงาน', note: 'วัดค่าไฟ On-Grid ผลิตได้ตามมาตรฐาน ส่งมอบแอปพลิเคชันมอนิเตอร์', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' }
+                    ];
+                }
+
+                // 5. Water Heater
+                if (s.includes('น้ำอุ่น') || s.includes('heater') || s.includes('stiebel')) {
+                    return [
+                        { id: 'vp_wh_1', num: 1, title: '1. สภาพผนังห้องน้ำก่อนเริ่มงาน', note: 'ตรวจจุดท่อน้ำดีและตำแหน่งเจาะยึดเครื่องทำน้ำอุ่น', url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_wh_2', num: 2, title: '2. การยึดตัวเครื่องระดับน้ำตรง', note: 'เจาะพุกยึดเครื่องทำน้ำอุ่น Stiebel Eltron มั่นคงแข็งแรง', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_wh_3', num: 3, title: '3. การต่อท่อน้ำดีและชุดฝักบัว', note: 'ข้อต่อเกลียวทองเหลืองพร้อมวาล์วเปิด-ปิด ทดสอบแรงดันน้ำไม่รั่วซึม', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_wh_4', num: 4, title: '4. ระบบสายดิน & เบรกเกอร์ Safe-T-Cut', note: 'เดินสายดินแท้ลง Ground Rod และเช็คเบรกเกอร์ ELCB', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_wh_5', num: 5, title: '5. ทดสอบปุ่ม Test ELCB และอุณหภูมิ', note: 'ระบบตัดไฟรั่วทำงานปกติ 100% น้ำอุ่นสม่ำเสมอ ส่งมอบคู่มือและใบรับประกัน', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' }
+                    ];
+                }
+
+                // 6. Water Pump & Plumbing
+                if (s.includes('ปั๊มน้ำ') || s.includes('แท้งค์') || s.includes('pump') || s.includes('plumb')) {
+                    return [
+                        { id: 'vp_wp_1', num: 1, title: '1. ฐานรากคอนกรีตวางถังพักน้ำและปั๊มน้ำ', note: 'ปรับระดับพื้นคอนกรีตเรียบ ได้ระดับ ไม่ทรุดตัว', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_wp_2', num: 2, title: '2. วางแท้งค์น้ำและต่อท่อบายพาส Bypass', note: 'เดินท่อ PVC ชั้น 13.5 พร้อมติดตั้ง Check Valve และวาล์ว Bypass', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_wp_3', num: 3, title: '3. ติดตั้งปั๊มน้ำอัตโนมัติและต่อสายดิน', note: 'ยึดฐานปั๊มแน่นหนา ใส่ยางกันสะเทือน ต่อสายดินลง Ground Rod', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_wp_4', num: 4, title: '4. ตรวจเช็คแรงดันน้ำทุกจุดในบ้าน', note: 'เปิดน้ำพร้อมกันทุกจุด แรงดันคงที่ ไม่พบการรั่วซึมตามข้อต่อ', url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                        { id: 'vp_wp_5', num: 5, title: '5. ทดสอบระบบ Auto Switch และส่งมอบงาน', note: 'ปั๊มน้ำตัดต่ออัตโนมัติตามการเปิด-ปิดน้ำ ส่งมอบคู่มือและใบรับประกัน', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' }
                     ];
                 }
 
                 // Default Quick Service photos
                 return [
-                    { id: 'vp_1', num: 1, title: '1. สภาพพื้นที่ก่อนติดตั้ง', note: 'ภาพรวมบริเวณปฏิบัติงานก่อนเริ่มการติดตั้ง', url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
-                    { id: 'vp_2', num: 2, title: '2. การวัดระดับและยึดอุปกรณ์', note: 'ตำแหน่งติดตั้งถูกต้องตามมาตรฐานช่าง VFIX', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
-                    { id: 'vp_3', num: 3, title: '3. จุดต่อระบบท่อ / สายไฟ', note: 'เดินระบบเรียบร้อย มีการเก็บรอยต่อสวยงาม ปลอดภัย', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
-                    { id: 'vp_4', num: 4, title: '4. ระบบความปลอดภัยและสายดิน', note: 'ตรวจเช็คเบรกเกอร์และสายดินตามเกณฑ์มาตรฐานความปลอดภัย', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' },
-                    { id: 'vp_5', num: 5, title: '5. งานแล้วเสร็จและทดสอบการทำงาน', note: 'เก็บกวาดพื้นที่สะอาด ทดสอบระบบพร้อมส่งมอบให้ลูกค้า', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'Visit Plan' }
+                    { id: 'vp_1', num: 1, title: '1. สภาพพื้นที่ก่อนติดตั้ง', note: 'ภาพรวมบริเวณปฏิบัติงานก่อนเริ่มการติดตั้ง', url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                    { id: 'vp_2', num: 2, title: '2. การวัดระดับและยึดอุปกรณ์', note: 'ตำแหน่งติดตั้งถูกต้องตามมาตรฐานช่าง VFIX', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                    { id: 'vp_3', num: 3, title: '3. จุดต่อระบบท่อ / สายไฟ', note: 'เดินระบบเรียบร้อย มีการเก็บรอยต่อสวยงาม ปลอดภัย', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                    { id: 'vp_4', num: 4, title: '4. ระบบความปลอดภัยและสายดิน', note: 'ตรวจเช็คเบรกเกอร์และสายดินตามเกณฑ์มาตรฐานความปลอดภัย', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
+                    { id: 'vp_5', num: 5, title: '5. งานแล้วเสร็จและทดสอบการทำงาน', note: 'เก็บกวาดพื้นที่สะอาด ทดสอบระบบพร้อมส่งมอบให้ลูกค้า', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' }
                 ];
+            },
+
+            getJobQCPhotos(job) {
+                if (!job) return [];
+                let photos = [];
+
+                // 1. Direct QC Inspection photos
+                if (Array.isArray(job.qc_photos) && job.qc_photos.length > 0) {
+                    job.qc_photos.forEach(p => {
+                        if (p && p.url) {
+                            photos.push({
+                                id: p.id || `qc_p_${Math.random().toString(36).slice(2, 6)}`,
+                                url: p.url,
+                                title: p.title || p.name || 'รูปตรวจรับรอง QC',
+                                note: p.note || p.remarks || 'ผ่านการตรวจรับรองคุณภาพ QC',
+                                source: 'QC Inspection (Step 6)',
+                                uploaded_at: p.uploaded_at || job.qc_passed_at || job.date
+                            });
+                        }
+                    });
+                }
+
+                // 2. QC Subtask Checklist photos
+                if (Array.isArray(job.qc_subtasks) && job.qc_subtasks.length > 0) {
+                    job.qc_subtasks.forEach(s => {
+                        if (Array.isArray(s.photos)) {
+                            s.photos.forEach(p => {
+                                if (p && p.url) {
+                                    photos.push({
+                                        id: p.id || `qc_sub_${Math.random().toString(36).slice(2, 6)}`,
+                                        url: p.url,
+                                        title: p.title || s.title || 'รูปตรวจรายการย่อย QC',
+                                        note: p.note || `รายการ: ${s.title || ''} (${s.status || 'PASSED'})`,
+                                        source: `QC Subtask: ${s.category || 'งานตรวจ'}`,
+                                        uploaded_at: p.uploaded_at || job.qc_passed_at || job.date
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+
+                // 3. Check-in / Visit Plan site photos
+                if (Array.isArray(job.photos) && job.photos.length > 0) {
+                    job.photos.forEach(p => {
+                        if (p && p.url) {
+                            photos.push({
+                                id: p.id || `site_p_${Math.random().toString(36).slice(2, 6)}`,
+                                url: p.url,
+                                title: p.title || p.name || 'ภาพหน้างานจริง',
+                                note: p.note || p.desc || 'ภาพถ่ายการดำเนินงานหน้างาน',
+                                source: p.source || 'Visit Plan / Site Photos',
+                                uploaded_at: p.uploaded_at || job.date
+                            });
+                        }
+                    });
+                }
+
+                // 4. Fallback if empty: generate service-specific standard photos
+                if (photos.length === 0) {
+                    photos = this.getSampleVisitPlanPhotos(job);
+                }
+
+                // Deduplicate by URL
+                const seenUrls = new Set();
+                const uniquePhotos = [];
+                photos.forEach(p => {
+                    if (p && p.url && !seenUrls.has(p.url)) {
+                        seenUrls.add(p.url);
+                        uniquePhotos.push(p);
+                    }
+                });
+
+                return uniquePhotos;
+            },
+
+            renderCSATQCPhotos(job) {
+                const gridEl = document.getElementById('csat-qc-photos-grid');
+                const countBadge = document.getElementById('csat-qc-photos-count-badge');
+                const typeBadge = document.getElementById('csat-qc-type-badge');
+                const inspectorBadge = document.getElementById('csat-qc-inspector-badge');
+                if (!gridEl) return;
+
+                const qcPhotos = this.getJobQCPhotos(job);
+                if (countBadge) countBadge.innerText = `${qcPhotos.length} รูป`;
+
+                // Type badge
+                if (typeBadge) {
+                    const isOnline = (job.qc_inspection_type === 'ONLINE' || job.qc_type === 'ONLINE' || this.isQuickJob(job));
+                    typeBadge.innerHTML = isOnline 
+                        ? `<i class="ph ph-video-camera"></i> QC Online (ตรวจผ่านรูป/วิดีโอ)`
+                        : `<i class="ph ph-shield-check"></i> On-site QC (ลงพื้นที่หน้างาน)`;
+                    typeBadge.className = isOnline
+                        ? 'px-2 py-0.5 rounded-md font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-mono'
+                        : 'px-2 py-0.5 rounded-md font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono';
+                }
+
+                // Inspector badge
+                if (inspectorBadge) {
+                    const inspector = job.qc_inspector || 'วรเทพ ชำนาญการ (QC Lead)';
+                    inspectorBadge.innerText = `ผู้ตรวจรับรอง: ${inspector}`;
+                }
+
+                if (qcPhotos.length === 0) {
+                    gridEl.innerHTML = `
+                        <div class="col-span-full text-center text-muted-foreground py-4 bg-card rounded-xl border border-border">
+                            <i class="ph ph-image text-2xl text-muted-foreground/40 block mb-1"></i>
+                            <span>ไม่มีรูปถ่าย QC ในระบบสำหรับงานนี้</span>
+                        </div>
+                    `;
+                    return;
+                }
+
+                gridEl.innerHTML = qcPhotos.map((p, idx) => {
+                    const title = p.title || `รูปที่ ${idx + 1}`;
+                    const timeStr = p.uploaded_at ? this.formatDateDMY(p.uploaded_at) : this.formatDateDMY(job.qc_passed_at || job.date);
+
+                    return `
+                        <div class="relative group rounded-xl overflow-hidden border border-border bg-card shadow-xs aspect-video flex flex-col justify-end cursor-pointer hover:border-blue-500/60 hover:shadow-md transition-all" onclick="app.openCSATQCPhotosLightbox('${job.id}', ${idx})" title="คลิกเพื่อขยายดูรูปขนาดใหญ่ (Zoom)">
+                            <img src="${p.url}" alt="${title}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none"></div>
+                            
+                            <div class="absolute top-1.5 left-1.5 flex items-center gap-1 z-10">
+                                <span class="px-1.5 py-0.2 rounded bg-black/60 backdrop-blur-xs text-[9px] font-mono text-white border border-white/20">
+                                    #${idx + 1}
+                                </span>
+                                <span class="px-1.5 py-0.2 rounded bg-blue-500/80 backdrop-blur-xs text-[8px] font-medium text-white shadow-xs">
+                                    QC PASS
+                                </span>
+                            </div>
+
+                            <div class="absolute top-1.5 right-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span class="w-6 h-6 rounded-full bg-black/70 text-white flex items-center justify-center text-xs shadow-sm">
+                                    <i class="ph ph-magnifying-glass-plus"></i>
+                                </span>
+                            </div>
+
+                            <div class="relative z-10 p-1.5 text-white">
+                                <div class="text-[10px] font-semibold line-clamp-1 leading-tight">${title}</div>
+                                <div class="text-[9px] text-white/70 line-clamp-1 font-mono">${timeStr}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            openCSATQCPhotosLightbox(jobId, photoIdx = 0) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+                const qcPhotos = this.getJobQCPhotos(job);
+                if (!qcPhotos || qcPhotos.length === 0) {
+                    this.showToast('ℹ️ ไม่พบรูปถ่าย QC ของงานนี้');
+                    return;
+                }
+                const idx = Math.min(Math.max(0, photoIdx), qcPhotos.length - 1);
+                const photo = qcPhotos[idx];
+                const inspector = job.qc_inspector || 'วรเทพ ชำนาญการ (QC Lead)';
+                const typeLabel = (job.qc_inspection_type === 'ONLINE' || job.qc_type === 'ONLINE' || this.isQuickJob(job)) ? 'QC Online' : 'On-site QC';
+                const timeStr = photo.uploaded_at ? this.formatDateTimeDMY(photo.uploaded_at) : this.formatDateTimeDMY(job.qc_passed_at || new Date().toISOString());
+
+                this.showLightbox(
+                    photo.url,
+                    photo.title || `รูปถ่ายตรวจรับรอง QC (${job.id})`,
+                    `รูปที่ ${idx + 1}/${qcPhotos.length} • ${typeLabel} • ${inspector}`,
+                    photo.note || `ตรวจรับรองคุณภาพงาน: ${job.service || ''}`,
+                    timeStr
+                );
             },
 
             setCSATFilter(filter) {
@@ -15506,7 +15719,12 @@ const app = {
                             </td>
                             <td class="px-5 py-4">
                                 <div class="space-y-1">
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${badgeClass}">${badgeText}</span>
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${badgeClass}">${badgeText}</span>
+                                        <button type="button" onclick="app.openCSATQCPhotosLightbox('${j.id}')" class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 font-medium transition cursor-pointer" title="คลิกเพื่อดูรูปถ่ายผลการตรวจ QC (${this.getJobQCPhotos(j).length} รูป)">
+                                            <i class="ph ph-shield-check"></i> รูปตรวจ QC (${this.getJobQCPhotos(j).length})
+                                        </button>
+                                    </div>
                                     <div class="text-xs text-muted-foreground line-clamp-2 max-w-[260px]" title="${j.service || ''}">${j.service || '-'}</div>
                                 </div>
                             </td>
@@ -15585,6 +15803,9 @@ const app = {
                         elBadge.innerText = 'QUICK SERVICES';
                     }
                 }
+
+                // Render QC Inspection photos gallery for Contact Center review
+                this.renderCSATQCPhotos(job);
 
                 // Initial score
                 const initialScore = isEvaluated ? Number(job.csat_score) : 5;
@@ -15797,12 +16018,7 @@ const app = {
                 const jobId = this.state.csatEvaluatingJobId;
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return;
-                let qcPhotos = [];
-                if (Array.isArray(job.photos) && job.photos.length > 0) {
-                    qcPhotos = job.photos;
-                } else if (typeof this.getSampleVisitPlanPhotos === 'function') {
-                    qcPhotos = this.getSampleVisitPlanPhotos(job);
-                }
+                const qcPhotos = this.getJobQCPhotos(job);
                 if (qcPhotos.length === 0) {
                     this.showToast('ℹ️ ไม่พบรูปภาพจากขั้นตอน QC');
                     return;
@@ -15945,6 +16161,10 @@ const app = {
                 job1.status = 'QC_PASSED';
                 job1.date = todayStr;
                 job1.qc_passed_at = todayIso;
+                job1.qc_inspector = 'วรเทพ ชำนาญการ (QC Lead)';
+                job1.qc_inspection_type = 'ONLINE';
+                job1.qc_type = 'ONLINE';
+                job1.photos = this.getSampleVisitPlanPhotos(job1);
                 job1.csat_score = null;
                 job1.csat_remarks = '';
                 job1.csat_photos = [];
@@ -15969,6 +16189,10 @@ const app = {
                 job2.status = 'QC_PASSED';
                 job2.date = todayStr;
                 job2.qc_passed_at = new Date(Date.now() - 3600000).toISOString();
+                job2.qc_inspector = 'วิศวกร ธนกร ตรวจมาตรฐาน (QC)';
+                job2.qc_inspection_type = 'ONSITE';
+                job2.qc_type = 'ONSITE';
+                job2.photos = this.getSampleVisitPlanPhotos(job2);
                 job2.csat_score = null;
                 job2.csat_remarks = '';
                 job2.csat_photos = [];
@@ -15993,6 +16217,10 @@ const app = {
                 job3.status = 'AFTER_SALE';
                 job3.date = todayStr;
                 job3.qc_passed_at = new Date(Date.now() - 7200000).toISOString();
+                job3.qc_inspector = 'วิศวกร เกียรติศักดิ์ (QC Specialist)';
+                job3.qc_inspection_type = 'ONLINE';
+                job3.qc_type = 'ONLINE';
+                job3.photos = this.getSampleVisitPlanPhotos(job3);
                 job3.csat_score = 5;
                 job3.csat_remarks = 'ช่างบริการสุภาพมาก ตรงต่อเวลา งานติดตั้งเนี้ยบเรียบร้อย แนะนำวิธีดูแลชัดเจน ประทับใจมากค่ะ';
                 job3.csat_photos = sampleVisitPhotos;
