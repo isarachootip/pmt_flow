@@ -2697,8 +2697,11 @@ app.post('/api/v1/jobs/reset-status', async (req: Request, res: Response) => {
 app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], async (req: Request, res: Response) => {
   await dbWipeAllTransactions();
   const count = await dbSeedMockJobs();
-  seedInitialCoreData(true);
-  seedInitialStagingData(false);
+  const dbJobs = await dbLoadJobs();
+  coreJobStore.length = 0;
+  if (dbJobs && dbJobs.length > 0) {
+    coreJobStore.push(...dbJobs);
+  }
   coreTaskStore.length = 0;
   coreQCBookingStore.length = 0;
   coreDailyWorkLogStore.length = 0;
@@ -2709,7 +2712,7 @@ app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], async (req: Reques
   maRoundStore.length = 0;
   return res.json({
     success: true,
-    message: 'จำลองและ Reset รายการ 16 คำสั่งซื้อจาก INT (Quick 8, Renovate 8) เข้าสู่ระบบ PMT สำเร็จ (บันทึกลงฐานข้อมูล PostgreSQL core_jobs เริ่มต้น Step 1 ทั้งหมด)',
+    message: 'จำลองและ Reset รายการ 20 คำสั่งซื้อจาก INT (Quick 10, Renovate 10) เข้าสู่ระบบ PMT สำเร็จ (บันทึกลงฐานข้อมูล PostgreSQL core_jobs เริ่มต้น Step 1 ทั้งหมด)',
     total_jobs: count || coreJobStore.length
   });
 });

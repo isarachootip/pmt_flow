@@ -886,14 +886,222 @@ const app = {
                         boq_discount: 0,
                         boq_grand_total: 0,
                         step_timestamps: {
-                            step1_order_at: "2026-09-04T08:30:15.000Z"
+                            step1_order_at: "2026-09-08T08:30:15.000Z"
                         }
                     },
                     {
                         id: 'JOB202609002',
                         job_no: 'JOB202609002',
-                        job_type: 'renovate',
+                        job_type: 'quick',
                         external_ref_id: 'INT-2026-002',
+                        customer: 'คุณชวินท์ ก้องธนภัทร',
+                        phone: '086-734-5678',
+                        service: 'ติดตั้งเครื่องฟอกอากาศระบบ Fresh Air ฝังฝ้า พร้อมระบบท่อลมระบายอากาศลดฝุ่น PM2.5 และ CO2',
+                        services: ['ติดตั้งเครื่องฟอกอากาศระบบ Fresh Air ฝังฝ้า พร้อมระบบท่อลมระบายอากาศลดฝุ่น PM2.5 และ CO2'],
+                        status: 'DRAFT',
+                        date: '2026-09-08',
+                        progress: 0,
+                        address: '29/88 คอนโด ไอดีโอ คิว จุฬา-สามย่าน ถนนพระราม 4 แขวงสี่พระยา เขตบางรัก กรุงเทพฯ 10500',
+                        tech: 'Team C (วิชัย)',
+                        special_instructions: 'เจาะช่องผนังภายนอกสำหรับท่อระบายลมต้องใช้หัวเพชร Coring กันฝุ่นฟุ้งกระจายในห้องชุด',
+                        additional_notes: 'ใช้เครื่องแลกเปลี่ยนความร้อน ERV อัตราการไหล 150 CMH ตัวกรอง HEPA H13 ดักฝุ่น 99.95%',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-08T08:45:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'JOB202609003',
+                        job_no: 'JOB202609003',
+                        job_type: 'quick',
+                        external_ref_id: 'INT-2026-003',
+                        customer: 'คุณภัทรดนัย อัครโยธิน',
+                        phone: '083-556-7890',
+                        service: 'ติดตั้งเครื่องกรองน้ำดื่มระบบ RO อุตสาหกรรมในครัวเรือน 400 GPD แบบไร้ถังแรงดัน พร้อมก๊อกน้ำ Smart Faucet',
+                        services: ['ติดตั้งเครื่องกรองน้ำดื่มระบบ RO อุตสาหกรรมในครัวเรือน 400 GPD แบบไร้ถังแรงดัน พร้อมก๊อกน้ำ Smart Faucet'],
+                        status: 'DRAFT',
+                        date: '2026-09-09',
+                        progress: 0,
+                        address: '63/4 ทาวน์โฮม บ้านกลางเมือง ลาดพร้าว-เสรีไทย แขวงคลองกุ่ม เขตบึงกุ่ม กรุงเทพฯ 10240',
+                        tech: 'Team B (ประเสริฐ)',
+                        special_instructions: 'เจาะท็อปเคาน์เตอร์หินแกรนิตด้วยหัวเจาะกระเบื้องอย่างระมัดระวัง ตรวจเช็คค่าน้ำ TDS ขาเข้าและขาออก',
+                        additional_notes: 'แรงดันน้ำประปาขั้นต่ำ 2.5 บาร์ ติดตั้งระบบกรองคาร์บอนบล็อกและ Post-Carbon สกัดกลิ่นคลอรีนสมบูรณ์แบบ',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-08T09:00:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'JOB202609004',
+                        job_no: 'JOB202609004',
+                        job_type: 'quick',
+                        external_ref_id: 'INT-2026-004',
+                        customer: 'คุณภูมิภัทร ชาญปรีชา',
+                        phone: '087-378-9012',
+                        service: 'ติดตั้งระบบกล้องวงจรปิด IP Camera 4K AI Human Detection 8 จุด พร้อมเครื่องบันทึก NVR และตู้ Rack POE',
+                        services: ['ติดตั้งระบบกล้องวงจรปิด IP Camera 4K AI Human Detection 8 จุด พร้อมเครื่องบันทึก NVR และตู้ Rack POE'],
+                        status: 'DRAFT',
+                        date: '2026-09-09',
+                        progress: 0,
+                        address: '75/10 อาคารพาณิชย์ 4 ชั้น ถนนเพชรเกษม แขวงบางหว้า เขตภาษีเจริญ กรุงเทพฯ 10160',
+                        tech: 'Team D (กิตติศักดิ์)',
+                        special_instructions: 'เดินสาย LAN Cat6 ชนิด Shielded ร้อยท่อขาวขนานแนวกำแพง เซ็ตอัพระบบดูออนไลน์ผ่านมือถือให้เจ้าของบ้าน',
+                        additional_notes: 'Harddisk เกรดกล้องวงจรปิด 6TB สำรองภาพได้ 30 วัน พร้อมระบบแจ้งเตือน Line Notify ทันทีเมื่อตรวจพบบุคคลแปลกหน้า',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-08T09:15:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'JOB202609005',
+                        job_no: 'JOB202609005',
+                        job_type: 'quick',
+                        external_ref_id: 'INT-2026-005',
+                        customer: 'คุณเอกภาพ พงษ์ศิริพาณิชย์',
+                        phone: '098-190-1234',
+                        service: 'ติดตั้งมอเตอร์ประตูรั้วรีโมทอัตโนมัติแบบ DC High-Speed รองรับเปิด-ปิดด้วยแอป Smart Home และระบบสำรองไฟ',
+                        services: ['ติดตั้งมอเตอร์ประตูรั้วรีโมทอัตโนมัติแบบ DC High-Speed รองรับเปิด-ปิดด้วยแอป Smart Home และระบบสำรองไฟ'],
+                        status: 'DRAFT',
+                        date: '2026-09-10',
+                        progress: 0,
+                        address: '310/55 หมู่บ้านมัณฑนา ราชพฤกษ์-นครอินทร์ ตำบลบางขุนกอง อำเภอบางกรวย นนทบุรี 11130',
+                        tech: 'Team A (สมศักดิ์)',
+                        special_instructions: 'ทดสอบระบบเซนเซอร์กันหนีบ Safety Photocell 2 ระดับ ทั้งตอนเปิดและปิดประตูรั้ว',
+                        additional_notes: 'มอเตอร์รับน้ำหนักประตู 1,000 กก. ระบบ Slow-down นุ่มนวล แบตเตอรี่สำรองเปิดปิดได้ต่อเนื่อง 40 ครั้งขณะไฟดับ',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-08T09:30:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'JOB202609006',
+                        job_no: 'JOB202609006',
+                        job_type: 'quick',
+                        external_ref_id: 'INT-2026-006',
+                        customer: 'คุณธนพล วรเกียรติกุล',
+                        phone: '085-902-3456',
+                        service: 'ติดตั้งเครื่องทำน้ำอุ่นระบบดิจิทัล 4500W พร้อมชุดฝักบัว Rain Shower ปรับระดับและระบบตัดไฟนิรภัย ELCB แบบคู่',
+                        services: ['ติดตั้งเครื่องทำน้ำอุ่นระบบดิจิทัล 4500W พร้อมชุดฝักบัว Rain Shower ปรับระดับและระบบตัดไฟนิรภัย ELCB แบบคู่'],
+                        status: 'DRAFT',
+                        date: '2026-09-10',
+                        progress: 0,
+                        address: '204/18 โครงการ แกรนด์ บางกอก บูเลอวาร์ด สาทร-กัลปพฤกษ์ แขวงบางแค เขตบางแค กรุงเทพฯ 10160',
+                        tech: 'Team C (วิชัย)',
+                        special_instructions: 'ตรวจเช็คหลักดิน (Ground Rod) ยาว 2.4 เมตร วัดค่าความต้านทานดินไม่เกิน 5 โอห์มตามมาตรฐาน วสท.',
+                        additional_notes: 'เดินสายเมนทองแดง THW 4 sq.mm. เบรกเกอร์ควบคุม RCBO 20A แยกอิสระจากตู้โหลดเซ็นเตอร์',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-08T09:45:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'JOB202609007',
+                        job_no: 'JOB202609007',
+                        job_type: 'quick',
+                        external_ref_id: 'INT-2026-007',
+                        customer: 'คุณปัณณธร พัฒนประเสริฐ',
+                        phone: '082-724-5678',
+                        service: 'ติดตั้งเครื่องปรับอากาศ Inverter 24,000 BTU เบอร์ 5 สามดาว พร้อมเดินท่อน้ำยาหุ้มฉนวน Aeroflex และรางครอบท่อพรีเมียม',
+                        services: ['ติดตั้งเครื่องปรับอากาศ Inverter 24,000 BTU เบอร์ 5 สามดาว พร้อมเดินท่อน้ำยาหุ้มฉนวน Aeroflex และรางครอบท่อพรีเมียม'],
+                        status: 'DRAFT',
+                        date: '2026-09-11',
+                        progress: 0,
+                        address: '120/45 หมู่บ้านวิลเลจจิโอ ประชาอุทิศ 90 ตำบลแหลมฟ้าผ่า อำเภอพระสมุทรเจดีย์ สมุทรปราการ 10290',
+                        tech: 'Team B (ประเสริฐ)',
+                        special_instructions: 'แวคคั่มระบบสูญญากาศนาน 30 นาที และตรวจสอบแรงดันน้ำยา R32 ให้ได้มาตรฐานก่อนส่งมอบงาน',
+                        additional_notes: 'ขาแขวนคอยล์ร้อนแบบมีแผ่นยางรองซับแรงสั่นสะเทือน ติดตั้งท่อน้ำทิ้ง PVC ต่อลงท่อระบายน้ำโดยตรง',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-08T10:00:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'JOB202609008',
+                        job_no: 'JOB202609008',
+                        job_type: 'quick',
+                        external_ref_id: 'INT-2026-008',
+                        customer: 'คุณรัชชานนท์ เมธาบวรกุล',
+                        phone: '080-546-7890',
+                        service: 'ติดตั้งชุดสวิตช์และเต้ารับ Smart Switch Zigbee ทั้งหลัง ควบคุมแสงสว่างผ่านเสียงและตั้งเวลาซีนอัตโนมัติ',
+                        services: ['ติดตั้งชุดสวิตช์และเต้ารับ Smart Switch Zigbee ทั้งหลัง ควบคุมแสงสว่างผ่านเสียงและตั้งเวลาซีนอัตโนมัติ'],
+                        status: 'DRAFT',
+                        date: '2026-09-11',
+                        progress: 0,
+                        address: '155/12 หมู่บ้านบุราสิริ พัฒนาการ แขวงประเวศ เขตประเวศ กรุงเทพฯ 10250',
+                        tech: 'Team D (กิตติศักดิ์)',
+                        special_instructions: 'เดินสายนิวทรัล (N-Line) เพิ่มเติมสำหรับสวิตช์อัจฉริยะทุกจุดเพื่อความเสถียรสูงสุดของสัญญาณ Zigbee',
+                        additional_notes: 'ติดตั้ง Zigbee 3.0 Gateway แบบต่อสาย LAN เข้า Router กลาง พร้อมจับคู่สมาร์ทโฟน 4 เครื่องในครอบครัว',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-08T10:15:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'JOB202609009',
+                        job_no: 'JOB202609009',
+                        job_type: 'quick',
+                        external_ref_id: 'INT-2026-009',
+                        customer: 'คุณกฤษดา เจริญวิชิตชัย',
+                        phone: '089-123-9876',
+                        service: 'ติดตั้งเครื่องชาร์จรถยนต์ไฟฟ้า EV Charger Wallbox 22kW 3-Phase พร้อมระบบ Dynamic Load Management',
+                        services: ['ติดตั้งเครื่องชาร์จรถยนต์ไฟฟ้า EV Charger Wallbox 22kW 3-Phase พร้อมระบบ Dynamic Load Management'],
+                        status: 'DRAFT',
+                        date: '2026-09-12',
+                        progress: 0,
+                        address: '48/22 หมู่บ้านเพอร์เฟค มาสเตอร์พีซ แจ้งวัฒนะ ตำบลบางตะไนย์ อำเภอปากเกร็ด นนทบุรี 11120',
+                        tech: 'Team A (สมศักดิ์)',
+                        special_instructions: 'ขอเพิ่มขนาดมิเตอร์ไฟฟ้า TOU 30(100)A 3-Phase จาก กฟภ. พร้อมเดินสายเมนทองแดง NYY 16 sq.mm. ฝังดินร้อยท่อ HDPE',
+                        additional_notes: 'ตู้ควบคุมไฟพร้อม Type B RCD สำหรับ EV ป้องกันกระแสไฟฟ้ารั่วทั้ง AC และ DC พร้อมมิเตอร์วัดการใช้ไฟฟ้าแยกส่วน',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-08T10:30:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'JOB202609010',
+                        job_no: 'JOB202609010',
+                        job_type: 'quick',
+                        external_ref_id: 'INT-2026-010',
+                        customer: 'คุณธัญชนก ธนกุลสวัสดิ์',
+                        phone: '094-876-5432',
+                        service: 'ติดตั้งระบบปั๊มน้ำอัตโนมัติ Inverter แรงดันคงที่ พร้อมถังเก็บน้ำสแตนเลส 1,000 ลิตร และระบบบายพาสฉุกเฉิน',
+                        services: ['ติดตั้งระบบปั๊มน้ำอัตโนมัติ Inverter แรงดันคงที่ พร้อมถังเก็บน้ำสแตนเลส 1,000 ลิตร และระบบบายพาสฉุกเฉิน'],
+                        status: 'DRAFT',
+                        date: '2026-09-12',
+                        progress: 0,
+                        address: '102/19 หมู่บ้านลัดดารมย์ ราชพฤกษ์-ปิ่นเกล้า แขวงบางระมาด เขตตลิ่งชัน กรุงเทพฯ 10170',
+                        tech: 'Team B (ประเสริฐ)',
+                        special_instructions: 'เทฐานคอนกรีตเสริมเหล็กหนา 10 ซม. รองรับน้ำหนักถังน้ำและปั๊มน้ำเพื่อป้องกันการทรุดตัว',
+                        additional_notes: 'ปั๊มน้ำ Inverter 400W เสียงเงียบประหยัดไฟ ท่อประปา PPR ผสานด้วยความร้อน ไร้กาว ไร้รอยรั่วซึม',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-08T10:45:00.000Z"
+                        }
+                    },
+
+                    {
+                        id: 'JOB202609011',
+                        job_no: 'JOB202609011',
+                        job_type: 'renovate',
+                        external_ref_id: 'INT-2026-011',
                         customer: 'คุณณัฐนพิน รัตนวิบูลย์',
                         phone: '092-823-4567',
                         service: 'รีโนเวทห้องครัวไทยด้านนอก สไตล์ Modern Loft เคาน์เตอร์ปูนเปลือยขัดมันพร้อมเตาแก๊สฝังและเครื่องดูดควัน 1600 m3/h',
@@ -909,37 +1117,14 @@ const app = {
                         boq_items: [],
                         boq_discount: 0,
                         step_timestamps: {
-                            step1_order_at: "2026-09-04T08:45:00.000Z"
+                            step1_order_at: "2026-09-08T11:00:00.000Z"
                         }
                     },
                     {
-                        id: 'JOB202609003',
-                        job_no: 'JOB202609003',
-                        job_type: 'quick',
-                        external_ref_id: 'INT-2026-003',
-                        customer: 'คุณชวินท์ ก้องธนภัทร',
-                        phone: '086-734-5678',
-                        service: 'ติดตั้งเครื่องฟอกอากาศระบบ Fresh Air ฝังฝ้า พร้อมระบบท่อลมระบายอากาศลดฝุ่น PM2.5 และ CO2',
-                        services: ['ติดตั้งเครื่องฟอกอากาศระบบ Fresh Air ฝังฝ้า พร้อมระบบท่อลมระบายอากาศลดฝุ่น PM2.5 และ CO2'],
-                        status: 'DRAFT',
-                        date: '2026-09-09',
-                        progress: 0,
-                        address: '29/88 คอนโด ไอดีโอ คิว จุฬา-สามย่าน ถนนพระราม 4 แขวงสี่พระยา เขตบางรัก กรุงเทพฯ 10500',
-                        tech: 'Team C (วิชัย)',
-                        special_instructions: 'เจาะช่องผนังภายนอกสำหรับท่อระบายลมต้องใช้หัวเพชร Coring กันฝุ่นฟุ้งกระจายในห้องชุด',
-                        additional_notes: 'ใช้เครื่องแลกเปลี่ยนความร้อน ERV อัตราการไหล 150 CMH ตัวกรอง HEPA H13 ดักฝุ่น 99.95%',
-                        photos: [],
-                        boq_items: [],
-                        boq_discount: 0,
-                        step_timestamps: {
-                            step1_order_at: "2026-09-04T09:00:00.000Z"
-                        }
-                    },
-                    {
-                        id: 'JOB202609004',
-                        job_no: 'JOB202609004',
+                        id: 'JOB202609012',
+                        job_no: 'JOB202609012',
                         job_type: 'renovate',
-                        external_ref_id: 'INT-2026-004',
+                        external_ref_id: 'INT-2026-012',
                         customer: 'คุณลภัสรดา สิริวัฒนกุล',
                         phone: '095-645-6789',
                         service: 'ต่อเติมหลังคาโรงจอดรถโครงสร้างเหล็กกล่องกัลวาไนซ์ แผ่น Shinkolite ป้องกันรังสี UV พร้อมรางน้ำสแตนเลสซ่อนขอบ',
@@ -955,37 +1140,14 @@ const app = {
                         boq_items: [],
                         boq_discount: 0,
                         step_timestamps: {
-                            step1_order_at: "2026-09-04T09:15:00.000Z"
+                            step1_order_at: "2026-09-08T11:15:00.000Z"
                         }
                     },
                     {
-                        id: 'JOB202609005',
-                        job_no: 'JOB202609005',
-                        job_type: 'quick',
-                        external_ref_id: 'INT-2026-005',
-                        customer: 'คุณภัทรดนัย อัครโยธิน',
-                        phone: '083-556-7890',
-                        service: 'ติดตั้งเครื่องกรองน้ำดื่มระบบ RO อุตสาหกรรมในครัวเรือน 400 GPD แบบไร้ถังแรงดัน พร้อมก๊อกน้ำ Smart Faucet',
-                        services: ['ติดตั้งเครื่องกรองน้ำดื่มระบบ RO อุตสาหกรรมในครัวเรือน 400 GPD แบบไร้ถังแรงดัน พร้อมก๊อกน้ำ Smart Faucet'],
-                        status: 'DRAFT',
-                        date: '2026-09-10',
-                        progress: 0,
-                        address: '63/4 ทาวน์โฮม บ้านกลางเมือง ลาดพร้าว-เสรีไทย แขวงคลองกุ่ม เขตบึงกุ่ม กรุงเทพฯ 10240',
-                        tech: 'Team B (ประเสริฐ)',
-                        special_instructions: 'เจาะท็อปเคาน์เตอร์หินแกรนิตด้วยหัวเจาะกระเบื้องอย่างระมัดระวัง ตรวจเช็คค่าน้ำ TDS ขาเข้าและขาออก',
-                        additional_notes: 'แรงดันน้ำประปาขั้นต่ำ 2.5 บาร์ ติดตั้งระบบกรองคาร์บอนบล็อกและ Post-Carbon สกัดกลิ่นคลอรีนสมบูรณ์แบบ',
-                        photos: [],
-                        boq_items: [],
-                        boq_discount: 0,
-                        step_timestamps: {
-                            step1_order_at: "2026-09-04T09:30:00.000Z"
-                        }
-                    },
-                    {
-                        id: 'JOB202609006',
-                        job_no: 'JOB202609006',
+                        id: 'JOB202609013',
+                        job_no: 'JOB202609013',
                         job_type: 'renovate',
-                        external_ref_id: 'INT-2026-006',
+                        external_ref_id: 'INT-2026-013',
                         customer: 'คุณนภัสสร บุญญานุวัตร',
                         phone: '091-467-8901',
                         service: 'รีโนเวทห้องน้ำ Master Bathroom สไตล์ Minimal Luxury รื้ออ่างเดิมติดตั้งอ่างอาบน้ำลอยตัวและกระจกกั้นโซนเปียกฉากทอง',
@@ -1001,37 +1163,14 @@ const app = {
                         boq_items: [],
                         boq_discount: 0,
                         step_timestamps: {
-                            step1_order_at: "2026-09-04T09:45:00.000Z"
+                            step1_order_at: "2026-09-08T11:30:00.000Z"
                         }
                     },
                     {
-                        id: 'JOB202609007',
-                        job_no: 'JOB202609007',
-                        job_type: 'quick',
-                        external_ref_id: 'INT-2026-007',
-                        customer: 'คุณภูมิภัทร ชาญปรีชา',
-                        phone: '087-378-9012',
-                        service: 'ติดตั้งระบบกล้องวงจรปิด IP Camera 4K AI Human Detection 8 จุด พร้อมเครื่องบันทึก NVR และตู้ Rack POE',
-                        services: ['ติดตั้งระบบกล้องวงจรปิด IP Camera 4K AI Human Detection 8 จุด พร้อมเครื่องบันทึก NVR และตู้ Rack POE'],
-                        status: 'DRAFT',
-                        date: '2026-09-11',
-                        progress: 0,
-                        address: '75/10 อาคารพาณิชย์ 4 ชั้น ถนนเพชรเกษม แขวงบางหว้า เขตภาษีเจริญ กรุงเทพฯ 10160',
-                        tech: 'Team D (กิตติศักดิ์)',
-                        special_instructions: 'เดินสาย LAN Cat6 ชนิด Shielded ร้อยท่อขาวขนานแนวกำแพง เซ็ตอัพระบบดูออนไลน์ผ่านมือถือให้เจ้าของบ้าน',
-                        additional_notes: 'Harddisk เกรดกล้องวงจรปิด 6TB สำรองภาพได้ 30 วัน พร้อมระบบแจ้งเตือน Line Notify ทันทีเมื่อตรวจพบบุคคลแปลกหน้า',
-                        photos: [],
-                        boq_items: [],
-                        boq_discount: 0,
-                        step_timestamps: {
-                            step1_order_at: "2026-09-04T10:00:00.000Z"
-                        }
-                    },
-                    {
-                        id: 'JOB202609008',
-                        job_no: 'JOB202609008',
+                        id: 'JOB202609014',
+                        job_no: 'JOB202609014',
                         job_type: 'renovate',
-                        external_ref_id: 'INT-2026-008',
+                        external_ref_id: 'INT-2026-014',
                         customer: 'คุณวริศรา กิตติโภคิน',
                         phone: '084-289-0123',
                         service: 'รีโนเวทระเบียงห้องชุดคอนโด ปูพื้นกระเบื้องลายไม้กันน้ำ ติดตั้งระแนงบังตาอลูมิเนียมลายไม้และสวนแนวตั้งระบบรดน้ำอัตโนมัติ',
@@ -1047,37 +1186,14 @@ const app = {
                         boq_items: [],
                         boq_discount: 0,
                         step_timestamps: {
-                            step1_order_at: "2026-09-04T10:15:00.000Z"
+                            step1_order_at: "2026-09-08T11:45:00.000Z"
                         }
                     },
                     {
-                        id: 'JOB202609009',
-                        job_no: 'JOB202609009',
-                        job_type: 'quick',
-                        external_ref_id: 'INT-2026-009',
-                        customer: 'คุณเอกภาพ พงษ์ศิริพาณิชย์',
-                        phone: '098-190-1234',
-                        service: 'ติดตั้งมอเตอร์ประตูรั้วรีโมทอัตโนมัติแบบ DC High-Speed รองรับเปิด-ปิดด้วยแอป Smart Home และระบบสำรองไฟ',
-                        services: ['ติดตั้งมอเตอร์ประตูรั้วรีโมทอัตโนมัติแบบ DC High-Speed รองรับเปิด-ปิดด้วยแอป Smart Home และระบบสำรองไฟ'],
-                        status: 'DRAFT',
-                        date: '2026-09-12',
-                        progress: 0,
-                        address: '310/55 หมู่บ้านมัณฑนา ราชพฤกษ์-นครอินทร์ ตำบลบางขุนกอง อำเภอบางกรวย นนทบุรี 11130',
-                        tech: 'Team A (สมศักดิ์)',
-                        special_instructions: 'ทดสอบระบบเซนเซอร์กันหนีบ Safety Photocell 2 ระดับ ทั้งตอนเปิดและปิดประตูรั้ว',
-                        additional_notes: 'มอเตอร์รับน้ำหนักประตู 1,000 กก. ระบบ Slow-down นุ่มนวล แบตเตอรี่สำรองเปิดปิดได้ต่อเนื่อง 40 ครั้งขณะไฟดับ',
-                        photos: [],
-                        boq_items: [],
-                        boq_discount: 0,
-                        step_timestamps: {
-                            step1_order_at: "2026-09-04T10:30:00.000Z"
-                        }
-                    },
-                    {
-                        id: 'JOB202609010',
-                        job_no: 'JOB202609010',
+                        id: 'JOB202609015',
+                        job_no: 'JOB202609015',
                         job_type: 'renovate',
-                        external_ref_id: 'INT-2026-010',
+                        external_ref_id: 'INT-2026-015',
                         customer: 'คุณกัญญารัตน์ โสภณพิทักษ์',
                         phone: '089-091-2345',
                         service: 'รีโนเวทห้องนั่งเล่นและห้องรับแขก Built-in ผนังตกแต่งลายหินอ่อน Bookmatch ซ่อนไฟหลืบและตู้โชว์โครงอลูมิเนียมกระจกชาทอง',
@@ -1093,37 +1209,14 @@ const app = {
                         boq_items: [],
                         boq_discount: 0,
                         step_timestamps: {
-                            step1_order_at: "2026-09-04T10:45:00.000Z"
+                            step1_order_at: "2026-09-08T12:00:00.000Z"
                         }
                     },
                     {
-                        id: 'JOB202609011',
-                        job_no: 'JOB202609011',
-                        job_type: 'quick',
-                        external_ref_id: 'INT-2026-011',
-                        customer: 'คุณธนพล วรเกียรติกุล',
-                        phone: '085-902-3456',
-                        service: 'ติดตั้งเครื่องทำน้ำอุ่นระบบดิจิทัล 4500W พร้อมชุดฝักบัว Rain Shower ปรับระดับและระบบตัดไฟนิรภัย ELCB แบบคู่',
-                        services: ['ติดตั้งเครื่องทำน้ำอุ่นระบบดิจิทัล 4500W พร้อมชุดฝักบัว Rain Shower ปรับระดับและระบบตัดไฟนิรภัย ELCB แบบคู่'],
-                        status: 'DRAFT',
-                        date: '2026-09-13',
-                        progress: 0,
-                        address: '204/18 โครงการ แกรนด์ บางกอก บูเลอวาร์ด สาทร-กัลปพฤกษ์ แขวงบางแค เขตบางแค กรุงเทพฯ 10160',
-                        tech: 'Team C (วิชัย)',
-                        special_instructions: 'ตรวจเช็คหลักดิน (Ground Rod) ยาว 2.4 เมตร วัดค่าความต้านทานดินไม่เกิน 5 โอห์มตามมาตรฐาน วสท.',
-                        additional_notes: 'เดินสายเมนทองแดง THW 4 sq.mm. เบรกเกอร์ควบคุม RCBO 20A แยกอิสระจากตู้โหลดเซ็นเตอร์',
-                        photos: [],
-                        boq_items: [],
-                        boq_discount: 0,
-                        step_timestamps: {
-                            step1_order_at: "2026-09-04T11:00:00.000Z"
-                        }
-                    },
-                    {
-                        id: 'JOB202609012',
-                        job_no: 'JOB202609012',
+                        id: 'JOB202609016',
+                        job_no: 'JOB202609016',
                         job_type: 'renovate',
-                        external_ref_id: 'INT-2026-012',
+                        external_ref_id: 'INT-2026-016',
                         customer: 'คุณนันทิกานต์ เตชะไพบูลย์',
                         phone: '093-813-4567',
                         service: 'รีโนเวทห้องทำงานส่วนตัว Acoustic Home Studio บุผนังและฝ้าซับเสียง Rockwool พร้อมติดตั้งแผ่น Acoustic Diffuser ไม้แท้',
@@ -1134,42 +1227,19 @@ const app = {
                         address: '77/205 คอนโด เดอะ ริทซ์-คาร์ลตัน เรสซิเดนเซส บางกอก ถนนนราธิวาสราชนครินทร์ แขวงสีลม เขตบางรัก กรุงเทพฯ 10500',
                         tech: 'Team D (กิตติศักดิ์)',
                         special_instructions: 'งานบุฉนวนต้องสวมชุดป้องกันมิดชิด ขนย้ายวัสดุขึ้นอาคารตามรอบเวลาของนิติบุคคล 10:00 - 15:00 น.',
-                        additional_notes: 'ลดเสียงก้องและกันเสียงรบกวนออกภายนอกได้ถึง STC 55 ประตูกันเสียงแบบ Double Seal และช่องแอร์ซ่อนแดมเปอร์ลดเสียงลม',
+                        additional_notes: 'ลดเสียงก้องและกันเสียงรบกวนออกภายนอกได้ถึง STC 55 ประตุกันเสียงแบบ Double Seal และช่องแอร์ซ่อนแดมเปอร์ลดเสียงลม',
                         photos: [],
                         boq_items: [],
                         boq_discount: 0,
                         step_timestamps: {
-                            step1_order_at: "2026-09-04T11:15:00.000Z"
+                            step1_order_at: "2026-09-08T12:15:00.000Z"
                         }
                     },
                     {
-                        id: 'JOB202609013',
-                        job_no: 'JOB202609013',
-                        job_type: 'quick',
-                        external_ref_id: 'INT-2026-013',
-                        customer: 'คุณปัณณธร พัฒนประเสริฐ',
-                        phone: '082-724-5678',
-                        service: 'ติดตั้งเครื่องปรับอากาศ Inverter 24,000 BTU เบอร์ 5 สามดาว พร้อมเดินท่อน้ำยาหุ้มฉนวน Aeroflex และรางครอบท่อพรีเมียม',
-                        services: ['ติดตั้งเครื่องปรับอากาศ Inverter 24,000 BTU เบอร์ 5 สามดาว พร้อมเดินท่อน้ำยาหุ้มฉนวน Aeroflex และรางครอบท่อพรีเมียม'],
-                        status: 'DRAFT',
-                        date: '2026-09-14',
-                        progress: 0,
-                        address: '120/45 หมู่บ้านวิลเลจจิโอ ประชาอุทิศ 90 ตำบลแหลมฟ้าผ่า อำเภอพระสมุทรเจดีย์ สมุทรปราการ 10290',
-                        tech: 'Team B (ประเสริฐ)',
-                        special_instructions: 'แวคคั่มระบบสูญญากาศนาน 30 นาที และตรวจสอบแรงดันน้ำยา R32 ให้ได้มาตรฐานก่อนส่งมอบงาน',
-                        additional_notes: 'ขาแขวนคอยล์ร้อนแบบมีแผ่นยางรองซับแรงสั่นสะเทือน ติดตั้งท่อน้ำทิ้ง PVC ต่อลงท่อระบายน้ำโดยตรง',
-                        photos: [],
-                        boq_items: [],
-                        boq_discount: 0,
-                        step_timestamps: {
-                            step1_order_at: "2026-09-04T11:30:00.000Z"
-                        }
-                    },
-                    {
-                        id: 'JOB202609014',
-                        job_no: 'JOB202609014',
+                        id: 'JOB202609017',
+                        job_no: 'JOB202609017',
                         job_type: 'renovate',
-                        external_ref_id: 'INT-2026-014',
+                        external_ref_id: 'INT-2026-017',
                         customer: 'คุณมนัสชนก ศรีวิชัยพฤกษ์',
                         phone: '096-635-6789',
                         service: 'ปรับปรุงพื้นที่รอบบ้าน เทคอนกรีตพิมพ์ลาย Stamped Concrete ลายหินธรรมชาติ European Fan พร้อมระบบระบายน้ำผิวดิน',
@@ -1185,37 +1255,14 @@ const app = {
                         boq_items: [],
                         boq_discount: 0,
                         step_timestamps: {
-                            step1_order_at: "2026-09-04T11:45:00.000Z"
+                            step1_order_at: "2026-09-08T12:30:00.000Z"
                         }
                     },
                     {
-                        id: 'JOB202609015',
-                        job_no: 'JOB202609015',
-                        job_type: 'quick',
-                        external_ref_id: 'INT-2026-015',
-                        customer: 'คุณรัชชานนท์ เมธาบวรกุล',
-                        phone: '080-546-7890',
-                        service: 'ติดตั้งชุดสวิตช์และเต้ารับ Smart Switch Zigbee ทั้งหลัง ควบคุมแสงสว่างผ่านเสียงและตั้งเวลาซีนอัตโนมัติ',
-                        services: ['ติดตั้งชุดสวิตช์และเต้ารับ Smart Switch Zigbee ทั้งหลัง ควบคุมแสงสว่างผ่านเสียงและตั้งเวลาซีนอัตโนมัติ'],
-                        status: 'DRAFT',
-                        date: '2026-09-15',
-                        progress: 0,
-                        address: '155/12 หมู่บ้านบุราสิริ พัฒนาการ แขวงประเวศ เขตประเวศ กรุงเทพฯ 10250',
-                        tech: 'Team D (กิตติศักดิ์)',
-                        special_instructions: 'เดินสายนิวทรัล (N-Line) เพิ่มเติมสำหรับสวิตช์อัจฉริยะทุกจุดเพื่อความเสถียรสูงสุดของสัญญาณ Zigbee',
-                        additional_notes: 'ติดตั้ง Zigbee 3.0 Gateway แบบต่อสาย LAN เข้า Router กลาง พร้อมจับคู่สมาร์ทโฟน 4 เครื่องในครอบครัว',
-                        photos: [],
-                        boq_items: [],
-                        boq_discount: 0,
-                        step_timestamps: {
-                            step1_order_at: "2026-09-04T12:00:00.000Z"
-                        }
-                    },
-                    {
-                        id: 'JOB202609016',
-                        job_no: 'JOB202609016',
+                        id: 'JOB202609018',
+                        job_no: 'JOB202609018',
                         job_type: 'renovate',
-                        external_ref_id: 'INT-2026-016',
+                        external_ref_id: 'INT-2026-018',
                         customer: 'คุณพิชญ์สินี อัครวิวัฒน์',
                         phone: '094-457-8901',
                         service: 'รีโนเวทห้องประชุม Co-working Space ติดตั้งระบบผนังบานเลื่อนกระจกกั้นห้องเก็บเสียงและระบบจอ Smart Board พร้อมระบบไฟ Dimmer',
@@ -1231,7 +1278,53 @@ const app = {
                         boq_items: [],
                         boq_discount: 0,
                         step_timestamps: {
-                            step1_order_at: "2026-09-04T12:15:00.000Z"
+                            step1_order_at: "2026-09-08T12:45:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'JOB202609019',
+                        job_no: 'JOB202609019',
+                        job_type: 'renovate',
+                        external_ref_id: 'INT-2026-019',
+                        customer: 'คุณศุภณัฐ อัศวเมธิน',
+                        phone: '086-345-6789',
+                        service: 'รีโนเวทห้องนอนใหญ่ Master Bedroom ตกแต่ง Built-in Walk-in Closet ไม้โอ๊คแท้ พร้อมระบบไฟ LED Profile เซนเซอร์ตรวจจับความเคลื่อนไหว',
+                        services: ['รีโนเวทห้องนอนใหญ่ Master Bedroom ตกแต่ง Built-in Walk-in Closet ไม้โอ๊คแท้ พร้อมระบบไฟ LED Profile เซนเซอร์ตรวจจับความเคลื่อนไหว'],
+                        status: 'DRAFT',
+                        date: '2026-09-15',
+                        progress: 0,
+                        address: '168/40 หมู่บ้านนันทวัน บางนา กม.7 ตำบลบางแก้ว อำเภอบางพลี สมุทรปราการ 10540',
+                        tech: 'Team D (กิตติศักดิ์)',
+                        special_instructions: 'งานไม้ Built-in ใช้ไม้อัดยางเกรด E0 ไร้กลิ่นฉุนและสารฟอร์มาลดีไฮด์ ปลอดภัยต่อสุขภาพเจ้าของห้อง',
+                        additional_notes: 'กระจกเงาสีทอง Gold Tinted Mirror บานเลื่อนกรอบอลูมิเนียม Slim Profile พร้อมไฟ LED Sensor ใต้ตู้เสื้อผ้า',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-08T13:00:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'JOB202609020',
+                        job_no: 'JOB202609020',
+                        job_type: 'renovate',
+                        external_ref_id: 'INT-2026-020',
+                        customer: 'คุณศศิธร พัชรเกียรติกุล',
+                        phone: '097-890-1234',
+                        service: 'งานต่อเติมห้องกระจก Glasshouse กั้นข้างบ้าน โครงสร้างเหล็กกัลวาไนซ์ กระจก Low-E กันความร้อน พร้อมระบบระบายอากาศอัตโนมัติ',
+                        services: ['งานต่อเติมห้องกระจก Glasshouse กั้นข้างบ้าน โครงสร้างเหล็กกัลวาไนซ์ กระจก Low-E กันความร้อน พร้อมระบบระบายอากาศอัตโนมัติ'],
+                        status: 'DRAFT',
+                        date: '2026-09-15',
+                        progress: 0,
+                        address: '89/12 โครงการ เดอะ ปาล์ม พัฒนาการ แขวงสวนหลวง เขตสวนหลวง กรุงเทพฯ 10250',
+                        tech: 'Team A (สมศักดิ์)',
+                        special_instructions: 'ลงเสาเข็มหกเหลี่ยมกลวง 6 เมตร 12 ต้น ปูพลาสติกกันชื้นก่อนเทพื้นคอนกรีตขัดมันป้องกันไอชื้นดิน',
+                        additional_notes: 'กระจกฉนวน Insulated Glass Low-E หนา 6+12A+6 มม. ลดความร้อนสะสมได้ 75% ติดตั้งพัดลมดูดอากาศระบายความร้อนพลังงานโซลาร์เซลล์',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-08T13:15:00.000Z"
                         }
                     }
                 ];
@@ -1242,12 +1335,13 @@ const app = {
                     this.showToast('⚠️ ฟังก์ชันนี้สงวนไว้เฉพาะผู้ใช้ Isara Chootip เท่านั้น', 'warning');
                     return;
                 }
-                if (confirmAction && !confirm('คุณต้องการจำลองรับข้อมูลงานใหม่จากระบบ INT จำนวน 16 รายการ (Quick 8, Renovate 8) เข้าสู่ PMT ใช่หรือไม่?')) {
+                if (confirmAction && !confirm('คุณต้องการนำเข้าข้อมูลงานใหม่จากระบบ INT จำนวน 20 รายการ (Quick 10, Renovate 10) เข้าสู่ Step 1 ใช่หรือไม่?')) {
                     return;
                 }
 
                 // 1. Clear storage flags & wipe downstream collections
                 try {
+                    localStorage.removeItem('pmt_jobs_cleared_v9');
                     localStorage.removeItem('pmt_jobs_cleared_v8');
                     localStorage.removeItem('pmt_jobs_cleared_v7');
                     localStorage.removeItem('pmt_jobs_cleared_v5');
@@ -1258,11 +1352,12 @@ const app = {
                     localStorage.setItem('pmt_blueprints', JSON.stringify([]));
                     localStorage.setItem('pmt_tickets', JSON.stringify([]));
                     localStorage.setItem('pmt_qc_bookings', JSON.stringify([]));
+                    localStorage.setItem('pmt_daily_work_logs', JSON.stringify([]));
                     localStorage.setItem('pmt_ma_contracts', JSON.stringify([]));
                     localStorage.setItem('pmt_ma_rounds', JSON.stringify([]));
                 } catch(e) {}
 
-                // 2. Tell backend server to seed the 16 initial INT orders and wipe downstream stores
+                // 2. Tell backend server to seed the 20 initial INT orders and wipe downstream stores
                 try {
                     const headers = (window.auth && typeof window.auth.getHeaders === 'function') ? window.auth.getHeaders() : { 'Content-Type': 'application/json' };
                     await fetch('/api/v1/jobs/reset', { method: 'POST', headers });
@@ -1270,12 +1365,12 @@ const app = {
                     console.warn('Server reset failed, continuing with local mock:', e);
                 }
 
-                // 3. Populate local DB with 16 pure Step 1 jobs (0% NEW) starting completely from scratch
+                // 3. Populate local DB with 20 pure Step 1 jobs (0% DRAFT) starting completely from Step 1
                 const mockOrders = this.getINTMockOrders();
                 const baseTime = Date.now();
                 const currentDate = new Date().toISOString().slice(0, 10);
                 mockOrders.forEach((o, idx) => {
-                    // Chronological arrival timestamp: JOB016 is newest (now), JOB001 arrived earliest
+                    // Chronological arrival timestamp: JOB020 is newest (now), JOB001 arrived earliest
                     const jobIso = new Date(baseTime - (mockOrders.length - 1 - idx) * 12 * 60000).toISOString();
                     o.step_timestamps = {
                         step1_order_at: jobIso
@@ -1296,15 +1391,18 @@ const app = {
                 DB.blueprints = [];
                 DB.tickets = [];
                 DB.qcBookings = [];
+                DB.dailyWorkLogs = [];
                 DB.maContracts = [];
                 DB.maRounds = [];
 
                 this.persistJobs();
                 this.persistBlueprints();
                 this.persistTickets();
+                this.persistDailyWorkLogs();
                 try {
                     localStorage.setItem('pmt_tasks', JSON.stringify([]));
                     localStorage.setItem('pmt_qc_bookings', JSON.stringify([]));
+                    localStorage.setItem('pmt_daily_work_logs', JSON.stringify([]));
                     localStorage.setItem('pmt_ma_contracts', JSON.stringify([]));
                     localStorage.setItem('pmt_ma_rounds', JSON.stringify([]));
                 } catch (e) {}
@@ -1321,10 +1419,13 @@ const app = {
 
                 this.updateStepBadges();
                 this.updateStep1Dashboard();
-                this.showToast(`✨ จำลองนำเข้า 16 รายการคำสั่งซื้อใหม่จาก INT (Quick 8, Renovate 8) เข้าสู่ Step 1 เรียบร้อยแล้ว (${DB.jobs.length} งาน 0% Draft)`, 'success');
+                this.showToast(`✨ นำเข้า 20 รายการคำสั่งซื้อใหม่จาก INT (Quick 10, Renovate 10) เริ่มต้นที่ Step 1 เรียบร้อยแล้ว (${DB.jobs.length} งาน 0% Draft)`, 'success');
             },
 
             simulateINT16Orders(confirmAction = true) {
+                return this.simulateINT10Orders(confirmAction);
+            },
+            simulateINT20Orders(confirmAction = true) {
                 return this.simulateINT10Orders(confirmAction);
             },
 
