@@ -69,6 +69,9 @@ const app = {
 
             persistJobs() {
                 try {
+                    if (Array.isArray(DB.jobs)) {
+                        DB.jobs = this.deDuplicateJobs(DB.jobs);
+                    }
                     localStorage.setItem('pmt_jobs', JSON.stringify(DB.jobs));
                     localStorage.setItem('pmt_tasks', JSON.stringify(DB.tasks || []));
                     localStorage.setItem('pmt_qc_bookings', JSON.stringify(DB.qcBookings || []));
@@ -2351,9 +2354,26 @@ const app = {
                 return maxTime;
             },
 
+            deDuplicateJobs(jobList) {
+                if (!Array.isArray(jobList)) return [];
+                const seen = new Set();
+                const result = [];
+                for (const j of jobList) {
+                    if (!j) continue;
+                    const key = String(j.id || j.job_no || '').trim();
+                    if (!key) continue;
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        result.push(j);
+                    }
+                }
+                return result;
+            },
+
             sortJobsDescending(jobList) {
                 if (!Array.isArray(jobList)) return [];
-                return [...jobList].sort((a, b) => {
+                const deduped = this.deDuplicateJobs(jobList);
+                return deduped.sort((a, b) => {
                     const timeA = this.getJobLatestTimestamp(a);
                     const timeB = this.getJobLatestTimestamp(b);
                     if (timeB !== timeA) return timeB - timeA;
