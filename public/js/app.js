@@ -9,13 +9,19 @@ const app = {
                 newTicketSlipPreview: '',
                 newTicketSlipName: '',
                 projectViewMode: (function() {
-                    try { return localStorage.getItem('pmt_project_view_mode') || 'card'; } catch (e) { return 'card'; }
+                    try { return localStorage.getItem('pmt_project_view_mode') || 'list'; } catch (e) { return 'list'; }
                 })(),
                 blueprintViewMode: (function() {
-                    try { return localStorage.getItem('pmt_blueprint_view_mode') || 'card'; } catch (e) { return 'card'; }
+                    try { return localStorage.getItem('pmt_blueprint_view_mode') || 'list'; } catch (e) { return 'list'; }
                 })(),
                 boqViewMode: (function() {
-                    try { return localStorage.getItem('pmt_boq_view_mode') || 'card'; } catch (e) { return 'card'; }
+                    try { return localStorage.getItem('pmt_boq_view_mode') || 'list'; } catch (e) { return 'list'; }
+                })(),
+                ticketViewMode: (function() {
+                    try { return localStorage.getItem('pmt_ticket_view_mode') || 'list'; } catch (e) { return 'list'; }
+                })(),
+                conversionViewMode: (function() {
+                    try { return localStorage.getItem('pmt_conversion_view_mode') || 'list'; } catch (e) { return 'list'; }
                 })(),
                 boqTab: 'pending',
                 modalBOQJobId: null,
@@ -4539,7 +4545,7 @@ const app = {
             },
 
             updateBlueprintViewModeButtons() {
-                const mode = this.state.blueprintViewMode || 'card';
+                const mode = this.state.blueprintViewMode || 'list';
                 const btnCard = document.getElementById('btn-blueprint-mode-card');
                 const btnList = document.getElementById('btn-blueprint-mode-list');
                 if (btnCard && btnList) {
@@ -7298,7 +7304,7 @@ const app = {
             },
 
             updateTicketViewModeButtons() {
-                const mode = this.state.ticketViewMode || 'card';
+                const mode = this.state.ticketViewMode || 'list';
                 const btnCard = document.getElementById('btn-ticket-mode-card');
                 const btnList = document.getElementById('btn-ticket-mode-list');
                 if (btnCard && btnList) {
@@ -8321,7 +8327,7 @@ const app = {
             },
 
             updateBOQViewModeButtons() {
-                const mode = this.state.boqViewMode || 'card';
+                const mode = this.state.boqViewMode || 'list';
                 const btnCard = document.getElementById('btn-boq-mode-card');
                 const btnList = document.getElementById('btn-boq-mode-list');
                 if (btnCard && btnList) {
@@ -9593,7 +9599,7 @@ const app = {
             },
 
             updateConversionViewModeButtons() {
-                const mode = this.state.conversionViewMode || 'card';
+                const mode = this.state.conversionViewMode || 'list';
                 const btnCard = document.getElementById('btn-conversion-mode-card');
                 const btnList = document.getElementById('btn-conversion-mode-list');
                 if (btnCard && btnList) {
@@ -10233,7 +10239,7 @@ const app = {
             },
 
             updateProjectViewModeButtons() {
-                const mode = this.state.projectViewMode || 'card';
+                const mode = this.state.projectViewMode || 'list';
                 const btnCard = document.getElementById('btn-project-mode-card');
                 const btnList = document.getElementById('btn-project-mode-list');
                 const btnStripCard = document.getElementById('btn-project-strip-card');
