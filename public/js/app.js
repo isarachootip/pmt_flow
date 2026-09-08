@@ -2631,19 +2631,23 @@ const app = {
                     bannerEl.style.display = (!jobList) ? 'flex' : 'none';
                 }
 
-                const isStep1Queue = (!jobList);
-
                 const html = list.map((j, idx) => {
                     const isTop3New = idx < 3;
-                    const isJobInStep1 = !j.pmt_accepted &&
-                        (j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
-                        !designedJobIds.has(j.id) &&
-                        !(j.step_timestamps && (j.step_timestamps.step2_design_at || j.step_timestamps.step4_ticket_at || j.step_timestamps.step3_boq_at || j.step_timestamps.step5_project_at)) &&
-                        !(DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id);
                     const isQuick = this.isQuickJob(j);
 
+                    // Design / Blueprints status
+                    const jobBps = (DB.blueprints || []).filter(b => b.jobId === j.id);
+                    const bpCount = jobBps.length;
+                    const hasBps = bpCount > 0;
+
+                    // BOQ status & calculation
+                    const boqItems = j.boq_items || [];
+                    const itemsCount = boqItems.length;
+                    const grandTotal = j.boq_grand_total || (boqItems.reduce((acc, item) => acc + ((Number(item.qty) || 0) * (Number(item.price) || 0)), 0) * 1.07);
+                    const hasBOQ = itemsCount > 0;
+
                     return `
-                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTop3New ? 'bg-rose-500/[0.02] dark:bg-rose-500/[0.03]' : ''}" onclick="app.navigate('job-detail', '${j.id}')" title="คลิกเพื่อดูรายละเอียดงาน ${j.id}">
+                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTop3New ? 'bg-indigo-500/[0.02]' : ''}" onclick="app.openUnifiedOrderStudio('${j.id}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${j.id})">
                         <td class="px-5 py-4 font-mono font-semibold text-brand-500">
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span>${j.id}</span>
@@ -2655,75 +2659,74 @@ const app = {
                             </div>
                         </td>
                         <td class="px-5 py-4">
-                            <div class="text-foreground font-medium group-hover:text-brand-500 transition flex items-center gap-1.5">
+                            <div class="text-foreground font-medium group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition flex items-center gap-1.5">
                                 <span>${j.customer}</span>
-                                ${isTop3New ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="รายการใหม่ล่าสุด"></span>` : ''}
+                                ${isTop3New ? `<span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" title="รายการใหม่ล่าสุด"></span>` : ''}
                             </div>
-                            <div class="text-[11px] text-muted-foreground font-mono">${j.phone}</div>
+                            <div class="text-[11px] text-muted-foreground font-mono flex items-center gap-1 mt-0.5">
+                                <i class="ph ph-phone text-[10px]"></i>
+                                <span>${j.phone}</span>
+                            </div>
                         </td>
                         <td class="px-5 py-4 text-muted-foreground">
                             <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : (j.job_type === 'renovate' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20')}">${j.job_type || 'quick'}</span>
-                                <span class="inline-flex items-center gap-1 text-xs">
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${isQuick ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'}">${isQuick ? 'quick' : 'renovate'}</span>
+                                <span class="text-xs font-medium text-foreground">
                                     ${j.service}
                                 </span>
                             </div>
+                            <div class="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                                <i class="ph ph-user-gear text-[10px]"></i>
+                                <span>${j.tech || 'รอระบุช่าง'}</span>
+                            </div>
                         </td>
-                        <td class="px-5 py-4 text-muted-foreground">
-                            <span class="text-xs">${j.tech}</span>
-                        </td>
-                        <td class="px-5 py-4">${this.getStatusHtml(j.status)}</td>
-                        <td class="px-5 py-4 w-48">
-                            ${isJobInStep1 ? `
-                                <div class="space-y-1">
-                                    <div class="flex items-center gap-1.5 flex-wrap">
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${isTop3New ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30' : 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30'} inline-flex items-center gap-1">
-                                            <span class="w-1.5 h-1.5 rounded-full ${isTop3New ? 'bg-rose-500' : 'bg-blue-500'} animate-pulse"></span>
-                                            Step 1 (0%)
-                                        </span>
-                                        <span class="text-[10px] font-medium ${isTop3New ? 'text-rose-600 dark:text-rose-400 font-semibold' : 'text-amber-600 dark:text-amber-400'}">${isTop3New ? 'เข้าใหม่ล่าสุด' : 'รอรับเข้า PMT'}</span>
-                                        ${this.calculateJobSLA(j, 1) ? this.calculateJobSLA(j, 1).badgeHtml : ''}
-                                    </div>
-                                    <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                                        <div class="${isTop3New ? 'bg-gradient-to-r from-rose-500 to-amber-500' : 'bg-blue-500'} h-1.5 rounded-full" style="width: 15%"></div>
-                                    </div>
-                                </div>
+                        <td class="px-5 py-4">
+                            ${hasBps ? `
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'design')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1.5 hover:bg-indigo-500/25 transition cursor-pointer shadow-2xs" title="ดู/แก้ไขแบบแปลน ${bpCount} รายการ">
+                                    <i class="ph ph-blueprint text-indigo-600 dark:text-indigo-400"></i>
+                                    <span>${bpCount} แบบ (CAD/PDF)</span>
+                                </button>
                             ` : `
-                                <div class="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-                                    <span class="font-semibold text-foreground">${j.progress}%</span>
-                                    <span class="text-[10px] text-purple-600 dark:text-purple-400 font-mono" title="ความสมบูรณ์ 5 ขั้นตอน">${(() => {
-                                        const rep = app.getJobStepAuditReportData(j.id);
-                                        return rep ? `Step ${rep.completedCount}/5` : '';
-                                    })()}</span>
-                                </div>
-                                <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden mb-1.5">
-                                    <div class="bg-gradient-to-r from-brand-600 to-indigo-500 h-1.5 rounded-full" style="width: ${j.progress}%"></div>
-                                </div>
-                                <div class="flex items-center gap-1" onclick="event.stopPropagation(); app.openStepAuditReportModal('${j.id}')" title="คลิกเพื่อดู Audit Report บันทึกเวลาทั้ง 5 ขั้นตอน">
-                                    ${(() => {
-                                        const rep = app.getJobStepAuditReportData(j.id);
-                                        if (!rep) return '';
-                                        return rep.steps.map(s => {
-                                            const done = s.isDone;
-                                            const skipped = s.isSkipped;
-                                            const t = s.timestamp ? app.formatTimestamp(s.timestamp) : (skipped ? 'ข้ามขั้นตอน (Quick)' : 'ยังไม่บันทึก');
-                                            const colorClass = skipped ? 'bg-amber-500 text-white' : (done ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground/50 border border-border');
-                                            return `<span class="w-3.5 h-3.5 rounded-full font-mono text-[8px] flex items-center justify-center font-bold ${colorClass}" title="${s.name}: ${t}">${s.stepNumber}</span>`;
-                                        }).join('');
-                                    })()}
-                                    <span class="text-[9px] text-brand-500 ml-1 hover:underline cursor-pointer"><i class="ph ph-clock"></i></span>
-                                </div>
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'design')" class="px-2 py-1 rounded-lg text-[11px] font-medium bg-muted hover:bg-indigo-500/10 text-muted-foreground hover:text-indigo-600 border border-border inline-flex items-center gap-1 transition cursor-pointer" title="แนบแบบแปลน 2D/3D">
+                                    <i class="ph ph-plus-circle"></i>
+                                    <span>+ แนบแบบ</span>
+                                </button>
                             `}
                         </td>
+                        <td class="px-5 py-4">
+                            ${hasBOQ ? `
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'boq')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 inline-flex items-center gap-1.5 hover:bg-purple-500/25 transition cursor-pointer shadow-2xs" title="ดู/แก้ไข BOQ (${itemsCount} รายการ)">
+                                    <i class="ph ph-calculator text-purple-600 dark:text-purple-400"></i>
+                                    <span>฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${itemsCount})</span>
+                                </button>
+                            ` : `
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'boq')" class="px-2 py-1 rounded-lg text-[11px] font-medium bg-muted hover:bg-purple-500/10 text-muted-foreground hover:text-purple-600 border border-border inline-flex items-center gap-1 transition cursor-pointer" title="จัดทำรายการประมาณการ BOQ">
+                                    <i class="ph ph-plus-circle"></i>
+                                    <span>+ ลง BOQ</span>
+                                </button>
+                            `}
+                        </td>
+                        <td class="px-5 py-4 text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'intake')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition hover:scale-105 cursor-pointer" title="เปิด One-Stop Studio: ข้อมูลคำสั่งซื้อ • Design แบบแปลน • BOQ">
+                                    <i class="ph ph-squares-four text-sm font-bold"></i>
+                                    <span>Studio</span>
+                                </button>
+                                <button type="button" onclick="event.stopPropagation(); app.navigate('job-detail', '${j.id}')" class="btn-artifact-secondary p-1.5 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer" title="ดูรายละเอียดโครงการ">
+                                    <i class="ph ph-caret-right text-base"></i>
+                                </button>
+                            </div>
+                        </td>
                     </tr>
-                `}).join('');
+                    `;
+                }).join('');
 
                 const isIsaraUser = window.auth && window.auth.isIsaraChootip ? window.auth.isIsaraChootip() : false;
                 document.getElementById('jobs-table-body').innerHTML = html || `
                     <tr>
                         <td colspan="6" class="px-5 py-12 text-center">
                             <div class="max-w-md mx-auto space-y-3">
-                                <div class="w-12 h-12 mx-auto rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center text-2xl font-bold shadow-xs">
+                                <div class="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-2xl font-bold shadow-xs">
                                     <i class="ph ph-tray"></i>
                                 </div>
                                 <div>
@@ -2747,6 +2750,601 @@ const app = {
                     </tr>
                 `;
                 this.updateStepBadges();
+            },
+
+            // =========================================================================
+            // UNIFIED ORDER, DESIGN & BOQ STUDIO (STEP 1 INTEGRATION)
+            // =========================================================================
+            openUnifiedOrderStudio(jobId, initialTab = 'intake') {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) {
+                    this.showToast('ไม่พบข้อมูลคำสั่งซื้อ');
+                    return;
+                }
+
+                this.state.unifiedStudioJobId = jobId;
+
+                // Header info
+                const titleEl = document.getElementById('unified-modal-job-id');
+                if (titleEl) titleEl.innerText = job.id;
+                const custEl = document.getElementById('unified-modal-customer');
+                if (custEl) custEl.innerText = job.customer || 'คุณลูกค้า';
+                const badgeEl = document.getElementById('unified-modal-status-badge');
+                if (badgeEl) {
+                    if (job.status === 'DRAFT' || job.status === 'NEW' || job.status === 'Draft') {
+                        badgeEl.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30';
+                        badgeEl.innerText = 'รอจัดเตรียมข้อเสนอ';
+                    } else {
+                        badgeEl.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30';
+                        badgeEl.innerText = job.status || 'ดำเนินการอยู่';
+                    }
+                }
+
+                // Populate Tab 1: Intake
+                const nameInp = document.getElementById('unified-intake-customer');
+                if (nameInp) nameInp.value = job.customer || '';
+                const phoneInp = document.getElementById('unified-intake-phone');
+                if (phoneInp) phoneInp.value = job.phone || '';
+                const srvSelect = document.getElementById('unified-intake-service');
+                if (srvSelect) srvSelect.value = job.service || 'Renovate ครัว';
+                const addrInp = document.getElementById('unified-intake-address');
+                if (addrInp) addrInp.value = job.address || '';
+                const scopeInp = document.getElementById('unified-intake-scope');
+                if (scopeInp) scopeInp.value = job.scope_of_work || job.notes || '';
+                
+                // Type
+                const isQuick = this.isQuickJob(job);
+                const radioQuick = document.getElementById('unified-type-quick');
+                const radioRenovate = document.getElementById('unified-type-renovate');
+                if (isQuick && radioQuick) radioQuick.checked = true;
+                else if (radioRenovate) radioRenovate.checked = true;
+
+                // Survey Date
+                const surveyDateInp = document.getElementById('unified-intake-survey-date');
+                if (surveyDateInp) {
+                    let dVal = job.survey_date || job.date || '';
+                    if (dVal && dVal.includes('/')) {
+                        const parts = dVal.split('/');
+                        if (parts.length === 3) {
+                            dVal = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                        }
+                    }
+                    surveyDateInp.value = dVal;
+                }
+
+                // Survey Time
+                const timePreset = document.getElementById('unified-intake-time-preset');
+                if (timePreset) {
+                    const tVal = job.survey_time || job.start_time || '09:00 - 12:00';
+                    let matched = false;
+                    for (let opt of timePreset.options) {
+                        if (opt.value === tVal || opt.text.includes(tVal)) {
+                            timePreset.value = opt.value;
+                            matched = true;
+                            break;
+                        }
+                    }
+                    if (!matched) timePreset.value = 'custom';
+                }
+
+                const techInp = document.getElementById('unified-intake-tech');
+                if (techInp) techInp.value = job.tech || job.surveyor || '';
+                const notesInp = document.getElementById('unified-intake-notes');
+                if (notesInp) notesInp.value = job.internal_notes || '';
+
+                // Populate Tab 2: Design
+                this.renderUnifiedBlueprintsGrid();
+                this.resetUnifiedDesignForm();
+
+                // Populate Tab 3: BOQ
+                this.renderUnifiedBOQTable();
+                this.calculateUnifiedBOQSummary();
+
+                // Update Indicators
+                this.updateUnifiedStudioIndicators();
+
+                // Show modal & switch to target tab
+                this.showModal('modal-unified-order-studio');
+                this.switchUnifiedStudioTab(initialTab);
+            },
+
+            switchUnifiedStudioTab(tab) {
+                const tabs = ['intake', 'design', 'boq'];
+                tabs.forEach(t => {
+                    const btn = document.getElementById(`tab-btn-unified-${t}`);
+                    const pane = document.getElementById(`unified-tab-pane-${t}`);
+                    if (btn) {
+                        if (t === tab) {
+                            btn.className = 'pb-2.5 px-3.5 text-xs font-bold border-b-2 border-indigo-600 text-foreground flex items-center gap-1.5 cursor-pointer transition';
+                        } else {
+                            btn.className = 'pb-2.5 px-3.5 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 cursor-pointer transition';
+                        }
+                    }
+                    if (pane) {
+                        if (t === tab) {
+                            pane.classList.remove('hidden-view');
+                        } else {
+                            pane.classList.add('hidden-view');
+                        }
+                    }
+                });
+            },
+
+            onUnifiedTimePresetChange(val) {
+                // Handled in save
+            },
+
+            renderUnifiedBlueprintsGrid() {
+                const jobId = this.state.unifiedStudioJobId;
+                const grid = document.getElementById('unified-design-grid');
+                const pill = document.getElementById('unified-design-count-pill');
+                const badge = document.getElementById('tab-unified-design-badge');
+                if (!grid) return;
+
+                const bps = (DB.blueprints || []).filter(b => b.jobId === jobId);
+                if (pill) pill.innerText = `${bps.length} ไฟล์`;
+                if (badge) badge.innerText = bps.length;
+
+                if (bps.length === 0) {
+                    grid.innerHTML = `
+                    <div class="col-span-full p-8 text-center bg-card rounded-xl border border-dashed border-border text-muted-foreground space-y-2">
+                        <i class="ph ph-blueprint text-3xl text-indigo-500/50"></i>
+                        <p class="text-xs font-semibold text-foreground">ยังไม่มีแบบแปลนติดตั้งสำหรับคำสั่งซื้อนี้</p>
+                        <p class="text-[11px] text-muted-foreground">ท่านสามารถอัปโหลดไฟล์ CAD/DWG, PDF หรือกดโหลดแบบแปลนจำลองด้านล่าง</p>
+                    </div>
+                    `;
+                    return;
+                }
+
+                grid.innerHTML = bps.map((b, idx) => {
+                    const isPdf = b.fileName && b.fileName.toLowerCase().endsWith('.pdf');
+                    const isDwg = b.fileName && (b.fileName.toLowerCase().endsWith('.dwg') || b.fileName.toLowerCase().endsWith('.dxf'));
+                    const iconType = isDwg ? 'DWG' : (isPdf ? 'PDF' : 'IMG');
+                    const iconColor = isDwg ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' : (isPdf ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400');
+                    const formattedDate = b.uploadedAt ? this.formatDateDMY(b.uploadedAt) : this.formatDateDMY(new Date());
+
+                    return `
+                    <div class="p-4 rounded-xl border border-border bg-card space-y-3 hover:border-indigo-500/40 hover:shadow-xs transition">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-10 h-10 rounded-lg ${iconColor} flex items-center justify-center font-mono font-bold text-xs shrink-0">
+                                    ${iconType}
+                                </div>
+                                <div class="min-w-0">
+                                    <h5 class="text-xs font-bold text-foreground truncate" title="${b.fileName}">${b.fileName || 'Blueprint Layout'}</h5>
+                                    <p class="text-[10px] text-muted-foreground font-mono truncate">โซน: <strong class="text-indigo-600 dark:text-indigo-400">${b.zone || b.roomZone || 'ทั่วไป'}</strong> • ${b.fileSize || '2.4 MB'}</p>
+                                </div>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 shrink-0">${b.version || 'v2.0 Approved'}</span>
+                        </div>
+                        ${b.notes ? `<p class="text-[11px] text-muted-foreground bg-muted/30 p-2 rounded-lg border border-border/50">${b.notes}</p>` : ''}
+                        <div class="flex items-center justify-between text-xs pt-1 border-t border-border/40">
+                            <span class="text-[10px] text-muted-foreground font-mono">📅 ${formattedDate}</span>
+                            <div class="flex items-center gap-1.5">
+                                <button type="button" onclick="app.previewBlueprintLightbox('${b.id || idx}')" class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
+                                    🔍 ขยายดูแบบ
+                                </button>
+                                <button type="button" onclick="app.deleteUnifiedBlueprint('${b.id || idx}')" class="p-1 text-muted-foreground hover:text-rose-500 rounded transition cursor-pointer" title="ลบแบบแปลนนี้">
+                                    <i class="ph ph-trash text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+            },
+
+            setUnifiedDesignZone(zone) {
+                const inp = document.getElementById('unified-design-zone-input');
+                if (inp) {
+                    inp.value = zone;
+                    const jobId = this.state.unifiedStudioJobId || 'JOB2026';
+                    const titleInp = document.getElementById('unified-design-title-input');
+                    if (titleInp && !titleInp.value) {
+                        titleInp.value = `แบบแปลน 3D & ผังติดตั้ง ${zone}`;
+                    }
+                }
+            },
+
+            handleUnifiedDesignFileSelect(event) {
+                const file = event.target.files && event.target.files[0];
+                const lbl = document.getElementById('unified-design-file-name-label');
+                if (file && lbl) {
+                    lbl.innerText = `📄 ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                    const titleInp = document.getElementById('unified-design-title-input');
+                    if (titleInp && !titleInp.value) {
+                        titleInp.value = file.name;
+                    }
+                }
+            },
+
+            addUnifiedDesignSample() {
+                const jobId = this.state.unifiedStudioJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+
+                if (!DB.blueprints) DB.blueprints = [];
+
+                const now = new Date();
+                const formattedDate = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+
+                const sample1 = {
+                    id: 'BP-' + Date.now() + '-1',
+                    jobId: jobId,
+                    customerName: job.customer,
+                    fileName: `${job.id}_ห้องครัว_3D_Layout.dwg`,
+                    zone: 'ห้องครัว Built-in',
+                    roomZone: 'ห้องครัว Built-in',
+                    version: 'v2.0 Approved',
+                    fileSize: '4.5 MB',
+                    fileType: 'dwg',
+                    notes: 'แบบ 3D ระบุตำแหน่งท็อปหิน, ซิงค์ล้างจาน, เตาแม่เหล็กไฟฟ้า และฮูดดูดควัน',
+                    uploadedAt: formattedDate,
+                    createdAt: now.toISOString()
+                };
+
+                const sample2 = {
+                    id: 'BP-' + Date.now() + '-2',
+                    jobId: jobId,
+                    customerName: job.customer,
+                    fileName: `${job.id}_ระบบประปาและไฟฟ้า.pdf`,
+                    zone: 'ระบบไฟ & ประปา',
+                    roomZone: 'ระบบไฟ & ประปา',
+                    version: 'v1.1 Approved',
+                    fileSize: '1.8 MB',
+                    fileType: 'pdf',
+                    notes: 'ผังเดินท่อน้ำดี-น้ำทิ้ง และเบรกเกอร์แยก 32A',
+                    uploadedAt: formattedDate,
+                    createdAt: now.toISOString()
+                };
+
+                DB.blueprints.push(sample1, sample2);
+                if (!job.step_timestamps) job.step_timestamps = {};
+                if (!job.step_timestamps.step2_design_at) job.step_timestamps.step2_design_at = now.toISOString();
+
+                this.persistJobs();
+                this.renderUnifiedBlueprintsGrid();
+                this.updateUnifiedStudioIndicators();
+                this.updateStepBadges();
+                this.showToast('✅ โหลดแบบแปลนจำลอง (DWG + PDF) เรียบร้อยแล้ว');
+            },
+
+            submitUnifiedDesignBlueprint() {
+                const jobId = this.state.unifiedStudioJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+
+                const zoneInp = document.getElementById('unified-design-zone-input');
+                const titleInp = document.getElementById('unified-design-title-input');
+                const verSelect = document.getElementById('unified-design-version-select');
+                const fileInp = document.getElementById('unified-design-file-input');
+
+                const zone = (zoneInp && zoneInp.value.trim()) || 'ห้องทั่วไป';
+                const title = (titleInp && titleInp.value.trim()) || `${jobId}_${zone}_Layout.pdf`;
+                const version = (verSelect && verSelect.value) || 'v2.0 Approved';
+                const fileName = (fileInp && fileInp.files && fileInp.files[0]) ? fileInp.files[0].name : title;
+                const fileSize = (fileInp && fileInp.files && fileInp.files[0]) ? `${(fileInp.files[0].size / 1024 / 1024).toFixed(2)} MB` : '3.2 MB';
+
+                if (!DB.blueprints) DB.blueprints = [];
+
+                const now = new Date();
+                const formattedDate = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+
+                const newBp = {
+                    id: 'BP-' + Date.now(),
+                    jobId: jobId,
+                    customerName: job.customer,
+                    fileName: fileName,
+                    zone: zone,
+                    roomZone: zone,
+                    version: version,
+                    fileSize: fileSize,
+                    notes: title,
+                    uploadedAt: formattedDate,
+                    createdAt: now.toISOString()
+                };
+
+                DB.blueprints.push(newBp);
+                if (!job.step_timestamps) job.step_timestamps = {};
+                if (!job.step_timestamps.step2_design_at) job.step_timestamps.step2_design_at = now.toISOString();
+
+                this.persistJobs();
+                this.renderUnifiedBlueprintsGrid();
+                this.resetUnifiedDesignForm();
+                this.updateUnifiedStudioIndicators();
+                this.updateStepBadges();
+                this.showToast(`📐 บันทึกแบบแปลน [${fileName}] สำเร็จ!`);
+            },
+
+            deleteUnifiedBlueprint(bpId) {
+                if (!DB.blueprints) return;
+                const idx = DB.blueprints.findIndex(b => b.id === bpId || String(b.id) === String(bpId));
+                if (idx !== -1) {
+                    DB.blueprints.splice(idx, 1);
+                    this.persistJobs();
+                    this.renderUnifiedBlueprintsGrid();
+                    this.updateUnifiedStudioIndicators();
+                    this.updateStepBadges();
+                    this.showToast('🗑️ ลบแบบแปลนเรียบร้อยแล้ว');
+                }
+            },
+
+            resetUnifiedDesignForm() {
+                const zoneInp = document.getElementById('unified-design-zone-input');
+                if (zoneInp) zoneInp.value = '';
+                const titleInp = document.getElementById('unified-design-title-input');
+                if (titleInp) titleInp.value = '';
+                const fileInp = document.getElementById('unified-design-file-input');
+                if (fileInp) fileInp.value = '';
+                const lbl = document.getElementById('unified-design-file-name-label');
+                if (lbl) lbl.innerText = 'คลิกเพื่อเลือกไฟล์แบบแปลน (DWG, DXF, PDF, หรือรูปภาพ)';
+            },
+
+            renderUnifiedBOQTable() {
+                const jobId = this.state.unifiedStudioJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const tbody = document.getElementById('unified-boq-tbody');
+                if (!tbody || !job) return;
+
+                if (!job.boq_items) job.boq_items = [];
+
+                if (job.boq_items.length === 0) {
+                    job.boq_items = [
+                        { id: 1, type: 'LABOR', name: 'งานติดตั้งและเดินระบบมาตรฐาน', qty: 1, unit: 'งาน', price: 2500 },
+                        { id: 2, type: 'MATERIAL', name: 'ชุดอุปกรณ์และวัสดุต่อเชื่อม มอก.', qty: 1, unit: 'ชุด', price: 1800 }
+                    ];
+                }
+
+                const html = job.boq_items.map((item, idx) => {
+                    const itemTotal = (Number(item.qty) || 0) * (Number(item.price) || 0);
+                    const isLabor = item.type === 'LABOR';
+                    return `
+                    <tr class="hover:bg-muted/30 transition">
+                        <td class="px-3 py-2 text-center text-muted-foreground font-mono">${idx + 1}</td>
+                        <td class="px-3 py-2">
+                            <select onchange="app.updateUnifiedBOQItem(${idx}, 'type', this.value)" class="bg-card border border-border rounded px-1.5 py-1 text-[11px] font-bold ${isLabor ? 'text-purple-600 dark:text-purple-400' : 'text-blue-600 dark:text-blue-400'} focus:outline-none">
+                                <option value="LABOR" ${isLabor ? 'selected' : ''}>LABOR (ค่าแรง)</option>
+                                <option value="MATERIAL" ${!isLabor ? 'selected' : ''}>MATERIAL (วัสดุ)</option>
+                            </select>
+                        </td>
+                        <td class="px-4 py-2">
+                            <input type="text" value="${item.name || ''}" oninput="app.updateUnifiedBOQItem(${idx}, 'name', this.value)" placeholder="ระบุรายการสินค้า/ค่าแรง..." class="w-full bg-card border border-border rounded px-2 py-1 text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium">
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                            <input type="number" min="1" step="1" value="${item.qty || 1}" oninput="app.updateUnifiedBOQItem(${idx}, 'qty', this.value)" class="w-16 text-center bg-card border border-border rounded px-1.5 py-1 text-xs font-mono text-foreground focus:outline-none focus:border-indigo-500">
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                            <input type="text" value="${item.unit || 'ชุด'}" oninput="app.updateUnifiedBOQItem(${idx}, 'unit', this.value)" class="w-16 text-center bg-card border border-border rounded px-1.5 py-1 text-xs text-foreground focus:outline-none focus:border-indigo-500">
+                        </td>
+                        <td class="px-3 py-2 text-right">
+                            <input type="number" min="0" step="50" value="${item.price || 0}" oninput="app.updateUnifiedBOQItem(${idx}, 'price', this.value)" class="w-24 text-right bg-card border border-border rounded px-2 py-1 text-xs font-mono text-foreground focus:outline-none focus:border-indigo-500">
+                        </td>
+                        <td class="px-4 py-2 text-right font-mono font-bold text-foreground">
+                            ${itemTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td class="px-2 py-2 text-center">
+                            <button type="button" onclick="app.removeUnifiedBOQItem(${idx})" class="p-1 text-muted-foreground hover:text-rose-500 rounded transition cursor-pointer" title="ลบรายการ">
+                                <i class="ph ph-trash text-sm"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    `;
+                }).join('');
+
+                tbody.innerHTML = html;
+            },
+
+            addUnifiedBOQItem() {
+                const jobId = this.state.unifiedStudioJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+                if (!job.boq_items) job.boq_items = [];
+                job.boq_items.push({
+                    id: job.boq_items.length + 1,
+                    type: 'MATERIAL',
+                    name: '',
+                    qty: 1,
+                    unit: 'ชุด',
+                    price: 0
+                });
+                this.renderUnifiedBOQTable();
+                this.calculateUnifiedBOQSummary();
+            },
+
+            updateUnifiedBOQItem(idx, field, val) {
+                const jobId = this.state.unifiedStudioJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job || !job.boq_items || !job.boq_items[idx]) return;
+                if (field === 'qty' || field === 'price') {
+                    job.boq_items[idx][field] = Number(val) || 0;
+                } else {
+                    job.boq_items[idx][field] = val;
+                }
+                this.calculateUnifiedBOQSummary();
+            },
+
+            removeUnifiedBOQItem(idx) {
+                const jobId = this.state.unifiedStudioJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job || !job.boq_items) return;
+                job.boq_items.splice(idx, 1);
+                this.renderUnifiedBOQTable();
+                this.calculateUnifiedBOQSummary();
+            },
+
+            calculateUnifiedBOQSummary() {
+                const jobId = this.state.unifiedStudioJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+
+                const items = job.boq_items || [];
+                let laborSubtotal = 0;
+                let matSubtotal = 0;
+
+                items.forEach(item => {
+                    const total = (Number(item.qty) || 0) * (Number(item.price) || 0);
+                    if (item.type === 'LABOR') {
+                        laborSubtotal += total;
+                    } else {
+                        matSubtotal += total;
+                    }
+                });
+
+                const subtotal = laborSubtotal + matSubtotal;
+                const discInp = document.getElementById('unified-boq-discount-input');
+                const discount = discInp ? (Number(discInp.value) || 0) : (job.boq_discount || 0);
+                const taxable = Math.max(0, subtotal - discount);
+                const vat = taxable * 0.07;
+                const grandTotal = taxable + vat;
+
+                job.boq_subtotal = subtotal;
+                job.boq_labor_total = laborSubtotal;
+                job.boq_material_total = matSubtotal;
+                job.boq_discount = discount;
+                job.boq_vat = vat;
+                job.boq_grand_total = grandTotal;
+
+                const laborEl = document.getElementById('unified-boq-labor-total');
+                if (laborEl) laborEl.innerText = `${laborSubtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
+                const matEl = document.getElementById('unified-boq-mat-total');
+                if (matEl) matEl.innerText = `${matSubtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
+                const vatEl = document.getElementById('unified-boq-vat');
+                if (vatEl) vatEl.innerText = `${vat.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
+                const grandEl = document.getElementById('unified-boq-grand-total');
+                if (grandEl) grandEl.innerText = `${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
+                const badgeEl = document.getElementById('tab-unified-boq-badge');
+                if (badgeEl) badgeEl.innerText = `฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+                this.updateUnifiedStudioIndicators();
+            },
+
+            updateUnifiedStudioIndicators() {
+                const jobId = this.state.unifiedStudioJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+
+                const bps = (DB.blueprints || []).filter(b => b.jobId === jobId);
+                const boqItems = job.boq_items || [];
+                const grandTotal = job.boq_grand_total || 0;
+
+                const descIntake = document.getElementById('unified-ind-intake-desc');
+                if (descIntake) descIntake.innerText = `${job.customer || 'รับข้อมูลแล้ว'} • ${job.service || ''}`;
+
+                const descDesign = document.getElementById('unified-ind-design-desc');
+                if (descDesign) descDesign.innerText = bps.length > 0 ? `แนบแล้ว ${bps.length} แบบ (CAD/PDF)` : 'ยังไม่มีแบบแนบ';
+
+                const descBoq = document.getElementById('unified-ind-boq-desc');
+                if (descBoq) descBoq.innerText = boqItems.length > 0 ? `${boqItems.length} รายการ (฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})` : 'ยังไม่มีรายการ';
+
+                const validationMsg = document.getElementById('unified-modal-validation-msg');
+                const proceedBtnText = document.getElementById('unified-modal-proceed-btn-text');
+                const isQuick = this.isQuickJob(job);
+
+                if (proceedBtnText) {
+                    proceedBtnText.innerText = isQuick ? '🚀 อนุมัติ & ออก Ticket ด่วน (Step 4)' : '🚀 อนุมัติ & แปลงเข้า Gantt (Step 5)';
+                }
+
+                if (validationMsg) {
+                    if (bps.length > 0 && boqItems.length > 0) {
+                        validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ ข้อมูลครบทั้ง 3 มิติ (Intake + Design + BOQ) พร้อมส่งต่อไปยังขั้นตอนถัดไป</span>';
+                    } else if (bps.length === 0 && !isQuick) {
+                        validationMsg.innerHTML = '<span class="text-amber-600 dark:text-amber-400">⚠️ งาน Renovate แนะนำให้แนบแบบแปลนอย่างน้อย 1 โซนก่อนส่งมอบ</span>';
+                    } else {
+                        validationMsg.innerText = 'ข้อมูลคำสั่งซื้อพร้อมบันทึก';
+                    }
+                }
+            },
+
+            saveUnifiedOrderStudio() {
+                const jobId = this.state.unifiedStudioJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+
+                // Read Tab 1 fields
+                const nameInp = document.getElementById('unified-intake-customer');
+                if (nameInp && nameInp.value) job.customer = nameInp.value.trim();
+                const phoneInp = document.getElementById('unified-intake-phone');
+                if (phoneInp && phoneInp.value) job.phone = phoneInp.value.trim();
+                const srvSelect = document.getElementById('unified-intake-service');
+                if (srvSelect) job.service = srvSelect.value;
+                const addrInp = document.getElementById('unified-intake-address');
+                if (addrInp) job.address = addrInp.value.trim();
+                const scopeInp = document.getElementById('unified-intake-scope');
+                if (scopeInp) job.scope_of_work = scopeInp.value.trim();
+                
+                // Type radio
+                const radioQuick = document.getElementById('unified-type-quick');
+                job.job_type = (radioQuick && radioQuick.checked) ? 'quick' : 'renovate';
+
+                // Survey date
+                const dateInp = document.getElementById('unified-intake-survey-date');
+                if (dateInp && dateInp.value) {
+                    const parts = dateInp.value.split('-');
+                    if (parts.length === 3) {
+                        job.survey_date = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    }
+                }
+
+                const timePreset = document.getElementById('unified-intake-time-preset');
+                if (timePreset && timePreset.value !== 'custom') {
+                    job.survey_time = timePreset.value;
+                }
+
+                const techInp = document.getElementById('unified-intake-tech');
+                if (techInp) job.tech = techInp.value.trim();
+                const notesInp = document.getElementById('unified-intake-notes');
+                if (notesInp) job.internal_notes = notesInp.value.trim();
+
+                // Timestamps
+                const now = new Date();
+                if (!job.step_timestamps) job.step_timestamps = {};
+                if (!job.step_timestamps.step1_intake_at) job.step_timestamps.step1_intake_at = now.toISOString();
+
+                const bps = (DB.blueprints || []).filter(b => b.jobId === jobId);
+                if (bps.length > 0 && !job.step_timestamps.step2_design_at) {
+                    job.step_timestamps.step2_design_at = now.toISOString();
+                }
+                if (job.boq_items && job.boq_items.length > 0 && !job.step_timestamps.step3_boq_at) {
+                    job.step_timestamps.step3_boq_at = now.toISOString();
+                }
+
+                this.persistJobs();
+                this.renderJobs();
+                this.updateStepBadges();
+                this.showToast(`💾 บันทึกข้อมูล Order & Design & BOQ สำหรับ [${jobId}] สำเร็จแล้ว`);
+            },
+
+            proceedUnifiedOrderToNextStage() {
+                const jobId = this.state.unifiedStudioJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+
+                this.saveUnifiedOrderStudio();
+                job.pmt_accepted = true;
+                job.status = 'IN_PROGRESS';
+                job.progress = Math.max(job.progress || 0, this.isQuickJob(job) ? 60 : 45);
+
+                const now = new Date();
+                if (!job.step_timestamps) job.step_timestamps = {};
+                job.step_timestamps.step1_accepted_at = now.toISOString();
+                job.step_timestamps.step2_design_at = now.toISOString();
+                job.step_timestamps.step3_boq_at = now.toISOString();
+
+                this.persistJobs();
+                this.hideModal('modal-unified-order-studio');
+
+                const isQuick = this.isQuickJob(job);
+                if (isQuick) {
+                    this.showToast(`🚀 อนุมัติข้อเสนอคำสั่งซื้อ ${jobId} เรียบร้อย! ส่งต่องานไปยังขั้นตอนออก Ticket & สลิป (Step 4)...`);
+                    setTimeout(() => {
+                        this.navigate('tickets');
+                    }, 400);
+                } else {
+                    this.showToast(`🚀 อนุมัติข้อเสนอคำสั่งซื้อ ${jobId} เรียบร้อย! แปลง BOQ เข้าสู่แผนงานโครงการ (Gantt Projects)...`);
+                    setTimeout(() => {
+                        this.openConvertBOQToTasksModal(jobId);
+                    }, 400);
+                }
             },
 
             updateStepBadges() {

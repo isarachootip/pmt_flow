@@ -231,8 +231,8 @@
                         <!-- Step 1 -->
                         <a href="#" onclick="app.navigate('jobs')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-jobs">
                             <div class="flex items-center gap-2.5">
-                                <span class="w-5 h-5 rounded-md bg-zinc-500/15 text-zinc-600 dark:text-zinc-300 text-[10px] font-mono font-bold flex items-center justify-center border border-zinc-500/30 shrink-0">1</span>
-                                <span class="truncate">Step 1: บันทึกงาน / รับ Order</span>
+                                <span class="w-5 h-5 rounded-md bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono font-bold flex items-center justify-center border border-indigo-500/30 shrink-0">1</span>
+                                <span class="truncate font-semibold">Step 1: รับ Order, Design & BOQ</span>
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono shrink-0" id="sidebar-job-count">5</span>
                         </a>
@@ -240,7 +240,7 @@
                         <a href="#" onclick="app.navigate('blueprints')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-blueprints">
                             <div class="flex items-center gap-2.5">
                                 <span class="w-5 h-5 rounded-md bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono font-bold flex items-center justify-center border border-indigo-500/30 shrink-0">2</span>
-                                <span class="truncate">Step 2: บันทึก Design</span>
+                                <span class="truncate">Step 2: คลังแบบแปลน (Design)</span>
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono font-medium shrink-0" id="sidebar-blueprint-count">5</span>
                         </a>
@@ -248,7 +248,7 @@
                         <a href="#" onclick="app.navigate('boq')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-boq">
                             <div class="flex items-center gap-2.5">
                                 <span class="w-5 h-5 rounded-md bg-purple-500/15 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-bold flex items-center justify-center border border-purple-500/30 shrink-0">3</span>
-                                <span class="truncate">Step 3: นำBOQ เข้าระบบ</span>
+                                <span class="truncate">Step 3: คลังรายการ BOQ</span>
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono font-medium shrink-0" id="sidebar-boq-count">5</span>
                         </a>
@@ -635,10 +635,10 @@
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30">Step 1</span>
-                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">คิวงานรับคำสั่งซื้อใหม่ (New Order Intake - Step 1)</h2>
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">Step 1: Unified Studio</span>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">ศูนย์รับคำสั่งซื้อ • Design แบบแปลน • BOQ (Order & Proposal Studio)</h2>
                             </div>
-                            <p class="text-xs text-muted-foreground mt-0.5">คิวงานคำสั่งซื้อใหม่จาก INT รอคัดกรองเบื้องต้น ตรวจสอบข้อมูล และส่งต่องานไปยังขั้นตอนทำแบบแปลน (ยังไม่เริ่มงานติดตั้ง)</p>
+                            <p class="text-xs text-muted-foreground mt-0.5">คิวงานคำสั่งซื้อใหม่ พร้อมระบบจัดการแบบแปลน CAD/3D และประมาณการราคา BOQ แบบ One-Stop Shop ครบจบในหน้าจอเดียว</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2.5">
                             <select id="filter-service" onchange="app.renderJobs()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-brand-500">
@@ -889,15 +889,15 @@
                     </div>
 
                     <!-- Contextual Queue Banner -->
-                    <div id="step1-queue-banner" class="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-900 dark:text-blue-200 flex items-center justify-between gap-3">
+                    <div id="step1-queue-banner" class="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-950 dark:text-indigo-200 flex items-center justify-between gap-3">
                         <div class="flex items-center gap-2.5">
-                            <span class="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-300 flex items-center justify-center font-bold text-xs shrink-0">📥</span>
+                            <span class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 flex items-center justify-center font-bold text-sm shrink-0">✨</span>
                             <div>
-                                <span class="font-bold">คิวงาน Step 1 (Order Intake Queue):</span>
-                                <span class="text-muted-foreground ml-1">แสดงเฉพาะ Order ใหม่จาก INT ที่รอรับเข้าระบบ PMT โดยคลิกที่รายการเพื่อเปิดดูรายละเอียดหน้างานและกดยืนยันรับเข้าสู่ระบบ</span>
+                                <span class="font-bold">ศูนย์รวมงาน Step 1 (Order Intake, Design & BOQ Studio):</span>
+                                <span class="text-muted-foreground ml-1">จัดการข้อมูลคำสั่งซื้อ, แนบแบบแปลน CAD/3D, และคิดราคา BOQ ครบจบในที่เดียว พร้อมกดอนุมัติส่งมอบงานไปยังฝ่ายปฏิบัติการและแผนงาน Gantt ได้ทันที</span>
                             </div>
                         </div>
-                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold shrink-0">Single State Queue</span>
+                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-bold shrink-0">3-in-1 Unified Hub</span>
                     </div>
                     
                     <div class="artifact-card overflow-hidden shadow-sm">
@@ -908,9 +908,9 @@
                                         <th class="px-5 py-3.5">เลขที่งาน</th>
                                         <th class="px-5 py-3.5">ลูกค้า & เบอร์ติดต่อ</th>
                                         <th class="px-5 py-3.5">ประเภทบริการ</th>
-                                        <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
-                                        <th class="px-5 py-3.5">สถานะ</th>
-                                        <th class="px-5 py-3.5">ขั้นตอน (Stage)</th>
+                                        <th class="px-5 py-3.5">แบบแปลน (Design)</th>
+                                        <th class="px-5 py-3.5">ประมาณการ (BOQ)</th>
+                                        <th class="px-5 py-3.5 text-right">Studio จัดการงาน</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-border" id="jobs-table-body">
@@ -3713,17 +3713,17 @@
                             <div class="artifact-card p-4 rounded-2xl border border-border hover:border-brand-500/40 transition-all space-y-3 flex flex-col justify-between group">
                                 <div class="space-y-2">
                                     <div class="flex items-center justify-between">
-                                        <span class="px-2 py-0.5 rounded bg-zinc-500/15 text-zinc-600 dark:text-zinc-300 font-mono text-[10px] font-bold border border-zinc-500/20">TRN-PMT-STEP01</span>
-                                        <span class="text-[10px] text-muted-foreground font-mono">Module 1</span>
+                                        <span class="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-mono text-[10px] font-bold border border-indigo-500/20">TRN-PMT-STEP01</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Module 1 (Unified)</span>
                                     </div>
-                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-brand-500 transition">Step 1: คิวงานรับคำสั่งซื้อใหม่</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">รับ Order จาก INT, Smart Dual-Dispatch, ติดตาม SLA 4 ชม., จำลอง 16 งาน (Quick 8, Renovate 8)</p>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-brand-500 transition">Step 1: ศูนย์รับ Order, Design & BOQ</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">All-in-One Studio: รับ Order, แนบแบบแปลน CAD/3D, คิดราคา BOQ ครบจบในหน้าต่างเดียว พร้อม 1-Click Hand-off</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
                                     <button onclick="app.navigate('jobs')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
                                     </button>
-                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step1_คิวงานรับคำสั่งซื้อใหม่.md', 'โมดูล 1: Step 1 — คิวงานรับคำสั่งซื้อใหม่')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-[11px] font-semibold text-brand-600 dark:text-brand-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step1_คิวงานรับคำสั่งซื้อใหม่.md', 'โมดูล 1: Step 1 — ศูนย์รับ Order, Design & BOQ Studio')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-[11px] font-semibold text-brand-600 dark:text-brand-400 flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-book-open"></i> อ่านคู่มือ
                                     </button>
                                 </div>
@@ -3736,8 +3736,8 @@
                                         <span class="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-mono text-[10px] font-bold border border-indigo-500/20">TRN-PMT-STEP02</span>
                                         <span class="text-[10px] text-muted-foreground font-mono">Module 2</span>
                                     </div>
-                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-indigo-500 transition">Step 2: บันทึกแบบแปลนติดตั้ง</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">ศูนย์รวมแบบ CAD/PDF, Multi-zone แยกห้อง, Lightbox Preview, Versioning</p>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-indigo-500 transition">Step 2: คลังแบบแปลนติดตั้ง</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">ศูนย์รวมแบบ CAD/PDF, Multi-zone แยกห้อง (รองรับทั้งจัดการผ่าน Studio ใน Step 1 หรือหน้าคลังแบบรวม)</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
                                     <button onclick="app.navigate('blueprints')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
@@ -3756,8 +3756,8 @@
                                         <span class="px-2 py-0.5 rounded bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono text-[10px] font-bold border border-purple-500/20">TRN-PMT-STEP03</span>
                                         <span class="text-[10px] text-muted-foreground font-mono">Module 3</span>
                                     </div>
-                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-purple-500 transition">Step 3: นำ BOQ เข้าระบบ & ราคา</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">นำเข้า Excel/vFIX/Template, ตารางราคา Real-time, VAT 7%, ส่งต่อ Step 4</p>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-purple-500 transition">Step 3: คลังรายการ BOQ & คิดราคา</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">นำเข้า Excel/vFIX, ตารางแยกค่าแรง-วัสดุ, VAT 7% (รองรับทั้งจัดทำใน Studio Step 1 หรือหน้าคลังรวม)</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
                                     <button onclick="app.navigate('boq')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
@@ -5685,7 +5685,361 @@
         </div>
     </div>
 
-    <!-- MODAL: UPLOAD BLUEPRINT -->
+    <!-- MODAL: UNIFIED ORDER, DESIGN & BOQ STUDIO (STEP 1 INTEGRATED ONE-STOP HUB) -->
+    <div id="modal-unified-order-studio" onclick="if(event.target === this) app.hideModal('modal-unified-order-studio')" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-5">
+        <div class="artifact-card rounded-2xl w-full max-w-5xl max-h-[94vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-unified-order-studio-content">
+            <!-- Header -->
+            <div class="p-4 sm:p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/40 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-700 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                        <i class="ph ph-squares-four text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">Step 1: All-in-One Studio</span>
+                            <h3 class="font-display font-bold text-sm sm:text-base text-foreground" id="unified-modal-title">ศูนย์จัดการคำสั่งซื้อ • Design แบบแปลน • BOQ</h3>
+                        </div>
+                        <p class="text-xs text-muted-foreground mt-0.5" id="unified-modal-subtitle">รหัสงาน: <span class="font-mono font-bold text-foreground" id="unified-modal-job-id">JOB-XXXX</span> | ลูกค้า: <span class="font-semibold text-foreground" id="unified-modal-customer">คุณลูกค้า</span></p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 self-end sm:self-auto">
+                    <span id="unified-modal-status-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">รอจัดเตรียมข้อเสนอ</span>
+                    <button type="button" onclick="app.hideModal('modal-unified-order-studio')" class="text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-lg hover:bg-muted transition cursor-pointer flex items-center gap-1 border border-border/60 hover:border-border" title="ปิดหน้าต่าง (Esc)">
+                        <span class="text-xs font-semibold">ปิด (Esc)</span>
+                        <i class="ph ph-x text-base font-bold"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3-Stage Progress Banner -->
+            <div class="px-4 py-2.5 bg-muted/20 border-b border-border grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs shrink-0">
+                <div id="unified-step-intake-ind" class="flex items-center gap-2 p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0">1</span>
+                    <div class="truncate">
+                        <span class="font-bold block text-[11px]">1. ข้อมูลคำสั่งซื้อ</span>
+                        <span class="text-[10px] text-muted-foreground truncate" id="unified-ind-intake-desc">รับข้อมูลครบถ้วน</span>
+                    </div>
+                </div>
+                <div id="unified-step-design-ind" class="flex items-center gap-2 p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-700 dark:text-indigo-300">
+                    <span class="w-6 h-6 rounded-lg bg-indigo-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0">2</span>
+                    <div class="truncate">
+                        <span class="font-bold block text-[11px]">2. แบบแปลน Design</span>
+                        <span class="text-[10px] text-muted-foreground truncate" id="unified-ind-design-desc">0 ไฟล์แนบ</span>
+                    </div>
+                </div>
+                <div id="unified-step-boq-ind" class="flex items-center gap-2 p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300">
+                    <span class="w-6 h-6 rounded-lg bg-purple-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0">3</span>
+                    <div class="truncate">
+                        <span class="font-bold block text-[11px]">3. ประมาณการ BOQ</span>
+                        <span class="text-[10px] text-muted-foreground truncate" id="unified-ind-boq-desc">0 รายการ (0.00 ฿)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Switcher Navigation -->
+            <div class="px-4 pt-3 bg-muted/10 border-b border-border flex items-center justify-between shrink-0 overflow-x-auto">
+                <div class="flex gap-2">
+                    <button type="button" id="tab-btn-unified-intake" onclick="app.switchUnifiedStudioTab('intake')" class="pb-2.5 px-3.5 text-xs font-bold border-b-2 border-indigo-600 text-foreground flex items-center gap-1.5 cursor-pointer transition">
+                        <i class="ph ph-clipboard-text text-sm text-indigo-500"></i>
+                        <span>📋 ข้อมูลคำสั่งซื้อ (Order Intake)</span>
+                    </button>
+                    <button type="button" id="tab-btn-unified-design" onclick="app.switchUnifiedStudioTab('design')" class="pb-2.5 px-3.5 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 cursor-pointer transition">
+                        <i class="ph ph-blueprint text-sm text-indigo-500"></i>
+                        <span>📐 แบบแปลน & ดีไซน์ (Design & CAD)</span>
+                        <span id="tab-unified-design-badge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-mono font-bold">0</span>
+                    </button>
+                    <button type="button" id="tab-btn-unified-boq" onclick="app.switchUnifiedStudioTab('boq')" class="pb-2.5 px-3.5 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 cursor-pointer transition">
+                        <i class="ph ph-calculator text-sm text-purple-500"></i>
+                        <span>📊 รายการ BOQ & ค่าใช้จ่าย (Pricing)</span>
+                        <span id="tab-unified-boq-badge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono font-bold">0 ฿</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Body (Scrollable) -->
+            <div class="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6">
+                <!-- TAB 1: INTAKE -->
+                <div id="unified-tab-pane-intake" class="space-y-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- Left Column: Customer Profile -->
+                        <div class="space-y-4 bg-muted/20 p-4 sm:p-5 rounded-2xl border border-border">
+                            <h4 class="font-display font-bold text-xs uppercase tracking-wider text-foreground flex items-center gap-2">
+                                <i class="ph ph-user text-indigo-500 text-sm"></i>
+                                ข้อมูลลูกค้าและสถานที่หน้างาน
+                            </h4>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-foreground mb-1">ชื่อลูกค้า <span class="text-rose-500">*</span></label>
+                                    <input type="text" id="unified-intake-customer" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500">
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-foreground mb-1">เบอร์โทรศัพท์ <span class="text-rose-500">*</span></label>
+                                        <input type="tel" id="unified-intake-phone" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground font-mono focus:outline-none focus:border-indigo-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-foreground mb-1">ประเภทบริการ <span class="text-rose-500">*</span></label>
+                                        <select id="unified-intake-service" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500">
+                                            <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                                            <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
+                                            <option value="Renovate ครัว">Renovate ครัว</option>
+                                            <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
+                                            <option value="ติดตั้งเครื่องปรับอากาศ">ติดตั้งเครื่องปรับอากาศ</option>
+                                            <option value="โซลาร์เซลล์">โซลาร์เซลล์</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-foreground mb-1">สถานที่ปฏิบัติงาน / ที่อยู่หน้างาน <span class="text-rose-500">*</span></label>
+                                    <textarea id="unified-intake-address" rows="2" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-foreground mb-1">ขอบเขตงานและความต้องการพิเศษ (Scope of Work)</label>
+                                    <textarea id="unified-intake-scope" rows="3" placeholder="ระบุรายละเอียดงาน ความต้องการของลูกค้า..." class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Operations, Survey & AE -->
+                        <div class="space-y-4 bg-muted/20 p-4 sm:p-5 rounded-2xl border border-border">
+                            <h4 class="font-display font-bold text-xs uppercase tracking-wider text-foreground flex items-center gap-2">
+                                <i class="ph ph-calendar-check text-indigo-500 text-sm"></i>
+                                การนัดหมายสำรวจหน้างาน & ผู้รับผิดชอบ
+                            </h4>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-foreground mb-1">รูปแบบโครงการ (Job Pipeline Type)</label>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <label class="flex items-center gap-2 p-2.5 rounded-xl border border-border bg-card cursor-pointer hover:border-indigo-500 transition">
+                                            <input type="radio" name="unified-job-type" id="unified-type-quick" value="quick" class="text-indigo-600">
+                                            <div>
+                                                <span class="text-xs font-bold text-foreground block">⚡ Quick Service</span>
+                                                <span class="text-[10px] text-muted-foreground">ติดตั้งด่วน Fast-track</span>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-center gap-2 p-2.5 rounded-xl border border-border bg-card cursor-pointer hover:border-indigo-500 transition">
+                                            <input type="radio" name="unified-job-type" id="unified-type-renovate" value="renovate" class="text-indigo-600">
+                                            <div>
+                                                <span class="text-xs font-bold text-foreground block">🏗️ Renovate Project</span>
+                                                <span class="text-[10px] text-muted-foreground">ปรับปรุงแปลงลง Gantt</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-foreground mb-1">วันที่นัดสำรวจ (DD/MM/YYYY)</label>
+                                        <input type="date" id="unified-intake-survey-date" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-foreground mb-1">เวลานัดหมาย (24 ชม.)</label>
+                                        <div class="flex gap-1.5">
+                                            <select id="unified-intake-time-preset" onchange="app.onUnifiedTimePresetChange(this.value)" class="w-full bg-card border border-border rounded-lg px-2 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500">
+                                                <option value="09:00 - 12:00">09:00 - 12:00 น.</option>
+                                                <option value="13:00 - 16:00">13:00 - 16:00 น.</option>
+                                                <option value="08:30 - 17:00">08:30 - 17:00 น.</option>
+                                                <option value="10:00 - 12:00">10:00 - 12:00 น.</option>
+                                                <option value="custom">กำหนดเอง...</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-foreground mb-1">ช่างสำรวจ / ผู้รับผิดชอบ (Surveyor / Technician)</label>
+                                    <input type="text" id="unified-intake-tech" placeholder="ระบุชื่อช่างหรือทีมสำรวจ..." class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500">
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-foreground mb-1">หมายเหตุบันทึกภายใน (Internal Notes)</label>
+                                    <textarea id="unified-intake-notes" rows="2" placeholder="บันทึกเพิ่มเติมสำหรับทีม AE และช่าง..." class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" onclick="app.switchUnifiedStudioTab('design')" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 cursor-pointer shadow-xs">
+                            <span>ไปยังขั้นตอน Design & แบบแปลน</span>
+                            <i class="ph ph-arrow-right text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TAB 2: DESIGN & BLUEPRINTS -->
+                <div id="unified-tab-pane-design" class="hidden-view space-y-5">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
+                        <div>
+                            <h4 class="font-display font-bold text-sm text-foreground flex items-center gap-2">
+                                <i class="ph ph-blueprint text-indigo-500"></i>
+                                คลังแบบแปลนและไฟล์ CAD/PDF ประจำคำสั่งซื้อนี้
+                            </h4>
+                            <p class="text-xs text-muted-foreground mt-0.5">แนบไฟล์แบบแปลน 2D/3D และผังการติดตั้งแยกตามห้อง/โซนงาน</p>
+                        </div>
+                        <span id="unified-design-count-pill" class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">0 ไฟล์</span>
+                    </div>
+
+                    <!-- Uploaded Blueprints Grid -->
+                    <div id="unified-design-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+
+                    <!-- In-Place Upload Blueprint Form Card -->
+                    <div class="bg-muted/20 p-4 sm:p-5 rounded-2xl border border-border space-y-4">
+                        <h5 class="font-display font-bold text-xs uppercase tracking-wider text-foreground flex items-center gap-2">
+                            <i class="ph ph-plus-circle text-indigo-500 text-sm"></i>
+                            + อัปโหลดแบบแปลน / ไดอะแกรมติดตั้งใหม่
+                        </h5>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="sm:col-span-2 space-y-1.5">
+                                <label class="block text-xs font-semibold text-foreground">โซนห้อง / งานย่อย (Area / Room Zone)</label>
+                                <div class="flex flex-wrap gap-1.5">
+                                    <button type="button" onclick="app.setUnifiedDesignZone('ห้องรับแขก')" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🛋️ ห้องรับแขก</button>
+                                    <button type="button" onclick="app.setUnifiedDesignZone('ห้องนั่งเล่น')" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">📺 ห้องนั่งเล่น</button>
+                                    <button type="button" onclick="app.setUnifiedDesignZone('ห้องครัว Built-in')" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🍳 ห้องครัว</button>
+                                    <button type="button" onclick="app.setUnifiedDesignZone('ห้องนอนใหญ่')" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🛏️ ห้องนอนใหญ่</button>
+                                    <button type="button" onclick="app.setUnifiedDesignZone('ห้องน้ำ')" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🚿 ห้องน้ำ</button>
+                                    <button type="button" onclick="app.setUnifiedDesignZone('ระบบไฟ & ประปา')" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">⚡ ระบบไฟ/ประปา</button>
+                                </div>
+                                <input type="text" id="unified-design-zone-input" placeholder="ระบุโซนห้อง เช่น ห้องครัว Built-in..." class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-foreground mb-1">ชื่อแบบแปลน / รายละเอียด</label>
+                                <input type="text" id="unified-design-title-input" placeholder="เช่น แบบแปลน 3D Layout ครัวและท่อระบายน้ำ" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-foreground mb-1">เวอร์ชันแบบ</label>
+                                <select id="unified-design-version-select" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500">
+                                    <option value="v1.0">v1.0 (แบบร่างเริ่มต้น)</option>
+                                    <option value="v1.1">v1.1 (ปรับแก้ขนาด)</option>
+                                    <option value="v2.0 Approved" selected>v2.0 Approved (แบบสมบูรณ์)</option>
+                                </select>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <input type="file" id="unified-design-file-input" accept=".dwg,.dxf,.pdf,.png,.jpg,.jpeg" class="hidden" onchange="app.handleUnifiedDesignFileSelect(event)">
+                                <div onclick="document.getElementById('unified-design-file-input').click()" class="border-2 border-dashed border-border hover:border-indigo-500 rounded-xl p-4 text-center bg-card cursor-pointer transition space-y-1">
+                                    <i class="ph ph-cloud-arrow-up text-2xl text-indigo-500"></i>
+                                    <p class="text-xs font-semibold text-foreground" id="unified-design-file-name-label">คลิกเพื่อเลือกไฟล์แบบแปลน (DWG, DXF, PDF, หรือรูปภาพ)</p>
+                                    <p class="text-[10px] text-muted-foreground">รองรับไฟล์ขนาดสูงสุด 50MB</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center pt-2">
+                            <button type="button" onclick="app.addUnifiedDesignSample()" class="text-xs text-indigo-600 hover:underline font-semibold cursor-pointer">
+                                ⚡ โหลดแบบแปลนจำลอง (DWG + PDF)
+                            </button>
+                            <button type="button" onclick="app.submitUnifiedDesignBlueprint()" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs">
+                                <i class="ph ph-upload-simple mr-1"></i> บันทึกและแนบแบบแปลน
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" onclick="app.switchUnifiedStudioTab('boq')" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1.5 cursor-pointer shadow-xs">
+                            <span>ไปยังขั้นตอน BOQ & คิดราคา</span>
+                            <i class="ph ph-arrow-right text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TAB 3: BOQ & PRICING -->
+                <div id="unified-tab-pane-boq" class="space-y-5">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
+                        <div>
+                            <h4 class="font-display font-bold text-sm text-foreground flex items-center gap-2">
+                                <i class="ph ph-calculator text-purple-500"></i>
+                                ประมาณการราคา BOQ (Bill of Quantities)
+                            </h4>
+                            <p class="text-xs text-muted-foreground mt-0.5">นำเข้าไฟล์ Excel / vFIX หรือแก้ไขตารางแยกหมวดค่าแรงและค่าวัสดุ</p>
+                        </div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button type="button" onclick="app.openImportBOQModal(app.state.unifiedStudioJobId)" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs flex items-center gap-1">
+                                <i class="ph ph-file-arrow-up text-sm"></i>
+                                <span>📥 นำเข้า Excel / vFIX</span>
+                            </button>
+                            <button type="button" onclick="app.downloadVFixBOQTemplate()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-1">
+                                <i class="ph ph-download-simple text-sm"></i>
+                                <span>Template</span>
+                            </button>
+                            <button type="button" onclick="app.addUnifiedBOQItem()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/10 cursor-pointer flex items-center gap-1">
+                                <i class="ph ph-plus-circle text-sm"></i>
+                                <span>+ เพิ่มรายการ</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- BOQ Items Table -->
+                    <div class="overflow-x-auto rounded-xl border border-border">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
+                                <tr>
+                                    <th class="px-3 py-3 w-12 text-center">#</th>
+                                    <th class="px-3 py-3 w-28">ประเภท</th>
+                                    <th class="px-4 py-3">รายการวัสดุ / งานบริการ</th>
+                                    <th class="px-3 py-3 w-20 text-center">จำนวน</th>
+                                    <th class="px-3 py-3 w-20 text-center">หน่วย</th>
+                                    <th class="px-3 py-3 w-28 text-right">ราคา/หน่วย (฿)</th>
+                                    <th class="px-4 py-3 w-32 text-right">รวมเงิน (฿)</th>
+                                    <th class="px-2 py-3 w-10 text-center">ลบ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="unified-boq-tbody" class="divide-y divide-border bg-card">
+                                <!-- Populated dynamically by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Financial Summary -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-border">
+                        <div class="space-y-2 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-muted-foreground">หมวดค่าแรง (Labor Total):</span>
+                                <span class="font-mono font-bold text-foreground" id="unified-boq-labor-total">0.00 ฿</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-muted-foreground">หมวดค่าวัสดุ (Material Total):</span>
+                                <span class="font-mono font-bold text-foreground" id="unified-boq-mat-total">0.00 ฿</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-muted-foreground">ส่วนลดโปรโมชั่น:</span>
+                                <input type="number" min="0" value="0" id="unified-boq-discount-input" oninput="app.calculateUnifiedBOQSummary()" class="w-24 bg-card border border-border rounded px-2 py-1 text-right text-xs font-mono font-bold text-rose-600 focus:outline-none focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div class="flex flex-col justify-between items-end border-t md:border-t-0 md:border-l border-border pt-3 md:pt-0 md:pl-4">
+                            <div class="w-full flex justify-between text-xs text-muted-foreground">
+                                <span>ภาษีมูลค่าเพิ่ม (VAT 7%):</span>
+                                <span class="font-mono font-medium text-foreground" id="unified-boq-vat">0.00 ฿</span>
+                            </div>
+                            <div class="w-full flex justify-between items-baseline pt-2 border-t border-border mt-2">
+                                <span class="text-xs text-muted-foreground font-semibold">ยอดรวมทั้งสิ้น (Grand Total):</span>
+                                <span class="text-2xl font-extrabold font-mono text-purple-600 dark:text-purple-400" id="unified-boq-grand-total">0.00 ฿</span>
+                            </div>
+                            <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ ราคารวมภาษีมูลค่าเพิ่มแล้ว</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sticky Footer -->
+            <div class="p-4 bg-muted/30 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="unified-modal-validation-msg">ข้อมูลพร้อมสำหรับการจัดเตรียมข้อเสนอและแบบแปลน</span>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <button type="button" onclick="app.saveUnifiedOrderStudio()" class="flex-1 sm:flex-none btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold border border-border hover:bg-muted text-foreground cursor-pointer transition">
+                        <i class="ph ph-floppy-disk mr-1"></i> บันทึกข้อมูล (Save)
+                    </button>
+                    <button type="button" onclick="app.proceedUnifiedOrderToNextStage()" class="flex-1 sm:flex-none btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white cursor-pointer shadow-md transition flex items-center justify-center gap-1.5">
+                        <i class="ph ph-paper-plane-tilt text-sm font-bold"></i>
+                        <span id="unified-modal-proceed-btn-text">🚀 อนุมัติ & ส่งเข้าสู่แผนงาน</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: UPLOAD BLUEPRINT -->
     <div id="modal-upload-blueprint" onclick="if(event.target === this) app.hideModal('modal-upload-blueprint')" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-4">
         <div class="artifact-card rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-upload-blueprint-content">
