@@ -1,12 +1,43 @@
 # Antigravity Rules & Project Guidelines
 
-## 🚨 CRITICAL RULE: PRODUCTION SERVER & HOSTINGER ENVIRONMENT
-- **Environment**: The user deploys and runs this application on a **Remote Server / Hostinger (Cloud VPS / Coolify)** at **`https://vibepmt.online`**, **NOT for local machine use only**.
-- **Always Commit & Push to Git**:
-  - Whenever code changes are made and verified, always compile (`npm run build`).
-  - Stage, commit with clear messages, and **`git push origin main`** immediately so Hostinger / Coolify auto-deploys to production.
-  - Never stop after only editing local files; the live server must receive the update.
-- **Production URL**: Always inform the user that changes are being deployed to `https://vibepmt.online` and advise hard refresh (`Ctrl + F5`) for web cache.
+## 🚨 CRITICAL RULE: TWO SEPARATE ENVIRONMENTS (DEV vs PRODUCTION)
+
+This project runs on **two independent servers**. Each has its own Coolify instance and its own
+PostgreSQL database. They are NOT the same machine and NOT the same data.
+
+| | Dev / Staging | Production |
+|---|---|---|
+| URL | `https://vibepmt.online` | `https://prod.vibepmt.online` |
+| Git branch | `main` | `production` |
+
+- **Agents and developers deploy to DEV only.**
+  - After changes are verified: `npm run build`, stage, commit with a clear message, then
+    **`git push origin main`**.
+  - Coolify on the dev server auto-deploys `main` to `https://vibepmt.online`.
+  - Never stop after only editing local files - the dev server must receive the update.
+- **🔒 Production is released by a human, never by an agent.**
+  - The release command is **`git push origin main:production`**, and **only the user runs it**.
+  - An agent MUST NOT push to the `production` branch, and MUST NOT force-push it, for any reason.
+  - When work is ready to go live, report what is ready and let the user decide. Do not release
+    on their behalf, and do not ask for credentials in order to do it.
+  - **Automatic deployment is deliberately OFF on production.** Pushing the `production` branch
+    only updates the branch on GitHub - nothing is built and nothing goes live. The user then
+    triggers the build themselves in Coolify (Deploy), which is why its history shows
+    `Source: Manual`. This is intended; do not suggest enabling auto-deploy there.
+- **Never say "deployed to production".** An agent cannot cause a production deploy at all:
+  pushing `main` moves the dev server only, and even the `production` branch does not go live
+  until the user presses Deploy in Coolify.
+- **Verify before reporting - do not assume a push means a deploy.**
+  - What is still unreleased: `git log --oneline origin/production..origin/main`
+  - Confirm what a site actually serves, by comparing hashes rather than trusting timing:
+    `git show <sha>:public/js/app.js | sha256sum` against the `app.js` the site returns.
+  - The `Last-Modified` header of a served asset tells you when that container was built - it is
+    the fastest way to tell the two environments apart.
+  - In the Coolify log, the first lines must name the expected branch and commit sha
+    (`Starting deployment of isarachootip/pmt_flow:<branch>`).
+- Deploys can take up to ~25 minutes to appear. Do not re-push or re-trigger on the assumption that
+  it failed; check the Coolify deployment log first.
+- Always advise the user to hard refresh (`Ctrl + F5`) after a deploy.
 
 ## 👥 USER MANAGEMENT & AUTHENTICATION SYSTEM SCOPE
 - **Skill Specification Reference**: Always follow [pmt_flow_skill.md](file:///c:/atgv/pmt_flow/pmt_flow_skill.md) for complete requirements on RBAC, User Management, Log-in/Log-off authentication, and the 7-step pipeline.
