@@ -8471,16 +8471,16 @@ const app = {
                 this.updateStepBadges();
                 this.updateQCBadges();
                 this.hideModal('modal-create-ticket');
-                if (isQuick) {
-                    this.showToast(`⚡ บันทึกจ่ายเงิน Ticket ${ticketNo} สำเร็จ! ข้ามขั้นตอน Step 5 ย้าย Order [${jobId}] เข้าสู่ State QC เพื่อรอตรวจ QC แบบ Online ทันที`);
-                    this.goToQC(jobId);
+                if (this.state.currentView === 'tickets') {
+                    this.switchTicketTab('library');
+                    this.renderTickets();
                 } else {
-                    if (this.state.currentView === 'tickets') {
-                        this.switchTicketTab('library');
-                        this.renderTickets();
-                    } else {
-                        this.renderTickets();
-                    }
+                    this.renderTickets();
+                }
+
+                if (isQuick) {
+                    this.showToast(`⚡ บันทึกจ่ายเงิน Ticket ${ticketNo} สำเร็จ! ย้าย Order [${jobId}] เข้าสู่คิวรอตรวจ QC Online เรียบร้อย (สามารถเลือกตรวจได้ที่เมนู QC)`);
+                } else {
                     this.showToast(`✅ บันทึก Ticket ${ticketNo}, ใบเสร็จ และย้ายเข้าสู่ State 5 (บันทึก BOQ เข้า Project) สำเร็จ`);
                 }
             },
