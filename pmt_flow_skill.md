@@ -102,12 +102,12 @@
 
 ระบบ **PMT Flow** กำหนดมาตรฐานการแสดงผลวันที่สำหรับ**ทุกหน้าจอ ทุกตาราง และทุกการ์ดข้อมูล** ไว้อย่างเคร่งครัด:
 
-### 2.1 รูปแบบวันที่มาตรฐานบังคับ (Mandatory Date Format)
+### 3.1 รูปแบบวันที่มาตรฐานบังคับ (Mandatory Date Format)
 - **วันที่ทั่วไป**: ต้องแสดงผลในรูปแบบ **`DD/MM/YYYY`** (วัน/เดือน/ปี ค.ศ. มีเลข 0 นำหน้า เช่น `07/09/2026`, `15/01/2026`)
 - **วันที่พร้อมเวลา**: ต้องแสดงผลในรูปแบบ **`DD/MM/YYYY HH:mm`** หรือ **`DD/MM/YYYY HH:mm:ss`** (เช่น `07/09/2026 14:30`)
 - **ช่วงวันที่ (Date Range)**: แสดงในรูปแบบ **`DD/MM/YYYY ถึง DD/MM/YYYY`** (เช่น `01/09/2026 ถึง 09/09/2026`)
 
-### 2.2 ขอบเขตการบังคับใช้ (Applicable Scope - All Views)
+### 3.2 ขอบเขตการบังคับใช้ (Applicable Scope - All Views)
 ข้อกำหนดนี้ครอบคลุมทุกหน้าจอในระบบอย่างไม่มีข้อยกเว้น:
 1. **แดชบอร์ดภาพรวม (Dashboard Overview)**: วันที่สร้างคำสั่งซื้อ, วันที่เริ่มงาน, วันที่ส่งมอบ
 2. **Step 1: คิวงานรับคำสั่งซื้อ (Order Intake)**: วันที่รับงาน INT, วันที่นัดสำรวจหน้างาน, วันที่สั่งซื้อ
@@ -120,7 +120,7 @@
 9. **CSAT Survey & สัญญา MA**: วันที่ทำแบบประเมิน, วันที่เริ่ม-สิ้นสุดสัญญา MA, วันรอบตรวจบำรุงรักษา
 10. **User Management & Audit Logs**: วันที่เข้าสู่ระบบล่าสุด (Last Login), วันเวลาที่บันทึก Login Audit Trail
 
-### 2.3 ข้อห้ามและแนวทางปฏิบัติ (Guidelines & Restrictions)
+### 3.3 ข้อห้ามและแนวทางปฏิบัติ (Guidelines & Restrictions)
 - **ข้อห้ามเด็ดขาด**: ห้ามแสดงวันที่ในรูปแบบ `YYYY-MM-DD` (เช่น `2026-09-07`) หรือ `MM/DD/YYYY` (เช่น `09/07/2026`) บนหน้าจอแสดงผลที่ผู้ใช้งานมองเห็น (User-Facing UI)
 - **Input Fields**: สำหรับฟอร์มที่มี `<input type="date">` (ซึ่งเบราว์เซอร์รับค่ามาตรฐานเป็น `YYYY-MM-DD`) เมื่อนำค่าไปแสดงผลในการ์ด, ตาราง, Tooltip หรือ Modal Summary ต้องแปลงเป็น `DD/MM/YYYY` ก่อนแสดงผลเสมอ
 - **Helper Function**: ให้เรียกใช้ฟังก์ชันมาตรฐาน `formatDateDMY(date)` หรือ `app.formatDateDMY(date)` ในการแปลงค่าเสมอ
@@ -230,4 +230,46 @@
      - อัปเดตเนื้อหาในโมดูลที่เกี่ยวข้อง, ผังขั้นตอน End-to-End Workflow, และตาราง Status Transition Reference Table ให้ตรงกับ Process ล่าสุด
 3. **การรับประกันความสอดคล้อง (100% Documentation & Live Code Sync)**:
    - เอกสารและคู่มือทั้งหมดต้องเปิดอ่านได้จริงบนระบบ Online (`https://vibepmt.online`) ผ่านเมนู **"คู่มือ & FAQ ระบบ"** (`nav-faq`) เพื่อให้เจ้าหน้าที่ปฏิบัติงาน, วิทยากรผู้ฝึกอบรม (Trainer), และผู้บริหาร ได้รับข้อมูลที่ถูกต้องตรงกับระบบจริงเสมอ
+
+---
+
+## 📊 9. ข้อกำหนดรูปแบบมุมมองเริ่มต้นของระบบ (Mandatory Default List View Standard: Strictly List View First)
+
+ระบบ **PMT Flow** กำหนดมาตรฐานรูปแบบมุมมองเริ่มต้น (Default Initial View Mode) สำหรับทุกหน้าจอที่มีระบบสลับมุมมอง (View Switchers) ไว้อย่างเคร่งครัด:
+
+### 9.1 รูปแบบมุมมองเริ่มต้นบังคับ (Mandatory Default: List View Only)
+- **มุมมองเริ่มต้น (Default View)**: ทุกโมดูลที่มีปุ่มสลับมุมมองระหว่างแบบการ์ด (Card View) และแบบตารางรายการ (List View) **ต้องเริ่มต้นการแสดงผลเป็น "แบบตารางรายการ (List View)" เสมอ**
+- **เหตุผลความจำเป็น**: 
+  - เพื่อให้เจ้าหน้าที่ (SA / Admin / AE / QC) สามารถกวาดสายตาตรวจสอบข้อมูลคำสั่งซื้อ, ป้ายสถานะ (Status Badges), ป้ายรายการใหม่ (`NEW!`), และวันที่ ได้ครบถ้วนในบรรทัดเดียว
+  - ลดการเลื่อนหน้าจอ (Vertical Scrolling) เมื่อเทียบกับ Card View ที่กินพื้นที่หน้าจอสูง
+  - สะดวกต่อการ Sort, Search, และเปรียบเทียบข้อมูลจำนวนมาก
+- **มุมมองการ์ด (Card View)**: คงไว้เป็นทางเลือกเสริม (Optional Alternative) สำหรับผู้ใช้ที่ต้องการดูภาพตัวอย่างขนาดใหญ่ แต่**ห้ามตั้งเป็นค่าเริ่มต้นของระบบเด็ดขาด**
+
+### 9.2 ขอบเขตหน้าจอและตัวแปรควบคุม (Applicable Modules & Control Variables)
+ข้อกำหนดนี้บังคับใช้กับทุกหน้าจอที่มี View Mode Switcher:
+1. **Step 2: บันทึก Design & แบบแปลนติดตั้ง (Blueprints & CAD)**:
+   - State Variable: `blueprintViewMode = 'list'`
+   - Storage Key: `localStorage.getItem('pmt_blueprint_view_mode') || 'list'`
+   - HTML Active Button: ปุ่ม `#btn-blueprint-view-list` ต้องมีคลาส Active เป็นค่าเริ่มต้น
+2. **Step 3: นำ BOQ เข้าระบบ & ประมาณการราคา (Bill of Quantities)**:
+   - State Variable: `boqViewMode = 'list'`
+   - Storage Key: `localStorage.getItem('pmt_boq_view_mode') || 'list'`
+   - HTML Active Button: ปุ่ม `#btn-boq-view-list` ต้องมีคลาส Active เป็นค่าเริ่มต้น
+3. **Step 4: บันทึก Ticket & แนบใบเสร็จ (Tickets & Receipts)**:
+   - State Variable: `ticketViewMode = 'list'`
+   - Storage Key: `localStorage.getItem('pmt_ticket_view_mode') || 'list'`
+   - HTML Active Button: ปุ่ม `#btn-ticket-view-list` ต้องมีคลาส Active เป็นค่าเริ่มต้น
+4. **Step 5: บันทึก BOQ เข้า Project & แผนงาน Gantt (Conversion)**:
+   - State Variable: `conversionViewMode = 'list'`
+   - Storage Key: `localStorage.getItem('pmt_conversion_view_mode') || 'list'`
+   - HTML Active Button: ปุ่ม `#btn-conversion-view-list` ต้องมีคลาส Active เป็นค่าเริ่มต้น
+5. **Gantt Projects (เลือกโครงการในหน้า Gantt Timeline)**:
+   - State Variable: `projectViewMode = 'list'`
+   - Storage Key: `localStorage.getItem('pmt_project_view_mode') || 'list'`
+   - HTML Active Button: ปุ่ม `#btn-project-view-list` ต้องมีคลาส Active เป็นค่าเริ่มต้น
+
+### 9.3 ข้อกำหนดทางเทคนิค (Technical Safeguards)
+- ทุกฟังก์ชันสลับมุมมอง เช่น `updateBlueprintViewModeButtons()`, `updateBOQViewModeButtons()`, `updateTicketViewModeButtons()`, `updateConversionViewModeButtons()`, `updateProjectViewModeButtons()` ต้องใช้ Fallback Value เป็น `'list'` เสมอ
+- ใน `index.html` แท็กปุ่ม List View ต้องได้รับสไตล์ Active (`bg-white shadow-sm text-indigo-600 font-semibold`) และปุ่ม Card View ต้องเป็น Inactive (`text-slate-500 hover:text-slate-700`)
+
 
