@@ -60,7 +60,7 @@ function persistApiLogs() {
             if (!fs_1.default.existsSync(DATA_DIR)) {
                 fs_1.default.mkdirSync(DATA_DIR, { recursive: true });
             }
-            fs_1.default.writeFileSync(LOGS_FILE, JSON.stringify(exports.sysApiLogStore.slice(0, 500), null, 2), 'utf8');
+            fs_1.default.writeFileSync(LOGS_FILE, JSON.stringify(exports.sysApiLogStore.slice(0, 200)), 'utf8');
         }
         catch (err) {
             console.error('[API LOGS] Failed to persist logs:', err);
@@ -68,6 +68,28 @@ function persistApiLogs() {
     }, 200);
 }
 loadPersistedApiLogs();
+// Cap what a single log entry can hold. Without this, a polled response such as
+// GET /api/v1/jobs (~130 KB) is stored verbatim 500 times over, which bloats the in-memory
+// store, the persisted JSON file, and the GET /api/v1/system/api-logs response.
+const LOG_BODY_MAX_CHARS = 2000;
+function truncateForLog(value) {
+    if (value === null || value === undefined)
+        return value;
+    let raw;
+    try {
+        raw = typeof value === 'string' ? value : JSON.stringify(value);
+    }
+    catch (e) {
+        return '[unserializable]';
+    }
+    if (!raw || raw.length <= LOG_BODY_MAX_CHARS)
+        return value;
+    return {
+        _truncated: true,
+        _original_size_bytes: raw.length,
+        preview: raw.slice(0, LOG_BODY_MAX_CHARS) + '\u2026'
+    };
+}
 // Inbound API Logger Middleware
 app.use((req, res, next) => {
     if (!req.path.startsWith('/api/'))
@@ -137,8 +159,8 @@ app.use((req, res, next) => {
             status: res.statusCode,
             duration_ms: duration,
             headers: safeHeaders,
-            body: safeBody,
-            response_body: capturedResponseBody
+            body: truncateForLog(safeBody),
+            response_body: truncateForLog(capturedResponseBody)
         };
         // Filter repeated routine polling GET /jobs, /ma-contracts, and /ma-checklist-templates
         const isRoutineGet = req.method === 'GET' && (req.path === '/api/v1/jobs' ||
@@ -147,8 +169,12 @@ app.use((req, res, next) => {
             req.path === '/api/ma-checklist-templates' ||
             req.path === '/api/v1/ma-checklist-templates');
         if (isRoutineGet && res.statusCode === 200) {
-            const lastLog = exports.sysApiLogStore[0];
-            if (lastLog && lastLog.method === 'GET' && lastLog.path === logEntry.path && lastLog.status === 200) {
+            // The three routine endpoints are polled in a rotation, so the newest entry is rarely the
+            // same path. Look back over the recent window instead, otherwise dedup never fires.
+            const lastLog = exports.sysApiLogStore
+                .slice(0, 20)
+                .find(l => l.method === 'GET' && l.path === logEntry.path && l.status === 200);
+            if (lastLog) {
                 lastLog.timestamp = logEntry.timestamp;
                 lastLog.duration_ms = logEntry.duration_ms;
                 return;
@@ -164,6 +190,14 @@ app.use((req, res, next) => {
 });
 // Global No-Cache Middleware for Production Browser Anti-Caching
 app.use((req, res, next) => {
+    // Static assets under /public are immutable per deploy and carry an ETag, so let the browser
+    // revalidate instead of re-downloading them (saves ~228 KB on every page load). 'no-cache'
+    // still forces a conditional request, so a new deploy is picked up immediately via 304/200.
+    if (req.path.startsWith('/public/')) {
+        res.setHeader('Cache-Control', 'no-cache');
+        return next();
+    }
+    // HTML shell and every API response must never be stored.
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');

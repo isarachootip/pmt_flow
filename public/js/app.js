@@ -1561,14 +1561,35 @@ const app = {
                     this.fetchMAFromApi();
                     this.fetchApiLogs();
                 }
-                // Polling sync every 3 seconds for live updates (only if logged in)
-                setInterval(() => {
+                // Polling sync for live updates. Runs only when logged in, only while the tab is
+                // visible, and never while the previous round is still in flight - GET /api/v1/jobs
+                // is ~130 KB, so a 3s interval was pushing ~1 request/second and gigabytes per day.
+                this._syncPollInFlight = false;
+                setInterval(async () => {
+                    if (document.hidden) return;
+                    if (this._syncPollInFlight) return;
                     const tok = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
-                    if (tok) {
-                        this.fetchJobsFromApi();
-                        this.fetchMAFromApi();
+                    if (!tok) return;
+                    this._syncPollInFlight = true;
+                    try {
+                        await this.fetchJobsFromApi();
+                        await this.fetchMAFromApi();
+                    } finally {
+                        this._syncPollInFlight = false;
                     }
-                }, 3000);
+                }, 15000);
+
+                // Returning to the tab should not mean waiting out the interval - refresh at once.
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden || this._syncPollInFlight) return;
+                    const tok = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                    if (!tok) return;
+                    this._syncPollInFlight = true;
+                    Promise.resolve()
+                        .then(() => this.fetchJobsFromApi())
+                        .then(() => this.fetchMAFromApi())
+                        .finally(() => { this._syncPollInFlight = false; });
+                });
             },
 
             async fetchJobsFromApi() {
@@ -16201,6 +16222,10 @@ const app = {
             // INBOUND API LOGS METHODS
             // =========================================================================
             async fetchApiLogs(showToast = false) {
+                // This endpoint can be slow on a busy log store; never let calls pile up.
+                if (this._apiLogsInFlight) return;
+                this._apiLogsInFlight = true;
+
                 const spinner = document.getElementById('api-log-refresh-spinner');
                 if (spinner) spinner.classList.add('animate-spin');
 
@@ -16208,7 +16233,7 @@ const app = {
                     const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
                     if (!token) return; // Silent return if not logged in
                     const headers = { 'Authorization': `Bearer ${token}` };
-                    const res = await fetch('/api/v1/system/api-logs?limit=300', { headers });
+                    const res = await fetch('/api/v1/system/api-logs?limit=100', { headers });
                     if (!res.ok) {
                         if (res.status === 401) return; // Silent return on 401
                         throw new Error(`HTTP ${res.status}`);
@@ -16234,6 +16259,7 @@ const app = {
                     console.error('Failed to fetch API logs:', err);
                     if (showToast) this.showToast('⚠️ ไม่สามารถดึงประวัติ API Logs ได้');
                 } finally {
+                    this._apiLogsInFlight = false;
                     if (spinner) {
                         setTimeout(() => spinner.classList.remove('animate-spin'), 400);
                     }
@@ -16243,10 +16269,11 @@ const app = {
             startApiLogAutoRefresh() {
                 this.stopApiLogAutoRefresh();
                 this.state.apiLogAutoRefreshTimer = setInterval(() => {
+                    if (document.hidden) return;
                     if (this.state.currentView === 'api-logs') {
                         this.fetchApiLogs(false);
                     }
-                }, 3000);
+                }, 15000);
             },
 
             stopApiLogAutoRefresh() {
