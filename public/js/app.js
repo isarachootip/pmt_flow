@@ -3729,6 +3729,11 @@ const app = {
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return;
 
+                if (this.isQuickJob(job)) {
+                    this.goToQC(jobId);
+                    return;
+                }
+
                 if (!job.step_timestamps) job.step_timestamps = {};
                 const now = new Date().toISOString();
                 job.step_timestamps.step5_project_at = now;
@@ -4186,8 +4191,35 @@ const app = {
                 const job = (DB.jobs || []).find(j => j.id === id);
                 if (job && this.isQuickJob(job)) {
                     this.state.qcSegmentFilter = 'quick';
+                    if (job.status !== 'QC_PENDING' && job.status !== 'QC_PASSED' && job.status !== 'QC_REWORK' && job.status !== 'COMPLETED') {
+                        job.status = 'QC_PENDING';
+                        job.qc_inspection_type = 'ONLINE';
+                        job.qc_type = 'ONLINE';
+                        job.progress = Math.max(job.progress || 0, 85);
+                        if (!job.step_timestamps) job.step_timestamps = {};
+                        const now = new Date().toISOString();
+                        if (!job.step_timestamps.qc_pending_at) job.step_timestamps.qc_pending_at = now;
+                        if (!job.step_timestamps.step5_skipped_at) job.step_timestamps.step5_skipped_at = now;
+                        if (!job.photos || job.photos.length === 0) {
+                            job.photos = this.getSampleVisitPlanPhotos(job);
+                        }
+                        this.recordStepTimestamp(id, 'qc_pending_at', now, 'ย้ายงาน Quick Service เข้าสู่คิวรอตรวจ QC Online (Step 6)');
+                        this.persistJobs();
+                        fetch(`/api/v1/jobs/${id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                status: job.status,
+                                overall_progress: job.progress,
+                                qc_inspection_type: job.qc_inspection_type,
+                                step_timestamps: job.step_timestamps
+                            })
+                        }).catch(() => {});
+                    }
                 }
                 this.state.qcTab = 'inspection';
+                this.updateStepBadges();
+                this.updateQCBadges();
                 this.navigate('qc');
                 this.switchQCTab('inspection');
                 if (job && this.isQuickJob(job)) {
@@ -8178,9 +8210,15 @@ const app = {
                                                         <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')" title="ดูสลิปใบเสร็จ">
                                                             <i class="ph ph-eye"></i> <span>ดูสลิป</span>
                                                         </button>
-                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-amber-500 hover:bg-amber-600 text-white shadow-xs" onclick="app.proceedJobToConversion('${t.job_id}')" title="ส่งต่อแปลงเข้า Project (Step 5)">
+                                                        ${job && this.isQuickJob(job) ? `
+                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-cyan-600 hover:bg-cyan-700 text-white shadow-xs transition hover:scale-105" onclick="app.goToQC('${t.job_id}')" title="ไปตรวจคุณภาพ QC Online (Step 6)">
+                                                            <i class="ph ph-globe"></i> <span>ไป QC (Step 6) ➔</span>
+                                                        </button>
+                                                        ` : `
+                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition hover:scale-105" onclick="app.proceedJobToConversion('${t.job_id}')" title="ส่งต่อแปลงเข้า Project (Step 5)">
                                                             <i class="ph ph-lightning"></i> <span>Step 5 ➔</span>
                                                         </button>
+                                                        `}
                                                         <button class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer text-rose-500 hover:bg-rose-500/10 transition" title="ลบ Ticket" onclick="app.deleteTicket('${t.id}')">
                                                             <i class="ph ph-trash"></i>
                                                         </button>
@@ -8250,9 +8288,15 @@ const app = {
                                         </button>
                                     </div>
                                     <div class="flex items-center gap-1.5">
+                                        ${job && this.isQuickJob(job) ? `
+                                        <button class="btn-artifact-primary px-3 py-1 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-cyan-600 hover:bg-cyan-700 text-white shadow-xs transition hover:scale-102" onclick="app.goToQC('${t.job_id}')" title="ไปตรวจคุณภาพ QC Online (Step 6)">
+                                            <i class="ph ph-globe"></i> <span>ไป QC (Step 6) ➔</span>
+                                        </button>
+                                        ` : `
                                         <button class="btn-artifact-primary px-3 py-1 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition hover:scale-102" onclick="app.proceedJobToConversion('${t.job_id}')" title="ส่งต่อแปลงเข้า Project (Step 5)">
                                             <span>Step 5 ➔</span>
                                         </button>
+                                        `}
                                         <button class="p-1.5 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition cursor-pointer" onclick="app.deleteTicket('${t.id}')" title="ลบ Ticket">
                                             <i class="ph ph-trash text-sm"></i>
                                         </button>
@@ -8494,6 +8538,14 @@ const app = {
                 if (this.state.currentView === 'tickets') {
                     this.switchTicketTab('library');
                     this.renderTickets();
+                } else if (this.state.currentView === 'jobs') {
+                    this.renderJobs();
+                } else if (this.state.currentView === 'dashboard') {
+                    this.renderDashboard();
+                } else if (this.state.currentView === 'qc') {
+                    this.renderQC();
+                } else if (this.state.currentView === 'job-detail') {
+                    this.renderJobDetail();
                 } else {
                     this.renderTickets();
                 }
@@ -9128,9 +9180,11 @@ const app = {
                                                         <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-purple-600 hover:bg-purple-700 text-white shadow-xs" onclick="app.proceedJobToTickets('${j.id}')" title="ส่งต่อไปยัง Step 4">
                                                             <span>ออก Ticket ➔</span>
                                                         </button>
+                                                        ${!this.isQuickJob(j) ? `
                                                         <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium cursor-pointer" onclick="app.proceedToStep5Project('${j.id}')" title="แปลงเข้า Project Step 5">
                                                             <span>Step 5</span> <i class="ph ph-arrow-right"></i>
                                                         </button>
+                                                        ` : ''}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -9221,9 +9275,11 @@ const app = {
                                         <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-purple-600 hover:bg-purple-700 text-white shadow-xs" onclick="app.proceedJobToTickets('${j.id}')" title="ส่งต่อไปยัง Step 4 (ออก Ticket & สลิป)">
                                             <span>ออก Ticket ➔</span>
                                         </button>
+                                        ${!this.isQuickJob(j) ? `
                                         <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer" onclick="app.proceedToStep5Project('${j.id}')" title="แปลงเป็นแผนงานโครงการ (Step 5)">
                                             <span>Step 5</span> <i class="ph ph-arrow-right"></i>
                                         </button>
+                                        ` : ''}
                                     </div>
                                 </div>
                             </div>
@@ -9944,6 +10000,11 @@ const app = {
 
             proceedToStep5Project(jobId) {
                 const targetJobId = jobId || this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
+                const job = (DB.jobs || []).find(j => j.id === targetJobId);
+                if (job && this.isQuickJob(job)) {
+                    this.goToQC(targetJobId);
+                    return;
+                }
                 this.state.selectedConversionJobId = targetJobId;
                 this.state.selectedGanttJobId = targetJobId;
                 this.navigate('project-conversion', targetJobId);
