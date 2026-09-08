@@ -361,6 +361,49 @@ const app = {
                 }
             },
 
+            formatDateDMY(dateInput) {
+                if (!dateInput) return '-';
+                try {
+                    const str = String(dateInput).trim();
+                    if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
+                        return str;
+                    }
+                    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+                        const parts = str.split('T')[0].split('-');
+                        if (parts.length === 3) {
+                            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                        }
+                    }
+                    const d = new Date(dateInput);
+                    if (!isNaN(d.getTime())) {
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const year = d.getFullYear();
+                        return `${day}/${month}/${year}`;
+                    }
+                } catch(e) {}
+                return String(dateInput);
+            },
+
+            formatDateTimeDMY(isoStr, withSeconds = true) {
+                if (!isoStr) return '-';
+                try {
+                    const d = new Date(isoStr);
+                    if (isNaN(d.getTime())) return String(isoStr);
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const year = d.getFullYear();
+                    const hours = String(d.getHours()).padStart(2, '0');
+                    const minutes = String(d.getMinutes()).padStart(2, '0');
+                    const seconds = String(d.getSeconds()).padStart(2, '0');
+                    return withSeconds 
+                        ? `${day}/${month}/${year} ${hours}:${minutes}:${seconds} น.`
+                        : `${day}/${month}/${year} ${hours}:${minutes} น.`;
+                } catch(e) {
+                    return String(isoStr);
+                }
+            },
+
             getJobStepAuditReportData(jobId) {
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return null;
@@ -2135,7 +2178,7 @@ const app = {
                                 ${idx === 0 ? `<span class="badge-new-item text-[8px] py-0 px-1.5" title="สถานะล่าสุด"><i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!</span>` : ''}
                             </div>
                             <span class="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
-                                <i class="ph ph-clock"></i> ${j.date}
+                                <i class="ph ph-clock"></i> ${this.formatDateDMY(j.date)}
                             </span>
                         </div>
                         <div class="text-xs font-medium text-foreground group-hover:text-brand-500 transition truncate">${j.customer}</div>
@@ -4489,7 +4532,7 @@ const app = {
                                     ${this.isTop3LatestJob(job) ? `<span class="badge-new-item" title="3 รายการล่าสุดที่รับเข้า (NEW!)"><i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!</span>` : ''}
                                     <span class="text-xs text-muted-foreground">/ ${job.customer}</span>
                                 </div>
-                                <p class="text-[11px] text-muted-foreground">นัดติดตั้ง: <strong class="text-foreground font-medium">${job.date}</strong> ${job.start_time ? `<span class="text-brand-600 dark:text-brand-400 font-mono font-medium">(${job.start_time}${job.end_time ? ' - ' + job.end_time : ''} น.)</span>` : ''} • ผู้รับผิดชอบ: <strong class="text-foreground font-semibold">${job.tech}</strong></p>
+                                <p class="text-[11px] text-muted-foreground">นัดติดตั้ง: <strong class="text-foreground font-medium">${this.formatDateDMY(job.date)}</strong> ${job.start_time ? `<span class="text-brand-600 dark:text-brand-400 font-mono font-medium">(${job.start_time}${job.end_time ? ' - ' + job.end_time : ''} น.)</span>` : ''} • ผู้รับผิดชอบ: <strong class="text-foreground font-semibold">${job.tech}</strong></p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
@@ -5034,7 +5077,7 @@ const app = {
                                                 </td>
                                                 <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${b.size}</td>
                                                 <td class="py-3 px-4 text-muted-foreground text-[11px]">${b.designer || 'Designer'}</td>
-                                                <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${b.date}</td>
+                                                <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${this.formatDateDMY(b.date)}</td>
                                                 <td class="py-3 px-4 text-right whitespace-nowrap">
                                                     <div class="flex items-center justify-end gap-1.5">
                                                         <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white" onclick="app.openBlueprintLightbox('${b.id}')" title="ดูตัวอย่างแบบ">
@@ -5100,7 +5143,7 @@ const app = {
                                 <div class="pt-3 border-t border-border flex items-center justify-between text-[10px] text-muted-foreground">
                                     <div>
                                         <div>${b.designer || 'Designer'}</div>
-                                        <div class="text-[9px] font-mono opacity-75">${b.date}</div>
+                                        <div class="text-[9px] font-mono opacity-75">${this.formatDateDMY(b.date)}</div>
                                     </div>
                                     <div class="flex items-center gap-1.5 flex-wrap justify-end">
                                         <button class="btn-artifact-secondary px-2 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:border-indigo-500 hover:text-indigo-600 transition" onclick="app.openUploadBlueprintModal('${b.jobId}')" title="เพิ่มแบบแปลนห้องอื่นให้งานนี้">
@@ -6001,7 +6044,7 @@ const app = {
                     this.renderDashboard();
                 }
 
-                this.showToast(`🎉 บันทึก BOQ & กำหนดวันเริ่ม ${job.date} (${job.start_time} น.) ถึง ${job.end_date} (${job.end_time} น.) ช่าง: ${job.tech} เรียบร้อย!`);
+                this.showToast(`🎉 บันทึก BOQ & กำหนดวันเริ่ม ${this.formatDateDMY(job.date)} (${job.start_time} น.) ถึง ${this.formatDateDMY(job.end_date)} (${job.end_time} น.) ช่าง: ${job.tech} เรียบร้อย!`);
             },
 
             openImportBOQModal(jobId) {
@@ -7580,7 +7623,7 @@ const app = {
                                                         ` : ''}
                                                     </div>
                                                 </td>
-                                                <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${job.date || '-'}</td>
+                                                <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${this.formatDateDMY(job.date)}</td>
                                                 <td class="py-3 px-4 font-medium text-foreground">
                                                     <div class="flex items-center gap-1.5">
                                                         <span>${job.customer}</span>
@@ -7669,7 +7712,7 @@ const app = {
                                 <div class="bg-muted/40 p-2.5 rounded-xl text-xs space-y-1 border border-border/50">
                                     <div class="flex items-center justify-between text-[11px]">
                                         <span class="text-muted-foreground flex items-center gap-1"><i class="ph ph-wrench"></i> ${job.service}</span>
-                                        <span class="font-mono text-muted-foreground">${job.date || '-'}</span>
+                                        <span class="font-mono text-muted-foreground">${this.formatDateDMY(job.date)}</span>
                                     </div>
                                     <div class="flex items-center justify-between text-[11px] pt-1 border-t border-border/40">
                                         <span class="text-muted-foreground">ช่าง: <strong class="text-foreground">${job.tech || 'ยังไม่ระบุ'}</strong></span>
@@ -16690,4 +16733,6 @@ const app = {
         document.addEventListener('DOMContentLoaded', () => {
             app.init();
         });
-window.app = app;
+        window.app = app;
+        window.formatDateDMY = (d) => app.formatDateDMY(d);
+        window.formatDateTimeDMY = (d, s) => app.formatDateTimeDMY(d, s);
