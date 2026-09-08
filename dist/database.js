@@ -608,122 +608,188 @@ async function dbWipeAllTransactions() {
         await exports.pool.query('DELETE FROM core_jobs;');
     }
 }
-// 10 Mock Jobs Data Generator for INT simulation
+// 16 Mock Jobs Data Generator for INT simulation (8 Quick, 8 Renovate)
 async function dbSeedMockJobs() {
     if (!exports.isDatabaseConnected)
         return 0;
     const mockCustomers = [
-        { id: 1, customer_code: 'CUST-001', first_name: 'ธนกฤต', last_name: 'อัครเดชาภัทร', phone: '081-456-7890', address: '168/22 หมู่บ้านเพอร์เฟค มาสเตอร์พีซ ถนนกรุงเทพกรีฑาตัดใหม่ แขวงคลองสองต้นนุ่น เขตลาดกระบัง กรุงเทพฯ 10520', lat: 13.7380, lng: 100.7245 },
-        { id: 2, customer_code: 'CUST-002', first_name: 'กุลนารี', last_name: 'ทรงเกียรติ', phone: '094-567-8901', address: '72/9 หมู่บ้านนันทวัน บางนา กม.8 ตำบลบางแก้ว อำเภอบางพลี สมุทรปราการ 10540', lat: 13.6521, lng: 100.6654 },
-        { id: 3, customer_code: 'CUST-003', first_name: 'ปิยมาภรณ์', last_name: 'เกียรติไพบูลย์', phone: '086-789-1234', address: '88/182 โครงการ Life Asoke Hype ถนนอโศก-ดินแดง แขวงมักกะสัน เขตราชเทวี กรุงเทพฯ 10400', lat: 13.7542, lng: 100.5580 },
-        { id: 4, customer_code: 'CUST-004', first_name: 'ชัชวาล', last_name: 'วัฒนปรีดา', phone: '083-901-2345', address: '98/44 หมู่บ้านอินดี้ บางใหญ่ ซอยคลองถนน ตำบลเสาธงหิน อำเภอบางใหญ่ นนทบุรี 11140', lat: 13.8821, lng: 100.4072 },
-        { id: 5, customer_code: 'CUST-005', first_name: 'ศิรวิชญ์', last_name: 'เมธาอนันต์', phone: '089-321-4567', address: '55/12 หมู่บ้านบ้านกลางเมือง สาทร-สุขสวัสดิ์ แขวงบางปะกอก เขตราษฎร์บูรณะ กรุงเทพฯ 10140', lat: 13.6789, lng: 100.5050 },
-        { id: 6, customer_code: 'CUST-006', first_name: 'พรรณพิไล', last_name: 'จารุวรรณ', phone: '091-234-5678', address: '214/8 หมู่บ้านลัดดารมย์ ราชพฤกษ์-รัตนาธิเบศร์ ตำบลบางรักน้อย อำเภอเมืองนนทบุรี นนทบุรี 11000', lat: 13.8745, lng: 100.4560 },
-        { id: 7, customer_code: 'CUST-007', first_name: 'อรุณี', last_name: 'รัตนประเสริฐ', phone: '085-890-2345', address: '102/15 ซอยแจ้งวัฒนะ 14 แขวงทุ่งสองห้อง เขตหลักสี่ กรุงเทพฯ 10210', lat: 13.8912, lng: 100.5678 },
-        { id: 8, customer_code: 'CUST-008', first_name: 'วรภัทร', last_name: 'ชาญวิชิต', phone: '082-345-6789', address: '333/58 โครงการ The Monument ทองหล่อ ซอยทองหล่อ แขวงคลองตันเหนือ เขตวัฒนา กรุงเทพฯ 10110', lat: 13.7360, lng: 100.5830 },
-        { id: 9, customer_code: 'CUST-009', first_name: 'ธีรภัทร', last_name: 'อัศวโภคิน', phone: '087-654-3210', address: '412/1-2 ถนนพระราม 3 แขวงบางคอแหลม เขตบางคอแหลม กรุงเทพฯ 10120', lat: 13.6934, lng: 100.5021 },
-        { id: 10, customer_code: 'CUST-010', first_name: 'เบญจวรรณ', last_name: 'พัฒนศิริ', phone: '095-432-1098', address: '500/89 คอนโด ควินทิลเลียน ปิ่นเกล้า ถนนบรมราชชนนี แขวงอรุณอมรินทร์ เขตบางกอกน้อย กรุงเทพฯ 10700', lat: 13.7780, lng: 100.4780 }
+        { id: 1, customer_code: 'CUST-001', first_name: 'ภาคิน', last_name: 'วรโชติเมธี', phone: '081-912-3456', address: '88/15 หมู่บ้านเซนโทร รามอินทรา-จตุโชติ แขวงออเงิน เขตสายไหม กรุงเทพฯ 10220', lat: 13.8892, lng: 100.6721 },
+        { id: 2, customer_code: 'CUST-002', first_name: 'ณัฐนพิน', last_name: 'รัตนวิบูลย์', phone: '092-823-4567', address: '142/36 โครงการ เดอะ แกรนด์ พระราม 2 ตำบลพันท้ายนรสิงห์ อำเภอเมืองสมุทรสาคร สมุทรสาคร 74000', lat: 13.5824, lng: 100.3789 },
+        { id: 3, customer_code: 'CUST-003', first_name: 'ชวินท์', last_name: 'ก้องธนภัทร', phone: '086-734-5678', address: '29/88 คอนโด ไอดีโอ คิว จุฬา-สามย่าน ถนนพระราม 4 แขวงสี่พระยา เขตบางรัก กรุงเทพฯ 10500', lat: 13.7315, lng: 100.5284 },
+        { id: 4, customer_code: 'CUST-004', first_name: 'ลภัสรดา', last_name: 'สิริวัฒนกุล', phone: '095-645-6789', address: '512/18 หมู่บ้านเศรษฐสิริ กรุงเทพกรีฑา แขวงหัวหมาก เขตบางกะปิ กรุงเทพฯ 10240', lat: 13.7512, lng: 100.6845 },
+        { id: 5, customer_code: 'CUST-005', first_name: 'ภัทรดนัย', last_name: 'อัครโยธิน', phone: '083-556-7890', address: '63/4 ทาวน์โฮม บ้านกลางเมือง ลาดพร้าว-เสรีไทย แขวงคลองกุ่ม เขตบึงกุ่ม กรุงเทพฯ 10240', lat: 13.7845, lng: 100.6698 },
+        { id: 6, customer_code: 'CUST-006', first_name: 'นภัสสร', last_name: 'บุญญานุวัตร', phone: '091-467-8901', address: '189/27 หมู่บ้านเพอร์เฟค เพลส รังสิต-ทางด่วนบางพูน ตำบลบ้านกลาง อำเภอเมืองปทุมธานี ปทุมธานี 12000', lat: 13.9921, lng: 100.5784 },
+        { id: 7, customer_code: 'CUST-007', first_name: 'ภูมิภัทร', last_name: 'ชาญปรีชา', phone: '087-378-9012', address: '75/10 อาคารพาณิชย์ 4 ชั้น ถนนเพชรเกษม แขวงบางหว้า เขตภาษีเจริญ กรุงเทพฯ 10160', lat: 13.7145, lng: 100.4489 },
+        { id: 8, customer_code: 'CUST-008', first_name: 'วริศรา', last_name: 'กิตติโภคิน', phone: '084-289-0123', address: '450/92 คอนโด แอชตัน สีลม ถนนสีลม แขวงสุริยวงศ์ เขตบางรัก กรุงเทพฯ 10500', lat: 13.7258, lng: 100.5267 },
+        { id: 9, customer_code: 'CUST-009', first_name: 'เอกภาพ', last_name: 'พงษ์ศิริพาณิชย์', phone: '098-190-1234', address: '310/55 หมู่บ้านมัณฑนา ราชพฤกษ์-นครอินทร์ ตำบลบางขุนกอง อำเภอบางกรวย นนทบุรี 11130', lat: 13.8245, lng: 100.4412 },
+        { id: 10, customer_code: 'CUST-010', first_name: 'กัญญารัตน์', last_name: 'โสภณพิทักษ์', phone: '089-091-2345', address: '99/124 หมู่บ้านสราญสิริ ชัยพฤกษ์-แจ้งวัฒนะ ตำบลบางพลับ อำเภอปากเกร็ด นนทบุรี 11120', lat: 13.9245, lng: 100.4789 },
+        { id: 11, customer_code: 'CUST-011', first_name: 'ธนพล', last_name: 'วรเกียรติกุล', phone: '085-902-3456', address: '204/18 โครงการ แกรนด์ บางกอก บูเลอวาร์ด สาทร-กัลปพฤกษ์ แขวงบางแค เขตบางแค กรุงเทพฯ 10160', lat: 13.6985, lng: 100.4125 },
+        { id: 12, customer_code: 'CUST-012', first_name: 'นันทิกานต์', last_name: 'เตชะไพบูลย์', phone: '093-813-4567', address: '77/205 คอนโด เดอะ ริทซ์-คาร์ลตัน เรสซิเดนเซส บางกอก ถนนนราธิวาสราชนครินทร์ แขวงสีลม เขตบางรัก กรุงเทพฯ 10500', lat: 13.7234, lng: 100.5298 },
+        { id: 13, customer_code: 'CUST-013', first_name: 'ปัณณธร', last_name: 'พัฒนประเสริฐ', phone: '082-724-5678', address: '120/45 หมู่บ้านวิลเลจจิโอ ประชาอุทิศ 90 ตำบลแหลมฟ้าผ่า อำเภอพระสมุทรเจดีย์ สมุทรปราการ 10290', lat: 13.5982, lng: 100.5124 },
+        { id: 14, customer_code: 'CUST-014', first_name: 'มนัสชนก', last_name: 'ศรีวิชัยพฤกษ์', phone: '096-635-6789', address: '38/66 ทาวน์โฮม พาทิโอ แจ้งวัฒนะ-เมืองทองธานี ตำบลคลองเกลือ อำเภอปากเกร็ด นนทบุรี 11120', lat: 13.9124, lng: 100.5489 },
+        { id: 15, customer_code: 'CUST-015', first_name: 'รัชชานนท์', last_name: 'เมธาบวรกุล', phone: '080-546-7890', address: '155/12 หมู่บ้านบุราสิริ พัฒนาการ แขวงประเวศ เขตประเวศ กรุงเทพฯ 10250', lat: 13.7189, lng: 100.6712 },
+        { id: 16, customer_code: 'CUST-016', first_name: 'พิชญ์สินี', last_name: 'อัครวิวัฒน์', phone: '094-457-8901', address: '620/14 อาคารโฮมออฟฟิศ 4 ชั้น ถนนนวลจันทร์ แขวงนวลจันทร์ เขตบึงกุ่ม กรุงเทพฯ 10230', lat: 13.8214, lng: 100.6458 }
     ];
     const mockJobs = [
         {
             id: 1, job_no: 'JOB202609001', external_ref_id: 'INT-2026-001', customer_id: 1, status: 'NEW', job_type: 'quick',
             property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Installation',
-            project_sub_type: 'ติดตั้งเครื่องชาร์จรถยนต์ไฟฟ้า EV Charger 22kW พร้อมเดินสายเมนและตู้ Consumer แยก',
-            assigned_tech: 'Team C (วิชัย)', plan_date: '2026-09-08',
-            services: ['ติดตั้งเครื่องชาร์จรถยนต์ไฟฟ้า EV Charger 22kW พร้อมเดินสายเมนและตู้ Consumer แยก'],
+            project_sub_type: 'ติดตั้งระบบโซลาร์เซลล์ On-Grid ขนาด 5kW พร้อม Microinverter Enphase และระบบ Smart Monitoring',
+            assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-08',
+            services: ['ติดตั้งระบบโซลาร์เซลล์ On-Grid ขนาด 5kW พร้อม Microinverter Enphase และระบบ Smart Monitoring'],
             overall_progress: 0,
-            special_instructions: 'ลูกค้าขอนัดเข้างานหลัง 09:30 น. กรุณาสวมรองเท้าเซฟตี้และปูผ้าใบคลุมพื้นโรงจอดรถ',
-            additional_notes: 'ตรวจสอบมิเตอร์ไฟ กฟน. ขนาด 30(100)A แล้ว รองรับการเดินสายไฟขนาด 16 sq.mm. เข้าตู้ย่อย'
+            special_instructions: 'ตรวจเช็คโครงสร้างหลังคาซีแพคโมเนียก่อนขึ้นติดตั้งแผงโซลาร์ และประสานงานขอขนานไฟ กฟน.',
+            additional_notes: 'สายไฟ DC Solar PV1-F ขนาด 4 sq.mm. พร้อมท่อร้อยสาย EMT และตู้ Combiner Box ป้องกันเสิร์จ AC/DC'
         },
         {
             id: 2, job_no: 'JOB202609002', external_ref_id: 'INT-2026-002', customer_id: 2, status: 'NEW', job_type: 'renovate',
             property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Renovate',
-            project_sub_type: 'รีโนเวทห้องน้ำผู้สูงอายุ Universal Design ปูกระเบื้อง R11 ติดตั้งราวจับและสุขภัณฑ์อัตโนมัติ',
-            assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-08',
-            services: ['รีโนเวทห้องน้ำผู้สูงอายุ Universal Design ปูกระเบื้อง R11 ติดตั้งราวจับและสุขภัณฑ์อัตโนมัติ'],
+            project_sub_type: 'รีโนเวทห้องครัวไทยด้านนอก สไตล์ Modern Loft เคาน์เตอร์ปูนเปลือยขัดมันพร้อมเตาแก๊สฝังและเครื่องดูดควัน 1600 m3/h',
+            assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-09-08',
+            services: ['รีโนเวทห้องครัวไทยด้านนอก สไตล์ Modern Loft เคาน์เตอร์ปูนเปลือยขัดมันพร้อมเตาแก๊สฝังและเครื่องดูดควัน 1600 m3/h'],
             overall_progress: 0,
-            special_instructions: 'ปรับระดับพื้นห้องน้ำให้เป็นระนาบเดียวกับภายนอก (Zero Threshold) ป้องกันการสะดุด',
-            additional_notes: 'สกัดพื้นเดิมทำระบบกันซึม 3 ชั้น ติดตั้ง Floor Drain รางยาวระบายน้ำรวดเร็ว'
+            special_instructions: 'วางระบบท่อดักไขมันใต้ซิงค์ล้างจาน ต่อท่อระบายควันออกเหนือหลังคาไม่อยู่ในทิศทางลมพัดเข้าบ้านข้างเคียง',
+            additional_notes: 'ปูกระเบื้องผนัง Subway Tile เช็ดล้างทำความสะอาดคราบน้ำมันง่าย พื้นกระเบื้องแกรนิตโต้ผิวด้านกันลื่น R10'
         },
         {
             id: 3, job_no: 'JOB202609003', external_ref_id: 'INT-2026-003', customer_id: 3, status: 'NEW', job_type: 'quick',
             property_type: 'คอนโดมิเนียม', project_type: 'Installation',
-            project_sub_type: 'ติดตั้ง Digital Door Lock ระบบสแกนใบหน้า 3D Face Recognition & Smart App',
-            assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-09',
-            services: ['ติดตั้ง Digital Door Lock ระบบสแกนใบหน้า 3D Face Recognition & Smart App'],
+            project_sub_type: 'ติดตั้งเครื่องฟอกอากาศระบบ Fresh Air ฝังฝ้า พร้อมระบบท่อลมระบายอากาศลดฝุ่น PM2.5 และ CO2',
+            assigned_tech: 'Team C (วิชัย)', plan_date: '2026-09-09',
+            services: ['ติดตั้งเครื่องฟอกอากาศระบบ Fresh Air ฝังฝ้า พร้อมระบบท่อลมระบายอากาศลดฝุ่น PM2.5 และ CO2'],
             overall_progress: 0,
-            special_instructions: 'ติดต่อนิติบุคคลคอนโดแลกบัตรช่างก่อนขึ้นอาคาร ห้ามเจาะประตูส่งเสียงดังหลัง 16:00 น.',
-            additional_notes: 'ประตูไม้สักหนา 45 มม. เช็คระยะ Backset 60 มม. ก่อนเจาะตลับกุญแจ Mortise Lock'
+            special_instructions: 'เจาะช่องผนังภายนอกสำหรับท่อระบายลมต้องใช้หัวเพชร Coring กันฝุ่นฟุ้งกระจายในห้องชุด',
+            additional_notes: 'ใช้เครื่องแลกเปลี่ยนความร้อน ERV อัตราการไหล 150 CMH ตัวกรอง HEPA H13 ดักฝุ่น 99.95%'
         },
         {
             id: 4, job_no: 'JOB202609004', external_ref_id: 'INT-2026-004', customer_id: 4, status: 'NEW', job_type: 'renovate',
-            property_type: 'ทาวน์โฮม 2 ชั้น', project_type: 'Renovate',
-            project_sub_type: 'ต่อเติมห้องครัวหลังบ้านและลานซักล้าง ลงเสาเข็มไมโครไพล์ i22 พร้อมปูกระเบื้องและก่อเคาน์เตอร์ปูน',
-            assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-09-09',
-            services: ['ต่อเติมห้องครัวหลังบ้านและลานซักล้าง ลงเสาเข็มไมโครไพล์ i22 พร้อมปูกระเบื้องและก่อเคาน์เตอร์ปูน'],
+            property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Renovate',
+            project_sub_type: 'ต่อเติมหลังคาโรงจอดรถโครงสร้างเหล็กกล่องกัลวาไนซ์ แผ่น Shinkolite ป้องกันรังสี UV พร้อมรางน้ำสแตนเลสซ่อนขอบ',
+            assigned_tech: 'Team D (กิตติศักดิ์)', plan_date: '2026-09-09',
+            services: ['ต่อเติมหลังคาโรงจอดรถโครงสร้างเหล็กกล่องกัลวาไนซ์ แผ่น Shinkolite ป้องกันรังสี UV พร้อมรางน้ำสแตนเลสซ่อนขอบ'],
             overall_progress: 0,
-            special_instructions: 'ตอกเสาเข็มไมโครไพล์ 4 ต้น ป้องกันโครงสร้างส่วนต่อเติมทรุดตัวดึงตัวบ้านหลัก',
-            additional_notes: 'เว้น Joint โฟมรอยต่อระหว่างตัวบ้านกับส่วนต่อเติม 2 ซม. ยาแนวด้วยโพลียูรีเทน (PU) กันน้ำซึม'
+            special_instructions: 'ลงเสาเข็มสปันไมโครไพล์ Spun Micropile 4 จุด เพื่อป้องกันการทรุดเอียงในระยะยาว',
+            additional_notes: 'แผ่นอะคริลิก Shinkolite รุ่น Heat Cut กรองความร้อนได้ 60% ยึดด้วยระบบ EPDM Rubber Gasket ป้องกันรั่วซึม 100%'
         },
         {
             id: 5, job_no: 'JOB202609005', external_ref_id: 'INT-2026-005', customer_id: 5, status: 'NEW', job_type: 'quick',
             property_type: 'ทาวน์โฮม 3 ชั้น', project_type: 'Installation',
-            project_sub_type: 'เปลี่ยนเครื่องทำน้ำร้อน 6000W แบบ Multipoint พร้อมเดินท่อน้ำร้อน PPR เชื่อมก๊อกผสม Rain Shower',
-            assigned_tech: 'Team D (กิตติศักดิ์)', plan_date: '2026-09-10',
-            services: ['เปลี่ยนเครื่องทำน้ำร้อน 6000W แบบ Multipoint พร้อมเดินท่อน้ำร้อน PPR เชื่อมก๊อกผสม Rain Shower'],
+            project_sub_type: 'ติดตั้งเครื่องกรองน้ำดื่มระบบ RO อุตสาหกรรมในครัวเรือน 400 GPD แบบไร้ถังแรงดัน พร้อมก๊อกน้ำ Smart Faucet',
+            assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-09-10',
+            services: ['ติดตั้งเครื่องกรองน้ำดื่มระบบ RO อุตสาหกรรมในครัวเรือน 400 GPD แบบไร้ถังแรงดัน พร้อมก๊อกน้ำ Smart Faucet'],
             overall_progress: 0,
-            special_instructions: 'ตรวจเช็คสายดินและทดสอบเบรกเกอร์ ELCB 3 ครั้งก่อนส่งมอบงานให้ลูกค้าทดลองใช้งาน',
-            additional_notes: 'ติดตั้งใต้อ่างล้างหน้าชั้น 2 ตรวจสอบแรงดันน้ำก่อนและหลังเปิดเครื่อง'
+            special_instructions: 'เจาะท็อปเคาน์เตอร์หินแกรนิตด้วยหัวเจาะกระเบื้องอย่างระมัดระวัง ตรวจเช็คค่าน้ำ TDS ขาเข้าและขาออก',
+            additional_notes: 'แรงดันน้ำประปาขั้นต่ำ 2.5 บาร์ ติดตั้งระบบกรองคาร์บอนบล็อกและ Post-Carbon สกัดกลิ่นคลอรีนสมบูรณ์แบบ'
         },
         {
             id: 6, job_no: 'JOB202609006', external_ref_id: 'INT-2026-006', customer_id: 6, status: 'NEW', job_type: 'renovate',
             property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Renovate',
-            project_sub_type: 'รีโนเวทระเบียงสระว่ายน้ำ รื้อพื้นเดิมปูไม้เทียม WPC เกรดพรีเมียมพร้อมติดตั้งไฟ Solar Pathway',
-            assigned_tech: 'Team D (กิตติศักดิ์)', plan_date: '2026-09-10',
-            services: ['รีโนเวทระเบียงสระว่ายน้ำ รื้อพื้นเดิมปูไม้เทียม WPC เกรดพรีเมียมพร้อมติดตั้งไฟ Solar Pathway'],
+            project_sub_type: 'รีโนเวทห้องน้ำ Master Bathroom สไตล์ Minimal Luxury รื้ออ่างเดิมติดตั้งอ่างอาบน้ำลอยตัวและกระจกกั้นโซนเปียกฉากทอง',
+            assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-10',
+            services: ['รีโนเวทห้องน้ำ Master Bathroom สไตล์ Minimal Luxury รื้ออ่างเดิมติดตั้งอ่างอาบน้ำลอยตัวและกระจกกั้นโซนเปียกฉากทอง'],
             overall_progress: 0,
-            special_instructions: 'ปรับสโลปทางระบายน้ำลงสู่รางรอบสระว่ายน้ำอย่างระมัดระวัง คลุมสระกันเศษฝุ่น',
-            additional_notes: 'โครงตงเหล็กกัลวาไนซ์กันสนิม ยึดด้วยคลิปล็อคสแตนเลส 304 ไม้เทียมรับน้ำหนัก 500 กก./ตร.ม.'
+            special_instructions: 'ทำระบบกันซึมสูตรซีเมนต์ 3 ชั้น รอแห้งตัวทดสอบขังน้ำ 48 ชั่วโมงก่อนปูกระเบื้องหินอ่อน Porcelain 60x120 ซม.',
+            additional_notes: 'ท่อน้ำทิ้งดักกลิ่น P-Trap ทองเหลืองแท้ ผนังซ่อนไฟ LED Warm White 3000K พร้อมสวิตช์หรี่แสง'
         },
         {
             id: 7, job_no: 'JOB202609007', external_ref_id: 'INT-2026-007', customer_id: 7, status: 'NEW', job_type: 'quick',
-            property_type: 'บ้านเดี่ยว 1 ชั้น', project_type: 'Installation',
-            project_sub_type: 'ติดตั้งปั๊มน้ำ Inverter แรงดันคงที่ Grundfos พร้อมระบบกรองน้ำใช้ Big Blue 2 ขั้นตอน',
-            assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-09-11',
-            services: ['ติดตั้งปั๊มน้ำ Inverter แรงดันคงที่ Grundfos พร้อมระบบกรองน้ำใช้ Big Blue 2 ขั้นตอน'],
+            property_type: 'อาคารพาณิชย์ 4 ชั้น', project_type: 'Installation',
+            project_sub_type: 'ติดตั้งระบบกล้องวงจรปิด IP Camera 4K AI Human Detection 8 จุด พร้อมเครื่องบันทึก NVR และตู้ Rack POE',
+            assigned_tech: 'Team D (กิตติศักดิ์)', plan_date: '2026-09-11',
+            services: ['ติดตั้งระบบกล้องวงจรปิด IP Camera 4K AI Human Detection 8 จุด พร้อมเครื่องบันทึก NVR และตู้ Rack POE'],
             overall_progress: 0,
-            special_instructions: 'มีผู้สูงอายุพักผ่อนในบ้าน ทดสอบเสียงการทำงานของปั๊มน้ำและเช็คการรั่วซึมทุกจุด',
-            additional_notes: 'ทำฐานยางรองลดแรงสั่นสะเทือน ติดตั้งบายพาสวาล์วคู่ขนานสำหรับกรณีฉุกเฉินไฟดับ'
+            special_instructions: 'เดินสาย LAN Cat6 ชนิด Shielded ร้อยท่อขาวขนานแนวกำแพง เซ็ตอัพระบบดูออนไลน์ผ่านมือถือให้เจ้าของบ้าน',
+            additional_notes: 'Harddisk เกรดกล้องวงจรปิด 6TB สำรองภาพได้ 30 วัน พร้อมระบบแจ้งเตือน Line Notify ทันทีเมื่อตรวจพบบุคคลแปลกหน้า'
         },
         {
             id: 8, job_no: 'JOB202609008', external_ref_id: 'INT-2026-008', customer_id: 8, status: 'NEW', job_type: 'renovate',
-            property_type: 'คอนโดมิเนียม ดูเพล็กซ์', project_type: 'Renovate',
-            project_sub_type: 'กั้นห้องกระจกบานเลื่อน Slim Frameless กระจกลามิเนต Acoustic เก็บเสียง สำหรับโฮมออฟฟิศ',
+            property_type: 'คอนโดมิเนียม', project_type: 'Renovate',
+            project_sub_type: 'รีโนเวทระเบียงห้องชุดคอนโด ปูพื้นกระเบื้องลายไม้กันน้ำ ติดตั้งระแนงบังตาอลูมิเนียมลายไม้และสวนแนวตั้งระบบรดน้ำอัตโนมัติ',
             assigned_tech: 'Team C (วิชัย)', plan_date: '2026-09-11',
-            services: ['กั้นห้องกระจกบานเลื่อน Slim Frameless กระจกลามิเนต Acoustic เก็บเสียง สำหรับโฮมออฟฟิศ'],
+            services: ['รีโนเวทระเบียงห้องชุดคอนโด ปูพื้นกระเบื้องลายไม้กันน้ำ ติดตั้งระแนงบังตาอลูมิเนียมลายไม้และสวนแนวตั้งระบบรดน้ำอัตโนมัติ'],
             overall_progress: 0,
-            special_instructions: 'ขนย้ายกระจกผ่านลิฟต์ขนของเฉพาะเวลา 10:00 - 15:00 น. เท่านั้น',
-            additional_notes: 'ใช้โปรไฟล์อลูมิเนียมเกรดหนา 2.0 มม. กระจกลามิเนต 5+5 มม. ซีลสักหลาดและซิลิโคนอะคูสติก'
+            special_instructions: 'ตรวจสอบกฎระเบียบของนิติบุคคลคอนโดเรื่องสีระแนงและความสูงของต้นไม้ก่อนเริ่มติดตั้งจริง',
+            additional_notes: 'ใช้วัสดุระแนงอลูมิเนียมเคลือบอบสี Powder Coat ทนแดด ทนฝน ไม่เป็นสนิม ติดตั้งระบบท่อน้ำหยดตั้งเวลา Smart Timer'
         },
         {
-            id: 9, job_no: 'JOB202609009', external_ref_id: 'INT-2026-009', customer_id: 9, status: 'NEW', job_type: 'renovate',
-            property_type: 'อาคารพาณิชย์ 4 ชั้น', project_type: 'Renovate',
-            project_sub_type: 'รีโนเวทฝ้าเพดานหลุมซ่อนไฟ LED พร้อมติดฉนวนกันความร้อน Stay Cool 150 มม. เหนือฝ้าชั้นดาดฟ้า',
+            id: 9, job_no: 'JOB202609009', external_ref_id: 'INT-2026-009', customer_id: 9, status: 'NEW', job_type: 'quick',
+            property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Installation',
+            project_sub_type: 'ติดตั้งมอเตอร์ประตูรั้วรีโมทอัตโนมัติแบบ DC High-Speed รองรับเปิด-ปิดด้วยแอป Smart Home และระบบสำรองไฟ',
             assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-12',
-            services: ['รีโนเวทฝ้าเพดานหลุมซ่อนไฟ LED พร้อมติดฉนวนกันความร้อน Stay Cool 150 มม. เหนือฝ้าชั้นดาดฟ้า'],
+            services: ['ติดตั้งมอเตอร์ประตูรั้วรีโมทอัตโนมัติแบบ DC High-Speed รองรับเปิด-ปิดด้วยแอป Smart Home และระบบสำรองไฟ'],
             overall_progress: 0,
-            special_instructions: 'สำรวจคราบน้ำและรอยแตกลายงาใต้พื้นดาดฟ้าก่อนตีโครงคร่าว C-Line ชนิดหนาพิเศษ',
-            additional_notes: 'แผ่นยิปซัมขอบลาดตราช้างหนา 9 มม. งานฉาบรอยต่อ 3 เที่ยว ขัดเรียบพร้อมทาสีรองพื้นฝ้าเพดาน'
+            special_instructions: 'ทดสอบระบบเซนเซอร์กันหนีบ Safety Photocell 2 ระดับ ทั้งตอนเปิดและปิดประตูรั้ว',
+            additional_notes: 'มอเตอร์รับน้ำหนักประตู 1,000 กก. ระบบ Slow-down นุ่มนวล แบตเตอรี่สำรองเปิดปิดได้ต่อเนื่อง 40 ครั้งขณะไฟดับ'
         },
         {
             id: 10, job_no: 'JOB202609010', external_ref_id: 'INT-2026-010', customer_id: 10, status: 'NEW', job_type: 'renovate',
-            property_type: 'คอนโดมิเนียม', project_type: 'Renovate',
-            project_sub_type: 'รีโนเวทห้องนอนใหญ่ ออกแบบตกแต่ง Built-in ตู้เสื้อผ้า Walk-in Closet ไม้ MDF กันชื้นปิดผิวลามิเนต',
+            property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Renovate',
+            project_sub_type: 'รีโนเวทห้องนั่งเล่นและห้องรับแขก Built-in ผนังตกแต่งลายหินอ่อน Bookmatch ซ่อนไฟหลืบและตู้โชว์โครงอลูมิเนียมกระจกชาทอง',
             assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-09-12',
-            services: ['รีโนเวทห้องนอนใหญ่ ออกแบบตกแต่ง Built-in ตู้เสื้อผ้า Walk-in Closet ไม้ MDF กันชื้นปิดผิวลามิเนต'],
+            services: ['รีโนเวทห้องนั่งเล่นและห้องรับแขก Built-in ผนังตกแต่งลายหินอ่อน Bookmatch ซ่อนไฟหลืบและตู้โชว์โครงอลูมิเนียมกระจกชาทอง'],
             overall_progress: 0,
-            special_instructions: 'ติดตั้งระบบไฟ LED Strip ซ่อนในรางอลูมิเนียม พร้อมเซนเซอร์เปิดปิดอัตโนมัติเมื่อเปิดตู้',
-            additional_notes: 'บานพับ Soft-close แบรนด์ Blum รางลิ้นชักรับน้ำหนัก 30 กก. ปิดรอยต่อชนฝ้าเพดานด้วยบัวบน'
+            special_instructions: 'วัดระดับแนวดิ่งและแนวราบด้วยเลเซอร์ความแม่นยำสูง ปูผ้าใบคลุมเฟอร์นิเจอร์และพื้นไม้ปาร์เกต์เดิมอย่างหนาแน่น',
+            additional_notes: 'แผ่นลายหินอ่อนอะคริลิกไฮกลอสไร้รอยต่อ บานพับ Soft Close แบรนด์ Blum รับประกันการใช้งาน 10 ปี'
+        },
+        {
+            id: 11, job_no: 'JOB202609011', external_ref_id: 'INT-2026-011', customer_id: 11, status: 'NEW', job_type: 'quick',
+            property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Installation',
+            project_sub_type: 'ติดตั้งเครื่องทำน้ำอุ่นระบบดิจิทัล 4500W พร้อมชุดฝักบัว Rain Shower ปรับระดับและระบบตัดไฟนิรภัย ELCB แบบคู่',
+            assigned_tech: 'Team C (วิชัย)', plan_date: '2026-09-13',
+            services: ['ติดตั้งเครื่องทำน้ำอุ่นระบบดิจิทัล 4500W พร้อมชุดฝักบัว Rain Shower ปรับระดับและระบบตัดไฟนิรภัย ELCB แบบคู่'],
+            overall_progress: 0,
+            special_instructions: 'ตรวจเช็คหลักดิน (Ground Rod) ยาว 2.4 เมตร วัดค่าความต้านทานดินไม่เกิน 5 โอห์มตามมาตรฐาน วสท.',
+            additional_notes: 'เดินสายเมนทองแดง THW 4 sq.mm. เบรกเกอร์ควบคุม RCBO 20A แยกอิสระจากตู้โหลดเซ็นเตอร์'
+        },
+        {
+            id: 12, job_no: 'JOB202609012', external_ref_id: 'INT-2026-012', customer_id: 12, status: 'NEW', job_type: 'renovate',
+            property_type: 'คอนโดมิเนียม ดูเพล็กซ์', project_type: 'Renovate',
+            project_sub_type: 'รีโนเวทห้องทำงานส่วนตัว Acoustic Home Studio บุผนังและฝ้าซับเสียง Rockwool พร้อมติดตั้งแผ่น Acoustic Diffuser ไม้แท้',
+            assigned_tech: 'Team D (กิตติศักดิ์)', plan_date: '2026-09-13',
+            services: ['รีโนเวทห้องทำงานส่วนตัว Acoustic Home Studio บุผนังและฝ้าซับเสียง Rockwool พร้อมติดตั้งแผ่น Acoustic Diffuser ไม้แท้'],
+            overall_progress: 0,
+            special_instructions: 'งานบุฉนวนต้องสวมชุดป้องกันมิดชิด ขนย้ายวัสดุขึ้นอาคารตามรอบเวลาของนิติบุคคล 10:00 - 15:00 น.',
+            additional_notes: 'ลดเสียงก้องและกันเสียงรบกวนออกภายนอกได้ถึง STC 55 ประตูกันเสียงแบบ Double Seal และช่องแอร์ซ่อนแดมเปอร์ลดเสียงลม'
+        },
+        {
+            id: 13, job_no: 'JOB202609013', external_ref_id: 'INT-2026-013', customer_id: 13, status: 'NEW', job_type: 'quick',
+            property_type: 'ทาวน์โฮม 2 ชั้น', project_type: 'Installation',
+            project_sub_type: 'ติดตั้งเครื่องปรับอากาศ Inverter 24,000 BTU เบอร์ 5 สามดาว พร้อมเดินท่อน้ำยาหุ้มฉนวน Aeroflex และรางครอบท่อพรีเมียม',
+            assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-09-14',
+            services: ['ติดตั้งเครื่องปรับอากาศ Inverter 24,000 BTU เบอร์ 5 สามดาว พร้อมเดินท่อน้ำยาหุ้มฉนวน Aeroflex และรางครอบท่อพรีเมียม'],
+            overall_progress: 0,
+            special_instructions: 'แวคคั่มระบบสูญญากาศนาน 30 นาที และตรวจสอบแรงดันน้ำยา R32 ให้ได้มาตรฐานก่อนส่งมอบงาน',
+            additional_notes: 'ขาแขวนคอยล์ร้อนแบบมีแผ่นยางรองซับแรงสั่นสะเทือน ติดตั้งท่อน้ำทิ้ง PVC ต่อลงท่อระบายน้ำโดยตรง'
+        },
+        {
+            id: 14, job_no: 'JOB202609014', external_ref_id: 'INT-2026-014', customer_id: 14, status: 'NEW', job_type: 'renovate',
+            property_type: 'ทาวน์โฮม 2 ชั้น', project_type: 'Renovate',
+            project_sub_type: 'ปรับปรุงพื้นที่รอบบ้าน เทคอนกรีตพิมพ์ลาย Stamped Concrete ลายหินธรรมชาติ European Fan พร้อมระบบระบายน้ำผิวดิน',
+            assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-14',
+            services: ['ปรับปรุงพื้นที่รอบบ้าน เทคอนกรีตพิมพ์ลาย Stamped Concrete ลายหินธรรมชาติ European Fan พร้อมระบบระบายน้ำผิวดิน'],
+            overall_progress: 0,
+            special_instructions: 'บดอัดดินและทรายหยาบหนา 15 ซม. ปูเหล็กวายเมชขนาด 4 มม. ระยะห่าง 15 ซม. เทคอนกรีตกำลังอัด 280 ksc',
+            additional_notes: 'เคลือบน้ำยาอะคริลิกซีลเลอร์สูตรเงาพิเศษ 2 รอบ ป้องกันคราบตะไคร่น้ำและรังสียูวี รับประกันสีไม่ลอกร่อน 3 ปี'
+        },
+        {
+            id: 15, job_no: 'JOB202609015', external_ref_id: 'INT-2026-015', customer_id: 15, status: 'NEW', job_type: 'quick',
+            property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Installation',
+            project_sub_type: 'ติดตั้งชุดสวิตช์และเต้ารับ Smart Switch Zigbee ทั้งหลัง ควบคุมแสงสว่างผ่านเสียงและตั้งเวลาซีนอัตโนมัติ',
+            assigned_tech: 'Team D (กิตติศักดิ์)', plan_date: '2026-09-15',
+            services: ['ติดตั้งชุดสวิตช์และเต้ารับ Smart Switch Zigbee ทั้งหลัง ควบคุมแสงสว่างผ่านเสียงและตั้งเวลาซีนอัตโนมัติ'],
+            overall_progress: 0,
+            special_instructions: 'เดินสายนิวทรัล (N-Line) เพิ่มเติมสำหรับสวิตช์อัจฉริยะทุกจุดเพื่อความเสถียรสูงสุดของสัญญาณ Zigbee',
+            additional_notes: 'ติดตั้ง Zigbee 3.0 Gateway แบบต่อสาย LAN เข้า Router กลาง พร้อมจับคู่สมาร์ทโฟน 4 เครื่องในครอบครัว'
+        },
+        {
+            id: 16, job_no: 'JOB202609016', external_ref_id: 'INT-2026-016', customer_id: 16, status: 'NEW', job_type: 'renovate',
+            property_type: 'โฮมออฟฟิศ 4 ชั้น', project_type: 'Renovate',
+            project_sub_type: 'รีโนเวทห้องประชุม Co-working Space ติดตั้งระบบผนังบานเลื่อนกระจกกั้นห้องเก็บเสียงและระบบจอ Smart Board พร้อมระบบไฟ Dimmer',
+            assigned_tech: 'Team C (วิชัย)', plan_date: '2026-09-15',
+            services: ['รีโนเวทห้องประชุม Co-working Space ติดตั้งระบบผนังบานเลื่อนกระจกกั้นห้องเก็บเสียงและระบบจอ Smart Board พร้อมระบบไฟ Dimmer'],
+            overall_progress: 0,
+            special_instructions: 'ทดสอบระบบรางแขวนบนเพดานโครงสร้างเหล็ก I-Beam รองรับน้ำหนักบานกระจกได้จุดละไม่น้อยกว่า 300 กก.',
+            additional_notes: 'รางเลื่อนระบบ Soft-close รางคู่ ซีลขอบยางกันเสียงรบกวน ปลั๊กไฟ Pop-up ติดตั้งกลางโต๊ะประชุมเชื่อมระบบ HDMI/Type-C'
         }
     ];
     const baseTime = Date.now();

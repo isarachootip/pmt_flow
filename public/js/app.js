@@ -856,7 +856,7 @@ const app = {
                 if (this.state.currentView === 'csat') this.renderCSAT();
                 if (this.state.currentView === 'ma-contracts') this.renderMAContracts();
 
-                this.showToast('🗑️ ล้างข้อมูลโครงการและรายการ Transaction ทั้งหมดเป็น 0 เรียบร้อยแล้ว (สามารถกด "จำลอง 10 งาน" หรือ "รับ Order ใหม่" ได้ทุกเมื่อ)');
+                this.showToast('🗑️ ล้างข้อมูลโครงการและรายการ Transaction ทั้งหมดเป็น 0 เรียบร้อยแล้ว (สามารถกด "จำลอง 16 งาน" หรือ "รับ Order ใหม่" ได้ทุกเมื่อ)');
             },
 
             getINTMockOrders() {
@@ -866,17 +866,17 @@ const app = {
                         job_no: 'JOB202609001',
                         job_type: 'quick',
                         external_ref_id: 'INT-2026-001',
-                        customer: 'คุณธนกฤต อัครเดชาภัทร',
-                        phone: '081-456-7890',
-                        service: 'ติดตั้งเครื่องชาร์จรถยนต์ไฟฟ้า EV Charger 22kW พร้อมเดินสายเมนและตู้ Consumer แยก',
-                        services: ['ติดตั้งเครื่องชาร์จรถยนต์ไฟฟ้า EV Charger 22kW พร้อมเดินสายเมนและตู้ Consumer แยก'],
+                        customer: 'คุณภาคิน วรโชติเมธี',
+                        phone: '081-912-3456',
+                        service: 'ติดตั้งระบบโซลาร์เซลล์ On-Grid ขนาด 5kW พร้อม Microinverter Enphase และระบบ Smart Monitoring',
+                        services: ['ติดตั้งระบบโซลาร์เซลล์ On-Grid ขนาด 5kW พร้อม Microinverter Enphase และระบบ Smart Monitoring'],
                         status: 'DRAFT',
                         date: '2026-09-08',
                         progress: 0,
-                        address: '168/22 หมู่บ้านเพอร์เฟค มาสเตอร์พีซ ถนนกรุงเทพกรีฑาตัดใหม่ แขวงคลองสองต้นนุ่น เขตลาดกระบัง กรุงเทพฯ 10520',
-                        tech: 'Team C (วิชัย)',
-                        special_instructions: 'ลูกค้าขอนัดเข้างานหลัง 09:30 น. กรุณาสวมรองเท้าเซฟตี้และปูผ้าใบคลุมพื้นโรงจอดรถ',
-                        additional_notes: 'ตรวจสอบมิเตอร์ไฟ กฟน. ขนาด 30(100)A แล้ว รองรับการเดินสายไฟขนาด 16 sq.mm. เข้าตู้ย่อย',
+                        address: '88/15 หมู่บ้านเซนโทร รามอินทรา-จตุโชติ แขวงออเงิน เขตสายไหม กรุงเทพฯ 10220',
+                        tech: 'Team A (สมศักดิ์)',
+                        special_instructions: 'ตรวจเช็คโครงสร้างหลังคาซีแพคโมเนียก่อนขึ้นติดตั้งแผงโซลาร์ และประสานงานขอขนานไฟ กฟน.',
+                        additional_notes: 'สายไฟ DC Solar PV1-F ขนาด 4 sq.mm. พร้อมท่อร้อยสาย EMT และตู้ Combiner Box ป้องกันเสิร์จ AC/DC',
                         photos: [],
                         boq_items: [],
                         boq_discount: 0,
@@ -890,17 +890,17 @@ const app = {
                         job_no: 'JOB202609002',
                         job_type: 'renovate',
                         external_ref_id: 'INT-2026-002',
-                        customer: 'คุณกุลนารี ทรงเกียรติ',
-                        phone: '094-567-8901',
-                        service: 'รีโนเวทห้องน้ำผู้สูงอายุ Universal Design ปูกระเบื้อง R11 ติดตั้งราวจับและสุขภัณฑ์อัตโนมัติ',
-                        services: ['รีโนเวทห้องน้ำผู้สูงอายุ Universal Design ปูกระเบื้อง R11 ติดตั้งราวจับและสุขภัณฑ์อัตโนมัติ'],
+                        customer: 'คุณณัฐนพิน รัตนวิบูลย์',
+                        phone: '092-823-4567',
+                        service: 'รีโนเวทห้องครัวไทยด้านนอก สไตล์ Modern Loft เคาน์เตอร์ปูนเปลือยขัดมันพร้อมเตาแก๊สฝังและเครื่องดูดควัน 1600 m3/h',
+                        services: ['รีโนเวทห้องครัวไทยด้านนอก สไตล์ Modern Loft เคาน์เตอร์ปูนเปลือยขัดมันพร้อมเตาแก๊สฝังและเครื่องดูดควัน 1600 m3/h'],
                         status: 'DRAFT',
                         date: '2026-09-08',
                         progress: 0,
-                        address: '72/9 หมู่บ้านนันทวัน บางนา กม.8 ตำบลบางแก้ว อำเภอบางพลี สมุทรปราการ 10540',
-                        tech: 'Team A (สมศักดิ์)',
-                        special_instructions: 'ปรับระดับพื้นห้องน้ำให้เป็นระนาบเดียวกับภายนอก (Zero Threshold) ป้องกันการสะดุด',
-                        additional_notes: 'สกัดพื้นเดิมทำระบบกันซึม 3 ชั้น ติดตั้ง Floor Drain รางยาวระบายน้ำรวดเร็ว',
+                        address: '142/36 โครงการ เดอะ แกรนด์ พระราม 2 ตำบลพันท้ายนรสิงห์ อำเภอเมืองสมุทรสาคร สมุทรสาคร 74000',
+                        tech: 'Team B (ประเสริฐ)',
+                        special_instructions: 'วางระบบท่อดักไขมันใต้ซิงค์ล้างจาน ต่อท่อระบายควันออกเหนือหลังคาไม่อยู่ในทิศทางลมพัดเข้าบ้านข้างเคียง',
+                        additional_notes: 'ปูกระเบื้องผนัง Subway Tile เช็ดล้างทำความสะอาดคราบน้ำมันง่าย พื้นกระเบื้องแกรนิตโต้ผิวด้านกันลื่น R10',
                         photos: [],
                         boq_items: [],
                         boq_discount: 0,
@@ -913,17 +913,17 @@ const app = {
                         job_no: 'JOB202609003',
                         job_type: 'quick',
                         external_ref_id: 'INT-2026-003',
-                        customer: 'คุณปิยมาภรณ์ เกียรติไพบูลย์',
-                        phone: '086-789-1234',
-                        service: 'ติดตั้ง Digital Door Lock ระบบสแกนใบหน้า 3D Face Recognition & Smart App',
-                        services: ['ติดตั้ง Digital Door Lock ระบบสแกนใบหน้า 3D Face Recognition & Smart App'],
+                        customer: 'คุณชวินท์ ก้องธนภัทร',
+                        phone: '086-734-5678',
+                        service: 'ติดตั้งเครื่องฟอกอากาศระบบ Fresh Air ฝังฝ้า พร้อมระบบท่อลมระบายอากาศลดฝุ่น PM2.5 และ CO2',
+                        services: ['ติดตั้งเครื่องฟอกอากาศระบบ Fresh Air ฝังฝ้า พร้อมระบบท่อลมระบายอากาศลดฝุ่น PM2.5 และ CO2'],
                         status: 'DRAFT',
                         date: '2026-09-09',
                         progress: 0,
-                        address: '88/182 โครงการ Life Asoke Hype ถนนอโศก-ดินแดง แขวงมักกะสัน เขตราชเทวี กรุงเทพฯ 10400',
-                        tech: 'Team A (สมศักดิ์)',
-                        special_instructions: 'ติดต่อนิติบุคคลคอนโดแลกบัตรช่างก่อนขึ้นอาคาร ห้ามเจาะประตูส่งเสียงดังหลัง 16:00 น.',
-                        additional_notes: 'ประตูไม้สักหนา 45 มม. เช็คระยะ Backset 60 มม. ก่อนเจาะตลับกุญแจ Mortise Lock',
+                        address: '29/88 คอนโด ไอดีโอ คิว จุฬา-สามย่าน ถนนพระราม 4 แขวงสี่พระยา เขตบางรัก กรุงเทพฯ 10500',
+                        tech: 'Team C (วิชัย)',
+                        special_instructions: 'เจาะช่องผนังภายนอกสำหรับท่อระบายลมต้องใช้หัวเพชร Coring กันฝุ่นฟุ้งกระจายในห้องชุด',
+                        additional_notes: 'ใช้เครื่องแลกเปลี่ยนความร้อน ERV อัตราการไหล 150 CMH ตัวกรอง HEPA H13 ดักฝุ่น 99.95%',
                         photos: [],
                         boq_items: [],
                         boq_discount: 0,
@@ -936,17 +936,17 @@ const app = {
                         job_no: 'JOB202609004',
                         job_type: 'renovate',
                         external_ref_id: 'INT-2026-004',
-                        customer: 'คุณชัชวาล วัฒนปรีดา',
-                        phone: '083-901-2345',
-                        service: 'ต่อเติมห้องครัวหลังบ้านและลานซักล้าง ลงเสาเข็มไมโครไพล์ i22 พร้อมปูกระเบื้องและก่อเคาน์เตอร์ปูน',
-                        services: ['ต่อเติมห้องครัวหลังบ้านและลานซักล้าง ลงเสาเข็มไมโครไพล์ i22 พร้อมปูกระเบื้องและก่อเคาน์เตอร์ปูน'],
+                        customer: 'คุณลภัสรดา สิริวัฒนกุล',
+                        phone: '095-645-6789',
+                        service: 'ต่อเติมหลังคาโรงจอดรถโครงสร้างเหล็กกล่องกัลวาไนซ์ แผ่น Shinkolite ป้องกันรังสี UV พร้อมรางน้ำสแตนเลสซ่อนขอบ',
+                        services: ['ต่อเติมหลังคาโรงจอดรถโครงสร้างเหล็กกล่องกัลวาไนซ์ แผ่น Shinkolite ป้องกันรังสี UV พร้อมรางน้ำสแตนเลสซ่อนขอบ'],
                         status: 'DRAFT',
                         date: '2026-09-09',
                         progress: 0,
-                        address: '98/44 หมู่บ้านอินดี้ บางใหญ่ ซอยคลองถนน ตำบลเสาธงหิน อำเภอบางใหญ่ นนทบุรี 11140',
-                        tech: 'Team B (ประเสริฐ)',
-                        special_instructions: 'ตอกเสาเข็มไมโครไพล์ 4 ต้น ป้องกันโครงสร้างส่วนต่อเติมทรุดตัวดึงตัวบ้านหลัก',
-                        additional_notes: 'เว้น Joint โฟมรอยต่อระหว่างตัวบ้านกับส่วนต่อเติม 2 ซม. ยาแนวด้วยโพลียูรีเทน (PU) กันน้ำซึม',
+                        address: '512/18 หมู่บ้านเศรษฐสิริ กรุงเทพกรีฑา แขวงหัวหมาก เขตบางกะปิ กรุงเทพฯ 10240',
+                        tech: 'Team D (กิตติศักดิ์)',
+                        special_instructions: 'ลงเสาเข็มสปันไมโครไพล์ Spun Micropile 4 จุด เพื่อป้องกันการทรุดเอียงในระยะยาว',
+                        additional_notes: 'แผ่นอะคริลิก Shinkolite รุ่น Heat Cut กรองความร้อนได้ 60% ยึดด้วยระบบ EPDM Rubber Gasket ป้องกันรั่วซึม 100%',
                         photos: [],
                         boq_items: [],
                         boq_discount: 0,
@@ -959,17 +959,17 @@ const app = {
                         job_no: 'JOB202609005',
                         job_type: 'quick',
                         external_ref_id: 'INT-2026-005',
-                        customer: 'คุณศิรวิชญ์ เมธาอนันต์',
-                        phone: '089-321-4567',
-                        service: 'เปลี่ยนเครื่องทำน้ำร้อน 6000W แบบ Multipoint พร้อมเดินท่อน้ำร้อน PPR เชื่อมก๊อกผสม Rain Shower',
-                        services: ['เปลี่ยนเครื่องทำน้ำร้อน 6000W แบบ Multipoint พร้อมเดินท่อน้ำร้อน PPR เชื่อมก๊อกผสม Rain Shower'],
+                        customer: 'คุณภัทรดนัย อัครโยธิน',
+                        phone: '083-556-7890',
+                        service: 'ติดตั้งเครื่องกรองน้ำดื่มระบบ RO อุตสาหกรรมในครัวเรือน 400 GPD แบบไร้ถังแรงดัน พร้อมก๊อกน้ำ Smart Faucet',
+                        services: ['ติดตั้งเครื่องกรองน้ำดื่มระบบ RO อุตสาหกรรมในครัวเรือน 400 GPD แบบไร้ถังแรงดัน พร้อมก๊อกน้ำ Smart Faucet'],
                         status: 'DRAFT',
                         date: '2026-09-10',
                         progress: 0,
-                        address: '55/12 หมู่บ้านบ้านกลางเมือง สาทร-สุขสวัสดิ์ แขวงบางปะกอก เขตราษฎร์บูรณะ กรุงเทพฯ 10140',
-                        tech: 'Team D (กิตติศักดิ์)',
-                        special_instructions: 'ตรวจเช็คสายดินและทดสอบเบรกเกอร์ ELCB 3 ครั้งก่อนส่งมอบงานให้ลูกค้าทดลองใช้งาน',
-                        additional_notes: 'ติดตั้งใต้อ่างล้างหน้าชั้น 2 ตรวจสอบแรงดันน้ำก่อนและหลังเปิดเครื่อง',
+                        address: '63/4 ทาวน์โฮม บ้านกลางเมือง ลาดพร้าว-เสรีไทย แขวงคลองกุ่ม เขตบึงกุ่ม กรุงเทพฯ 10240',
+                        tech: 'Team B (ประเสริฐ)',
+                        special_instructions: 'เจาะท็อปเคาน์เตอร์หินแกรนิตด้วยหัวเจาะกระเบื้องอย่างระมัดระวัง ตรวจเช็คค่าน้ำ TDS ขาเข้าและขาออก',
+                        additional_notes: 'แรงดันน้ำประปาขั้นต่ำ 2.5 บาร์ ติดตั้งระบบกรองคาร์บอนบล็อกและ Post-Carbon สกัดกลิ่นคลอรีนสมบูรณ์แบบ',
                         photos: [],
                         boq_items: [],
                         boq_discount: 0,
@@ -982,17 +982,17 @@ const app = {
                         job_no: 'JOB202609006',
                         job_type: 'renovate',
                         external_ref_id: 'INT-2026-006',
-                        customer: 'คุณพรรณพิไล จารุวรรณ',
-                        phone: '091-234-5678',
-                        service: 'รีโนเวทระเบียงสระว่ายน้ำ รื้อพื้นเดิมปูไม้เทียม WPC เกรดพรีเมียมพร้อมติดตั้งไฟ Solar Pathway',
-                        services: ['รีโนเวทระเบียงสระว่ายน้ำ รื้อพื้นเดิมปูไม้เทียม WPC เกรดพรีเมียมพร้อมติดตั้งไฟ Solar Pathway'],
+                        customer: 'คุณนภัสสร บุญญานุวัตร',
+                        phone: '091-467-8901',
+                        service: 'รีโนเวทห้องน้ำ Master Bathroom สไตล์ Minimal Luxury รื้ออ่างเดิมติดตั้งอ่างอาบน้ำลอยตัวและกระจกกั้นโซนเปียกฉากทอง',
+                        services: ['รีโนเวทห้องน้ำ Master Bathroom สไตล์ Minimal Luxury รื้ออ่างเดิมติดตั้งอ่างอาบน้ำลอยตัวและกระจกกั้นโซนเปียกฉากทอง'],
                         status: 'DRAFT',
                         date: '2026-09-10',
                         progress: 0,
-                        address: '214/8 หมู่บ้านลัดดารมย์ ราชพฤกษ์-รัตนาธิเบศร์ ตำบลบางรักน้อย อำเภอเมืองนนทบุรี นนทบุรี 11000',
-                        tech: 'Team D (กิตติศักดิ์)',
-                        special_instructions: 'ปรับสโลปทางระบายน้ำลงสู่รางรอบสระว่ายน้ำอย่างระมัดระวัง คลุมสระกันเศษฝุ่น',
-                        additional_notes: 'โครงตงเหล็กกัลวาไนซ์กันสนิม ยึดด้วยคลิปล็อคสแตนเลส 304 ไม้เทียมรับน้ำหนัก 500 กก./ตร.ม.',
+                        address: '189/27 หมู่บ้านเพอร์เฟค เพลส รังสิต-ทางด่วนบางพูน ตำบลบ้านกลาง อำเภอเมืองปทุมธานี ปทุมธานี 12000',
+                        tech: 'Team A (สมศักดิ์)',
+                        special_instructions: 'ทำระบบกันซึมสูตรซีเมนต์ 3 ชั้น รอแห้งตัวทดสอบขังน้ำ 48 ชั่วโมงก่อนปูกระเบื้องหินอ่อน Porcelain 60x120 ซม.',
+                        additional_notes: 'ท่อน้ำทิ้งดักกลิ่น P-Trap ทองเหลืองแท้ ผนังซ่อนไฟ LED Warm White 3000K พร้อมสวิตช์หรี่แสง',
                         photos: [],
                         boq_items: [],
                         boq_discount: 0,
@@ -1005,17 +1005,17 @@ const app = {
                         job_no: 'JOB202609007',
                         job_type: 'quick',
                         external_ref_id: 'INT-2026-007',
-                        customer: 'คุณอรุณี รัตนประเสริฐ',
-                        phone: '085-890-2345',
-                        service: 'ติดตั้งปั๊มน้ำ Inverter แรงดันคงที่ Grundfos พร้อมระบบกรองน้ำใช้ Big Blue 2 ขั้นตอน',
-                        services: ['ติดตั้งปั๊มน้ำ Inverter แรงดันคงที่ Grundfos พร้อมระบบกรองน้ำใช้ Big Blue 2 ขั้นตอน'],
+                        customer: 'คุณภูมิภัทร ชาญปรีชา',
+                        phone: '087-378-9012',
+                        service: 'ติดตั้งระบบกล้องวงจรปิด IP Camera 4K AI Human Detection 8 จุด พร้อมเครื่องบันทึก NVR และตู้ Rack POE',
+                        services: ['ติดตั้งระบบกล้องวงจรปิด IP Camera 4K AI Human Detection 8 จุด พร้อมเครื่องบันทึก NVR และตู้ Rack POE'],
                         status: 'DRAFT',
                         date: '2026-09-11',
                         progress: 0,
-                        address: '102/15 ซอยแจ้งวัฒนะ 14 แขวงทุ่งสองห้อง เขตหลักสี่ กรุงเทพฯ 10210',
-                        tech: 'Team B (ประเสริฐ)',
-                        special_instructions: 'มีผู้สูงอายุพักผ่อนในบ้าน ทดสอบเสียงการทำงานของปั๊มน้ำและเช็คการรั่วซึมทุกจุด',
-                        additional_notes: 'ทำฐานยางรองลดแรงสั่นสะเทือน ติดตั้งบายพาสวาล์วคู่ขนานสำหรับกรณีฉุกเฉินไฟดับ',
+                        address: '75/10 อาคารพาณิชย์ 4 ชั้น ถนนเพชรเกษม แขวงบางหว้า เขตภาษีเจริญ กรุงเทพฯ 10160',
+                        tech: 'Team D (กิตติศักดิ์)',
+                        special_instructions: 'เดินสาย LAN Cat6 ชนิด Shielded ร้อยท่อขาวขนานแนวกำแพง เซ็ตอัพระบบดูออนไลน์ผ่านมือถือให้เจ้าของบ้าน',
+                        additional_notes: 'Harddisk เกรดกล้องวงจรปิด 6TB สำรองภาพได้ 30 วัน พร้อมระบบแจ้งเตือน Line Notify ทันทีเมื่อตรวจพบบุคคลแปลกหน้า',
                         photos: [],
                         boq_items: [],
                         boq_discount: 0,
@@ -1028,17 +1028,17 @@ const app = {
                         job_no: 'JOB202609008',
                         job_type: 'renovate',
                         external_ref_id: 'INT-2026-008',
-                        customer: 'คุณวรภัทร ชาญวิชิต',
-                        phone: '082-345-6789',
-                        service: 'กั้นห้องกระจกบานเลื่อน Slim Frameless กระจกลามิเนต Acoustic เก็บเสียง สำหรับโฮมออฟฟิศ',
-                        services: ['กั้นห้องกระจกบานเลื่อน Slim Frameless กระจกลามิเนต Acoustic เก็บเสียง สำหรับโฮมออฟฟิศ'],
+                        customer: 'คุณวริศรา กิตติโภคิน',
+                        phone: '084-289-0123',
+                        service: 'รีโนเวทระเบียงห้องชุดคอนโด ปูพื้นกระเบื้องลายไม้กันน้ำ ติดตั้งระแนงบังตาอลูมิเนียมลายไม้และสวนแนวตั้งระบบรดน้ำอัตโนมัติ',
+                        services: ['รีโนเวทระเบียงห้องชุดคอนโด ปูพื้นกระเบื้องลายไม้กันน้ำ ติดตั้งระแนงบังตาอลูมิเนียมลายไม้และสวนแนวตั้งระบบรดน้ำอัตโนมัติ'],
                         status: 'DRAFT',
                         date: '2026-09-11',
                         progress: 0,
-                        address: '333/58 โครงการ The Monument ทองหล่อ ซอยทองหล่อ แขวงคลองตันเหนือ เขตวัฒนา กรุงเทพฯ 10110',
+                        address: '450/92 คอนโด แอชตัน สีลม ถนนสีลม แขวงสุริยวงศ์ เขตบางรัก กรุงเทพฯ 10500',
                         tech: 'Team C (วิชัย)',
-                        special_instructions: 'ขนย้ายกระจกผ่านลิฟต์ขนของเฉพาะเวลา 10:00 - 15:00 น. เท่านั้น',
-                        additional_notes: 'ใช้โปรไฟล์อลูมิเนียมเกรดหนา 2.0 มม. กระจกลามิเนต 5+5 มม. ซีลสักหลาดและซิลิโคนอะคูสติก',
+                        special_instructions: 'ตรวจสอบกฎระเบียบของนิติบุคคลคอนโดเรื่องสีระแนงและความสูงของต้นไม้ก่อนเริ่มติดตั้งจริง',
+                        additional_notes: 'ใช้วัสดุระแนงอลูมิเนียมเคลือบอบสี Powder Coat ทนแดด ทนฝน ไม่เป็นสนิม ติดตั้งระบบท่อน้ำหยดตั้งเวลา Smart Timer',
                         photos: [],
                         boq_items: [],
                         boq_discount: 0,
@@ -1049,19 +1049,19 @@ const app = {
                     {
                         id: 'JOB202609009',
                         job_no: 'JOB202609009',
-                        job_type: 'renovate',
+                        job_type: 'quick',
                         external_ref_id: 'INT-2026-009',
-                        customer: 'คุณธีรภัทร อัศวโภคิน',
-                        phone: '087-654-3210',
-                        service: 'รีโนเวทฝ้าเพดานหลุมซ่อนไฟ LED พร้อมติดฉนวนกันความร้อน Stay Cool 150 มม. เหนือฝ้าชั้นดาดฟ้า',
-                        services: ['รีโนเวทฝ้าเพดานหลุมซ่อนไฟ LED พร้อมติดฉนวนกันความร้อน Stay Cool 150 มม. เหนือฝ้าชั้นดาดฟ้า'],
+                        customer: 'คุณเอกภาพ พงษ์ศิริพาณิชย์',
+                        phone: '098-190-1234',
+                        service: 'ติดตั้งมอเตอร์ประตูรั้วรีโมทอัตโนมัติแบบ DC High-Speed รองรับเปิด-ปิดด้วยแอป Smart Home และระบบสำรองไฟ',
+                        services: ['ติดตั้งมอเตอร์ประตูรั้วรีโมทอัตโนมัติแบบ DC High-Speed รองรับเปิด-ปิดด้วยแอป Smart Home และระบบสำรองไฟ'],
                         status: 'DRAFT',
                         date: '2026-09-12',
                         progress: 0,
-                        address: '412/1-2 ถนนพระราม 3 แขวงบางคอแหลม เขตบางคอแหลม กรุงเทพฯ 10120',
+                        address: '310/55 หมู่บ้านมัณฑนา ราชพฤกษ์-นครอินทร์ ตำบลบางขุนกอง อำเภอบางกรวย นนทบุรี 11130',
                         tech: 'Team A (สมศักดิ์)',
-                        special_instructions: 'สำรวจคราบน้ำและรอยแตกลายงาใต้พื้นดาดฟ้าก่อนตีโครงคร่าว C-Line ชนิดหนาพิเศษ',
-                        additional_notes: 'แผ่นยิปซัมขอบลาดตราช้างหนา 9 มม. งานฉาบรอยต่อ 3 เที่ยว ขัดเรียบพร้อมทาสีรองพื้นฝ้าเพดาน',
+                        special_instructions: 'ทดสอบระบบเซนเซอร์กันหนีบ Safety Photocell 2 ระดับ ทั้งตอนเปิดและปิดประตูรั้ว',
+                        additional_notes: 'มอเตอร์รับน้ำหนักประตู 1,000 กก. ระบบ Slow-down นุ่มนวล แบตเตอรี่สำรองเปิดปิดได้ต่อเนื่อง 40 ครั้งขณะไฟดับ',
                         photos: [],
                         boq_items: [],
                         boq_discount: 0,
@@ -1074,22 +1074,160 @@ const app = {
                         job_no: 'JOB202609010',
                         job_type: 'renovate',
                         external_ref_id: 'INT-2026-010',
-                        customer: 'คุณเบญจวรรณ พัฒนศิริ',
-                        phone: '095-432-1098',
-                        service: 'รีโนเวทห้องนอนใหญ่ ออกแบบตกแต่ง Built-in ตู้เสื้อผ้า Walk-in Closet ไม้ MDF กันชื้นปิดผิวลามิเนต',
-                        services: ['รีโนเวทห้องนอนใหญ่ ออกแบบตกแต่ง Built-in ตู้เสื้อผ้า Walk-in Closet ไม้ MDF กันชื้นปิดผิวลามิเนต'],
+                        customer: 'คุณกัญญารัตน์ โสภณพิทักษ์',
+                        phone: '089-091-2345',
+                        service: 'รีโนเวทห้องนั่งเล่นและห้องรับแขก Built-in ผนังตกแต่งลายหินอ่อน Bookmatch ซ่อนไฟหลืบและตู้โชว์โครงอลูมิเนียมกระจกชาทอง',
+                        services: ['รีโนเวทห้องนั่งเล่นและห้องรับแขก Built-in ผนังตกแต่งลายหินอ่อน Bookmatch ซ่อนไฟหลืบและตู้โชว์โครงอลูมิเนียมกระจกชาทอง'],
                         status: 'DRAFT',
                         date: '2026-09-12',
                         progress: 0,
-                        address: '500/89 คอนโด ควินทิลเลียน ปิ่นเกล้า ถนนบรมราชชนนี แขวงอรุณอมรินทร์ เขตบางกอกน้อย กรุงเทพฯ 10700',
+                        address: '99/124 หมู่บ้านสราญสิริ ชัยพฤกษ์-แจ้งวัฒนะ ตำบลบางพลับ อำเภอปากเกร็ด นนทบุรี 11120',
                         tech: 'Team B (ประเสริฐ)',
-                        special_instructions: 'ติดตั้งระบบไฟ LED Strip ซ่อนในรางอลูมิเนียม พร้อมเซนเซอร์เปิดปิดอัตโนมัติเมื่อเปิดตู้',
-                        additional_notes: 'บานพับ Soft-close แบรนด์ Blum รางลิ้นชักรับน้ำหนัก 30 กก. ปิดรอยต่อชนฝ้าเพดานด้วยบัวบน',
+                        special_instructions: 'วัดระดับแนวดิ่งและแนวราบด้วยเลเซอร์ความแม่นยำสูง ปูผ้าใบคลุมเฟอร์นิเจอร์และพื้นไม้ปาร์เกต์เดิมอย่างหนาแน่น',
+                        additional_notes: 'แผ่นลายหินอ่อนอะคริลิกไฮกลอสไร้รอยต่อ บานพับ Soft Close แบรนด์ Blum รับประกันการใช้งาน 10 ปี',
                         photos: [],
                         boq_items: [],
                         boq_discount: 0,
                         step_timestamps: {
                             step1_order_at: "2026-09-04T10:45:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'JOB202609011',
+                        job_no: 'JOB202609011',
+                        job_type: 'quick',
+                        external_ref_id: 'INT-2026-011',
+                        customer: 'คุณธนพล วรเกียรติกุล',
+                        phone: '085-902-3456',
+                        service: 'ติดตั้งเครื่องทำน้ำอุ่นระบบดิจิทัล 4500W พร้อมชุดฝักบัว Rain Shower ปรับระดับและระบบตัดไฟนิรภัย ELCB แบบคู่',
+                        services: ['ติดตั้งเครื่องทำน้ำอุ่นระบบดิจิทัล 4500W พร้อมชุดฝักบัว Rain Shower ปรับระดับและระบบตัดไฟนิรภัย ELCB แบบคู่'],
+                        status: 'DRAFT',
+                        date: '2026-09-13',
+                        progress: 0,
+                        address: '204/18 โครงการ แกรนด์ บางกอก บูเลอวาร์ด สาทร-กัลปพฤกษ์ แขวงบางแค เขตบางแค กรุงเทพฯ 10160',
+                        tech: 'Team C (วิชัย)',
+                        special_instructions: 'ตรวจเช็คหลักดิน (Ground Rod) ยาว 2.4 เมตร วัดค่าความต้านทานดินไม่เกิน 5 โอห์มตามมาตรฐาน วสท.',
+                        additional_notes: 'เดินสายเมนทองแดง THW 4 sq.mm. เบรกเกอร์ควบคุม RCBO 20A แยกอิสระจากตู้โหลดเซ็นเตอร์',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-04T11:00:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'JOB202609012',
+                        job_no: 'JOB202609012',
+                        job_type: 'renovate',
+                        external_ref_id: 'INT-2026-012',
+                        customer: 'คุณนันทิกานต์ เตชะไพบูลย์',
+                        phone: '093-813-4567',
+                        service: 'รีโนเวทห้องทำงานส่วนตัว Acoustic Home Studio บุผนังและฝ้าซับเสียง Rockwool พร้อมติดตั้งแผ่น Acoustic Diffuser ไม้แท้',
+                        services: ['รีโนเวทห้องทำงานส่วนตัว Acoustic Home Studio บุผนังและฝ้าซับเสียง Rockwool พร้อมติดตั้งแผ่น Acoustic Diffuser ไม้แท้'],
+                        status: 'DRAFT',
+                        date: '2026-09-13',
+                        progress: 0,
+                        address: '77/205 คอนโด เดอะ ริทซ์-คาร์ลตัน เรสซิเดนเซส บางกอก ถนนนราธิวาสราชนครินทร์ แขวงสีลม เขตบางรัก กรุงเทพฯ 10500',
+                        tech: 'Team D (กิตติศักดิ์)',
+                        special_instructions: 'งานบุฉนวนต้องสวมชุดป้องกันมิดชิด ขนย้ายวัสดุขึ้นอาคารตามรอบเวลาของนิติบุคคล 10:00 - 15:00 น.',
+                        additional_notes: 'ลดเสียงก้องและกันเสียงรบกวนออกภายนอกได้ถึง STC 55 ประตูกันเสียงแบบ Double Seal และช่องแอร์ซ่อนแดมเปอร์ลดเสียงลม',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-04T11:15:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'JOB202609013',
+                        job_no: 'JOB202609013',
+                        job_type: 'quick',
+                        external_ref_id: 'INT-2026-013',
+                        customer: 'คุณปัณณธร พัฒนประเสริฐ',
+                        phone: '082-724-5678',
+                        service: 'ติดตั้งเครื่องปรับอากาศ Inverter 24,000 BTU เบอร์ 5 สามดาว พร้อมเดินท่อน้ำยาหุ้มฉนวน Aeroflex และรางครอบท่อพรีเมียม',
+                        services: ['ติดตั้งเครื่องปรับอากาศ Inverter 24,000 BTU เบอร์ 5 สามดาว พร้อมเดินท่อน้ำยาหุ้มฉนวน Aeroflex และรางครอบท่อพรีเมียม'],
+                        status: 'DRAFT',
+                        date: '2026-09-14',
+                        progress: 0,
+                        address: '120/45 หมู่บ้านวิลเลจจิโอ ประชาอุทิศ 90 ตำบลแหลมฟ้าผ่า อำเภอพระสมุทรเจดีย์ สมุทรปราการ 10290',
+                        tech: 'Team B (ประเสริฐ)',
+                        special_instructions: 'แวคคั่มระบบสูญญากาศนาน 30 นาที และตรวจสอบแรงดันน้ำยา R32 ให้ได้มาตรฐานก่อนส่งมอบงาน',
+                        additional_notes: 'ขาแขวนคอยล์ร้อนแบบมีแผ่นยางรองซับแรงสั่นสะเทือน ติดตั้งท่อน้ำทิ้ง PVC ต่อลงท่อระบายน้ำโดยตรง',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-04T11:30:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'JOB202609014',
+                        job_no: 'JOB202609014',
+                        job_type: 'renovate',
+                        external_ref_id: 'INT-2026-014',
+                        customer: 'คุณมนัสชนก ศรีวิชัยพฤกษ์',
+                        phone: '096-635-6789',
+                        service: 'ปรับปรุงพื้นที่รอบบ้าน เทคอนกรีตพิมพ์ลาย Stamped Concrete ลายหินธรรมชาติ European Fan พร้อมระบบระบายน้ำผิวดิน',
+                        services: ['ปรับปรุงพื้นที่รอบบ้าน เทคอนกรีตพิมพ์ลาย Stamped Concrete ลายหินธรรมชาติ European Fan พร้อมระบบระบายน้ำผิวดิน'],
+                        status: 'DRAFT',
+                        date: '2026-09-14',
+                        progress: 0,
+                        address: '38/66 ทาวน์โฮม พาทิโอ แจ้งวัฒนะ-เมืองทองธานี ตำบลคลองเกลือ อำเภอปากเกร็ด นนทบุรี 11120',
+                        tech: 'Team A (สมศักดิ์)',
+                        special_instructions: 'บดอัดดินและทรายหยาบหนา 15 ซม. ปูเหล็กวายเมชขนาด 4 มม. ระยะห่าง 15 ซม. เทคอนกรีตกำลังอัด 280 ksc',
+                        additional_notes: 'เคลือบน้ำยาอะคริลิกซีลเลอร์สูตรเงาพิเศษ 2 รอบ ป้องกันคราบตะไคร่น้ำและรังสียูวี รับประกันสีไม่ลอกร่อน 3 ปี',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-04T11:45:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'JOB202609015',
+                        job_no: 'JOB202609015',
+                        job_type: 'quick',
+                        external_ref_id: 'INT-2026-015',
+                        customer: 'คุณรัชชานนท์ เมธาบวรกุล',
+                        phone: '080-546-7890',
+                        service: 'ติดตั้งชุดสวิตช์และเต้ารับ Smart Switch Zigbee ทั้งหลัง ควบคุมแสงสว่างผ่านเสียงและตั้งเวลาซีนอัตโนมัติ',
+                        services: ['ติดตั้งชุดสวิตช์และเต้ารับ Smart Switch Zigbee ทั้งหลัง ควบคุมแสงสว่างผ่านเสียงและตั้งเวลาซีนอัตโนมัติ'],
+                        status: 'DRAFT',
+                        date: '2026-09-15',
+                        progress: 0,
+                        address: '155/12 หมู่บ้านบุราสิริ พัฒนาการ แขวงประเวศ เขตประเวศ กรุงเทพฯ 10250',
+                        tech: 'Team D (กิตติศักดิ์)',
+                        special_instructions: 'เดินสายนิวทรัล (N-Line) เพิ่มเติมสำหรับสวิตช์อัจฉริยะทุกจุดเพื่อความเสถียรสูงสุดของสัญญาณ Zigbee',
+                        additional_notes: 'ติดตั้ง Zigbee 3.0 Gateway แบบต่อสาย LAN เข้า Router กลาง พร้อมจับคู่สมาร์ทโฟน 4 เครื่องในครอบครัว',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-04T12:00:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'JOB202609016',
+                        job_no: 'JOB202609016',
+                        job_type: 'renovate',
+                        external_ref_id: 'INT-2026-016',
+                        customer: 'คุณพิชญ์สินี อัครวิวัฒน์',
+                        phone: '094-457-8901',
+                        service: 'รีโนเวทห้องประชุม Co-working Space ติดตั้งระบบผนังบานเลื่อนกระจกกั้นห้องเก็บเสียงและระบบจอ Smart Board พร้อมระบบไฟ Dimmer',
+                        services: ['รีโนเวทห้องประชุม Co-working Space ติดตั้งระบบผนังบานเลื่อนกระจกกั้นห้องเก็บเสียงและระบบจอ Smart Board พร้อมระบบไฟ Dimmer'],
+                        status: 'DRAFT',
+                        date: '2026-09-15',
+                        progress: 0,
+                        address: '620/14 อาคารโฮมออฟฟิศ 4 ชั้น ถนนนวลจันทร์ แขวงนวลจันทร์ เขตบึงกุ่ม กรุงเทพฯ 10230',
+                        tech: 'Team C (วิชัย)',
+                        special_instructions: 'ทดสอบระบบรางแขวนบนเพดานโครงสร้างเหล็ก I-Beam รองรับน้ำหนักบานกระจกได้จุดละไม่น้อยกว่า 300 กก.',
+                        additional_notes: 'รางเลื่อนระบบ Soft-close รางคู่ ซีลขอบยางกันเสียงรบกวน ปลั๊กไฟ Pop-up ติดตั้งกลางโต๊ะประชุมเชื่อมระบบ HDMI/Type-C',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-04T12:15:00.000Z"
                         }
                     }
                 ];
@@ -1100,7 +1238,7 @@ const app = {
                     this.showToast('⚠️ ฟังก์ชันนี้สงวนไว้เฉพาะผู้ใช้ Isara Chootip เท่านั้น', 'warning');
                     return;
                 }
-                if (confirmAction && !confirm('คุณต้องการจำลองรับข้อมูลงานใหม่จากระบบ INT จำนวน 10 รายการ เข้าสู่ PMT ใช่หรือไม่?')) {
+                if (confirmAction && !confirm('คุณต้องการจำลองรับข้อมูลงานใหม่จากระบบ INT จำนวน 16 รายการ (Quick 8, Renovate 8) เข้าสู่ PMT ใช่หรือไม่?')) {
                     return;
                 }
 
@@ -1120,7 +1258,7 @@ const app = {
                     localStorage.setItem('pmt_ma_rounds', JSON.stringify([]));
                 } catch(e) {}
 
-                // 2. Tell backend server to seed ONLY the 10 initial INT orders and wipe downstream stores
+                // 2. Tell backend server to seed the 16 initial INT orders and wipe downstream stores
                 try {
                     const headers = (window.auth && typeof window.auth.getHeaders === 'function') ? window.auth.getHeaders() : { 'Content-Type': 'application/json' };
                     await fetch('/api/v1/jobs/reset', { method: 'POST', headers });
@@ -1128,12 +1266,12 @@ const app = {
                     console.warn('Server reset failed, continuing with local mock:', e);
                 }
 
-                // 3. Populate local DB with 10 pure Step 1 jobs (0% NEW) starting completely from scratch
+                // 3. Populate local DB with 16 pure Step 1 jobs (0% NEW) starting completely from scratch
                 const mockOrders = this.getINTMockOrders();
                 const baseTime = Date.now();
                 const currentDate = new Date().toISOString().slice(0, 10);
                 mockOrders.forEach((o, idx) => {
-                    // Chronological arrival timestamp: JOB010 is newest (now), JOB001 arrived earliest
+                    // Chronological arrival timestamp: JOB016 is newest (now), JOB001 arrived earliest
                     const jobIso = new Date(baseTime - (mockOrders.length - 1 - idx) * 12 * 60000).toISOString();
                     o.step_timestamps = {
                         step1_order_at: jobIso
@@ -1179,8 +1317,11 @@ const app = {
 
                 this.updateStepBadges();
                 this.updateStep1Dashboard();
+                this.showToast(`✨ จำลองนำเข้า 16 รายการคำสั่งซื้อใหม่จาก INT (Quick 8, Renovate 8) เข้าสู่ Step 1 เรียบร้อยแล้ว (${DB.jobs.length} งาน 0% Draft)`, 'success');
+            },
 
-                this.showToast(`📥 Import จำลองรับ Order จาก INT สำเร็จ ${DB.jobs.length} งาน (สร้างเฉพาะ Transaction เริ่มต้นระบบ Step 1 ทุกงาน 0% Draft พร้อมเริ่มต้นใหม่ทั้งหมด)`);
+            simulateINT16Orders(confirmAction = true) {
+                return this.simulateINT10Orders(confirmAction);
             },
 
             getInitialDailyWorkLogs() {
