@@ -185,6 +185,7 @@ app.use((req, res, next) => {
             exports.sysApiLogStore.pop();
         }
         persistApiLogs();
+        (0, database_1.dbSaveApiLog)(logEntry).catch(() => { });
     });
     next();
 });
@@ -656,16 +657,19 @@ app.get('/api/v1/users', requireAuth, requireRole(UserRole.ADMIN), async (req, r
     return res.json({ success: true, total: users.length, data: users });
 });
 // GET /api/v1/users/:id
-app.get('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req, res) => {
+app.get('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), async (req, res) => {
     const paramId = String(req.params.id);
-    const user = exports.sysUserStore.find(u => String(u.id) === paramId || u.user_code === paramId || u.username === paramId || u.id === Number(paramId));
+    let user = await (0, database_1.dbGetUser)(paramId);
+    if (!user) {
+        user = exports.sysUserStore.find(u => String(u.id) === paramId || u.user_code === paramId || u.username === paramId || u.id === Number(paramId));
+    }
     if (!user)
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบผู้ใช้' } });
     const { password_hash, ...safe } = user;
     return res.json({ success: true, data: safe });
 });
 // POST /api/v1/users — create user
-app.post('/api/v1/users', requireAuth, requireRole(UserRole.ADMIN), (req, res) => {
+app.post('/api/v1/users', requireAuth, requireRole(UserRole.ADMIN), async (req, res) => {
     const { username, email, full_name, role, password } = req.body || {};
     if (!username || !full_name || !role || !password) {
         return res.status(400).json({ success: false, error: { code: 'MISSING_FIELDS', message: 'username, full_name, role, password เป็นข้อมูลที่จำเป็น' } });
@@ -673,35 +677,55 @@ app.post('/api/v1/users', requireAuth, requireRole(UserRole.ADMIN), (req, res) =
     if (!Object.values(UserRole).includes(role)) {
         return res.status(400).json({ success: false, error: { code: 'INVALID_ROLE', message: `Role ต้องเป็น: ${Object.values(UserRole).join(', ')}` } });
     }
-    if (exports.sysUserStore.find(u => u.username === username)) {
+    const existing = await (0, database_1.dbGetUser)(username) || exports.sysUserStore.find(u => u.username.toLowerCase() === username.toLowerCase());
+    if (existing) {
         return res.status(409).json({ success: false, error: { code: 'DUPLICATE_USERNAME', message: 'Username นี้ถูกใช้งานแล้ว' } });
     }
+    const userCode = `USR-${String(exports.sysUserStore.length + 1).padStart(3, '0')}`;
     const newUser = {
-        id: Date.now(), user_code: `USR-${String(exports.sysUserStore.length + 1).padStart(3, '0')}`,
-        username, email: email || '', full_name, role, password_hash: hashPassword(password),
-        is_active: true, last_login_at: null, created_at: new Date().toISOString()
+        id: Date.now(),
+        user_code: userCode,
+        username,
+        email: email || '',
+        full_name,
+        role,
+        password_hash: hashPassword(password),
+        is_active: true,
+        last_login_at: null,
+        created_at: new Date().toISOString()
     };
     exports.sysUserStore.push(newUser);
-    (0, database_1.dbSaveUser)(newUser).catch(() => { });
+    await (0, database_1.dbSaveUser)(newUser);
     const { password_hash, ...safe } = newUser;
     return res.status(201).json({ success: true, message: 'สร้างผู้ใช้สำเร็จ', data: safe });
 });
 // PATCH /api/v1/users/:id — update role / active / full_name / email / username / password
-app.patch('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req, res) => {
+app.patch('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), async (req, res) => {
     const paramId = String(req.params.id);
-    const user = exports.sysUserStore.find(u => String(u.id) === paramId || u.user_code === paramId || u.username === paramId || u.id === Number(paramId));
-    if (!user)
+    let user = await (0, database_1.dbGetUser)(paramId);
+    const memUser = exports.sysUserStore.find(u => String(u.id) === paramId || u.user_code === paramId || u.username === paramId || u.id === Number(paramId));
+    if (!user && !memUser)
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบผู้ใช้' } });
+    user = user || memUser;
     const { full_name, username, email, role, is_active, password } = req.body || {};
-    if (full_name !== undefined)
-        user.full_name = full_name;
-    if (email !== undefined)
-        user.email = email;
+    const updates = {};
+    if (full_name !== undefined) {
+        updates.full_name = full_name;
+        if (memUser)
+            memUser.full_name = full_name;
+    }
+    if (email !== undefined) {
+        updates.email = email;
+        if (memUser)
+            memUser.email = email;
+    }
     if (is_active !== undefined) {
         if ((user.user_code === 'USR-001' || user.username === 'admin') && !is_active) {
             return res.status(400).json({ success: false, error: { code: 'CANNOT_DEACTIVATE_PRIMARY_ADMIN', message: 'ไม่สามารถปิดใช้งานบัญชี Admin หลักได้' } });
         }
-        user.is_active = Boolean(is_active);
+        updates.is_active = Boolean(is_active);
+        if (memUser)
+            memUser.is_active = Boolean(is_active);
     }
     if (role !== undefined) {
         if (!Object.values(UserRole).includes(role))
@@ -709,52 +733,66 @@ app.patch('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req, r
         if ((user.user_code === 'USR-001' || user.username === 'admin') && role !== UserRole.ADMIN) {
             return res.status(400).json({ success: false, error: { code: 'CANNOT_DEMOTE_PRIMARY_ADMIN', message: 'ไม่สามารถเปลี่ยนบทบาทของ Admin หลักได้' } });
         }
-        user.role = role;
+        updates.role = role;
+        if (memUser)
+            memUser.role = role;
     }
     if (username !== undefined && username.trim() !== '') {
         const trimmedUsername = username.trim();
-        const exists = exports.sysUserStore.find(u => u.id !== user.id && u.username.toLowerCase() === trimmedUsername.toLowerCase());
-        if (exists) {
+        const existingDb = await (0, database_1.dbGetUser)(trimmedUsername);
+        if (existingDb && String(existingDb.id) !== String(user.id) && existingDb.username.toLowerCase() !== user.username.toLowerCase()) {
             return res.status(400).json({ success: false, error: { code: 'USERNAME_TAKEN', message: `Username "${trimmedUsername}" มีผู้ใช้งานแล้ว` } });
         }
-        user.username = trimmedUsername;
+        updates.username = trimmedUsername;
+        if (memUser)
+            memUser.username = trimmedUsername;
     }
     if (password !== undefined && password !== '') {
         if (password.length < 6) {
             return res.status(400).json({ success: false, error: { code: 'WEAK_PASSWORD', message: 'Password ต้องมีอย่างน้อย 6 ตัวอักษร' } });
         }
-        user.password_hash = hashPassword(password);
+        updates.password_hash = hashPassword(password);
+        if (memUser)
+            memUser.password_hash = updates.password_hash;
     }
-    (0, database_1.dbUpdateUser)(user.id, req.body).catch(() => { });
-    const { password_hash, ...safe } = user;
+    await (0, database_1.dbUpdateUser)(user.id, updates);
+    const updated = await (0, database_1.dbGetUser)(user.username) || { ...user, ...updates };
+    const { password_hash, ...safe } = updated;
     return res.json({ success: true, message: 'อัปเดตข้อมูลสำเร็จ', data: safe });
 });
 // POST /api/v1/users/:id/reset-password
-app.post('/api/v1/users/:id/reset-password', requireAuth, requireRole(UserRole.ADMIN), (req, res) => {
+app.post('/api/v1/users/:id/reset-password', requireAuth, requireRole(UserRole.ADMIN), async (req, res) => {
     const paramId = String(req.params.id);
-    const user = exports.sysUserStore.find(u => String(u.id) === paramId || u.user_code === paramId || u.username === paramId || u.id === Number(paramId));
-    if (!user)
+    let user = await (0, database_1.dbGetUser)(paramId);
+    const memUser = exports.sysUserStore.find(u => String(u.id) === paramId || u.user_code === paramId || u.username === paramId || u.id === Number(paramId));
+    if (!user && !memUser)
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบผู้ใช้' } });
+    user = user || memUser;
     const { new_password } = req.body || {};
     if (!new_password || new_password.length < 6) {
         return res.status(400).json({ success: false, error: { code: 'WEAK_PASSWORD', message: 'Password ต้องมีอย่างน้อย 6 ตัวอักษร' } });
     }
-    user.password_hash = hashPassword(new_password);
-    (0, database_1.dbUpdateUser)(user.id, { password_hash: user.password_hash }).catch(() => { });
+    const password_hash = hashPassword(new_password);
+    if (memUser)
+        memUser.password_hash = password_hash;
+    await (0, database_1.dbUpdateUser)(user.id, { password_hash });
     // Revoke all active sessions for this user
     exports.sysSessionStore.filter(s => s.user_id === user.id && !s.revoked_at).forEach(s => s.revoked_at = new Date().toISOString());
     return res.json({ success: true, message: `Reset password สำเร็จสำหรับ ${user.username} — sessions เดิมถูกยกเลิกทั้งหมด` });
 });
 // DELETE /api/v1/users/:id — deactivate (soft delete)
-app.delete('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), (req, res) => {
+app.delete('/api/v1/users/:id', requireAuth, requireRole(UserRole.ADMIN), async (req, res) => {
     const paramId = String(req.params.id);
-    const user = exports.sysUserStore.find(u => String(u.id) === paramId || u.user_code === paramId || u.username === paramId || u.id === Number(paramId));
-    if (!user)
+    let user = await (0, database_1.dbGetUser)(paramId);
+    const memUser = exports.sysUserStore.find(u => String(u.id) === paramId || u.user_code === paramId || u.username === paramId || u.id === Number(paramId));
+    if (!user && !memUser)
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบผู้ใช้' } });
+    user = user || memUser;
     if (user.user_code === 'USR-001' || user.username === 'admin')
         return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'ไม่สามารถลบ admin หลักได้' } });
-    user.is_active = false;
-    (0, database_1.dbUpdateUser)(user.id, { is_active: false }).catch(() => { });
+    if (memUser)
+        memUser.is_active = false;
+    await (0, database_1.dbUpdateUser)(user.id, { is_active: false });
     exports.sysSessionStore.filter(s => s.user_id === user.id && !s.revoked_at).forEach(s => s.revoked_at = new Date().toISOString());
     return res.json({ success: true, message: `ปิดการใช้งานผู้ใช้ ${user.username} สำเร็จ` });
 });
@@ -769,40 +807,48 @@ app.get('/api/v1/auth/login-logs', requireAuth, requireRole(UserRole.ADMIN), asy
 // =============================================================================
 // SYSTEM INBOUND API LOGS ENDPOINTS
 // =============================================================================
-app.get('/api/v1/system/api-logs', requireAuth, (req, res) => {
+app.get('/api/v1/system/api-logs', requireAuth, async (req, res) => {
     const { status, method, search, limit = '200' } = req.query;
-    let results = [...exports.sysApiLogStore];
-    if (method && typeof method === 'string' && method !== 'ALL') {
-        results = results.filter(l => l.method.toUpperCase() === method.toUpperCase());
-    }
-    if (status && typeof status === 'string' && status !== 'ALL') {
-        if (status === '2xx')
-            results = results.filter(l => l.status >= 200 && l.status < 300);
-        else if (status === '4xx')
-            results = results.filter(l => l.status >= 400 && l.status < 500);
-        else if (status === '5xx')
-            results = results.filter(l => l.status >= 500);
-        else {
-            const statusCode = Number(status);
-            if (!isNaN(statusCode))
-                results = results.filter(l => l.status === statusCode);
+    let results = await (0, database_1.dbLoadApiLogs)({
+        status: status,
+        method: method,
+        search: search,
+        limit: Number(limit) || 200
+    });
+    if (!results || results.length === 0) {
+        results = [...exports.sysApiLogStore];
+        if (method && typeof method === 'string' && method !== 'ALL') {
+            results = results.filter(l => l.method.toUpperCase() === method.toUpperCase());
         }
-    }
-    if (search && typeof search === 'string' && search.trim() !== '') {
-        const q = search.toLowerCase().trim();
-        results = results.filter(l => l.path.toLowerCase().includes(q) ||
-            l.ip.toLowerCase().includes(q) ||
-            (l.method && l.method.toLowerCase().includes(q)) ||
-            JSON.stringify(l.body || '').toLowerCase().includes(q) ||
-            JSON.stringify(l.response_body || '').toLowerCase().includes(q));
+        if (status && typeof status === 'string' && status !== 'ALL') {
+            if (status === '2xx')
+                results = results.filter(l => l.status >= 200 && l.status < 300);
+            else if (status === '4xx')
+                results = results.filter(l => l.status >= 400 && l.status < 500);
+            else if (status === '5xx')
+                results = results.filter(l => l.status >= 500);
+            else {
+                const statusCode = Number(status);
+                if (!isNaN(statusCode))
+                    results = results.filter(l => l.status === statusCode);
+            }
+        }
+        if (search && typeof search === 'string' && search.trim() !== '') {
+            const q = search.toLowerCase().trim();
+            results = results.filter(l => l.path.toLowerCase().includes(q) ||
+                l.ip.toLowerCase().includes(q) ||
+                (l.method && l.method.toLowerCase().includes(q)) ||
+                JSON.stringify(l.body || '').toLowerCase().includes(q) ||
+                JSON.stringify(l.response_body || '').toLowerCase().includes(q));
+        }
     }
     const max = Math.min(Number(limit) || 200, 500);
     const paged = results.slice(0, max);
     const summary = {
-        total: exports.sysApiLogStore.length,
-        success_2xx: exports.sysApiLogStore.filter(l => l.status >= 200 && l.status < 300).length,
-        client_error_4xx: exports.sysApiLogStore.filter(l => l.status >= 400 && l.status < 500).length,
-        server_error_5xx: exports.sysApiLogStore.filter(l => l.status >= 500).length,
+        total: results.length,
+        success_2xx: results.filter(l => l.status >= 200 && l.status < 300).length,
+        client_error_4xx: results.filter(l => l.status >= 400 && l.status < 500).length,
+        server_error_5xx: results.filter(l => l.status >= 500).length,
     };
     return res.json({
         success: true,
@@ -811,9 +857,10 @@ app.get('/api/v1/system/api-logs', requireAuth, (req, res) => {
         data: paged
     });
 });
-app.delete('/api/v1/system/api-logs', requireAuth, requireRole(UserRole.ADMIN), (req, res) => {
+app.delete('/api/v1/system/api-logs', requireAuth, requireRole(UserRole.ADMIN), async (req, res) => {
     exports.sysApiLogStore.length = 0;
     persistApiLogs();
+    await (0, database_1.dbDeleteApiLogs)();
     return res.json({ success: true, message: 'ล้างประวัติ Inbound API Logs เรียบร้อยแล้ว' });
 });
 var StagingProcessStatus;
@@ -1648,6 +1695,29 @@ function convertStagingToCorePmt(stagingRecord) {
             exports.coreCustomerStore.push(customer);
         }
         // 2. Insert Core Job (Req #1 & State Machine: SURVEYED)
+        const customerData = {
+            id: customer.id,
+            customer_code: customer.customer_code,
+            name: `${customer.first_name} ${customer.last_name}`.trim(),
+            first_name: customer.first_name,
+            last_name: customer.last_name,
+            phone: customer.phone,
+            address: customer.address,
+            lat: customer.lat,
+            lng: customer.lng
+        };
+        const services = Array.isArray(payload.job_details)
+            ? payload.job_details.map((item) => item.installation_detail || item.job_type)
+            : [payload.job_info?.project_sub_type || 'งานสำรวจหน้างาน'];
+        const photos = Array.isArray(payload.site_photos)
+            ? payload.site_photos.map((p, idx) => ({
+                id: `PHOTO_${Date.now()}_${idx + 1}`,
+                category: 'survey',
+                url: p,
+                remark: 'ภาพถ่ายสำรวจหน้างานจากระบบภายนอก',
+                uploaded_at: payload.check_in?.date || new Date().toISOString()
+            }))
+            : [];
         const jobId = Date.now() + Math.floor(Math.random() * 1000);
         const newCoreJob = {
             id: jobId,
@@ -1656,13 +1726,27 @@ function convertStagingToCorePmt(stagingRecord) {
             booking_no: payload.job_info?.booking_no || stagingRecord.booking_no || '',
             ticket_no: payload.job_info?.ticket_no || stagingRecord.ticket_no || '',
             customer_id: customer.id,
+            customer: customerData,
+            customer_data: customerData,
             status: JobStatus.SURVEYED,
             property_type: payload.job_info?.property_type || '',
             project_type: payload.job_info?.project_type || '',
             project_sub_type: payload.job_info?.project_sub_type || '',
             store_code: payload.store?.code || '',
             agent_name: payload.agent?.name || '',
-            overall_progress: 10,
+            assigned_tech: payload.agent?.name || 'Team A (สมศักดิ์)',
+            plan_date: payload.schedule_plan?.visit_date || new Date().toISOString().slice(0, 10),
+            services: services,
+            overall_progress: 30,
+            pmt_accepted: true,
+            pmt_accepted_at: new Date().toISOString(),
+            photos: photos,
+            tasks: [],
+            boq_items: [],
+            step_timestamps: {
+                step1_order_at: stagingRecord.received_at,
+                step2_survey_at: new Date().toISOString()
+            },
             created_at: new Date().toISOString()
         };
         exports.coreJobStore.push(newCoreJob);
@@ -1719,6 +1803,11 @@ function convertStagingToCorePmt(stagingRecord) {
         stagingRecord.converted_job_id = jobId;
         stagingRecord.processed_at = new Date().toISOString();
         stagingRecord.validation_errors = undefined;
+        (0, database_1.dbUpdateStagingReport)(stagingRecord.id, {
+            process_status: StagingProcessStatus.CONVERTED,
+            converted_job_id: jobId,
+            processed_at: stagingRecord.processed_at
+        }).catch(() => { });
         console.log(`[STAGING CONVERT] Successfully converted staging #${stagingRecord.id} -> Job #${jobId} (${newCoreJob.job_no})`);
         return { success: true, jobId };
     }
@@ -1727,6 +1816,12 @@ function convertStagingToCorePmt(stagingRecord) {
         stagingRecord.error_message = err.message;
         stagingRecord.retry_count += 1;
         stagingRecord.processed_at = new Date().toISOString();
+        (0, database_1.dbUpdateStagingReport)(stagingRecord.id, {
+            process_status: StagingProcessStatus.ERROR,
+            error_message: err.message,
+            retry_count: stagingRecord.retry_count,
+            processed_at: stagingRecord.processed_at
+        }).catch(() => { });
         return { success: false, errors: [err.message] };
     }
 }
@@ -1761,8 +1856,11 @@ app.post('/api/v1/jobs/survey-report', requireAuth, async (req, res) => {
                 error: { code: 'INVALID_PAYLOAD', message: 'Field "job_info.job_number" is required' }
             });
         }
-        // 2. Check Idempotency / Duplicate in Staging
-        const existing = exports.stagingSurveyStore.find(s => s.source_job_id === payload.system.job_id);
+        // 2. Check Idempotency / Duplicate in Staging DB
+        let existing = await (0, database_1.dbGetStagingReport)(payload.system.job_id);
+        if (!existing) {
+            existing = exports.stagingSurveyStore.find(s => s.source_job_id === payload.system.job_id);
+        }
         if (existing) {
             return res.status(200).json({
                 success: true,
@@ -1795,6 +1893,7 @@ app.post('/api/v1/jobs/survey-report', requireAuth, async (req, res) => {
             received_at: new Date().toISOString()
         };
         exports.stagingSurveyStore.push(stagingRecord);
+        await (0, database_1.dbSaveStagingReport)(stagingRecord);
         console.log(`[STAGING INGEST] Successfully saved raw payload in staging: #${stagingRecord.id} (Job: ${stagingRecord.job_number})`);
         // 4. Processing based on Auto-Convert Mode
         const shouldAutoConvert = req.query.auto_convert !== 'false' && autoConvertEnabled;
@@ -1832,17 +1931,23 @@ app.post('/api/v1/jobs/survey-report', requireAuth, async (req, res) => {
 // =============================================================================
 // STAGING MANAGEMENT APIS (List, Get, Convert/Retry)
 // =============================================================================
-app.get('/api/v1/staging/survey-reports', requireAuth, (req, res) => {
+app.get('/api/v1/staging/survey-reports', requireAuth, async (req, res) => {
     const { status, search } = req.query;
-    let results = [...exports.stagingSurveyStore];
-    if (status) {
-        results = results.filter(r => r.process_status === status);
-    }
-    if (search) {
-        const q = String(search).toLowerCase();
-        results = results.filter(r => r.job_number.toLowerCase().includes(q) ||
-            r.customer_name.toLowerCase().includes(q) ||
-            (r.booking_no && r.booking_no.toLowerCase().includes(q)));
+    let results = await (0, database_1.dbLoadStagingReports)({
+        status: status,
+        search: search
+    });
+    if (!results || results.length === 0) {
+        results = [...exports.stagingSurveyStore];
+        if (status) {
+            results = results.filter(r => r.process_status === status);
+        }
+        if (search) {
+            const q = String(search).toLowerCase();
+            results = results.filter(r => r.job_number.toLowerCase().includes(q) ||
+                r.customer_name.toLowerCase().includes(q) ||
+                (r.booking_no && r.booking_no.toLowerCase().includes(q)));
+        }
     }
     return res.json({
         success: true,
@@ -1862,17 +1967,23 @@ app.get('/api/v1/staging/survey-reports', requireAuth, (req, res) => {
         }))
     });
 });
-app.get('/api/v1/staging/survey-reports/:id', requireAuth, (req, res) => {
-    const id = Number(req.params.id);
-    const record = exports.stagingSurveyStore.find(r => r.id === id);
+app.get('/api/v1/staging/survey-reports/:id', requireAuth, async (req, res) => {
+    const id = req.params.id;
+    let record = await (0, database_1.dbGetStagingReport)(id);
+    if (!record) {
+        record = exports.stagingSurveyStore.find(r => String(r.id) === id || r.source_job_id === id);
+    }
     if (!record) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Staging record not found' } });
     }
     return res.json({ success: true, data: record });
 });
-app.post('/api/v1/staging/survey-reports/:id/convert', requireAuth, (req, res) => {
-    const id = Number(req.params.id);
-    const record = exports.stagingSurveyStore.find(r => r.id === id);
+app.post('/api/v1/staging/survey-reports/:id/convert', requireAuth, async (req, res) => {
+    const id = req.params.id;
+    let record = await (0, database_1.dbGetStagingReport)(id);
+    if (!record) {
+        record = exports.stagingSurveyStore.find(r => String(r.id) === id || r.source_job_id === id);
+    }
     if (!record) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Staging record not found' } });
     }
@@ -1887,8 +1998,11 @@ app.post('/api/v1/staging/survey-reports/:id/convert', requireAuth, (req, res) =
         }
     });
 });
-app.post('/api/v1/staging/seed', requireAuth, (req, res) => {
+app.post('/api/v1/staging/seed', requireAuth, async (req, res) => {
     seedInitialStagingData();
+    for (const rec of exports.stagingSurveyStore) {
+        await (0, database_1.dbSaveStagingReport)(rec);
+    }
     return res.json({
         success: true,
         message: 'Seeded 5 mock survey reports into staging table successfully',

@@ -35,6 +35,13 @@ exports.dbDeleteMAContract = dbDeleteMAContract;
 exports.dbLoadMARounds = dbLoadMARounds;
 exports.dbSaveMARound = dbSaveMARound;
 exports.dbUpdateMARound = dbUpdateMARound;
+exports.dbSaveApiLog = dbSaveApiLog;
+exports.dbLoadApiLogs = dbLoadApiLogs;
+exports.dbDeleteApiLogs = dbDeleteApiLogs;
+exports.dbSaveStagingReport = dbSaveStagingReport;
+exports.dbLoadStagingReports = dbLoadStagingReports;
+exports.dbGetStagingReport = dbGetStagingReport;
+exports.dbUpdateStagingReport = dbUpdateStagingReport;
 const pg_1 = require("pg");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
@@ -142,6 +149,32 @@ async function initDatabase() {
         headers JSONB,
         body JSONB,
         response_body JSONB
+      );
+
+      CREATE TABLE IF NOT EXISTS staging_survey_reports (
+        id BIGINT PRIMARY KEY,
+        source_job_id VARCHAR(100),
+        job_number VARCHAR(50),
+        booking_no VARCHAR(100),
+        ticket_no VARCHAR(100),
+        source_reference VARCHAR(100),
+        customer_code VARCHAR(100),
+        customer_name VARCHAR(200),
+        customer_phone VARCHAR(50),
+        store_code VARCHAR(50),
+        agent_code VARCHAR(50),
+        visit_date VARCHAR(50),
+        checkin_at VARCHAR(50),
+        checkout_at VARCHAR(50),
+        photo_count INT DEFAULT 0,
+        raw_payload JSONB DEFAULT '{}'::jsonb,
+        process_status VARCHAR(50) DEFAULT 'PENDING',
+        converted_job_id BIGINT,
+        retry_count INT DEFAULT 0,
+        validation_errors JSONB DEFAULT '[]'::jsonb,
+        error_message TEXT,
+        received_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        processed_at TIMESTAMP WITH TIME ZONE
       );
 
       ALTER TABLE core_jobs 
@@ -1298,5 +1331,256 @@ async function dbUpdateMARound(id, updates) {
     }
     catch (err) {
         console.error('[DB] Error updating MA round:', err.message);
+    }
+}
+// =============================================================================
+// INBOUND API LOGS DB REPOSITORY
+// =============================================================================
+async function dbSaveApiLog(log) {
+    if (!exports.isDatabaseConnected)
+        return;
+    try {
+        await exports.pool.query(`INSERT INTO inbound_api_logs (id, timestamp, method, path, ip, status, duration_ms, headers, body, response_body)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       ON CONFLICT (id) DO UPDATE SET
+         status = EXCLUDED.status,
+         duration_ms = EXCLUDED.duration_ms,
+         response_body = EXCLUDED.response_body`, [
+            log.id,
+            log.timestamp ? new Date(log.timestamp) : new Date(),
+            log.method || 'GET',
+            log.path || '',
+            log.ip || '',
+            Number(log.status) || 200,
+            Number(log.duration_ms) || 0,
+            JSON.stringify(log.headers || {}),
+            JSON.stringify(log.body || null),
+            JSON.stringify(log.response_body || null),
+        ]);
+    }
+    catch (err) {
+        // Avoid noisy recursion
+    }
+}
+async function dbLoadApiLogs(filters) {
+    if (!exports.isDatabaseConnected)
+        return [];
+    try {
+        let sql = 'SELECT * FROM inbound_api_logs';
+        const params = [];
+        const where = [];
+        if (filters?.method && filters.method !== 'ALL') {
+            where.push(`method = $${params.length + 1}`);
+            params.push(filters.method.toUpperCase());
+        }
+        if (filters?.status && filters.status !== 'ALL') {
+            if (filters.status === '2xx') {
+                where.push(`status >= 200 AND status < 300`);
+            }
+            else if (filters.status === '4xx') {
+                where.push(`status >= 400 AND status < 500`);
+            }
+            else if (filters.status === '5xx') {
+                where.push(`status >= 500`);
+            }
+            else {
+                const sc = Number(filters.status);
+                if (!isNaN(sc)) {
+                    where.push(`status = $${params.length + 1}`);
+                    params.push(sc);
+                }
+            }
+        }
+        if (filters?.search) {
+            const q = `%${filters.search.toLowerCase()}%`;
+            where.push(`(LOWER(path) LIKE $${params.length + 1} OR LOWER(ip) LIKE $${params.length + 1} OR LOWER(method) LIKE $${params.length + 1})`);
+            params.push(q);
+        }
+        if (where.length > 0) {
+            sql += ' WHERE ' + where.join(' AND ');
+        }
+        sql += ' ORDER BY timestamp DESC';
+        const limit = Math.min(Number(filters?.limit) || 200, 500);
+        sql += ` LIMIT ${limit}`;
+        const res = await exports.pool.query(sql, params);
+        return res.rows.map(row => ({
+            ...row,
+            timestamp: row.timestamp ? new Date(row.timestamp).toISOString() : new Date().toISOString()
+        }));
+    }
+    catch (err) {
+        console.error('[DB] Error loading api logs:', err.message);
+        return [];
+    }
+}
+async function dbDeleteApiLogs() {
+    if (!exports.isDatabaseConnected)
+        return;
+    try {
+        await exports.pool.query('DELETE FROM inbound_api_logs');
+    }
+    catch (err) {
+        console.error('[DB] Error clearing api logs:', err.message);
+    }
+}
+// =============================================================================
+// STAGING SURVEY REPORTS DB REPOSITORY
+// =============================================================================
+async function dbSaveStagingReport(report) {
+    if (!exports.isDatabaseConnected)
+        return;
+    try {
+        await exports.pool.query(`INSERT INTO staging_survey_reports (
+        id, source_job_id, job_number, booking_no, ticket_no, source_reference,
+        customer_code, customer_name, customer_phone, store_code, agent_code,
+        visit_date, checkin_at, checkout_at, photo_count, raw_payload,
+        process_status, converted_job_id, retry_count, validation_errors, error_message,
+        received_at, processed_at
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
+      ) ON CONFLICT (id) DO UPDATE SET
+        source_job_id = EXCLUDED.source_job_id,
+        job_number = EXCLUDED.job_number,
+        booking_no = EXCLUDED.booking_no,
+        ticket_no = EXCLUDED.ticket_no,
+        source_reference = EXCLUDED.source_reference,
+        customer_code = EXCLUDED.customer_code,
+        customer_name = EXCLUDED.customer_name,
+        customer_phone = EXCLUDED.customer_phone,
+        store_code = EXCLUDED.store_code,
+        agent_code = EXCLUDED.agent_code,
+        visit_date = EXCLUDED.visit_date,
+        checkin_at = EXCLUDED.checkin_at,
+        checkout_at = EXCLUDED.checkout_at,
+        photo_count = EXCLUDED.photo_count,
+        raw_payload = EXCLUDED.raw_payload,
+        process_status = EXCLUDED.process_status,
+        converted_job_id = EXCLUDED.converted_job_id,
+        retry_count = EXCLUDED.retry_count,
+        validation_errors = EXCLUDED.validation_errors,
+        error_message = EXCLUDED.error_message,
+        processed_at = EXCLUDED.processed_at`, [
+            report.id,
+            report.source_job_id || null,
+            report.job_number,
+            report.booking_no || null,
+            report.ticket_no || null,
+            report.source_reference || null,
+            report.customer_code || null,
+            report.customer_name || '',
+            report.customer_phone || '',
+            report.store_code || null,
+            report.agent_code || null,
+            report.visit_date || null,
+            report.checkin_at || null,
+            report.checkout_at || null,
+            Number(report.photo_count) || 0,
+            JSON.stringify(report.raw_payload || {}),
+            report.process_status || 'PENDING',
+            report.converted_job_id ? Number(report.converted_job_id) : null,
+            Number(report.retry_count) || 0,
+            JSON.stringify(report.validation_errors || []),
+            report.error_message || null,
+            report.received_at ? new Date(report.received_at) : new Date(),
+            report.processed_at ? new Date(report.processed_at) : null
+        ]);
+    }
+    catch (err) {
+        console.error('[DB] Error saving staging survey report:', err.message);
+    }
+}
+async function dbLoadStagingReports(filters) {
+    if (!exports.isDatabaseConnected)
+        return [];
+    try {
+        let sql = 'SELECT * FROM staging_survey_reports';
+        const params = [];
+        const where = [];
+        if (filters?.status) {
+            where.push(`process_status = $${params.length + 1}`);
+            params.push(filters.status);
+        }
+        if (filters?.search) {
+            const q = `%${filters.search.toLowerCase()}%`;
+            where.push(`(LOWER(job_number) LIKE $${params.length + 1} OR LOWER(customer_name) LIKE $${params.length + 1} OR LOWER(booking_no) LIKE $${params.length + 1})`);
+            params.push(q);
+        }
+        if (where.length > 0) {
+            sql += ' WHERE ' + where.join(' AND ');
+        }
+        sql += ' ORDER BY received_at DESC, id DESC';
+        const res = await exports.pool.query(sql, params);
+        return res.rows.map(row => ({
+            ...row,
+            id: Number(row.id),
+            converted_job_id: row.converted_job_id ? Number(row.converted_job_id) : undefined,
+            validation_errors: Array.isArray(row.validation_errors) ? row.validation_errors : undefined,
+            received_at: row.received_at ? new Date(row.received_at).toISOString() : new Date().toISOString(),
+            processed_at: row.processed_at ? new Date(row.processed_at).toISOString() : undefined
+        }));
+    }
+    catch (err) {
+        console.error('[DB] Error loading staging reports:', err.message);
+        return [];
+    }
+}
+async function dbGetStagingReport(id) {
+    if (!exports.isDatabaseConnected)
+        return null;
+    try {
+        const res = await exports.pool.query('SELECT * FROM staging_survey_reports WHERE id::text = $1 OR source_job_id = $1 LIMIT 1', [String(id)]);
+        if (res.rows.length === 0)
+            return null;
+        const row = res.rows[0];
+        return {
+            ...row,
+            id: Number(row.id),
+            converted_job_id: row.converted_job_id ? Number(row.converted_job_id) : undefined,
+            validation_errors: Array.isArray(row.validation_errors) ? row.validation_errors : undefined,
+            received_at: row.received_at ? new Date(row.received_at).toISOString() : new Date().toISOString(),
+            processed_at: row.processed_at ? new Date(row.processed_at).toISOString() : undefined
+        };
+    }
+    catch (err) {
+        console.error('[DB] Error getting staging report:', err.message);
+        return null;
+    }
+}
+async function dbUpdateStagingReport(id, updates) {
+    if (!exports.isDatabaseConnected)
+        return;
+    try {
+        const setClauses = [];
+        const values = [];
+        let idx = 1;
+        for (const [key, val] of Object.entries(updates)) {
+            if (['process_status', 'error_message'].includes(key)) {
+                setClauses.push(`${key} = $${idx++}`);
+                values.push(val);
+            }
+            else if (key === 'converted_job_id') {
+                setClauses.push(`${key} = $${idx++}`);
+                values.push(val ? Number(val) : null);
+            }
+            else if (key === 'retry_count') {
+                setClauses.push(`${key} = $${idx++}`);
+                values.push(Number(val));
+            }
+            else if (key === 'validation_errors') {
+                setClauses.push(`${key} = $${idx++}`);
+                values.push(JSON.stringify(val));
+            }
+            else if (key === 'processed_at') {
+                setClauses.push(`${key} = $${idx++}`);
+                values.push(val ? new Date(val) : null);
+            }
+        }
+        if (setClauses.length === 0)
+            return;
+        values.push(String(id));
+        await exports.pool.query(`UPDATE staging_survey_reports SET ${setClauses.join(', ')} WHERE id::text = $${idx}`, values);
+    }
+    catch (err) {
+        console.error('[DB] Error updating staging report:', err.message);
     }
 }
