@@ -2601,6 +2601,34 @@ const app = {
                 }
             },
 
+            handleGlobalSearch(event) {
+                const query = (event && event.target && event.target.value) ? event.target.value.trim().toLowerCase() : '';
+                if (!query) {
+                    if (this.state.currentView === 'jobs') this.renderJobs();
+                    else if (this.state.currentView === 'dashboard') this.renderDashboard();
+                    else if (this.state.currentView === 'gantt') this.renderGantt();
+                    return;
+                }
+
+                const filtered = (DB.jobs || []).filter(j => {
+                    const idMatch = String(j.id || '').toLowerCase().includes(query);
+                    const noMatch = String(j.job_no || '').toLowerCase().includes(query);
+                    const refMatch = String(j.external_ref_id || '').toLowerCase().includes(query);
+                    const custMatch = String(j.customer || '').toLowerCase().includes(query);
+                    const phoneMatch = String(j.phone || '').toLowerCase().includes(query);
+                    const srvMatch = String(j.service || '').toLowerCase().includes(query);
+                    const techMatch = String(j.tech || '').toLowerCase().includes(query);
+                    return idMatch || noMatch || refMatch || custMatch || phoneMatch || srvMatch || techMatch;
+                });
+
+                if (this.state.currentView === 'jobs') {
+                    this.renderJobs(filtered);
+                } else {
+                    this.navigate('jobs');
+                    setTimeout(() => this.renderJobs(filtered), 50);
+                }
+            },
+
             renderJobs(jobList = null) {
                 this.updateStep1Dashboard();
                 const serviceFilter = document.getElementById('filter-service') ? document.getElementById('filter-service').value : 'all';

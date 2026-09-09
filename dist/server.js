@@ -1338,19 +1338,45 @@ app.post('/api/v1/integration/orders', async (req, res) => {
         const runningSeq = Math.floor(1 + Math.random() * 999);
         const runningStr = String(runningSeq).padStart(3, '0');
         const jobNo = `JOB${yyyy}${mm}${runningStr}`;
+        const serviceName = (payload.services && payload.services[0]) || 'งานติดตั้ง';
+        const isQuick = /ติดตั้ง|ซ่อม|ล้าง|แอร์|เครื่องปรับอากาศ|เครื่องทำน้ำอุ่น|ปั้ม|กรองน้ำ|กล้อง/i.test(serviceName) && !/รีโนเวท|ต่อเติม|renovate/i.test(serviceName);
+        const jobType = isQuick ? 'quick' : 'renovate';
         const newJob = {
             id: Date.now(),
             job_no: jobNo,
             external_ref_id: payload.external_ref_id,
             customer_id: customer.id,
-            services: payload.services || ['ติดตั้งเครื่องทำน้ำอุ่น'],
+            services: payload.services || ['งานบริการ'],
             assigned_tech: payload.technician?.name || 'Team A (สมศักดิ์)',
             plan_date: payload.appointment?.date || new Date().toISOString().split('T')[0],
             status: JobStatus.DRAFT,
+            job_type: jobType,
+            property_type: 'บ้านเดี่ยว',
+            project_type: isQuick ? 'Installation' : 'Renovate',
+            project_sub_type: serviceName,
+            pmt_accepted: false,
+            pmt_accepted_at: undefined,
+            step_timestamps: {
+                step1_order_at: new Date().toISOString()
+            },
+            boq_items: [],
+            boq_discount: 0,
+            boq_grand_total: 0,
+            photos: [],
             overall_progress: 0,
             created_at: new Date().toISOString()
         };
+        newJob.customer = {
+            name: `คุณ${firstName} ${lastName}`.trim(),
+            first_name: firstName,
+            last_name: lastName,
+            phone: phone,
+            address: address,
+            lat: lat,
+            lng: lng
+        };
         exports.coreJobStore.unshift(newJob);
+        (0, database_1.dbSaveJob)(newJob).catch(() => { });
         return res.status(201).json({
             success: true,
             data: {
