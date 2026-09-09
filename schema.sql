@@ -1,541 +1,255 @@
 -- =============================================================================
--- SPMT (Store Project Management Tool) - Production Database Schema
+-- SPMT (Store Project Management Tool) - Production Master Database Schema
 -- Database: PostgreSQL 15+
--- Version: 1.0.0
--- Date: 2026-09-01
+-- Version: 2.0.0 (Updated: September 2026)
+-- Target: Dev (https://vibepmt.online) & Production (https://prod.vibepmt.online)
 -- =============================================================================
 
--- Enable required extensions
+-- 1. Enable Required Extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- =============================================================================
--- ENUM TYPES
--- =============================================================================
-CREATE TYPE job_status_enum AS ENUM (
-    'DRAFT',
-    'SURVEYED',
-    'DESIGN',
-    'BOQ',
-    'IN_PROGRESS',
-    'QC_PENDING',
-    'QC_PASSED',
-    'AFTER_SALE',
-    'CLOSED',
-    'CANCELLED'
-);
-
-CREATE TYPE task_status_enum AS ENUM (
-    'PENDING',
-    'IN_PROGRESS',
-    'DONE',
-    'OVERDUE',
-    'REWORK',
-    'CANCELLED'
-);
-
-CREATE TYPE qc_result_enum AS ENUM (
-    'PASS',
-    'FAIL',
-    'NA'
-);
-
-CREATE TYPE csat_result_enum AS ENUM (
-    'PASS',
-    'FAIL'
-);
-
-CREATE TYPE after_sale_type_enum AS ENUM (
-    'WARRANTY_CLAIM',
-    'REPAIR_SERVICE',
-    'COMPLAINT'
-);
-
--- =============================================================================
--- 1. MASTER DATA TABLES
+-- 2. SYSTEM & AUTHENTICATION TABLES
 -- =============================================================================
 
--- System Configurations (Geo-fence radius, Alert days, etc.)
-CREATE TABLE sys_config (
+-- System Configurations (Geo-fence radius, Alert days, API endpoints)
+CREATE TABLE IF NOT EXISTS sys_config (
     config_key VARCHAR(50) PRIMARY KEY,
     config_value VARCHAR(255) NOT NULL,
     description TEXT,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- User Accounts & Roles
--- User Role ENUM
-CREATE TYPE user_role_enum AS ENUM (
-    'ADMIN',
-    'AE',
-    'QC',
-    'CONTACT_CENTER'
-);
-
--- System Users (Authentication & Authorization)
-CREATE TABLE sys_users (
+-- System Users (Authentication & Authorization: ADMIN, AE, QC, CONTACT_CENTER)
+CREATE TABLE IF NOT EXISTS sys_users (
     id            BIGSERIAL PRIMARY KEY,
     user_code     VARCHAR(20)       UNIQUE NOT NULL,
     username      VARCHAR(50)       UNIQUE NOT NULL,
     email         VARCHAR(100)      UNIQUE,
     full_name     VARCHAR(150)      NOT NULL,
-    role          user_role_enum    NOT NULL,
-    password_hash VARCHAR(255)      NOT NULL,   -- bcrypt hash
+    role          VARCHAR(50)       NOT NULL DEFAULT 'AE',
+    password_hash VARCHAR(255)      NOT NULL,
     is_active     BOOLEAN           DEFAULT TRUE,
     last_login_at TIMESTAMP WITH TIME ZONE,
-    created_by    BIGINT            REFERENCES sys_users(id) ON DELETE SET NULL,
     created_at    TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at    TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Session Tokens
-CREATE TABLE sys_user_sessions (
+-- Active User Session Tokens
+CREATE TABLE IF NOT EXISTS sys_user_sessions (
     id          BIGSERIAL PRIMARY KEY,
     user_id     BIGINT       NOT NULL REFERENCES sys_users(id) ON DELETE CASCADE,
-    token_hash  VARCHAR(255) NOT NULL UNIQUE,  -- SHA-256 of the raw token
+    token_hash  VARCHAR(255) NOT NULL UNIQUE,
     ip_address  VARCHAR(45),
     user_agent  TEXT,
     expires_at  TIMESTAMP WITH TIME ZONE NOT NULL,
-    revoked_at  TIMESTAMP WITH TIME ZONE,      -- NULL = still valid
+    revoked_at  TIMESTAMP WITH TIME ZONE,
     created_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX idx_sessions_token ON sys_user_sessions(token_hash);
-CREATE INDEX idx_sessions_user  ON sys_user_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_token ON sys_user_sessions(token_hash);
+CREATE INDEX IF NOT EXISTS idx_sessions_user  ON sys_user_sessions(user_id);
 
--- Login Audit Log
-CREATE TABLE sys_login_log (
+-- System Login Audit Logs
+CREATE TABLE IF NOT EXISTS sys_login_log (
     id          BIGSERIAL PRIMARY KEY,
     username    VARCHAR(50)  NOT NULL,
     user_id     BIGINT       REFERENCES sys_users(id) ON DELETE SET NULL,
     success     BOOLEAN      NOT NULL,
     ip_address  VARCHAR(45),
     user_agent  TEXT,
-    fail_reason VARCHAR(100),                  -- WRONG_PASSWORD / USER_NOT_FOUND / INACTIVE
+    fail_reason VARCHAR(100),
     created_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX idx_login_log_user ON sys_login_log(username);
-
--- Legacy m_user kept for backward compatibility
-CREATE TABLE m_user (
-    id BIGSERIAL PRIMARY KEY,
-    user_code VARCHAR(20) UNIQUE NOT NULL,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    full_name VARCHAR(150) NOT NULL,
-    email VARCHAR(100),
-    phone VARCHAR(30),
-    role VARCHAR(30) NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Customers
-CREATE TABLE m_customer (
-    id BIGSERIAL PRIMARY KEY,
-    customer_code VARCHAR(30) UNIQUE NOT NULL,
-    first_name VARCHAR(100) NOT NULL,
-    last_name VARCHAR(100) NOT NULL,
-    phone VARCHAR(30) NOT NULL,
-    email VARCHAR(100),
-    address TEXT NOT NULL,
-    lat NUMERIC(10, 7) NOT NULL,
-    lng NUMERIC(10, 7) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Service Types Master
-CREATE TABLE m_service_type (
-    id BIGSERIAL PRIMARY KEY,
-    service_code VARCHAR(30) UNIQUE NOT NULL,
-    service_name VARCHAR(100) NOT NULL,
-    description TEXT,
-    is_active BOOLEAN DEFAULT TRUE
-);
-
--- Technicians Master
-CREATE TABLE m_technician (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT REFERENCES sys_users(id) ON DELETE SET NULL,
-    tech_code VARCHAR(30) UNIQUE NOT NULL,
-    full_name VARCHAR(150) NOT NULL,
-    phone VARCHAR(30),
-    skill_type VARCHAR(100),
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Material / Price Standard Master (For BOQ)
-CREATE TABLE m_material (
-    id BIGSERIAL PRIMARY KEY,
-    material_code VARCHAR(30) UNIQUE NOT NULL,
-    material_name VARCHAR(200) NOT NULL,
-    unit VARCHAR(30) NOT NULL,
-    standard_price NUMERIC(15, 2) NOT NULL,
-    cost_price NUMERIC(15, 2),
-    effective_date DATE DEFAULT CURRENT_DATE,
-    is_active BOOLEAN DEFAULT TRUE
-);
-
--- QC Checklist Templates
-CREATE TABLE m_qc_checklist_template (
-    id BIGSERIAL PRIMARY KEY,
-    template_name VARCHAR(100) NOT NULL,
-    service_type_id BIGINT REFERENCES m_service_type(id),
-    is_active BOOLEAN DEFAULT TRUE
-);
-
-CREATE TABLE m_qc_checklist_item (
-    id BIGSERIAL PRIMARY KEY,
-    template_id BIGINT NOT NULL REFERENCES m_qc_checklist_template(id) ON DELETE CASCADE,
-    item_order INT NOT NULL,
-    description TEXT NOT NULL,
-    is_mandatory BOOLEAN DEFAULT FALSE -- Mandatory item failing triggers overall QC FAIL
-);
+CREATE INDEX IF NOT EXISTS idx_login_log_user ON sys_login_log(username);
+CREATE INDEX IF NOT EXISTS idx_login_log_time ON sys_login_log(created_at DESC);
 
 -- =============================================================================
--- 2. INBOUND & INTEGRATION LOGS (INT & BMT)
+-- 3. CORE OPERATIONAL TABLES (7-STEP PIPELINE & QUICK SERVICES)
 -- =============================================================================
 
-CREATE TABLE t_integration_log (
-    id BIGSERIAL PRIMARY KEY,
-    direction VARCHAR(10) NOT NULL, -- 'INBOUND', 'OUTBOUND'
-    target_system VARCHAR(20) NOT NULL, -- 'INT', 'BMT'
-    endpoint VARCHAR(255) NOT NULL,
-    idempotency_key VARCHAR(100) UNIQUE,
-    raw_payload JSONB NOT NULL,
-    response_payload JSONB,
-    http_status INT,
-    status VARCHAR(20) NOT NULL, -- 'SUCCESS', 'FAILED', 'RETRY'
-    error_message TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- Core Jobs & Projects (Main Order Pipeline: Step 1 - Step 7)
+CREATE TABLE IF NOT EXISTS core_jobs (
+    id                    SERIAL PRIMARY KEY,
+    job_no                VARCHAR(50) UNIQUE NOT NULL,
+    external_ref_id       VARCHAR(100),
+    booking_no            VARCHAR(100),
+    ticket_no             VARCHAR(100),
+    customer_id           INT DEFAULT 1,
+    status                VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
+    job_type              VARCHAR(50) DEFAULT 'quick',
+    step_timestamps       JSONB DEFAULT '{}'::jsonb,
+    property_type         TEXT,
+    project_type          TEXT,
+    project_sub_type      TEXT,
+    store_code            VARCHAR(50),
+    agent_name            VARCHAR(150),
+    assigned_tech         VARCHAR(150),
+    plan_date             VARCHAR(50),
+    services              JSONB DEFAULT '[]'::jsonb,
+    overall_progress      INT DEFAULT 0,
+    special_instructions  TEXT,
+    additional_notes      TEXT,
+    customer_data         JSONB DEFAULT '{}'::jsonb,
+    tasks                 JSONB DEFAULT '[]'::jsonb,
+    photos                JSONB DEFAULT '[]'::jsonb,
+    boq_items             JSONB DEFAULT '[]'::jsonb,
+    boq_discount          NUMERIC DEFAULT 0,
+    boq_subtotal          NUMERIC DEFAULT 0,
+    boq_grand_total       NUMERIC DEFAULT 0,
+    pmt_accepted          BOOLEAN DEFAULT FALSE,
+    pmt_accepted_at       TIMESTAMP WITH TIME ZONE,
+    step3_confirmed       BOOLEAN DEFAULT FALSE,
+    qc_inspection_type    VARCHAR(50),
+    qc_passed_at          TIMESTAMP WITH TIME ZONE,
+    csat_score            NUMERIC DEFAULT NULL,
+    csat_remarks          TEXT,
+    csat_photos           JSONB DEFAULT '[]'::jsonb,
+    csat_surveyor         VARCHAR(150),
+    csat_evaluated_at     TIMESTAMP WITH TIME ZONE,
+    job_details           JSONB DEFAULT '[]'::jsonb,
+    agent_data            JSONB DEFAULT '{}'::jsonb,
+    store_data            JSONB DEFAULT '{}'::jsonb,
+    schedule_plan         JSONB DEFAULT '{}'::jsonb,
+    checkin_data          JSONB DEFAULT '{}'::jsonb,
+    checkout_data         JSONB DEFAULT '{}'::jsonb,
+    approval_data         JSONB DEFAULT '{}'::jsonb,
+    visit_results         JSONB DEFAULT '[]'::jsonb,
+    remarks_data          JSONB DEFAULT '{}'::jsonb,
+    file_int_image        TEXT,
+    raw_payload           JSONB DEFAULT '{}'::jsonb,
+    created_at            TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at            TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Staging Table for Survey / Site Visit Reports before Core Conversion
-CREATE TABLE t_staging_survey_report (
-    id BIGSERIAL PRIMARY KEY,
-    source_job_id VARCHAR(100) NOT NULL,
-    job_number VARCHAR(50) NOT NULL,
-    booking_no VARCHAR(50),
-    ticket_no VARCHAR(50),
-    source_reference VARCHAR(100),
-    customer_code VARCHAR(100),
-    customer_name VARCHAR(150),
-    customer_phone VARCHAR(30),
-    store_code VARCHAR(30),
-    agent_code VARCHAR(100),
-    visit_date DATE,
-    checkin_at TIMESTAMP WITH TIME ZONE,
-    checkout_at TIMESTAMP WITH TIME ZONE,
-    photo_count INT DEFAULT 0,
-    raw_payload JSONB NOT NULL,
-    process_status VARCHAR(30) NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'PROCESSING', 'CONVERTED', 'VALIDATION_FAILED', 'ERROR'
-    converted_job_id BIGINT,
-    validation_errors JSONB,
-    error_message TEXT,
-    retry_count INT NOT NULL DEFAULT 0,
-    received_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    processed_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE INDEX IF NOT EXISTS idx_core_jobs_status     ON core_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_core_jobs_job_no     ON core_jobs(job_no);
+CREATE INDEX IF NOT EXISTS idx_core_jobs_plan_date  ON core_jobs(plan_date);
+CREATE INDEX IF NOT EXISTS idx_core_jobs_created_at ON core_jobs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_core_jobs_customer   ON core_jobs USING GIN (customer_data);
+
+-- Technician Daily Work Reports (24-Hour Format, 5 Site Photos, Daily Progress)
+CREATE TABLE IF NOT EXISTS core_daily_work_logs (
+    id                  VARCHAR(64) PRIMARY KEY,
+    job_id              VARCHAR(64) NOT NULL,
+    job_no              VARCHAR(50),
+    task_id             VARCHAR(64) NOT NULL,
+    task_name           VARCHAR(255),
+    log_date            VARCHAR(20) NOT NULL,
+    start_time          VARCHAR(10) DEFAULT '08:30',
+    end_time            VARCHAR(10) DEFAULT '17:00',
+    work_hours          VARCHAR(20) DEFAULT '8.5 ชม.',
+    day_number          INT DEFAULT 1,
+    total_days          INT DEFAULT 1,
+    technician          VARCHAR(150),
+    recorded_by         VARCHAR(150),
+    reporter_role       VARCHAR(20) DEFAULT 'TECH',
+    progress_percent    INT DEFAULT 0,
+    work_description    TEXT,
+    additional_details  TEXT,
+    issues_encountered  TEXT,
+    solutions_applied   TEXT,
+    materials_used      TEXT,
+    photos              JSONB DEFAULT '[]'::jsonb,
+    is_completed        BOOLEAN DEFAULT FALSE,
+    is_final_day        BOOLEAN DEFAULT FALSE,
+    supervisor_approved BOOLEAN DEFAULT FALSE,
+    created_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_daily_logs_job_id  ON core_daily_work_logs(job_id);
+CREATE INDEX IF NOT EXISTS idx_daily_logs_task_id ON core_daily_work_logs(task_id);
+CREATE INDEX IF NOT EXISTS idx_daily_logs_date    ON core_daily_work_logs(log_date DESC);
+
+-- QC Inspection Bookings (Online / On-site 5-day prior notice triggers)
+CREATE TABLE IF NOT EXISTS core_qc_bookings (
+    id                  VARCHAR(64) PRIMARY KEY,
+    job_id              VARCHAR(64) NOT NULL,
+    job_no              VARCHAR(50),
+    customer_name       VARCHAR(150),
+    booking_date        VARCHAR(20) NOT NULL,
+    time_slot           VARCHAR(50) DEFAULT 'เช้า (09:00 - 12:00)',
+    technician_name     VARCHAR(150),
+    qc_inspector        VARCHAR(150),
+    status              VARCHAR(30) DEFAULT 'PENDING',
+    checklist           JSONB DEFAULT '[]'::jsonb,
+    notes               TEXT,
+    photos              JSONB DEFAULT '[]'::jsonb,
+    task_id             VARCHAR(64),
+    task_name           VARCHAR(255),
+    plan_start_date     VARCHAR(20),
+    plan_end_date       VARCHAR(20),
+    qc_booking_date     VARCHAR(20),
+    days_before         INT DEFAULT 5,
+    assigned_tech       VARCHAR(150),
+    assigned_qc_tech    VARCHAR(150),
+    confirmed_at        TIMESTAMP WITH TIME ZONE,
+    confirmed_by        VARCHAR(150),
+    remarks             TEXT,
+    created_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_qc_bookings_job_id  ON core_qc_bookings(job_id);
+CREATE INDEX IF NOT EXISTS idx_qc_bookings_date    ON core_qc_bookings(qc_booking_date ASC);
+CREATE INDEX IF NOT EXISTS idx_qc_bookings_status  ON core_qc_bookings(status);
+
+-- Inbound REST API Request Logs & Diagnostics
+CREATE TABLE IF NOT EXISTS inbound_api_logs (
+    id            VARCHAR(64) PRIMARY KEY,
+    timestamp     TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    method        VARCHAR(10),
+    path          TEXT,
+    ip            VARCHAR(45),
+    status        INT,
+    duration_ms   INT,
+    headers       JSONB DEFAULT '{}'::jsonb,
+    body          JSONB,
+    response_body JSONB
+);
+
+CREATE INDEX IF NOT EXISTS idx_api_logs_time   ON inbound_api_logs(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_api_logs_status ON inbound_api_logs(status);
+
+-- Staging Table for Inbound Site Visit / Survey Webhooks
+CREATE TABLE IF NOT EXISTS staging_survey_reports (
+    id                BIGINT PRIMARY KEY,
+    source_job_id     VARCHAR(100),
+    job_number        VARCHAR(50),
+    booking_no        VARCHAR(100),
+    ticket_no         VARCHAR(100),
+    source_reference  VARCHAR(100),
+    customer_code     VARCHAR(100),
+    customer_name     VARCHAR(200),
+    customer_phone    VARCHAR(50),
+    store_code        VARCHAR(50),
+    agent_code        VARCHAR(50),
+    visit_date        VARCHAR(50),
+    checkin_at        VARCHAR(50),
+    checkout_at       VARCHAR(50),
+    photo_count       INT DEFAULT 0,
+    raw_payload       JSONB DEFAULT '{}'::jsonb,
+    process_status    VARCHAR(50) DEFAULT 'PENDING',
+    converted_job_id  BIGINT,
+    retry_count       INT DEFAULT 0,
+    validation_errors JSONB DEFAULT '[]'::jsonb,
+    error_message     TEXT,
+    received_at       TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    processed_at      TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX IF NOT EXISTS idx_staging_job_no ON staging_survey_reports(job_number);
+CREATE INDEX IF NOT EXISTS idx_staging_status ON staging_survey_reports(process_status);
 
 -- =============================================================================
--- 3. CORE TRANSACTION TABLES (JOBS & VISITS)
+-- 4. RECURRING MAINTENANCE / MA CONTRACTS & ROUNDS (สัญญา MA)
 -- =============================================================================
 
--- Main Job / Order
-CREATE TABLE t_job (
-    id BIGSERIAL PRIMARY KEY,
-    job_no VARCHAR(30) UNIQUE NOT NULL, -- Format: JOBYYMMDDXXXXX e.g. JOB26090900001
-    external_ref_id VARCHAR(100), -- Ref from INT system
-    customer_id BIGINT NOT NULL REFERENCES m_customer(id),
-    primary_service_id BIGINT REFERENCES m_service_type(id),
-    status job_status_enum NOT NULL DEFAULT 'DRAFT',
-    assigned_tech_id BIGINT REFERENCES m_user(id),
-    assigned_tech_name VARCHAR(150),
-    assigned_tech_phone VARCHAR(30),
-    appointment_date DATE,
-    appointment_time TIME,
-    overall_progress INT DEFAULT 0 CHECK (overall_progress BETWEEN 0 AND 100),
-    bmt_export_ref VARCHAR(100),
-    bmt_exported_at TIMESTAMP WITH TIME ZONE,
-    closed_at TIMESTAMP WITH TIME ZONE,
-    special_instructions TEXT, -- คำสั่งพิเศษ (Special Instructions)
-    additional_notes TEXT, -- ข้อมูลเพิ่มเติม / หมายเหตุหน้างาน (Additional Notes)
-    created_by BIGINT REFERENCES m_user(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Additional Services attached to a Job
-CREATE TABLE t_job_service (
-    id BIGSERIAL PRIMARY KEY,
-    job_id BIGINT NOT NULL REFERENCES t_job(id) ON DELETE CASCADE,
-    service_id BIGINT REFERENCES m_service_type(id),
-    service_name VARCHAR(100) NOT NULL,
-    notes TEXT
-);
-
--- Site Visit & Check-in Log (Mobile App)
-CREATE TABLE t_visit_checkin (
-    id BIGSERIAL PRIMARY KEY,
-    job_id BIGINT NOT NULL REFERENCES t_job(id) ON DELETE CASCADE,
-    tech_id BIGINT REFERENCES m_user(id),
-    checkin_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    checkout_at TIMESTAMP WITH TIME ZONE,
-    duration_minutes INT,
-    checkin_lat NUMERIC(10, 7) NOT NULL,
-    checkin_lng NUMERIC(10, 7) NOT NULL,
-    distance_meters NUMERIC(8, 2),
-    is_in_radius BOOLEAN NOT NULL DEFAULT TRUE,
-    out_of_radius_reason TEXT,
-    photo_count INT DEFAULT 0 CHECK (photo_count >= 0),
-    visit_summary TEXT,
-    progress_reported INT DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Site Photos (Minimum 5 required)
-CREATE TABLE t_site_photo (
-    id BIGSERIAL PRIMARY KEY,
-    job_id BIGINT NOT NULL REFERENCES t_job(id) ON DELETE CASCADE,
-    visit_checkin_id BIGINT REFERENCES t_visit_checkin(id),
-    file_path VARCHAR(500) NOT NULL,
-    file_size_bytes BIGINT,
-    photo_angle_tag VARCHAR(50), -- 'FRONT', 'LEFT', 'RIGHT', 'POWER_POINT', 'OVERALL'
-    taken_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    lat NUMERIC(10, 7),
-    lng NUMERIC(10, 7)
-);
-
--- =============================================================================
--- 4. DESIGN & BOQ TABLES
--- =============================================================================
-
--- Design Files (With Versioning)
-CREATE TABLE t_design_file (
-    id BIGSERIAL PRIMARY KEY,
-    job_id BIGINT NOT NULL REFERENCES t_job(id) ON DELETE CASCADE,
-    version_no INT NOT NULL DEFAULT 1,
-    file_name VARCHAR(255) NOT NULL,
-    file_path VARCHAR(500) NOT NULL,
-    file_type VARCHAR(20) NOT NULL, -- 'pdf', 'dwg', 'jpg', 'skp'
-    file_size_bytes BIGINT,
-    is_current BOOLEAN DEFAULT TRUE,
-    remark TEXT,
-    uploaded_by BIGINT REFERENCES m_user(id),
-    uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- BOQ Header
-CREATE TABLE t_boq (
-    id BIGSERIAL PRIMARY KEY,
-    job_id BIGINT NOT NULL REFERENCES t_job(id) ON DELETE CASCADE,
-    version_no INT NOT NULL DEFAULT 1,
-    subtotal NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
-    discount NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
-    vat_amount NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
-    grand_total NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
-    is_current BOOLEAN DEFAULT TRUE,
-    created_by BIGINT REFERENCES m_user(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- BOQ Items (Price Locked Snapshot)
-CREATE TABLE t_boq_item (
-    id BIGSERIAL PRIMARY KEY,
-    boq_id BIGINT NOT NULL REFERENCES t_boq(id) ON DELETE CASCADE,
-    item_order INT NOT NULL,
-    material_id BIGINT REFERENCES m_material(id),
-    description VARCHAR(300) NOT NULL,
-    qty NUMERIC(12, 3) NOT NULL,
-    unit VARCHAR(30) NOT NULL,
-    unit_price NUMERIC(15, 2) NOT NULL, -- Locked price at time of creation
-    cost_price NUMERIC(15, 2),
-    amount NUMERIC(15, 2) NOT NULL
-);
-
--- =============================================================================
--- 5. TASKS & SCHEDULING (Gantt - Independent Tasks)
--- =============================================================================
-
-CREATE TABLE t_task (
-    id BIGSERIAL PRIMARY KEY,
-    job_id BIGINT NOT NULL REFERENCES t_job(id) ON DELETE CASCADE,
-    task_name VARCHAR(200) NOT NULL,
-    assigned_tech_id BIGINT REFERENCES m_user(id),
-    assigned_tech_name VARCHAR(150),
-    plan_start_date DATE NOT NULL,
-    plan_end_date DATE NOT NULL,
-    duration_days INT NOT NULL,
-    progress_percent INT DEFAULT 0 CHECK (progress_percent BETWEEN 0 AND 100),
-    status task_status_enum NOT NULL DEFAULT 'PENDING',
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Daily Task Log (Technician Daily Reports)
-CREATE TABLE t_daily_task_log (
-    id BIGSERIAL PRIMARY KEY,
-    task_id BIGINT NOT NULL REFERENCES t_task(id) ON DELETE CASCADE,
-    tech_id BIGINT REFERENCES m_user(id),
-    work_date DATE NOT NULL,
-    checkin_at TIMESTAMP WITH TIME ZONE,
-    checkout_at TIMESTAMP WITH TIME ZONE,
-    progress_reported INT CHECK (progress_reported BETWEEN 0 AND 100),
-    work_summary TEXT,
-    issues_noted TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- =============================================================================
--- 6. QC, AFTER SALE & CSAT TABLES
--- =============================================================================
-
--- QC Inspection Header
-CREATE TABLE t_qc_inspection (
-    id BIGSERIAL PRIMARY KEY,
-    job_id BIGINT NOT NULL REFERENCES t_job(id) ON DELETE CASCADE,
-    round_no INT NOT NULL DEFAULT 1,
-    inspector_id BIGINT REFERENCES m_user(id),
-    overall_result qc_result_enum NOT NULL DEFAULT 'NA',
-    remarks TEXT,
-    inspected_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- QC Inspection Item Details
-CREATE TABLE t_qc_inspection_item (
-    id BIGSERIAL PRIMARY KEY,
-    inspection_id BIGINT NOT NULL REFERENCES t_qc_inspection(id) ON DELETE CASCADE,
-    checklist_item_id BIGINT REFERENCES m_qc_checklist_item(id),
-    item_description TEXT NOT NULL,
-    is_mandatory BOOLEAN DEFAULT FALSE,
-    result qc_result_enum NOT NULL DEFAULT 'NA',
-    remark TEXT,
-    photo_path VARCHAR(500)
-);
-
--- After Sale & CSAT Survey
-CREATE TABLE t_after_sale_case (
-    id BIGSERIAL PRIMARY KEY,
-    case_no VARCHAR(30) UNIQUE NOT NULL, -- e.g. AS-256909-0001
-    job_id BIGINT NOT NULL REFERENCES t_job(id),
-    case_type after_sale_type_enum NOT NULL DEFAULT 'COMPLAINT',
-    csat_score INT CHECK (csat_score BETWEEN 1 AND 5),
-    csat_result csat_result_enum,
-    customer_feedback TEXT,
-    contacted_by BIGINT REFERENCES m_user(id),
-    contacted_at TIMESTAMP WITH TIME ZONE,
-    status VARCHAR(20) DEFAULT 'OPEN', -- 'OPEN', 'RESOLVED', 'CLOSED'
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Payment Ticket (Slip attachment only - No gateway)
-CREATE TABLE t_payment_ticket (
-    id BIGSERIAL PRIMARY KEY,
-    ticket_no VARCHAR(30) UNIQUE NOT NULL, -- e.g. TKT-256909-0001
-    job_id BIGINT NOT NULL REFERENCES t_job(id),
-    amount NUMERIC(15, 2) NOT NULL,
-    payment_date DATE NOT NULL,
-    payment_method VARCHAR(50) DEFAULT 'BANK_TRANSFER',
-    slip_photo_path VARCHAR(500) NOT NULL,
-    recorded_by BIGINT REFERENCES m_user(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Job Status Audit History
-CREATE TABLE t_job_status_log (
-    id BIGSERIAL PRIMARY KEY,
-    job_id BIGINT NOT NULL REFERENCES t_job(id) ON DELETE CASCADE,
-    from_status job_status_enum,
-    to_status job_status_enum NOT NULL,
-    changed_by BIGINT REFERENCES m_user(id),
-    reason TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- =============================================================================
--- INDEXES FOR OPTIMAL PERFORMANCE
--- =============================================================================
-CREATE INDEX idx_t_job_status ON t_job(status);
-CREATE INDEX idx_t_job_customer ON t_job(customer_id);
-CREATE INDEX idx_t_job_assigned_tech ON t_job(assigned_tech_id);
-CREATE INDEX idx_t_task_job_id ON t_task(job_id);
-CREATE INDEX idx_t_task_dates ON t_task(plan_start_date, plan_end_date);
-CREATE INDEX idx_t_visit_checkin_job ON t_visit_checkin(job_id);
-CREATE INDEX idx_t_site_photo_job ON t_site_photo(job_id);
-CREATE INDEX idx_t_integration_idempotency ON t_integration_log(idempotency_key);
-CREATE UNIQUE INDEX idx_staging_source_job_id ON t_staging_survey_report(source_job_id);
-CREATE INDEX idx_staging_job_number ON t_staging_survey_report(job_number);
-CREATE INDEX idx_staging_booking_no ON t_staging_survey_report(booking_no);
-CREATE INDEX idx_staging_process_status ON t_staging_survey_report(process_status);
-CREATE INDEX idx_staging_raw_payload_gin ON t_staging_survey_report USING GIN (raw_payload);
-
--- =============================================================================
--- INITIAL DATA SEEDING
--- =============================================================================
-
-INSERT INTO sys_config (config_key, config_value, description) VALUES
-('CHECKIN_RADIUS_METERS', '400', 'Geofence radius for technician checkin'),
-('MIN_SITE_PHOTOS', '5', 'Minimum site photos required before SURVEYED status'),
-('QC_ALERT_DAYS_BEFORE_DEADLINE', '5', 'Days before task deadline to trigger QC alert'),
-('INT_API_ENDPOINT', 'https://int.system.local/api/v1', 'INT System Base URL'),
-('BMT_API_ENDPOINT', 'https://bmt.system.local/api/v1', 'BMT System Base URL');
-
-INSERT INTO m_service_type (service_code, service_name, description) VALUES
-('SVC-WATER-HEATER', 'ติดตั้งเครื่องทำน้ำอุ่น', 'บริการติดตั้งเครื่องทำน้ำอุ่นพร้อมเดินสายไฟ'),
-('SVC-PUMP-TANK', 'ปั้มแท็งก์', 'บริการติดตั้งปั้มน้ำและแท็งก์น้ำ'),
-('SVC-KITCHEN-RENO', 'Renovate ครัว', 'บริการปรับปรุงและต่อเติมห้องครัว'),
-('SVC-SITE-SURVEY', 'สำรวจหน้างาน', 'บริการเข้าสำรวจพื้นที่และประเมินหน้างาน');
-
--- =============================================================================
--- SEED: sys_users (6 accounts — passwords are bcrypt of the shown plaintext)
--- Password hashes below = bcrypt("Password@1234") for demo; replace in prod
--- =============================================================================
--- USR-001 admin       → Admin@1234
--- USR-002 pm.somrak   → Admin@1234
--- USR-003 ae.somchai  → Ae@1234
--- USR-004 ae.malee    → Ae@1234
--- USR-005 qc.wichai   → Qc@1234
--- USR-006 cc.nipa     → Cc@1234
-INSERT INTO sys_users (user_code, username, email, full_name, role, password_hash, is_active) VALUES
-('USR-001', 'admin',       'admin@pmt.local',     'ผู้ดูแลระบบ',         'ADMIN',           '$2a$12$demoHashAdminxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', TRUE),
-('USR-002', 'pm.somrak',   'somrak@pmt.local',    'สมรัก บริหารเก่ง',    'ADMIN',           '$2a$12$demoHashAdminxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', TRUE),
-('USR-003', 'ae.somchai',  'somchai@pmt.local',   'สมชาย ขยันทำ',        'AE',              '$2a$12$demoHashAexxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', TRUE),
-('USR-004', 'ae.malee',    'malee@pmt.local',     'มาลี สวยงาม',         'AE',              '$2a$12$demoHashAexxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', TRUE),
-('USR-005', 'qc.wichai',   'wichai@pmt.local',    'วิชัย ตรวจดี',        'QC',              '$2a$12$demoHashQcxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', TRUE),
-('USR-006', 'cc.nipa',     'nipa@pmt.local',      'นิภา ใจดี',           'CONTACT_CENTER',  '$2a$12$demoHashCcxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', TRUE);
-
-INSERT INTO m_user (user_code, username, password_hash, full_name, email, role) VALUES
-('USR-001', 'admin',   '$2a$10$abcdefghijklmnopqrstuvwxyz123456', 'Administrator', 'admin@pmt.local', 'ADMIN'),
-('USR-002', 'manager', '$2a$10$abcdefghijklmnopqrstuvwxyz123456', 'Project Manager', 'mgr@pmt.local', 'MANAGER');
-
--- =============================================================================
--- RECURRING MAINTENANCE / MA CONTRACTS (สัญญา MA)
--- =============================================================================
-
-CREATE TYPE ma_contract_status_enum AS ENUM (
-    'Active',
-    'Completed',
-    'Cancelled'
-);
-
-CREATE TYPE ma_round_status_enum AS ENUM (
-    'Scheduled',
-    'InProgress',
-    'Completed',
-    'Rescheduled',
-    'Skipped'
-);
-
-CREATE TABLE ma_contracts (
+CREATE TABLE IF NOT EXISTS ma_contracts (
     id                  VARCHAR(64) PRIMARY KEY,
     contract_no         VARCHAR(50) UNIQUE NOT NULL,
-    customer_id         BIGINT REFERENCES m_customer(id) ON DELETE SET NULL,
+    customer_id         BIGINT,
     customer_site_id    BIGINT,
     customer_name       VARCHAR(150),
     customer_phone      VARCHAR(50),
@@ -548,28 +262,28 @@ CREATE TABLE ma_contracts (
     contract_start_date DATE NOT NULL,
     contract_end_date   DATE,
     contract_value      NUMERIC(14,2) DEFAULT 0.00,
-    status              ma_contract_status_enum DEFAULT 'Active',
+    status              VARCHAR(50) DEFAULT 'Active',
     notes               TEXT,
-    created_by          VARCHAR(64),
+    created_by          VARCHAR(64) DEFAULT 'system',
     created_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE ma_rounds (
+CREATE TABLE IF NOT EXISTS ma_rounds (
     id                  VARCHAR(64) PRIMARY KEY,
     contract_id         VARCHAR(64) NOT NULL REFERENCES ma_contracts(id) ON DELETE CASCADE,
-    project_id          BIGINT REFERENCES t_job(id) ON DELETE SET NULL,
+    project_id          BIGINT,
     round_number        INT NOT NULL,
     scheduled_date      DATE NOT NULL,
     actual_date         DATE,
-    status              ma_round_status_enum DEFAULT 'Scheduled',
-    technician_id       BIGINT REFERENCES m_technician(id) ON DELETE SET NULL,
+    status              VARCHAR(50) DEFAULT 'Scheduled',
+    technician_id       BIGINT,
     notes               TEXT,
     created_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE ma_checklist_templates (
+CREATE TABLE IF NOT EXISTS ma_checklist_templates (
     id                  VARCHAR(64) PRIMARY KEY,
     service_type        VARCHAR(100) NOT NULL,
     template_name       VARCHAR(200) NOT NULL,
@@ -578,10 +292,117 @@ CREATE TABLE ma_checklist_templates (
     updated_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_ma_contracts_status ON ma_contracts(status);
-CREATE INDEX idx_ma_contracts_customer ON ma_contracts(customer_id);
-CREATE INDEX idx_ma_rounds_contract ON ma_rounds(contract_id);
-CREATE INDEX idx_ma_rounds_scheduled_date ON ma_rounds(scheduled_date);
-CREATE INDEX idx_ma_rounds_status ON ma_rounds(status);
+CREATE INDEX IF NOT EXISTS idx_ma_contracts_status  ON ma_contracts(status);
+CREATE INDEX IF NOT EXISTS idx_ma_rounds_contract   ON ma_rounds(contract_id);
+CREATE INDEX IF NOT EXISTS idx_ma_rounds_scheduled  ON ma_rounds(scheduled_date);
+CREATE INDEX IF NOT EXISTS idx_ma_rounds_status     ON ma_rounds(status);
 
+-- =============================================================================
+-- 5. MASTER REFERENCE CATALOGS
+-- =============================================================================
 
+CREATE TABLE IF NOT EXISTS m_customer (
+    id            BIGSERIAL PRIMARY KEY,
+    customer_code VARCHAR(30) UNIQUE NOT NULL,
+    first_name    VARCHAR(100) NOT NULL,
+    last_name     VARCHAR(100) NOT NULL,
+    phone         VARCHAR(30) NOT NULL,
+    email         VARCHAR(100),
+    address       TEXT NOT NULL,
+    lat           NUMERIC(10, 7) NOT NULL,
+    lng           NUMERIC(10, 7) NOT NULL,
+    created_at    TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS m_service_type (
+    id           BIGSERIAL PRIMARY KEY,
+    service_code VARCHAR(30) UNIQUE NOT NULL,
+    service_name VARCHAR(100) NOT NULL,
+    description  TEXT,
+    is_active    BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE IF NOT EXISTS m_technician (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     BIGINT REFERENCES sys_users(id) ON DELETE SET NULL,
+    tech_code   VARCHAR(30) UNIQUE NOT NULL,
+    full_name   VARCHAR(150) NOT NULL,
+    phone       VARCHAR(30),
+    skill_type  VARCHAR(100),
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS m_material (
+    id             BIGSERIAL PRIMARY KEY,
+    material_code  VARCHAR(30) UNIQUE NOT NULL,
+    material_name  VARCHAR(200) NOT NULL,
+    unit           VARCHAR(30) NOT NULL,
+    standard_price NUMERIC(15, 2) NOT NULL,
+    cost_price     NUMERIC(15, 2),
+    effective_date DATE DEFAULT CURRENT_DATE,
+    is_active      BOOLEAN DEFAULT TRUE
+);
+
+-- =============================================================================
+-- 6. MASTER SEED DATA INITIALIZATION
+-- =============================================================================
+
+-- 6.1 System Config Seeds
+INSERT INTO sys_config (config_key, config_value, description) VALUES
+('CHECKIN_RADIUS_METERS', '400', 'Geofence radius for technician checkin'),
+('MIN_SITE_PHOTOS', '5', 'Minimum site photos required before SURVEYED status'),
+('QC_ALERT_DAYS_BEFORE_DEADLINE', '5', 'Days before task deadline to trigger QC alert'),
+('INT_API_ENDPOINT', 'https://int.system.local/api/v1', 'INT System Base URL'),
+('BMT_API_ENDPOINT', 'https://bmt.system.local/api/v1', 'BMT System Base URL')
+ON CONFLICT (config_key) DO NOTHING;
+
+-- 6.2 Service Types Seeds
+INSERT INTO m_service_type (service_code, service_name, description) VALUES
+('SVC-WATER-HEATER', 'ติดตั้งเครื่องทำน้ำอุ่น', 'บริการติดตั้งเครื่องทำน้ำอุ่นพร้อมเดินสายไฟ'),
+('SVC-PUMP-TANK', 'ปั้มแท็งก์', 'บริการติดตั้งปั้มน้ำและแท็งก์น้ำ'),
+('SVC-KITCHEN-RENO', 'Renovate ครัว', 'บริการปรับปรุงและต่อเติมห้องครัว'),
+('SVC-SITE-SURVEY', 'สำรวจหน้างาน', 'บริการเข้าสำรวจพื้นที่และประเมินหน้างาน')
+ON CONFLICT (service_code) DO NOTHING;
+
+-- 6.3 System Users Seeds (6 Core Accounts + Master Admin)
+-- Passwords: Admin@1234, Ae@1234, Qc@1234, Cc@1234
+INSERT INTO sys_users (user_code, username, email, full_name, role, password_hash, is_active) VALUES
+('USR-001',  'admin',               'admin@pmt.com',          'ผู้ดูแลระบบ',        'ADMIN',          '$2a$12$demo_df4740268cae8dd415b3c396825c0ff1800f16f0b48db929c426639bcf469bfd', TRUE),
+('USR-001B', 'isarachootip@gmail.com', 'isarachootip@gmail.com', 'Isara Chootip',      'ADMIN',          '$2a$12$demo_df4740268cae8dd415b3c396825c0ff1800f16f0b48db929c426639bcf469bfd', TRUE),
+('USR-002',  'pm.somrak',           'somrak@pmt.local',       'สมรัก บริหารเก่ง',   'ADMIN',          '$2a$12$demo_df4740268cae8dd415b3c396825c0ff1800f16f0b48db929c426639bcf469bfd', TRUE),
+('USR-003',  'ae.somchai',          'somchai@pmt.local',      'สมชาย ขยันทำ',       'AE',             '$2a$12$demo_015099516641aece866a9d70081d6d2b4a530eb7d6ff68853b0a7018318408a2', TRUE),
+('USR-004',  'ae.malee',            'malee@pmt.local',        'มาลี สวยงาม',        'AE',             '$2a$12$demo_015099516641aece866a9d70081d6d2b4a530eb7d6ff68853b0a7018318408a2', TRUE),
+('USR-005',  'qc.wichai',           'wichai@pmt.local',       'วิชัย ตรวจดี',       'QC',             '$2a$12$demo_c0e0b3c6317bc2d4a67cb56a09a5b9e07f7b243445ad0a931e97da7a1f592cf1', TRUE),
+('USR-006',  'cc.nipa',             'nipa@pmt.local',         'นิภา ใจดี',          'CONTACT_CENTER', '$2a$12$demo_eb9ce7382be5cb4bc5ba28ae47fa65e91bb4d4ae83236e7a27eb8451b66df21a', TRUE)
+ON CONFLICT (username) DO NOTHING;
+
+-- 6.4 MA Checklist Templates Seeds
+INSERT INTO ma_checklist_templates (id, service_type, template_name, checklist_items) VALUES
+('TPL-AC-CLEAN', 'ล้างแอร์ / บำรุงรักษาระบบปรับอากาศ', 'แบบตรวจสอบมาตรฐานการบำรุงรักษาเครื่องปรับอากาศ', '[
+  "ตรวจเช็คแรงดันน้ำยาแอร์ R32/R410A",
+  "ล้างทำความสะอาดแผ่นกรองฝุ่นและคอยล์เย็น",
+  "ล้างทำความสะอาดคอยล์ร้อนและพัดลมระบายความร้อน",
+  "ตรวจสอบระบบท่อน้ำทิ้งและปั๊มเดรน",
+  "วัดค่ากระแสไฟฟ้าและแรงดันไฟฟ้าของคอมเพรสเซอร์",
+  "ตรวจเช็คจุดเชื่อมต่อสายไฟฟ้าและสายดิน"
+]'::jsonb),
+('TPL-SOLAR-MA', 'โซลาร์เซลล์ / Solar Rooftop Maintenance', 'แบบตรวจสอบระบบโซลาร์เซลล์ประจำรอบ', '[
+  "ล้างทำความสะอาดคราบฝุ่นบนแผง Solar Panels",
+  "ตรวจสอบสภาพ Inverter และสถานะการเชื่อมต่อ Grid",
+  "วัดค่า Insulation Resistance ของสายเคเบิล DC",
+  "ตรวจเช็คจุดต่อ MC4 Connectors และโครงสร้างยึด Mounting",
+  "ตรวจสอบประสิทธิภาพการผลิตไฟฟ้าเปรียบเทียบกับมาตรฐาน",
+  "ตรวจสอบระบบ Surge Protection และกราวด์ดิน"
+]'::jsonb),
+('TPL-PUMP-WATER', 'ระบบปั๊มน้ำและสุขาภิบาล', 'แบบตรวจสอบระบบปั๊มน้ำและถังเก็บน้ำประจำรอบ', '[
+  "ตรวจเช็คแรงดันเปิด-ปิดของ Pressure Switch",
+  "ตรวจสอบการรั่วซึมของซีลยางและข้อต่อท่อ PPR/PVC",
+  "ตรวจเช็คระบบวาล์วบายพาสและเช็ควาล์ว",
+  "ตรวจสอบเสียงและการสั่นสะเทือนผิดปกติของมอเตอร์",
+  "ล้างทำความสะอาดไส้กรองและถังดักตะกอน",
+  "ทดสอบระบบไฟและเบรกเกอร์ตัดไฟรั่ว ELCB/RCBO"
+]'::jsonb)
+ON CONFLICT (id) DO NOTHING;

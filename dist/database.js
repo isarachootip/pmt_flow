@@ -66,6 +66,42 @@ async function initDatabase() {
         console.log('[DB] Connected to PostgreSQL successfully at spmt_db!');
         // 1. Ensure core tables exist
         await client.query(`
+      CREATE TABLE IF NOT EXISTS sys_users (
+        id BIGSERIAL PRIMARY KEY,
+        user_code VARCHAR(20) UNIQUE NOT NULL,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        email VARCHAR(100) UNIQUE,
+        full_name VARCHAR(150) NOT NULL,
+        role VARCHAR(50) NOT NULL DEFAULT 'AE',
+        password_hash VARCHAR(255) NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        last_login_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS sys_user_sessions (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        token_hash VARCHAR(255) NOT NULL UNIQUE,
+        ip_address VARCHAR(45),
+        user_agent TEXT,
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        revoked_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS sys_login_log (
+        id BIGSERIAL PRIMARY KEY,
+        username VARCHAR(50) NOT NULL,
+        user_id BIGINT,
+        success BOOLEAN NOT NULL,
+        ip_address VARCHAR(45),
+        user_agent TEXT,
+        fail_reason VARCHAR(100),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE TABLE IF NOT EXISTS core_jobs (
         id SERIAL PRIMARY KEY,
         job_no VARCHAR(50) UNIQUE NOT NULL,
@@ -175,6 +211,52 @@ async function initDatabase() {
         error_message TEXT,
         received_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         processed_at TIMESTAMP WITH TIME ZONE
+      );
+
+      CREATE TABLE IF NOT EXISTS ma_contracts (
+        id VARCHAR(64) PRIMARY KEY,
+        contract_no VARCHAR(50) UNIQUE NOT NULL,
+        customer_id BIGINT,
+        customer_site_id BIGINT,
+        customer_name VARCHAR(150),
+        customer_phone VARCHAR(50),
+        site_name VARCHAR(150),
+        site_address TEXT,
+        service_type VARCHAR(100) NOT NULL,
+        service_items JSONB DEFAULT '[]'::jsonb,
+        frequency_months INT NOT NULL DEFAULT 3,
+        total_rounds INT NOT NULL DEFAULT 4,
+        contract_start_date DATE NOT NULL,
+        contract_end_date DATE,
+        contract_value NUMERIC(14,2) DEFAULT 0.00,
+        status VARCHAR(50) DEFAULT 'Active',
+        notes TEXT,
+        created_by VARCHAR(64),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS ma_rounds (
+        id VARCHAR(64) PRIMARY KEY,
+        contract_id VARCHAR(64) NOT NULL,
+        project_id BIGINT,
+        round_number INT NOT NULL,
+        scheduled_date DATE NOT NULL,
+        actual_date DATE,
+        status VARCHAR(50) DEFAULT 'Scheduled',
+        technician_id BIGINT,
+        notes TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS ma_checklist_templates (
+        id VARCHAR(64) PRIMARY KEY,
+        service_type VARCHAR(100) NOT NULL,
+        template_name VARCHAR(200) NOT NULL,
+        checklist_items JSONB NOT NULL DEFAULT '[]'::jsonb,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
       ALTER TABLE core_jobs 
