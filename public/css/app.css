@@ -204,3 +204,14 @@
             border-bottom: 2px solid var(--primary);
             color: var(--foreground) !important;
         }
+
+        /* Lightbox Modals & Overlays Stacking Context */
+        .lightbox-modal,
+        #modal-photo-lightbox,
+        #modal-ticket-receipt-lightbox {
+            z-index: 100 !important;
+        }
+
+        #toast {
+            z-index: 9990 !important;
+        }

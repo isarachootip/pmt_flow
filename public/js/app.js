@@ -1851,12 +1851,24 @@ const app = {
                 // Global Keydown Listener (Esc to close any active modal or lightbox)
                 window.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape') {
-                        const openModals = document.querySelectorAll('.fixed.inset-0.z-50:not(.hidden-view), .fixed.inset-0.z-\\[100\\]:not(.hidden-view)');
-                        openModals.forEach(m => {
-                            if (m.id) {
-                                this.hideModal(m.id);
+                        // Priority 1: Close top-level lightbox if open, preserving background parent modal
+                        const openLightboxes = Array.from(document.querySelectorAll('#modal-photo-lightbox:not(.hidden-view), #modal-ticket-receipt-lightbox:not(.hidden-view), .lightbox-modal:not(.hidden-view)'));
+                        if (openLightboxes.length > 0) {
+                            openLightboxes.forEach(lb => {
+                                if (lb.id) this.hideModal(lb.id);
+                            });
+                            return;
+                        }
+
+                        // Priority 2: Close top-most regular modal (excluding login-overlay and toast)
+                        const openModals = Array.from(document.querySelectorAll('.fixed.inset-0:not(.hidden-view)'))
+                            .filter(m => m.id && m.id !== 'login-overlay' && m.id !== 'toast');
+                        if (openModals.length > 0) {
+                            const topModal = openModals[openModals.length - 1];
+                            if (topModal && topModal.id) {
+                                this.hideModal(topModal.id);
                             }
-                        });
+                        }
                     }
                 });
 
