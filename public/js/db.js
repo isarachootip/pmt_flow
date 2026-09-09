@@ -7,10 +7,11 @@ const DB = {
             qcBookings: [],
             dailyWorkLogs: [],
             qcChecklist: [
-                { id: 'Q1', text: 'ความสะอาดพื้นที่หน้างาน (Site Cleanliness)', mandatory: true },
-                { id: 'Q2', text: 'ระบบน้ำไม่รั่วซึม และแรงดันน้ำปกติ (Pressure Test)', mandatory: true },
-                { id: 'Q3', text: 'การเก็บรอยต่อซิลิโคนและงานผิวสัมผัสเรียบร้อย', mandatory: false },
-                { id: 'Q4', text: 'ส่งมอบคู่มือการใช้งาน & ใบรับประกันให้ลูกค้า', mandatory: true }
+                { id: 'Q1', text: 'ช่างทำงานตาม BOQ/มาตรฐานการติดตั้งที่กำหนด', category: 'มาตรฐาน & BOQ', mandatory: true },
+                { id: 'Q2', text: 'ความเรียบร้อยของงานติดตั้ง', category: 'คุณภาพงานติดตั้ง', mandatory: true },
+                { id: 'Q3', text: 'ช่างเข้าปฏิบัติงานตรงตามเวลาที่นัดหมายกับลูกค้า', category: 'การตรงต่อเวลา', mandatory: true },
+                { id: 'Q4', text: 'ส่งมอบงานได้ตามกำหนดเวลา', category: 'กำหนดเวลาส่งมอบ', mandatory: true },
+                { id: 'Q5', text: 'ช่างป้องกันพื้นที่ติดตั้งและส่งมอบพื้นที่คืนโดยไม่เกิดความเสียหาย', category: 'การป้องกัน & คืนพื้นที่', mandatory: true }
             ],
             maContracts: [],
             maRounds: [],

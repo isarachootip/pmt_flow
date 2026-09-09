@@ -14879,51 +14879,48 @@ const app = {
 
             getJobQCSubtasks(job) {
                 if (!job) return [];
-                if (Array.isArray(job.qc_subtasks) && job.qc_subtasks.length > 0) {
+                const standardQuestions = [
+                    { id: 'q1', num: 1, title: 'ช่างทำงานตาม BOQ/มาตรฐานการติดตั้งที่กำหนด', category: 'มาตรฐาน & BOQ', mandatory: true },
+                    { id: 'q2', num: 2, title: 'ความเรียบร้อยของงานติดตั้ง', category: 'คุณภาพงานติดตั้ง', mandatory: true },
+                    { id: 'q3', num: 3, title: 'ช่างเข้าปฏิบัติงานตรงตามเวลาที่นัดหมายกับลูกค้า', category: 'การตรงต่อเวลา', mandatory: true },
+                    { id: 'q4', num: 4, title: 'ส่งมอบงานได้ตามกำหนดเวลา', category: 'กำหนดเวลาส่งมอบ', mandatory: true },
+                    { id: 'q5', num: 5, title: 'ช่างป้องกันพื้นที่ติดตั้งและส่งมอบพื้นที่คืนโดยไม่เกิดความเสียหาย', category: 'การป้องกัน & คืนพื้นที่', mandatory: true }
+                ];
+
+                // Check if existing qc_subtasks matches the 5 standard questions
+                if (Array.isArray(job.qc_subtasks) && job.qc_subtasks.length === 5 && job.qc_subtasks[0].id === 'q1') {
                     return job.qc_subtasks;
                 }
 
-                const tasks = (DB.tasks || []).filter(t => String(t.jobId) === String(job.id));
-                const boq = (job.boq_items || []);
-
-                let subtasks = [];
-
-                if (tasks.length > 0) {
-                    subtasks = tasks.map((t, idx) => ({
-                        id: t.id || `sub_${job.id}_${idx + 1}`,
-                        title: t.name,
-                        category: t.category || (this.isQuickJob(job) ? 'งานด่วน' : 'งานปรับปรุงโครงสร้าง'),
-                        status: 'PENDING',
-                        score: 0,
-                        photos: [],
-                        remarks: ''
-                    }));
-                } else if (boq.length > 0) {
-                    subtasks = boq.map((b, idx) => ({
-                        id: b.id || `sub_${job.id}_${idx + 1}`,
-                        title: b.name || b.item || `งานย่อยที่ ${idx + 1}`,
-                        category: 'รายการตาม BOQ',
-                        status: 'PENDING',
-                        score: 0,
-                        photos: [],
-                        remarks: ''
-                    }));
-                } else {
-                    const isQuick = this.isQuickJob(job);
-                    if (isQuick) {
-                        subtasks = [
-                            { id: `sub_${job.id}_1`, title: `งานเตรียมพื้นที่และตรวจสอบอุปกรณ์ (${job.service})`, category: 'เตรียมการ', status: 'PENDING', score: 0, photos: [], remarks: '' },
-                            { id: `sub_${job.id}_2`, title: `งานติดตั้งและเดินระบบไฟฟ้า/น้ำ (${job.service})`, category: 'งานติดตั้ง', status: 'PENDING', score: 0, photos: [], remarks: '' },
-                            { id: `sub_${job.id}_3`, title: 'งานตรวจสอบความเรียบร้อย ทดสอบระบบ และส่งมอบงาน', category: 'ทดสอบ & ส่งมอบ', status: 'PENDING', score: 0, photos: [], remarks: '' }
-                        ];
-                    } else {
-                        subtasks = [
-                            { id: `sub_${job.id}_1`, title: 'งานรื้อถอน สกัดพื้น และปรับระนาบหน้างาน', category: 'งานโครงสร้าง', status: 'PENDING', score: 0, photos: [], remarks: '' },
-                            { id: `sub_${job.id}_2`, title: 'งานระบบประปา/สุขาภิบาล และทำระบบกันซึม', category: 'งานระบบ', status: 'PENDING', score: 0, photos: [], remarks: '' },
-                            { id: `sub_${job.id}_3`, title: 'งานปูกระเบื้อง เก็บแนวรอยต่อ และติดตั้งสุขภัณฑ์', category: 'งานตกแต่งผิว', status: 'PENDING', score: 0, photos: [], remarks: '' }
-                        ];
+                // Initialize or migrate to 5 standard questions
+                const oldSubtasks = Array.isArray(job.qc_subtasks) ? job.qc_subtasks : [];
+                const subtasks = standardQuestions.map((q, idx) => {
+                    const oldMatch = oldSubtasks[idx] || {};
+                    let score = 0;
+                    let answer = null;
+                    let status = 'PENDING';
+                    if (oldMatch.answer === 'YES' || oldMatch.score === 5 || oldMatch.status === 'PASSED') {
+                        answer = 'YES';
+                        score = 5;
+                        status = 'PASSED';
+                    } else if (oldMatch.answer === 'NO' || oldMatch.score === 1 || oldMatch.status === 'DEFECT') {
+                        answer = 'NO';
+                        score = 1;
+                        status = 'DEFECT';
                     }
-                }
+                    return {
+                        id: q.id,
+                        num: q.num,
+                        title: q.title,
+                        category: q.category,
+                        mandatory: q.mandatory,
+                        status: status,
+                        answer: answer,
+                        score: score,
+                        photos: Array.isArray(oldMatch.photos) ? oldMatch.photos : [],
+                        remarks: oldMatch.remarks || ''
+                    };
+                });
 
                 // If job is Quick and has no photos, populate from Visit Plan
                 if (this.isQuickJob(job) && (!job.photos || job.photos.length === 0)) {
@@ -14950,12 +14947,12 @@ const app = {
             },
 
             calculateJobQCProgress(job) {
-                if (!job) return { total: 0, completed: 0, passed: 0, defect: 0, averageScore: '0.0', percent: 0, isAllComplete: false };
+                if (!job) return { total: 5, completed: 0, passed: 0, defect: 0, averageScore: '0.0', percent: 0, isAllComplete: false };
                 const subtasks = this.getJobQCSubtasks(job);
-                const total = subtasks.length;
-                const completed = subtasks.filter(s => (s.status === 'PASSED' || s.status === 'DEFECT') && Number(s.score) > 0).length;
-                const passed = subtasks.filter(s => s.status === 'PASSED' && Number(s.score) > 0).length;
-                const defect = subtasks.filter(s => s.status === 'DEFECT').length;
+                const total = subtasks.length || 5;
+                const completed = subtasks.filter(s => s.answer === 'YES' || s.answer === 'NO' || Number(s.score) > 0).length;
+                const passed = subtasks.filter(s => s.answer === 'YES' || s.status === 'PASSED' || Number(s.score) === 5).length;
+                const defect = subtasks.filter(s => s.answer === 'NO' || s.status === 'DEFECT' || Number(s.score) === 1).length;
 
                 const scoredList = subtasks.filter(s => Number(s.score) > 0);
                 const avgNum = scoredList.length > 0 ? (scoredList.reduce((sum, s) => sum + Number(s.score), 0) / scoredList.length) : 0;
@@ -15305,7 +15302,7 @@ const app = {
                 const elAvg = document.getElementById('qc-detail-avg-score');
                 if (elAvg) elAvg.innerText = progress.averageScore;
                 const elCounts = document.getElementById('qc-detail-subtask-counts');
-                if (elCounts) elCounts.innerText = `ประเมินแล้ว ${progress.completed} จาก ${progress.total} งานย่อย (ผ่าน ${progress.passed}, ข้อบกพร่อง ${progress.defect})`;
+                if (elCounts) elCounts.innerText = `ประเมินแล้ว ${progress.completed} จาก ${progress.total} ข้อคำถาม (ผ่าน ${progress.passed}, ข้อบกพร่อง ${progress.defect})`;
                 const elPct = document.getElementById('qc-detail-progress-pct');
                 if (elPct) elPct.innerText = `${progress.percent}%`;
                 const elBar = document.getElementById('qc-detail-progress-bar');
@@ -15315,15 +15312,18 @@ const app = {
                 if (elBadge) {
                     if (progress.isAllComplete) {
                         elBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
-                        elBadge.innerHTML = '<i class="ph ph-check-circle"></i> ประเมินครบทุกงานย่อยแล้ว';
+                        elBadge.innerHTML = '<i class="ph ph-check-circle"></i> ประเมินครบ 5 ข้อ (ผ่านเกณฑ์ 100%)';
+                    } else if (progress.defect > 0) {
+                        elBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400';
+                        elBadge.innerHTML = `<i class="ph ph-warning"></i> พบข้อบกพร่อง ${progress.defect} ข้อ`;
                     } else {
                         elBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400';
-                        elBadge.innerText = `ประเมินแล้ว ${progress.completed}/${progress.total} งาน`;
+                        elBadge.innerText = `ประเมินแล้ว ${progress.completed}/${progress.total} ข้อ`;
                     }
                 }
 
                 const elSubBadge = document.getElementById('qc-detail-subtask-badge');
-                if (elSubBadge) elSubBadge.innerText = `${progress.total} งานย่อย`;
+                if (elSubBadge) elSubBadge.innerText = `${progress.total} ข้อคำถาม QC`;
 
                 // Update CSAT Submit Button (Gating rule!)
                 const btnCSAT = document.getElementById('btn-qc-approve-csat');
@@ -15333,10 +15333,14 @@ const app = {
                         btnCSAT.disabled = false;
                         btnCSAT.className = 'btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all';
                         btnLabel.innerText = `✓ อนุมัติผ่านเกณฑ์ QC (${progress.averageScore} ⭐) & ส่งต่อ CSAT (Step 7)`;
+                    } else if (progress.defect > 0) {
+                        btnCSAT.disabled = true;
+                        btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 bg-rose-500/10 text-rose-600 border border-rose-500/20 cursor-not-allowed opacity-80 transition-all';
+                        btnLabel.innerText = `พบข้อบกพร่อง ${progress.defect} ข้อ (ต้องแก้ไขก่อน หรือกดส่งแก้งาน Rework)`;
                     } else {
                         btnCSAT.disabled = true;
                         btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 bg-muted text-muted-foreground cursor-not-allowed opacity-60 transition-all';
-                        btnLabel.innerText = `ประเมินแล้ว ${progress.completed}/${progress.total} งาน (ต้องครบทุกงานก่อนส่ง CSAT)`;
+                        btnLabel.innerText = `ประเมินแล้ว ${progress.completed}/${progress.total} ข้อ (ต้องตอบ Yes/No ให้ครบ 5 ข้อ)`;
                     }
                 }
 
@@ -15344,29 +15348,42 @@ const app = {
                 const container = document.getElementById('qc-subtasks-list');
                 if (!container) return;
 
-                container.innerHTML = subtasks.map((s, idx) => {
-                    const isPassed = s.status === 'PASSED';
-                    const isDefect = s.status === 'DEFECT';
-                    const score = Number(s.score) || 0;
-                    const photos = Array.isArray(s.photos) ? s.photos : [];
-
-                    // Star Rating HTML (1 to 5 Stars)
-                    let starsHtml = '';
-                    for (let star = 1; star <= 5; star++) {
-                        const isStarActive = star <= score;
-                        starsHtml += `
-                            <button type="button" onclick="app.setSubtaskScore('${job.id}', '${s.id}', ${star})" class="p-1 text-base transition hover:scale-125 cursor-pointer ${isStarActive ? 'text-amber-400' : 'text-muted/60 hover:text-amber-300'}" title="ให้ ${star} ดาว">
-                                <i class="${isStarActive ? 'ph-fill' : 'ph'} ph-star"></i>
+                // Action Controls Header above questions
+                let html = `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-muted/40 rounded-xl border border-border/80 mb-3 shadow-2xs">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center font-mono font-bold text-xs">
+                                <i class="ph ph-checks"></i>
+                            </span>
+                            <div>
+                                <span class="font-display font-bold text-xs text-foreground">คำถามประเมินมาตรฐาน QC (Isara Chootip Standard)</span>
+                                <span class="ml-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-600 border border-brand-500/20">Yes=5, No=1</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button type="button" onclick="app.setAllQCSubtasksYes('${job.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition cursor-pointer shadow-xs" title="ตอบ Yes (5 คะแนน) ให้ครบทั้ง 5 ข้อในคลิกเดียว">
+                                <i class="ph ph-check-circle"></i>
+                                <span>✓ เลือก Yes ทั้งหมด (5.0 ⭐)</span>
                             </button>
-                        `;
-                    }
+                            <button type="button" onclick="app.resetAllQCSubtasks('${job.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 border border-border flex items-center gap-1 transition cursor-pointer" title="ล้างผลการตอบ">
+                                <i class="ph ph-arrow-counter-clockwise"></i>
+                                <span>ล้างคำตอบ</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                html += subtasks.map((s, idx) => {
+                    const isYes = s.answer === 'YES' || (Number(s.score) === 5 && s.status === 'PASSED');
+                    const isNo = s.answer === 'NO' || (Number(s.score) === 1 && s.status === 'DEFECT');
+                    const photos = Array.isArray(s.photos) ? s.photos : [];
 
                     // Photo gallery for this subtask
                     let photosListHtml = '';
                     if (photos.length > 0) {
                         photosListHtml = photos.map((p, pIdx) => `
                             <div class="relative group rounded-xl overflow-hidden border border-border bg-muted/40 w-24 h-24 shrink-0 shadow-xs">
-                                <img src="${p.url}" alt="${p.title}" onclick="app.showLightbox('${p.url}', '${p.title}', 'รูปงานย่อย: ${s.title}', '${p.uploaded_at ? app.formatDateDMY(p.uploaded_at) : ''}', 'QC Inspector')" class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition">
+                                <img src="${p.url}" alt="${p.title}" onclick="app.showLightbox('${p.url}', '${p.title}', 'รูปประกอบข้อที่ ${idx + 1}: ${s.title}', '${p.uploaded_at ? app.formatDateDMY(p.uploaded_at) : ''}', 'QC Inspector')" class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition">
                                 <button type="button" onclick="app.removeSubtaskPhoto('${job.id}', '${s.id}', '${p.id}')" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white hover:bg-rose-600 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition cursor-pointer" title="ลบรูปนี้">
                                     <i class="ph ph-trash"></i>
                                 </button>
@@ -15374,28 +15391,28 @@ const app = {
                             </div>
                         `).join('');
                     } else {
-                        photosListHtml = `<div class="text-[11px] text-muted-foreground italic py-3 flex items-center gap-1.5"><i class="ph ph-image"></i> ยังไม่มีรูปภาพสำหรับงานย่อยนี้ (กดปุ่มแนบรูปด้านล่าง)</div>`;
+                        photosListHtml = `<div class="text-[11px] text-muted-foreground italic py-2 flex items-center gap-1.5"><i class="ph ph-image"></i> ยังไม่มีรูปภาพประกอบข้อนี้ (สามารถกดแนบรูปด้านล่าง)</div>`;
                     }
 
                     return `
-                    <div class="p-4.5 rounded-2xl bg-card border ${isPassed ? 'border-emerald-500/30' : (isDefect ? 'border-rose-500/30' : 'border-border')} shadow-xs space-y-3.5 transition-all">
-                        <!-- Subtask Header -->
+                    <div class="p-4.5 rounded-2xl bg-card border ${isYes ? 'border-emerald-500/40 ring-1 ring-emerald-500/20' : (isNo ? 'border-rose-500/40 ring-1 ring-rose-500/20' : 'border-border')} shadow-xs space-y-3.5 transition-all">
+                        <!-- Question Header -->
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-2.5">
                             <div class="flex items-center gap-2 flex-wrap">
-                                <span class="w-6 h-6 rounded-lg bg-muted text-muted-foreground flex items-center justify-center font-mono font-bold text-xs">
+                                <span class="w-7 h-7 rounded-lg ${isYes ? 'bg-emerald-500/20 text-emerald-600 font-bold' : (isNo ? 'bg-rose-500/20 text-rose-600 font-bold' : 'bg-muted text-muted-foreground')} flex items-center justify-center font-mono text-xs">
                                     ${idx + 1}
                                 </span>
                                 <h5 class="font-display font-bold text-foreground text-xs sm:text-sm">${s.title}</h5>
-                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-muted text-muted-foreground border border-border/80">${s.category || 'งานย่อย'}</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-muted text-muted-foreground border border-border/80">${s.category || 'หมวดประเมิน'}</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                ${isPassed ? `
-                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                                        <i class="ph ph-check-circle"></i> ผ่านเกณฑ์ (${score} ⭐)
+                                ${isYes ? `
+                                    <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+                                        <i class="ph ph-check-circle-fill text-emerald-500"></i> ผ่านเกณฑ์ (Yes = 5 คะแนน)
                                     </span>
-                                ` : (isDefect ? `
-                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
-                                        <i class="ph ph-warning"></i> พบข้อบกพร่อง
+                                ` : (isNo ? `
+                                    <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1.5">
+                                        <i class="ph ph-warning-fill text-rose-500"></i> ข้อบกพร่อง (No = 1 คะแนน)
                                     </span>
                                 ` : `
                                     <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground border border-border">
@@ -15405,48 +15422,39 @@ const app = {
                             </div>
                         </div>
 
-                        <!-- Scoring & Status Controls -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/20 p-3 rounded-xl border border-border/60">
-                            <!-- Star Rating -->
-                            <div>
-                                <label class="block text-[11px] font-semibold text-foreground mb-1 flex items-center justify-between">
-                                    <span>คะแนนคุณภาพงาน (1-5 ดาว):</span>
-                                    <span class="font-mono text-amber-500 font-bold">${score > 0 ? `${score} ดาว` : 'ยังไม่ให้คะแนน'}</span>
-                                </label>
-                                <div class="flex items-center gap-1 bg-card p-1.5 rounded-lg border border-border">
-                                    ${starsHtml}
-                                    <span class="text-[10px] text-muted-foreground ml-2 font-mono">
-                                        ${score === 5 ? 'ดีเยี่ยม' : (score === 4 ? 'ดีมาก' : (score === 3 ? 'มาตรฐาน' : (score === 2 ? 'พอใช้' : (score === 1 ? 'ต้องปรับปรุง' : 'คลิกดาวเพื่อประเมิน'))))}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- Pass / Defect Status Radio -->
-                            <div>
-                                <label class="block text-[11px] font-semibold text-foreground mb-1">ผลการตรวจสอบงานย่อย:</label>
-                                <div class="flex items-center gap-2">
-                                    <button type="button" onclick="app.setSubtaskStatus('${job.id}', '${s.id}', 'PASSED')" class="flex-1 py-1.5 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 border transition cursor-pointer ${isPassed ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 ring-1 ring-emerald-500/30' : 'bg-card text-muted-foreground border-border hover:text-foreground'}">
-                                        <i class="ph ph-check-circle text-emerald-500"></i>
-                                        <span>✓ ผ่านเกณฑ์ (PASS)</span>
-                                    </button>
-                                    <button type="button" onclick="app.setSubtaskStatus('${job.id}', '${s.id}', 'DEFECT')" class="flex-1 py-1.5 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 border transition cursor-pointer ${isDefect ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40 ring-1 ring-rose-500/30' : 'bg-card text-muted-foreground border-border hover:text-foreground'}">
-                                        <i class="ph ph-x-circle text-rose-500"></i>
-                                        <span>⚠️ ข้อบกพร่อง (DEFECT)</span>
-                                    </button>
-                                </div>
+                        <!-- Yes / No Evaluation Buttons (คะแนน Y=5, N=1) -->
+                        <div class="bg-muted/20 p-3 rounded-xl border border-border/60">
+                            <label class="block text-[11px] font-semibold text-foreground mb-2 flex items-center justify-between">
+                                <span class="flex items-center gap-1.5">
+                                    <i class="ph ph-scales text-brand-500"></i>
+                                    <span>ผลการประเมินข้อนี้ (Yes / No):</span>
+                                </span>
+                                <span class="font-mono text-xs font-bold ${isYes ? 'text-emerald-600' : (isNo ? 'text-rose-600' : 'text-muted-foreground')}">
+                                    ${isYes ? '✓ Yes (ได้ 5 คะแนน)' : (isNo ? '✕ No (ได้ 1 คะแนน)' : 'ยังไม่ได้เลือก')}
+                                </span>
+                            </label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button type="button" onclick="app.setQCSubtaskAnswer('${job.id}', '${s.id}', 'YES')" class="py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${isYes ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500/30 scale-[1.01]' : 'bg-card text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10'}">
+                                    <i class="ph ${isYes ? 'ph-check-circle-fill' : 'ph-check-circle'} text-base"></i>
+                                    <span>✓ Yes — ผ่านเกณฑ์ (5 คะแนน)</span>
+                                </button>
+                                <button type="button" onclick="app.setQCSubtaskAnswer('${job.id}', '${s.id}', 'NO')" class="py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${isNo ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-500/30 scale-[1.01]' : 'bg-card text-rose-700 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10'}">
+                                    <i class="ph ${isNo ? 'ph-x-circle-fill' : 'ph-x-circle'} text-base"></i>
+                                    <span>✕ No — ข้อบกพร่อง (1 คะแนน)</span>
+                                </button>
                             </div>
                         </div>
 
-                        <!-- Dedicated Photos for this Subtask -->
+                        <!-- Dedicated Photos for this Question -->
                         <div class="space-y-2">
                             <div class="flex items-center justify-between">
                                 <div class="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
                                     <i class="ph ph-camera text-brand-500"></i>
-                                    <span>รูปถ่ายประกอบงานย่อยนี้ (${photos.length} รูป)</span>
+                                    <span>รูปถ่ายประกอบข้อนี้ (${photos.length} รูป)</span>
                                 </div>
                                 <label class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 cursor-pointer bg-card hover:bg-muted shadow-2xs">
                                     <i class="ph ph-camera-plus text-brand-500 text-xs"></i>
-                                    <span>+ แนบรูปงานนี้</span>
+                                    <span>+ แนบรูปข้อนี้</span>
                                     <input type="file" accept="image/*" class="hidden" onchange="app.handleSubtaskPhotoUpload(event, '${job.id}', '${s.id}')">
                                 </label>
                             </div>
@@ -15457,41 +15465,79 @@ const app = {
 
                         <!-- Subtask Remarks Input -->
                         <div>
-                            <input type="text" value="${s.remarks || ''}" onchange="app.saveSubtaskRemarks('${job.id}', '${s.id}', this.value)" placeholder="ระบุข้อสังเกต หรือรายละเอียดของงานย่อยนี้..." class="w-full bg-muted/30 border border-border focus:border-brand-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none transition">
+                            <input type="text" value="${s.remarks || ''}" onchange="app.saveSubtaskRemarks('${job.id}', '${s.id}', this.value)" placeholder="ระบุข้อสังเกต หรือรายละเอียดการตรวจในข้อนี้..." class="w-full bg-muted/30 border border-border focus:border-brand-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none transition">
                         </div>
                     </div>
                     `;
                 }).join('');
+
+                container.innerHTML = html;
             },
 
-            setSubtaskScore(jobId, subtaskId, score) {
+            setQCSubtaskAnswer(jobId, subtaskId, answer) {
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return;
                 const subtasks = this.getJobQCSubtasks(job);
                 const sub = subtasks.find(s => s.id === subtaskId);
                 if (sub) {
-                    sub.score = Number(score);
-                    if (sub.status === 'PENDING') sub.status = 'PASSED';
-                    this.persistJobs();
-                    this.renderQCSubtasks(job);
-                    this.updateQCDashboard();
-                }
-            },
-
-            setSubtaskStatus(jobId, subtaskId, status) {
-                const job = (DB.jobs || []).find(j => j.id === jobId);
-                if (!job) return;
-                const subtasks = this.getJobQCSubtasks(job);
-                const sub = subtasks.find(s => s.id === subtaskId);
-                if (sub) {
-                    sub.status = status;
-                    if (status === 'PASSED' && (!sub.score || sub.score === 0)) {
+                    sub.answer = answer;
+                    if (answer === 'YES') {
                         sub.score = 5;
+                        sub.status = 'PASSED';
+                    } else if (answer === 'NO') {
+                        sub.score = 1;
+                        sub.status = 'DEFECT';
+                    } else {
+                        sub.score = 0;
+                        sub.status = 'PENDING';
                     }
                     this.persistJobs();
                     this.renderQCSubtasks(job);
                     this.updateQCDashboard();
                 }
+            },
+
+            setAllQCSubtasksYes(jobId) {
+                const targetJobId = jobId || this.state.currentQCModalJobId;
+                const job = (DB.jobs || []).find(j => j.id === targetJobId);
+                if (!job) return;
+                const subtasks = this.getJobQCSubtasks(job);
+                subtasks.forEach(s => {
+                    s.answer = 'YES';
+                    s.score = 5;
+                    s.status = 'PASSED';
+                });
+                this.persistJobs();
+                this.renderQCSubtasks(job);
+                this.updateQCDashboard();
+                this.showToast('✅ เลือก Yes (5 คะแนน) ให้ครบทั้ง 5 ข้อเรียบร้อย (คะแนนรวม 5.0 ⭐)');
+            },
+
+            resetAllQCSubtasks(jobId) {
+                const targetJobId = jobId || this.state.currentQCModalJobId;
+                const job = (DB.jobs || []).find(j => j.id === targetJobId);
+                if (!job) return;
+                const subtasks = this.getJobQCSubtasks(job);
+                subtasks.forEach(s => {
+                    s.answer = null;
+                    s.score = 0;
+                    s.status = 'PENDING';
+                });
+                this.persistJobs();
+                this.renderQCSubtasks(job);
+                this.updateQCDashboard();
+                this.showToast('↺ ล้างผลการตอบทั้ง 5 ข้อเรียบร้อย');
+            },
+
+            setSubtaskScore(jobId, subtaskId, score) {
+                const num = Number(score);
+                const answer = num >= 4 ? 'YES' : 'NO';
+                this.setQCSubtaskAnswer(jobId, subtaskId, answer);
+            },
+
+            setSubtaskStatus(jobId, subtaskId, status) {
+                const answer = status === 'PASSED' ? 'YES' : 'NO';
+                this.setQCSubtaskAnswer(jobId, subtaskId, answer);
             },
 
             handleSubtaskPhotoUpload(event, jobId, subtaskId) {
@@ -15519,7 +15565,7 @@ const app = {
                     if (!Array.isArray(job.photos)) job.photos = [];
                     job.photos.push({
                         ...newPhoto,
-                        note: `แนบในงานย่อย: ${sub.title}`
+                        note: `แนบในข้อที่ ${sub.num || ''}: ${sub.title}`
                     });
 
                     this.persistJobs();
@@ -15632,6 +15678,14 @@ const app = {
             },
 
             simulateMockQCJobs() {
+                const standardQCQuestions = () => [
+                    { id: 'q1', num: 1, title: 'ช่างทำงานตาม BOQ/มาตรฐานการติดตั้งที่กำหนด', category: 'มาตรฐาน & BOQ', mandatory: true, status: 'PENDING', answer: null, score: 0, photos: [], remarks: '' },
+                    { id: 'q2', num: 2, title: 'ความเรียบร้อยของงานติดตั้ง', category: 'คุณภาพงานติดตั้ง', mandatory: true, status: 'PENDING', answer: null, score: 0, photos: [], remarks: '' },
+                    { id: 'q3', num: 3, title: 'ช่างเข้าปฏิบัติงานตรงตามเวลาที่นัดหมายกับลูกค้า', category: 'การตรงต่อเวลา', mandatory: true, status: 'PENDING', answer: null, score: 0, photos: [], remarks: '' },
+                    { id: 'q4', num: 4, title: 'ส่งมอบงานได้ตามกำหนดเวลา', category: 'กำหนดเวลาส่งมอบ', mandatory: true, status: 'PENDING', answer: null, score: 0, photos: [], remarks: '' },
+                    { id: 'q5', num: 5, title: 'ช่างป้องกันพื้นที่ติดตั้งและส่งมอบพื้นที่คืนโดยไม่เกิดความเสียหาย', category: 'การป้องกัน & คืนพื้นที่', mandatory: true, status: 'PENDING', answer: null, score: 0, photos: [], remarks: '' }
+                ];
+
                 const sampleJobs = [
                     {
                         id: 'JOB26090900011',
@@ -15651,9 +15705,11 @@ const app = {
                             { id: 'p_ev_2', title: 'สายเมนและเครื่องชาร์จ EV Charger', url: 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&auto=format&fit=crop&q=80', uploaded_at: new Date().toISOString() }
                         ],
                         qc_subtasks: [
-                            { id: 'sub_ev_1', title: 'งานตรวจสอบมิเตอร์ไฟ กฟน. และเดินสายเมน THW 16 sq.mm.', category: 'งานระบบไฟฟ้า', status: 'PASSED', score: 5, photos: [], remarks: 'ติดตั้งท่อร้อยสายไฟเรียบร้อย ได้มาตรฐาน' },
-                            { id: 'sub_ev_2', title: 'งานติดตั้งตู้ Consumer แยกและเบรกเกอร์ RCD Type B', category: 'งานอุปกรณ์ความปลอดภัย', status: 'PENDING', score: 0, photos: [], remarks: '' },
-                            { id: 'sub_ev_3', title: 'งานยึดเครื่องชาร์จ EV Charger และทดสอบ Grounding Test', category: 'งานติดตั้งและทดสอบ', status: 'PENDING', score: 0, photos: [], remarks: '' }
+                            { id: 'q1', num: 1, title: 'ช่างทำงานตาม BOQ/มาตรฐานการติดตั้งที่กำหนด', category: 'มาตรฐาน & BOQ', mandatory: true, status: 'PASSED', answer: 'YES', score: 5, photos: [], remarks: 'เดินสายเมน THW และติดตั้งท่อร้อยสายไฟถูกต้องตามมาตรฐาน' },
+                            { id: 'q2', num: 2, title: 'ความเรียบร้อยของงานติดตั้ง', category: 'คุณภาพงานติดตั้ง', mandatory: true, status: 'PASSED', answer: 'YES', score: 5, photos: [], remarks: 'ติดตั้งกล่องเบรกเกอร์แนบสนิท เก็บสายเรียบร้อย' },
+                            { id: 'q3', num: 3, title: 'ช่างเข้าปฏิบัติงานตรงตามเวลาที่นัดหมายกับลูกค้า', category: 'การตรงต่อเวลา', mandatory: true, status: 'PASSED', answer: 'YES', score: 5, photos: [], remarks: 'เข้าถึงหน้างานตรงเวลา 09:00 น.' },
+                            { id: 'q4', num: 4, title: 'ส่งมอบงานได้ตามกำหนดเวลา', category: 'กำหนดเวลาส่งมอบ', mandatory: true, status: 'PENDING', answer: null, score: 0, photos: [], remarks: '' },
+                            { id: 'q5', num: 5, title: 'ช่างป้องกันพื้นที่ติดตั้งและส่งมอบพื้นที่คืนโดยไม่เกิดความเสียหาย', category: 'การป้องกัน & คืนพื้นที่', mandatory: true, status: 'PENDING', answer: null, score: 0, photos: [], remarks: '' }
                         ]
                     },
                     {
@@ -15694,9 +15750,11 @@ const app = {
                             { id: 'p_ren_1', title: 'สภาพงานกันซึมและแนวท่อระบายน้ำ', url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800&auto=format&fit=crop&q=80', uploaded_at: new Date().toISOString() }
                         ],
                         qc_subtasks: [
-                            { id: 'sub_reno_1', title: 'งานสกัดพื้นเดิม ปรับระนาบ และทำระบบกันซึม 3 ชั้น (BOQ-1)', category: 'งานโครงสร้างและกันซึม', status: 'PASSED', score: 5, photos: [], remarks: 'ทดสอบขังน้ำ 24 ชม. ไม่พบการรั่วซึม' },
-                            { id: 'sub_reno_2', title: 'งานปูกระเบื้องพื้นกันลื่น R11 และผนังห้องน้ำ (BOQ-2)', category: 'งานผิวสัมผัสและกระเบื้อง', status: 'PENDING', score: 0, photos: [], remarks: '' },
-                            { id: 'sub_reno_3', title: 'งานติดตั้งราวจับสแตนเลสและสุขภัณฑ์อัตโนมัติ (BOQ-3)', category: 'งานสุขภัณฑ์และราวจับ', status: 'PENDING', score: 0, photos: [], remarks: '' }
+                            { id: 'q1', num: 1, title: 'ช่างทำงานตาม BOQ/มาตรฐานการติดตั้งที่กำหนด', category: 'มาตรฐาน & BOQ', mandatory: true, status: 'PASSED', answer: 'YES', score: 5, photos: [], remarks: 'ทดสอบขังน้ำ 24 ชม. ไม่พบการรั่วซึม' },
+                            { id: 'q2', num: 2, title: 'ความเรียบร้อยของงานติดตั้ง', category: 'คุณภาพงานติดตั้ง', mandatory: true, status: 'PENDING', answer: null, score: 0, photos: [], remarks: '' },
+                            { id: 'q3', num: 3, title: 'ช่างเข้าปฏิบัติงานตรงตามเวลาที่นัดหมายกับลูกค้า', category: 'การตรงต่อเวลา', mandatory: true, status: 'PENDING', answer: null, score: 0, photos: [], remarks: '' },
+                            { id: 'q4', num: 4, title: 'ส่งมอบงานได้ตามกำหนดเวลา', category: 'กำหนดเวลาส่งมอบ', mandatory: true, status: 'PENDING', answer: null, score: 0, photos: [], remarks: '' },
+                            { id: 'q5', num: 5, title: 'ช่างป้องกันพื้นที่ติดตั้งและส่งมอบพื้นที่คืนโดยไม่เกิดความเสียหาย', category: 'การป้องกัน & คืนพื้นที่', mandatory: true, status: 'PENDING', answer: null, score: 0, photos: [], remarks: '' }
                         ]
                     },
                     {
@@ -15733,11 +15791,7 @@ const app = {
                             { id: 'boq_14_2', name: 'งานเดินท่อดักไขมันและระบบท่อน้ำดี Sink', unit: 'จุด', qty: 1, unit_price: 3500, amount: 3500 },
                             { id: 'boq_14_3', name: 'งานติดตั้งฮูดดูดควันและเตาแม่เหล็กไฟฟ้า', unit: 'ชุด', qty: 1, unit_price: 2500, amount: 2500 }
                         ],
-                        qc_subtasks: [
-                            { id: 'sub_kitch_1', title: 'งานก่อเคาน์เตอร์ครัว คสล. และติดตั้งท็อปหินแกรนิต (BOQ-1)', category: 'งานโครงสร้างครัว', status: 'PENDING', score: 0, photos: [], remarks: '' },
-                            { id: 'sub_kitch_2', title: 'งานเดินท่อดักไขมันและระบบท่อน้ำดี Sink (BOQ-2)', category: 'งานสุขาภิบาลครัว', status: 'PENDING', score: 0, photos: [], remarks: '' },
-                            { id: 'sub_kitch_3', title: 'งานติดตั้งฮูดดูดควันและเตาแม่เหล็กไฟฟ้า (BOQ-3)', category: 'งานระบบเครื่องใช้ไฟฟ้า', status: 'PENDING', score: 0, photos: [], remarks: '' }
-                        ]
+                        qc_subtasks: standardQCQuestions()
                     },
                     {
                         id: 'JOB26090900013',
@@ -15752,10 +15806,7 @@ const app = {
                         date: new Date().toISOString(),
                         step_timestamps: { qc_pending_at: new Date().toISOString() },
                         photos: [],
-                        qc_subtasks: [
-                            { id: 'sub_ddl_1', title: 'งานเจาะประตูและติดตั้งตลับมอร์ตี้ส์ล็อก (Mortise Lock)', category: 'งานช่างประตู', status: 'PENDING', score: 0, photos: [], remarks: '' },
-                            { id: 'sub_ddl_2', title: 'งานเชื่อมต่อและทดสอบฟังก์ชันสแกนใบหน้าและแอปพลิเคชัน', category: 'งานระบบอัจฉริยะ', status: 'PENDING', score: 0, photos: [], remarks: '' }
-                        ]
+                        qc_subtasks: standardQCQuestions()
                     }
                 ];
 
