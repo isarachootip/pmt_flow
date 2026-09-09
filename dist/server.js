@@ -232,6 +232,9 @@ app.get('/openapi.yaml', (req, res) => {
     const rootOpenapi = path_1.default.join(__dirname, '../openapi.yaml');
     const localOpenapi = path_1.default.join(__dirname, './openapi.yaml');
     res.setHeader('Content-Type', 'text/yaml; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     if (fs_1.default.existsSync(rootOpenapi))
         return res.sendFile(rootOpenapi);
     if (fs_1.default.existsSync(localOpenapi))
@@ -350,7 +353,7 @@ const renderSwaggerDocs = (req, res) => {
       <script>
         window.onload = () => {
           window.ui = SwaggerUIBundle({
-            url: '/openapi.yaml',
+            url: '/openapi.yaml?t=' + new Date().getTime(),
             dom_id: '#swagger-ui',
           });
         };
