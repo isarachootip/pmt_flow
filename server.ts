@@ -533,6 +533,7 @@ async function seedUsers() {
     { user_code: 'USR-004', username: 'ae.malee',   email: 'malee@pmt.local',    full_name: 'มาลี สวยงาม',       role: UserRole.AE,             password_hash: hashPassword('Ae@1234'),     is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
     { user_code: 'USR-005', username: 'qc.wichai',  email: 'wichai@pmt.local',   full_name: 'วิชัย ตรวจดี',      role: UserRole.QC,             password_hash: hashPassword('Qc@1234'),     is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
     { user_code: 'USR-006', username: 'cc.nipa',    email: 'nipa@pmt.local',     full_name: 'นิภา ใจดี',         role: UserRole.CONTACT_CENTER, password_hash: hashPassword('Cc@1234'),     is_active: true, last_login_at: null, created_at: '2026-09-01T00:00:00Z' },
+    { user_code: 'USR-008', username: 'pakpoom',    email: 'janpakpoom@chg.co.th', full_name: 'Pakpoom janset',  role: UserRole.ADMIN,          password_hash: '$2a$12$demo_cde8e4a47f23c10d7bf534ee4e7e44deec259e99b279d7bade9649029b8cad53', is_active: true, last_login_at: null, created_at: '2026-09-08T01:42:45Z' },
   ];
 
   try {

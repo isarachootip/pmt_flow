@@ -376,7 +376,8 @@ INSERT INTO sys_users (user_code, username, email, full_name, role, password_has
 ('USR-003',  'ae.somchai',          'somchai@pmt.local',      'สมชาย ขยันทำ',       'AE',             '$2a$12$demo_015099516641aece866a9d70081d6d2b4a530eb7d6ff68853b0a7018318408a2', TRUE),
 ('USR-004',  'ae.malee',            'malee@pmt.local',        'มาลี สวยงาม',        'AE',             '$2a$12$demo_015099516641aece866a9d70081d6d2b4a530eb7d6ff68853b0a7018318408a2', TRUE),
 ('USR-005',  'qc.wichai',           'wichai@pmt.local',       'วิชัย ตรวจดี',       'QC',             '$2a$12$demo_c0e0b3c6317bc2d4a67cb56a09a5b9e07f7b243445ad0a931e97da7a1f592cf1', TRUE),
-('USR-006',  'cc.nipa',             'nipa@pmt.local',         'นิภา ใจดี',          'CONTACT_CENTER', '$2a$12$demo_eb9ce7382be5cb4bc5ba28ae47fa65e91bb4d4ae83236e7a27eb8451b66df21a', TRUE)
+('USR-006',  'cc.nipa',             'nipa@pmt.local',         'นิภา ใจดี',          'CONTACT_CENTER', '$2a$12$demo_eb9ce7382be5cb4bc5ba28ae47fa65e91bb4d4ae83236e7a27eb8451b66df21a', TRUE),
+('USR-008',  'pakpoom',             'janpakpoom@chg.co.th',   'Pakpoom janset',     'ADMIN',          '$2a$12$demo_cde8e4a47f23c10d7bf534ee4e7e44deec259e99b279d7bade9649029b8cad53', TRUE)
 ON CONFLICT (username) DO NOTHING;
 
 -- 6.4 MA Checklist Templates Seeds
