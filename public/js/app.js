@@ -40,8 +40,8 @@ const app = {
                 selectedMACustomer: null,
                 qcTab: 'bookings',
                 selectedQCBookingId: null,
-                dailyLogSelectedJobId: 'JOB202609002',
-                dailyLogSelectedTaskId: 'T_JOB202609002_1',
+                dailyLogSelectedJobId: 'JOB26090900002',
+                dailyLogSelectedTaskId: 'T_JOB26090900002_1',
                 dailyLogPhotoSlots: [null, null, null, null, null],
                 currentDailyLogStartTime: '08:30',
                 currentDailyLogEndTime: '17:00',
@@ -516,7 +516,7 @@ const app = {
             },
 
             openStepAuditReportModal(jobId = null) {
-                const targetJobId = jobId || this.state.currentJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
+                const targetJobId = jobId || this.state.currentJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
                 const data = this.getJobStepAuditReportData(targetJobId);
                 if (!data) return;
 
@@ -869,8 +869,8 @@ const app = {
             getINTMockOrders() {
                 return [
                     {
-                        id: 'JOB202609001',
-                        job_no: 'JOB202609001',
+                        id: 'JOB26090900001',
+                        job_no: 'JOB26090900001',
                         job_type: 'quick',
                         external_ref_id: 'INT-2026-001',
                         customer: 'คุณภาคิน วรโชติเมธี',
@@ -893,8 +893,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609002',
-                        job_no: 'JOB202609002',
+                        id: 'JOB26090900002',
+                        job_no: 'JOB26090900002',
                         job_type: 'quick',
                         external_ref_id: 'INT-2026-002',
                         customer: 'คุณชวินท์ ก้องธนภัทร',
@@ -916,8 +916,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609003',
-                        job_no: 'JOB202609003',
+                        id: 'JOB26090900003',
+                        job_no: 'JOB26090900003',
                         job_type: 'quick',
                         external_ref_id: 'INT-2026-003',
                         customer: 'คุณภัทรดนัย อัครโยธิน',
@@ -939,8 +939,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609004',
-                        job_no: 'JOB202609004',
+                        id: 'JOB26090900004',
+                        job_no: 'JOB26090900004',
                         job_type: 'quick',
                         external_ref_id: 'INT-2026-004',
                         customer: 'คุณภูมิภัทร ชาญปรีชา',
@@ -962,8 +962,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609005',
-                        job_no: 'JOB202609005',
+                        id: 'JOB26090900005',
+                        job_no: 'JOB26090900005',
                         job_type: 'quick',
                         external_ref_id: 'INT-2026-005',
                         customer: 'คุณเอกภาพ พงษ์ศิริพาณิชย์',
@@ -985,8 +985,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609006',
-                        job_no: 'JOB202609006',
+                        id: 'JOB26090900006',
+                        job_no: 'JOB26090900006',
                         job_type: 'quick',
                         external_ref_id: 'INT-2026-006',
                         customer: 'คุณธนพล วรเกียรติกุล',
@@ -1008,8 +1008,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609007',
-                        job_no: 'JOB202609007',
+                        id: 'JOB26090900007',
+                        job_no: 'JOB26090900007',
                         job_type: 'quick',
                         external_ref_id: 'INT-2026-007',
                         customer: 'คุณปัณณธร พัฒนประเสริฐ',
@@ -1031,8 +1031,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609008',
-                        job_no: 'JOB202609008',
+                        id: 'JOB26090900008',
+                        job_no: 'JOB26090900008',
                         job_type: 'quick',
                         external_ref_id: 'INT-2026-008',
                         customer: 'คุณรัชชานนท์ เมธาบวรกุล',
@@ -1054,8 +1054,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609009',
-                        job_no: 'JOB202609009',
+                        id: 'JOB26090900009',
+                        job_no: 'JOB26090900009',
                         job_type: 'quick',
                         external_ref_id: 'INT-2026-009',
                         customer: 'คุณกฤษดา เจริญวิชิตชัย',
@@ -1077,8 +1077,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609010',
-                        job_no: 'JOB202609010',
+                        id: 'JOB26090900010',
+                        job_no: 'JOB26090900010',
                         job_type: 'quick',
                         external_ref_id: 'INT-2026-010',
                         customer: 'คุณธัญชนก ธนกุลสวัสดิ์',
@@ -1101,8 +1101,8 @@ const app = {
                     },
 
                     {
-                        id: 'JOB202609011',
-                        job_no: 'JOB202609011',
+                        id: 'JOB26090900011',
+                        job_no: 'JOB26090900011',
                         job_type: 'renovate',
                         external_ref_id: 'INT-2026-011',
                         customer: 'คุณณัฐนพิน รัตนวิบูลย์',
@@ -1124,8 +1124,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609012',
-                        job_no: 'JOB202609012',
+                        id: 'JOB26090900012',
+                        job_no: 'JOB26090900012',
                         job_type: 'renovate',
                         external_ref_id: 'INT-2026-012',
                         customer: 'คุณลภัสรดา สิริวัฒนกุล',
@@ -1147,8 +1147,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609013',
-                        job_no: 'JOB202609013',
+                        id: 'JOB26090900013',
+                        job_no: 'JOB26090900013',
                         job_type: 'renovate',
                         external_ref_id: 'INT-2026-013',
                         customer: 'คุณนภัสสร บุญญานุวัตร',
@@ -1170,8 +1170,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609014',
-                        job_no: 'JOB202609014',
+                        id: 'JOB26090900014',
+                        job_no: 'JOB26090900014',
                         job_type: 'renovate',
                         external_ref_id: 'INT-2026-014',
                         customer: 'คุณวริศรา กิตติโภคิน',
@@ -1193,8 +1193,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609015',
-                        job_no: 'JOB202609015',
+                        id: 'JOB26090900015',
+                        job_no: 'JOB26090900015',
                         job_type: 'renovate',
                         external_ref_id: 'INT-2026-015',
                         customer: 'คุณกัญญารัตน์ โสภณพิทักษ์',
@@ -1216,8 +1216,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609016',
-                        job_no: 'JOB202609016',
+                        id: 'JOB26090900016',
+                        job_no: 'JOB26090900016',
                         job_type: 'renovate',
                         external_ref_id: 'INT-2026-016',
                         customer: 'คุณนันทิกานต์ เตชะไพบูลย์',
@@ -1239,8 +1239,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609017',
-                        job_no: 'JOB202609017',
+                        id: 'JOB26090900017',
+                        job_no: 'JOB26090900017',
                         job_type: 'renovate',
                         external_ref_id: 'INT-2026-017',
                         customer: 'คุณมนัสชนก ศรีวิชัยพฤกษ์',
@@ -1262,8 +1262,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609018',
-                        job_no: 'JOB202609018',
+                        id: 'JOB26090900018',
+                        job_no: 'JOB26090900018',
                         job_type: 'renovate',
                         external_ref_id: 'INT-2026-018',
                         customer: 'คุณพิชญ์สินี อัครวิวัฒน์',
@@ -1285,8 +1285,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609019',
-                        job_no: 'JOB202609019',
+                        id: 'JOB26090900019',
+                        job_no: 'JOB26090900019',
                         job_type: 'renovate',
                         external_ref_id: 'INT-2026-019',
                         customer: 'คุณศุภณัฐ อัศวเมธิน',
@@ -1308,8 +1308,8 @@ const app = {
                         }
                     },
                     {
-                        id: 'JOB202609020',
-                        job_no: 'JOB202609020',
+                        id: 'JOB26090900020',
+                        job_no: 'JOB26090900020',
                         job_type: 'renovate',
                         external_ref_id: 'INT-2026-020',
                         customer: 'คุณศศิธร พัชรเกียรติกุล',
@@ -1436,8 +1436,8 @@ const app = {
                 return [
                     {
                         id: 'LOG_20260907_001',
-                        jobId: 'JOB202609002',
-                        taskId: 'T_JOB202609002_1',
+                        jobId: 'JOB26090900002',
+                        taskId: 'T_JOB26090900002_1',
                         taskName: 'งาน set ระบบ ไฟ',
                         logDate: '2026-09-07',
                         startTime: '08:30',
@@ -1500,8 +1500,8 @@ const app = {
                     },
                     {
                         id: 'LOG_20260908_002',
-                        jobId: 'JOB202609002',
-                        taskId: 'T_JOB202609002_1',
+                        jobId: 'JOB26090900002',
+                        taskId: 'T_JOB26090900002_1',
                         taskName: 'งาน set ระบบ ไฟ',
                         logDate: '2026-09-08',
                         startTime: '08:30',
@@ -1768,8 +1768,8 @@ const app = {
                     });
                 }
 
-                // Ensure default BOQ & Tasks for JOB202609002 (คุณกุลนารี ทรงเกียรติ)
-                const jobKulnaree = (DB.jobs || []).find(j => j.id === 'JOB202609002');
+                // Ensure default BOQ & Tasks for JOB26090900002 (คุณกุลนารี ทรงเกียรติ)
+                const jobKulnaree = (DB.jobs || []).find(j => j.id === 'JOB26090900002');
                 if (jobKulnaree) {
                     if (!jobKulnaree.boq_items || jobKulnaree.boq_items.length === 0) {
                         jobKulnaree.boq_items = [
@@ -1779,11 +1779,11 @@ const app = {
                     }
                 }
                 if (!DB.tasks) DB.tasks = [];
-                const kulnareeTasks = DB.tasks.filter(t => t.jobId === 'JOB202609002');
+                const kulnareeTasks = DB.tasks.filter(t => t.jobId === 'JOB26090900002');
                 if (kulnareeTasks.length === 0) {
                     DB.tasks.push({
-                        id: 'T_JOB202609002_1',
-                        jobId: 'JOB202609002',
+                        id: 'T_JOB26090900002_1',
+                        jobId: 'JOB26090900002',
                         name: 'งานสกัดพื้นและทำระบบกันซึม 3 ชั้น',
                         start: '2026-09-08',
                         end: '2026-09-10',
@@ -1793,8 +1793,8 @@ const app = {
                         progress: 60
                     });
                     DB.tasks.push({
-                        id: 'T_JOB202609002_2',
-                        jobId: 'JOB202609002',
+                        id: 'T_JOB26090900002_2',
+                        jobId: 'JOB26090900002',
                         name: 'งานปูกระเบื้องและติดตั้งสุขภัณฑ์ Universal Design',
                         start: '2026-09-11',
                         end: '2026-09-14',
@@ -1806,8 +1806,8 @@ const app = {
                 }
                 if (Array.isArray(DB.dailyWorkLogs)) {
                     DB.dailyWorkLogs.forEach(l => {
-                        if (l.jobId === 'JOB202609002' && (!l.taskId || l.taskId === '')) {
-                            l.taskId = 'T_JOB202609002_1';
+                        if (l.jobId === 'JOB26090900002' && (!l.taskId || l.taskId === '')) {
+                            l.taskId = 'T_JOB26090900002_1';
                         }
                     });
                 }
@@ -2966,7 +2966,7 @@ const app = {
                 const inp = document.getElementById('unified-design-zone-input');
                 if (inp) {
                     inp.value = zone;
-                    const jobId = this.state.unifiedStudioJobId || 'JOB2026';
+                    const jobId = this.state.unifiedStudioJobId || 'JOB26090900002';
                     const titleInp = document.getElementById('unified-design-title-input');
                     if (titleInp && !titleInp.value) {
                         titleInp.value = `แบบแปลน 3D & ผังติดตั้ง ${zone}`;
@@ -6608,7 +6608,7 @@ const app = {
             },
 
             openSaveBOQModal(jobId) {
-                const targetJobId = jobId || this.state.currentJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
+                const targetJobId = jobId || this.state.currentJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
                 const job = DB.jobs.find(j => j.id === targetJobId);
                 if (!job) {
                     this.showToast('⚠️ ไม่พบข้อมูล Job');
@@ -7611,7 +7611,7 @@ const app = {
 
             downloadVFixBOQTemplate() {
                 const csvHeader = "\uFEFF" +
-                    "vFIX,ใบเสนอราคางาน,เลขที่งาน :,JOB202609001,,,\n" +
+                    "vFIX,ใบเสนอราคางาน,เลขที่งาน :,JOB26090900001,,,\n" +
                     "เรียน :,นภัสวรรณ มีศิริ,,เลขที่ใบเสร็จ :,\n" +
                     "ที่อยู่ :,หมู่บ้านพัทยารุ่งเรือง ซอยระหว่างมาบยายเลีย ตำบลหนองปรือ อำเภอบางละมุง จังหวัดชลบุรี 20150,,สาขา :,พัทยาใต้\n" +
                     "Tel :,0922795574,,วันที่ :,25/8/69\n" +
@@ -7837,7 +7837,7 @@ const app = {
             },
 
             openConvertBOQToTasksModal(jobId) {
-                const targetJobId = jobId || this.state.currentJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
+                const targetJobId = jobId || this.state.currentJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
                 const job = DB.jobs.find(j => j.id === targetJobId);
                 if (!job) {
                     this.showToast('⚠️ ไม่พบข้อมูล Job');
@@ -8166,7 +8166,7 @@ const app = {
             },
 
             confirmConvertBOQToTasks() {
-                const targetJobId = this.state.convertJobId || this.state.currentJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
+                const targetJobId = this.state.convertJobId || this.state.currentJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
                 const job = DB.jobs.find(j => j.id === targetJobId);
                 if (!job) {
                     this.showToast('⚠️ ไม่พบข้อมูล Job');
@@ -8261,7 +8261,7 @@ const app = {
                         ticket_no: 'TKT-202609-003',
                         receipt_no: 'RC-VFIX-260901-003',
                         contract_no: 'CTR-202609-003',
-                        job_id: 'JOB202609008',
+                        job_id: 'JOB26090900008',
                         customer_name: 'คุณวรภัทร ชาญวิชิต',
                         service: 'กั้นห้องกระจกบานเลื่อน Slim Frameless กระจกลามิเนต Acoustic เก็บเสียง สำหรับโฮมออฟฟิศ',
                         amount: 42000,
@@ -8280,7 +8280,7 @@ const app = {
                         ticket_no: 'TKT-202609-002',
                         receipt_no: 'RC-VFIX-260901-002',
                         contract_no: 'CTR-202609-002',
-                        job_id: 'JOB202609006',
+                        job_id: 'JOB26090900006',
                         customer_name: 'คุณพรรณพิไล จารุวรรณ',
                         service: 'รีโนเวทระเบียงสระว่ายน้ำ รื้อพื้นเดิมปูไม้เทียม WPC เกรดพรีเมียมพร้อมติดตั้งไฟ Solar Pathway',
                         amount: 58500,
@@ -8299,7 +8299,7 @@ const app = {
                         ticket_no: 'TKT-202609-001',
                         receipt_no: 'RC-VFIX-260901-001',
                         contract_no: 'CTR-202609-001',
-                        job_id: 'JOB202609009',
+                        job_id: 'JOB26090900009',
                         customer_name: 'คุณธีรภัทร อัศวโภคิน',
                         service: 'Renovate ครัว Built-in ท็อปหินสังเคราะห์ พร้อมเดินระบบท่อน้ำดี-น้ำเสียและไฟใต้ตู้',
                         amount: 49648,
@@ -9933,7 +9933,7 @@ const app = {
 
             // ─── MODAL POPUP: MANAGE / RECORD BOQ ────────────────────────
             openManageBOQModal(jobId = null) {
-                const targetJobId = jobId || this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
+                const targetJobId = jobId || this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
                 this.state.modalBOQJobId = targetJobId;
                 this.state.boqSelectedJobId = targetJobId;
 
@@ -10610,7 +10610,7 @@ const app = {
             },
 
             updateBOQPageItem(idx, field, value) {
-                const targetJobId = this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
+                const targetJobId = this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
                 const job = (DB.jobs || []).find(j => j.id === targetJobId);
                 if (!job || !job.boq_items || !job.boq_items[idx]) return;
                 if (field === 'qty' || field === 'price') {
@@ -10623,7 +10623,7 @@ const app = {
             },
 
             removeBOQPageItem(idx) {
-                const targetJobId = this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
+                const targetJobId = this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
                 const job = (DB.jobs || []).find(j => j.id === targetJobId);
                 if (!job || !job.boq_items) return;
                 job.boq_items.splice(idx, 1);
@@ -10633,7 +10633,7 @@ const app = {
             },
 
             saveBOQPage() {
-                const targetJobId = this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
+                const targetJobId = this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
                 this.recordStepTimestamp(targetJobId, 'step3_boq_at', new Date().toISOString(), 'บันทึกรายการ BOQ ในระบบ PMT');
                 this.recordStepTimestamp(targetJobId, 'step4_boq_at', new Date().toISOString(), 'บันทึกรายการ BOQ ในระบบ PMT');
                 this.persistJobs();
@@ -10641,7 +10641,7 @@ const app = {
             },
 
             proceedToStep5Project(jobId) {
-                const targetJobId = jobId || this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
+                const targetJobId = jobId || this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
                 const job = (DB.jobs || []).find(j => j.id === targetJobId);
                 if (job && this.isQuickJob(job)) {
                     this.goToQC(targetJobId);
@@ -11161,7 +11161,7 @@ const app = {
                     this.switchConversionTab(this.state.conversionTab);
                 }
 
-                const targetJobId = jobId || this.state.selectedConversionJobId || this.state.selectedGanttJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
+                const targetJobId = jobId || this.state.selectedConversionJobId || this.state.selectedGanttJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
                 this.state.selectedConversionJobId = targetJobId;
                 this.state.selectedGanttJobId = targetJobId;
 
@@ -11301,7 +11301,7 @@ const app = {
             openCurrentFilterJobBOQ() {
                 const jobFilterEl = document.getElementById('gantt-filter-job');
                 const selectedJobFilter = jobFilterEl ? jobFilterEl.value : 'all';
-                const targetJobId = (selectedJobFilter && selectedJobFilter !== 'all') ? selectedJobFilter : (DB.jobs[0] ? DB.jobs[0].id : 'JOB202609001');
+                const targetJobId = (selectedJobFilter && selectedJobFilter !== 'all') ? selectedJobFilter : (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
                 this.openJobDetailBOQ(targetJobId);
             },
 
@@ -13115,7 +13115,7 @@ const app = {
                 if (!this.state.dailyLogSearchQuery) this.state.dailyLogSearchQuery = '';
 
                 // Determine active job
-                let selectedJobId = param || this.state.dailyLogSelectedJobId || this.state.selectedGanttJobId || 'JOB202609002';
+                let selectedJobId = param || this.state.dailyLogSelectedJobId || this.state.selectedGanttJobId || 'JOB26090900002';
                 if (!allJobs.some(j => j.id === selectedJobId)) {
                     selectedJobId = allJobs[0].id;
                 }
@@ -13823,7 +13823,7 @@ const app = {
             openDailyWorkLogModal(taskId) {
                 let task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
                 let jobId = task ? task.jobId : this.state.selectedGanttJobId;
-                if (!jobId || jobId === 'all') jobId = 'JOB202609002';
+                if (!jobId || jobId === 'all') jobId = 'JOB26090900002';
                 
                 if (!task) {
                     const jobTasks = (DB.tasks || []).filter(t => t.jobId === jobId);
@@ -13888,7 +13888,7 @@ const app = {
                 const container = document.getElementById('modal-daily-work-log-body');
                 if (!container) return;
 
-                const jobId = this.state.activeDailyLogJobId || 'JOB202609002';
+                const jobId = this.state.activeDailyLogJobId || 'JOB26090900002';
                 const job = (DB.jobs || []).find(j => j.id === jobId) || {};
                 const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
                 
@@ -14196,8 +14196,8 @@ const app = {
             saveDailyWorkLog(taskId, forceComplete = false, isPageForm = false) {
                 const prefix = isPageForm ? 'page' : 'dwl';
                 const jobId = isPageForm 
-                    ? (this.state.dailyLogSelectedJobId || 'JOB202609002') 
-                    : (this.state.activeDailyLogJobId || 'JOB202609002');
+                    ? (this.state.dailyLogSelectedJobId || 'JOB26090900002') 
+                    : (this.state.activeDailyLogJobId || 'JOB26090900002');
 
                 const job = (DB.jobs || []).find(j => j.id === jobId) || {};
                 const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
@@ -15622,8 +15622,8 @@ const app = {
             simulateMockQCJobs() {
                 const sampleJobs = [
                     {
-                        id: 'JOB202609011',
-                        job_no: 'JOB202609011',
+                        id: 'JOB26090900011',
+                        job_no: 'JOB26090900011',
                         customer: 'คุณวิทวัส เจริญเกียรติ',
                         phone: '081-998-7766',
                         service: 'ติดตั้งเครื่องชาร์จรถยนต์ไฟฟ้า EV Charger 22kW',
@@ -15645,8 +15645,8 @@ const app = {
                         ]
                     },
                     {
-                        id: 'JOB202609012',
-                        job_no: 'JOB202609012',
+                        id: 'JOB26090900012',
+                        job_no: 'JOB26090900012',
                         customer: 'คุณเบญจมาศ อัครโภคิน',
                         phone: '095-432-1098',
                         service: 'รีโนเวทห้องน้ำผู้สูงอายุ Universal Design',
@@ -15662,8 +15662,8 @@ const app = {
                             qc_draft_at: new Date().toISOString()
                         },
                         qc_booking: {
-                            id: 'QCB_JOB202609012',
-                            jobId: 'JOB202609012',
+                            id: 'QCB_JOB26090900012',
+                            jobId: 'JOB26090900012',
                             status: 'PENDING_CONFIRM',
                             bookingDate: '2026-09-12',
                             bookingTime: '09:00',
@@ -15688,8 +15688,8 @@ const app = {
                         ]
                     },
                     {
-                        id: 'JOB202609014',
-                        job_no: 'JOB202609014',
+                        id: 'JOB26090900014',
+                        job_no: 'JOB26090900014',
                         customer: 'คุณจิรายุ ภูวดล',
                         phone: '081-876-5432',
                         service: 'งานปรับปรุงห้องครัวและเคาน์เตอร์บิวท์อิน',
@@ -15705,8 +15705,8 @@ const app = {
                             qc_draft_at: new Date().toISOString()
                         },
                         qc_booking: {
-                            id: 'QCB_JOB202609014',
-                            jobId: 'JOB202609014',
+                            id: 'QCB_JOB26090900014',
+                            jobId: 'JOB26090900014',
                             status: 'CONFIRMED',
                             bookingDate: '2026-09-15',
                             bookingTime: '13:30',
@@ -15728,8 +15728,8 @@ const app = {
                         ]
                     },
                     {
-                        id: 'JOB202609013',
-                        job_no: 'JOB202609013',
+                        id: 'JOB26090900013',
+                        job_no: 'JOB26090900013',
                         customer: 'คุณธนภัทร ธรรมวิมล',
                         phone: '089-123-4567',
                         service: 'ติดตั้ง Digital Door Lock ระบบ 3D Face Recognition',
@@ -15760,10 +15760,10 @@ const app = {
                 // Ensure Gantt tasks exist for Renovate jobs so Gantt and QC are synchronized
                 if (!Array.isArray(DB.tasks)) DB.tasks = [];
                 const mockTasks = [
-                    { id: 'T_JOB202609012_1', jobId: 'JOB202609012', name: 'งานสกัดพื้นเดิมและทำระบบกันซึม', tech: 'Team A (สมศักดิ์)', start: '2026-09-08', end: '2026-09-10', days: 3, status: 'DONE', progress: 100 },
-                    { id: 'T_JOB202609012_2', jobId: 'JOB202609012', name: 'งานปูกระเบื้องและติดตั้งสุขภัณฑ์', tech: 'Team A (สมศักดิ์)', start: '2026-09-11', end: '2026-09-12', days: 2, status: 'IN_PROGRESS', progress: 60 },
-                    { id: 'T_JOB202609014_1', jobId: 'JOB202609014', name: 'งานก่อเคาน์เตอร์ครัว คสล. และท็อปหิน', tech: 'Team C (วิศรุต)', start: '2026-09-08', end: '2026-09-13', days: 6, status: 'IN_PROGRESS', progress: 80 },
-                    { id: 'T_JOB202609014_2', jobId: 'JOB202609014', name: 'งานท่อ Sink และติดตั้งฮูดดูดควัน', tech: 'Team C (วิศรุต)', start: '2026-09-14', end: '2026-09-15', days: 2, status: 'PENDING', progress: 0 }
+                    { id: 'T_JOB26090900012_1', jobId: 'JOB26090900012', name: 'งานสกัดพื้นเดิมและทำระบบกันซึม', tech: 'Team A (สมศักดิ์)', start: '2026-09-08', end: '2026-09-10', days: 3, status: 'DONE', progress: 100 },
+                    { id: 'T_JOB26090900012_2', jobId: 'JOB26090900012', name: 'งานปูกระเบื้องและติดตั้งสุขภัณฑ์', tech: 'Team A (สมศักดิ์)', start: '2026-09-11', end: '2026-09-12', days: 2, status: 'IN_PROGRESS', progress: 60 },
+                    { id: 'T_JOB26090900014_1', jobId: 'JOB26090900014', name: 'งานก่อเคาน์เตอร์ครัว คสล. และท็อปหิน', tech: 'Team C (วิศรุต)', start: '2026-09-08', end: '2026-09-13', days: 6, status: 'IN_PROGRESS', progress: 80 },
+                    { id: 'T_JOB26090900014_2', jobId: 'JOB26090900014', name: 'งานท่อ Sink และติดตั้งฮูดดูดควัน', tech: 'Team C (วิศรุต)', start: '2026-09-14', end: '2026-09-15', days: 2, status: 'PENDING', progress: 0 }
                 ];
                 mockTasks.forEach(mt => {
                     const tIdx = DB.tasks.findIndex(t => t.id === mt.id);
@@ -16804,11 +16804,11 @@ const app = {
                 ];
 
                 // Demo Job 1: Quick Services entered today (waiting for CSAT, NEW!)
-                let job1 = DB.jobs.find(j => j.id === 'JOB202609010');
+                let job1 = DB.jobs.find(j => j.id === 'JOB26090900010');
                 if (!job1) {
                     job1 = {
-                        id: 'JOB202609010',
-                        job_no: 'JOB202609010',
+                        id: 'JOB26090900010',
+                        job_no: 'JOB26090900010',
                         customer: 'คุณเบญจวรรณ พัฒนศิริ',
                         phone: '095-432-1098',
                         address: '88/14 หมู่บ้านลัดดารมย์ ราชพฤกษ์ กรุงเทพฯ',
@@ -16832,11 +16832,11 @@ const app = {
                 job1.step_timestamps.qc_passed_at = todayIso;
 
                 // Demo Job 2: Renovate entered today (waiting for CSAT, NEW!)
-                let job2 = DB.jobs.find(j => j.id === 'JOB202609009');
+                let job2 = DB.jobs.find(j => j.id === 'JOB26090900009');
                 if (!job2) {
                     job2 = {
-                        id: 'JOB202609009',
-                        job_no: 'JOB202609009',
+                        id: 'JOB26090900009',
+                        job_no: 'JOB26090900009',
                         customer: 'คุณกิตติศักดิ์ เจริญกิจพาณิชย์',
                         phone: '082-345-6789',
                         address: '55/3 อาคารสีลมคอมเพล็กซ์ ชั้น 18 ถนนสีลม เขตบางรัก กรุงเทพฯ',
@@ -16860,11 +16860,11 @@ const app = {
                 job2.step_timestamps.qc_passed_at = job2.qc_passed_at;
 
                 // Demo Job 3: MA & Maintenance evaluated 5 stars with photos
-                let job3 = DB.jobs.find(j => j.id === 'JOB202609008');
+                let job3 = DB.jobs.find(j => j.id === 'JOB26090900008');
                 if (!job3) {
                     job3 = {
-                        id: 'JOB202609008',
-                        job_no: 'JOB202609008',
+                        id: 'JOB26090900008',
+                        job_no: 'JOB26090900008',
                         customer: 'คุณทักษ์ดนัย ฤทัยสวัสดิ์',
                         phone: '089-123-4567',
                         address: '124 ซอยสุขุมวิท 49 แขวงคลองตันเหนือ เขตวัฒนา กรุงเทพฯ',
@@ -16891,11 +16891,11 @@ const app = {
                 job3.step_timestamps.csat_at = todayIso;
 
                 // Demo Job 4: Quick Services evaluated 4 stars
-                let job4 = DB.jobs.find(j => j.id === 'JOB202609007');
+                let job4 = DB.jobs.find(j => j.id === 'JOB26090900007');
                 if (!job4) {
                     job4 = {
-                        id: 'JOB202609007',
-                        job_no: 'JOB202609007',
+                        id: 'JOB26090900007',
+                        job_no: 'JOB26090900007',
                         customer: 'คุณสุดารัตน์ พรหมประกาย',
                         phone: '081-987-6543',
                         address: '9/44 หมู่บ้านมัณฑนา ศรีนครินทร์-บางนา สมุทรปราการ',

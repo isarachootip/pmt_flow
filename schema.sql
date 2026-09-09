@@ -249,7 +249,7 @@ CREATE TABLE t_staging_survey_report (
 -- Main Job / Order
 CREATE TABLE t_job (
     id BIGSERIAL PRIMARY KEY,
-    job_no VARCHAR(30) UNIQUE NOT NULL, -- Format: JOBYYYYMMXXX e.g. JOB202609001
+    job_no VARCHAR(30) UNIQUE NOT NULL, -- Format: JOBYYMMDDXXXXX e.g. JOB26090900001
     external_ref_id VARCHAR(100), -- Ref from INT system
     customer_id BIGINT NOT NULL REFERENCES m_customer(id),
     primary_service_id BIGINT REFERENCES m_service_type(id),

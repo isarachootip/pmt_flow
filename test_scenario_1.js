@@ -63,7 +63,7 @@ async function runScenario1() {
   });
   console.log(`   Status: HTTP ${step1.statusCode} | Job No: ${step1.body.data?.job_no} (Status: ${step1.body.data?.status})`);
   const jobId = step1.body.data?.id || 1;
-  const jobNo = step1.body.data?.job_no || 'JOB202609001';
+  const jobNo = step1.body.data?.job_no || 'JOB26090900001';
 
   // STEP 2 & 3: ข้อมูล upload มาจากระบบ INT (Check-in/Check-out หน้างาน + 5 รูป)
   console.log('\n▶ [STEP 2 & 3] Check-in/Check-out หน้างาน + พิกัด GPS + รูปถ่าย 5 รูป');

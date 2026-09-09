@@ -911,7 +911,7 @@ function syncQCBookingForTask(task) {
     const targetJob = exports.coreJobStore.find(j => j.id === task.job_id || j.job_no === task.job_no || String(j.id) === String(task.job_id));
     const cust = exports.coreCustomerStore.find(c => c.id === targetJob?.customer_id);
     const custName = cust ? `${cust.first_name} ${cust.last_name}` : (targetJob?.customer || targetJob?.customer_name || 'ลูกค้า');
-    const jobNo = task.job_no || targetJob?.job_no || `JOB20260900${task.job_id}`;
+    const jobNo = task.job_no || targetJob?.job_no || (task.job_id ? `JOB2609090000${task.job_id}` : `JOB${new Date().toISOString().slice(2, 10).replace(/-/g, '')}00001`);
     const qcDate = calculateQCBookingDate(task.plan_end_date, 5);
     let booking = exports.coreQCBookingStore.find(b => String(b.task_id) === String(task.id));
     if (booking) {
@@ -996,7 +996,7 @@ function seedInitialCoreData(populateMocks = false) {
     const mockJobs = [
         {
             id: 1,
-            job_no: 'JOB202609001',
+            job_no: 'JOB26090900001',
             external_ref_id: 'INT-2026-001',
             customer_id: 1,
             status: JobStatus.DRAFT,
@@ -1015,7 +1015,7 @@ function seedInitialCoreData(populateMocks = false) {
         },
         {
             id: 2,
-            job_no: 'JOB202609002',
+            job_no: 'JOB26090900002',
             external_ref_id: 'INT-2026-002',
             customer_id: 2,
             status: JobStatus.DRAFT,
@@ -1034,7 +1034,7 @@ function seedInitialCoreData(populateMocks = false) {
         },
         {
             id: 3,
-            job_no: 'JOB202609003',
+            job_no: 'JOB26090900003',
             external_ref_id: 'INT-2026-003',
             customer_id: 3,
             status: JobStatus.DRAFT,
@@ -1053,7 +1053,7 @@ function seedInitialCoreData(populateMocks = false) {
         },
         {
             id: 4,
-            job_no: 'JOB202609004',
+            job_no: 'JOB26090900004',
             external_ref_id: 'INT-2026-004',
             customer_id: 4,
             status: JobStatus.DRAFT,
@@ -1072,7 +1072,7 @@ function seedInitialCoreData(populateMocks = false) {
         },
         {
             id: 5,
-            job_no: 'JOB202609005',
+            job_no: 'JOB26090900005',
             external_ref_id: 'INT-2026-005',
             customer_id: 5,
             status: JobStatus.DRAFT,
@@ -1091,7 +1091,7 @@ function seedInitialCoreData(populateMocks = false) {
         },
         {
             id: 6,
-            job_no: 'JOB202609006',
+            job_no: 'JOB26090900006',
             external_ref_id: 'INT-2026-006',
             customer_id: 6,
             status: JobStatus.DRAFT,
@@ -1110,7 +1110,7 @@ function seedInitialCoreData(populateMocks = false) {
         },
         {
             id: 7,
-            job_no: 'JOB202609007',
+            job_no: 'JOB26090900007',
             external_ref_id: 'INT-2026-007',
             customer_id: 7,
             status: JobStatus.DRAFT,
@@ -1129,7 +1129,7 @@ function seedInitialCoreData(populateMocks = false) {
         },
         {
             id: 8,
-            job_no: 'JOB202609008',
+            job_no: 'JOB26090900008',
             external_ref_id: 'INT-2026-008',
             customer_id: 8,
             status: JobStatus.DRAFT,
@@ -1148,7 +1148,7 @@ function seedInitialCoreData(populateMocks = false) {
         },
         {
             id: 9,
-            job_no: 'JOB202609009',
+            job_no: 'JOB26090900009',
             external_ref_id: 'INT-2026-009',
             customer_id: 9,
             status: JobStatus.DRAFT,
@@ -1167,7 +1167,7 @@ function seedInitialCoreData(populateMocks = false) {
         },
         {
             id: 10,
-            job_no: 'JOB202609010',
+            job_no: 'JOB26090900010',
             external_ref_id: 'INT-2026-010',
             customer_id: 10,
             status: JobStatus.DRAFT,
@@ -1186,7 +1186,7 @@ function seedInitialCoreData(populateMocks = false) {
         },
         {
             id: 11,
-            job_no: 'JOB202609011',
+            job_no: 'JOB26090900011',
             external_ref_id: 'INT-2026-011',
             customer_id: 11,
             status: JobStatus.DRAFT,
@@ -1205,7 +1205,7 @@ function seedInitialCoreData(populateMocks = false) {
         },
         {
             id: 12,
-            job_no: 'JOB202609012',
+            job_no: 'JOB26090900012',
             external_ref_id: 'INT-2026-012',
             customer_id: 12,
             status: JobStatus.DRAFT,
@@ -1224,7 +1224,7 @@ function seedInitialCoreData(populateMocks = false) {
         },
         {
             id: 13,
-            job_no: 'JOB202609013',
+            job_no: 'JOB26090900013',
             external_ref_id: 'INT-2026-013',
             customer_id: 13,
             status: JobStatus.DRAFT,
@@ -1243,7 +1243,7 @@ function seedInitialCoreData(populateMocks = false) {
         },
         {
             id: 14,
-            job_no: 'JOB202609014',
+            job_no: 'JOB26090900014',
             external_ref_id: 'INT-2026-014',
             customer_id: 14,
             status: JobStatus.DRAFT,
@@ -1262,7 +1262,7 @@ function seedInitialCoreData(populateMocks = false) {
         },
         {
             id: 15,
-            job_no: 'JOB202609015',
+            job_no: 'JOB26090900015',
             external_ref_id: 'INT-2026-015',
             customer_id: 15,
             status: JobStatus.DRAFT,
@@ -1281,7 +1281,7 @@ function seedInitialCoreData(populateMocks = false) {
         },
         {
             id: 16,
-            job_no: 'JOB202609016',
+            job_no: 'JOB26090900016',
             external_ref_id: 'INT-2026-016',
             customer_id: 16,
             status: JobStatus.DRAFT,
@@ -1378,13 +1378,14 @@ app.post('/api/v1/integration/orders', async (req, res) => {
             };
             exports.coreCustomerStore.push(customer);
         }
-        // Generate Job No format: JOBYYYYMMXXX (e.g., JOB202609001)
+        // Generate Job No format: JOBYYMMDDXXXXX (e.g., JOB26090900001)
         const now = new Date();
-        const yyyy = String(now.getFullYear());
+        const yy = String(now.getFullYear()).slice(-2);
         const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const runningSeq = Math.floor(1 + Math.random() * 999);
-        const runningStr = String(runningSeq).padStart(3, '0');
-        const jobNo = `JOB${yyyy}${mm}${runningStr}`;
+        const dd = String(now.getDate()).padStart(2, '0');
+        const runningSeq = Math.floor(1 + Math.random() * 99999);
+        const runningStr = String(runningSeq).padStart(5, '0');
+        const jobNo = `JOB${yy}${mm}${dd}${runningStr}`;
         const serviceName = (payload.services && payload.services[0]) || 'งานติดตั้ง';
         const isQuick = /ติดตั้ง|ซ่อม|ล้าง|แอร์|เครื่องปรับอากาศ|เครื่องทำน้ำอุ่น|ปั้ม|กรองน้ำ|กล้อง/i.test(serviceName) && !/รีโนเวท|ต่อเติม|renovate/i.test(serviceName);
         const jobType = isQuick ? 'quick' : 'renovate';
@@ -1457,7 +1458,7 @@ function seedInitialStagingData(populateMocks = false) {
         {
             id: 1001,
             source_job_id: "031b0e16a-9a98-43bf-ae3e-b14e76b577f8",
-            job_number: "JOB202609001",
+            job_number: "JOB26090900001",
             booking_no: "VFIX-260901-001",
             ticket_no: "209051119",
             source_reference: "REQ-PT2-2608220003",
@@ -1475,7 +1476,7 @@ function seedInitialStagingData(populateMocks = false) {
             received_at: new Date(Date.now() - 3600000 * 5).toISOString(),
             raw_payload: {
                 system: { job_id: "031b0e16a-9a98-43bf-ae3e-b14e76b577f8", created_at: "2026-09-02T09:00:00Z", created_by: "system", updated_at: "2026-09-02T09:00:00Z" },
-                job_info: { job_number: "JOB202609001", booking_no: "VFIX-260901-001", ticket_no: "209051119", source_reference: "REQ-PT2-2608220003", status: "Approved", stage: "Completed", property_type: "บ้านเดี่ยว", project_type: "Renovate", project_sub_type: "งานกระเบื้องพื้น" },
+                job_info: { job_number: "JOB26090900001", booking_no: "VFIX-260901-001", ticket_no: "209051119", source_reference: "REQ-PT2-2608220003", status: "Approved", stage: "Completed", property_type: "บ้านเดี่ยว", project_type: "Renovate", project_sub_type: "งานกระเบื้องพื้น" },
                 job_details: [
                     { job_type: "ติดตั้งแอร์ (ส่งพร้อมติดตั้ง)", installation_detail: "R-ติดตั้ง แอร์ติดผนัง ขนาด 9000-17000 BTU พร้อมรื้อถอน", product_quantity: 2, remark: "ติดตั้งห้องนอนใหญ่และห้องรับแขก" },
                     { job_type: "ติดตั้งแอร์ (ส่งพร้อมติดตั้ง)", installation_detail: "R-ติดตั้ง แอร์ติดผนัง ขนาด 18000-24000 BTU พร้อมรื้อถอน", product_quantity: 1, remark: "ติดตั้งห้องโถงชั้นล่าง" }
@@ -1495,7 +1496,7 @@ function seedInitialStagingData(populateMocks = false) {
         {
             id: 1002,
             source_job_id: "c48d9102-12a4-49c8-99b3-76a89c910202",
-            job_number: "JOB202609002",
+            job_number: "JOB26090900002",
             booking_no: "VFIX-260901-002",
             ticket_no: "209051120",
             source_reference: "REQ-PT2-2608220004",
@@ -1513,7 +1514,7 @@ function seedInitialStagingData(populateMocks = false) {
             received_at: new Date(Date.now() - 3600000 * 4).toISOString(),
             raw_payload: {
                 system: { job_id: "c48d9102-12a4-49c8-99b3-76a89c910202", created_at: "2026-09-02T09:30:00Z", created_by: "system", updated_at: "2026-09-02T09:30:00Z" },
-                job_info: { job_number: "JOB202609002", booking_no: "VFIX-260901-002", ticket_no: "209051120", source_reference: "REQ-PT2-2608220004", status: "Approved", stage: "Completed", property_type: "ทาวน์โฮม", project_type: "Installation", project_sub_type: "งานปั้มแท็งก์" },
+                job_info: { job_number: "JOB26090900002", booking_no: "VFIX-260901-002", ticket_no: "209051120", source_reference: "REQ-PT2-2608220004", status: "Approved", stage: "Completed", property_type: "ทาวน์โฮม", project_type: "Installation", project_sub_type: "งานปั้มแท็งก์" },
                 job_details: [
                     { job_type: "ติดตั้งปั้มแท็งก์", installation_detail: "ติดตั้งถังเก็บน้ำ DOS 1000L บนฐานปูน + ปั้มอัตโนมัติ Mitsubishi 250W", product_quantity: 1, remark: "รวมเดินท่อบายพาส" }
                 ],
@@ -1532,7 +1533,7 @@ function seedInitialStagingData(populateMocks = false) {
         {
             id: 1003,
             source_job_id: "e57f1203-34b5-41d9-aa4c-87b90d120303",
-            job_number: "JOB202609003",
+            job_number: "JOB26090900003",
             booking_no: "VFIX-260901-003",
             ticket_no: "209051121",
             source_reference: "REQ-PT2-2608220005",
@@ -1550,7 +1551,7 @@ function seedInitialStagingData(populateMocks = false) {
             received_at: new Date(Date.now() - 3600000 * 3).toISOString(),
             raw_payload: {
                 system: { job_id: "e57f1203-34b5-41d9-aa4c-87b90d120303", created_at: "2026-09-02T10:00:00Z", created_by: "system", updated_at: "2026-09-02T10:00:00Z" },
-                job_info: { job_number: "JOB202609003", booking_no: "VFIX-260901-003", ticket_no: "209051121", source_reference: "REQ-PT2-2608220005", status: "Approved", stage: "Completed", property_type: "คอนโดมิเนียม", project_type: "Installation", project_sub_type: "เครื่องทำน้ำอุ่น" },
+                job_info: { job_number: "JOB26090900003", booking_no: "VFIX-260901-003", ticket_no: "209051121", source_reference: "REQ-PT2-2608220005", status: "Approved", stage: "Completed", property_type: "คอนโดมิเนียม", project_type: "Installation", project_sub_type: "เครื่องทำน้ำอุ่น" },
                 job_details: [
                     { job_type: "ติดตั้งเครื่องทำน้ำอุ่น", installation_detail: "ติดตั้งเครื่องทำน้ำอุ่น Stiebel Eltron 4500W พร้อมเดินสายดินและเบรกเกอร์", product_quantity: 2, remark: "ห้องน้ำ 1 และ ห้องน้ำ 2" }
                 ],
@@ -1569,7 +1570,7 @@ function seedInitialStagingData(populateMocks = false) {
         {
             id: 1004,
             source_job_id: "f68a2304-45c6-42ea-bb5d-98c01e230404",
-            job_number: "JOB202609004",
+            job_number: "JOB26090900004",
             booking_no: "VFIX-260901-004",
             ticket_no: "209051122",
             source_reference: "REQ-PT2-2608220006",
@@ -1587,7 +1588,7 @@ function seedInitialStagingData(populateMocks = false) {
             received_at: new Date(Date.now() - 3600000 * 2).toISOString(),
             raw_payload: {
                 system: { job_id: "f68a2304-45c6-42ea-bb5d-98c01e230404", created_at: "2026-09-02T10:30:00Z", created_by: "system", updated_at: "2026-09-02T10:30:00Z" },
-                job_info: { job_number: "JOB202609004", booking_no: "VFIX-260901-004", ticket_no: "209051122", source_reference: "REQ-PT2-2608220006", status: "Approved", stage: "Completed", property_type: "บ้านเดี่ยว", project_type: "Renovate", project_sub_type: "งานกระเบื้องพื้น" },
+                job_info: { job_number: "JOB26090900004", booking_no: "VFIX-260901-004", ticket_no: "209051122", source_reference: "REQ-PT2-2608220006", status: "Approved", stage: "Completed", property_type: "บ้านเดี่ยว", project_type: "Renovate", project_sub_type: "งานกระเบื้องพื้น" },
                 job_details: [
                     { job_type: "ปูกระเบื้องพื้นห้องน้ำ", installation_detail: "รื้อกระเบื้องเดิม + ปูกระเบื้องแกรนิตโต้ 60x60 cm พื้นที่ 15 ตร.ม.", product_quantity: 15, remark: "รวมระบบกันซึม 3 ชั้น" }
                 ],
@@ -1606,7 +1607,7 @@ function seedInitialStagingData(populateMocks = false) {
         {
             id: 1005,
             source_job_id: "a79b3405-56d7-43fb-cc6e-09d12f340505",
-            job_number: "JOB202609005",
+            job_number: "JOB26090900005",
             booking_no: "VFIX-260901-005",
             ticket_no: "209051123",
             source_reference: "REQ-PT2-2608220007",
@@ -1624,7 +1625,7 @@ function seedInitialStagingData(populateMocks = false) {
             received_at: new Date(Date.now() - 3600000 * 1).toISOString(),
             raw_payload: {
                 system: { job_id: "a79b3405-56d7-43fb-cc6e-09d12f340505", created_at: "2026-09-02T11:00:00Z", created_by: "system", updated_at: "2026-09-02T11:00:00Z" },
-                job_info: { job_number: "JOB202609005", booking_no: "VFIX-260901-005", ticket_no: "209051123", source_reference: "REQ-PT2-2608220007", status: "Approved", stage: "Completed", property_type: "อาคารพาณิชย์", project_type: "Renovate", project_sub_type: "สุขภัณฑ์และห้องน้ำ" },
+                job_info: { job_number: "JOB26090900005", booking_no: "VFIX-260901-005", ticket_no: "209051123", source_reference: "REQ-PT2-2608220007", status: "Approved", stage: "Completed", property_type: "อาคารพาณิชย์", project_type: "Renovate", project_sub_type: "สุขภัณฑ์และห้องน้ำ" },
                 job_details: [
                     { job_type: "ติดตั้งสุขภัณฑ์", installation_detail: "รื้อถอนโถสุขภัณฑ์เดิม + ติดตั้งโถสุขภัณฑ์ Kohler 2 ชิ้น พร้อมสายฉีดชำระ", product_quantity: 2, remark: "ชั้น 1 และ ชั้น 2" },
                     { job_type: "ติดตั้งฉากกั้นอาบน้ำ", installation_detail: "ติดตั้งฉากกั้นกระจกนิรภัย Tempered 10mm ขนาด 100x200 cm", product_quantity: 1, remark: "ชั้น 2" }
@@ -2203,11 +2204,12 @@ app.post('/api/v1/jobs', requireAuth, async (req, res) => {
             return res.status(400).json({ success: false, error: { code: 'INVALID_PAYLOAD', message: 'firstName and lastName are required' } });
         }
         const now = new Date();
-        const yyyy = String(now.getFullYear());
+        const yy = String(now.getFullYear()).slice(-2);
         const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const runningSeq = Math.floor(1 + Math.random() * 999);
-        const runningStr = String(runningSeq).padStart(3, '0');
-        const jobNo = `JOB${yyyy}${mm}${runningStr}`;
+        const dd = String(now.getDate()).padStart(2, '0');
+        const runningSeq = Math.floor(1 + Math.random() * 99999);
+        const runningStr = String(runningSeq).padStart(5, '0');
+        const jobNo = `JOB${yy}${mm}${dd}${runningStr}`;
         const customerData = {
             id: Date.now() + Math.floor(Math.random() * 100),
             customer_code: `CUST-${Date.now()}`,
@@ -2461,7 +2463,7 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', requireAuth, async (req, res) => {
     }
     const job = await (0, database_1.dbGetJob)(param);
     const baseDate = base_start_date || new Date().toISOString().slice(0, 10);
-    const jobNo = job?.job_no || (typeof param === 'string' && param.startsWith('JOB') ? param : `JOB20260900${numId}`);
+    const jobNo = job?.job_no || (typeof param === 'string' && param.startsWith('JOB') ? param : `JOB2609090000${numId}`);
     const customerName = job?.customer || 'ลูกค้า';
     const newTasks = items.map((item, idx) => {
         let startStr = item.start_date || item.start;
@@ -2586,7 +2588,7 @@ app.post('/api/v1/jobs/:id/tasks', requireAuth, async (req, res) => {
         days = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
     }
     const techList = assignees || [assigned_tech];
-    const jobNo = job?.job_no || (typeof param === 'string' && param.startsWith('JOB') ? param : `JOB20260900${numId}`);
+    const jobNo = job?.job_no || (typeof param === 'string' && param.startsWith('JOB') ? param : `JOB2609090000${numId}`);
     const customerName = job?.customer || 'ลูกค้า';
     const newTask = {
         id: `T_${param}_${Date.now()}`,
@@ -2857,11 +2859,11 @@ app.get('/api/v1/jobs/:id/daily-logs', requireAuth, async (req, res) => {
 });
 // Helper to create and process daily work log
 async function handleCreateDailyLog(payload, jobIdParam) {
-    const id = jobIdParam || payload.job_id || payload.jobId || 'JOB202609002';
+    const id = jobIdParam || payload.job_id || payload.jobId || 'JOB26090900002';
     const newLog = {
         id: payload.id || `LOG_${Date.now()}`,
         job_id: id,
-        job_no: payload.job_no || (String(id).startsWith('JOB') ? String(id) : `JOB20260900${id}`),
+        job_no: payload.job_no || (String(id).startsWith('JOB') ? String(id) : `JOB2609090000${id}`),
         task_id: payload.task_id || payload.taskId || `T_${id}_1`,
         task_name: payload.task_name || payload.taskName || 'งานบริการติดตั้ง',
         log_date: payload.log_date || payload.logDate || new Date().toISOString().slice(0, 10),
@@ -3054,7 +3056,7 @@ app.post('/api/v1/jobs/:id/close-and-export-bmt', requireAuth, async (req, res) 
             targetJob.status = JobStatus.CLOSED;
             targetJob.overall_progress = 100;
         }
-        const jobNo = updatedJob?.job_no || targetJob?.job_no || (String(param).startsWith('JOB') ? param : `JOB20260900${param}`);
+        const jobNo = updatedJob?.job_no || targetJob?.job_no || (String(param).startsWith('JOB') ? param : `JOB2609090000${param}`);
         const customerName = updatedJob?.customer_name || targetJob?.customer_name || 'นาย สมชาย ใจดี';
         const customerPhone = updatedJob?.customer_phone || targetJob?.customer_phone || '081-234-5678';
         const customerAddress = updatedJob?.customer_address || targetJob?.customer_address || '123/45 ถ.พหลโยธิน กรุงเทพฯ';

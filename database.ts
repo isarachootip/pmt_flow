@@ -646,7 +646,7 @@ export async function dbSeedMockJobs(): Promise<number> {
   const mockJobs = [
     // 10 Quick Services
     { 
-      id: 1, job_no: 'JOB202609001', external_ref_id: 'INT-2026-001', customer_id: 1, status: 'NEW', job_type: 'quick',
+      id: 1, job_no: 'JOB26090900001', external_ref_id: 'INT-2026-001', customer_id: 1, status: 'NEW', job_type: 'quick',
       property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Installation', 
       project_sub_type: 'ติดตั้งระบบโซลาร์เซลล์ On-Grid ขนาด 5kW พร้อม Microinverter Enphase และระบบ Smart Monitoring', 
       assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-08', 
@@ -656,7 +656,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'สายไฟ DC Solar PV1-F ขนาด 4 sq.mm. พร้อมท่อร้อยสาย EMT และตู้ Combiner Box ป้องกันเสิร์จ AC/DC'
     },
     { 
-      id: 2, job_no: 'JOB202609002', external_ref_id: 'INT-2026-002', customer_id: 2, status: 'NEW', job_type: 'quick',
+      id: 2, job_no: 'JOB26090900002', external_ref_id: 'INT-2026-002', customer_id: 2, status: 'NEW', job_type: 'quick',
       property_type: 'คอนโดมิเนียม', project_type: 'Installation', 
       project_sub_type: 'ติดตั้งเครื่องฟอกอากาศระบบ Fresh Air ฝังฝ้า พร้อมระบบท่อลมระบายอากาศลดฝุ่น PM2.5 และ CO2', 
       assigned_tech: 'Team C (วิชัย)', plan_date: '2026-09-08', 
@@ -666,7 +666,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'ใช้เครื่องแลกเปลี่ยนความร้อน ERV อัตราการไหล 150 CMH ตัวกรอง HEPA H13 ดักฝุ่น 99.95%'
     },
     { 
-      id: 3, job_no: 'JOB202609003', external_ref_id: 'INT-2026-003', customer_id: 3, status: 'NEW', job_type: 'quick',
+      id: 3, job_no: 'JOB26090900003', external_ref_id: 'INT-2026-003', customer_id: 3, status: 'NEW', job_type: 'quick',
       property_type: 'ทาวน์โฮม 3 ชั้น', project_type: 'Installation', 
       project_sub_type: 'ติดตั้งเครื่องกรองน้ำดื่มระบบ RO อุตสาหกรรมในครัวเรือน 400 GPD แบบไร้ถังแรงดัน พร้อมก๊อกน้ำ Smart Faucet', 
       assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-09-09', 
@@ -676,7 +676,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'แรงดันน้ำประปาขั้นต่ำ 2.5 บาร์ ติดตั้งระบบกรองคาร์บอนบล็อกและ Post-Carbon สกัดกลิ่นคลอรีนสมบูรณ์แบบ'
     },
     { 
-      id: 4, job_no: 'JOB202609004', external_ref_id: 'INT-2026-004', customer_id: 4, status: 'NEW', job_type: 'quick',
+      id: 4, job_no: 'JOB26090900004', external_ref_id: 'INT-2026-004', customer_id: 4, status: 'NEW', job_type: 'quick',
       property_type: 'อาคารพาณิชย์ 4 ชั้น', project_type: 'Installation', 
       project_sub_type: 'ติดตั้งระบบกล้องวงจรปิด IP Camera 4K AI Human Detection 8 จุด พร้อมเครื่องบันทึก NVR และตู้ Rack POE', 
       assigned_tech: 'Team D (กิตติศักดิ์)', plan_date: '2026-09-09', 
@@ -686,7 +686,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'Harddisk เกรดกล้องวงจรปิด 6TB สำรองภาพได้ 30 วัน พร้อมระบบแจ้งเตือน Line Notify ทันทีเมื่อตรวจพบบุคคลแปลกหน้า'
     },
     { 
-      id: 5, job_no: 'JOB202609005', external_ref_id: 'INT-2026-005', customer_id: 5, status: 'NEW', job_type: 'quick',
+      id: 5, job_no: 'JOB26090900005', external_ref_id: 'INT-2026-005', customer_id: 5, status: 'NEW', job_type: 'quick',
       property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Installation', 
       project_sub_type: 'ติดตั้งมอเตอร์ประตูรั้วรีโมทอัตโนมัติแบบ DC High-Speed รองรับเปิด-ปิดด้วยแอป Smart Home และระบบสำรองไฟ', 
       assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-10', 
@@ -696,7 +696,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'มอเตอร์รับน้ำหนักประตู 1,000 กก. ระบบ Slow-down นุ่มนวล แบตเตอรี่สำรองเปิดปิดได้ต่อเนื่อง 40 ครั้งขณะไฟดับ'
     },
     { 
-      id: 6, job_no: 'JOB202609006', external_ref_id: 'INT-2026-006', customer_id: 6, status: 'NEW', job_type: 'quick',
+      id: 6, job_no: 'JOB26090900006', external_ref_id: 'INT-2026-006', customer_id: 6, status: 'NEW', job_type: 'quick',
       property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Installation', 
       project_sub_type: 'ติดตั้งเครื่องทำน้ำอุ่นระบบดิจิทัล 4500W พร้อมชุดฝักบัว Rain Shower ปรับระดับและระบบตัดไฟนิรภัย ELCB แบบคู่', 
       assigned_tech: 'Team C (วิชัย)', plan_date: '2026-09-10', 
@@ -706,7 +706,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'เดินสายเมนทองแดง THW 4 sq.mm. เบรกเกอร์ควบคุม RCBO 20A แยกอิสระจากตู้โหลดเซ็นเตอร์'
     },
     { 
-      id: 7, job_no: 'JOB202609007', external_ref_id: 'INT-2026-007', customer_id: 7, status: 'NEW', job_type: 'quick',
+      id: 7, job_no: 'JOB26090900007', external_ref_id: 'INT-2026-007', customer_id: 7, status: 'NEW', job_type: 'quick',
       property_type: 'ทาวน์โฮม 2 ชั้น', project_type: 'Installation', 
       project_sub_type: 'ติดตั้งเครื่องปรับอากาศ Inverter 24,000 BTU เบอร์ 5 สามดาว พร้อมเดินท่อน้ำยาหุ้มฉนวน Aeroflex และรางครอบท่อพรีเมียม', 
       assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-09-11', 
@@ -716,7 +716,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'ขาแขวนคอยล์ร้อนแบบมีแผ่นยางรองซับแรงสั่นสะเทือน ติดตั้งท่อน้ำทิ้ง PVC ต่อลงท่อระบายน้ำโดยตรง'
     },
     { 
-      id: 8, job_no: 'JOB202609008', external_ref_id: 'INT-2026-008', customer_id: 8, status: 'NEW', job_type: 'quick',
+      id: 8, job_no: 'JOB26090900008', external_ref_id: 'INT-2026-008', customer_id: 8, status: 'NEW', job_type: 'quick',
       property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Installation', 
       project_sub_type: 'ติดตั้งชุดสวิตช์และเต้ารับ Smart Switch Zigbee ทั้งหลัง ควบคุมแสงสว่างผ่านเสียงและตั้งเวลาซีนอัตโนมัติ', 
       assigned_tech: 'Team D (กิตติศักดิ์)', plan_date: '2026-09-11', 
@@ -726,7 +726,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'ติดตั้ง Zigbee 3.0 Gateway แบบต่อสาย LAN เข้า Router กลาง พร้อมจับคู่สมาร์ทโฟน 4 เครื่องในครอบครัว'
     },
     { 
-      id: 9, job_no: 'JOB202609009', external_ref_id: 'INT-2026-009', customer_id: 9, status: 'NEW', job_type: 'quick',
+      id: 9, job_no: 'JOB26090900009', external_ref_id: 'INT-2026-009', customer_id: 9, status: 'NEW', job_type: 'quick',
       property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Installation', 
       project_sub_type: 'ติดตั้งเครื่องชาร์จรถยนต์ไฟฟ้า EV Charger Wallbox 22kW 3-Phase พร้อมระบบ Dynamic Load Management', 
       assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-12', 
@@ -736,7 +736,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'ตู้ควบคุมไฟพร้อม Type B RCD สำหรับ EV ป้องกันกระแสไฟฟ้ารั่วทั้ง AC และ DC พร้อมมิเตอร์วัดการใช้ไฟฟ้าแยกส่วน'
     },
     { 
-      id: 10, job_no: 'JOB202609010', external_ref_id: 'INT-2026-010', customer_id: 10, status: 'NEW', job_type: 'quick',
+      id: 10, job_no: 'JOB26090900010', external_ref_id: 'INT-2026-010', customer_id: 10, status: 'NEW', job_type: 'quick',
       property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Installation', 
       project_sub_type: 'ติดตั้งระบบปั๊มน้ำอัตโนมัติ Inverter แรงดันคงที่ พร้อมถังเก็บน้ำสแตนเลส 1,000 ลิตร และระบบบายพาสฉุกเฉิน', 
       assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-09-12', 
@@ -748,7 +748,7 @@ export async function dbSeedMockJobs(): Promise<number> {
 
     // 10 Renovate Projects
     { 
-      id: 11, job_no: 'JOB202609011', external_ref_id: 'INT-2026-011', customer_id: 11, status: 'NEW', job_type: 'renovate',
+      id: 11, job_no: 'JOB26090900011', external_ref_id: 'INT-2026-011', customer_id: 11, status: 'NEW', job_type: 'renovate',
       property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Renovate', 
       project_sub_type: 'รีโนเวทห้องครัวไทยด้านนอก สไตล์ Modern Loft เคาน์เตอร์ปูนเปลือยขัดมันพร้อมเตาแก๊สฝังและเครื่องดูดควัน 1600 m3/h', 
       assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-09-08', 
@@ -758,7 +758,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'ปูกระเบื้องผนัง Subway Tile เช็ดล้างทำความสะอาดคราบน้ำมันง่าย พื้นกระเบื้องแกรนิตโต้ผิวด้านกันลื่น R10'
     },
     { 
-      id: 12, job_no: 'JOB202609012', external_ref_id: 'INT-2026-012', customer_id: 12, status: 'NEW', job_type: 'renovate',
+      id: 12, job_no: 'JOB26090900012', external_ref_id: 'INT-2026-012', customer_id: 12, status: 'NEW', job_type: 'renovate',
       property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Renovate', 
       project_sub_type: 'ต่อเติมหลังคาโรงจอดรถโครงสร้างเหล็กกล่องกัลวาไนซ์ แผ่น Shinkolite ป้องกันรังสี UV พร้อมรางน้ำสแตนเลสซ่อนขอบ', 
       assigned_tech: 'Team D (กิตติศักดิ์)', plan_date: '2026-09-09', 
@@ -768,7 +768,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'แผ่นอะคริลิก Shinkolite รุ่น Heat Cut กรองความร้อนได้ 60% ยึดด้วยระบบ EPDM Rubber Gasket ป้องกันรั่วซึม 100%'
     },
     { 
-      id: 13, job_no: 'JOB202609013', external_ref_id: 'INT-2026-013', customer_id: 13, status: 'NEW', job_type: 'renovate',
+      id: 13, job_no: 'JOB26090900013', external_ref_id: 'INT-2026-013', customer_id: 13, status: 'NEW', job_type: 'renovate',
       property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Renovate', 
       project_sub_type: 'รีโนเวทห้องน้ำ Master Bathroom สไตล์ Minimal Luxury รื้ออ่างเดิมติดตั้งอ่างอาบน้ำลอยตัวและกระจกกั้นโซนเปียกฉากทอง', 
       assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-10', 
@@ -778,7 +778,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'ท่อน้ำทิ้งดักกลิ่น P-Trap ทองเหลืองแท้ ผนังซ่อนไฟ LED Warm White 3000K พร้อมสวิตช์หรี่แสง'
     },
     { 
-      id: 14, job_no: 'JOB202609014', external_ref_id: 'INT-2026-014', customer_id: 14, status: 'NEW', job_type: 'renovate',
+      id: 14, job_no: 'JOB26090900014', external_ref_id: 'INT-2026-014', customer_id: 14, status: 'NEW', job_type: 'renovate',
       property_type: 'คอนโดมิเนียม', project_type: 'Renovate', 
       project_sub_type: 'รีโนเวทระเบียงห้องชุดคอนโด ปูพื้นกระเบื้องลายไม้กันน้ำ ติดตั้งระแนงบังตาอลูมิเนียมลายไม้และสวนแนวตั้งระบบรดน้ำอัตโนมัติ', 
       assigned_tech: 'Team C (วิชัย)', plan_date: '2026-09-11', 
@@ -788,7 +788,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'ใช้วัสดุระแนงอลูมิเนียมเคลือบอบสี Powder Coat ทนแดด ทนฝน ไม่เป็นสนิม ติดตั้งระบบท่อน้ำหยดตั้งเวลา Smart Timer'
     },
     { 
-      id: 15, job_no: 'JOB202609015', external_ref_id: 'INT-2026-015', customer_id: 15, status: 'NEW', job_type: 'renovate',
+      id: 15, job_no: 'JOB26090900015', external_ref_id: 'INT-2026-015', customer_id: 15, status: 'NEW', job_type: 'renovate',
       property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Renovate', 
       project_sub_type: 'รีโนเวทห้องนั่งเล่นและห้องรับแขก Built-in ผนังตกแต่งลายหินอ่อน Bookmatch ซ่อนไฟหลืบและตู้โชว์โครงอลูมิเนียมกระจกชาทอง', 
       assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-09-12', 
@@ -798,7 +798,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'แผ่นลายหินอ่อนอะคริลิกไฮกลอสไร้รอยต่อ บานพับ Soft Close แบรนด์ Blum รับประกันการใช้งาน 10 ปี'
     },
     { 
-      id: 16, job_no: 'JOB202609016', external_ref_id: 'INT-2026-016', customer_id: 16, status: 'NEW', job_type: 'renovate',
+      id: 16, job_no: 'JOB26090900016', external_ref_id: 'INT-2026-016', customer_id: 16, status: 'NEW', job_type: 'renovate',
       property_type: 'คอนโดมิเนียม ดูเพล็กซ์', project_type: 'Renovate', 
       project_sub_type: 'รีโนเวทห้องทำงานส่วนตัว Acoustic Home Studio บุผนังและฝ้าซับเสียง Rockwool พร้อมติดตั้งแผ่น Acoustic Diffuser ไม้แท้', 
       assigned_tech: 'Team D (กิตติศักดิ์)', plan_date: '2026-09-13', 
@@ -808,7 +808,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'ลดเสียงก้องและกันเสียงรบกวนออกภายนอกได้ถึง STC 55 ประตูกันเสียงแบบ Double Seal และช่องแอร์ซ่อนแดมเปอร์ลดเสียงลม'
     },
     { 
-      id: 17, job_no: 'JOB202609017', external_ref_id: 'INT-2026-017', customer_id: 17, status: 'NEW', job_type: 'renovate',
+      id: 17, job_no: 'JOB26090900017', external_ref_id: 'INT-2026-017', customer_id: 17, status: 'NEW', job_type: 'renovate',
       property_type: 'ทาวน์โฮม 2 ชั้น', project_type: 'Renovate', 
       project_sub_type: 'ปรับปรุงพื้นที่รอบบ้าน เทคอนกรีตพิมพ์ลาย Stamped Concrete ลายหินธรรมชาติ European Fan พร้อมระบบระบายน้ำผิวดิน', 
       assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-14', 
@@ -818,7 +818,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'เคลือบน้ำยาอะคริลิกซีลเลอร์สูตรเงาพิเศษ 2 รอบ ป้องกันคราบตะไคร่น้ำและรังสียูวี รับประกันสีไม่ลอกร่อน 3 ปี'
     },
     { 
-      id: 18, job_no: 'JOB202609018', external_ref_id: 'INT-2026-018', customer_id: 18, status: 'NEW', job_type: 'renovate',
+      id: 18, job_no: 'JOB26090900018', external_ref_id: 'INT-2026-018', customer_id: 18, status: 'NEW', job_type: 'renovate',
       property_type: 'โฮมออฟฟิศ 4 ชั้น', project_type: 'Renovate', 
       project_sub_type: 'รีโนเวทห้องประชุม Co-working Space ติดตั้งระบบผนังบานเลื่อนกระจกกั้นห้องเก็บเสียงและระบบจอ Smart Board พร้อมระบบไฟ Dimmer', 
       assigned_tech: 'Team C (วิชัย)', plan_date: '2026-09-15', 
@@ -828,7 +828,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'รางเลื่อนระบบ Soft-close รางคู่ ซีลขอบยางกันเสียงรบกวน ปลั๊กไฟ Pop-up ติดตั้งกลางโต๊ะประชุมเชื่อมระบบ HDMI/Type-C'
     },
     { 
-      id: 19, job_no: 'JOB202609019', external_ref_id: 'INT-2026-019', customer_id: 19, status: 'NEW', job_type: 'renovate',
+      id: 19, job_no: 'JOB26090900019', external_ref_id: 'INT-2026-019', customer_id: 19, status: 'NEW', job_type: 'renovate',
       property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Renovate', 
       project_sub_type: 'รีโนเวทห้องนอนใหญ่ Master Bedroom ตกแต่ง Built-in Walk-in Closet ไม้โอ๊คแท้ พร้อมระบบไฟ LED Profile เซนเซอร์', 
       assigned_tech: 'Team D (กิตติศักดิ์)', plan_date: '2026-09-15', 
@@ -838,7 +838,7 @@ export async function dbSeedMockJobs(): Promise<number> {
       additional_notes: 'กระจกเงาสีทอง Gold Tinted Mirror บานเลื่อนกรอบอลูมิเนียม Slim Profile พร้อมไฟ LED Sensor ใต้ตู้เสื้อผ้า'
     },
     { 
-      id: 20, job_no: 'JOB202609020', external_ref_id: 'INT-2026-020', customer_id: 20, status: 'NEW', job_type: 'renovate',
+      id: 20, job_no: 'JOB26090900020', external_ref_id: 'INT-2026-020', customer_id: 20, status: 'NEW', job_type: 'renovate',
       property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Renovate', 
       project_sub_type: 'งานต่อเติมห้องกระจก Glasshouse กั้นข้างบ้าน โครงสร้างเหล็กกัลวาไนซ์ กระจก Low-E กันความร้อน พร้อมระบบระบายอากาศอัตโนมัติ', 
       assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-15', 

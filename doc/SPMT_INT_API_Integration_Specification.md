@@ -77,7 +77,7 @@
     "updated_at": "2026-09-02T09:00:00Z"
   },
   "job_info": {
-    "job_number": "JOB202609001",
+    "job_number": "JOB26090900001",
     "booking_no": "VFIX-260901-001",
     "ticket_no": "209051119",
     "source_reference": "REQ-PT2-2608220003",
@@ -184,7 +184,7 @@
     "process_status": "CONVERTED",
     "converted_job_id": 1725301239999,
     "summary": {
-      "job_number": "JOB202609001",
+      "job_number": "JOB26090900001",
       "customer_name": "นภัสวรรณ มีศิริ",
       "photo_count": 5,
       "service_count": 2

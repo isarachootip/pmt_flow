@@ -14,7 +14,7 @@ const path = require('path');
 let mockDB = {
   jobs: [
     {
-      id: 'JOB202609001',
+      id: 'JOB26090900001',
       customer: 'ณวัฒน์ รักสงบ',
       phone: '081-111-2222',
       address: '99/1 Sukhumvit 55, Bangkok',
@@ -30,7 +30,7 @@ let mockDB = {
 
 // Raw vFIX Quotation Template (matches user's template & image)
 const sampleVFixQuotationCSV = 
-`vFIX,ใบเสนอราคางาน,เลขที่งาน :,JOB202609001,,,
+`vFIX,ใบเสนอราคางาน,เลขที่งาน :,JOB26090900001,,,
 เรียน :,นภัสวรรณ มีศิริ,,เลขที่ใบเสร็จ :,
 ที่อยู่ :,หมู่บ้านพัทยารุ่งเรือง ซอยระหว่างมาบยายเลีย ตำบลหนองปรือ อำเภอบางละมุง จังหวัดชลบุรี 20150,,สาขา :,พัทยาใต้
 Tel :,0922795574,,วันที่ :,25/8/69
@@ -202,7 +202,7 @@ async function runBOQTest() {
   }
 
   // 3. Ingest into Project
-  console.log('▶ [TEST 3] Ingesting BOQ into Project (JOB202609001)...');
+  console.log('▶ [TEST 3] Ingesting BOQ into Project (JOB26090900001)...');
   const targetJob = mockDB.jobs[0];
   targetJob.customer = header.customer;
   targetJob.phone = header.phone;
