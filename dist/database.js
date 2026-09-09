@@ -194,7 +194,18 @@ async function initDatabase() {
         ADD COLUMN IF NOT EXISTS csat_remarks TEXT,
         ADD COLUMN IF NOT EXISTS csat_photos JSONB DEFAULT '[]'::jsonb,
         ADD COLUMN IF NOT EXISTS csat_surveyor VARCHAR(150),
-        ADD COLUMN IF NOT EXISTS csat_evaluated_at TIMESTAMP WITH TIME ZONE;
+        ADD COLUMN IF NOT EXISTS csat_evaluated_at TIMESTAMP WITH TIME ZONE,
+        ADD COLUMN IF NOT EXISTS job_details JSONB DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS agent_data JSONB DEFAULT '{}'::jsonb,
+        ADD COLUMN IF NOT EXISTS store_data JSONB DEFAULT '{}'::jsonb,
+        ADD COLUMN IF NOT EXISTS schedule_plan JSONB DEFAULT '{}'::jsonb,
+        ADD COLUMN IF NOT EXISTS checkin_data JSONB DEFAULT '{}'::jsonb,
+        ADD COLUMN IF NOT EXISTS checkout_data JSONB DEFAULT '{}'::jsonb,
+        ADD COLUMN IF NOT EXISTS approval_data JSONB DEFAULT '{}'::jsonb,
+        ADD COLUMN IF NOT EXISTS visit_results JSONB DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS remarks_data JSONB DEFAULT '{}'::jsonb,
+        ADD COLUMN IF NOT EXISTS file_int_image TEXT,
+        ADD COLUMN IF NOT EXISTS raw_payload JSONB DEFAULT '{}'::jsonb;
 
       ALTER TABLE core_daily_work_logs
         ADD COLUMN IF NOT EXISTS additional_details TEXT,
@@ -373,16 +384,30 @@ function mapDbJobRow(row) {
         jobId: row.id,
         job_no: row.job_no,
         external_ref_id: row.external_ref_id,
+        booking_no: row.booking_no,
+        ticket_no: row.ticket_no,
         customer: customerFullName,
         customer_data: cust,
         firstName: cust.first_name || (customerFullName.replace(/^คุณ/, '').trim().split(' ')[0] || ''),
         lastName: cust.last_name || (customerFullName.replace(/^คุณ/, '').trim().split(' ').slice(1).join(' ') || ''),
-        phone: cust.phone || '',
-        address: cust.address || '',
-        lat: cust.lat || 13.7563,
-        lng: cust.lng || 100.5018,
+        phone: cust.phone || cust.mobile_no || '',
+        address: cust.address || (cust.location?.address) || '',
+        lat: cust.lat || (cust.location?.latitude) || 13.7563,
+        lng: cust.lng || (cust.location?.longitude) || 100.5018,
+        google_map_url: cust.google_map_url || (cust.location?.google_map_url) || '',
         service: primaryService,
         services: Array.isArray(row.services) ? row.services : [primaryService],
+        job_details: Array.isArray(row.job_details) ? row.job_details : [],
+        agent: row.agent_data || { name: row.agent_name },
+        store: row.store_data || { code: row.store_code },
+        schedule_plan: row.schedule_plan || {},
+        check_in: row.checkin_data || {},
+        check_out: row.checkout_data || {},
+        approval: row.approval_data || {},
+        visit_results: Array.isArray(row.visit_results) ? row.visit_results : [],
+        remarks: row.remarks_data || { comment: row.special_instructions, note: row.additional_notes },
+        file_int_image: row.file_int_image || '',
+        raw_payload: row.raw_payload || {},
         status: row.status || 'DRAFT',
         date: row.plan_date || (row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : '2026-09-08'),
         progress: row.overall_progress || 0,
@@ -458,14 +483,27 @@ async function dbSaveJob(job) {
         return;
     try {
         const customerData = job.customer_data || job.customer || {};
+        const agentData = job.agent_data || job.agent || {};
+        const storeData = job.store_data || job.store || {};
+        const schedulePlan = job.schedule_plan || {};
+        const checkinData = job.checkin_data || job.check_in || {};
+        const checkoutData = job.checkout_data || job.check_out || {};
+        const approvalData = job.approval_data || job.approval || {};
+        const visitResults = job.visit_results || [];
+        const remarksData = job.remarks_data || job.remarks || {};
+        const jobDetails = job.job_details || [];
+        const rawPayload = job.raw_payload || {};
         await exports.pool.query(`INSERT INTO core_jobs (
         job_no, external_ref_id, booking_no, ticket_no, customer_id, status, job_type,
         step_timestamps, property_type, project_type, project_sub_type, store_code,
         agent_name, assigned_tech, plan_date, services, overall_progress,
         special_instructions, additional_notes, customer_data, tasks, photos,
-        boq_items, boq_discount, boq_subtotal, boq_grand_total, pmt_accepted, pmt_accepted_at, step3_confirmed
+        boq_items, boq_discount, boq_subtotal, boq_grand_total, pmt_accepted, pmt_accepted_at, step3_confirmed,
+        job_details, agent_data, store_data, schedule_plan, checkin_data, checkout_data, approval_data,
+        visit_results, remarks_data, file_int_image, raw_payload
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29,
+        $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40
       ) ON CONFLICT (job_no) DO UPDATE SET
         external_ref_id = EXCLUDED.external_ref_id,
         booking_no = EXCLUDED.booking_no,
@@ -495,6 +533,17 @@ async function dbSaveJob(job) {
         pmt_accepted = EXCLUDED.pmt_accepted,
         pmt_accepted_at = EXCLUDED.pmt_accepted_at,
         step3_confirmed = EXCLUDED.step3_confirmed,
+        job_details = EXCLUDED.job_details,
+        agent_data = EXCLUDED.agent_data,
+        store_data = EXCLUDED.store_data,
+        schedule_plan = EXCLUDED.schedule_plan,
+        checkin_data = EXCLUDED.checkin_data,
+        checkout_data = EXCLUDED.checkout_data,
+        approval_data = EXCLUDED.approval_data,
+        visit_results = EXCLUDED.visit_results,
+        remarks_data = EXCLUDED.remarks_data,
+        file_int_image = EXCLUDED.file_int_image,
+        raw_payload = EXCLUDED.raw_payload,
         updated_at = CURRENT_TIMESTAMP`, [
             job.job_no,
             job.external_ref_id || null,
@@ -524,7 +573,18 @@ async function dbSaveJob(job) {
             Number(job.boq_grand_total) || 0,
             Boolean(job.pmt_accepted),
             job.pmt_accepted_at ? new Date(job.pmt_accepted_at) : null,
-            Boolean(job.step3_confirmed)
+            Boolean(job.step3_confirmed),
+            JSON.stringify(jobDetails),
+            JSON.stringify(agentData),
+            JSON.stringify(storeData),
+            JSON.stringify(schedulePlan),
+            JSON.stringify(checkinData),
+            JSON.stringify(checkoutData),
+            JSON.stringify(approvalData),
+            JSON.stringify(visitResults),
+            JSON.stringify(remarksData),
+            job.file_int_image || null,
+            JSON.stringify(rawPayload)
         ]);
     }
     catch (err) {
@@ -539,12 +599,16 @@ async function dbUpdateJob(jobNoOrId, updates) {
         const setClauses = [];
         const values = [];
         let idx = 1;
-        const jsonbFields = ['step_timestamps', 'services', 'customer_data', 'tasks', 'photos', 'boq_items', 'csat_photos'];
+        const jsonbFields = [
+            'step_timestamps', 'services', 'customer_data', 'tasks', 'photos', 'boq_items', 'csat_photos',
+            'job_details', 'agent_data', 'store_data', 'schedule_plan', 'checkin_data', 'checkout_data',
+            'approval_data', 'visit_results', 'remarks_data', 'raw_payload'
+        ];
         const stringFields = [
             'external_ref_id', 'booking_no', 'ticket_no', 'status', 'job_type',
             'property_type', 'project_type', 'project_sub_type', 'store_code',
             'agent_name', 'assigned_tech', 'plan_date', 'special_instructions',
-            'additional_notes', 'qc_inspection_type', 'csat_remarks', 'csat_surveyor'
+            'additional_notes', 'qc_inspection_type', 'csat_remarks', 'csat_surveyor', 'file_int_image'
         ];
         const numFields = ['customer_id', 'overall_progress', 'boq_discount', 'boq_subtotal', 'boq_grand_total', 'csat_score'];
         const boolFields = ['pmt_accepted', 'step3_confirmed'];
@@ -558,6 +622,30 @@ async function dbUpdateJob(jobNoOrId, updates) {
             }
             else if (key === 'customer') {
                 setClauses.push(`customer_data = $${idx++}`);
+                values.push(JSON.stringify(val));
+            }
+            else if (key === 'agent') {
+                setClauses.push(`agent_data = $${idx++}`);
+                values.push(JSON.stringify(val));
+            }
+            else if (key === 'store') {
+                setClauses.push(`store_data = $${idx++}`);
+                values.push(JSON.stringify(val));
+            }
+            else if (key === 'check_in') {
+                setClauses.push(`checkin_data = $${idx++}`);
+                values.push(JSON.stringify(val));
+            }
+            else if (key === 'check_out') {
+                setClauses.push(`checkout_data = $${idx++}`);
+                values.push(JSON.stringify(val));
+            }
+            else if (key === 'approval') {
+                setClauses.push(`approval_data = $${idx++}`);
+                values.push(JSON.stringify(val));
+            }
+            else if (key === 'remarks') {
+                setClauses.push(`remarks_data = $${idx++}`);
                 values.push(JSON.stringify(val));
             }
             else if (stringFields.includes(key)) {

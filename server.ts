@@ -1817,114 +1817,180 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
     const payload: any = req.body;
     const idempotencyKey = req.headers['x-idempotency-key'] as string;
 
-    if (!payload.external_ref_id) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'INVALID_PAYLOAD', message: 'Field "external_ref_id" is required' }
-      });
-    }
+    const externalRefId = payload.job_info?.source_reference || payload.external_ref_id || payload.system?.job_id || `INT-${Date.now()}`;
+    const custRaw = payload.customer || {};
 
-    if (!payload.customer || (!payload.customer.first_name && !payload.customer.name)) {
+    if (!custRaw.name && !custRaw.first_name && !custRaw.mobile_no && !custRaw.phone) {
       return res.status(400).json({
         success: false,
-        error: { code: 'INVALID_PAYLOAD', message: 'Customer name or first_name is required' }
+        error: { code: 'INVALID_PAYLOAD', message: 'Customer name or phone is required' }
       });
     }
 
     // Support both customer.name (single string) and customer.first_name/last_name
-    let firstName = payload.customer.first_name || '';
-    let lastName = payload.customer.last_name || '';
-    if (!firstName && payload.customer.name) {
-      const parts = String(payload.customer.name).trim().split(' ');
+    let firstName = custRaw.first_name || '';
+    let lastName = custRaw.last_name || '';
+    if (!firstName && custRaw.name) {
+      const parts = String(custRaw.name).trim().split(' ');
       firstName = parts[0] || 'ลูกค้า';
       lastName = parts.slice(1).join(' ') || '-';
     }
 
-    const phone = payload.customer.phone || '081-234-5678';
-    const address = payload.customer.address || 'ไม่ระบุที่อยู่';
-    const lat = Number(payload.customer.lat) || 13.7563;
-    const lng = Number(payload.customer.lng) || 100.5018;
+    const phone = custRaw.mobile_no || custRaw.phone || '081-234-5678';
+    const address = custRaw.location?.address || custRaw.address || 'ไม่ระบุที่อยู่';
+    const lat = Number(custRaw.location?.latitude || custRaw.lat) || 13.7563;
+    const lng = Number(custRaw.location?.longitude || custRaw.lng) || 100.5018;
+    const googleMapUrl = custRaw.location?.google_map_url || custRaw.google_map_url || '';
 
     // Upsert customer in core customer store
-    let customer = coreCustomerStore.find(c => c.phone === phone);
+    let customer = coreCustomerStore.find(c => c.phone === phone || (custRaw.code && c.customer_code === custRaw.code));
     if (!customer) {
       customer = {
         id: Date.now() + Math.floor(Math.random() * 100),
-        customer_code: `CUST-${Date.now()}`,
+        customer_code: custRaw.code || `CUST-${Date.now()}`,
         first_name: firstName,
         last_name: lastName,
         phone: phone,
         address: address,
         lat: lat,
-        lng: lng
+        lng: lng,
+        google_map_url: googleMapUrl
       };
       coreCustomerStore.push(customer);
     }
 
-    // Generate Job No format: JOBYYMMDDXXXXX (e.g., JOB26090900001)
+    // Generate or adopt Job No
     const now = new Date();
     const yy = String(now.getFullYear()).slice(-2);
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
     const runningSeq = Math.floor(1 + Math.random() * 99999);
     const runningStr = String(runningSeq).padStart(5, '0');
-    const jobNo = `JOB${yy}${mm}${dd}${runningStr}`;
+    const jobNo = payload.job_info?.job_number || payload.job_no || `JOB${yy}${mm}${dd}${runningStr}`;
 
-    const serviceName = (payload.services && payload.services[0]) || 'งานติดตั้ง';
+    const jobDetails = Array.isArray(payload.job_details) ? payload.job_details : [];
+    let servicesList: string[] = [];
+    if (jobDetails.length > 0) {
+      servicesList = jobDetails.map((item: any) => item.installation_detail || item.job_type);
+    } else if (Array.isArray(payload.services)) {
+      servicesList = payload.services;
+    } else if (payload.job_info?.project_sub_type) {
+      servicesList = [payload.job_info.project_sub_type];
+    } else {
+      servicesList = ['งานบริการ'];
+    }
+
+    const serviceName = servicesList[0] || 'งานติดตั้ง';
     const isQuick = /ติดตั้ง|ซ่อม|ล้าง|แอร์|เครื่องปรับอากาศ|เครื่องทำน้ำอุ่น|ปั้ม|กรองน้ำ|กล้อง/i.test(serviceName) && !/รีโนเวท|ต่อเติม|renovate/i.test(serviceName);
-    const jobType = isQuick ? 'quick' : 'renovate';
+    const jobType = payload.job_info?.project_type?.toLowerCase() === 'renovate' ? 'renovate' : (isQuick ? 'quick' : 'renovate');
+
+    const photos: any[] = [];
+    if (Array.isArray(payload.site_photos)) {
+      payload.site_photos.forEach((p: string, idx: number) => {
+        photos.push({
+          id: `PHOTO_${Date.now()}_${idx + 1}`,
+          category: 'survey',
+          url: p,
+          remark: 'ภาพถ่ายสำรวจหน้างานจากระบบภายนอก',
+          uploaded_at: payload.check_in?.date || new Date().toISOString()
+        });
+      });
+    }
+    if (payload.check_in?.image) {
+      photos.unshift({
+        id: `PHOTO_IN_${Date.now()}`,
+        category: 'check_in',
+        url: payload.check_in.image,
+        remark: 'ภาพถ่าย Check-in หน้างาน',
+        uploaded_at: payload.check_in.date || new Date().toISOString()
+      });
+    }
+    if (payload.check_out?.image) {
+      photos.push({
+        id: `PHOTO_OUT_${Date.now()}`,
+        category: 'check_out',
+        url: payload.check_out.image,
+        remark: 'ภาพถ่าย Check-out หน้างาน',
+        uploaded_at: payload.check_out.date || new Date().toISOString()
+      });
+    }
+
+    const customerData = {
+      id: customer.id,
+      customer_code: customer.customer_code,
+      name: custRaw.name || `คุณ${firstName} ${lastName}`.trim(),
+      first_name: firstName,
+      last_name: lastName,
+      phone: phone,
+      mobile_no: phone,
+      address: address,
+      lat: lat,
+      lng: lng,
+      location: custRaw.location || {
+        latitude: lat,
+        longitude: lng,
+        address: address,
+        google_map_url: googleMapUrl
+      },
+      google_map_url: googleMapUrl
+    };
 
     const newJob: CoreJob = {
       id: Date.now(),
       job_no: jobNo,
-      external_ref_id: payload.external_ref_id,
+      external_ref_id: externalRefId,
+      booking_no: payload.job_info?.booking_no || payload.booking_no || '',
+      ticket_no: payload.job_info?.ticket_no || payload.ticket_no || '',
       customer_id: customer.id,
-      services: payload.services || ['งานบริการ'],
-      assigned_tech: payload.technician?.name || 'Team A (สมศักดิ์)',
-      plan_date: payload.appointment?.date || new Date().toISOString().split('T')[0],
-      status: JobStatus.DRAFT,
+      services: servicesList,
+      assigned_tech: payload.agent?.name || payload.technician?.name || 'Team A (สมศักดิ์)',
+      plan_date: payload.schedule_plan?.visit_date || payload.appointment?.date || new Date().toISOString().split('T')[0],
+      status: payload.job_info?.status === 'Approved' ? JobStatus.SURVEYED : JobStatus.DRAFT,
       job_type: jobType,
-      property_type: 'บ้านเดี่ยว',
-      project_type: isQuick ? 'Installation' : 'Renovate',
-      project_sub_type: serviceName,
-      pmt_accepted: false,
-      pmt_accepted_at: undefined,
+      property_type: payload.job_info?.property_type || 'บ้านเดี่ยว',
+      project_type: payload.job_info?.project_type || (isQuick ? 'Installation' : 'Renovate'),
+      project_sub_type: payload.job_info?.project_sub_type || serviceName,
+      store_code: payload.store?.code || payload.store_code || '',
+      agent_name: payload.agent?.name || payload.agent_name || '',
+      pmt_accepted: Boolean(payload.job_info?.status === 'Approved'),
+      pmt_accepted_at: payload.job_info?.status === 'Approved' ? new Date().toISOString() : undefined,
       step_timestamps: {
-        step1_order_at: new Date().toISOString()
+        step1_order_at: payload.system?.created_at || new Date().toISOString(),
+        ...(payload.check_out?.date ? { step2_survey_at: payload.check_out.date } : {})
       },
       boq_items: [],
       boq_discount: 0,
       boq_grand_total: 0,
-      photos: [],
-      overall_progress: 0,
-      created_at: new Date().toISOString()
+      photos: photos,
+      overall_progress: payload.job_info?.status === 'Approved' ? 30 : 0,
+      special_instructions: payload.remarks?.comment || payload.special_instructions || '',
+      additional_notes: payload.remarks?.note || payload.additional_notes || '',
+      created_at: payload.system?.created_at || new Date().toISOString()
     };
-    (newJob as any).customer = {
-      name: `คุณ${firstName} ${lastName}`.trim(),
-      first_name: firstName,
-      last_name: lastName,
-      phone: phone,
-      address: address,
-      lat: lat,
-      lng: lng
-    };
+    (newJob as any).customer = customerData;
+    (newJob as any).customer_data = customerData;
+    (newJob as any).job_details = jobDetails;
+    (newJob as any).agent_data = payload.agent || {};
+    (newJob as any).store_data = payload.store || {};
+    (newJob as any).schedule_plan = payload.schedule_plan || {};
+    (newJob as any).checkin_data = payload.check_in || {};
+    (newJob as any).checkout_data = payload.check_out || {};
+    (newJob as any).approval_data = payload.approval || {};
+    (newJob as any).visit_results = payload.visit_results || [];
+    (newJob as any).remarks_data = payload.remarks || {};
+    (newJob as any).file_int_image = payload.job_info?.file_int_image || '';
+    (newJob as any).raw_payload = payload;
+
     coreJobStore.unshift(newJob);
-    dbSaveJob(newJob).catch(() => {});
+    await dbSaveJob(newJob);
 
     return res.status(201).json({
       success: true,
       data: {
         ...newJob,
-        customer: {
-          first_name: firstName,
-          last_name: lastName,
-          phone: phone,
-          address: address,
-          lat: lat,
-          lng: lng
-        },
-        assigned_tech: payload.technician || null,
-        appointment: payload.appointment || null
+        customer: customerData,
+        assigned_tech: payload.agent?.name || payload.technician || null,
+        appointment: payload.schedule_plan || payload.appointment || null
       },
       meta: { message: 'Order received successfully from INT system and added to Core Jobs' }
     });
@@ -2201,17 +2267,25 @@ export function convertStagingToCorePmt(stagingRecord: StagingSurveyReport): {
     // 2. Insert Core Job (Req #1 & State Machine: SURVEYED)
     const customerData = {
       id: customer.id,
-      customer_code: customer.customer_code,
-      name: `${customer.first_name} ${customer.last_name}`.trim(),
+      customer_code: payload.customer?.code || customer.customer_code,
+      name: payload.customer?.name || `${customer.first_name} ${customer.last_name}`.trim(),
       first_name: customer.first_name,
       last_name: customer.last_name,
-      phone: customer.phone,
-      address: customer.address,
-      lat: customer.lat,
-      lng: customer.lng
+      phone: payload.customer?.mobile_no || customer.phone,
+      mobile_no: payload.customer?.mobile_no || customer.phone,
+      address: payload.customer?.location?.address || customer.address,
+      lat: payload.customer?.location?.latitude || customer.lat,
+      lng: payload.customer?.location?.longitude || customer.lng,
+      location: payload.customer?.location || {
+        latitude: customer.lat,
+        longitude: customer.lng,
+        address: customer.address,
+        google_map_url: customer.google_map_url
+      },
+      google_map_url: payload.customer?.location?.google_map_url || customer.google_map_url
     };
 
-    const services = Array.isArray(payload.job_details)
+    const services = Array.isArray(payload.job_details) && payload.job_details.length > 0
       ? payload.job_details.map((item: any) => item.installation_detail || item.job_type)
       : [payload.job_info?.project_sub_type || 'งานสำรวจหน้างาน'];
 
@@ -2225,20 +2299,39 @@ export function convertStagingToCorePmt(stagingRecord: StagingSurveyReport): {
         }))
       : [];
 
+    if (payload.check_in?.image) {
+      photos.unshift({
+        id: `PHOTO_IN_${Date.now()}`,
+        category: 'check_in',
+        url: payload.check_in.image,
+        remark: 'ภาพถ่าย Check-in หน้างาน',
+        uploaded_at: payload.check_in.date || new Date().toISOString()
+      });
+    }
+    if (payload.check_out?.image) {
+      photos.push({
+        id: `PHOTO_OUT_${Date.now()}`,
+        category: 'check_out',
+        url: payload.check_out.image,
+        remark: 'ภาพถ่าย Check-out หน้างาน',
+        uploaded_at: payload.check_out.date || new Date().toISOString()
+      });
+    }
+
     const jobId = Date.now() + Math.floor(Math.random() * 1000);
     const newCoreJob: any = {
       id: jobId,
       job_no: payload.job_info?.job_number || stagingRecord.job_number,
-      external_ref_id: payload.job_info?.source_reference || stagingRecord.source_reference || '',
+      external_ref_id: payload.job_info?.source_reference || stagingRecord.source_reference || payload.system?.job_id || '',
       booking_no: payload.job_info?.booking_no || stagingRecord.booking_no || '',
       ticket_no: payload.job_info?.ticket_no || stagingRecord.ticket_no || '',
       customer_id: customer.id,
       customer: customerData,
       customer_data: customerData,
       status: JobStatus.SURVEYED,
-      property_type: payload.job_info?.property_type || '',
-      project_type: payload.job_info?.project_type || '',
-      project_sub_type: payload.job_info?.project_sub_type || '',
+      property_type: payload.job_info?.property_type || 'บ้านเดี่ยว',
+      project_type: payload.job_info?.project_type || 'Renovate',
+      project_sub_type: payload.job_info?.project_sub_type || services[0] || 'งานสำรวจหน้างาน',
       store_code: payload.store?.code || '',
       agent_name: payload.agent?.name || '',
       assigned_tech: payload.agent?.name || 'Team A (สมศักดิ์)',
@@ -2250,11 +2343,24 @@ export function convertStagingToCorePmt(stagingRecord: StagingSurveyReport): {
       photos: photos,
       tasks: [],
       boq_items: [],
+      job_details: payload.job_details || [],
+      agent_data: payload.agent || {},
+      store_data: payload.store || {},
+      schedule_plan: payload.schedule_plan || {},
+      checkin_data: payload.check_in || {},
+      checkout_data: payload.check_out || {},
+      approval_data: payload.approval || {},
+      visit_results: payload.visit_results || [],
+      remarks_data: payload.remarks || {},
+      special_instructions: payload.remarks?.comment || '',
+      additional_notes: payload.remarks?.note || '',
+      file_int_image: payload.job_info?.file_int_image || '',
+      raw_payload: payload,
       step_timestamps: {
-        step1_order_at: stagingRecord.received_at,
-        step2_survey_at: new Date().toISOString()
+        step1_order_at: stagingRecord.received_at || payload.system?.created_at || new Date().toISOString(),
+        step2_survey_at: payload.check_out?.date || new Date().toISOString()
       },
-      created_at: new Date().toISOString()
+      created_at: payload.system?.created_at || new Date().toISOString()
     };
     coreJobStore.push(newCoreJob);
     dbSaveJob(newCoreJob).catch(err => console.error('[DB] Failed to save converted job:', err.message));
@@ -2357,7 +2463,7 @@ app.post('/api/v1/staging/config/auto-convert', requireAuth, (req: Request, res:
 // =============================================================================
 // 1.1 JOB SURVEY REPORT INGESTION & STAGING API
 // =============================================================================
-app.post('/api/v1/jobs/survey-report', requireAuth, async (req: Request<{}, {}, JobSurveyPayload>, res: Response) => {
+app.post(['/api/v1/jobs/survey-report', '/api/v1/integration/survey-reports'], async (req: Request<{}, {}, JobSurveyPayload>, res: Response) => {
   try {
     const payload = req.body;
 
