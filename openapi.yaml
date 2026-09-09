@@ -2,10 +2,10 @@ openapi: 3.0.3
 info:
   title: SPMT (Store Project Management Tool) REST API
   description: Official Production API Specification for SPMT System - Connecting INT System, Mobile App, Web Admin, and BMT System.
-  version: 1.0.0
+  version: 1.1.0
 servers:
   - url: https://vibepmt.online/api/v1
-    description: Production Server (Hostinger)
+    description: Production Server (Hostinger / Coolify)
   - url: http://localhost:3000/api/v1
     description: Local Development Server
 
@@ -13,11 +13,11 @@ paths:
   /integration/orders:
     post:
       summary: Receive Order from INT System (Inbound API #1)
-      description: Server-to-Server push API for receiving new service orders from INT system.
+      description: Server-to-Server push API for receiving new service orders and survey jobs from INT / external systems. Persists 100% data into PostgreSQL.
       parameters:
         - in: header
           name: X-Idempotency-Key
-          required: true
+          required: false
           schema:
             type: string
           example: "INT-REQ-987654321"
@@ -27,115 +27,221 @@ paths:
           application/json:
             schema:
               type: object
-              required: [external_ref_id, customer]
-              properties:
-                external_ref_id:
-                  type: string
-                  example: "INT-2026-4521"
-                customer:
-                  type: object
-                  required: [name, phone, address]
-                  properties:
-                    name:
-                      type: string
-                      example: "นาย สมชาย ใจดี"
-                    phone:
-                      type: string
-                      example: "081-234-5678"
-                    address:
-                      type: string
-                      example: "123/45 ถ.พหลโยธิน กรุงเทพฯ"
-                services:
-                  type: array
-                  items:
-                    type: string
-                  example: ["ติดตั้งเครื่องทำน้ำอุ่น"]
+            example:
+              system:
+                job_id: "031b0e16a-9a98-43bf-ae3e-b14e76b577f8"
+                created_at: "2026-09-02T09:00:00Z"
+                created_by: "system"
+                updated_at: "2026-09-02T09:00:00Z"
+              job_info:
+                job_number: "JOB202609001"
+                booking_no: "VFIX-260901-001"
+                ticket_no: "209051119"
+                source_reference: "REQ-PT2-2608220003"
+                status: "Approved"
+                stage: "Completed"
+                property_type: "บ้านเดี่ยว"
+                project_type: "Renovate"
+                project_sub_type: "งานกระเบื้องพื้น"
+                file_int_image: "renovate/int/eee85115-24c5-4216-9744-60b86a8fbe23.jpg"
+              job_details:
+                - job_type: "ติดตั้งแอร์ (ส่งพร้อมติดตั้ง)"
+                  installation_detail: "R-ติดตั้ง แอร์ติดผนัง ขนาด 9000-17000 บีทียู ติดตั้งพร้อมรื้อถอน"
+                  product_quantity: 2
+                  remark: "remark xxxx 500 char"
+                - job_type: "ติดตั้งแอร์ (ส่งพร้อมติดตั้ง)"
+                  installation_detail: "R-ติดตั้ง แอร์ติดผนัง ขนาด 18000-24000 บีทียู ติดตั้งพร้อมรื้อถอน"
+                  product_quantity: 1
+                  remark: "remark xxxx 500 char"
+              customer:
+                code: "18a9359a-4363-4dda-8fdb-5f541d8a4b64"
+                name: "นภัสวรรณ มีศิริ"
+                mobile_no: "0812345678"
+                location:
+                  latitude: 13.7563
+                  longitude: 100.5018
+                  address: "มาบยายเลีย 41 เมืองพัทยา อำเภอบางละมุง ชลบุรี 20150"
+                  google_map_url: "https://www.google.com/maps/search/?api=1&query=12.9326734,100.9239925"
+              agent:
+                code: "87524b4a-8511-4a93-88fa-850c8d043868"
+                name: "Agent Name"
+                team: "QC RENOVATE & MENTAINANCE"
+              store:
+                code: "60964"
+                code3: "RA2"
+                name: "RAMA2"
+                location:
+                  latitude: 13.652
+                  longitude: 100.421
+                  google_map_url: "https://www.google.com/maps/search/?api=1&query=13.652,100.421"
+              schedule_plan:
+                visit_date: "2026-09-05"
+                start_time: "09:00:00"
+                end_time: "12:00:00"
+                time_slot: "เช้า (09:00-12:00)"
+                distance: 15.5
+              check_in:
+                date: "2026-09-05T09:05:00Z"
+                latitude: 13.7563
+                longitude: 100.5018
+                image: "renovate/check_in/9cf4f37a-045a-4bfb-91ec-611370e2b5a2.jpg"
+              check_out:
+                date: "2026-09-05T11:45:00Z"
+                latitude: 13.7563
+                longitude: 100.5018
+                image: "renovate/check_out/9b5bb34f-51cc-4e38-b6f3-846666a89166.jpg"
+              site_photos:
+                - "renovate/site/2a206a2e-6615-4b68-826e-520c170c15c0.jpg"
+                - "renovate/site/6bf8a1b2-d1e2-49f1-a9b3-ffa6ea6e7005.jpg"
+                - "renovate/site/900726c6-2c57-4e5e-9681-ec1e45700415.jpg"
+                - "renovate/site/272395e6-763c-4a15-9fe4-aa7d94fb749e.jpg"
+                - "renovate/site/a958108b-9bbf-4285-ab98-fd3bb220f923.jpg"
+              approval:
+                approve_by: "Phinyo Phoaon"
+                approve_date: "2026-09-05T12:00:00Z"
+                distance: 15.5
+              visit_results:
+                - "พื้นที่ยังไม่พร้อมสำหรับการสำรวจ"
+                - "ข้อมูลและขอบเขตงานไม่ครบถ้วน"
+              remarks:
+                comment: "Work completed successfully"
+                note: "Customer requested callback before arrival"
       responses:
         '201':
-          description: Order created successfully
+          description: Order received and stored into PostgreSQL core_jobs
         '400':
-          description: Invalid payload or missing Idempotency-Key
-
-  /jobs:
-    get:
-      summary: List All Active Jobs (Core PMT System)
-      description: Returns all active jobs currently in the system, synced live with Web Dashboard.
-      parameters:
-        - in: query
-          name: status
-          schema:
-            type: string
-            enum: [all, DRAFT, IN_PROGRESS, QC_PENDING, QC_PASSED, AFTER_SALE, CLOSED]
-        - in: query
-          name: search
-          schema:
-            type: string
-      responses:
-        '200':
-          description: List of jobs returned successfully
-    post:
-      summary: Create New Job (Manual / Web Intake)
-      description: Create a new core project/job directly into PMT system.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [firstName, lastName, service]
-              properties:
-                firstName: { type: string, example: "สมชาย" }
-                lastName: { type: string, example: "ใจดี" }
-                phone: { type: string, example: "081-234-5678" }
-                service: { type: string, example: "ติดตั้งเครื่องทำน้ำอุ่น" }
-                address: { type: string, example: "123/45 ถนนพหลโยธิน กรุงเทพฯ" }
-                tech: { type: string, example: "Team A (สมศักดิ์)" }
-      responses:
-        '201':
-          description: Job created successfully
+          description: Invalid payload
 
   /jobs/survey-report:
     post:
-      summary: Submit Job Survey Report
-      description: Ingest full job survey details, site photos, check-in/out records, customer info, and approval data.
+      summary: Submit Full Job Survey Report (Inbound Staging & Core PMT)
+      description: Ingest full job survey details, site photos, check-in/out records, customer info, store, agent, schedule, approval, and remarks into Staging and Core PMT.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [system, job_info, job_details, customer, check_in, check_out]
+              required: [system, job_info, customer]
               properties:
                 system:
                   type: object
                   properties:
-                    job_id: { type: string }
-                    created_at: { type: string }
+                    job_id: { type: string, example: "031b0e16a-9a98-43bf-ae3e-b14e76b577f8" }
+                    created_at: { type: string, example: "2026-09-02T09:00:00Z" }
+                    created_by: { type: string, example: "system" }
+                    updated_at: { type: string, example: "2026-09-02T09:00:00Z" }
                 job_info:
                   type: object
                   properties:
-                    job_number: { type: string }
-                    status: { type: string }
+                    job_number: { type: string, example: "JOB202609001" }
+                    booking_no: { type: string, example: "VFIX-260901-001" }
+                    ticket_no: { type: string, example: "209051119" }
+                    source_reference: { type: string, example: "REQ-PT2-2608220003" }
+                    status: { type: string, example: "Approved" }
+                    stage: { type: string, example: "Completed" }
+                    property_type: { type: string, example: "บ้านเดี่ยว" }
+                    project_type: { type: string, example: "Renovate" }
+                    project_sub_type: { type: string, example: "งานกระเบื้องพื้น" }
+                    file_int_image: { type: string, example: "renovate/int/eee85115-24c5-4216-9744-60b86a8fbe23.jpg" }
                 job_details:
                   type: array
                   items:
                     type: object
+                    properties:
+                      job_type: { type: string, example: "ติดตั้งแอร์ (ส่งพร้อมติดตั้ง)" }
+                      installation_detail: { type: string, example: "R-ติดตั้ง แอร์ติดผนัง ขนาด 9000-17000 บีทียู ติดตั้งพร้อมรื้อถอน" }
+                      product_quantity: { type: integer, example: 2 }
+                      remark: { type: string, example: "remark xxxx 500 char" }
                 customer:
                   type: object
+                  properties:
+                    code: { type: string, example: "18a9359a-4363-4dda-8fdb-5f541d8a4b64" }
+                    name: { type: string, example: "นภัสวรรณ มีศิริ" }
+                    mobile_no: { type: string, example: "0812345678" }
+                    location:
+                      type: object
+                      properties:
+                        latitude: { type: number, example: 13.7563 }
+                        longitude: { type: number, example: 100.5018 }
+                        address: { type: string, example: "มาบยายเลีย 41 เมืองพัทยา อำเภอบางละมุง ชลบุรี 20150" }
+                        google_map_url: { type: string, example: "https://www.google.com/maps/search/?api=1&query=12.9326734,100.9239925" }
+                agent:
+                  type: object
+                  properties:
+                    code: { type: string, example: "87524b4a-8511-4a93-88fa-850c8d043868" }
+                    name: { type: string, example: "Agent Name" }
+                    team: { type: string, example: "QC RENOVATE & MENTAINANCE" }
+                store:
+                  type: object
+                  properties:
+                    code: { type: string, example: "60964" }
+                    code3: { type: string, example: "RA2" }
+                    name: { type: string, example: "RAMA2" }
+                    location:
+                      type: object
+                      properties:
+                        latitude: { type: number, example: 13.652 }
+                        longitude: { type: number, example: 100.421 }
+                        google_map_url: { type: string, example: "https://www.google.com/maps/search/?api=1&query=13.652,100.421" }
+                schedule_plan:
+                  type: object
+                  properties:
+                    visit_date: { type: string, example: "2026-09-05" }
+                    start_time: { type: string, example: "09:00:00" }
+                    end_time: { type: string, example: "12:00:00" }
+                    time_slot: { type: string, example: "เช้า (09:00-12:00)" }
+                    distance: { type: number, example: 15.5 }
+                check_in:
+                  type: object
+                  properties:
+                    date: { type: string, example: "2026-09-05T09:05:00Z" }
+                    latitude: { type: number, example: 13.7563 }
+                    longitude: { type: number, example: 100.5018 }
+                    image: { type: string, example: "renovate/check_in/9cf4f37a-045a-4bfb-91ec-611370e2b5a2.jpg" }
+                check_out:
+                  type: object
+                  properties:
+                    date: { type: string, example: "2026-09-05T11:45:00Z" }
+                    latitude: { type: number, example: 13.7563 }
+                    longitude: { type: number, example: 100.5018 }
+                    image: { type: string, example: "renovate/check_out/9b5bb34f-51cc-4e38-b6f3-846666a89166.jpg" }
                 site_photos:
                   type: array
-                  items:
-                    type: string
+                  items: { type: string }
+                  example:
+                    - "renovate/site/2a206a2e-6615-4b68-826e-520c170c15c0.jpg"
+                    - "renovate/site/6bf8a1b2-d1e2-49f1-a9b3-ffa6ea6e7005.jpg"
+                    - "renovate/site/900726c6-2c57-4e5e-9681-ec1e45700415.jpg"
+                    - "renovate/site/272395e6-763c-4a15-9fe4-aa7d94fb749e.jpg"
+                    - "renovate/site/a958108b-9bbf-4285-ab98-fd3bb220f923.jpg"
+                approval:
+                  type: object
+                  properties:
+                    approve_by: { type: string, example: "Phinyo Phoaon" }
+                    approve_date: { type: string, example: "2026-09-05T12:00:00Z" }
+                    distance: { type: number, example: 15.5 }
+                visit_results:
+                  type: array
+                  items: { type: string }
+                  example:
+                    - "พื้นที่ยังไม่พร้อมสำหรับการสำรวจ"
+                    - "ข้อมูลและขอบเขตงานไม่ครบถ้วน"
+                remarks:
+                  type: object
+                  properties:
+                    comment: { type: string, example: "Work completed successfully" }
+                    note: { type: string, example: "Customer requested callback before arrival" }
       responses:
         '201':
-          description: Job survey report received in staging and processed
+          description: Job survey report received in staging and converted to Core PMT
         '400':
           description: Invalid payload structure
 
   /staging/survey-reports:
     get:
       summary: List Staging Survey Reports
-      description: Query raw survey reports in staging with filter by status or search keyword.
+      description: Query raw survey reports in staging table from PostgreSQL with status or search keyword filters.
       parameters:
         - in: query
           name: status
@@ -150,6 +256,21 @@ paths:
         '200':
           description: List of staging records returned
 
+  /staging/survey-reports/{id}:
+    get:
+      summary: Get Single Staging Survey Report
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Staging report details
+        '404':
+          description: Staging report not found
+
   /staging/survey-reports/{id}/convert:
     post:
       summary: Manual/Retry Staging to Core Conversion
@@ -159,65 +280,291 @@ paths:
           name: id
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         '200':
           description: Conversion processed
-        '404':
-          description: Staging record not found
 
-  /jobs/{id}/checkin:
-    post:
-      summary: Mobile Site Check-in (Req #2 & #3)
-      description: Record technician check-in with GPS location validation (400m radius) and mandatory 5 site photos.
+  /jobs:
+    get:
+      summary: List All Jobs (Core PMT System)
+      description: Returns all jobs currently in PostgreSQL database, synced live with Web Dashboard.
       parameters:
-        - in: path
-          name: id
-          required: true
+        - in: query
+          name: status
           schema:
-            type: integer
+            type: string
+            enum: [all, DRAFT, NEW, SURVEYED, DESIGN, BOQ, IN_PROGRESS, QC_PENDING, QC_PASSED, AFTER_SALE, CLOSED]
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of jobs returned successfully
+    post:
+      summary: Create New Job (Manual / Web Intake)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [tech_id, lat, lng, photos]
+              required: [firstName, lastName, service]
               properties:
-                tech_id:
-                  type: integer
-                  example: 101
-                lat:
-                  type: number
-                  example: 13.7563
-                lng:
-                  type: number
-                  example: 100.5018
+                firstName: { type: string, example: "สมชาย" }
+                lastName: { type: string, example: "ใจดี" }
+                phone: { type: string, example: "081-234-5678" }
+                service: { type: string, example: "ติดตั้งเครื่องปรับอากาศ" }
+                address: { type: string, example: "123/45 ถนนสุขุมวิท กรุงเทพฯ" }
+                tech: { type: string, example: "Team A (สมศักดิ์)" }
+      responses:
+        '201':
+          description: Job created successfully
+
+  /jobs/{id}:
+    get:
+      summary: Get Job Details by ID / Job Number
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "JOB202609001"
+      responses:
+        '200':
+          description: Job details returned
+        '404':
+          description: Job not found
+    patch:
+      summary: Update Job Details / Status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Job updated successfully
+
+  /jobs/{id}/checkin:
+    post:
+      summary: Mobile Site Check-in (Req #2 & #3)
+      description: Record technician check-in with GPS location validation and mandatory 5 site photos.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lat, lng, photos]
+              properties:
+                lat: { type: number, example: 13.7563 }
+                lng: { type: number, example: 100.5018 }
                 photos:
                   type: array
                   minItems: 5
-                  items:
-                    type: string
-                  example: ["img1.jpg", "img2.jpg", "img3.jpg", "img4.jpg", "img5.jpg"]
-                summary:
-                  type: string
-                  example: "เข้าพื้นที่เตรียมเดินสายไฟ"
+                  items: { type: string }
+                  example: ["s1.jpg", "s2.jpg", "s3.jpg", "s4.jpg", "s5.jpg"]
+                summary: { type: string, example: "เข้าพื้นที่เตรียมงาน" }
       responses:
         '200':
           description: Check-in recorded successfully
         '422':
           description: Photos count less than 5
 
-  /jobs/{id}/qc-inspection:
+  /jobs/{id}/boq:
     post:
-      summary: Record QC Inspection (Req #11)
-      description: Record checklist results. Failing any mandatory item triggers overall FAIL and rework assignment.
+      summary: Save BOQ and Pricing (Req #6)
       parameters:
         - in: path
           name: id
           required: true
           schema:
-            type: integer
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                discount_amount: { type: number, example: 500 }
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: { type: string, example: "งานติดตั้งสุขภัณฑ์" }
+                      qty: { type: number, example: 1 }
+                      unit: { type: string, example: "ชุด" }
+                      unit_price: { type: number, example: 2500 }
+      responses:
+        '201':
+          description: BOQ calculated and saved
+
+  /jobs/{id}/tasks:
+    get:
+      summary: Get Tasks for Job Gantt Chart
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tasks returned sorted by start date
+    post:
+      summary: Add Single Task to Job
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [task_name]
+              properties:
+                task_name: { type: string, example: "งานติดตั้งระบบท่อ" }
+                start_date: { type: string, example: "2026-09-10" }
+                end_date: { type: string, example: "2026-09-12" }
+                assigned_tech: { type: string, example: "Team A (สมศักดิ์)" }
+      responses:
+        '201':
+          description: Task created and QC Booking queued
+
+  /jobs/{id}/tasks/import-boq:
+    post:
+      summary: Convert BOQ Items into Project Tasks (Auto-sort & QC Queue)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                base_start_date: { type: string, example: "2026-09-10" }
+                default_tech: { type: string, example: "Team A (สมศักดิ์)" }
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: { type: string, example: "ติดตั้งแผงโซลาร์เซลล์" }
+                      days: { type: integer, example: 3 }
+      responses:
+        '201':
+          description: Tasks created and QC booking queued
+
+  /daily-logs:
+    get:
+      summary: Get Daily Technician Work Logs (24-Hour Format)
+      parameters:
+        - in: query
+          name: job_id
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Daily logs returned
+    post:
+      summary: Record Daily Technician Work Log with 5 Photos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [job_id, task_id, log_date, start_time, end_time, technician]
+              properties:
+                job_id: { type: string, example: "JOB202609001" }
+                task_id: { type: string, example: "T_101" }
+                task_name: { type: string, example: "งานติดตั้งแผงโซลาร์" }
+                log_date: { type: string, example: "2026-09-09" }
+                start_time: { type: string, example: "08:30" }
+                end_time: { type: string, example: "17:00" }
+                technician: { type: string, example: "สมศักดิ์ ช่างเอก" }
+                progress_percent: { type: integer, example: 60 }
+                work_description: { type: string, example: "เดินสายไฟ DC และทดสอบระบบ" }
+                photos:
+                  type: array
+                  items: { type: string }
+      responses:
+        '201':
+          description: Daily work log recorded
+
+  /qc/bookings:
+    get:
+      summary: List QC Inspection Bookings
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [all, PENDING, PENDING_CONFIRM, CONFIRMED, COMPLETED]
+      responses:
+        '200':
+          description: QC bookings returned
+
+  /qc/bookings/{id}/confirm:
+    put:
+      summary: Confirm QC Booking and Assign Inspector
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                assigned_qc_tech: { type: string, example: "วิชัย ตรวจดี (QC Lead)" }
+                remarks: { type: string, example: "นัดหมายยืนยันเรียบร้อย" }
+      responses:
+        '200':
+          description: QC booking confirmed
+
+  /jobs/{id}/qc-inspection:
+    post:
+      summary: Record QC Inspection Results (Req #11)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -225,21 +572,17 @@ paths:
             schema:
               type: object
               properties:
-                items:
+                inspection_type: { type: string, enum: [online, onsite] }
+                checklist:
                   type: array
                   items:
                     type: object
                     properties:
-                      item_id:
-                        type: integer
-                      is_mandatory:
-                        type: boolean
-                      result:
-                        type: string
-                        enum: [PASS, FAIL, NA]
+                      title: { type: string }
+                      result: { type: string, enum: [PASS, FAIL, NA] }
       responses:
         '200':
-          description: QC result recorded
+          description: QC inspection recorded
 
   /jobs/{id}/close-and-export-bmt:
     post:
@@ -250,7 +593,35 @@ paths:
           name: id
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         '200':
           description: Job closed and exported to BMT successfully
+
+  /system/api-logs:
+    get:
+      summary: Get Inbound API Request Logs
+      description: Query real-time API logs stored in PostgreSQL table inbound_api_logs.
+      parameters:
+        - in: query
+          name: method
+          schema:
+            type: string
+            enum: [ALL, GET, POST, PUT, PATCH, DELETE]
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [ALL, 2xx, 4xx, 5xx]
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 200
+      responses:
+        '200':
+          description: Inbound API logs returned
