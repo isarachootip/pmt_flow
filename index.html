@@ -228,57 +228,78 @@
                         <span class="text-[9px] px-1.5 py-0.5 rounded bg-brand-500/15 text-brand-500 font-mono font-bold">Pipeline</span>
                     </div>
                     <nav class="space-y-1">
-                        <!-- Step 1 -->
+                        <!-- Step 1: ศูนย์รับคำสั่งซื้อ, Design & BOQ -->
                         <a href="#" onclick="app.navigate('jobs')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-jobs">
                             <div class="flex items-center gap-2.5">
                                 <span class="w-5 h-5 rounded-md bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono font-bold flex items-center justify-center border border-indigo-500/30 shrink-0">1</span>
                                 <span class="truncate font-semibold">Step 1: รับ Order, Design & BOQ</span>
                             </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono shrink-0" id="sidebar-job-count">5</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono shrink-0" id="sidebar-job-count">0</span>
                         </a>
-                        <!-- Step 2 -->
-                        <a href="#" onclick="app.navigate('blueprints')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-blueprints">
-                            <div class="flex items-center gap-2.5">
-                                <span class="w-5 h-5 rounded-md bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono font-bold flex items-center justify-center border border-indigo-500/30 shrink-0">2</span>
-                                <span class="truncate">Step 2: คลังแบบแปลน (Design)</span>
-                            </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono font-medium shrink-0" id="sidebar-blueprint-count">5</span>
-                        </a>
-                        <!-- Step 3: นำBOQ เข้าระบบ -->
-                        <a href="#" onclick="app.navigate('boq')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-boq">
-                            <div class="flex items-center gap-2.5">
-                                <span class="w-5 h-5 rounded-md bg-purple-500/15 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-bold flex items-center justify-center border border-purple-500/30 shrink-0">3</span>
-                                <span class="truncate">Step 3: คลังรายการ BOQ</span>
-                            </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono font-medium shrink-0" id="sidebar-boq-count">5</span>
-                        </a>
-                        <!-- Step 4: บันทึก Ticket & ใบเสร็จ -->
+                        <!-- Step 2: บันทึก Ticket & สลิปใบเสร็จ -->
                         <a href="#" onclick="app.navigate('tickets')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-tickets">
                             <div class="flex items-center gap-2.5">
-                                <span class="w-5 h-5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-bold flex items-center justify-center border border-emerald-500/30 shrink-0">4</span>
-                                <span class="truncate">Step 4: บันทึก Ticket & ใบเสร็จ</span>
+                                <span class="w-5 h-5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-bold flex items-center justify-center border border-emerald-500/30 shrink-0">2</span>
+                                <span class="truncate">Step 2: บันทึก Ticket & ใบเสร็จ</span>
                             </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-medium shrink-0" id="sidebar-ticket-count">5</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-medium shrink-0" id="sidebar-ticket-count">0</span>
                         </a>
-                        <!-- Step 5 -->
+                        <!-- Step 3: บันทึก BOQ เข้า Project & แผนงาน Gantt -->
                         <a href="#" onclick="app.navigate('project-conversion')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-project-conversion">
                             <div class="flex items-center gap-2.5">
-                                <span class="w-5 h-5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-mono font-bold flex items-center justify-center border border-amber-500/30 shrink-0">5</span>
-                                <span class="truncate">Step 5: บันทึก BOQ เข้า Project</span>
+                                <span class="w-5 h-5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-mono font-bold flex items-center justify-center border border-amber-500/30 shrink-0">3</span>
+                                <span class="truncate">Step 3: บันทึก BOQ เข้า Project</span>
                             </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono font-medium shrink-0" id="sidebar-task-count">12</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono font-medium shrink-0" id="sidebar-task-count">0</span>
+                        </a>
+                        <!-- Step 4: ตรวจรับรองคุณภาพ (QC Inspection) -->
+                        <a href="#" onclick="app.navigate('qc')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-qc">
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-5 h-5 rounded-md bg-teal-500/15 text-teal-600 dark:text-teal-400 text-[10px] font-mono font-bold flex items-center justify-center border border-teal-500/30 shrink-0">4</span>
+                                <span class="truncate">Step 4: ตรวจรับรองคุณภาพ (QC)</span>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-teal-500/10 text-teal-600 dark:text-teal-400 font-mono font-medium shrink-0" id="sidebar-qc-count">0</span>
+                        </a>
+                        <!-- Step 5: ประเมิน CSAT & สัญญาบริการ MA -->
+                        <a href="#" onclick="app.navigate('csat')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-csat">
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-5 h-5 rounded-md bg-blue-500/15 text-blue-600 dark:text-blue-400 text-[10px] font-mono font-bold flex items-center justify-center border border-blue-500/30 shrink-0">5</span>
+                                <span class="truncate">Step 5: ประเมิน CSAT & สัญญา MA</span>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono font-medium shrink-0" id="sidebar-csat-count">0</span>
                         </a>
                     </nav>
                 </div>
 
-                <!-- Group: OPERATIONS & QC -->
+                <!-- Group: CENTRAL REPOSITORIES & EXECUTION -->
                 <div>
-                    <div class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">การควบคุมคุณภาพ & แผนงาน</div>
+                    <div class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 flex items-center justify-between">
+                        <span>คลังข้อมูลกลาง & การปฏิบัติงาน</span>
+                        <span class="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono">Hub</span>
+                    </div>
                     <nav class="space-y-1">
+                        <!-- คลังแบบแปลนกลาง (Design & CAD) -->
+                        <a href="#" onclick="app.navigate('blueprints')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-blueprints">
+                            <div class="flex items-center gap-2.5">
+                                <i class="ph ph-compass-tool text-base text-indigo-500"></i>
+                                <span class="truncate">คลังแบบแปลนกลาง (CAD)</span>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono font-medium shrink-0" id="sidebar-blueprint-count">0</span>
+                        </a>
+                        <!-- คลังรายการ BOQ กลาง (BOQ Repository) -->
+                        <a href="#" onclick="app.navigate('boq')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-boq">
+                            <div class="flex items-center gap-2.5">
+                                <i class="ph ph-receipt text-base text-purple-500"></i>
+                                <span class="truncate">คลังรายการ BOQ กลาง</span>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono font-medium shrink-0" id="sidebar-boq-count">0</span>
+                        </a>
+                        <!-- แผนงาน Gantt เต็มรูป -->
                         <a href="#" onclick="app.navigate('gantt')" class="nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-gantt">
-                            <i class="ph ph-chart-bar text-base"></i>
+                            <i class="ph ph-chart-bar text-base text-brand-500"></i>
                             <span>แผนงาน Gantt เต็มรูป</span>
                         </a>
+                        <!-- บันทึกงานช่างประจำวัน -->
                         <a href="#" onclick="app.navigate('daily-logs')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-daily-logs">
                             <div class="flex items-center gap-2.5">
                                 <i class="ph ph-notebook text-base text-cyan-500"></i>
@@ -286,26 +307,13 @@
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-mono font-medium" id="sidebar-daily-logs-count">0</span>
                         </a>
-                        <a href="#" onclick="app.navigate('qc')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-qc">
-                            <div class="flex items-center gap-2.5">
-                                <i class="ph ph-check-circle text-base"></i>
-                                <span>ตรวจคุณภาพ (QC)</span>
-                            </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-500 font-mono font-medium" id="sidebar-qc-count">0</span>
-                        </a>
-                        <a href="#" onclick="app.navigate('csat')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-csat">
-                            <div class="flex items-center gap-2.5">
-                                <i class="ph ph-star text-base text-amber-500"></i>
-                                <span>ความพึงพอใจลูกค้า (CSAT)</span>
-                            </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono font-medium" id="sidebar-csat-count">0</span>
-                        </a>
+                        <!-- บริการหลังการขาย (สัญญา MA) -->
                         <a href="#" onclick="app.navigate('ma-contracts')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-ma-contracts">
                             <div class="flex items-center gap-2.5">
-                                <i class="ph ph-wrench text-base text-brand-500"></i>
-                                <span>บริการหลังการขาย</span>
+                                <i class="ph ph-wrench text-base text-blue-500"></i>
+                                <span>บริการหลังการขาย (สัญญา MA)</span>
                             </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-500 font-mono font-medium" id="sidebar-ma-count">1</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono font-medium" id="sidebar-ma-count">0</span>
                         </a>
                     </nav>
                 </div>
@@ -337,7 +345,7 @@
                                 <i class="ph ph-book-open text-base text-brand-500"></i>
                                 <span>คู่มือ & FAQ ระบบ</span>
                             </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-medium">8 Steps</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-medium">5 Steps</span>
                         </a>
                     </nav>
                 </div>
@@ -928,16 +936,16 @@
                     </div>
                 </div>
 
-                <!-- 3.5 BLUEPRINTS & DESIGN FILES CENTER (STEP 2) -->
+                <!-- 3.5 BLUEPRINTS & DESIGN FILES CENTER (CENTRAL CAD REPOSITORY) -->
                 <div id="page-blueprints" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30">Step 2</span>
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30">คลังข้อมูลกลาง</span>
                                 <span class="text-2xl">📐</span>
-                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">บันทึก Design & แบบแปลนติดตั้ง (Blueprints & CAD/PDF)</h2>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">คลังแบบแปลนและไฟล์ออกแบบ (Central Blueprints & CAD)</h2>
                             </div>
-                            <p class="text-xs text-muted-foreground mt-1">คิวงานที่รอจัดทำแบบติดตั้ง (Design Queue) จาก Step 1, คลังไฟล์แบบแปลน CAD/PDF และประวัติเวอร์ชันทุกโครงการ</p>
+                            <p class="text-xs text-muted-foreground mt-1">คลังไฟล์แบบแปลน CAD/PDF, ภาพ 3D/Layout Multi-zone และประวัติเวอร์ชันแบบแปลนทุกโครงการ</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2.5">
                             <select id="filter-blueprints-service" onchange="app.renderBlueprints()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-indigo-500">
@@ -948,14 +956,13 @@
                                 <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
                             </select>
                             <select id="filter-blueprints-status" onchange="app.renderBlueprints()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-indigo-500">
-                                <option value="STEP2_QUEUE" selected>📐 คิวงาน Step 2 (รอทำแบบ Design)</option>
-                                <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
-                                <option value="NO_DESIGN">รอแนบแบบแปลน (Pending Design)</option>
+                                <option value="ALL" selected>🗂️ แบบแปลนทั้งหมด (All Projects)</option>
                                 <option value="HAS_DESIGN">แนบแบบแปลนแล้ว (Designed)</option>
+                                <option value="NO_DESIGN">รอแนบแบบแปลน (Pending Design)</option>
                             </select>
-                            <button onclick="app.showStep2TrainingGuide()" class="btn-artifact-secondary text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 border-indigo-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 2 (Blueprints & Design)">
+                            <button onclick="app.showBlueprintsTrainingGuide()" class="btn-artifact-secondary text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 border-indigo-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมคลังแบบแปลน (Blueprints & Design)">
                                 <i class="ph ph-graduation-cap text-indigo-500 text-sm"></i>
-                                <span>คู่มือ Training Step 2</span>
+                                <span>คู่มือคลังแบบแปลน</span>
                             </button>
                             <button onclick="app.openUploadBlueprintModal()" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer">
                                 <i class="ph ph-upload-simple text-sm"></i>
@@ -1288,12 +1295,12 @@
                     </div>
                 </div>
 
-                <!-- STEP 4: TICKETS & RECEIPTS VIEW -->
+                <!-- STEP 2: TICKETS & RECEIPTS VIEW -->
                 <div id="page-tickets" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">Step 4</span>
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">Step 2</span>
                                 <span class="text-2xl">🧾</span>
                                 <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">บันทึก Ticket & แนบใบเสร็จ (Tickets & Receipts)</h2>
                             </div>
@@ -1308,15 +1315,15 @@
                                 <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
                             </select>
                             <select id="filter-tickets-status" onchange="app.renderTickets()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-emerald-500">
-                                <option value="STEP4_QUEUE" selected>🧾 คิวงาน Step 4 (รอออก Ticket & สลิป)</option>
+                                <option value="STEP4_QUEUE" selected>🧾 คิวงาน Step 2 (รอออก Ticket & สลิป)</option>
                                 <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
                                 <option value="NO_TICKET">ยังไม่ออก Ticket (No Ticket)</option>
                                 <option value="HAS_TICKET">ออก Ticket แล้ว (Has Ticket)</option>
                                 <option value="VERIFIED">ตรวจสอบแล้ว (Verified)</option>
                             </select>
-                            <button onclick="app.showStep4TrainingGuide()" class="btn-artifact-secondary text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 4 (Tickets & Receipts)">
+                            <button onclick="app.showStep2TrainingGuide()" class="btn-artifact-secondary text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 2 (Tickets & Receipts)">
                                 <i class="ph ph-graduation-cap text-emerald-500 text-sm"></i>
-                                <span>คู่มือ Training Step 4</span>
+                                <span>คู่มือ Training Step 2</span>
                             </button>
                             <button onclick="app.openCreateTicketModal()" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
                                 <i class="ph ph-plus-circle text-sm"></i>
@@ -1325,7 +1332,7 @@
                         </div>
                     </div>
 
-                    <!-- STEP 4 DASHBOARD (KPI CARDS & SEGMENT DISTRIBUTION & SLA) -->
+                    <!-- STEP 2 DASHBOARD (KPI CARDS & SEGMENT DISTRIBUTION & SLA) -->
                     <div class="artifact-card p-5 space-y-5 bg-card/70 border border-border/80 rounded-2xl shadow-xs">
                         <!-- Dashboard Header -->
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
@@ -1347,7 +1354,7 @@
                                     Realtime Live
                                 </span>
                                 <span id="step4-date-indicator" class="text-[11px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/60 border border-border">วันนี้</span>
-                                <button type="button" onclick="app.openSLAConfigModal('step4')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ Step 4">
+                                <button type="button" onclick="app.openSLAConfigModal('step2')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ Step 2">
                                     <i class="ph ph-gear-six text-xs"></i>
                                     <span>ตั้งค่า SLA</span>
                                 </button>
@@ -1446,7 +1453,7 @@
                                     </div>
                                 </div>
                                 <div class="flex flex-col items-end gap-2 shrink-0">
-                                    <span onclick="event.stopPropagation(); app.openSLAConfigModal('step4');" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer" title="ตั้งค่า SLA Step 4">⚙️ Config</span>
+                                    <span onclick="event.stopPropagation(); app.openSLAConfigModal('step2');" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer" title="ตั้งค่า SLA Step 2">⚙️ Config</span>
                                     <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-rose-500 group-hover:translate-x-0.5 transition text-base"></i>
                                 </div>
                             </div>
@@ -1661,16 +1668,16 @@
                     </div>
                 </div>
 
-                <!-- STEP 3: BOQ MANAGEMENT VIEW -->
+                <!-- BOQ MANAGEMENT VIEW (CENTRAL BOQ REPOSITORY) -->
                 <div id="page-boq" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30">Step 3</span>
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30">คลังข้อมูลกลาง</span>
                                 <span class="text-2xl">📋</span>
-                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">นำBOQ เข้าระบบ & ประมาณการราคา (Bill of Quantities)</h2>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">คลังรายการประมาณการราคา (Central BOQ Repository)</h2>
                             </div>
-                            <p class="text-xs text-muted-foreground mt-1">นำเข้าใบเสนอราคา vFIX แยกรายการวัสดุและค่าแรง คำนวณราคา พร้อมเตรียมแปลงเข้าแผนงานโครงการ</p>
+                            <p class="text-xs text-muted-foreground mt-1">คลังนำเข้าและจัดการใบเสนอราคา vFIX แยกรายการวัสดุและค่าแรง คำนวณราคา พร้อมระบบ Export และ Audit ทุกโครงการ</p>
                         </div>
                         <div class="flex items-center gap-2.5 flex-wrap">
                             <select id="filter-boq-service" onchange="app.renderBOQPage()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-purple-500">
@@ -1681,14 +1688,13 @@
                                 <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
                             </select>
                             <select id="filter-boq-status" onchange="app.renderBOQPage()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-purple-500">
-                                <option value="STEP3_QUEUE" selected>📋 คิวงาน Step 3 (รอจัดทำ BOQ)</option>
-                                <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
-                                <option value="NO_BOQ">รอจัดทำ BOQ (Pending BOQ)</option>
+                                <option value="ALL" selected>🗂️ รายการ BOQ ทั้งหมด (All Projects)</option>
                                 <option value="HAS_BOQ">มีรายการ BOQ แล้ว (BOQ Ready)</option>
+                                <option value="NO_BOQ">รอจัดทำ BOQ (Pending BOQ)</option>
                             </select>
-                            <button onclick="app.showStep3TrainingGuide()" class="btn-artifact-secondary text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 3 (BOQ & Pricing)">
+                            <button onclick="app.showBOQTrainingGuide()" class="btn-artifact-secondary text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมคลังรายการ BOQ (BOQ & Pricing)">
                                 <i class="ph ph-graduation-cap text-purple-500 text-sm"></i>
-                                <span>คู่มือ Training Step 3</span>
+                                <span>คู่มือคลัง BOQ</span>
                             </button>
                             <button onclick="app.openImportBOQModal(app.state.boqSelectedJobId)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs bg-purple-600 hover:bg-purple-700 text-white cursor-pointer">
                                 <i class="ph ph-file-arrow-up text-sm"></i>
@@ -2025,12 +2031,12 @@
                     </div>
                 </div>
 
-                <!-- STEP 5: PROJECT CONVERSION & GANTT VIEW -->
+                <!-- STEP 3: PROJECT CONVERSION & GANTT VIEW -->
                 <div id="page-project-conversion" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">Step 5</span>
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">Step 3</span>
                                 <span class="text-2xl">🚀</span>
                                 <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">บันทึก BOQ เข้า Project (Labor-to-Task & Gantt แผนงาน)</h2>
                             </div>
@@ -2045,14 +2051,14 @@
                                 <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
                             </select>
                             <select id="filter-conversion-status" onchange="app.renderProjectConversion()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-amber-500">
-                                <option value="STEP5_QUEUE" selected>⚡ คิวงาน Step 5 (รอแปลงเข้า Project)</option>
+                                <option value="STEP5_QUEUE" selected>⚡ คิวงาน Step 3 (รอแปลงเข้า Project)</option>
                                 <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
                                 <option value="NOT_CONVERTED">รอแปลงเข้า Project (Not Converted)</option>
                                 <option value="CONVERTED">แปลงเป็น Task แล้ว (Converted)</option>
                             </select>
-                            <button onclick="app.showStep5TrainingGuide()" class="btn-artifact-secondary text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 5 (BOQ to Project & Gantt)">
+                            <button onclick="app.showStep3TrainingGuide()" class="btn-artifact-secondary text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 3 (BOQ to Project & Gantt)">
                                 <i class="ph ph-graduation-cap text-amber-500 text-sm"></i>
-                                <span>คู่มือ Training Step 5</span>
+                                <span>คู่มือ Training Step 3</span>
                             </button>
                             <button onclick="app.openConvertBOQToTasksModal(app.state.selectedConversionJobId || app.state.selectedGanttJobId)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white cursor-pointer">
                                 <i class="ph ph-lightning text-sm"></i>
@@ -2061,7 +2067,7 @@
                         </div>
                     </div>
 
-                    <!-- STEP 5 DASHBOARD (KPI CARDS & SEGMENT DISTRIBUTION & SLA) -->
+                    <!-- STEP 3 DASHBOARD (KPI CARDS & SEGMENT DISTRIBUTION & SLA) -->
                     <div class="artifact-card p-5 space-y-5 bg-card/70 border border-border/80 rounded-2xl shadow-xs">
                         <!-- Dashboard Header -->
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
@@ -2074,7 +2080,7 @@
                                         Project Conversion & Gantt Analytics & KPI
                                         <span class="text-[11px] font-normal text-muted-foreground font-sans">(ภาพรวมสถิติแปลงงานเข้าโครงการ)</span>
                                     </h3>
-                                    <p class="text-[11px] text-muted-foreground">สรุปปริมาณงานรอแปลงเข้าสู่แผนงาน Gantt (Step 5) อัตราความสำเร็จ และประสิทธิภาพเกณฑ์เวลา SLA</p>
+                                    <p class="text-[11px] text-muted-foreground">สรุปปริมาณงานรอแปลงเข้าสู่แผนงาน Gantt (Step 3) อัตราความสำเร็จ และประสิทธิภาพเกณฑ์เวลา SLA</p>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 self-start sm:self-auto">
@@ -2083,7 +2089,7 @@
                                     Realtime Live
                                 </span>
                                 <span id="step5-date-indicator" class="text-[11px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/60 border border-border">วันนี้</span>
-                                <button type="button" onclick="app.openSLAConfigModal('step5')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ Step 5">
+                                <button type="button" onclick="app.openSLAConfigModal('step3')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ Step 3">
                                     <i class="ph ph-gear-six text-xs"></i>
                                     <span>ตั้งค่า SLA</span>
                                 </button>
@@ -2182,7 +2188,7 @@
                                     </div>
                                 </div>
                                 <div class="flex flex-col items-end gap-2 shrink-0">
-                                    <span onclick="event.stopPropagation(); app.openSLAConfigModal('step5');" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer" title="ตั้งค่า SLA Step 5">⚙️ Config</span>
+                                    <span onclick="event.stopPropagation(); app.openSLAConfigModal('step3');" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer" title="ตั้งค่า SLA Step 3">⚙️ Config</span>
                                     <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-rose-500 group-hover:translate-x-0.5 transition text-base"></i>
                                 </div>
                             </div>
@@ -2623,14 +2629,14 @@
                     </div>
                 </div>
 
-                <!-- 5. QC MODULE VIEW (Step 6) -->
+                <!-- 5. QC MODULE VIEW (Step 4) -->
                 <div id="page-qc" class="page-view hidden-view space-y-6">
                     <!-- Page Header & Action Controls (Matching Step 1 UX/UI) -->
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">Step 6</span>
-                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">การตรวจรับรองคุณภาพ (Quality Control - Step 6)</h2>
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-500/30">Step 4</span>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">การตรวจรับรองคุณภาพ (Quality Control - Step 4)</h2>
                             </div>
                             <p class="text-xs text-muted-foreground mt-0.5">คิวงานตรวจประเมินคุณภาพมาตรฐานงานติดตั้ง Quick Services (ตรวจรูปถ่าย Online) และ Renovate (ตรวจ On-site พร้อมให้คะแนนงานย่อยตาม BOQ)</p>
                         </div>
@@ -2670,9 +2676,9 @@
                             </select>
 
                             <div class="flex items-center gap-2 shrink-0">
-                                <button onclick="app.showStep6TrainingGuide()" class="btn-artifact-secondary text-brand-600 dark:text-brand-400 hover:bg-brand-500/10 border-brand-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 6 QC และฟีเจอร์จองช่าง Renovate">
+                                <button onclick="app.showStep4TrainingGuide()" class="btn-artifact-secondary text-brand-600 dark:text-brand-400 hover:bg-brand-500/10 border-brand-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 4 QC และฟีเจอร์จองช่าง Renovate">
                                     <i class="ph ph-graduation-cap text-brand-500 text-sm"></i>
-                                    <span>คู่มือ Training Step 6 (QC)</span>
+                                    <span>คู่มือ Training Step 4 (QC)</span>
                                 </button>
                                 <button onclick="app.exportQCReportCSV()" class="btn-artifact-secondary text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="ดาวน์โหลดรายงานสรุปการตรวจ QC">
                                     <i class="ph ph-file-csv text-emerald-500 text-sm"></i>
@@ -2707,7 +2713,7 @@
                                     Realtime Live
                                 </span>
                                 <span id="qc-dash-date-indicator" class="text-[11px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/60 border border-border">วันนี้</span>
-                                <button type="button" onclick="app.openSLAConfigModal('step6')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border-blue-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ QC">
+                                <button type="button" onclick="app.openSLAConfigModal('step4')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border-blue-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ QC">
                                     <i class="ph ph-gear-six text-xs"></i>
                                     <span>ตั้งค่า SLA</span>
                                 </button>
@@ -2806,7 +2812,7 @@
                                     </div>
                                 </div>
                                 <div class="flex flex-col items-end gap-2 shrink-0">
-                                    <span onclick="event.stopPropagation(); app.openSLAConfigModal('step6');" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer" title="ตั้งค่าเกณฑ์เวลา SLA Step 6">⚙️ Config</span>
+                                    <span onclick="event.stopPropagation(); app.openSLAConfigModal('step4');" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer" title="ตั้งค่าเกณฑ์เวลา SLA Step 4">⚙️ Config</span>
                                     <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-rose-500 group-hover:translate-x-0.5 transition text-base"></i>
                                 </div>
                             </div>
@@ -2901,14 +2907,14 @@
                                 </div>
                                 <div>
                                     <h4 class="font-display font-bold text-xs sm:text-sm text-foreground flex items-center gap-2">
-                                        คู่มือการทำงาน & สรุปฟีเจอร์สำคัญของขั้นตอน QC (Step 6 SOP & Feature Guide)
+                                        คู่มือการทำงาน & สรุปฟีเจอร์สำคัญของขั้นตอน QC (Step 4 SOP & Feature Guide)
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/25 hidden sm:inline-flex">มาตรฐาน Zero-Defect</span>
                                     </h4>
                                     <p class="text-[11px] text-muted-foreground">ข้อกำหนดเฉพาะงาน Renovate (Advance Draft QC Booking), การประเมินและให้คะแนนงานย่อย BOQ 1-5 ดาว, และเงื่อนไขส่งต่อ CSAT 100%</p>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                                <button type="button" onclick="event.stopPropagation(); app.showStep6TrainingGuide();" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 flex items-center gap-1.5 transition cursor-pointer border border-brand-500/20 shadow-xs" title="คลิกเพื่อเปิดคู่มือฝึกอบรมฉบับสมบูรณ์">
+                                <button type="button" onclick="event.stopPropagation(); app.showStep4TrainingGuide();" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 flex items-center gap-1.5 transition cursor-pointer border border-brand-500/20 shadow-xs" title="คลิกเพื่อเปิดคู่มือฝึกอบรมฉบับสมบูรณ์">
                                     <i class="ph ph-book-open"></i>
                                     <span>อ่านคู่มือฉบับเต็ม</span>
                                 </button>
@@ -3122,20 +3128,21 @@
                     </div>
                 </div>
 
-                <!-- 7. CSAT SURVEY VIEW (ความพึงพอใจลูกค้า CSAT) -->
+                <!-- 7. CSAT SURVEY VIEW (Step 5: ความพึงพอใจลูกค้า CSAT & สัญญา MA) -->
                 <div id="page-csat" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30">Step 5</span>
                                 <span class="text-2xl">⭐</span>
-                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">ความพึงพอใจลูกค้า (CSAT Survey)</h2>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">ความพึงพอใจลูกค้า & สัญญาบริการ MA (CSAT & Services - Step 5)</h2>
                             </div>
-                            <p class="text-xs text-muted-foreground mt-1">Contact Center โทรสอบถามประเมินผลความพึงพอใจ 0-5 ดาว หลังงานผ่าน QC และส่งต่อเข้าสู่บริการหลังการขาย</p>
+                            <p class="text-xs text-muted-foreground mt-1">Contact Center โทรสอบถามประเมินผลความพึงพอใจ 0-5 ดาว หลังงานผ่าน QC และส่งต่อเข้าสู่บริการหลังการขายและสัญญา MA</p>
                         </div>
                         <div class="flex items-center gap-2.5 flex-wrap">
-                            <button onclick="app.showStep7TrainingGuide()" class="btn-artifact-secondary text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border-blue-500/30 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 7 (CSAT & Services)">
+                            <button onclick="app.showStep5TrainingGuide()" class="btn-artifact-secondary text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border-blue-500/30 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 5 (CSAT & Services)">
                                 <i class="ph ph-graduation-cap text-blue-500 text-sm"></i>
-                                <span>คู่มือ Training Step 7</span>
+                                <span>คู่มือ Training Step 5</span>
                             </button>
                             <button onclick="app.seedCSATDemoJobs()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 shadow-xs cursor-pointer" title="จำลองข้อมูลงานผ่าน QC เข้าสู่ CSAT เพื่อทดสอบระบบ">
                                 <i class="ph ph-sparkle-fill text-amber-500"></i>
@@ -3710,180 +3717,180 @@
                         <!-- 9 Modules Cards Grid -->
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                             <!-- Module 1: Step 1 -->
-                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-brand-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-indigo-500/40 transition-all space-y-3 flex flex-col justify-between group">
                                 <div class="space-y-2">
                                     <div class="flex items-center justify-between">
                                         <span class="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-mono text-[10px] font-bold border border-indigo-500/20">TRN-PMT-STEP01</span>
-                                        <span class="text-[10px] text-muted-foreground font-mono">Module 1 (Unified)</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Step 1 (Studio)</span>
                                     </div>
-                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-brand-500 transition">Step 1: ศูนย์รับ Order, Design & BOQ</h4>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-indigo-600 transition">Step 1: ศูนย์รับ Order, Design & BOQ</h4>
                                     <p class="text-[11px] text-muted-foreground leading-relaxed">All-in-One Studio: รับ Order, แนบแบบแปลน CAD/3D, คิดราคา BOQ ครบจบในหน้าต่างเดียว พร้อม 1-Click Hand-off</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
                                     <button onclick="app.navigate('jobs')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
                                     </button>
-                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step1_คิวงานรับคำสั่งซื้อใหม่.md', 'โมดูล 1: Step 1 — ศูนย์รับ Order, Design & BOQ Studio')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-[11px] font-semibold text-brand-600 dark:text-brand-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step1_คิวงานรับคำสั่งซื้อใหม่.md', 'โมดูล 1: Step 1 — ศูนย์รับ Order, Design & BOQ Studio')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-book-open"></i> อ่านคู่มือ
                                     </button>
                                 </div>
                             </div>
 
                             <!-- Module 2: Step 2 -->
-                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-indigo-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-emerald-500/40 transition-all space-y-3 flex flex-col justify-between group">
                                 <div class="space-y-2">
                                     <div class="flex items-center justify-between">
-                                        <span class="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-mono text-[10px] font-bold border border-indigo-500/20">TRN-PMT-STEP02</span>
-                                        <span class="text-[10px] text-muted-foreground font-mono">Module 2</span>
+                                        <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono text-[10px] font-bold border border-emerald-500/20">TRN-PMT-STEP02</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Step 2 (Tickets)</span>
                                     </div>
-                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-indigo-500 transition">Step 2: คลังแบบแปลนติดตั้ง</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">ศูนย์รวมแบบ CAD/PDF, Multi-zone แยกห้อง (รองรับทั้งจัดการผ่าน Studio ใน Step 1 หรือหน้าคลังแบบรวม)</p>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-emerald-600 transition">Step 2: บันทึก Ticket & ใบเสร็จ</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">เปิด Work Ticket, ซิงค์จองช่าง INT, แนบสลิปเงินโอน (งาน Quick ข้ามเข้า QC Online ทันที / Renovate เข้า Step 3)</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
-                                    <button onclick="app.navigate('blueprints')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                    <button onclick="app.navigate('tickets')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
                                     </button>
-                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step2_บันทึกแบบแปลนติดตั้ง.md', 'โมดูล 2: Step 2 — บันทึกแบบแปลนติดตั้ง')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step4_บันทึกTicketและใบเสร็จ.md', 'โมดูล 2: Step 2 — บันทึก Ticket & ใบเสร็จ')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-book-open"></i> อ่านคู่มือ
                                     </button>
                                 </div>
                             </div>
 
                             <!-- Module 3: Step 3 -->
-                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-purple-500/40 transition-all space-y-3 flex flex-col justify-between group">
-                                <div class="space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <span class="px-2 py-0.5 rounded bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono text-[10px] font-bold border border-purple-500/20">TRN-PMT-STEP03</span>
-                                        <span class="text-[10px] text-muted-foreground font-mono">Module 3</span>
-                                    </div>
-                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-purple-500 transition">Step 3: คลังรายการ BOQ & คิดราคา</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">นำเข้า Excel/vFIX, ตารางแยกค่าแรง-วัสดุ, VAT 7% (รองรับทั้งจัดทำใน Studio Step 1 หรือหน้าคลังรวม)</p>
-                                </div>
-                                <div class="pt-2 border-t border-border flex items-center gap-2">
-                                    <button onclick="app.navigate('boq')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
-                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
-                                    </button>
-                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step3_นำBOQเข้าระบบ.md', 'โมดูล 3: Step 3 — นำ BOQ เข้าระบบ')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-[11px] font-semibold text-purple-600 dark:text-purple-400 flex items-center justify-center gap-1 cursor-pointer transition">
-                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Module 4: Step 4 -->
-                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-emerald-500/40 transition-all space-y-3 flex flex-col justify-between group">
-                                <div class="space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono text-[10px] font-bold border border-emerald-500/20">TRN-PMT-STEP04</span>
-                                        <span class="text-[10px] text-muted-foreground font-mono">Module 4</span>
-                                    </div>
-                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-emerald-500 transition">Step 4: บันทึก Ticket & ใบเสร็จ</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">เปิด Work Ticket, ซิงค์จองช่าง INT, แนบสลิปเงินโอน (งาน Quick ข้ามเข้า QC Online ทันที / Renovate เข้า Step 5)</p>
-                                </div>
-                                <div class="pt-2 border-t border-border flex items-center gap-2">
-                                    <button onclick="app.navigate('tickets')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
-                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
-                                    </button>
-                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step4_บันทึกTicketและใบเสร็จ.md', 'โมดูล 4: Step 4 — บันทึก Ticket & ใบเสร็จ')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1 cursor-pointer transition">
-                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Module 5: Step 5 -->
                             <div class="artifact-card p-4 rounded-2xl border border-border hover:border-amber-500/40 transition-all space-y-3 flex flex-col justify-between group">
                                 <div class="space-y-2">
                                     <div class="flex items-center justify-between">
-                                        <span class="px-2 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono text-[10px] font-bold border border-amber-500/20">TRN-PMT-STEP05</span>
-                                        <span class="text-[10px] text-muted-foreground font-mono">Module 5</span>
+                                        <span class="px-2 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono text-[10px] font-bold border border-amber-500/20">TRN-PMT-STEP03</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Step 3 (Gantt)</span>
                                     </div>
-                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-amber-500 transition">Step 5: บันทึก BOQ เข้า Project & Gantt</h4>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-amber-600 transition">Step 3: บันทึก BOQ เข้า Project & Gantt</h4>
                                     <p class="text-[11px] text-muted-foreground leading-relaxed">Labor-to-Task Rule สำหรับงาน Renovate, คำนวณวันเริ่ม-จบ, มอบหมายช่าง, Gantt Timeline (งาน Quick ข้ามขั้นตอนนี้)</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
                                     <button onclick="app.navigate('project-conversion')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
                                     </button>
-                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step5_บันทึกBOQเข้าProjectและGantt.md', 'โมดูล 5: Step 5 — บันทึก BOQ เข้า Project')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-[11px] font-semibold text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step5_บันทึกBOQเข้าProjectและGantt.md', 'โมดูล 3: Step 3 — บันทึก BOQ เข้า Project & Gantt')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-[11px] font-semibold text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-book-open"></i> อ่านคู่มือ
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Module 6: QC Inspection -->
+                            <!-- Module 4: Step 4 (QC) -->
                             <div class="artifact-card p-4 rounded-2xl border border-border hover:border-teal-500/40 transition-all space-y-3 flex flex-col justify-between group">
                                 <div class="space-y-2">
                                     <div class="flex items-center justify-between">
-                                        <span class="px-2 py-0.5 rounded bg-teal-500/15 text-teal-600 dark:text-teal-400 font-mono text-[10px] font-bold border border-teal-500/20">TRN-PMT-QC01</span>
-                                        <span class="text-[10px] text-muted-foreground font-mono">Module 6</span>
+                                        <span class="px-2 py-0.5 rounded bg-teal-500/15 text-teal-600 dark:text-teal-400 font-mono text-[10px] font-bold border border-teal-500/20">TRN-PMT-STEP04</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Step 4 (QC)</span>
                                     </div>
-                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-teal-500 transition">Step 6: ตรวจคุณภาพ QC & จองช่าง Renovate</h4>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-teal-600 transition">Step 4: ตรวจรับรองคุณภาพ (QC)</h4>
                                     <p class="text-[11px] text-muted-foreground leading-relaxed">ตรวจ QC Online งานด่วน (รูป Visit Plan), จองคิวช่าง Renovate 24-Hr, ให้คะแนนงานย่อย BOQ 1-5 ดาว, Gating ส่งต่อ CSAT 100%</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
                                     <button onclick="app.navigate('qc')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
                                     </button>
-                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step6_ตรวจรับรองคุณภาพQC.md', 'โมดูล 6: คู่มือการควบคุมคุณภาพและการจองช่าง QC (Step 6)')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-[11px] font-semibold text-teal-600 dark:text-teal-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step6_ตรวจรับรองคุณภาพQC.md', 'โมดูล 4: คู่มือการควบคุมคุณภาพและการจองช่าง QC (Step 4)')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-[11px] font-semibold text-teal-600 dark:text-teal-400 flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-book-open"></i> อ่านคู่มือ
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Module 7: CSAT & MA Contracts -->
+                            <!-- Module 5: Step 5 (CSAT & MA) -->
                             <div class="artifact-card p-4 rounded-2xl border border-border hover:border-blue-500/40 transition-all space-y-3 flex flex-col justify-between group">
                                 <div class="space-y-2">
                                     <div class="flex items-center justify-between">
-                                        <span class="px-2 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 font-mono text-[10px] font-bold border border-blue-500/20">TRN-PMT-CSAT01</span>
-                                        <span class="text-[10px] text-muted-foreground font-mono">Module 7</span>
+                                        <span class="px-2 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 font-mono text-[10px] font-bold border border-blue-500/20">TRN-PMT-STEP05</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Step 5 (CSAT/MA)</span>
                                     </div>
-                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-blue-500 transition">CSAT, สัญญา MA & ปิดงาน BMT</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">ประเมิน 5 ดาว, สัญญาบำรุงรักษา MA ล้างแอร์ 3-4 รอบ/ปี, Close Job ซิงค์ BMT</p>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-blue-600 transition">Step 5: ประเมิน CSAT & สัญญา MA</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">ประเมิน 5 ดาว, สัญญาบำรุงรักษา MA ล้างแอร์ 3-4 รอบ/ปี, Close Job ซิงค์ระบบ BMT</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
                                     <button onclick="app.navigate('csat')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
                                     </button>
-                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step7_CSATและบริการหลังการขาย.md', 'โมดูล 7: CSAT และบริการหลังการขาย')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-[11px] font-semibold text-blue-600 dark:text-blue-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step7_CSATและบริการหลังการขาย.md', 'โมดูล 5: Step 5 — CSAT และบริการหลังการขาย')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-[11px] font-semibold text-blue-600 dark:text-blue-400 flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-book-open"></i> อ่านคู่มือ
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Module 8: Dashboard & User Management -->
+                            <!-- Module 6: Central Blueprints -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-indigo-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-mono text-[10px] font-bold border border-indigo-500/20">TRN-PMT-CAD01</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">คลังกลาง</span>
+                                    </div>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-indigo-500 transition">คลังแบบแปลนกลาง (CAD Library)</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">ศูนย์รวมแบบ CAD/PDF, Multi-zone แยกห้อง และประวัติเวอร์ชันแบบแปลนทุกโครงการ</p>
+                                </div>
+                                <div class="pt-2 border-t border-border flex items-center gap-2">
+                                    <button onclick="app.navigate('blueprints')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
+                                    </button>
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step2_บันทึกแบบแปลนติดตั้ง.md', 'โมดูล 6: คลังแบบแปลนกลาง')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Module 7: Central BOQ -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-purple-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono text-[10px] font-bold border border-purple-500/20">TRN-PMT-BOQ01</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">คลังกลาง</span>
+                                    </div>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-purple-500 transition">คลังรายการ BOQ กลาง</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">นำเข้า Excel/vFIX, ตารางแยกค่าแรง-วัสดุ, VAT 7% พร้อมระบบ Export และ Audit ทุกโครงการ</p>
+                                </div>
+                                <div class="pt-2 border-t border-border flex items-center gap-2">
+                                    <button onclick="app.navigate('boq')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
+                                    </button>
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step3_นำBOQเข้าระบบ.md', 'โมดูล 7: คลังรายการ BOQ กลาง')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-[11px] font-semibold text-purple-600 dark:text-purple-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Module 8: Daily Logs & Check-in -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-cyan-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-mono text-[10px] font-bold border border-cyan-500/20">TRN-PMT-LOG01</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">การปฏิบัติงาน</span>
+                                    </div>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-cyan-500 transition">บันทึกงานช่างประจำวัน & GPS</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">Geo-fence 400 เมตร, เวลาเข้า-ออก 24-Hr, มาตรฐานรูปถ่ายหน้างาน 5 รูป</p>
+                                </div>
+                                <div class="pt-2 border-t border-border flex items-center gap-2">
+                                    <button onclick="app.navigate('daily-logs')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
+                                    </button>
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_การเข้าหน้างานและCheckIn.md', 'โมดูล 8: บันทึกงานช่างและการ Check-in')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Module 9: Dashboard & User Management -->
                             <div class="artifact-card p-4 rounded-2xl border border-border hover:border-rose-500/40 transition-all space-y-3 flex flex-col justify-between group">
                                 <div class="space-y-2">
                                     <div class="flex items-center justify-between">
                                         <span class="px-2 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400 font-mono text-[10px] font-bold border border-rose-500/20">TRN-PMT-SYS01</span>
-                                        <span class="text-[10px] text-muted-foreground font-mono">Module 8</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">การจัดการระบบ</span>
                                     </div>
                                     <h4 class="font-display font-bold text-xs text-foreground group-hover:text-rose-500 transition">แดชบอร์ดภาพรวม & จัดการผู้ใช้</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">วิเคราะห์สถิติ KPI ผู้บริหาร, จัดการบัญชีผู้ใช้, สิทธิ์ RBAC 6 ระดับ, Audit Logs</p>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">วิเคราะห์สถิติ KPI ผู้บริหาร, จัดการบัญชีผู้ใช้, สิทธิ์ RBAC 4 บทบาท, Login Logs</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
                                     <button onclick="app.navigate('dashboard')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
                                     </button>
-                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_แดชบอร์ดและจัดการผู้ใช้งาน.md', 'โมดูล 8: แดชบอร์ดและจัดการผู้ใช้งาน')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center justify-center gap-1 cursor-pointer transition">
-                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Module 9: Site Check-in & Photos -->
-                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-sky-500/40 transition-all space-y-3 flex flex-col justify-between group">
-                                <div class="space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <span class="px-2 py-0.5 rounded bg-sky-500/15 text-sky-600 dark:text-sky-400 font-mono text-[10px] font-bold border border-sky-500/20">TRN-PMT-SITE01</span>
-                                        <span class="text-[10px] text-muted-foreground font-mono">Module 9</span>
-                                    </div>
-                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-sky-500 transition">รายละเอียดงาน & GPS Check-in</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">Geo-fence 400 เมตร, Timestamp เวลาเข้า-ออก, มาตรฐานรูปถ่ายหน้างาน 5 รูป</p>
-                                </div>
-                                <div class="pt-2 border-t border-border flex items-center gap-2">
-                                    <button onclick="app.navigate('jobs')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
-                                        <i class="ph ph-arrow-square-out"></i> ไปหน้ารายการ
-                                    </button>
-                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_การเข้าหน้างานและCheckIn.md', 'โมดูล 9: รายละเอียดงานและการ Check-in')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-[11px] font-semibold text-sky-600 dark:text-sky-400 flex items-center justify-center gap-1 cursor-pointer transition">
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_แดชบอร์ดและจัดการผู้ใช้งาน.md', 'โมดูล 9: แดชบอร์ดและจัดการผู้ใช้งาน')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-book-open"></i> อ่านคู่มือ
                                     </button>
                                 </div>
@@ -3891,139 +3898,91 @@
                         </div>
                     </div>
 
-                    <!-- Step-by-Step Lifecycle Progression (8 Steps) -->
+                    <!-- Step-by-Step Lifecycle Progression (5 Steps Pipeline) -->
                     <div class="space-y-4">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <span class="w-2.5 h-2.5 rounded-full bg-brand-500 animate-pulse"></span>
-                                <h3 class="font-display text-base font-bold text-foreground">ขั้นตอนและสถานะของระบบ (End-to-End Workflow: Step 1 - Step 8)</h3>
+                                <h3 class="font-display text-base font-bold text-foreground">ขั้นตอนและสถานะของระบบ (End-to-End 5-Step Pipeline)</h3>
                             </div>
-                            <span class="text-xs text-muted-foreground font-mono">Total: 8 Steps Process</span>
+                            <span class="text-xs text-muted-foreground font-mono">Total: 5 Steps Pipeline</span>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <!-- Step 1 -->
-                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-brand-500/50 transition-all space-y-3 relative group">
+                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-indigo-500/50 transition-all space-y-3 relative group">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-2.5">
-                                        <div class="w-8 h-8 rounded-xl bg-zinc-500/15 text-zinc-600 dark:text-zinc-300 font-mono font-bold text-xs flex items-center justify-center border border-zinc-500/20">01</div>
-                                        <h4 class="font-display font-bold text-sm text-foreground">รับ Order ขาเข้า & เปิดงานใหม่</h4>
+                                        <div class="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-mono font-bold text-xs flex items-center justify-center border border-indigo-500/20">01</div>
+                                        <h4 class="font-display font-bold text-sm text-foreground">ศูนย์รับ Order, Design & BOQ</h4>
                                     </div>
-                                    <span class="status-pill status-draft font-mono text-[10px]">DRAFT (0%)</span>
+                                    <span class="status-pill status-draft font-mono text-[10px]">DRAFT (0-45%)</span>
                                 </div>
-                                <p class="text-xs text-muted-foreground leading-relaxed">รับข้อมูลใบสั่งงานจากระบบ INT ผ่าน Inbound Integration API หรือทีม AE/ผู้ดูแลระบบกด "สร้างงานใหม่" บันทึกข้อมูลลูกค้า, พิกัด GPS, ทีมช่าง และวันนัดหมาย</p>
+                                <p class="text-xs text-muted-foreground leading-relaxed">รับ Order จาก INT, จัดทำและแนบแบบแปลน CAD/PDF และนำเข้าประมาณการราคา BOQ vFIX ใน All-in-One Studio เดียวกัน</p>
                                 <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
-                                    <span class="flex items-center gap-1"><i class="ph ph-user-circle text-brand-500"></i> ผู้รับผิดชอบ: INT / AE / Admin</span>
-                                    <span class="font-mono text-zinc-500">เริ่มต้น 0%</span>
+                                    <span class="flex items-center gap-1"><i class="ph ph-user-circle text-indigo-500"></i> ผู้รับผิดชอบ: INT / AE / PM</span>
+                                    <span class="font-mono text-indigo-600 dark:text-indigo-400">All-in-One Studio</span>
                                 </div>
                             </div>
 
                             <!-- Step 2 -->
-                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-brand-500/50 transition-all space-y-3 relative group">
+                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-emerald-500/50 transition-all space-y-3 relative group">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-2.5">
-                                        <div class="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 font-mono font-bold text-xs flex items-center justify-center border border-sky-500/20">02</div>
-                                        <h4 class="font-display font-bold text-sm text-foreground">สำรวจหน้างาน & GPS Check-in</h4>
+                                        <div class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono font-bold text-xs flex items-center justify-center border border-emerald-500/20">02</div>
+                                        <h4 class="font-display font-bold text-sm text-foreground">บันทึก Ticket & แนบใบเสร็จ</h4>
                                     </div>
-                                    <span class="status-pill status-draft font-mono text-[10px] bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20">SURVEYED (15%)</span>
+                                    <span class="status-pill status-draft font-mono text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">TICKET (60%)</span>
                                 </div>
-                                <p class="text-xs text-muted-foreground leading-relaxed">ทีมช่างเข้าพื้นที่หน้างาน ทำการ Check-in ตรวจสอบพิกัด GPS (ต้องอยู่ภายในรัศมีไม่เกิน 400 เมตร) และถ่ายรูปภาพสำรวจหน้างานจริงอย่างน้อย 5 รูป พร้อมบันทึกคำสั่งพิเศษ</p>
+                                <p class="text-xs text-muted-foreground leading-relaxed">เปิด Work Ticket, ซิงค์จองช่าง INT, แนบสลิปเงินโอน (งาน Quick ข้ามเข้าตรวจ QC Online ทันที / งาน Renovate เข้าสู่ Step 3 แปลงเข้า Gantt)</p>
                                 <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
-                                    <span class="flex items-center gap-1"><i class="ph ph-wrench text-sky-500"></i> ผู้รับผิดชอบ: ทีมช่างหน้างาน</span>
-                                    <span class="font-mono text-sky-600 dark:text-sky-400">รูปภาพ >= 5 รูป</span>
+                                    <span class="flex items-center gap-1"><i class="ph ph-receipt text-emerald-500"></i> ผู้รับผิดชอบ: Contact Center / AE</span>
+                                    <span class="font-mono text-emerald-600 dark:text-emerald-400">Ticket & Slips</span>
                                 </div>
                             </div>
 
                             <!-- Step 3 -->
-                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-brand-500/50 transition-all space-y-3 relative group">
+                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-amber-500/50 transition-all space-y-3 relative group">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-2.5">
-                                        <div class="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-mono font-bold text-xs flex items-center justify-center border border-indigo-500/20">03</div>
-                                        <h4 class="font-display font-bold text-sm text-foreground">จัดทำแบบแปลนติดตั้ง (Blueprints)</h4>
+                                        <div class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold text-xs flex items-center justify-center border border-amber-500/20">03</div>
+                                        <h4 class="font-display font-bold text-sm text-foreground">บันทึก BOQ เข้า Project (Gantt)</h4>
                                     </div>
-                                    <span class="status-pill status-draft font-mono text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">DESIGN (30%)</span>
+                                    <span class="status-pill status-in-progress font-mono text-[10px]">IN_PROGRESS (80%)</span>
                                 </div>
-                                <p class="text-xs text-muted-foreground leading-relaxed">สถาปนิก/วิศวกรจัดทำและอัปโหลดแบบแปลนงานติดตั้ง (AutoCAD, PDF, Layout Image) พร้อมควบคุม Versioning (Draft, Approved, Final) ให้ช่างหน้างานเปิดดูแบบได้ Real-time</p>
+                                <p class="text-xs text-muted-foreground leading-relaxed">สำหรับงาน Renovate: แปลงเฉพาะรายการ <strong>"ค่าแรง/งานบริการ" (Labor-to-Task)</strong> เข้าสู่แผนงาน Gantt Timeline กำหนดวันเริ่ม-จบ และมอบหมายช่าง</p>
                                 <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
-                                    <span class="flex items-center gap-1"><i class="ph ph-compass-tool text-indigo-500"></i> ผู้รับผิดชอบ: Designer / Engineer</span>
-                                    <span class="font-mono text-indigo-600 dark:text-indigo-400">CAD / PDF Layout</span>
+                                    <span class="flex items-center gap-1"><i class="ph ph-calendar-check text-amber-500"></i> ผู้รับผิดชอบ: Project Planner / PM</span>
+                                    <span class="font-mono text-amber-600 dark:text-amber-400">Labor-to-Task</span>
                                 </div>
                             </div>
 
                             <!-- Step 4 -->
-                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-brand-500/50 transition-all space-y-3 relative group">
+                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-teal-500/50 transition-all space-y-3 relative group">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-2.5">
-                                        <div class="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono font-bold text-xs flex items-center justify-center border border-purple-500/20">04</div>
-                                        <h4 class="font-display font-bold text-sm text-foreground">บันทึกรายการ BOQ & ใบเสนอราคา</h4>
+                                        <div class="w-8 h-8 rounded-xl bg-teal-500/15 text-teal-600 dark:text-teal-400 font-mono text-[10px] font-bold border border-teal-500/20">04</div>
+                                        <h4 class="font-display font-bold text-sm text-foreground">ตรวจรับรองคุณภาพ (QC Inspection)</h4>
                                     </div>
-                                    <span class="status-pill status-draft font-mono text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">BOQ (45%)</span>
+                                    <span class="status-pill status-qc-passed font-mono text-[10px]">QC_PASSED (100%)</span>
                                 </div>
-                                <p class="text-xs text-muted-foreground leading-relaxed">นำเข้าไฟล์ใบเสนอราคา vFIX (.xlsx / .xls / .csv) สกัดรายการวัสดุและค่าแรงอัตโนมัติ คำนวณยอดรวม Subtotal, ส่วนลด และภาษีมูลค่าเพิ่ม VAT 7% บันทึกบนระบบ PMT</p>
+                                <p class="text-xs text-muted-foreground leading-relaxed">ตรวจรับรอง 2 รูปแบบ: <strong>1) Quick Services</strong> ตรวจแบบ Online ผ่านรูปถ่าย Visit Plan <strong>2) Renovate</strong> ตรวจ On-site พร้อมให้คะแนนงานย่อย BOQ 1-5 ดาว</p>
                                 <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
-                                    <span class="flex items-center gap-1"><i class="ph ph-receipt text-purple-500"></i> ผู้รับผิดชอบ: PMT Coordinator / AE</span>
-                                    <span class="font-mono text-purple-600 dark:text-purple-400">vFIX Ingestion</span>
+                                    <span class="flex items-center gap-1"><i class="ph ph-shield-check text-teal-500"></i> ผู้รับผิดชอบ: QC Inspector / Lead</span>
+                                    <span class="font-mono text-teal-600 dark:text-teal-400">Online & On-site QC</span>
                                 </div>
                             </div>
 
                             <!-- Step 5 -->
-                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-brand-500/50 transition-all space-y-3 relative group">
+                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-blue-500/50 transition-all space-y-3 relative group col-span-1 md:col-span-2 lg:col-span-2">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-2.5">
-                                        <div class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold text-xs flex items-center justify-center border border-amber-500/20">05</div>
-                                        <h4 class="font-display font-bold text-sm text-foreground">จัดแผนงาน Gantt & วันเวลาเริ่ม-จบ</h4>
-                                    </div>
-                                    <span class="status-pill status-in-progress font-mono text-[10px]">IN_PROGRESS (60%)</span>
-                                </div>
-                                <p class="text-xs text-muted-foreground leading-relaxed">สำหรับงาน Renovate: แปลงเฉพาะรายการ <strong>"ค่าแรง/งานบริการ" (Labor Items Only)</strong> เข้าสู่แผนงาน Gantt Timeline อัตโนมัติ (คัดกรองค่าวัสดุออก) ระบุวันเวลาเริ่ม-สิ้นสุด และมอบหมายช่าง (ส่วนงาน Quick Services ระบบจะข้ามขั้นตอนนี้และส่งตรงไปยัง QC Online ทันทีที่บันทึกจ่ายเงิน)</p>
-                                <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
-                                    <span class="flex items-center gap-1"><i class="ph ph-calendar-check text-amber-500"></i> ผู้รับผิดชอบ: Project Planner / หัวหน้าช่าง</span>
-                                    <span class="font-mono text-amber-600 dark:text-amber-400">Labor-to-Task Rule</span>
-                                </div>
-                            </div>
-
-                            <!-- Step 6 -->
-                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-brand-500/50 transition-all space-y-3 relative group">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-2.5">
-                                        <div class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold text-xs flex items-center justify-center border border-amber-500/20">06</div>
-                                        <h4 class="font-display font-bold text-sm text-foreground">ติดตั้งหน้างาน & ส่งตรวจรับงาน</h4>
-                                    </div>
-                                    <span class="status-pill status-qc-pending font-mono text-[10px]">QC_PENDING (85%)</span>
-                                </div>
-                                <p class="text-xs text-muted-foreground leading-relaxed">ทีมช่างดำเนินการติดตั้งจริงตามแบบแปลนและมาตรฐานวิศวกรรม เมื่อติดตั้งเสร็จสิ้นจะทำการถ่ายภาพผลงานและส่งเรื่องขอยื่นตรวจรับคุณภาพ (QC Inspection Queue)</p>
-                                <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
-                                    <span class="flex items-center gap-1"><i class="ph ph-hammer text-amber-500"></i> ผู้รับผิดชอบ: ช่างติดตั้งหน้างาน</span>
-                                    <span class="font-mono text-amber-600 dark:text-amber-400">ยื่นรอตรวจ QC</span>
-                                </div>
-                            </div>
-
-                            <!-- Step 7 -->
-                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-brand-500/50 transition-all space-y-3 relative group">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-2.5">
-                                        <div class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono font-bold text-xs flex items-center justify-center border border-emerald-500/20">07</div>
-                                        <h4 class="font-display font-bold text-sm text-foreground">ตรวจประเมินคุณภาพ (QC Inspection)</h4>
-                                    </div>
-                                    <span class="status-pill status-qc-passed font-mono text-[10px]">QC_PASSED (100%)</span>
-                                </div>
-                                <p class="text-xs text-muted-foreground leading-relaxed">ตรวจรับรอง 2 รูปแบบ: <strong>1) Quick Services</strong> ตรวจแบบ Online ผ่านรูปถ่าย Visit Plan 5 หมวดหมู่ <strong>2) Renovate</strong> ตรวจ On-site พร้อมให้คะแนนงานย่อย BOQ 1-5 ดาว เมื่อประเมินผ่าน 100% จึงส่งต่อไปยัง CSAT</p>
-                                <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
-                                    <span class="flex items-center gap-1"><i class="ph ph-shield-check text-emerald-500"></i> ผู้รับผิดชอบ: เจ้าหน้าที่ QC Inspector</span>
-                                    <span class="font-mono text-emerald-600 dark:text-emerald-400">Online & On-site QC</span>
-                                </div>
-                            </div>
-
-                            <!-- Step 8 -->
-                            <div class="artifact-card p-5 rounded-2xl border border-border hover:border-brand-500/50 transition-all space-y-3 relative group">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-2.5">
-                                        <div class="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 font-mono font-bold text-xs flex items-center justify-center border border-blue-500/20">08</div>
-                                        <h4 class="font-display font-bold text-sm text-foreground">CSAT, ปิดงาน BMT & สัญญา MA</h4>
+                                        <div class="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 font-mono font-bold text-xs flex items-center justify-center border border-blue-500/20">05</div>
+                                        <h4 class="font-display font-bold text-sm text-foreground">ประเมิน CSAT, ปิดงาน BMT & สัญญา MA</h4>
                                     </div>
                                     <span class="status-pill status-after-sale font-mono text-[10px]">AFTER_SALE / CLOSED</span>
                                 </div>
-                                <p class="text-xs text-muted-foreground leading-relaxed">Contact Center สำรวจความพึงพอใจลูกค้า (CSAT), ส่งสัญญาณปิดงานไปยังระบบ BMT, และดูแลสัญญาบำรุงรักษาประจำปี (MA Contracts 3-4 รอบ/ปี) พร้อมแจ้งเตือนรอบบริการ</p>
+                                <p class="text-xs text-muted-foreground leading-relaxed">Contact Center สำรวจความพึงพอใจลูกค้า (CSAT 0-5 ดาว), ส่งสัญญาณปิดงานไปยังระบบ BMT, และดูแลสัญญาบำรุงรักษาต่อเนื่องประจำปี (MA Contracts 3-4 รอบ/ปี)</p>
                                 <div class="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
                                     <span class="flex items-center gap-1"><i class="ph ph-sparkle text-blue-500"></i> ผู้รับผิดชอบ: Contact Center & Service Team</span>
                                     <span class="font-mono text-blue-600 dark:text-blue-400">BMT Handoff & MA</span>
@@ -7741,11 +7700,11 @@
 
     <!-- APPLICATION JAVASCRIPT LOGIC -->
     <!-- APPLICATION SCRIPTS -->
-    <script src="./public/js/db.js?v=1.6.0"></script>
-    <script src="./public/js/auth.js?v=1.6.0"></script>
-    <script src="./public/js/app.js?v=1.6.1"></script>
-    <script src="./public/js/userMgmt.js?v=1.6.0"></script>
-    <script src="./public/js/app.hooks.js?v=1.6.0"></script>
+    <script src="./public/js/db.js?v=1.6.3"></script>
+    <script src="./public/js/auth.js?v=1.6.3"></script>
+    <script src="./public/js/app.js?v=1.6.3"></script>
+    <script src="./public/js/userMgmt.js?v=1.6.3"></script>
+    <script src="./public/js/app.hooks.js?v=1.6.3"></script>
 
 </body>
 </html>
