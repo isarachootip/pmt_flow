@@ -3266,31 +3266,130 @@ const app = {
                 const bps = (DB.blueprints || []).filter(b => b.jobId === jobId);
                 const boqItems = job.boq_items || [];
                 const grandTotal = job.boq_grand_total || 0;
+                const hasBOQ = boqItems.length > 0;
+                const isQuick = this.isQuickJob(job);
 
+                // Step 1: Intake Indicator
                 const descIntake = document.getElementById('unified-ind-intake-desc');
                 if (descIntake) descIntake.innerText = `${job.customer || 'รับข้อมูลแล้ว'} • ${job.service || ''}`;
 
+                // Step 2: Design Indicator
+                const indDesign = document.getElementById('unified-step-design-ind');
+                const badgeDesign = document.getElementById('unified-step-design-badge');
+                const titleDesign = document.getElementById('unified-step-design-title');
                 const descDesign = document.getElementById('unified-ind-design-desc');
-                if (descDesign) descDesign.innerText = bps.length > 0 ? `แนบแล้ว ${bps.length} แบบ (CAD/PDF)` : 'ยังไม่มีแบบแนบ';
-
-                const descBoq = document.getElementById('unified-ind-boq-desc');
-                if (descBoq) descBoq.innerText = boqItems.length > 0 ? `${boqItems.length} รายการ (฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})` : 'ยังไม่มีรายการ';
-
-                const validationMsg = document.getElementById('unified-modal-validation-msg');
-                const proceedBtnText = document.getElementById('unified-modal-proceed-btn-text');
-                const isQuick = this.isQuickJob(job);
-
-                if (proceedBtnText) {
-                    proceedBtnText.innerText = isQuick ? '🚀 อนุมัติ & ออก Ticket ด่วน (Step 4)' : '🚀 อนุมัติ & แปลงเข้า Gantt (Step 5)';
+                if (descDesign) {
+                    if (bps.length > 0) {
+                        descDesign.innerText = `แนบแล้ว ${bps.length} แบบ (CAD/PDF)`;
+                        if (indDesign) indDesign.className = 'flex items-center gap-2 p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300';
+                        if (badgeDesign) {
+                            badgeDesign.className = 'w-6 h-6 rounded-lg bg-emerald-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0';
+                            badgeDesign.innerHTML = '✓';
+                        }
+                    } else if (isQuick) {
+                        descDesign.innerText = '⚡ ยกเว้นแบบแปลน (Quick Service)';
+                        if (indDesign) indDesign.className = 'flex items-center gap-2 p-2 rounded-xl bg-muted/40 border border-border text-muted-foreground';
+                        if (badgeDesign) {
+                            badgeDesign.className = 'w-6 h-6 rounded-lg bg-muted text-muted-foreground text-[11px] font-bold flex items-center justify-center shrink-0';
+                            badgeDesign.innerText = '2';
+                        }
+                    } else {
+                        descDesign.innerText = 'ยังไม่มีแบบแนบ';
+                        if (indDesign) indDesign.className = 'flex items-center gap-2 p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-700 dark:text-indigo-300';
+                        if (badgeDesign) {
+                            badgeDesign.className = 'w-6 h-6 rounded-lg bg-indigo-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0';
+                            badgeDesign.innerText = '2';
+                        }
+                    }
                 }
 
-                if (validationMsg) {
-                    if (bps.length > 0 && boqItems.length > 0) {
-                        validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ ข้อมูลครบทั้ง 3 มิติ (Intake + Design + BOQ) พร้อมส่งต่อไปยังขั้นตอนถัดไป</span>';
-                    } else if (bps.length === 0 && !isQuick) {
-                        validationMsg.innerHTML = '<span class="text-amber-600 dark:text-amber-400">⚠️ งาน Renovate แนะนำให้แนบแบบแปลนอย่างน้อย 1 โซนก่อนส่งมอบ</span>';
+                // Step 3: BOQ Indicator (Strict Status: ผ่าน vs ยังไม่ผ่าน)
+                const indBoq = document.getElementById('unified-step-boq-ind');
+                const badgeBoq = document.getElementById('unified-step-boq-badge');
+                const titleBoq = document.getElementById('unified-step-boq-title');
+                const descBoq = document.getElementById('unified-ind-boq-desc');
+                if (descBoq) {
+                    if (hasBOQ) {
+                        descBoq.innerText = `${boqItems.length} รายการ (฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})`;
+                        if (indBoq) indBoq.className = 'flex items-center gap-2 p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300';
+                        if (badgeBoq) {
+                            badgeBoq.className = 'w-6 h-6 rounded-lg bg-emerald-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0';
+                            badgeBoq.innerHTML = '✓';
+                        }
+                        if (titleBoq) titleBoq.innerHTML = '3. ประมาณการ BOQ <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold ml-1">(ผ่านแล้ว ✓)</span>';
+                    } else if (isQuick) {
+                        descBoq.innerText = '⚡ ไม่บังคับ BOQ (Quick Service)';
+                        if (indBoq) indBoq.className = 'flex items-center gap-2 p-2 rounded-xl bg-muted/40 border border-border text-muted-foreground';
+                        if (badgeBoq) {
+                            badgeBoq.className = 'w-6 h-6 rounded-lg bg-muted text-muted-foreground text-[11px] font-bold flex items-center justify-center shrink-0';
+                            badgeBoq.innerText = '3';
+                        }
+                        if (titleBoq) titleBoq.innerText = '3. ประมาณการ BOQ';
                     } else {
-                        validationMsg.innerText = 'ข้อมูลคำสั่งซื้อพร้อมบันทึก';
+                        descBoq.innerText = 'ยังไม่มีรายการ (ต้องจัดทำ BOQ)';
+                        if (indBoq) indBoq.className = 'flex items-center gap-2 p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400';
+                        if (badgeBoq) {
+                            badgeBoq.className = 'w-6 h-6 rounded-lg bg-rose-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0';
+                            badgeBoq.innerText = '3';
+                        }
+                        if (titleBoq) titleBoq.innerHTML = '3. ประมาณการ BOQ <span class="text-[10px] text-rose-600 dark:text-rose-400 font-bold ml-1">(ยังไม่ผ่าน ❌)</span>';
+                    }
+                }
+
+                // Proceed Button & Validation Feedback Control
+                const validationMsg = document.getElementById('unified-modal-validation-msg');
+                const statusDot = document.getElementById('unified-modal-status-dot');
+                const proceedBtn = document.getElementById('unified-modal-proceed-btn');
+                const proceedBtnText = document.getElementById('unified-modal-proceed-btn-text');
+
+                if (isQuick) {
+                    // Quick Services: Skip Step 5, jump to Step 4 (Tickets)
+                    if (proceedBtn) {
+                        proceedBtn.disabled = false;
+                        proceedBtn.className = 'flex-1 sm:flex-none btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white cursor-pointer shadow-md transition flex items-center justify-center gap-1.5';
+                        proceedBtn.title = 'อนุมัติคำสั่งซื้อและส่งต่อไปออก Ticket ด่วน (Step 4)';
+                    }
+                    if (proceedBtnText) {
+                        proceedBtnText.innerText = '🚀 อนุมัติ & ออก Ticket ด่วน (Step 4)';
+                    }
+                    if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
+                    if (validationMsg) {
+                        validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ งาน Quick Service พร้อมส่งต่อเปิด Ticket & แนบสลิป (Step 4)</span>';
+                    }
+                } else {
+                    // Renovate Projects: MANDATORY STEP 3 (BOQ) BEFORE STEP 5 (GANTT)
+                    if (!hasBOQ) {
+                        // CANNOT proceed to Step 5 if Step 3 is NOT passed!
+                        if (proceedBtn) {
+                            proceedBtn.disabled = true;
+                            proceedBtn.className = 'flex-1 sm:flex-none px-5 py-2 rounded-xl text-xs font-semibold bg-muted text-muted-foreground border border-border/80 cursor-not-allowed opacity-60 shadow-none transition flex items-center justify-center gap-1.5';
+                            proceedBtn.title = '⚠️ ไม่สามารถย้ายไป Step 5 ได้: คำสั่งซื้อนี้ยังไม่ผ่าน Step 3 (ต้องมีรายการ BOQ อย่างน้อย 1 รายการก่อน)';
+                        }
+                        if (proceedBtnText) {
+                            proceedBtnText.innerText = '🔒 รอผ่าน Step 3 (จัดทำ BOQ ก่อนไป Step 5)';
+                        }
+                        if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse';
+                        if (validationMsg) {
+                            validationMsg.innerHTML = '<span class="text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1"><i class="ph ph-warning-octagon text-sm"></i> ยังไม่ผ่าน Step 3: ต้องมีรายการ BOQ อย่างน้อย 1 รายการก่อน จึงจะสามารถอนุมัติและแปลงเข้าสู่แผนงาน Gantt (Step 5) ได้</span>';
+                        }
+                    } else {
+                        // Step 3 Passed: Allow proceeding to Step 5!
+                        if (proceedBtn) {
+                            proceedBtn.disabled = false;
+                            proceedBtn.className = 'flex-1 sm:flex-none btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white cursor-pointer shadow-md transition flex items-center justify-center gap-1.5';
+                            proceedBtn.title = 'อนุมัติข้อเสนอคำสั่งซื้อและแปลงรายการ BOQ เข้าสู่แผนงาน Gantt (Step 5)';
+                        }
+                        if (proceedBtnText) {
+                            proceedBtnText.innerText = '🚀 อนุมัติ & แปลงเข้า Gantt (Step 5)';
+                        }
+                        if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
+                        if (validationMsg) {
+                            if (bps.length > 0) {
+                                validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ ข้อมูลครบทั้ง 3 มิติ (Intake + Design + BOQ) พร้อมแปลงเข้าสู่แผนงาน Gantt (Step 5)</span>';
+                            } else {
+                                validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ ผ่าน Step 3 (BOQ) เรียบร้อย พร้อมแปลงเข้าสู่แผนงาน Gantt (Step 5)</span> <span class="text-amber-600 text-[10px] font-normal ml-1">(แนะนำแนบแบบแปลนเพิ่มเติม)</span>';
+                            }
+                        }
                     }
                 }
             },
@@ -3359,10 +3458,21 @@ const app = {
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return;
 
+                const isQuick = this.isQuickJob(job);
+                const boqItems = job.boq_items || [];
+
+                // STRICT GATEKEEPER: Renovate MUST pass Step 3 before moving to Step 5!
+                if (!isQuick && boqItems.length === 0) {
+                    this.showToast('⚠️ ไม่สามารถย้ายไป Step 5 ได้: คำสั่งซื้อนี้ยังไม่ผ่าน Step 3 (กรุณาจัดทำหรือนำเข้ารายการ BOQ ในแท็บ 3 ก่อน)');
+                    this.switchUnifiedStudioTab('boq');
+                    this.updateUnifiedStudioIndicators();
+                    return;
+                }
+
                 this.saveUnifiedOrderStudio();
                 job.pmt_accepted = true;
                 job.status = 'IN_PROGRESS';
-                job.progress = Math.max(job.progress || 0, this.isQuickJob(job) ? 60 : 45);
+                job.progress = Math.max(job.progress || 0, isQuick ? 60 : 45);
 
                 const now = new Date();
                 if (!job.step_timestamps) job.step_timestamps = {};
@@ -3373,7 +3483,6 @@ const app = {
                 this.persistJobs();
                 this.hideModal('modal-unified-order-studio');
 
-                const isQuick = this.isQuickJob(job);
                 if (isQuick) {
                     this.showToast(`🚀 อนุมัติข้อเสนอคำสั่งซื้อ ${jobId} เรียบร้อย! ส่งต่องานไปยังขั้นตอนออก Ticket & สลิป (Step 4)...`);
                     setTimeout(() => {
@@ -4385,6 +4494,12 @@ const app = {
 
                 if (this.isQuickJob(job)) {
                     this.goToQC(jobId);
+                    return;
+                }
+
+                const boqItems = job.boq_items || [];
+                if (boqItems.length === 0) {
+                    this.showToast(`⚠️ ไม่สามารถย้ายไป Step 5 ได้: คำสั่งซื้อ [${job.id}] ยังไม่ผ่าน Step 3 (ต้องมีรายการ BOQ ก่อน)`);
                     return;
                 }
 
@@ -10657,6 +10772,11 @@ const app = {
                 const job = (DB.jobs || []).find(j => j.id === targetJobId);
                 if (job && this.isQuickJob(job)) {
                     this.goToQC(targetJobId);
+                    return;
+                }
+                const boqItems = job ? (job.boq_items || []) : [];
+                if (boqItems.length === 0) {
+                    this.showToast(`⚠️ ไม่สามารถย้ายไป Step 5 ได้: โครงการ ${targetJobId} ยังไม่ผ่าน Step 3 (ยังไม่มีรายการ BOQ)`);
                     return;
                 }
                 this.state.selectedConversionJobId = targetJobId;
