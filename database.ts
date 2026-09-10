@@ -71,7 +71,7 @@ export async function initDatabase(): Promise<boolean> {
         external_ref_id VARCHAR(100),
         booking_no VARCHAR(100),
         ticket_no VARCHAR(100),
-        customer_id INT,
+        customer_id BIGINT,
         status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
         job_type VARCHAR(50) DEFAULT 'quick',
         step_timestamps JSONB DEFAULT '{}'::jsonb,
@@ -223,6 +223,7 @@ export async function initDatabase(): Promise<boolean> {
       );
 
       ALTER TABLE core_jobs 
+        ALTER COLUMN customer_id TYPE BIGINT,
         ALTER COLUMN project_sub_type TYPE TEXT,
         ALTER COLUMN project_type TYPE TEXT,
         ALTER COLUMN property_type TYPE TEXT,
@@ -648,6 +649,7 @@ export async function dbSaveJob(job: any): Promise<void> {
     );
   } catch (err: any) {
     console.error('[DB] Error saving job:', err.message);
+    throw err;
   }
 }
 

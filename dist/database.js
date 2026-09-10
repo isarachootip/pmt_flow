@@ -108,7 +108,7 @@ async function initDatabase() {
         external_ref_id VARCHAR(100),
         booking_no VARCHAR(100),
         ticket_no VARCHAR(100),
-        customer_id INT,
+        customer_id BIGINT,
         status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
         job_type VARCHAR(50) DEFAULT 'quick',
         step_timestamps JSONB DEFAULT '{}'::jsonb,
@@ -260,6 +260,7 @@ async function initDatabase() {
       );
 
       ALTER TABLE core_jobs 
+        ALTER COLUMN customer_id TYPE BIGINT,
         ALTER COLUMN project_sub_type TYPE TEXT,
         ALTER COLUMN project_type TYPE TEXT,
         ALTER COLUMN property_type TYPE TEXT,
@@ -671,6 +672,7 @@ async function dbSaveJob(job) {
     }
     catch (err) {
         console.error('[DB] Error saving job:', err.message);
+        throw err;
     }
 }
 async function dbUpdateJob(jobNoOrId, updates) {
