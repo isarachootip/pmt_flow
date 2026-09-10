@@ -121,9 +121,12 @@
 10. **User Management & Audit Logs**: วันที่เข้าสู่ระบบล่าสุด (Last Login), วันเวลาที่บันทึก Login Audit Trail
 
 ### 3.3 ข้อห้ามและแนวทางปฏิบัติ (Guidelines & Restrictions)
-- **ข้อห้ามเด็ดขาด**: ห้ามแสดงวันที่ในรูปแบบ `YYYY-MM-DD` (เช่น `2026-09-07`) หรือ `MM/DD/YYYY` (เช่น `09/07/2026`) บนหน้าจอแสดงผลที่ผู้ใช้งานมองเห็น (User-Facing UI)
-- **Input Fields**: สำหรับฟอร์มที่มี `<input type="date">` (ซึ่งเบราว์เซอร์รับค่ามาตรฐานเป็น `YYYY-MM-DD`) เมื่อนำค่าไปแสดงผลในการ์ด, ตาราง, Tooltip หรือ Modal Summary ต้องแปลงเป็น `DD/MM/YYYY` ก่อนแสดงผลเสมอ
-- **Helper Function**: ให้เรียกใช้ฟังก์ชันมาตรฐาน `formatDateDMY(date)` หรือ `app.formatDateDMY(date)` ในการแปลงค่าเสมอ
+- **ข้อห้ามเด็ดขาด (Strict Prohibition)**: **ห้ามใช้ Native `<input type="date">` หรือ `<input type="datetime-local">` ของเบราว์เซอร์เด็ดขาด** เนื่องจากเบราว์เซอร์ (Chromium/Windows) จะดึง Locale ของระบบปฏิบัติการมาใช้ ทำให้วันที่สลับเป็น `MM/DD/YYYY` (เช่น `09/10/2026`) ซึ่งขัดแย้งกับมาตรฐานขององค์กร
+- **Mandatory Custom Flatpickr**: ช่องกรอกวันที่ทุกช่องในระบบต้องใช้ **Custom Light-Theme Flatpickr (`data-datepicker="true"`, `placeholder="DD/MM/YYYY"`)** พร้อมไอคอนปฏิทิน (`ph-calendar`) และป๊อปอัปเลือกวันที่ภาษาไทย/อังกฤษที่สวยงามอ่านง่าย 100%
+- **Data Conversion Standard**:
+  - แสดงผลบน UI: ใช้ `app.formatDateDMY(date)` หรือ `app.formatDateTimeDMY(datetime)`
+  - แปลงเพื่อส่ง API/เก็บข้อมูล: ใช้ `app.formatDateISO(date)` หรือ `app.formatDateTimeISO(datetime)`
+- **Prohibited Formats**: ห้ามแสดงวันที่ในรูปแบบ `YYYY-MM-DD` (เช่น `2026-09-07`) หรือ `MM/DD/YYYY` (เช่น `09/07/2026`) บนหน้าจอแสดงผลที่ผู้ใช้งานมองเห็น (User-Facing UI) เด็ดขาด
 
 ---
 

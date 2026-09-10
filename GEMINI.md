@@ -54,8 +54,10 @@ PostgreSQL database. They are NOT the same machine and NOT the same data.
 - **Mandatory Pure Light Theme**: ทุกหน้าจอต้องแสดงผลใน **ธีมสว่าง (Light Theme) 100%** ห้ามมีปุ่มสลับธีมมืด (Dark Mode Toggle) และตัดการประมวลผลคลาส `.dark` ออกอย่างถาวร เพื่อให้อ่านตัวหนังสือ แผนงาน Gantt และแบบแปลนได้คมชัดสูงสุด และตัดปัญหาหน้าจอค้างหรือสีกลืนกับพื้นหลัง
 
 ## 📅 DATE FORMAT STANDARD: DD/MM/YYYY
-- **Mandatory Across All Views**: ทุกหน้าจอ (All Screens & Views) ต้องแสดงผลวันที่ในรูปแบบ **`DD/MM/YYYY`** (เช่น `07/09/2026`) หากมีเวลาประกอบให้ใช้ `DD/MM/YYYY HH:mm` หรือ `DD/MM/YYYY HH:mm:ss`.
-- **Prohibited Formats**: ห้ามแสดงผลเป็น `YYYY-MM-DD` หรือ `MM/DD/YYYY` บน UI ที่ผู้ใช้มองเห็นเด็ดขาด.
+- **Mandatory Across All Views**: ทุกหน้าจอ (All Screens & Views) ต้องแสดงผลวันที่ในรูปแบบ **`DD/MM/YYYY`** (เช่น `10/09/2026`) หากมีเวลาประกอบให้ใช้ `DD/MM/YYYY HH:mm` หรือ `DD/MM/YYYY HH:mm:ss น.`.
+- **Prohibited Native Inputs**: **ห้ามใช้ Native `<input type="date">` หรือ `<input type="datetime-local">` ของเบราว์เซอร์เด็ดขาด** เนื่องจากเบราว์เซอร์ (Chromium/Windows) จะถูก Override ด้วย OS Locale ทำให้แสดงผลเป็น `MM/DD/YYYY` (เช่น `09/10/2026`).
+- **Mandatory Custom Flatpickr**: ฟอร์มกรอกและเลือกวันที่ทั้งหมด ต้องใช้ **Custom Light-Theme Flatpickr (`data-datepicker="true"`, `placeholder="DD/MM/YYYY"`)** พร้อมใช้งาน Helper `this.formatDateDMY()`, `this.formatDateTimeDMY()`, และ `this.formatDateISO()` เพื่อแปลงข้อมูลระหว่างหน้าบ้านและ API อย่างปลอดภัย 100%.
+- **Prohibited Formats on UI**: ห้ามแสดงผลเป็น `YYYY-MM-DD` หรือ `MM/DD/YYYY` บน UI ที่ผู้ใช้มองเห็นเด็ดขาด.
 
 ## ⏰ TIME FORMAT STANDARD: 24-HOUR FORMAT (STRICTLY NO AM/PM)
 - **Mandatory 24-Hour Clock**: ทุกหน้าจอและฟอร์มบันทึกเวลาต้องใช้ระบบ **24 ชั่วโมง (`00:00 - 23:59 น.` หรือ `HH:mm`)** เช่น `07:00`, `08:30`, `12:00`, `13:00`, `17:00`

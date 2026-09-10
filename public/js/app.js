@@ -372,7 +372,7 @@ const app = {
                 try {
                     const str = String(dateInput).trim();
                     if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
-                        return str;
+                        return str.slice(0, 10);
                     }
                     if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
                         const parts = str.split('T')[0].split('-');
@@ -391,7 +391,112 @@ const app = {
                 return String(dateInput);
             },
 
-            formatDateTimeDMY(isoStr, withSeconds = true) {
+            formatDateISO(dateInput) {
+                if (!dateInput) return '';
+                try {
+                    const str = String(dateInput).trim();
+                    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+                        return str.slice(0, 10);
+                    }
+                    if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(str)) {
+                        const parts = str.slice(0, 10).split('/');
+                        if (parts.length === 3) {
+                            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                        }
+                    }
+                    const d = new Date(dateInput);
+                    if (!isNaN(d.getTime())) {
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const year = d.getFullYear();
+                        return `${year}-${month}-${day}`;
+                    }
+                } catch(e) {}
+                return String(dateInput);
+            },
+
+            formatDateTimeISO(dtInput) {
+                if (!dtInput) return '';
+                try {
+                    const str = String(dtInput).trim().replace(/\s*น\.\s*$/, '');
+                    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(str)) {
+                        return str.slice(0, 16);
+                    }
+                    if (/^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}/.test(str)) {
+                        const [datePart, timePart] = str.split(/\s+/);
+                        const parts = datePart.split('/');
+                        if (parts.length === 3) {
+                            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}T${timePart.slice(0, 5)}`;
+                        }
+                    }
+                    const d = new Date(dtInput);
+                    if (!isNaN(d.getTime())) {
+                        const year = d.getFullYear();
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const hours = String(d.getHours()).padStart(2, '0');
+                        const mins = String(d.getMinutes()).padStart(2, '0');
+                        return `${year}-${month}-${day}T${hours}:${mins}`;
+                    }
+                } catch(e) {}
+                return String(dtInput);
+            },
+
+            initDatePicker(target, options = {}) {
+                if (typeof flatpickr === 'undefined') return null;
+                const el = typeof target === 'string' ? document.querySelector(target) : target;
+                if (!el) return null;
+
+                if (el._flatpickr) {
+                    try { el._flatpickr.destroy(); } catch(e) {}
+                }
+
+                const enableTime = options.enableTime || el.getAttribute('data-enable-time') === 'true';
+                let initialDate = options.defaultDate || el.getAttribute('data-default-date') || el.value;
+                if (initialDate && /^\d{4}-\d{2}-\d{2}/.test(initialDate)) {
+                    initialDate = enableTime ? this.formatDateTimeDMY(initialDate, false, false) : this.formatDateDMY(initialDate);
+                }
+
+                const fpConfig = {
+                    dateFormat: enableTime ? "d/m/Y H:i" : "d/m/Y",
+                    enableTime: enableTime,
+                    time_24hr: true,
+                    allowInput: true,
+                    disableMobile: true,
+                    locale: {
+                        firstDayOfWeek: 1,
+                        weekdays: {
+                            shorthand: ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"],
+                            longhand: ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"]
+                        },
+                        months: {
+                            shorthand: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."],
+                            longhand: ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"]
+                        }
+                    },
+                    ...options
+                };
+
+                if (initialDate) {
+                    fpConfig.defaultDate = initialDate;
+                }
+
+                const instance = flatpickr(el, fpConfig);
+                if (initialDate && (!el.value || el.value !== initialDate)) {
+                    el.value = initialDate;
+                }
+                return instance;
+            },
+
+            initAllDatePickers(container = document) {
+                if (typeof flatpickr === 'undefined') return;
+                const dateInputs = container.querySelectorAll('input[data-datepicker="true"], input.pmt-datepicker');
+                dateInputs.forEach(inp => {
+                    this.initDatePicker(inp);
+                });
+            },
+
+            formatDateTimeDMY(isoStr, withSeconds = true, withSuffix = true) {
                 if (!isoStr) return '-';
                 try {
                     const d = new Date(isoStr);
@@ -402,9 +507,11 @@ const app = {
                     const hours = String(d.getHours()).padStart(2, '0');
                     const minutes = String(d.getMinutes()).padStart(2, '0');
                     const seconds = String(d.getSeconds()).padStart(2, '0');
-                    return withSeconds 
-                        ? `${day}/${month}/${year} ${hours}:${minutes}:${seconds} น.`
-                        : `${day}/${month}/${year} ${hours}:${minutes} น.`;
+                    if (withSeconds) {
+                        return withSuffix ? `${day}/${month}/${year} ${hours}:${minutes}:${seconds} น.` : `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+                    } else {
+                        return withSuffix ? `${day}/${month}/${year} ${hours}:${minutes} น.` : `${day}/${month}/${year} ${hours}:${minutes}`;
+                    }
                 } catch(e) {
                     return String(isoStr);
                 }
@@ -1868,6 +1975,9 @@ const app = {
                     }
                 });
 
+                // Initialize all Flatpickr datepickers across static DOM
+                this.initAllDatePickers();
+
                 if (window.auth && window.auth.user) {
                     this.navigate('dashboard');
                     this.fetchJobsFromApi();
@@ -2273,7 +2383,8 @@ const app = {
                 const phone = document.getElementById('cj-phone').value || '089-000-0000';
                 const address = document.getElementById('cj-address').value || 'Bangkok, Thailand';
                 const tech = document.getElementById('cj-tech').value || 'Team A (สมศักดิ์)';
-                const date = document.getElementById('cj-date').value || '2026-09-06';
+                const rawDate = document.getElementById('cj-date')?.value || '06/09/2026';
+                const date = this.formatDateISO(rawDate) || '2026-09-06';
                 const special_instructions = document.getElementById('cj-instructions')?.value.trim() || '';
                 const additional_notes = document.getElementById('cj-notes')?.value.trim() || '';
                 
@@ -2835,17 +2946,15 @@ const app = {
                 if (isQuick && radioQuick) radioQuick.checked = true;
                 else if (radioRenovate) radioRenovate.checked = true;
 
-                // Survey Date
+                // Survey Date (Strict DD/MM/YYYY)
                 const surveyDateInp = document.getElementById('unified-intake-survey-date');
                 if (surveyDateInp) {
                     let dVal = job.survey_date || job.date || '';
-                    if (dVal && dVal.includes('/')) {
-                        const parts = dVal.split('/');
-                        if (parts.length === 3) {
-                            dVal = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-                        }
-                    }
-                    surveyDateInp.value = dVal;
+                    const formattedDVal = this.formatDateDMY(dVal);
+                    surveyDateInp.value = formattedDVal !== '-' ? formattedDVal : '';
+                    this.initDatePicker(surveyDateInp, {
+                        defaultDate: formattedDVal !== '-' ? formattedDVal : undefined
+                    });
                 }
 
                 // Survey Time
@@ -3411,13 +3520,10 @@ const app = {
                 const radioQuick = document.getElementById('unified-type-quick');
                 job.job_type = (radioQuick && radioQuick.checked) ? 'quick' : 'renovate';
 
-                // Survey date
+                // Survey date (Strict DD/MM/YYYY)
                 const dateInp = document.getElementById('unified-intake-survey-date');
                 if (dateInp && dateInp.value) {
-                    const parts = dateInp.value.split('-');
-                    if (parts.length === 3) {
-                        job.survey_date = `${parts[2]}/${parts[1]}/${parts[0]}`;
-                    }
+                    job.survey_date = this.formatDateDMY(dateInp.value);
                 }
 
                 const timePreset = document.getElementById('unified-intake-time-preset');
@@ -6810,8 +6916,24 @@ const app = {
                 // 1. Set datetime inputs
                 const startInp = document.getElementById('save-boq-start-datetime');
                 const endInp = document.getElementById('save-boq-end-datetime');
-                if (startInp) startInp.value = data.startDatetime;
-                if (endInp) endInp.value = data.endDatetime;
+                if (startInp) {
+                    const sVal = this.formatDateTimeDMY(data.startDatetime, false, false);
+                    startInp.value = sVal;
+                    this.initDatePicker(startInp, {
+                        enableTime: true,
+                        defaultDate: sVal,
+                        onChange: () => this.onSaveBOQScheduleChange()
+                    });
+                }
+                if (endInp) {
+                    const eVal = this.formatDateTimeDMY(data.endDatetime, false, false);
+                    endInp.value = eVal;
+                    this.initDatePicker(endInp, {
+                        enableTime: true,
+                        defaultDate: eVal,
+                        onChange: () => this.onSaveBOQScheduleChange()
+                    });
+                }
                 this.updateSaveBOQDurationBadge();
 
                 // 2. Render Tech Chips
@@ -6891,16 +7013,23 @@ const app = {
                                 <i class="ph ph-wrench text-brand-500"></i> <span>${t.name}</span>
                             </td>
                             <td class="py-2 px-3 font-mono text-muted-foreground">
-                                <input type="date" value="${t.start}" onchange="app.updateSaveBOQTask(${idx}, 'start', this.value)" class="bg-transparent border border-border rounded px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                                <div class="relative">
+                                    <input type="text" value="${this.formatDateDMY(t.start)}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateSaveBOQTask(${idx}, 'start', this.value)" class="bg-card border border-border rounded pl-1.5 pr-6 py-0.5 text-xs font-mono text-foreground focus:outline-none focus:border-brand-500 cursor-pointer">
+                                    <i class="ph ph-calendar absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-[10px]"></i>
+                                </div>
                             </td>
                             <td class="py-2 px-3 font-mono text-muted-foreground">
-                                <input type="date" value="${t.end}" onchange="app.updateSaveBOQTask(${idx}, 'end', this.value)" class="bg-transparent border border-border rounded px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                                <div class="relative">
+                                    <input type="text" value="${this.formatDateDMY(t.end)}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateSaveBOQTask(${idx}, 'end', this.value)" class="bg-card border border-border rounded pl-1.5 pr-6 py-0.5 text-xs font-mono text-foreground focus:outline-none focus:border-brand-500 cursor-pointer">
+                                    <i class="ph ph-calendar absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-[10px]"></i>
+                                </div>
                             </td>
                             <td class="py-2 px-3 text-xs text-purple-600 dark:text-purple-400 font-semibold truncate">
                                 ${t.tech || data.tech}
                             </td>
                         </tr>
                         `).join('');
+                        this.initAllDatePickers(tasksTbody);
                     }
                 }
             },
@@ -6911,9 +7040,12 @@ const app = {
                 const badge = document.getElementById('save-boq-duration-badge');
                 if (!startInp || !endInp || !badge) return;
 
-                if (startInp.value && endInp.value) {
-                    const s = new Date(startInp.value);
-                    const e = new Date(endInp.value);
+                const sIso = this.formatDateTimeISO(startInp.value);
+                const eIso = this.formatDateTimeISO(endInp.value);
+
+                if (sIso && eIso) {
+                    const s = new Date(sIso);
+                    const e = new Date(eIso);
                     if (e >= s) {
                         const diffMs = e - s;
                         const diffHours = Math.round(diffMs / (1000 * 60 * 60));
@@ -6934,22 +7066,28 @@ const app = {
                 const endInp = document.getElementById('save-boq-end-datetime');
                 if (!startInp || !endInp || !this.state.saveBOQData) return;
 
-                this.state.saveBOQData.startDatetime = startInp.value;
-                this.state.saveBOQData.endDatetime = endInp.value;
+                const sIso = this.formatDateTimeISO(startInp.value);
+                let eIso = this.formatDateTimeISO(endInp.value);
 
-                const s = new Date(startInp.value);
-                const e = new Date(endInp.value);
+                this.state.saveBOQData.startDatetime = sIso;
+                this.state.saveBOQData.endDatetime = eIso;
+
+                const s = new Date(sIso);
+                const e = new Date(eIso);
                 if (e < s) {
                     // Auto adjust end time to be 8 hours after start
                     const adjustedEnd = new Date(s.getTime() + 8 * 60 * 60 * 1000);
-                    endInp.value = adjustedEnd.toISOString().slice(0, 16);
-                    this.state.saveBOQData.endDatetime = endInp.value;
+                    const adjDMY = this.formatDateTimeDMY(adjustedEnd, false, false);
+                    endInp.value = adjDMY;
+                    this.initDatePicker(endInp, { enableTime: true, defaultDate: adjDMY });
+                    eIso = adjustedEnd.toISOString().slice(0, 16);
+                    this.state.saveBOQData.endDatetime = eIso;
                 }
 
                 this.updateSaveBOQDurationBadge();
 
                 // Auto update tasks dates
-                const startDateOnly = startInp.value.slice(0, 10);
+                const startDateOnly = sIso ? sIso.slice(0, 10) : new Date().toISOString().slice(0, 10);
                 if (this.state.saveBOQData.tasks) {
                     this.state.saveBOQData.tasks.forEach((t, i) => {
                         const d = new Date(startDateOnly);
@@ -6987,7 +7125,7 @@ const app = {
 
             updateSaveBOQTask(idx, field, val) {
                 if (!this.state.saveBOQData || !this.state.saveBOQData.tasks || !this.state.saveBOQData.tasks[idx]) return;
-                this.state.saveBOQData.tasks[idx][field] = val;
+                this.state.saveBOQData.tasks[idx][field] = this.formatDateISO(val) || val;
             },
 
             confirmSaveBOQAndSchedule() {
@@ -6998,8 +7136,10 @@ const app = {
                 const endInp = document.getElementById('save-boq-end-datetime');
                 const techTextInp = document.getElementById('save-boq-tech-text');
 
-                const startDatetime = startInp ? startInp.value : data.startDatetime;
-                const endDatetime = endInp ? endInp.value : data.endDatetime;
+                const rawStart = startInp ? startInp.value : data.startDatetime;
+                const rawEnd = endInp ? endInp.value : data.endDatetime;
+                const startDatetime = this.formatDateTimeISO(rawStart) || data.startDatetime;
+                const endDatetime = this.formatDateTimeISO(rawEnd) || data.endDatetime;
                 const techName = techTextInp && techTextInp.value.trim() ? techTextInp.value.trim() : (data.tech || 'Team A (สมศักดิ์)');
 
                 if (!startDatetime) {
@@ -8137,7 +8277,8 @@ const app = {
                 } else if (field === 'name') {
                     task.name = value;
                 } else if (field === 'start') {
-                    task.start = value;
+                    const isoStart = this.formatDateISO(value) || value;
+                    task.start = isoStart;
                     if (task.start) {
                         if (!task.end || new Date(task.end) < new Date(task.start)) {
                             // Automatically adjust end date to match duration
@@ -8155,7 +8296,8 @@ const app = {
                     this.sortConvertTasksByStartDate(false);
                     return;
                 } else if (field === 'end') {
-                    task.end = value;
+                    const isoEnd = this.formatDateISO(value) || value;
+                    task.end = isoEnd;
                     if (task.start && task.end) {
                         if (new Date(task.end) < new Date(task.start)) {
                             task.start = task.end;
@@ -8176,7 +8318,11 @@ const app = {
                         s.setDate(s.getDate() + task.days - 1);
                         task.end = s.toISOString().slice(0, 10);
                         const endInp = document.getElementById(`convert-end-${idx}`);
-                        if (endInp) endInp.value = task.end;
+                        if (endInp) {
+                            const dmy = this.formatDateDMY(task.end);
+                            endInp.value = dmy;
+                            this.initDatePicker(endInp, { defaultDate: dmy });
+                        }
                     }
                 }
 
@@ -8246,10 +8392,16 @@ const app = {
                             <input type="text" value="${t.name}" oninput="app.updateConvertTaskField(${idx}, 'name', this.value)" placeholder="ระบุชื่องาน / บริการ" class="w-full bg-muted/30 hover:bg-muted/60 focus:bg-card border border-border focus:border-purple-500 rounded-lg px-2.5 py-1.5 text-xs text-foreground font-medium transition focus:outline-none">
                         </td>
                         <td class="py-2.5 px-3">
-                            <input type="date" value="${t.start}" onchange="app.updateConvertTaskField(${idx}, 'start', this.value)" class="w-full bg-muted/30 border border-border focus:border-purple-500 rounded-lg px-2 py-1.5 text-xs text-foreground font-mono focus:outline-none cursor-pointer">
+                            <div class="relative">
+                                <input type="text" value="${this.formatDateDMY(t.start)}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateConvertTaskField(${idx}, 'start', this.value)" class="w-full bg-muted/30 border border-border focus:border-purple-500 rounded-lg pl-2 pr-7 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                <i class="ph ph-calendar absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
+                            </div>
                         </td>
                         <td class="py-2.5 px-3">
-                            <input type="date" id="convert-end-${idx}" value="${t.end}" onchange="app.updateConvertTaskField(${idx}, 'end', this.value)" class="w-full bg-muted/30 border border-border focus:border-purple-500 rounded-lg px-2 py-1.5 text-xs text-foreground font-mono focus:outline-none cursor-pointer">
+                            <div class="relative">
+                                <input type="text" id="convert-end-${idx}" value="${this.formatDateDMY(t.end)}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateConvertTaskField(${idx}, 'end', this.value)" class="w-full bg-muted/30 border border-border focus:border-purple-500 rounded-lg pl-2 pr-7 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                <i class="ph ph-calendar absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
+                            </div>
                         </td>
                         <td class="py-2.5 px-3 text-center" id="convert-days-${idx}">
                             <span class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
@@ -8278,7 +8430,10 @@ const app = {
                     `;
                 }).join('');
 
-                if (tbody) tbody.innerHTML = rowsHtml;
+                if (tbody) {
+                    tbody.innerHTML = rowsHtml;
+                    this.initAllDatePickers(tbody);
+                }
             },
 
             confirmConvertBOQToTasks() {
@@ -9099,7 +9254,11 @@ const app = {
                 }
 
                 const dateInput = document.getElementById('create-ticket-date');
-                if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
+                if (dateInput) {
+                    const todayDMY = this.formatDateDMY(new Date());
+                    dateInput.value = todayDMY;
+                    this.initDatePicker(dateInput, { defaultDate: todayDMY });
+                }
 
                 // Slip preview reset
                 const previewContainer = document.getElementById('ticket-slip-preview-container');
@@ -9208,7 +9367,8 @@ const app = {
                 const receiptNo = document.getElementById('create-ticket-receipt-no').value.trim();
                 const contractNo = (document.getElementById('create-ticket-contract-no').value || '').trim();
                 const amount = parseFloat(document.getElementById('create-ticket-amount').value) || 0;
-                const paymentDate = document.getElementById('create-ticket-date').value;
+                const rawPaymentDate = document.getElementById('create-ticket-date')?.value || '';
+                const paymentDate = this.formatDateISO(rawPaymentDate) || new Date().toISOString().slice(0, 10);
                 const paymentMethod = document.getElementById('create-ticket-method').value;
                 const notes = document.getElementById('create-ticket-notes').value.trim();
 
@@ -12085,7 +12245,8 @@ const app = {
                 if (!task) return;
 
                 if (field === 'start') {
-                    task.start = value;
+                    const isoStart = this.formatDateISO(value) || value;
+                    task.start = isoStart;
                     if (task.start) {
                         if (!task.end || new Date(task.end) < new Date(task.start)) {
                             const s = new Date(task.start);
@@ -12098,7 +12259,8 @@ const app = {
                         }
                     }
                 } else if (field === 'end') {
-                    task.end = value;
+                    const isoEnd = this.formatDateISO(value) || value;
+                    task.end = isoEnd;
                     if (task.start && task.end) {
                         if (new Date(task.end) < new Date(task.start)) {
                             task.start = task.end;
@@ -12387,10 +12549,16 @@ const app = {
                                 <input type="text" value="${cleanName}" onchange="app.updateGanttTaskField('${t.id}', 'name', this.value)" class="w-full bg-card/60 hover:bg-card focus:bg-card border border-border/60 focus:border-brand-500 rounded-lg px-2.5 py-1.5 text-xs font-medium text-foreground transition focus:outline-none" placeholder="ชื่องานบริการ / Task">
                             </td>
                             <td class="py-2.5 px-3">
-                                <input type="date" value="${t.start || '2026-09-05'}" onchange="app.updateGanttTaskField('${t.id}', 'start', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                <div class="relative">
+                                    <input type="text" value="${this.formatDateDMY(t.start || '2026-09-05')}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateGanttTaskField('${t.id}', 'start', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg pl-2 pr-7 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                    <i class="ph ph-calendar absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
+                                </div>
                             </td>
                             <td class="py-2.5 px-3">
-                                <input type="date" value="${t.end || t.start || '2026-09-05'}" onchange="app.updateGanttTaskField('${t.id}', 'end', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                <div class="relative">
+                                    <input type="text" value="${this.formatDateDMY(t.end || t.start || '2026-09-05')}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateGanttTaskField('${t.id}', 'end', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg pl-2 pr-7 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                    <i class="ph ph-calendar absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
+                                </div>
                             </td>
                             <td class="py-2.5 px-2 text-center">
                                 <span class="px-2 py-1 rounded text-[11px] font-mono font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
@@ -12500,6 +12668,7 @@ const app = {
                                 </div>
                             </div>
                         `;
+                        this.initAllDatePickers(container);
                         return;
                     }
 
@@ -12776,10 +12945,16 @@ const app = {
                                 <input type="text" value="${cleanName}" onchange="app.updateGanttTaskField('${t.id}', 'name', this.value)" class="w-full bg-card/60 hover:bg-card focus:bg-card border border-border/60 focus:border-brand-500 rounded-lg px-2.5 py-1.5 text-xs font-medium text-foreground transition focus:outline-none" placeholder="ชื่องานบริการ / Task">
                             </td>
                             <td class="py-2.5 px-3">
-                                <input type="date" value="${t.start || '2026-09-05'}" onchange="app.updateGanttTaskField('${t.id}', 'start', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                <div class="relative">
+                                    <input type="text" value="${this.formatDateDMY(t.start || '2026-09-05')}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateGanttTaskField('${t.id}', 'start', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg pl-2 pr-7 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                    <i class="ph ph-calendar absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
+                                </div>
                             </td>
                             <td class="py-2.5 px-3">
-                                <input type="date" value="${t.end || t.start || '2026-09-05'}" onchange="app.updateGanttTaskField('${t.id}', 'end', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                <div class="relative">
+                                    <input type="text" value="${this.formatDateDMY(t.end || t.start || '2026-09-05')}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateGanttTaskField('${t.id}', 'end', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg pl-2 pr-7 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                    <i class="ph ph-calendar absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
+                                </div>
                             </td>
                             <td class="py-2.5 px-2 text-center">
                                 <span class="px-2 py-1 rounded text-[11px] font-mono font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
@@ -12872,6 +13047,7 @@ const app = {
                             </div>
                         </div>
                     `;
+                    this.initAllDatePickers(container);
                     return;
                 }
 
@@ -13754,7 +13930,10 @@ const app = {
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
                                         <label class="block text-[11px] font-semibold text-foreground mb-1">วันที่เข้าทำงาน (Work Date - DD/MM/YYYY): <span class="text-rose-500">*</span></label>
-                                        <input type="date" id="page-input-date" value="${nextDate}" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs font-mono text-foreground focus:outline-none cursor-pointer" required>
+                                        <div class="relative">
+                                            <input type="text" id="page-input-date" value="${this.formatDateDMY(nextDate)}" data-datepicker="true" placeholder="DD/MM/YYYY" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl pl-3 pr-9 py-2 text-xs font-mono text-foreground focus:outline-none cursor-pointer" required>
+                                            <i class="ph ph-calendar absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-sm"></i>
+                                        </div>
                                     </div>
                                     <div>
                                         <label class="block text-[11px] font-semibold text-foreground mb-1">วันที่ในแผนงาน (Day #):</label>
@@ -13910,6 +14089,7 @@ const app = {
                         </div>
                     `}
                 `;
+                this.initDatePicker('#page-input-date');
             },
 
             quickFillDailyLogSample() {
@@ -14196,8 +14376,11 @@ const app = {
                                 <form onsubmit="event.preventDefault(); app.saveDailyWorkLog('${taskId}', false, false);" class="space-y-3.5">
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
-                                            <label class="block text-[11px] font-medium text-foreground mb-1">วันที่บันทึก (Work Date): <span class="text-rose-500">*</span></label>
-                                            <input type="date" id="dwl-input-date" value="${nextDate}" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer" required>
+                                            <label class="block text-[11px] font-medium text-foreground mb-1">วันที่บันทึก (Work Date - DD/MM/YYYY): <span class="text-rose-500">*</span></label>
+                                            <div class="relative">
+                                                <input type="text" id="dwl-input-date" value="${this.formatDateDMY(nextDate)}" data-datepicker="true" placeholder="DD/MM/YYYY" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl pl-3 pr-9 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer" required>
+                                                <i class="ph ph-calendar absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
+                                            </div>
                                         </div>
                                         <div>
                                             <label class="block text-[11px] font-medium text-foreground mb-1">วันที่ในแผนงาน (Day #):</label>
@@ -14304,7 +14487,7 @@ const app = {
                                         </button>
                                         <button type="button" onclick="app.completeDailyWorkAndMoveToQC('${taskId}', false)" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white cursor-pointer">
                                             <i class="ph ph-paper-plane-tilt text-sm"></i>
-                                            <span>🚀 ยืนยันสำเร็จ & ส่งตรวจ QC</span>
+                                             <span>🚀 ยืนยันสำเร็จ & ส่งตรวจ QC</span>
                                         </button>
                                     </div>
                                 </form>
@@ -14312,6 +14495,7 @@ const app = {
                         </div>
                     </div>
                 `;
+                this.initDatePicker('#dwl-input-date');
             },
 
             saveDailyWorkLog(taskId, forceComplete = false, isPageForm = false) {
@@ -14323,7 +14507,8 @@ const app = {
                 const job = (DB.jobs || []).find(j => j.id === jobId) || {};
                 const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
 
-                const dateVal = document.getElementById(`${prefix}-input-date`)?.value || new Date().toISOString().slice(0, 10);
+                const rawDateVal = document.getElementById(`${prefix}-input-date`)?.value || '';
+                const dateVal = this.formatDateISO(rawDateVal) || new Date().toISOString().slice(0, 10);
                 const dayNumVal = Number(document.getElementById(`${prefix}-input-day-num`)?.value) || 1;
                 const startTimeVal = document.getElementById(`${prefix}-input-start-time`)?.value || '08:30';
                 const endTimeVal = document.getElementById(`${prefix}-input-end-time`)?.value || '17:00';
@@ -15185,17 +15370,15 @@ const app = {
                     d.setDate(d.getDate() + 5);
                 }
 
-                const y = d.getFullYear();
-                const m = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                const formattedIso = `${y}-${m}-${day}`;
+                const formattedDMY = this.formatDateDMY(d);
 
                 const inputEl = document.getElementById('qc-booking-date-input');
                 if (inputEl) {
-                    inputEl.value = formattedIso;
-                    this.handleQCBookingDateChange(formattedIso);
+                    inputEl.value = formattedDMY;
+                    this.initDatePicker(inputEl, { defaultDate: formattedDMY });
+                    this.handleQCBookingDateChange(formattedDMY);
                 }
-                this.showToast(`📅 กำหนดวันนัดตรวจ QC: ${this.formatDateDMY(formattedIso)}`);
+                this.showToast(`📅 กำหนดวันนัดตรวจ QC: ${formattedDMY}`);
             },
 
             saveQCBooking(jobId) {
@@ -15235,7 +15418,8 @@ const app = {
                 const techEl = document.getElementById('qc-booking-tech-select');
                 const remarksEl = document.getElementById('qc-booking-remarks-input');
 
-                const chosenDate = (dateEl && dateEl.value) ? dateEl.value : (job.qc_booking ? job.qc_booking.bookingDate : '2026-09-15');
+                const rawChosenDate = (dateEl && dateEl.value) ? dateEl.value : (job.qc_booking ? job.qc_booking.bookingDate : '2026-09-15');
+                const chosenDate = this.formatDateISO(rawChosenDate) || '2026-09-15';
                 const chosenTime = timeEl ? timeEl.value : '09:00';
                 const chosenTech = techEl ? techEl.value : 'วิชัย ตรวจดี (ช่าง QC Lead)';
                 const chosenRemarks = remarksEl ? remarksEl.value.trim() : '';
@@ -15331,12 +15515,21 @@ const app = {
                     banner.style.display = isDraft ? 'flex' : 'none';
                 }
 
-                // Date input & preview
+                // Date input & preview (Strict DD/MM/YYYY)
                 const rawDate = booking.bookingDate || (job.date ? job.date.slice(0, 10) : '2026-09-15');
+                const dmyVal = this.formatDateDMY(rawDate);
                 const dateInput = document.getElementById('qc-booking-date-input');
-                if (dateInput) dateInput.value = rawDate;
+                if (dateInput) {
+                    dateInput.value = dmyVal;
+                    this.initDatePicker(dateInput, {
+                        defaultDate: dmyVal,
+                        onChange: (selectedDates, dateStr) => {
+                            this.handleQCBookingDateChange(dateStr);
+                        }
+                    });
+                }
                 const datePreview = document.getElementById('qc-booking-date-preview');
-                if (datePreview) datePreview.innerText = this.formatDateDMY(rawDate);
+                if (datePreview) datePreview.innerText = dmyVal;
 
                 // Time select
                 const timeSelect = document.getElementById('qc-booking-time-select');
@@ -17511,10 +17704,15 @@ const app = {
                 document.getElementById('ma-value').value = '12000';
                 document.getElementById('ma-notes').value = '';
 
-                // Default date: tomorrow
+                // Default date: tomorrow (Strict DD/MM/YYYY)
                 const d = new Date();
                 d.setDate(d.getDate() + 1);
-                document.getElementById('ma-start-date').value = d.toISOString().split('T')[0];
+                const dFormatted = this.formatDateDMY(d);
+                const maDateInp = document.getElementById('ma-start-date');
+                if (maDateInp) {
+                    maDateInp.value = dFormatted;
+                    this.initDatePicker(maDateInp, { defaultDate: dFormatted });
+                }
 
                 // Reset equipment items
                 this.state.maEquipment = [
@@ -17658,7 +17856,8 @@ const app = {
                 const serviceType = document.getElementById('ma-service-type').value;
                 const interval = parseInt(document.getElementById('ma-interval').value) || 3;
                 const totalRounds = parseInt(document.getElementById('ma-rounds').value) || 4;
-                const startDate = document.getElementById('ma-start-date').value;
+                const rawStartDate = document.getElementById('ma-start-date')?.value || '';
+                const startDate = this.formatDateISO(rawStartDate) || new Date().toISOString().split('T')[0];
                 const contractValue = parseFloat(document.getElementById('ma-value').value) || 0;
                 const notes = document.getElementById('ma-notes').value.trim();
 

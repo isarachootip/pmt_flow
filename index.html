@@ -39,6 +39,11 @@
     <!-- SheetJS for Excel (.xlsx, .xls) Parsing -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
+    <!-- Flatpickr (Strict DD/MM/YYYY Date Picker & Anti-OS-Locale Override) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
+
     <!-- Global Fail-Safe Auth & Logout Handler (Strict Anti-Hang & Clean Hard Reload) -->
     <script>
         window.handleLogout = function() {
@@ -4228,6 +4233,21 @@
                                     </ul>
                                 </div>
                             </details>
+
+                            <!-- Q10: Date Format Standard DD/MM/YYYY & Flatpickr Engine -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q10:</span>
+                                        <span>มาตรฐานการแสดงผลและเลือกวันที่ (Date Format Standard: DD/MM/YYYY) และระบบ Flatpickr ทำงานอย่างไร?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> เพื่อป้องกันความสับสนเรื่องวัน/เดือน (เช่น 10 กันยายน vs 9 ตุลาคม) ระบบ PMT Flow กำหนดมาตรฐาน <strong>วัน/เดือน/ปี ค.ศ. (`DD/MM/YYYY`) 100%</strong> สำหรับทุกหน้าจอและทุกโมดอล</p>
+                                    <p>โดยระบบใช้ <strong>Custom Light-Theme Flatpickr (`data-datepicker="true"`)</strong> แทน Native Date Picker ของเบราว์เซอร์อย่างถาวร เพื่อป้องกันไม่ให้ Windows/Chromium OS Locale สลับเป็น <code class="bg-muted px-1.5 py-0.5 rounded text-[11px]">MM/DD/YYYY</code> พร้อมมีกลไก Helper อัจฉริยะ (<code class="bg-muted px-1.5 py-0.5 rounded text-[11px]">formatDateDMY</code>, <code class="bg-muted px-1.5 py-0.5 rounded text-[11px]">formatDateTimeDMY</code>, <code class="bg-muted px-1.5 py-0.5 rounded text-[11px]">formatDateISO</code>) แปลงค่าส่งต่อ Backend API อย่างปลอดภัย 100%</p>
+                                </div>
+                            </details>
                         </div>
                     </div>
                 </div>
@@ -4626,8 +4646,11 @@
                         <input type="text" id="cj-tech" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="ทีมช่าง สมศักดิ์ (Team A)">
                     </div>
                     <div>
-                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">วันนัดติดตั้ง</label>
-                        <input type="date" id="cj-date" value="2026-09-06" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">วันนัดติดตั้ง (DD/MM/YYYY)</label>
+                        <div class="relative">
+                            <input type="text" id="cj-date" value="06/09/2026" placeholder="DD/MM/YYYY" data-datepicker="true" class="w-full bg-card border border-border rounded-lg pl-3 pr-9 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-brand-500 cursor-pointer">
+                            <i class="ph ph-calendar absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-sm"></i>
+                        </div>
                     </div>
                 </div>
 
@@ -4744,8 +4767,11 @@
                             <input type="number" id="ma-rounds" min="1" max="24" value="4" required class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground font-mono focus:outline-none focus:border-brand-500">
                         </div>
                         <div>
-                            <label class="block text-[11px] font-medium text-muted-foreground mb-1">วันเริ่มต้น *</label>
-                            <input type="date" id="ma-start-date" required class="w-full bg-card border border-border rounded-lg px-2.5 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
+                            <label class="block text-[11px] font-medium text-muted-foreground mb-1">วันเริ่มต้น (DD/MM/YYYY) *</label>
+                            <div class="relative">
+                                <input type="text" id="ma-start-date" required placeholder="DD/MM/YYYY" data-datepicker="true" class="w-full bg-card border border-border rounded-lg pl-2.5 pr-8 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-brand-500 cursor-pointer">
+                                <i class="ph ph-calendar absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
+                            </div>
                         </div>
                     </div>
 
@@ -5002,11 +5028,14 @@
                             <div class="flex items-center justify-between mb-1">
                                 <label class="text-[11px] font-semibold text-foreground flex items-center gap-1">
                                     <i class="ph ph-calendar text-brand-500"></i>
-                                    <span>วันนัดตรวจ QC:</span>
+                                    <span>วันนัดตรวจ QC (DD/MM/YYYY):</span>
                                 </label>
                                 <span id="qc-booking-date-preview" class="text-[10px] font-mono font-bold text-brand-600 dark:text-brand-400">DD/MM/YYYY</span>
                             </div>
-                            <input type="date" id="qc-booking-date-input" onchange="app.handleQCBookingDateChange(this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none transition">
+                            <div class="relative">
+                                <input type="text" id="qc-booking-date-input" onchange="app.handleQCBookingDateChange(this.value)" placeholder="DD/MM/YYYY" data-datepicker="true" class="w-full bg-card border border-border focus:border-brand-500 rounded-xl pl-3 pr-9 py-1.5 text-xs font-mono text-foreground focus:outline-none transition cursor-pointer">
+                                <i class="ph ph-calendar absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-sm"></i>
+                            </div>
                             <div class="flex items-center gap-1 mt-1.5 flex-wrap">
                                 <span class="text-[9px] text-muted-foreground">ล่วงหน้า:</span>
                                 <button type="button" onclick="app.setQCBookingDatePreset('end')" class="px-1.5 py-0.5 rounded text-[9px] font-medium bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer">วันจบงาน Gantt</button>
@@ -5490,8 +5519,11 @@
                         <input type="number" id="create-ticket-amount" required min="0" step="0.01" placeholder="32500" class="w-full bg-card border border-border text-foreground rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500 font-mono font-semibold">
                     </div>
                     <div class="space-y-1">
-                        <label class="text-xs font-semibold text-foreground">วันที่ในใบเสร็จ / ชำระเงิน <span class="text-rose-500">*</span></label>
-                        <input type="date" id="create-ticket-date" required class="w-full bg-card border border-border text-foreground rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500">
+                        <label class="text-xs font-semibold text-foreground">วันที่ในใบเสร็จ / ชำระเงิน (DD/MM/YYYY) <span class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <input type="text" id="create-ticket-date" required placeholder="DD/MM/YYYY" data-datepicker="true" class="w-full bg-card border border-border text-foreground font-mono rounded-lg pl-3 pr-9 py-2 text-xs focus:ring-2 focus:ring-emerald-500 cursor-pointer">
+                            <i class="ph ph-calendar absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-sm"></i>
+                        </div>
                     </div>
                 </div>
 
@@ -5830,7 +5862,10 @@
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
                                         <label class="block text-xs font-semibold text-foreground mb-1">วันที่นัดสำรวจ (DD/MM/YYYY)</label>
-                                        <input type="date" id="unified-intake-survey-date" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500">
+                                        <div class="relative">
+                                            <input type="text" id="unified-intake-survey-date" placeholder="DD/MM/YYYY" data-datepicker="true" class="w-full bg-card border border-border rounded-lg pl-3 pr-9 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-indigo-500 cursor-pointer">
+                                            <i class="ph ph-calendar absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-sm"></i>
+                                        </div>
                                     </div>
                                     <div>
                                         <label class="block text-xs font-semibold text-foreground mb-1">เวลานัดหมาย (24 ชม.)</label>
@@ -6849,10 +6884,11 @@
                         <!-- Start Date & Time -->
                         <div class="space-y-1.5">
                             <label class="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                <i class="ph ph-play-circle text-emerald-500"></i> วันเวลาเริ่มทำงาน (Work Start Date & Time) <span class="text-rose-500">*</span>
+                                <i class="ph ph-play-circle text-emerald-500"></i> วันเวลาเริ่มทำงาน (Work Start Date & Time - DD/MM/YYYY HH:mm) <span class="text-rose-500">*</span>
                             </label>
                             <div class="relative">
-                                <input type="datetime-local" id="save-boq-start-datetime" onchange="app.onSaveBOQScheduleChange()" class="w-full bg-card border border-border focus:border-brand-500 rounded-xl px-3.5 py-2 text-xs font-medium text-foreground focus:outline-none transition shadow-xs cursor-pointer">
+                                <input type="text" id="save-boq-start-datetime" data-datepicker="true" data-enable-time="true" placeholder="DD/MM/YYYY HH:mm" onchange="app.onSaveBOQScheduleChange()" class="w-full bg-card border border-border focus:border-brand-500 rounded-xl pl-3.5 pr-9 py-2 text-xs font-mono font-medium text-foreground focus:outline-none transition shadow-xs cursor-pointer">
+                                <i class="ph ph-calendar absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-sm"></i>
                             </div>
                             <p class="text-[10px] text-muted-foreground">กำหนดวันและเวลาที่ทีมช่างจะเข้าเริ่มปฏิบัติงาน</p>
                         </div>
@@ -6860,10 +6896,11 @@
                         <!-- End Date & Time -->
                         <div class="space-y-1.5">
                             <label class="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                <i class="ph ph-flag-checkered text-brand-500"></i> วันจบงาน / วันเวลาสิ้นสุด (Work End Date & Time) <span class="text-rose-500">*</span>
+                                <i class="ph ph-flag-checkered text-brand-500"></i> วันจบงาน / วันเวลาสิ้นสุด (Work End Date & Time - DD/MM/YYYY HH:mm) <span class="text-rose-500">*</span>
                             </label>
                             <div class="relative">
-                                <input type="datetime-local" id="save-boq-end-datetime" onchange="app.onSaveBOQScheduleChange()" class="w-full bg-card border border-border focus:border-brand-500 rounded-xl px-3.5 py-2 text-xs font-medium text-foreground focus:outline-none transition shadow-xs cursor-pointer">
+                                <input type="text" id="save-boq-end-datetime" data-datepicker="true" data-enable-time="true" placeholder="DD/MM/YYYY HH:mm" onchange="app.onSaveBOQScheduleChange()" class="w-full bg-card border border-border focus:border-brand-500 rounded-xl pl-3.5 pr-9 py-2 text-xs font-mono font-medium text-foreground focus:outline-none transition shadow-xs cursor-pointer">
+                                <i class="ph ph-calendar absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-sm"></i>
                             </div>
                             <div class="flex items-center justify-between text-[10px]">
                                 <span class="text-muted-foreground">กำหนดวันและเวลาที่คาดว่าจะปิดงานสมบูรณ์</span>
