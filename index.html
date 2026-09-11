@@ -6,7 +6,7 @@
     <meta name="format-detection" content="telephone=no">
     <title>PMT Flow — Artifact Next.js + Shadcn UI Kit</title>
     
-    <!-- Strict Light Theme Enforcement (Light Theme Only — Dark Mode Permanently Retired) -->
+    <!-- Strict Light Theme Enforcement & Environment Indicator -->
     <script>
         (function() {
             try {
@@ -20,6 +20,70 @@
             document.documentElement.classList.remove('dark');
             try { localStorage.setItem('pmt-theme', 'light'); } catch(e) {}
         };
+
+        // Environment Indicator (UAT: vibepmt.online vs LIVE PROD: prod.vibepmt.online)
+        window.updateEnvironmentIndicator = function() {
+            try {
+                var hostname = window.location.hostname || '';
+                var isProd = (hostname === 'prod.vibepmt.online');
+
+                // Update Browser Tab Title
+                if (isProd) {
+                    document.title = 'PMT Flow — Enterprise Operations (Production)';
+                } else {
+                    document.title = '🧪 [UAT] PMT Flow — Enterprise Operations';
+                }
+
+                // 1. Topbar Environment Badge
+                var topbarEnv = document.getElementById('topbar-env-badge');
+                if (topbarEnv) {
+                    if (isProd) {
+                        topbarEnv.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 shadow-2xs';
+                        topbarEnv.innerHTML = '<span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span><span class="font-bold tracking-wide">🟢 LIVE PROD</span>';
+                        topbarEnv.title = 'ระบบใช้งานจริง Production (prod.vibepmt.online)';
+                    } else {
+                        topbarEnv.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-800 border border-amber-500/30 shadow-2xs';
+                        topbarEnv.innerHTML = '<span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span></span><span class="font-bold tracking-wide">🧪 UAT / Staging</span>';
+                        topbarEnv.title = 'ระบบทดสอบ UAT / Staging (vibepmt.online)';
+                    }
+                }
+
+                // 2. Sidebar Environment Badge & Subtitle
+                var sidebarBadge = document.getElementById('sidebar-env-badge');
+                if (sidebarBadge) {
+                    if (isProd) {
+                        sidebarBadge.className = 'text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 font-bold border border-emerald-500/30';
+                        sidebarBadge.innerText = 'PROD';
+                    } else {
+                        sidebarBadge.className = 'text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-800 font-bold border border-amber-500/30';
+                        sidebarBadge.innerText = 'UAT';
+                    }
+                }
+                var sidebarSubtitle = document.getElementById('sidebar-env-subtitle');
+                if (sidebarSubtitle) {
+                    if (isProd) {
+                        sidebarSubtitle.innerText = 'Enterprise Operations';
+                    } else {
+                        sidebarSubtitle.innerText = 'UAT: vibepmt.online';
+                    }
+                }
+
+                // 3. Login Overlay Environment Badge
+                var loginBadge = document.getElementById('login-env-badge');
+                if (loginBadge) {
+                    if (isProd) {
+                        loginBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 shadow-2xs mx-auto';
+                        loginBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span>ระบบใช้งานจริง (Production Server)</span>';
+                    } else {
+                        loginBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-800 border border-amber-500/30 shadow-2xs mx-auto';
+                        loginBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span><span>สภาพแวดล้อมทดสอบ (UAT / Staging Server)</span>';
+                    }
+                }
+            } catch (e) {
+                console.warn('updateEnvironmentIndicator error:', e);
+            }
+        };
+        document.addEventListener('DOMContentLoaded', window.updateEnvironmentIndicator);
     </script>
     
     <!-- Fonts: Inter, Noto Sans Thai, Plus Jakarta Sans & Geist Mono -->
@@ -148,6 +212,10 @@
                 </div>
                 <h2 class="text-2xl font-bold font-display text-foreground tracking-tight">เข้าสู่ระบบ PMT Flow</h2>
                 <p class="text-xs text-muted-foreground">Store & Operations Project Management System</p>
+                <!-- Dynamic Environment Badge for Login Screen -->
+                <div class="pt-1 flex justify-center">
+                    <div id="login-env-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold"></div>
+                </div>
             </div>
 
             <!-- Error Message Alert -->
@@ -199,9 +267,9 @@
                     <div class="truncate">
                         <div class="flex items-center gap-1.5">
                             <span class="font-display font-bold text-sm text-foreground tracking-tight">PMT Flow</span>
-                            <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-brand-500/15 text-brand-500 font-semibold">Artifact</span>
+                            <span id="sidebar-env-badge" class="text-[9px] font-mono px-1.5 py-0.5 rounded font-bold">UAT</span>
                         </div>
-                        <span class="text-[11px] text-muted-foreground truncate block">Enterprise Operations</span>
+                        <span id="sidebar-env-subtitle" class="text-[11px] text-muted-foreground truncate block">Enterprise Operations</span>
                     </div>
                 </div>
                 <button onclick="app.toggleSidebar()" class="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition" title="Toggle Sidebar">
@@ -388,15 +456,18 @@
             <!-- TOP BAR (Artifact Header) -->
             <header class="h-16 bg-card/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 z-10">
                 <!-- Breadcrumbs & Search -->
-                <div class="flex items-center gap-6">
+                <div class="flex items-center gap-4 lg:gap-6">
                     <div class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                         <span class="hover:text-foreground cursor-pointer" onclick="app.navigate('dashboard')">PMT Flow</span>
                         <i class="ph ph-caret-right text-muted-foreground/60 text-[10px]"></i>
                         <span class="text-foreground font-semibold" id="topbar-breadcrumb">Dashboard</span>
                     </div>
 
+                    <!-- Environment Status Badge (Auto-detected: UAT vs PROD) -->
+                    <div id="topbar-env-badge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"></div>
+
                     <!-- Command Bar Search Input -->
-                    <div class="relative w-72 hidden md:block">
+                    <div class="relative w-64 lg:w-72 hidden md:block">
                         <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
                         <input type="text" id="global-search-input" onkeyup="app.handleGlobalSearch(event)" placeholder="ค้นหางาน, ช่าง, ลูกค้า..." class="w-full bg-muted/60 border border-border rounded-lg py-1.5 pl-9 pr-12 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all">
                         <div class="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">

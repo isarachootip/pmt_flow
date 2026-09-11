@@ -258,6 +258,9 @@ window.auth =  {
         },
 
         updateUI() {
+            if (typeof window.updateEnvironmentIndicator === 'function') {
+                window.updateEnvironmentIndicator();
+            }
             const u = this.user;
             const nameEl = document.getElementById('sidebar-user-name');
             const roleEl = document.getElementById('sidebar-user-role');

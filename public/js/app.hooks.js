@@ -26,10 +26,12 @@
     app.init = function() {
         _origInit();
         if (window.auth) auth.init();
+        if (typeof window.updateEnvironmentIndicator === 'function') window.updateEnvironmentIndicator();
     };
 
     // Initialize auth immediately so sidebar and permissions are rendered without waiting
     if (window.auth) auth.init();
+    if (typeof window.updateEnvironmentIndicator === 'function') window.updateEnvironmentIndicator();
 
     // Expose app to global window scope
     window.app = app;
