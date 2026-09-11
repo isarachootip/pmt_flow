@@ -2828,6 +2828,20 @@ const app = {
                             </div>
                         </td>
                         <td class="px-5 py-4">
+                            ${(() => {
+                                const intakeTs = (j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || (j.date ? `${j.date}T08:30:00.000Z` : null);
+                                const formatted = this.formatTimestamp(intakeTs);
+                                const isToday = intakeTs && (() => { try { const d = new Date(intakeTs); const now = new Date(); return d.toDateString() === now.toDateString(); } catch(e) { return false; } })();
+                                return `<div class="flex flex-col gap-0.5">
+                                    <div class="font-mono text-[11px] ${isToday ? 'text-emerald-600 font-semibold' : 'text-foreground'} flex items-center gap-1">
+                                        <i class="ph ph-clock text-[10px] ${isToday ? 'text-emerald-500' : 'text-muted-foreground'}"></i>
+                                        <span>${formatted}</span>
+                                    </div>
+                                    ${isToday ? '<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 w-fit">วันนี้</span>' : ''}
+                                </div>`;
+                            })()}
+                        </td>
+                        <td class="px-5 py-4">
                             ${hasBps ? `
                                 <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'design')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1.5 hover:bg-indigo-500/25 transition cursor-pointer shadow-2xs" title="ดู/แก้ไขแบบแปลน ${bpCount} รายการ">
                                     <i class="ph ph-blueprint text-indigo-600 dark:text-indigo-400"></i>
@@ -2871,7 +2885,7 @@ const app = {
                 const isIsaraUser = window.auth && window.auth.isIsaraChootip ? window.auth.isIsaraChootip() : false;
                 document.getElementById('jobs-table-body').innerHTML = html || `
                     <tr>
-                        <td colspan="6" class="px-5 py-12 text-center">
+                        <td colspan="7" class="px-5 py-12 text-center">
                             <div class="max-w-md mx-auto space-y-3">
                                 <div class="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-2xl font-bold shadow-xs">
                                     <i class="ph ph-tray"></i>
