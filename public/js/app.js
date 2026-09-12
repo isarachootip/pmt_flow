@@ -2759,10 +2759,15 @@ const app = {
                     if (serviceFilter !== 'all') {
                         list = list.filter(j => j.service === serviceFilter);
                     }
-                    // Since Step 1 has its own dedicated state, strictly show Step 1 jobs (New Intake) that have not yet been accepted into PMT
+                    // Show Step 1 jobs: NEW/DRAFT (not yet accepted) AND SURVEYED (survey jobs from INT that need PMT processing)
                     list = list.filter(j => 
-                        !j.pmt_accepted &&
-                        (j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
+                        (
+                            // Standard new intake: not accepted, status DRAFT/NEW
+                            (!j.pmt_accepted && (j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New'))
+                            ||
+                            // Survey jobs from INT: SURVEYED status but not yet fully processed into pipeline
+                            (j.status === 'SURVEYED' && !j.step_timestamps?.step5_project_at && !(DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id))
+                        ) &&
                         !designedJobIds.has(j.id) &&
                         !(j.step_timestamps && (j.step_timestamps.step2_design_at || j.step_timestamps.step4_ticket_at || j.step_timestamps.step3_boq_at || j.step_timestamps.step5_project_at)) &&
                         !(DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id)
@@ -2781,6 +2786,7 @@ const app = {
                 const html = list.map((j, idx) => {
                     const isTop3New = idx < 3;
                     const isQuick = this.isQuickJob(j);
+                    const isSurvey = j.status === 'SURVEYED';
 
                     // Design / Blueprints status
                     const jobBps = (DB.blueprints || []).filter(b => b.jobId === j.id);
@@ -2794,11 +2800,15 @@ const app = {
                     const hasBOQ = itemsCount > 0;
 
                     return `
-                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTop3New ? 'bg-indigo-500/[0.02]' : ''}" onclick="app.openUnifiedOrderStudio('${j.id}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${j.id})">
+                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSurvey ? 'bg-teal-500/[0.03] border-l-2 border-l-teal-500' : isTop3New ? 'bg-indigo-500/[0.02]' : ''}" onclick="app.openUnifiedOrderStudio('${j.id}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${j.id})">
                         <td class="px-5 py-4 font-mono font-semibold text-brand-500">
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span>${j.id}</span>
-                                ${isTop3New ? `
+                                ${isSurvey ? `
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-teal-500/15 text-teal-700 border border-teal-500/30" title="งานสำรวจหน้างานจากระบบภายนอก (INT)">
+                                        <i class="ph ph-compass-tool"></i> SURVEY
+                                    </span>
+                                ` : isTop3New ? `
                                     <span class="badge-new-item" title="3 รายการล่าสุดที่รับเข้า (NEW!)">
                                         <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
                                     </span>
