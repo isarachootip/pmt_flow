@@ -1464,15 +1464,15 @@ app.post('/api/v1/integration/orders', async (req, res) => {
             services: servicesList,
             assigned_tech: payload.agent?.name || payload.technician?.name || 'Team A (สมศักดิ์)',
             plan_date: payload.schedule_plan?.visit_date || payload.appointment?.date || new Date().toISOString().split('T')[0],
-            status: payload.job_info?.status === 'Approved' ? JobStatus.SURVEYED : JobStatus.DRAFT,
+            status: JobStatus.SURVEYED, // Orders from INT are always survey jobs
             job_type: jobType,
             property_type: payload.job_info?.property_type || 'บ้านเดี่ยว',
             project_type: payload.job_info?.project_type || (isQuick ? 'Installation' : 'Renovate'),
             project_sub_type: payload.job_info?.project_sub_type || serviceName,
             store_code: payload.store?.code || payload.store_code || '',
             agent_name: payload.agent?.name || payload.agent_name || '',
-            pmt_accepted: Boolean(payload.job_info?.status === 'Approved'),
-            pmt_accepted_at: payload.job_info?.status === 'Approved' ? new Date().toISOString() : undefined,
+            pmt_accepted: false, // Not yet accepted into PMT pipeline; needs BOQ+Design in Step 1
+            pmt_accepted_at: undefined,
             step_timestamps: {
                 step1_order_at: payload.system?.created_at || new Date().toISOString(),
                 ...(payload.check_out?.date ? { step2_survey_at: payload.check_out.date } : {})
@@ -1481,7 +1481,7 @@ app.post('/api/v1/integration/orders', async (req, res) => {
             boq_discount: 0,
             boq_grand_total: 0,
             photos: photos,
-            overall_progress: payload.job_info?.status === 'Approved' ? 30 : 0,
+            overall_progress: 0,
             special_instructions: payload.remarks?.comment || payload.special_instructions || '',
             additional_notes: payload.remarks?.note || payload.additional_notes || '',
             created_at: payload.system?.created_at || new Date().toISOString()
