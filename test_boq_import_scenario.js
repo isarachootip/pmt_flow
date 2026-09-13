@@ -54,29 +54,29 @@ function parseBOQTemplate(csvContent) {
     if (!rawLine) return;
 
     // Header extraction
-    if (rawLine.includes('เรียน')) {
-      const m = rawLine.match(/เรียน\s*[:,\t]*\s*([^,\t\r\n]+)/i);
-      if (m && m[1]) detectedHeader.customer = m[1].trim();
+    if (rawLine.includes('เรียน') || rawLine.includes('Customer') || rawLine.includes('ลูกค้า')) {
+      const m = rawLine.match(/(?:เรียน|Customer|ลูกค้า)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\s*,\s*(?:ที่อยู่|Address|Tel|เบอร์โทร|Phone|สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\s{2,}(?:ที่อยู่|Address|Tel|เบอร์โทร|Phone|สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\t|\||$)/i);
+      if (m && m[1]) detectedHeader.customer = m[1].trim().replace(/^"|"$/g, '');
     }
-    if (rawLine.includes('ที่อยู่')) {
-      const m = rawLine.match(/ที่อยู่\s*[:,\t]*\s*([^,\t\r\n]+)/i);
-      if (m && m[1]) detectedHeader.address = m[1].trim();
+    if (rawLine.includes('ที่อยู่') || rawLine.includes('Address')) {
+      const m = rawLine.match(/(?:ที่อยู่|Address)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\s*,\s*(?:Tel|เบอร์โทร|Phone|สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\s{2,}(?:Tel|เบอร์โทร|Phone|สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\t|\||$)/i);
+      if (m && m[1]) detectedHeader.address = m[1].trim().replace(/^"|"$/g, '');
     }
-    if (rawLine.includes('Tel')) {
-      const m = rawLine.match(/Tel\s*[:,\t]*\s*([^,\t\r\n]+)/i);
-      if (m && m[1]) detectedHeader.phone = m[1].trim();
+    if (rawLine.includes('Tel') || rawLine.includes('เบอร์โทร') || rawLine.includes('Phone')) {
+      const m = rawLine.match(/(?:Tel|เบอร์โทร|Phone)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\s*,\s*(?:สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\s{2,}(?:สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\t|\||$)/i);
+      if (m && m[1]) detectedHeader.phone = m[1].trim().replace(/^"|"$/g, '');
     }
-    if (rawLine.includes('สาขา')) {
-      const m = rawLine.match(/สาขา\s*[:,\t]*\s*([^,\t\r\n]+)/i);
-      if (m && m[1]) detectedHeader.branch = m[1].trim();
+    if (rawLine.includes('สาขา') || rawLine.includes('Branch')) {
+      const m = rawLine.match(/(?:สาขา|Branch)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\s*,\s*(?:วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\s{2,}(?:วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\t|\||$)/i);
+      if (m && m[1]) detectedHeader.branch = m[1].trim().replace(/^"|"$/g, '');
     }
-    if (rawLine.includes('เลขที่งาน')) {
-      const m = rawLine.match(/เลขที่งาน\s*[:,\t]*\s*([^,\t\r\n]+)/i);
-      if (m && m[1]) detectedHeader.job_ref = m[1].trim();
+    if (rawLine.includes('เลขที่งาน') || rawLine.includes('Job No') || rawLine.includes('Order No')) {
+      const m = rawLine.match(/(?:เลขที่งาน|Job No|Order No)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\s*,\s*(?:วันที่|Date)\s*[:=]|\s{2,}(?:วันที่|Date)\s*[:=]|\t|\||$)/i);
+      if (m && m[1]) detectedHeader.job_ref = m[1].trim().replace(/^"|"$/g, '');
     }
-    if (rawLine.includes('วันที่')) {
-      const m = rawLine.match(/วันที่\s*[:,\t]*\s*([^,\t\r\n]+)/i);
-      if (m && m[1]) detectedHeader.date = m[1].trim();
+    if (rawLine.includes('วันที่') || rawLine.includes('Date')) {
+      const m = rawLine.match(/(?:วันที่|Date)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\t|\||$)/i);
+      if (m && m[1]) detectedHeader.date = m[1].trim().replace(/^"|"$/g, '');
     }
 
     if (rawLine.includes('ลำดับ') || rawLine.includes('Descriptions') || rawLine.includes('รหัสสินค้า') || rawLine.includes('ใบเสนอราคา') || rawLine.includes('vFIX')) {
@@ -484,8 +484,159 @@ async function runBOQTest() {
   }
   console.log(`   ✅ SUCCESS: Customer info remains strictly protected in both Replace and Append modes\n`);
 
+  // 13. English and Mixed Header Detection in Pasted Text
+  console.log('▶ [TEST 13] Verifying English and Mixed Header Detection in Pasted Text...');
+  const pastedEnglishText = `vFIX Quotation
+Customer: นายจอห์น โด (John Doe)
+Address: 888 Sukhumvit Road, Bangkok
+Tel: 089-555-1234
+Branch: Bangna
+Date: 12/09/2026
+ลำดับ,รายการ,จำนวน,หน่วย,ราคา
+1,ค่าแรงติดตั้ง,1,งาน,2500`;
+
+  let engHeader = {};
+  pastedEnglishText.trim().split(/\r?\n/).forEach(rawLine => {
+    if (rawLine.includes('เรียน') || rawLine.includes('Customer') || rawLine.includes('ลูกค้า')) {
+      const m = rawLine.match(/(?:เรียน|Customer|ลูกค้า)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\s*,\s*(?:ที่อยู่|Address|Tel|เบอร์โทร|Phone|สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\s{2,}(?:ที่อยู่|Address|Tel|เบอร์โทร|Phone|สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\t|\||$)/i);
+      if (m && m[1]) engHeader.customer = m[1].trim().replace(/^"|"$/g, '');
+    }
+    if (rawLine.includes('ที่อยู่') || rawLine.includes('Address')) {
+      const m = rawLine.match(/(?:ที่อยู่|Address)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\s*,\s*(?:Tel|เบอร์โทร|Phone|สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\s{2,}(?:Tel|เบอร์โทร|Phone|สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\t|\||$)/i);
+      if (m && m[1]) engHeader.address = m[1].trim().replace(/^"|"$/g, '');
+    }
+    if (rawLine.includes('Tel') || rawLine.includes('เบอร์โทร') || rawLine.includes('Phone')) {
+      const m = rawLine.match(/(?:Tel|เบอร์โทร|Phone)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\s*,\s*(?:สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\s{2,}(?:สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\t|\||$)/i);
+      if (m && m[1]) engHeader.phone = m[1].trim().replace(/^"|"$/g, '');
+    }
+    if (rawLine.includes('สาขา') || rawLine.includes('Branch')) {
+      const m = rawLine.match(/(?:สาขา|Branch)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\s*,\s*(?:วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\s{2,}(?:วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\t|\||$)/i);
+      if (m && m[1]) engHeader.branch = m[1].trim().replace(/^"|"$/g, '');
+    }
+    if (rawLine.includes('วันที่') || rawLine.includes('Date')) {
+      const m = rawLine.match(/(?:วันที่|Date)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\t|\||$)/i);
+      if (m && m[1]) engHeader.date = m[1].trim().replace(/^"|"$/g, '');
+    }
+  });
+
+  if (engHeader.customer !== 'นายจอห์น โด (John Doe)' || engHeader.address !== '888 Sukhumvit Road, Bangkok' || engHeader.phone !== '089-555-1234' || engHeader.branch !== 'Bangna' || engHeader.date !== '12/09/2026') {
+    throw new Error(`❌ Test 13 Failed: English header detection failed: ${JSON.stringify(engHeader)}`);
+  }
+
+  // Edge cases: Multi-comma Thai address, quoted address, inline Tel on same line
+  const edgeAddressCases = [
+    {
+      line: 'ที่อยู่: 123/45 ซอยสุขุมวิท 55, แขวงคลองตันเหนือ, เขตวัฒนา, กรุงเทพฯ 10110',
+      expected: '123/45 ซอยสุขุมวิท 55, แขวงคลองตันเหนือ, เขตวัฒนา, กรุงเทพฯ 10110'
+    },
+    {
+      line: 'Address: "888 Sukhumvit Road, Khlong Toei, Bangkok 10110"',
+      expected: '888 Sukhumvit Road, Khlong Toei, Bangkok 10110'
+    },
+    {
+      line: 'Address: 888 Sukhumvit Road, Bangkok\tTel: 089-555-1234',
+      expected: '888 Sukhumvit Road, Bangkok'
+    },
+    {
+      line: 'Address: 888 Sukhumvit Road, Bangkok, Tel: 089-555-1234',
+      expected: '888 Sukhumvit Road, Bangkok'
+    }
+  ];
+
+  const addrRegex = /(?:ที่อยู่|Address)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\s*,\s*(?:Tel|เบอร์โทร|Phone|สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\s{2,}(?:Tel|เบอร์โทร|Phone|สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\t|\||$)/i;
+  for (const c of edgeAddressCases) {
+    const m = c.line.match(addrRegex);
+    const parsed = m ? m[1].trim().replace(/^"|"$/g, '') : '';
+    if (parsed !== c.expected) {
+      throw new Error(`❌ Test 13 Edge Case Failed for "${c.line}": got "${parsed}", expected "${c.expected}"`);
+    }
+  }
+
+  console.log(`   ✅ SUCCESS: English & alternative headers and multi-comma addresses extracted accurately: ${JSON.stringify(engHeader)}\n`);
+
+  // 14. Same-Cell Excel Header Parsing
+  console.log('▶ [TEST 14] Verifying Same-Cell Excel Header Parsing...');
+  const mockExcelRows = [
+    ['เรียน : คุณวิภาดา สดใส', null, 'สาขา : พัทยาใต้'],
+    ['ที่อยู่ : 123/45 พัทยา ชลบุรี', null, 'Tel : 081-234-5678'],
+    ['วันที่ : 25/08/2026', null, 'เลขที่ใบเสร็จ : REC-2026-001']
+  ];
+  let sameCellHeader = {};
+  mockExcelRows.forEach(row => {
+    for (let c = 0; c < row.length; c++) {
+      const cell = String(row[c] || '').trim();
+      if (/^(?:เรียน|Customer|ลูกค้า)\s*[:\s]+(.+)$/i.test(cell)) {
+        const m = cell.match(/^(?:เรียน|Customer|ลูกค้า)\s*[:\s]+(.+)$/i);
+        if (m && m[1]) sameCellHeader.customer = m[1].trim();
+      } else if ((cell.includes('เรียน') || cell.includes('Customer') || cell.includes('ลูกค้า')) && row[c + 1]) {
+        sameCellHeader.customer = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
+      }
+
+      if (/^(?:ที่อยู่|Address)\s*[:\s]+(.+)$/i.test(cell)) {
+        const m = cell.match(/^(?:ที่อยู่|Address)\s*[:\s]+(.+)$/i);
+        if (m && m[1]) sameCellHeader.address = m[1].trim();
+      } else if ((cell.includes('ที่อยู่') || cell.includes('Address')) && row[c + 1]) {
+        sameCellHeader.address = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
+      }
+
+      if (/^(?:Tel|เบอร์โทร|Phone)\s*[:\s]+(.+)$/i.test(cell)) {
+        const m = cell.match(/^(?:Tel|เบอร์โทร|Phone)\s*[:\s]+(.+)$/i);
+        if (m && m[1]) sameCellHeader.phone = m[1].trim();
+      } else if ((cell.includes('Tel') || cell.includes('เบอร์โทร') || cell.includes('Phone')) && row[c + 1]) {
+        sameCellHeader.phone = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
+      }
+
+      if (/^(?:สาขา|Branch)\s*[:\s]+(.+)$/i.test(cell)) {
+        const m = cell.match(/^(?:สาขา|Branch)\s*[:\s]+(.+)$/i);
+        if (m && m[1]) sameCellHeader.branch = m[1].trim();
+      } else if ((cell.includes('สาขา') || cell.includes('Branch')) && row[c + 1]) {
+        sameCellHeader.branch = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
+      }
+
+      if (/^(?:วันที่|Date)\s*[:\s]+(.+)$/i.test(cell)) {
+        const m = cell.match(/^(?:วันที่|Date)\s*[:\s]+(.+)$/i);
+        if (m && m[1]) sameCellHeader.date = m[1].trim();
+      } else if ((cell.includes('วันที่') || cell.includes('Date')) && row[c + 1]) {
+        sameCellHeader.date = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
+      }
+
+      if (/^(?:เลขที่ใบเสร็จ|Receipt\s*No)\s*[:\s]+(.+)$/i.test(cell)) {
+        const m = cell.match(/^(?:เลขที่ใบเสร็จ|Receipt\s*No)\s*[:\s]+(.+)$/i);
+        if (m && m[1]) sameCellHeader.receipt_no = m[1].trim();
+      } else if ((cell.includes('เลขที่ใบเสร็จ') || cell.includes('Receipt')) && row[c + 1]) {
+        sameCellHeader.receipt_no = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
+      }
+    }
+  });
+
+  if (sameCellHeader.customer !== 'คุณวิภาดา สดใส' || sameCellHeader.address !== '123/45 พัทยา ชลบุรี' || sameCellHeader.phone !== '081-234-5678') {
+    throw new Error(`❌ Test 14 Failed: Same-cell Excel parsing failed: ${JSON.stringify(sameCellHeader)}`);
+  }
+  console.log(`   ✅ SUCCESS: Same-cell Excel headers extracted accurately: ${JSON.stringify(sameCellHeader)}\n`);
+
+  // 15. Customer Name Normalization Helper (Object vs String vs Fallback)
+  console.log('▶ [TEST 15] Verifying Customer Name Normalization Helper...');
+  function testGetCustomerName(job) {
+    if (!job) return '-';
+    if (typeof job.customer === 'object' && job.customer !== null) {
+      return job.customer.name || `${job.customer.first_name || ''} ${job.customer.last_name || ''}`.trim() || 'คุณลูกค้า';
+    }
+    return String(job.customer || 'คุณลูกค้า');
+  }
+
+  const jobWithString = { customer: 'คุณมานพ ขยันดี' };
+  const jobWithObjName = { customer: { name: 'คุณสมศรี มีทรัพย์' } };
+  const jobWithFirstLast = { customer: { first_name: 'คุณสุรศักดิ์', last_name: 'มงคลชัย' } };
+  const jobWithNull = { customer: null };
+
+  if (testGetCustomerName(jobWithString) !== 'คุณมานพ ขยันดี') throw new Error('❌ Test 15 Failed on string');
+  if (testGetCustomerName(jobWithObjName) !== 'คุณสมศรี มีทรัพย์') throw new Error('❌ Test 15 Failed on obj.name');
+  if (testGetCustomerName(jobWithFirstLast) !== 'คุณสุรศักดิ์ มงคลชัย') throw new Error('❌ Test 15 Failed on obj.first/last');
+  if (testGetCustomerName(jobWithNull) !== 'คุณลูกค้า') throw new Error('❌ Test 15 Failed on null');
+  console.log('   ✅ SUCCESS: Customer names safely resolved across string, object, and null cases\n');
+
   console.log('================================================================');
-  console.log('🎉 ALL 12 TESTS PASSED: BOQ IMPORT & LABOR-ONLY TASK PIPELINE VERIFIED 100%');
+  console.log('🎉 ALL 15 TESTS PASSED: BOQ IMPORT & LABOR-ONLY TASK PIPELINE VERIFIED 100%');
   console.log('================================================================');
 }
 

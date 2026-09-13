@@ -40,7 +40,7 @@ PostgreSQL database. They are NOT the same machine and NOT the same data.
 - Always advise the user to hard refresh (`Ctrl + F5`) after a deploy.
 
 ## 👥 USER MANAGEMENT & AUTHENTICATION SYSTEM SCOPE
-- **Skill Specification Reference**: Always follow [pmt_flow_skill.md](file:///c:/atgv/pmt_flow/pmt_flow_skill.md) for complete requirements on RBAC, User Management, Log-in/Log-off authentication, and the 7-step pipeline.
+- **Skill Specification Reference**: Always follow [pmt_flow_skill.md](file:///c:/atgv/pmt_flow/pmt_flow_skill.md) for complete requirements on RBAC, User Management, Log-in/Log-off authentication, and the 6-step pipeline.
 - **Mandatory User Log-in & Logout System**:
   - **First-line Gatekeeper**: Unauthenticated access must be strictly blocked by `#login-overlay`, and all views must be protected via `app.navigate` auth guards.
   - **Strict Log-off Hard Reload**: All logout actions (`sidebar-auth-btn`, `topbar-auth-btn`, `modal-my-profile`, `window.handleLogout`, `auth.logout`) MUST wipe auth tokens, cancel all timers/polling, and **hard reload to `/` (`window.location.replace('/'); window.location.reload();`)** to cleanly return to the login screen without residual memory or background polling.

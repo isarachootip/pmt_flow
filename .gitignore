@@ -20,7 +20,8 @@ data/
 
 # Agent Run Scratch
 .agents/ORIGINAL_REQUEST.md
-.agents/auditor/
+.agents/auditor*/
+.agents/reviewer*/
 .agents/sentinel*/
 .agents/swe_*/
 

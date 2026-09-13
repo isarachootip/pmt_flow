@@ -143,10 +143,11 @@ const app = {
             // ─── SLA CONFIGURATION & REALTIME TRACKING ENGINE ───────────
             DEFAULT_SLA_CONFIG: {
                 step1: { stepNumber: 1, key: 'step1', name: 'Step 1: ศูนย์รับ Order, Design & BOQ', slaHours: 24, warningThresholdPct: 75, enabled: true, color: 'indigo' },
-                step2: { stepNumber: 2, key: 'step2', name: 'Step 2: บันทึก Ticket & สลิปใบเสร็จ', slaHours: 8, warningThresholdPct: 75, enabled: true, color: 'emerald' },
-                step3: { stepNumber: 3, key: 'step3', name: 'Step 3: บันทึก BOQ เข้า Project & Gantt', slaHours: 12, warningThresholdPct: 75, enabled: true, color: 'amber' },
-                step4: { stepNumber: 4, key: 'step4', name: 'Step 4: ตรวจรับรองคุณภาพ (QC Inspection)', slaHours: 24, warningThresholdPct: 75, enabled: true, color: 'teal' },
-                step5: { stepNumber: 5, key: 'step5', name: 'Step 5: ประเมิน CSAT & สัญญาบริการ MA', slaHours: 48, warningThresholdPct: 75, enabled: true, color: 'blue' }
+                step2: { stepNumber: 2, key: 'step2', name: 'Step 2: บันทึก Ticket & แปลง Project', slaHours: 12, warningThresholdPct: 75, enabled: true, color: 'emerald' },
+                step3: { stepNumber: 3, key: 'step3', name: 'Step 3: เตรียมแผนงานและทีมช่าง', slaHours: 12, warningThresholdPct: 75, enabled: true, color: 'amber' },
+                step4: { stepNumber: 4, key: 'step4', name: 'Step 4: แผนงาน & บันทึกช่าง', slaHours: 48, warningThresholdPct: 75, enabled: true, color: 'cyan' },
+                step5: { stepNumber: 5, key: 'step5', name: 'Step 5: ตรวจรับรองคุณภาพ (QC)', slaHours: 24, warningThresholdPct: 75, enabled: true, color: 'teal' },
+                step6: { stepNumber: 6, key: 'step6', name: 'Step 6: ประเมินความพึงพอใจ (CSAT)', slaHours: 24, warningThresholdPct: 75, enabled: true, color: 'blue' }
             },
 
             getSLAConfig() {
@@ -195,12 +196,14 @@ const app = {
                 if (stepNumber === 1) {
                     startIso = ts.step1_intake_at || ts.step1_order_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
                 } else if (stepNumber === 2) {
-                    startIso = ts.step4_ticket_at || ts.step2_ticket_at || ts.step1_accepted_at || ts.step1_order_at || job.created_at;
+                    startIso = ts.step2_ticket_at || ts.step4_ticket_at || ts.step1_accepted_at || ts.step1_order_at || job.created_at;
                 } else if (stepNumber === 3) {
-                    startIso = ts.step5_project_at || ts.step3_conversion_at || ts.step4_ticket_at || ts.step1_order_at;
+                    startIso = ts.step3_conversion_at || ts.step5_project_at || ts.step2_ticket_at || ts.step4_ticket_at;
                 } else if (stepNumber === 4) {
-                    startIso = ts.qc_pending_at || ts.step5_project_at || ts.step4_ticket_at;
+                    startIso = ts.step4_gantt_at || ts.step3_conversion_at || ts.step5_project_at;
                 } else if (stepNumber === 5) {
+                    startIso = ts.qc_pending_at || ts.step4_gantt_at || ts.step3_conversion_at;
+                } else if (stepNumber === 6) {
                     startIso = ts.csat_pending_at || ts.qc_passed_at || ts.qc_inspected_at;
                 }
 
@@ -252,19 +255,21 @@ const app = {
                 if (container) {
                     const stepNames = {
                         step1: 'Step 1: ศูนย์รับ Order, Design & BOQ',
-                        step2: 'Step 2: บันทึก Ticket & สลิปใบเสร็จ',
-                        step3: 'Step 3: บันทึก BOQ เข้า Project & Gantt',
-                        step4: 'Step 4: ตรวจรับรองคุณภาพ (QC Inspection)',
-                        step5: 'Step 5: ประเมิน CSAT & สัญญาบริการ MA'
+                        step2: 'Step 2: บันทึก Ticket & แปลง Project',
+                        step3: 'Step 3: เตรียมแผนงานและทีมช่าง',
+                        step4: 'Step 4: แผนงาน & บันทึกช่าง',
+                        step5: 'Step 5: ตรวจรับรองคุณภาพ (QC)',
+                        step6: 'Step 6: ประเมินความพึงพอใจ (CSAT)'
                     };
                     const stepColors = {
                         step1: 'indigo',
                         step2: 'emerald',
                         step3: 'amber',
-                        step4: 'teal',
-                        step5: 'blue'
+                        step4: 'cyan',
+                        step5: 'teal',
+                        step6: 'blue'
                     };
-                    container.innerHTML = [1, 2, 3, 4, 5].map(stepNum => {
+                    container.innerHTML = [1, 2, 3, 4, 5, 6].map(stepNum => {
                         const k = `step${stepNum}`;
                         const c = config[k] || this.DEFAULT_SLA_CONFIG[k];
                         const isTarget = targetStepKey === k;
@@ -312,11 +317,12 @@ const app = {
 
             saveSLAConfigFromModal() {
                 const config = this.getSLAConfig();
-                [1, 2, 3, 4, 5].forEach(stepNum => {
+                [1, 2, 3, 4, 5, 6].forEach(stepNum => {
                     const k = `step${stepNum}`;
                     const hoursEl = document.getElementById(`modal-sla-hours-${k}`);
                     const warnEl = document.getElementById(`modal-sla-warning-${k}`);
                     const enEl = document.getElementById(`modal-sla-enable-${k}`);
+                    if (!config[k]) config[k] = Object.assign({}, this.DEFAULT_SLA_CONFIG[k] || { stepNumber: stepNum, key: k, enabled: true });
                     if (hoursEl) config[k].slaHours = Math.max(1, parseFloat(hoursEl.value) || 24);
                     if (warnEl) config[k].warningThresholdPct = Math.min(99, Math.max(10, parseFloat(warnEl.value) || 75));
                     if (enEl) config[k].enabled = enEl.checked;
@@ -329,11 +335,12 @@ const app = {
 
             saveSLAConfigFromSettings() {
                 const config = this.getSLAConfig();
-                [1, 2, 3, 4, 5].forEach(stepNum => {
+                [1, 2, 3, 4, 5, 6].forEach(stepNum => {
                     const k = `step${stepNum}`;
                     const hoursEl = document.getElementById(`setting-sla-hours-${k}`);
                     const warnEl = document.getElementById(`setting-sla-warning-${k}`);
                     const enEl = document.getElementById(`setting-sla-enable-${k}`);
+                    if (!config[k]) config[k] = Object.assign({}, this.DEFAULT_SLA_CONFIG[k] || { stepNumber: stepNum, key: k, enabled: true });
                     if (hoursEl) config[k].slaHours = Math.max(1, parseFloat(hoursEl.value) || 24);
                     if (warnEl) config[k].warningThresholdPct = Math.min(99, Math.max(10, parseFloat(warnEl.value) || 75));
                     if (enEl) config[k].enabled = enEl.checked;
@@ -344,9 +351,9 @@ const app = {
 
             renderSLASettingsPanel() {
                 const config = this.getSLAConfig();
-                [1, 2, 3, 4, 5].forEach(stepNum => {
+                [1, 2, 3, 4, 5, 6].forEach(stepNum => {
                     const k = `step${stepNum}`;
-                    const c = config[k] || this.DEFAULT_SLA_CONFIG[k];
+                    const c = config[k] || this.DEFAULT_SLA_CONFIG[k] || {};
                     const hoursEl = document.getElementById(`setting-sla-hours-${k}`);
                     const warnEl = document.getElementById(`setting-sla-warning-${k}`);
                     const enEl = document.getElementById(`setting-sla-enable-${k}`);
@@ -571,6 +578,14 @@ const app = {
                 });
             },
 
+            getCustomerName(job) {
+                if (!job) return '-';
+                if (typeof job.customer === 'object' && job.customer !== null) {
+                    return job.customer.name || `${job.customer.first_name || ''} ${job.customer.last_name || ''}`.trim() || 'คุณลูกค้า';
+                }
+                return String(job.customer || 'คุณลูกค้า');
+            },
+
             recalculateJobBOQ(job) {
                 if (!job) return { subtotal: 0, discount: 0, taxable: 0, vat: 0, grandTotal: 0 };
                 const items = job.boq_items || [];
@@ -687,8 +702,8 @@ const app = {
                     },
                     {
                         stepNumber: 2,
-                        name: 'บันทึก Ticket และแนบใบเสร็จ',
-                        category: 'Step 2: Tickets & Receipts',
+                        name: 'บันทึก Ticket และแปลง BOQ เข้า Project',
+                        category: 'Step 2: Tickets & Project Conversion',
                         timestamp: tkt ? (tkt.created_at || '2026-09-04T10:15:40.000Z') : (ts.step2_ticket_at || ts.step4_ticket_at),
                         isDone: !!(tkt || ts.step2_ticket_at || ts.step4_ticket_at || ts.step3_conversion_at || ts.step5_project_at || ts.qc_pending_at || (tasks && tasks.length > 0)),
                         statusLabel: tkt ? 'ออก Ticket & แนบสลิปแล้ว' : ((ts.step2_ticket_at || ts.step4_ticket_at) ? 'รอออก Ticket & สลิป' : 'รอยืนยันการชำระเงิน'),
@@ -697,19 +712,30 @@ const app = {
                     },
                     {
                         stepNumber: 3,
-                        name: 'บันทึก BOQ เข้า Project & แผนงาน Gantt',
-                        category: 'Step 3: Project Conversion & Gantt',
+                        name: 'เตรียมแผนงานและทีมช่าง',
+                        category: 'Step 3: Work Preparation & Dispatch',
                         timestamp: isQuick ? (ts.qc_pending_at || ts.step4_ticket_at || ts.step2_ticket_at) : (ts.step3_conversion_at || ts.step5_project_at || (tasks.length > 0 ? '2026-09-04T13:20:05.000Z' : null)),
                         isDone: isQuick ? true : !!(ts.step3_conversion_at || ts.step5_project_at || tasks.length > 0),
                         isSkipped: isQuick,
-                        statusLabel: isQuick ? '⚡ ข้ามขั้นตอน (Quick - ตรงไป QC Online)' : ((ts.step3_conversion_at || ts.step5_project_at || tasks.length > 0) ? `สร้างแล้ว (${tasks.length} Tasks)` : 'รอแปลงเข้า Project'),
-                        reference: isQuick ? 'ตรวจคุณภาพ Online ทันที (ข้าม Gantt)' : (tasks.length > 0 ? `แผนงาน Gantt: ${tasks.length} กิจกรรม` : 'ยังไม่มี Task ใน Gantt'),
-                        detail: isQuick ? 'งานประเภท Quick Service ข้ามการแปลงเป็น Project Gantt โดยส่งต่อไปยังคิวตรวจคุณภาพแบบ Online' : (tasks.length > 0 ? `กำหนดช่าง (${job.tech}) และช่วงวันปฏิบัติงานเรียบร้อย` : 'รอกดแปลงรายการค่าแรงเป็น Task ในแผนงาน')
+                        statusLabel: isQuick ? '⚡ ข้ามขั้นตอน (Quick - ตรงไป QC Online)' : ((ts.step3_conversion_at || ts.step5_project_at || tasks.length > 0) ? `เตรียมพร้อมแล้ว (${tasks.length} Tasks)` : 'รอจัดสรรแผนงาน'),
+                        reference: isQuick ? 'ตรวจคุณภาพ Online ทันที' : (tasks.length > 0 ? `แผนงาน: ${tasks.length} กิจกรรม` : 'ยังไม่มี Task'),
+                        detail: isQuick ? 'งานประเภท Quick Service ข้ามการเตรียมแผนงานยาว โดยส่งต่อไปยังคิวตรวจคุณภาพแบบ Online' : (tasks.length > 0 ? `จัดสรรช่าง (${job.tech}) และเตรียมวัสดุเรียบร้อย` : 'รอกดแปลงรายการค่าแรงเป็น Task ในแผนงาน')
                     },
                     {
                         stepNumber: 4,
+                        name: 'แผนงานติดตั้ง & บันทึกช่างประจำวัน',
+                        category: 'Step 4: Gantt & Daily Work Logs',
+                        timestamp: isQuick ? (ts.qc_pending_at || ts.step4_ticket_at) : (tasks.length > 0 ? (tasks[0].updated_at || ts.step3_conversion_at || '2026-09-05T08:30:00.000Z') : null),
+                        isDone: isQuick ? true : !!(job.progress >= 70 || ts.qc_pending_at || ts.qc_passed_at || (DB.dailyWorkLogs || []).some(l => l.jobId === job.id)),
+                        isSkipped: isQuick,
+                        statusLabel: isQuick ? '⚡ ข้ามขั้นตอน (Quick - ตรงไป QC Online)' : (((DB.dailyWorkLogs || []).some(l => l.jobId === job.id) || job.progress >= 70) ? 'ปฏิบัติงาน/ลงบันทึกช่างแล้ว' : 'รอเริ่มดำเนินงาน'),
+                        reference: isQuick ? 'ข้ามแผนงานยาว' : (((DB.dailyWorkLogs || []).filter(l => l.jobId === job.id).length > 0) ? `บันทึกช่าง ${(DB.dailyWorkLogs || []).filter(l => l.jobId === job.id).length} ครั้ง` : 'แผนงาน Gantt'),
+                        detail: isQuick ? 'งานด่วนดำเนินงานเสร็จสิ้นส่งภาพถ่ายหน้างานเข้าตรวจ QC' : 'ช่างเข้าปฏิบัติงานหน้างานและลงบันทึกเวลา 24 ชม. พร้อมแนบภาพถ่าย 5 ช่อง'
+                    },
+                    {
+                        stepNumber: 5,
                         name: 'ตรวจรับรองคุณภาพ (QC Inspection)',
-                        category: 'Step 4: Quality Control (QC)',
+                        category: 'Step 5: Quality Control (QC)',
                         timestamp: ts.qc_passed_at || ts.qc_inspected_at || ts.qc_pending_at,
                         isDone: !!(ts.qc_passed_at || job.status === 'QC_PASSED' || job.status === 'AFTER_SALE' || job.status === 'CLOSED'),
                         statusLabel: (job.status === 'QC_PASSED' || job.status === 'AFTER_SALE' || job.status === 'CLOSED' || ts.qc_passed_at) ? 'ผ่านการตรวจรับรอง (QC Passed)' : (ts.qc_pending_at ? 'อยู่ในคิวตรวจ QC' : 'รอส่งตรวจ QC'),
@@ -717,14 +743,14 @@ const app = {
                         detail: isQuick ? 'ตรวจแบบ Online ผ่านรูปถ่ายผลงานหน้างาน' : 'ตรวจแบบ On-site พร้อมให้คะแนนรายการย่อย BOQ'
                     },
                     {
-                        stepNumber: 5,
-                        name: 'ประเมิน CSAT & สัญญาบริการ MA',
-                        category: 'Step 5: CSAT & Services',
+                        stepNumber: 6,
+                        name: 'ประเมินความพึงพอใจลูกค้า (CSAT)',
+                        category: 'Step 6: Customer Satisfaction (CSAT)',
                         timestamp: ts.csat_completed_at || ts.after_sale_at || ts.csat_pending_at,
                         isDone: !!(job.status === 'AFTER_SALE' || job.status === 'CLOSED' || job.csat_score || ts.csat_completed_at),
                         statusLabel: (job.status === 'AFTER_SALE' || job.status === 'CLOSED' || job.csat_score) ? 'ประเมิน CSAT & ปิดงานแล้ว' : (job.status === 'QC_PASSED' ? 'รอสำรวจ CSAT' : 'รอดำเนินการ'),
                         reference: job.csat_score ? (Number(job.csat_score) >= 3 ? 'CSAT: ผ่าน (5 คะแนน) (ปิดงาน BMT)' : 'CSAT: ไม่ผ่าน (1 คะแนน)') : 'รอประเมินความพึงพอใจ',
-                        detail: 'Contact Center สำรวจความพึงพอใจลูกค้า ส่งสถานะปิดงาน BMT และดูแลสัญญาบำรุงรักษา MA'
+                        detail: 'Contact Center สำรวจความพึงพอใจลูกค้า (ผ่าน=5 / ไม่ผ่าน=1) และส่งสถานะปิดงาน BMT อย่างเป็นทางการ'
                     }
                 ];
 
@@ -808,7 +834,7 @@ const app = {
                         <div class="flex items-center gap-3 shrink-0">
                             <div class="text-right">
                                 <div class="text-[10px] text-muted-foreground">ความคืบหน้าภาพรวม</div>
-                                <div class="font-bold text-sm text-emerald-600 dark:text-emerald-400 font-mono">${data.completedCount} / 5 ขั้นตอน (${Math.round((data.completedCount / 5) * 100)}%)</div>
+                                <div class="font-bold text-sm text-emerald-600 dark:text-emerald-400 font-mono">${data.completedCount} / 6 ขั้นตอน (${Math.round((data.completedCount / 6) * 100)}%)</div>
                             </div>
                             <div class="w-10 h-10 rounded-full border-4 border-emerald-500 flex items-center justify-center font-mono font-bold text-xs text-foreground">
                                 ${data.completedCount}
@@ -816,7 +842,7 @@ const app = {
                         </div>
                     </div>
 
-                    <!-- 5 Steps Timeline Table -->
+                    <!-- 6 Steps Timeline Table -->
                     <div class="rounded-xl border border-border overflow-hidden shadow-xs">
                         <table class="w-full text-left text-xs">
                             <thead class="bg-muted/60 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
@@ -887,15 +913,15 @@ const app = {
                             <div class="text-[10px] text-muted-foreground">Order & BOQ Studio</div>
                         </div>
                         <div class="p-3.5 rounded-xl bg-blue-500/5 border border-blue-500/20 space-y-1">
-                            <div class="text-[10px] text-blue-600 dark:text-blue-400 font-semibold uppercase">จุดสิ้นสุดกระบวนการ (Step 5)</div>
-                            <div class="font-mono font-bold text-foreground text-xs">${steps[4].timestamp ? this.formatTimestamp(steps[4].timestamp, false) : 'กำลังดำเนินการ'}</div>
-                            <div class="text-[10px] text-muted-foreground">ประเมิน CSAT & สัญญา MA</div>
+                            <div class="text-[10px] text-blue-600 dark:text-blue-400 font-semibold uppercase">จุดสิ้นสุดกระบวนการ (Step 6)</div>
+                            <div class="font-mono font-bold text-foreground text-xs">${steps[5] && steps[5].timestamp ? this.formatTimestamp(steps[5].timestamp, false) : 'กำลังดำเนินการ'}</div>
+                            <div class="text-[10px] text-muted-foreground">ประเมิน CSAT & ปิดงานคำสั่งซื้อ</div>
                         </div>
                         <div class="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-1">
                             <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase">ความสมบูรณ์ของข้อมูล Audit</div>
                             <div class="font-bold text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-1">
                                 <i class="ph ph-seal-check text-sm"></i>
-                                <span>${data.completedCount === 5 ? 'ครบถ้วนสมบูรณ์ 100%' : `ดำเนินการแล้ว ${Math.round((data.completedCount / 5) * 100)}%`}</span>
+                                <span>${data.completedCount === 6 ? 'ครบถ้วนสมบูรณ์ 100%' : `ดำเนินการแล้ว ${Math.round((data.completedCount / 6) * 100)}%`}</span>
                             </div>
                             <div class="text-[10px] text-muted-foreground">ระบบบันทึก Timestamp ทุกขั้นตอนเพื่อ Report</div>
                         </div>
@@ -950,17 +976,19 @@ const app = {
                     'ประเภทงานบริการ',
                     'ช่างผู้รับผิดชอบ',
                     'สถานะปัจจุบัน',
-                    'Step 1: วัน-เวลารับ Order & BOQ Studio (Step1_At)',
-                    'Step 2: วัน-เวลาบันทึก Ticket & ใบเสร็จ (Ticket_At)',
-                    'Step 3: วัน-เวลาแปลงเข้า Project & Gantt (Project_At)',
-                    'Step 4: วัน-เวลาตรวจรับรอง QC (QC_At)',
-                    'Step 5: วัน-เวลาประเมิน CSAT & MA (CSAT_At)',
+                    'Step 1: วัน-เวลารับ Order, Design & BOQ (Step1_At)',
+                    'Step 2: วัน-เวลาบันทึก Ticket & แปลง Project (Ticket_At)',
+                    'Step 3: วัน-เวลาเตรียมแผนงานและทีมช่าง (Prep_At)',
+                    'Step 4: วัน-เวลาแผนงาน & บันทึกช่าง (Gantt_At)',
+                    'Step 5: วัน-เวลาตรวจรับรอง QC (QC_At)',
+                    'Step 6: วัน-เวลาประเมิน CSAT (CSAT_At)',
                     'จำนวนขั้นตอนที่เสร็จสิ้น'
                 ];
 
                 const rows = (DB.jobs || []).map(j => {
                     const r = this.getJobStepAuditReportData(j.id);
                     const ts = j.step_timestamps || {};
+                    const tasks = (DB.tasks || []).filter(t => t.jobId === j.id);
                     return [
                         `"${j.id}"`,
                         `"${j.external_ref_id || '-'}"`,
@@ -972,9 +1000,10 @@ const app = {
                         `"${this.formatTimestamp(ts.step1_intake_at || ts.step1_order_at || j.created_at)}"`,
                         `"${this.formatTimestamp(ts.step2_ticket_at || ts.step4_ticket_at)}"`,
                         `"${this.formatTimestamp(ts.step3_conversion_at || ts.step5_project_at)}"`,
+                        `"${this.formatTimestamp(ts.step4_gantt_at || (tasks.length > 0 ? tasks[0].updated_at : null))}"`,
                         `"${this.formatTimestamp(ts.qc_passed_at || ts.qc_inspected_at || ts.qc_pending_at)}"`,
                         `"${this.formatTimestamp(ts.csat_completed_at || ts.after_sale_at || ts.csat_pending_at)}"`,
-                        `"${r ? r.completedCount : 0}/5"`
+                        `"${r ? r.completedCount : 0}/6"`
                     ].join(',');
                 });
 
@@ -2466,18 +2495,18 @@ const app = {
                 // Update breadcrumb
                 const breadcrumbMap = {
                     'dashboard': 'Dashboard (ภาพรวมระบบ)',
-                    'jobs': 'Step 1: ศูนย์รับคำสั่งซื้อ, Design & BOQ Studio',
+                    'jobs': 'Step 1: รับ Order, Design & BOQ Studio',
                     'job-detail': `รายละเอียดงาน ${param || ''}`,
-                    'tickets': 'Step 2: บันทึก Ticket & แนบใบเสร็จ (Tickets & Receipts)',
-                    'project-conversion': 'Step 3: บันทึก BOQ เข้า Project (Labor-to-Task & Gantt)',
-                    'qc': 'Step 4: การตรวจรับรองคุณภาพ (Quality Control - Step 4)',
-                    'csat': 'Step 5: ความพึงพอใจลูกค้า & สัญญาบริการ MA (CSAT & Services - Step 5)',
+                    'tickets': 'Step 2: บันทึก Ticket & แปลง BOQ เข้า Project',
+                    'project-conversion': 'Step 3: เตรียมแผนงานและทีมช่าง (Work Preparation & Dispatch)',
+                    'gantt': 'Step 4: แผนงาน & บันทึกช่างประจำวัน (Gantt Timeline)',
+                    'daily-logs': 'บันทึกงานช่างประจำวัน (Daily Technician Work Log)',
+                    'qc': 'Step 5: การตรวจรับรองคุณภาพ (Quality Control - Step 5)',
+                    'csat': 'Step 6: ประเมินความพึงพอใจลูกค้า (Customer Satisfaction - CSAT Step 6)',
                     'blueprints': 'คลังแบบแปลนและไฟล์ออกแบบ (Central Blueprints & CAD)',
                     'boq': 'คลังรายการประมาณการราคา (Central BOQ Repository)',
-                    'gantt': 'แผนงาน Gantt เต็มรูป (Gantt Timeline)',
-                    'daily-logs': 'บันทึกงานช่างประจำวัน (Daily Technician Work Log)',
                     'ma-contracts': 'บริการหลังการขาย & สัญญา MA',
-                    'completed-jobs': 'รายงานที่สำเร็จแล้ว (Job Close)',
+                    'completed-jobs': 'รายงานโครงการที่สำเร็จแล้ว (Job Close Report)',
                     'settings': 'ตั้งค่าระบบ & API',
                     'api-logs': 'ประวัติการยิง API ขาเข้า (Inbound API Request Logs)',
                     'faq': 'คู่มือระบบ & คำถามที่พบบ่อย (Workflow Guide & FAQ)',
@@ -2567,7 +2596,7 @@ const app = {
 
             showStep2TrainingGuide() {
                 if (typeof window.openTrainingDoc === 'function') {
-                    window.openTrainingDoc('คู่มือการใช้งาน_Step4_บันทึกTicketและใบเสร็จ.md', 'โมดูล 2: Step 2 — บันทึก Ticket & ใบเสร็จ');
+                    window.openTrainingDoc('คู่มือการใช้งาน_Step4_บันทึกTicketและใบเสร็จ.md', 'โมดูล 2: Step 2 — บันทึก Ticket & แปลง BOQ เข้า Project');
                 } else {
                     this.state.currentFaqTab = 'training';
                     this.navigate('faq');
@@ -2577,7 +2606,7 @@ const app = {
 
             showStep3TrainingGuide() {
                 if (typeof window.openTrainingDoc === 'function') {
-                    window.openTrainingDoc('คู่มือการใช้งาน_Step5_บันทึกBOQเข้าProjectและGantt.md', 'โมดูล 3: Step 3 — บันทึก BOQ เข้า Project & Gantt');
+                    window.openTrainingDoc('คู่มือการใช้งาน_Step5_บันทึกBOQเข้าProjectและGantt.md', 'โมดูล 3: Step 3 — เตรียมแผนงานและทีมช่าง');
                 } else {
                     this.state.currentFaqTab = 'training';
                     this.navigate('faq');
@@ -2587,7 +2616,7 @@ const app = {
 
             showStep4TrainingGuide() {
                 if (typeof window.openTrainingDoc === 'function') {
-                    window.openTrainingDoc('คู่มือการใช้งาน_Step6_ตรวจรับรองคุณภาพQC.md', 'โมดูล 4: Step 4 — การตรวจรับรองคุณภาพ QC');
+                    window.openTrainingDoc('คู่มือการใช้งาน_Step5_บันทึกBOQเข้าProjectและGantt.md', 'โมดูล 4: Step 4 — แผนงานติดตั้ง & บันทึกช่างประจำวัน');
                 } else {
                     this.state.currentFaqTab = 'training';
                     this.navigate('faq');
@@ -2597,7 +2626,17 @@ const app = {
 
             showStep5TrainingGuide() {
                 if (typeof window.openTrainingDoc === 'function') {
-                    window.openTrainingDoc('คู่มือการใช้งาน_Step7_CSATและบริการหลังการขาย.md', 'โมดูล 5: Step 5 — CSAT และบริการหลังการขาย');
+                    window.openTrainingDoc('คู่มือการใช้งาน_Step6_ตรวจรับรองคุณภาพQC.md', 'โมดูล 5: Step 5 — การตรวจรับรองคุณภาพ QC');
+                } else {
+                    this.state.currentFaqTab = 'training';
+                    this.navigate('faq');
+                    this.switchFaqTab('training');
+                }
+            },
+
+            showStep6TrainingGuide() {
+                if (typeof window.openTrainingDoc === 'function') {
+                    window.openTrainingDoc('คู่มือการใช้งาน_Step7_CSATและบริการหลังการขาย.md', 'โมดูล 6: Step 6 — ประเมินความพึงพอใจลูกค้า CSAT');
                 } else {
                     this.state.currentFaqTab = 'training';
                     this.navigate('faq');
@@ -2607,7 +2646,7 @@ const app = {
 
             showBlueprintsTrainingGuide() {
                 if (typeof window.openTrainingDoc === 'function') {
-                    window.openTrainingDoc('คู่มือการใช้งาน_Step2_บันทึกแบบแปลนติดตั้ง.md', 'โมดูล 6: คลังแบบแปลนและไฟล์ CAD กลาง');
+                    window.openTrainingDoc('คู่มือการใช้งาน_Step2_บันทึกแบบแปลนติดตั้ง.md', 'โมดูล 7: คลังแบบแปลนและไฟล์ CAD กลาง');
                 } else {
                     this.state.currentFaqTab = 'training';
                     this.navigate('faq');
@@ -2617,7 +2656,7 @@ const app = {
 
             showBOQTrainingGuide() {
                 if (typeof window.openTrainingDoc === 'function') {
-                    window.openTrainingDoc('คู่มือการใช้งาน_Step3_นำBOQเข้าระบบ.md', 'โมดูล 7: คลังรายการ BOQ กลาง');
+                    window.openTrainingDoc('คู่มือการใช้งาน_Step3_นำBOQเข้าระบบ.md', 'โมดูล 8: คลังรายการ BOQ กลาง');
                 } else {
                     this.state.currentFaqTab = 'training';
                     this.navigate('faq');
@@ -2698,13 +2737,13 @@ const app = {
                 const s = (serviceName || '').toLowerCase();
                 if (s.includes('renovate') || s.includes('ครัว')) {
                     jtSel.value = 'renovate';
-                    if (hintEl) hintEl.innerText = '🔨 งาน Renovate ผ่านครบวงจร Step 1-5';
+                    if (hintEl) hintEl.innerText = '🔨 งาน Renovate ผ่านครบวงจร 6 Steps (Step 1-6)';
                 } else if (s.includes('ma') || s.includes('ล้าง') || s.includes('บำรุง')) {
                     jtSel.value = 'ma';
                     if (hintEl) hintEl.innerText = '🔧 งาน MA สัญญาบริการบำรุงรักษา';
                 } else {
                     jtSel.value = 'quick';
-                    if (hintEl) hintEl.innerText = '⚡ งาน Quick จะข้าม Step 2 & 3 ตรงไป Step 4';
+                    if (hintEl) hintEl.innerText = '⚡ งาน Quick จะข้ามขั้นตอนไป Step 2 (Ticket) และ Step 5 (QC Online)';
                 }
             },
 
@@ -4218,51 +4257,51 @@ const app = {
                 const proceedBtnText = document.getElementById('unified-modal-proceed-btn-text');
 
                 if (isQuick) {
-                    // Quick Services: Skip Step 5, jump to Step 4 (Tickets)
+                    // Quick Services: Proceed directly to Step 2 (Tickets)
                     if (proceedBtn) {
                         proceedBtn.disabled = false;
                         proceedBtn.className = 'flex-1 sm:flex-none btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white cursor-pointer shadow-md transition flex items-center justify-center gap-1.5';
-                        proceedBtn.title = 'อนุมัติคำสั่งซื้อและส่งต่อไปออก Ticket ด่วน (Step 4)';
+                        proceedBtn.title = 'อนุมัติคำสั่งซื้อและส่งต่อไปออก Ticket ด่วน (Step 2)';
                     }
                     if (proceedBtnText) {
-                        proceedBtnText.innerText = '🚀 อนุมัติ & ออก Ticket ด่วน (Step 4)';
+                        proceedBtnText.innerText = '🚀 อนุมัติ & ออก Ticket ด่วน (Step 2)';
                     }
                     if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
                     if (validationMsg) {
-                        validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ งาน Quick Service พร้อมส่งต่อเปิด Ticket & แนบสลิป (Step 4)</span>';
+                        validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ งาน Quick Service พร้อมส่งต่อเปิด Ticket & แนบสลิป (Step 2)</span>';
                     }
                 } else {
-                    // Renovate Projects: MANDATORY STEP 3 (BOQ) BEFORE STEP 5 (GANTT)
+                    // Renovate Projects: MANDATORY BOQ BEFORE STEP 2 (CONVERSION)
                     if (!hasBOQ) {
-                        // CANNOT proceed to Step 5 if Step 3 is NOT passed!
+                        // CANNOT proceed to Step 2 if BOQ is NOT passed!
                         if (proceedBtn) {
                             proceedBtn.disabled = true;
                             proceedBtn.className = 'flex-1 sm:flex-none px-5 py-2 rounded-xl text-xs font-semibold bg-muted text-muted-foreground border border-border/80 cursor-not-allowed opacity-60 shadow-none transition flex items-center justify-center gap-1.5';
-                            proceedBtn.title = '⚠️ ไม่สามารถย้ายไป Step 5 ได้: คำสั่งซื้อนี้ยังไม่ผ่าน Step 3 (ต้องมีรายการ BOQ อย่างน้อย 1 รายการก่อน)';
+                            proceedBtn.title = '⚠️ ไม่สามารถย้ายไป Step 2 ได้: คำสั่งซื้อนี้ยังไม่มีรายการ BOQ (ต้องมีรายการ BOQ อย่างน้อย 1 รายการก่อน)';
                         }
                         if (proceedBtnText) {
-                            proceedBtnText.innerText = '🔒 รอผ่าน Step 3 (จัดทำ BOQ ก่อนไป Step 5)';
+                            proceedBtnText.innerText = '🔒 รอจัดทำ BOQ ก่อนไป Step 2';
                         }
                         if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse';
                         if (validationMsg) {
-                            validationMsg.innerHTML = '<span class="text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1"><i class="ph ph-warning-octagon text-sm"></i> ยังไม่ผ่าน Step 3: ต้องมีรายการ BOQ อย่างน้อย 1 รายการก่อน จึงจะสามารถอนุมัติและแปลงเข้าสู่แผนงาน Gantt (Step 5) ได้</span>';
+                            validationMsg.innerHTML = '<span class="text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1"><i class="ph ph-warning-octagon text-sm"></i> ต้องมีรายการ BOQ อย่างน้อย 1 รายการก่อน จึงจะสามารถอนุมัติและส่งต่อไปยัง Step 2 (บันทึก Ticket & แปลง Project) ได้</span>';
                         }
                     } else {
-                        // Step 3 Passed: Allow proceeding to Step 5!
+                        // BOQ Passed: Allow proceeding to Step 2!
                         if (proceedBtn) {
                             proceedBtn.disabled = false;
                             proceedBtn.className = 'flex-1 sm:flex-none btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white cursor-pointer shadow-md transition flex items-center justify-center gap-1.5';
-                            proceedBtn.title = 'อนุมัติข้อเสนอคำสั่งซื้อและแปลงรายการ BOQ เข้าสู่แผนงาน Gantt (Step 5)';
+                            proceedBtn.title = 'อนุมัติข้อเสนอคำสั่งซื้อและส่งต่อไปยัง Step 2 (บันทึก Ticket & แปลง Project)';
                         }
                         if (proceedBtnText) {
-                            proceedBtnText.innerText = '🚀 อนุมัติ & แปลงเข้า Gantt (Step 5)';
+                            proceedBtnText.innerText = '🚀 อนุมัติ & ส่งต่อไป Step 2';
                         }
                         if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
                         if (validationMsg) {
                             if (bps.length > 0) {
-                                validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ ข้อมูลครบทั้ง 3 มิติ (Intake + Design + BOQ) พร้อมแปลงเข้าสู่แผนงาน Gantt (Step 5)</span>';
+                                validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ ข้อมูลครบทั้ง 3 มิติ (Intake + Design + BOQ) พร้อมส่งต่อ Step 2 (บันทึก Ticket & แปลง Project)</span>';
                             } else {
-                                validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ ผ่าน Step 3 (BOQ) เรียบร้อย พร้อมแปลงเข้าสู่แผนงาน Gantt (Step 5)</span> <span class="text-amber-600 text-[10px] font-normal ml-1">(แนะนำแนบแบบแปลนเพิ่มเติม)</span>';
+                                validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ บันทึก BOQ เรียบร้อย พร้อมส่งต่อ Step 2 (บันทึก Ticket & แปลง Project)</span> <span class="text-amber-600 text-[10px] font-normal ml-1">(แนะนำแนบแบบแปลนเพิ่มเติม)</span>';
                             }
                         }
                     }
@@ -4395,18 +4434,25 @@ const app = {
                     sidebarTicket.innerText = step2QueueCount > 0 ? step2QueueCount : (DB.tickets || []).length;
                 }
 
-                // Step 3: Tasks & Conversion
+                // Step 3: Tasks & Conversion (Work Preparation & Dispatch)
                 const sidebarTask = document.getElementById('sidebar-task-count');
                 if (sidebarTask) sidebarTask.innerText = (DB.tasks || []).length;
 
-                // Step 4: QC
+                // Step 4: Gantt Timeline & Daily Work Logs
+                const sidebarGantt = document.getElementById('sidebar-gantt-count');
+                if (sidebarGantt) {
+                    const ganttActive = allJobs.filter(j => !this.isQuickJob(j) && (j.status === 'IN_PROGRESS' || j.status === 'CONVERTED' || (j.step_timestamps && j.step_timestamps.step4_gantt_at))).length;
+                    sidebarGantt.innerText = ganttActive > 0 ? ganttActive : (DB.tasks || []).length;
+                }
+
+                // Step 5: QC
                 const sidebarQc = document.getElementById('sidebar-qc-count');
                 if (sidebarQc) {
                     const qcPending = allJobs.filter(j => j.status === 'QC_PENDING' || (j.step_timestamps && j.step_timestamps.qc_pending_at)).length;
                     sidebarQc.innerText = qcPending;
                 }
 
-                // Step 5: CSAT
+                // Step 6: CSAT
                 const sidebarCsat = document.getElementById('sidebar-csat-count');
                 if (sidebarCsat) {
                     const csatPending = allJobs.filter(j => j.status === 'QC_PASSED').length;
@@ -4808,10 +4854,10 @@ const app = {
                 }).length;
                 if (todayTickets === 0 && completedTickets > 0) todayTickets = Math.min(completedTickets, 1);
 
-                // SLA Calculation for Step 4
+                // SLA Calculation for Step 2 (Tickets & Receipts)
                 let s4OnTime = 0, s4Warning = 0, s4Overdue = 0;
                 remainingStep4Jobs.forEach(j => {
-                    const sla = this.calculateJobSLA(j, 4);
+                    const sla = this.calculateJobSLA(j, 2);
                     if (sla) {
                         if (sla.status === 'OVERDUE') s4Overdue++;
                         else if (sla.status === 'WARNING') s4Warning++;
@@ -4836,7 +4882,7 @@ const app = {
                 const elWarn = document.getElementById('step4-stat-sla-warning');
                 if (elWarn) elWarn.innerText = s4Warning;
 
-                const slaCfg4 = (this.getSLAConfig()).step4 || this.DEFAULT_SLA_CONFIG.step4;
+                const slaCfg4 = (this.getSLAConfig()).step2 || this.DEFAULT_SLA_CONFIG.step2;
                 const elTarget = document.getElementById('step4-sla-target-label');
                 if (elTarget) elTarget.innerText = `${slaCfg4.slaHours} ชม.`;
 
@@ -4888,7 +4934,7 @@ const app = {
                 const todayStr = now.toLocaleDateString('en-CA');
 
                 // Step 5 eligible: Renovate/Non-quick jobs with BOQ or Step 5 timestamps (Quick jobs skip Step 5 directly to QC Online)
-                const step5Eligible = allJobs.filter(j => !this.isQuickJob(j) && ((j.boq_items && j.boq_items.length > 0) || (j.step_timestamps && j.step_timestamps.step5_project_at)));
+                const step5Eligible = allJobs.filter(j => !this.isQuickJob(j) && ((j.boq_items && j.boq_items.length > 0) || (j.step_timestamps && (j.step_timestamps.step5_project_at || j.step_timestamps.step3_conversion_at))));
                 const totalStep5 = step5Eligible.length;
 
                 // Remaining in Step 5: Renovate jobs not yet converted into tasks
@@ -4904,15 +4950,15 @@ const app = {
 
                 let todayProject = allJobs.filter(j => {
                     if (this.isQuickJob(j)) return false;
-                    const ts = j.step_timestamps && j.step_timestamps.step5_project_at;
+                    const ts = j.step_timestamps && (j.step_timestamps.step5_project_at || j.step_timestamps.step3_conversion_at);
                     return ts && ts.slice(0, 10) === todayStr;
                 }).length;
                 if (todayProject === 0 && completedJobsInProject > 0) todayProject = Math.min(completedJobsInProject, 1);
 
-                // SLA Calculation for Step 5
+                // SLA Calculation for Step 3 (Work Preparation & Project Conversion)
                 let s5OnTime = 0, s5Warning = 0, s5Overdue = 0;
                 remainingStep5Jobs.forEach(j => {
-                    const sla = this.calculateJobSLA(j, 5);
+                    const sla = this.calculateJobSLA(j, 3);
                     if (sla) {
                         if (sla.status === 'OVERDUE') s5Overdue++;
                         else if (sla.status === 'WARNING') s5Warning++;
@@ -4937,7 +4983,7 @@ const app = {
                 const elWarn = document.getElementById('step5-stat-sla-warning');
                 if (elWarn) elWarn.innerText = s5Warning;
 
-                const slaCfg5 = (this.getSLAConfig()).step5 || this.DEFAULT_SLA_CONFIG.step5;
+                const slaCfg5 = (this.getSLAConfig()).step3 || this.DEFAULT_SLA_CONFIG.step3;
                 const elTarget = document.getElementById('step5-sla-target-label');
                 if (elTarget) elTarget.innerText = `${slaCfg5.slaHours} ชม.`;
 
@@ -4981,7 +5027,7 @@ const app = {
                 }
             },
 
-            // Update All Step Dashboards (Steps 1-5 + QC Step 6)
+            // Update All Step Dashboards (Steps 1-6)
             updateAllStepDashboards() {
                 this.updateStep1Dashboard();
                 this.updateStep2Dashboard();
@@ -5062,14 +5108,14 @@ const app = {
                         this.renderJobs(list);
                         this.showToast(`🚀 แสดงงานที่ส่งต่อไป Step 2+ / Step 4 แล้ว (${list.length} รายการ)`);
                     }
-                } else if (stepNumber === 2) {
+                } else if (stepNumber === 2 && this.state && this.state.currentPage === 'blueprints') {
                     const svcSel = document.getElementById('filter-blueprints-service');
                     const stSel = document.getElementById('filter-blueprints-status');
                     if (type === 'ALL') {
                         if (stSel) stSel.value = 'ALL';
                         if (svcSel) svcSel.value = 'all';
                         this.renderBlueprints('', 'all', allJobs);
-                        this.showToast(`📊 แสดงรายการโครงการทั้งหมดใน Step 2 (${allJobs.length} รายการ)`);
+                        this.showToast(`📊 แสดงรายการโครงการทั้งหมดในคลังแบบแปลน (${allJobs.length} รายการ)`);
                     } else if (type === 'TODAY') {
                         if (svcSel) svcSel.value = 'all';
                         let todayList = allJobs.filter(j => {
@@ -5079,12 +5125,12 @@ const app = {
                         if (todayList.length === 0 && allJobs.length > 0) todayList = allJobs.slice(0, 2);
                         if (stSel) stSel.value = 'ALL';
                         this.renderBlueprints('', 'all', todayList);
-                        this.showToast(`📅 แสดงงานที่เข้า Step 2 วันนี้ (${todayList.length} รายการ)`);
+                        this.showToast(`📅 แสดงงานที่มีแบบแปลนวันนี้ (${todayList.length} รายการ)`);
                     } else if (type === 'REMAINING' || type === 'STEP2_QUEUE') {
                         if (stSel) stSel.value = 'STEP2_QUEUE';
                         if (svcSel) svcSel.value = 'all';
                         this.renderBlueprints();
-                        this.showToast('📥 แสดงเฉพาะคิวงานที่รอทำแบบแปลน Design ใน Step 2');
+                        this.showToast('📥 แสดงเฉพาะคิวงานที่รอทำแบบแปลน Design');
                     } else if (type === 'OVERDUE') {
                         const overdueList = allJobs.filter(j => {
                             const sla = this.calculateJobSLA(j, 2);
@@ -5092,7 +5138,7 @@ const app = {
                         });
                         if (stSel) stSel.value = 'ALL';
                         this.renderBlueprints('', 'all', overdueList);
-                        this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA ใน Step 2 (${overdueList.length} รายการ)`);
+                        this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA ในคลังแบบแปลน (${overdueList.length} รายการ)`);
                     } else if (type === 'quick' || type === 'renovate' || type === 'ma') {
                         const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === type);
                         if (stSel) stSel.value = 'ALL';
@@ -5103,14 +5149,14 @@ const app = {
                         this.renderBlueprints();
                         this.showToast('📐 แสดงงานที่มีแบบ Design แล้ว');
                     }
-                } else if (stepNumber === 3) {
+                } else if (stepNumber === 3 && this.state && this.state.currentPage === 'boq') {
                     const svcSel = document.getElementById('filter-boq-service');
                     const stSel = document.getElementById('filter-boq-status');
                     if (type === 'ALL') {
                         if (stSel) stSel.value = 'ALL';
                         if (svcSel) svcSel.value = 'all';
                         this.renderBOQPage(null, allJobs);
-                        this.showToast(`📊 แสดงรายการคำสั่งซื้อทั้งหมดใน Step 3 (${allJobs.length} รายการ)`);
+                        this.showToast(`📊 แสดงรายการคำสั่งซื้อทั้งหมดในคลัง BOQ (${allJobs.length} รายการ)`);
                     } else if (type === 'TODAY') {
                         if (svcSel) svcSel.value = 'all';
                         let todayList = allJobs.filter(j => {
@@ -5125,7 +5171,7 @@ const app = {
                         if (stSel) stSel.value = 'STEP3_QUEUE';
                         if (svcSel) svcSel.value = 'all';
                         this.renderBOQPage();
-                        this.showToast('📥 แสดงเฉพาะคิวงานที่รอจัดทำ BOQ ใน Step 3');
+                        this.showToast('📥 แสดงเฉพาะคิวงานที่รอจัดทำ BOQ');
                     } else if (type === 'OVERDUE') {
                         const overdueList = allJobs.filter(j => {
                             const sla = this.calculateJobSLA(j, 3);
@@ -5133,7 +5179,7 @@ const app = {
                         });
                         if (stSel) stSel.value = 'ALL';
                         this.renderBOQPage(null, overdueList);
-                        this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA ใน Step 3 (${overdueList.length} รายการ)`);
+                        this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA ในคลัง BOQ (${overdueList.length} รายการ)`);
                     } else if (type === 'quick' || type === 'renovate' || type === 'ma') {
                         const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === type);
                         if (stSel) stSel.value = 'ALL';
@@ -5144,37 +5190,37 @@ const app = {
                         this.renderBOQPage();
                         this.showToast('📋 แสดงงานที่มีรายการ BOQ แล้ว');
                     }
-                } else if (stepNumber === 4) {
+                } else if (stepNumber === 4 || stepNumber === 2) {
                     const svcSel = document.getElementById('filter-tickets-service');
                     const stSel = document.getElementById('filter-tickets-status');
                     if (type === 'ALL') {
                         if (stSel) stSel.value = 'ALL';
                         if (svcSel) svcSel.value = 'all';
                         this.renderTickets('', null, allJobs);
-                        this.showToast(`📊 แสดงรายการทั้งหมดใน Step 4 (${allJobs.length} รายการ)`);
+                        this.showToast(`📊 แสดงรายการทั้งหมดใน Step 2 (${allJobs.length} รายการ)`);
                     } else if (type === 'TODAY') {
                         if (svcSel) svcSel.value = 'all';
                         let todayList = allJobs.filter(j => {
-                            const ts = (j.step_timestamps && j.step_timestamps.step4_ticket_at);
+                            const ts = (j.step_timestamps && (j.step_timestamps.step4_ticket_at || j.step_timestamps.step2_ticket_at));
                             return ts && ts.slice(0, 10) === todayStr;
                         });
                         if (todayList.length === 0 && allJobs.length > 0) todayList = allJobs.slice(0, 2);
                         if (stSel) stSel.value = 'ALL';
                         this.renderTickets('', null, todayList);
                         this.showToast(`📅 แสดงงานที่ออก Ticket วันนี้ (${todayList.length} รายการ)`);
-                    } else if (type === 'REMAINING' || type === 'STEP4_QUEUE') {
+                    } else if (type === 'REMAINING' || type === 'STEP4_QUEUE' || type === 'STEP2_QUEUE') {
                         if (stSel) stSel.value = 'STEP4_QUEUE';
                         if (svcSel) svcSel.value = 'all';
                         this.renderTickets();
-                        this.showToast('📥 แสดงเฉพาะคิวงานที่รอออก Ticket & แนบสลิป ใน Step 4');
+                        this.showToast('📥 แสดงเฉพาะคิวงานที่รอออก Ticket & แนบสลิป ใน Step 2');
                     } else if (type === 'OVERDUE') {
                         const overdueList = allJobs.filter(j => {
-                            const sla = this.calculateJobSLA(j, 4);
+                            const sla = this.calculateJobSLA(j, 2) || this.calculateJobSLA(j, 4);
                             return sla && sla.status === 'OVERDUE';
                         });
                         if (stSel) stSel.value = 'ALL';
                         this.renderTickets('', null, overdueList);
-                        this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA ใน Step 4 (${overdueList.length} รายการ)`);
+                        this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA ใน Step 2 (${overdueList.length} รายการ)`);
                     } else if (type === 'quick' || type === 'renovate' || type === 'ma') {
                         const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === type);
                         if (stSel) stSel.value = 'ALL';
@@ -5185,37 +5231,37 @@ const app = {
                         this.renderTickets();
                         this.showToast('🧾 แสดงงานที่ออก Ticket & แนบสลิปแล้ว');
                     }
-                } else if (stepNumber === 5) {
+                } else if (stepNumber === 5 || stepNumber === 3) {
                     const svcSel = document.getElementById('filter-conversion-service');
                     const stSel = document.getElementById('filter-conversion-status');
                     if (type === 'ALL') {
                         if (stSel) stSel.value = 'ALL';
                         if (svcSel) svcSel.value = 'all';
                         this.renderProjectConversion(null, allJobs);
-                        this.showToast(`📊 แสดงรายการทั้งหมดใน Step 5 (${allJobs.length} รายการ)`);
+                        this.showToast(`📊 แสดงรายการทั้งหมดใน Step 3 (${allJobs.length} รายการ)`);
                     } else if (type === 'TODAY') {
                         if (svcSel) svcSel.value = 'all';
                         let todayList = allJobs.filter(j => {
-                            const ts = (j.step_timestamps && j.step_timestamps.step5_project_at);
+                            const ts = (j.step_timestamps && (j.step_timestamps.step5_project_at || j.step_timestamps.step3_conversion_at));
                             return ts && ts.slice(0, 10) === todayStr;
                         });
                         if (todayList.length === 0 && allJobs.length > 0) todayList = allJobs.slice(0, 2);
                         if (stSel) stSel.value = 'ALL';
                         this.renderProjectConversion(null, todayList);
                         this.showToast(`📅 แสดงงานที่แปลงเข้า Project วันนี้ (${todayList.length} รายการ)`);
-                    } else if (type === 'REMAINING' || type === 'STEP5_QUEUE') {
+                    } else if (type === 'REMAINING' || type === 'STEP5_QUEUE' || type === 'STEP3_QUEUE') {
                         if (stSel) stSel.value = 'STEP5_QUEUE';
                         if (svcSel) svcSel.value = 'all';
                         this.renderProjectConversion();
-                        this.showToast('📥 แสดงเฉพาะคิวงานที่รอแปลง BOQ เข้า Project ใน Step 5');
+                        this.showToast('📥 แสดงเฉพาะคิวงานที่รอแปลง BOQ เข้า Project ใน Step 3');
                     } else if (type === 'OVERDUE') {
                         const overdueList = allJobs.filter(j => {
-                            const sla = this.calculateJobSLA(j, 5);
+                            const sla = this.calculateJobSLA(j, 3) || this.calculateJobSLA(j, 5);
                             return sla && sla.status === 'OVERDUE';
                         });
                         if (stSel) stSel.value = 'ALL';
                         this.renderProjectConversion(null, overdueList);
-                        this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA ใน Step 5 (${overdueList.length} รายการ)`);
+                        this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA ใน Step 3 (${overdueList.length} รายการ)`);
                     } else if (type === 'quick' || type === 'renovate' || type === 'ma') {
                         const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === type);
                         if (stSel) stSel.value = 'ALL';
@@ -5300,7 +5346,7 @@ const app = {
                 job.progress = Math.max(job.progress || 0, 45);
 
                 const count = (DB.blueprints || []).filter(b => b.jobId === targetJobId).length;
-                this.recordStepTimestamp(job.id, 'step3_boq_at', nowIso, `ยืนยันจบขั้นตอน Design (${count} แบบ) และย้ายเข้าสู่คิวสร้าง BOQ (Step 3)`);
+                this.recordStepTimestamp(job.id, 'step3_boq_at', nowIso, `ยืนยันจบขั้นตอน Design (${count} แบบ) และย้ายเข้าสู่คิวสร้าง BOQ`);
                 this.persistJobs();
 
                 // Sync with backend server
@@ -5428,15 +5474,16 @@ const app = {
                 const sla = this.calculateJobSLA(job, stepNumber);
                 const slaBadge = sla ? sla.badgeHtml : '';
                 const rep = this.getJobStepAuditReportData(job.id);
-                const progress = job.progress || (stepNumber * 20);
+                const progress = job.progress || (stepNumber * 16.6);
 
                 const isQuick = this.isQuickJob(job);
                 const stepLabels = {
                     1: 'Step 1: Order Intake & BOQ',
                     2: 'Step 2: Tickets & Slips',
-                    3: isQuick ? 'Step 3: ข้าม (ไป QC Online)' : 'Step 3: Project Conversion & Gantt',
-                    4: 'Step 4: QC Inspection',
-                    5: 'Step 5: CSAT & Services'
+                    3: isQuick ? 'Step 3: ข้าม (ไป QC Online)' : 'Step 3: Work Preparation & Dispatch',
+                    4: isQuick ? 'Step 4: ข้าม (ไป QC Online)' : 'Step 4: Gantt & Daily Logs',
+                    5: 'Step 5: QC Inspection',
+                    6: 'Step 6: CSAT Evaluation'
                 };
 
                 const stepDots = rep ? rep.steps.map(s => {
@@ -5450,13 +5497,13 @@ const app = {
                 return `
                     <div class="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
                         <span class="font-semibold text-foreground">${stepLabels[stepNumber] || `Step ${stepNumber}`}</span>
-                        <span class="text-[10px] text-purple-600 dark:text-purple-400 font-mono" title="ความสมบูรณ์ 5 ขั้นตอน">${rep ? `Step ${rep.completedCount}/5` : `${progress}%`}</span>
+                        <span class="text-[10px] text-purple-600 dark:text-purple-400 font-mono" title="ความสมบูรณ์ 6 ขั้นตอน">${rep ? `Step ${rep.completedCount}/6` : `${progress}%`}</span>
                     </div>
                     <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden mb-1.5">
                         <div class="bg-gradient-to-r from-brand-600 to-indigo-500 h-1.5 rounded-full" style="width: ${progress}%"></div>
                     </div>
                     <div class="flex items-center justify-between gap-1 flex-wrap">
-                        <div class="flex items-center gap-1" onclick="event.stopPropagation(); app.openStepAuditReportModal('${job.id}')" title="คลิกเพื่อดู Audit Report บันทึกเวลาทั้ง 5 ขั้นตอน">
+                        <div class="flex items-center gap-1" onclick="event.stopPropagation(); app.openStepAuditReportModal('${job.id}')" title="คลิกเพื่อดู Audit Report บันทึกเวลาทั้ง 6 ขั้นตอน">
                             ${stepDots}
                             <span class="text-[9px] text-brand-500 ml-1 hover:underline cursor-pointer"><i class="ph ph-clock"></i></span>
                         </div>
@@ -5872,15 +5919,16 @@ const app = {
                 const isQuick = this.isQuickJob(job);
 
                 if (isQuick) {
-                    // Quick Services: Skip Step 2 (Design) & Step 3 (BOQ), transition directly into Step 4 (Tickets & Receipts)
+                    // Quick Services: Transition directly into Step 2 (Tickets & Receipts)
                     job.progress = Math.max(job.progress || 0, 60);
+                    job.step_timestamps.step2_ticket_at = acceptNow;
                     job.step_timestamps.step4_ticket_at = acceptNow;
-                    this.recordStepTimestamp(id, 'step4_ticket_at', acceptNow, 'รับเข้า PMT และข้ามขั้นตอน Design & BOQ ย้ายเข้าสู่ Step 4 (บันทึก Ticket & ใบเสร็จ) อัตโนมัติ (Quick Service)');
+                    this.recordStepTimestamp(id, 'step2_ticket_at', acceptNow, 'รับเข้า PMT และย้ายเข้าสู่ Step 2 (บันทึก Ticket & ใบเสร็จ) อัตโนมัติ (Quick Service)');
                 } else {
-                    // Non-quick jobs (Renovate, MA, etc.): Transition into Step 2 (Design)
+                    // Non-quick jobs (Renovate, MA, etc.): Transition into Step 1 Design & BOQ
                     job.progress = Math.max(job.progress || 0, 20);
                     job.step_timestamps.step2_design_at = acceptNow;
-                    this.recordStepTimestamp(id, 'step2_design_at', acceptNow, 'บันทึกรับเข้า PMT และย้ายเข้าสู่ State 2 (บันทึก Design)');
+                    this.recordStepTimestamp(id, 'step2_design_at', acceptNow, 'บันทึกรับเข้า PMT (Step 1: Design & BOQ Studio)');
                 }
 
                 this.persistJobs();
@@ -5946,7 +5994,7 @@ const app = {
                         if (!job.photos || job.photos.length === 0) {
                             job.photos = this.getSampleVisitPlanPhotos(job);
                         }
-                        this.recordStepTimestamp(id, 'qc_pending_at', now, 'ย้ายงาน Quick Service เข้าสู่คิวรอตรวจ QC Online (Step 6)');
+                        this.recordStepTimestamp(id, 'qc_pending_at', now, 'ย้ายงาน Quick Service เข้าสู่คิวรอตรวจ QC Online (Step 5)');
                         this.persistJobs();
                         fetch(`/api/v1/jobs/${id}`, {
                             method: 'PATCH',
@@ -7412,7 +7460,7 @@ const app = {
                             const isTopNew = idx < 3;
                             const jBps = blueprintsByJob[j.id] || [];
                             const hasBps = jBps.length > 0;
-                            const stageHtml = this.renderStageWithSLA(j, 2);
+                            const stageHtml = this.renderStageWithSLA(j, 1);
 
                             const isSentToBOQ = !!(j.step3_confirmed || (j.boq_items && j.boq_items.length > 0));
                             const actionButtons = hasBps ? `
@@ -7422,14 +7470,14 @@ const app = {
                                         <span>ดู/เพิ่มแบบ (${jBps.length})</span>
                                     </button>
                                     ${isSentToBOQ ? `
-                                    <button onclick="event.stopPropagation(); app.navigate('boq', '${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 inline-flex items-center gap-1 cursor-pointer" title="งานนี้ส่งเข้า Step 3 เรียบร้อยแล้ว (คลิกเพื่อเปิดดูใน Step 3)">
+                                    <button onclick="event.stopPropagation(); app.navigate('boq', '${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 inline-flex items-center gap-1 cursor-pointer" title="งานนี้มีรายการ BOQ เรียบร้อยแล้ว (คลิกเพื่อเปิดดูในคลัง BOQ)">
                                         <i class="ph ph-check-circle text-xs text-purple-500"></i>
-                                        <span>อยู่ในคิว Step 3</span>
+                                        <span>มีรายการ BOQ แล้ว</span>
                                     </button>
                                     ` : `
-                                    <button onclick="event.stopPropagation(); app.openConfirmProceedToBOQ('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ยืนยันจบขั้นตอน Design เพื่อย้ายไปสร้าง BOQ">
+                                    <button onclick="event.stopPropagation(); app.openConfirmProceedToBOQ('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ยืนยันจบขั้นตอน Design เพื่อส่งต่อทำ BOQ">
                                         <i class="ph ph-check-circle text-xs"></i>
-                                        <span>ยืนยันย้ายไป Step 3</span>
+                                        <span>ส่งต่อทำ BOQ</span>
                                     </button>
                                     `}
                                 </div>
@@ -7615,14 +7663,14 @@ const app = {
                                                      <div class="flex items-center justify-center gap-2">
                                                          ${hasBps ? (
                                                             (job.step3_confirmed || (job.boq_items && job.boq_items.length > 0)) ? `
-                                                            <button type="button" onclick="app.openBOQForJob('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ไปหน้า Step 3: นำ BOQ เข้าระบบ">
+                                                            <button type="button" onclick="app.openBOQForJob('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ไปหน้าคลัง BOQ">
                                                                 <i class="ph ph-receipt"></i>
-                                                                <span>ไปทำ BOQ (Step 3) ➔</span>
+                                                                <span>ไปทำ BOQ ➔</span>
                                                             </button>
                                                             ` : `
-                                                            <button type="button" onclick="app.openConfirmProceedToBOQ('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ยืนยันจบขั้นตอน Design เพื่อย้ายไปสร้าง BOQ">
+                                                            <button type="button" onclick="app.openConfirmProceedToBOQ('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ยืนยันจบขั้นตอน Design เพื่อส่งต่อทำ BOQ">
                                                                 <i class="ph ph-check-circle"></i>
-                                                                <span>ยืนยันย้ายไป Step 3</span>
+                                                                <span>ส่งต่อทำ BOQ</span>
                                                             </button>
                                                             `
                                                         ) : ''}
@@ -7708,14 +7756,14 @@ const app = {
                                 <div class="pt-2 border-t border-border flex items-center justify-end gap-2 flex-wrap">
                                     ${hasBps ? (
                                         (job.step3_confirmed || (job.boq_items && job.boq_items.length > 0)) ? `
-                                        <button type="button" onclick="app.openBOQForJob('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="ไปหน้า Step 3: นำ BOQ เข้าระบบ">
+                                        <button type="button" onclick="app.openBOQForJob('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="ไปหน้าคลัง BOQ">
                                             <i class="ph ph-receipt"></i>
-                                            <span>ไปทำ BOQ (Step 3) ➔</span>
+                                            <span>ไปทำ BOQ ➔</span>
                                         </button>
                                         ` : `
-                                        <button type="button" onclick="app.openConfirmProceedToBOQ('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="ยืนยันจบขั้นตอน Design เพื่อย้ายไปสร้าง BOQ">
+                                        <button type="button" onclick="app.openConfirmProceedToBOQ('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="ยืนยันจบขั้นตอน Design เพื่อส่งต่อทำ BOQ">
                                             <i class="ph ph-check-circle"></i>
-                                            <span>ยืนยันย้ายไป Step 3</span>
+                                            <span>ส่งต่อทำ BOQ</span>
                                         </button>
                                         `
                                     ) : ''}
@@ -7821,8 +7869,8 @@ const app = {
                                                         <button class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer" title="ดาวน์โหลดไฟล์ PDF" onclick="app.showToast('กำลังดาวน์โหลด ${b.filename}...')">
                                                             <i class="ph ph-download-simple"></i>
                                                         </button>
-                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-purple-600 hover:bg-purple-700 text-white shadow-xs" onclick="app.openBOQForJob('${b.jobId}')" title="ไปทำ BOQ ของงานนี้ (Step 3)">
-                                                            <i class="ph ph-receipt"></i> <span>ทำ BOQ (Step 3) ➔</span>
+                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-purple-600 hover:bg-purple-700 text-white shadow-xs" onclick="app.openBOQForJob('${b.jobId}')" title="ไปทำ BOQ ของงานนี้">
+                                                            <i class="ph ph-receipt"></i> <span>ทำ BOQ ➔</span>
                                                         </button>
                                                         <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium cursor-pointer" onclick="app.navigate('job-detail', '${b.jobId}')" title="เปิดดูงาน">
                                                             <span>เปิดดูงาน</span> <i class="ph ph-arrow-right"></i>
@@ -7884,8 +7932,8 @@ const app = {
                                         <button class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer" title="ดาวน์โหลดไฟล์ PDF" onclick="app.showToast('กำลังดาวน์โหลด ${b.filename}...')">
                                             <i class="ph ph-download-simple"></i>
                                         </button>
-                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-purple-600 hover:bg-purple-700 text-white shadow-xs" onclick="app.openBOQForJob('${b.jobId}')" title="ไปทำ BOQ ของงานนี้ (Step 3)">
-                                            <i class="ph ph-receipt"></i> <span>ทำ BOQ (Step 3) ➔</span>
+                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-purple-600 hover:bg-purple-700 text-white shadow-xs" onclick="app.openBOQForJob('${b.jobId}')" title="ไปทำ BOQ ของงานนี้">
+                                            <i class="ph ph-receipt"></i> <span>ทำ BOQ ➔</span>
                                         </button>
                                         <button class="btn-artifact-secondary px-2 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium cursor-pointer" onclick="app.navigate('job-detail', '${b.jobId}')" title="เปิดดูงาน">
                                             <span>เปิดดูงาน</span> <i class="ph ph-arrow-right"></i>
@@ -8438,7 +8486,7 @@ const app = {
                 const custEl = document.getElementById('save-boq-job-customer');
                 const servEl = document.getElementById('save-boq-job-service');
                 if (idEl) idEl.innerText = job.id;
-                if (custEl) custEl.innerText = `ลูกค้า: ${job.customer}`;
+                if (custEl) custEl.innerText = `ลูกค้า: ${this.getCustomerName(job)}`;
                 if (servEl) servEl.innerText = `บริการ: ${job.service}`;
 
                 // Get current BOQ items
@@ -8877,7 +8925,7 @@ const app = {
                 const targetJobIdEl = document.getElementById('boq-target-job-id');
                 const targetJobCustEl = document.getElementById('boq-target-job-customer');
                 const targetJobServEl = document.getElementById('boq-target-job-service');
-                const targetCustName = targetJob ? ((typeof targetJob.customer === 'object' && targetJob.customer) ? (targetJob.customer.name || `${targetJob.customer.first_name || ''} ${targetJob.customer.last_name || ''}`.trim() || 'ลูกค้า') : (targetJob.customer || 'ลูกค้า')) : '-';
+                const targetCustName = this.getCustomerName(targetJob);
                 if (targetJobIdEl) targetJobIdEl.innerText = targetJob ? targetJob.id : (targetJobId || '-');
                 if (targetJobCustEl) targetJobCustEl.innerText = targetCustName;
                 if (targetJobServEl) targetJobServEl.innerText = targetJob ? `(${targetJob.service || ''})` : '';
@@ -9135,22 +9183,45 @@ const app = {
                     // 1. Extract metadata from header lines
                     for (let c = 0; c < row.length; c++) {
                         const cell = String(row[c] || '').trim();
-                        if (cell.includes('เรียน') && row[c + 1]) {
+                        if (/^(?:เรียน|Customer|ลูกค้า)\s*[:\s]+(.+)$/i.test(cell)) {
+                            const m = cell.match(/^(?:เรียน|Customer|ลูกค้า)\s*[:\s]+(.+)$/i);
+                            if (m && m[1]) headerInfo.customer = m[1].trim();
+                        } else if ((cell.includes('เรียน') || cell.includes('Customer') || cell.includes('ลูกค้า')) && row[c + 1]) {
                             headerInfo.customer = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
                         }
-                        if (cell.includes('ที่อยู่') && row[c + 1]) {
+
+                        if (/^(?:ที่อยู่|Address)\s*[:\s]+(.+)$/i.test(cell)) {
+                            const m = cell.match(/^(?:ที่อยู่|Address)\s*[:\s]+(.+)$/i);
+                            if (m && m[1]) headerInfo.address = m[1].trim();
+                        } else if ((cell.includes('ที่อยู่') || cell.includes('Address')) && row[c + 1]) {
                             headerInfo.address = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
                         }
-                        if (cell.includes('Tel') && row[c + 1]) {
+
+                        if (/^(?:Tel|เบอร์โทร|Phone)\s*[:\s]+(.+)$/i.test(cell)) {
+                            const m = cell.match(/^(?:Tel|เบอร์โทร|Phone)\s*[:\s]+(.+)$/i);
+                            if (m && m[1]) headerInfo.phone = m[1].trim();
+                        } else if ((cell.includes('Tel') || cell.includes('เบอร์โทร') || cell.includes('Phone')) && row[c + 1]) {
                             headerInfo.phone = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
                         }
-                        if (cell.includes('สาขา') && row[c + 1]) {
+
+                        if (/^(?:สาขา|Branch)\s*[:\s]+(.+)$/i.test(cell)) {
+                            const m = cell.match(/^(?:สาขา|Branch)\s*[:\s]+(.+)$/i);
+                            if (m && m[1]) headerInfo.branch = m[1].trim();
+                        } else if ((cell.includes('สาขา') || cell.includes('Branch')) && row[c + 1]) {
                             headerInfo.branch = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
                         }
-                        if (cell.includes('วันที่') && row[c + 1]) {
+
+                        if (/^(?:วันที่|Date)\s*[:\s]+(.+)$/i.test(cell)) {
+                            const m = cell.match(/^(?:วันที่|Date)\s*[:\s]+(.+)$/i);
+                            if (m && m[1]) headerInfo.date = m[1].trim();
+                        } else if ((cell.includes('วันที่') || cell.includes('Date')) && row[c + 1]) {
                             headerInfo.date = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
                         }
-                        if (cell.includes('เลขที่ใบเสร็จ') && row[c + 1]) {
+
+                        if (/^(?:เลขที่ใบเสร็จ|Receipt\s*No)\s*[:\s]+(.+)$/i.test(cell)) {
+                            const m = cell.match(/^(?:เลขที่ใบเสร็จ|Receipt\s*No)\s*[:\s]+(.+)$/i);
+                            if (m && m[1]) headerInfo.receipt_no = m[1].trim();
+                        } else if ((cell.includes('เลขที่ใบเสร็จ') || cell.includes('Receipt')) && row[c + 1]) {
                             headerInfo.receipt_no = String(row[c + 1]).trim().replace(/^[:\s]+/, '');
                         }
                     }
@@ -9241,28 +9312,28 @@ const app = {
                     if (!rawLine) return;
 
                     // Header Detection (vFIX Quotation Metadata)
-                    if (rawLine.includes('เรียน') || rawLine.includes('Customer:')) {
-                        const m = rawLine.match(/เรียน\s*[:,\t]*\s*([^,\t\r\n]+)/i);
+                    if (rawLine.includes('เรียน') || rawLine.includes('Customer') || rawLine.includes('ลูกค้า')) {
+                        const m = rawLine.match(/(?:เรียน|Customer|ลูกค้า)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\s*,\s*(?:ที่อยู่|Address|Tel|เบอร์โทร|Phone|สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\s{2,}(?:ที่อยู่|Address|Tel|เบอร์โทร|Phone|สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\t|\||$)/i);
                         if (m && m[1]) detectedHeader.customer = m[1].trim().replace(/^"|"$/g, '');
                     }
-                    if (rawLine.includes('ที่อยู่') || rawLine.includes('Address:')) {
-                        const m = rawLine.match(/ที่อยู่\s*[:,\t]*\s*([^,\t\r\n]+)/i);
+                    if (rawLine.includes('ที่อยู่') || rawLine.includes('Address')) {
+                        const m = rawLine.match(/(?:ที่อยู่|Address)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\s*,\s*(?:Tel|เบอร์โทร|Phone|สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\s{2,}(?:Tel|เบอร์โทร|Phone|สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\t|\||$)/i);
                         if (m && m[1]) detectedHeader.address = m[1].trim().replace(/^"|"$/g, '');
                     }
-                    if (rawLine.includes('Tel') || rawLine.includes('เบอร์โทร')) {
-                        const m = rawLine.match(/Tel\s*[:,\t]*\s*([^,\t\r\n]+)/i);
+                    if (rawLine.includes('Tel') || rawLine.includes('เบอร์โทร') || rawLine.includes('Phone')) {
+                        const m = rawLine.match(/(?:Tel|เบอร์โทร|Phone)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\s*,\s*(?:สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\s{2,}(?:สาขา|Branch|วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\t|\||$)/i);
                         if (m && m[1]) detectedHeader.phone = m[1].trim().replace(/^"|"$/g, '');
                     }
-                    if (rawLine.includes('สาขา') || rawLine.includes('Branch:')) {
-                        const m = rawLine.match(/สาขา\s*[:,\t]*\s*([^,\t\r\n]+)/i);
+                    if (rawLine.includes('สาขา') || rawLine.includes('Branch')) {
+                        const m = rawLine.match(/(?:สาขา|Branch)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\s*,\s*(?:วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\s{2,}(?:วันที่|Date|เลขที่|Job\s*No|Order\s*No)\s*[:=]|\t|\||$)/i);
                         if (m && m[1]) detectedHeader.branch = m[1].trim().replace(/^"|"$/g, '');
                     }
-                    if (rawLine.includes('เลขที่งาน') || rawLine.includes('Job No')) {
-                        const m = rawLine.match(/เลขที่งาน\s*[:,\t]*\s*([^,\t\r\n]+)/i);
+                    if (rawLine.includes('เลขที่งาน') || rawLine.includes('Job No') || rawLine.includes('Order No')) {
+                        const m = rawLine.match(/(?:เลขที่งาน|Job No|Order No)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\s*,\s*(?:วันที่|Date)\s*[:=]|\s{2,}(?:วันที่|Date)\s*[:=]|\t|\||$)/i);
                         if (m && m[1]) detectedHeader.job_ref = m[1].trim().replace(/^"|"$/g, '');
                     }
-                    if (rawLine.includes('วันที่') || rawLine.includes('Date:')) {
-                        const m = rawLine.match(/วันที่\s*[:,\t]*\s*([^,\t\r\n]+)/i);
+                    if (rawLine.includes('วันที่') || rawLine.includes('Date')) {
+                        const m = rawLine.match(/(?:วันที่|Date)\s*[:,\t]*\s*([^\t\r\n|]+?)(?=\s*,,|\t|\||$)/i);
                         if (m && m[1]) detectedHeader.date = m[1].trim().replace(/^"|"$/g, '');
                     }
 
@@ -9504,9 +9575,7 @@ const app = {
                     };
                 }
 
-                const customerDisplayName = (job && typeof job.customer === 'object' && job.customer) 
-                    ? (job.customer.name || `${job.customer.first_name || ''} ${job.customer.last_name || ''}`.trim() || 'ลูกค้า') 
-                    : (job && job.customer ? String(job.customer) : 'ลูกค้าเดิม');
+                const customerDisplayName = this.getCustomerName(job);
 
                 this.recordStepTimestamp(targetJobId, 'step3_boq_at', new Date().toISOString(), `นำเข้า BOQ ${newItems.length} รายการ (คงชื่อลูกค้า: ${customerDisplayName})`);
                 this.recordStepTimestamp(targetJobId, 'step4_boq_at', new Date().toISOString(), `นำเข้า BOQ ${newItems.length} รายการ`);
@@ -9767,7 +9836,7 @@ const app = {
                 // Rule Enforcement: แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart
                 const boqItems = job.boq_items || [];
                 if (boqItems.length === 0) {
-                    const jobName = `${job.id} (${job.customer || 'ลูกค้า'})`;
+                    const jobName = `${job.id} (${this.getCustomerName(job)})`;
                     const proceed = confirm(`⚠️ ไม่สามารถสร้างแผนงาน (Task) ได้ในขณะนี้\n\nโครงการ: ${jobName}\n\n📌 กฎเกณฑ์ระบบ:\n"แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart นะครับ"\n\nโครงการนี้ยังไม่มีข้อมูล BOQ\nคุณต้องการเปิดหน้าต่าง "นำเข้าไฟล์ BOQ (Import)" เพื่อเริ่มต้นนำเข้า BOQ เดี๋ยวนี้เลยหรือไม่?`);
                     if (proceed) {
                         this.openImportBOQModal(targetJobId);
@@ -9779,7 +9848,7 @@ const app = {
 
                 this.state.convertJobId = targetJobId;
                 document.getElementById('convert-job-id').innerText = job.id;
-                document.getElementById('convert-job-customer').innerText = `ลูกค้า: ${job.customer}`;
+                document.getElementById('convert-job-customer').innerText = `ลูกค้า: ${this.getCustomerName(job)}`;
                 document.getElementById('convert-job-service').innerText = `บริการ: ${job.service}`;
 
                 this.resetConvertTasksFromBOQ();
@@ -10156,6 +10225,7 @@ const app = {
                     })
                 }).catch(err => console.log('Backend sync task notice:', err.message));
 
+                this.recordStepTimestamp(targetJobId, 'step3_conversion_at', new Date().toISOString(), `แปลง BOQ เป็นแผนงาน Task ${selectedTasks.length} รายการ`);
                 this.recordStepTimestamp(targetJobId, 'step5_project_at', new Date().toISOString(), `แปลง BOQ เป็นแผนงาน Task ${selectedTasks.length} รายการ`);
                 this.addJobActivityLog(targetJobId, 3, 'แปลง BOQ เป็นแผนงานโครงการ', `แปลงรายการ BOQ เป็นแผนงาน ${selectedTasks.length} รายการ กำหนดช่างและวันเวลาเรียบร้อย`);
                 this.ensureQCDraftForRenovate(targetJobId);
@@ -10165,11 +10235,11 @@ const app = {
                 this.hideModal('modal-convert-boq-tasks');
                 this.state.selectedGanttJobId = targetJobId;
                 const sel = document.getElementById('gantt-filter-job');
-                this.showToast(`⚡ แปลง BOQ เป็น Task ${selectedTasks.length} รายการ และตั้ง Job รอ "Draft QC" ใน Step 6 เพื่อจองช่าง QC เรียบร้อย`);
+                this.showToast(`⚡ แปลง BOQ เป็น Task ${selectedTasks.length} รายการ และตั้ง Job รอ "Draft QC" ใน Step 5 เพื่อจองช่าง QC เรียบร้อย`);
 
-                // Prompt user to open Gantt timeline or stay in Step 5
+                // Prompt user to open Gantt timeline (Step 4) or stay in Step 3
                 setTimeout(() => {
-                    const openGantt = confirm(`⚡ แปลง BOQ เป็น ${selectedTasks.length} Tasks สำหรับโครงการ ${targetJobId} เรียบร้อยแล้ว!\n\nต้องการเปิดดูผังตารางเวลาทีมช่าง "Gantt Timeline" ทันทีเลยหรือไม่?\n\n• กด [ตกลง (OK)] เพื่อเปิดดูหน้าผัง Gantt Timeline\n• กด [ยกเลิก (Cancel)] เพื่อตรวจสอบโครงการใน Step 5 ต่อ`);
+                    const openGantt = confirm(`⚡ แปลง BOQ เป็น ${selectedTasks.length} Tasks สำหรับโครงการ ${targetJobId} เรียบร้อยแล้ว!\n\nต้องการเปิดดูผังตารางเวลาทีมช่าง "Gantt Timeline" (Step 4) ทันทีเลยหรือไม่?\n\n• กด [ตกลง (OK)] เพื่อเปิดดูหน้าผัง Gantt Timeline (Step 4)\n• กด [ยกเลิก (Cancel)] เพื่อตรวจสอบโครงการใน Step 3 ต่อ`);
                     if (openGantt) {
                         this.navigate('gantt');
                     } else {
@@ -10366,7 +10436,7 @@ const app = {
                                 <td colspan="7" class="px-5 py-10 text-center text-muted-foreground">
                                     <div class="max-w-md mx-auto space-y-2">
                                         <i class="ph ph-receipt text-3xl text-emerald-500/50"></i>
-                                        <div class="text-sm font-semibold text-foreground">ไม่มีรายการงานในคิว Step 4 ตามเงื่อนไข</div>
+                                        <div class="text-sm font-semibold text-foreground">ไม่มีรายการงานในคิว Step 2 ตามเงื่อนไข</div>
                                         <div class="text-xs text-muted-foreground">สามารถเลือกตัวกรอง "ทั้งหมดทุกขั้นตอน" เพื่อดูงานทั้งหมด</div>
                                     </div>
                                 </td>
@@ -10377,10 +10447,10 @@ const app = {
                             const isTopNew = idx < 3;
                             const jobTickets = ticketsByJob[j.id] || [];
                             const hasTicket = jobTickets.length > 0;
-                            const stageHtml = this.renderStageWithSLA(j, 4);
+                            const stageHtml = this.renderStageWithSLA(j, 2);
 
                             const isQuick = this.isQuickJob(j);
-                            const isSentToStep5 = !!(j.step_timestamps && j.step_timestamps.step5_project_at);
+                            const isSentToStep3 = !!(j.step_timestamps && (j.step_timestamps.step3_conversion_at || j.step_timestamps.step5_project_at));
                             const actionButtons = hasTicket ? `
                                 <div class="flex items-center justify-end gap-1.5">
                                     <button onclick="event.stopPropagation(); app.openJobTicketsDetail('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted text-foreground inline-flex items-center gap-1 cursor-pointer" title="ดูสลิปและใบเสร็จ">
@@ -10392,13 +10462,13 @@ const app = {
                                         <i class="ph ph-globe text-xs"></i>
                                         <span>ไปตรวจ QC Online ➔</span>
                                     </button>
-                                    ` : (isSentToStep5 ? `
-                                    <button onclick="event.stopPropagation(); app.navigate('project-conversion', '${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 inline-flex items-center gap-1 cursor-pointer" title="งานนี้ส่งเข้า Step 5 เรียบร้อยแล้ว (คลิกเพื่อเปิดดูใน Step 5)">
-                                        <span>อยู่ในคิว Step 5</span>
+                                    ` : (isSentToStep3 ? `
+                                    <button onclick="event.stopPropagation(); app.navigate('project-conversion', '${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 inline-flex items-center gap-1 cursor-pointer" title="งานนี้ส่งเข้า Step 3 เรียบร้อยแล้ว (คลิกเพื่อเปิดดูใน Step 3)">
+                                        <span>อยู่ในคิว Step 3</span>
                                     </button>
                                     ` : `
-                                    <button onclick="event.stopPropagation(); app.proceedJobToConversion('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ส่งต่อไปยัง Step 5 แปลงเข้า Project">
-                                        <span>แปลงเข้า Project (ไป Step 5)</span>
+                                    <button onclick="event.stopPropagation(); app.proceedJobToConversion('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ส่งต่อไปยัง Step 3 เตรียมแผนงานและทีมช่าง">
+                                        <span>เตรียมทีมช่าง (ไป Step 3)</span>
                                     </button>
                                     `)}
                                 </div>
@@ -10614,9 +10684,9 @@ const app = {
                                                             <span>ไปตรวจ QC Online ➔</span>
                                                         </button>
                                                         ` : `
-                                                        <button type="button" onclick="app.proceedJobToConversion('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ไป Step 5 แปลง BOQ เข้า Project">
+                                                        <button type="button" onclick="app.proceedJobToConversion('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ไป Step 3 เตรียมแผนงานและทีมช่าง">
                                                             <i class="ph ph-lightning"></i>
-                                                            <span>ไป Step 5 ➔</span>
+                                                            <span>ไป Step 3 ➔</span>
                                                         </button>
                                                         `) : ''}
                                                         <button type="button" onclick="app.openCreateTicketModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="บันทึก Ticket & แนบสลิป">
@@ -10686,9 +10756,9 @@ const app = {
                                         <span>ไปตรวจ QC Online ➔</span>
                                     </button>
                                     ` : `
-                                    <button type="button" onclick="app.proceedJobToConversion('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs transition hover:scale-102" title="ไป Step 5 แปลง BOQ เข้า Project">
+                                    <button type="button" onclick="app.proceedJobToConversion('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs transition hover:scale-102" title="ไป Step 3 เตรียมแผนงานและทีมช่าง">
                                         <i class="ph ph-lightning"></i>
-                                        <span>ไป Step 5 ➔</span>
+                                        <span>ไป Step 3 ➔</span>
                                     </button>
                                     `) : ''}
                                     <button type="button" onclick="app.openCreateTicketModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="บันทึก Ticket & แนบสลิป">
@@ -10791,12 +10861,12 @@ const app = {
                                                             <i class="ph ph-eye"></i> <span>ดูสลิป</span>
                                                         </button>
                                                         ${job && this.isQuickJob(job) ? `
-                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-cyan-600 hover:bg-cyan-700 text-white shadow-xs transition hover:scale-105" onclick="app.goToQC('${t.job_id}')" title="ไปตรวจคุณภาพ QC Online (Step 6)">
-                                                            <i class="ph ph-globe"></i> <span>ไป QC (Step 6) ➔</span>
+                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-cyan-600 hover:bg-cyan-700 text-white shadow-xs transition hover:scale-105" onclick="app.goToQC('${t.job_id}')" title="ไปตรวจคุณภาพ QC Online (Step 5)">
+                                                            <i class="ph ph-globe"></i> <span>ไป QC (Step 5) ➔</span>
                                                         </button>
                                                         ` : `
-                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition hover:scale-105" onclick="app.proceedJobToConversion('${t.job_id}')" title="ส่งต่อแปลงเข้า Project (Step 5)">
-                                                            <i class="ph ph-lightning"></i> <span>Step 5 ➔</span>
+                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition hover:scale-105" onclick="app.proceedJobToConversion('${t.job_id}')" title="ส่งต่อเตรียมแผนงานและทีมช่าง (Step 3)">
+                                                            <i class="ph ph-lightning"></i> <span>Step 3 ➔</span>
                                                         </button>
                                                         `}
                                                         <button class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer text-rose-500 hover:bg-rose-500/10 transition" title="ลบ Ticket" onclick="app.deleteTicket('${t.id}')">
@@ -10869,12 +10939,12 @@ const app = {
                                     </div>
                                     <div class="flex items-center gap-1.5">
                                         ${job && this.isQuickJob(job) ? `
-                                        <button class="btn-artifact-primary px-3 py-1 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-cyan-600 hover:bg-cyan-700 text-white shadow-xs transition hover:scale-102" onclick="app.goToQC('${t.job_id}')" title="ไปตรวจคุณภาพ QC Online (Step 6)">
-                                            <i class="ph ph-globe"></i> <span>ไป QC (Step 6) ➔</span>
+                                        <button class="btn-artifact-primary px-3 py-1 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-cyan-600 hover:bg-cyan-700 text-white shadow-xs transition hover:scale-102" onclick="app.goToQC('${t.job_id}')" title="ไปตรวจคุณภาพ QC Online (Step 5)">
+                                            <i class="ph ph-globe"></i> <span>ไป QC (Step 5) ➔</span>
                                         </button>
                                         ` : `
-                                        <button class="btn-artifact-primary px-3 py-1 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition hover:scale-102" onclick="app.proceedJobToConversion('${t.job_id}')" title="ส่งต่อแปลงเข้า Project (Step 5)">
-                                            <span>Step 5 ➔</span>
+                                        <button class="btn-artifact-primary px-3 py-1 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition hover:scale-102" onclick="app.proceedJobToConversion('${t.job_id}')" title="ส่งต่อเตรียมแผนงานและทีมช่าง (Step 3)">
+                                            <span>Step 3 ➔</span>
                                         </button>
                                         `}
                                         <button class="p-1.5 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition cursor-pointer" onclick="app.deleteTicket('${t.id}')" title="ลบ Ticket">
@@ -11091,18 +11161,20 @@ const app = {
                         this.recordStepTimestamp(jobId, 'qc_pending_at', newTicket.created_at, 'บันทึก Ticket & ใบเสร็จ และส่งไปตั้งรอตรวจสอบที่คิว QC Online ทันที (ตรวจสอบแบบ Online แนบรูปอย่างเดียว จาก Visit Plan)');
                         this.persistJobs();
                     } else {
-                        // Standard / Renovate: Transition into Step 5
+                        // Standard / Renovate: Transition into Step 3
                         if (job.status === 'IN_PROGRESS' || job.status === 'Draft' || job.status === 'DRAFT') {
                             job.progress = Math.max(job.progress || 0, 80);
                         }
                         if (!job.step_timestamps) job.step_timestamps = {};
+                        job.step_timestamps.step3_conversion_at = newTicket.created_at;
                         job.step_timestamps.step5_project_at = newTicket.created_at;
-                        this.recordStepTimestamp(jobId, 'step5_project_at', newTicket.created_at, 'บันทึก Ticket & ใบเสร็จ และย้ายเข้าสู่ State 5 (บันทึก BOQ เข้า Project)');
+                        this.recordStepTimestamp(jobId, 'step3_conversion_at', newTicket.created_at, 'บันทึก Ticket & ใบเสร็จ และย้ายเข้าสู่ Step 3 (เตรียมแผนงานและทีมช่าง)');
                         this.persistJobs();
                     }
                 }
 
-                // Step 4 Timestamp Recording
+                // Step 2 Timestamp Recording
+                this.recordStepTimestamp(jobId, 'step2_ticket_at', newTicket.created_at, `บันทึก Ticket ${ticketNo} ใบเสร็จ ${receiptNo || '-'} สัญญา ${contractNo || '-'}`);
                 this.recordStepTimestamp(jobId, 'step4_ticket_at', newTicket.created_at, `บันทึก Ticket ${ticketNo} ใบเสร็จ ${receiptNo || '-'} สัญญา ${contractNo || '-'}`);
 
                 // Sync with backend
@@ -11414,7 +11486,7 @@ const app = {
                                 <td colspan="7" class="px-5 py-10 text-center text-muted-foreground">
                                     <div class="max-w-md mx-auto space-y-2">
                                         <i class="ph ph-receipt text-3xl text-purple-500/50"></i>
-                                        <div class="text-sm font-semibold text-foreground">ไม่มีรายการงานในคิว Step 3 ตามเงื่อนไข</div>
+                                        <div class="text-sm font-semibold text-foreground">ไม่มีรายการงานในคิวตามเงื่อนไข</div>
                                         <div class="text-xs text-muted-foreground">สามารถเลือกตัวกรอง "ทั้งหมดทุกขั้นตอน" เพื่อดูงานทั้งหมด</div>
                                     </div>
                                 </td>
@@ -11425,10 +11497,10 @@ const app = {
                             const isTopNew = idx < 3;
                             const items = j.boq_items || [];
                             const hasBOQ = items.length > 0;
-                            const stageHtml = this.renderStageWithSLA(j, 3);
+                            const stageHtml = this.renderStageWithSLA(j, 1);
                             const isSelected = j.id === (jobId || this.state.boqSelectedJobId);
 
-                            const isSentToTicket = !!(j.step_timestamps && j.step_timestamps.step4_ticket_at);
+                            const isSentToTicket = !!(j.step_timestamps && (j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at));
                             const actionButtons = hasBOQ ? `
                                 <div class="flex items-center justify-end gap-1.5">
                                     ${j.boq_file ? `
@@ -11441,13 +11513,13 @@ const app = {
                                         <span>ดู/แก้ไข BOQ (${items.length})</span>
                                     </button>
                                     ${isSentToTicket ? `
-                                    <button onclick="event.stopPropagation(); app.navigate('tickets', '${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 inline-flex items-center gap-1 cursor-pointer" title="งานนี้ส่งเข้า Step 4 เรียบร้อยแล้ว (คลิกเพื่อเปิดดูใน Step 4)">
+                                    <button onclick="event.stopPropagation(); app.navigate('tickets', '${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 inline-flex items-center gap-1 cursor-pointer" title="งานนี้ส่งเข้า Step 2 เรียบร้อยแล้ว (คลิกเพื่อเปิดดูใน Step 2)">
                                         <i class="ph ph-check-circle text-xs text-emerald-500"></i>
-                                        <span>อยู่ในคิว Step 4</span>
+                                        <span>อยู่ในคิว Step 2</span>
                                     </button>
                                     ` : `
-                                    <button onclick="event.stopPropagation(); app.proceedJobToTickets('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ส่งต่อไปยัง Step 4 ออก Ticket & สลิป">
-                                        <span>ออก Ticket (ไป Step 4)</span>
+                                    <button onclick="event.stopPropagation(); app.proceedJobToTickets('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ส่งต่อไปยัง Step 2 ออก Ticket & สลิป">
+                                        <span>ออก Ticket (ไป Step 2)</span>
                                         <i class="ph ph-arrow-right-bold text-xs"></i>
                                     </button>
                                     `}
@@ -11762,12 +11834,12 @@ const app = {
                                                         <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer hover:border-purple-500 hover:text-purple-600 transition" onclick="app.openManageBOQModal('${j.id}')" title="ดูหรือแก้ไข BOQ">
                                                             <i class="ph ph-note-pencil"></i> <span>ดู/แก้ไข</span>
                                                         </button>
-                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-purple-600 hover:bg-purple-700 text-white shadow-xs" onclick="app.proceedJobToTickets('${j.id}')" title="ส่งต่อไปยัง Step 4">
+                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-purple-600 hover:bg-purple-700 text-white shadow-xs" onclick="app.proceedJobToTickets('${j.id}')" title="ส่งต่อไปยัง Step 2 (ออก Ticket & สลิป)">
                                                             <span>ออก Ticket ➔</span>
                                                         </button>
                                                         ${!this.isQuickJob(j) ? `
-                                                        <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium cursor-pointer" onclick="app.proceedToStep5Project('${j.id}')" title="แปลงเข้า Project Step 5">
-                                                            <span>Step 5</span> <i class="ph ph-arrow-right"></i>
+                                                        <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium cursor-pointer" onclick="app.proceedToStep5Project('${j.id}')" title="เตรียมแผนงานโครงการ Step 3">
+                                                            <span>Step 3</span> <i class="ph ph-arrow-right"></i>
                                                         </button>
                                                         ` : ''}
                                                     </div>
@@ -11857,12 +11929,12 @@ const app = {
                                         ` : ''}
                                     </div>
                                     <div class="flex items-center gap-1.5">
-                                        <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-purple-600 hover:bg-purple-700 text-white shadow-xs" onclick="app.proceedJobToTickets('${j.id}')" title="ส่งต่อไปยัง Step 4 (ออก Ticket & สลิป)">
+                                        <button class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-purple-600 hover:bg-purple-700 text-white shadow-xs" onclick="app.proceedJobToTickets('${j.id}')" title="ส่งต่อไปยัง Step 2 (ออก Ticket & สลิป)">
                                             <span>ออก Ticket ➔</span>
                                         </button>
                                         ${!this.isQuickJob(j) ? `
-                                        <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer" onclick="app.proceedToStep5Project('${j.id}')" title="แปลงเป็นแผนงานโครงการ (Step 5)">
-                                            <span>Step 5</span> <i class="ph ph-arrow-right"></i>
+                                        <button class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer" onclick="app.proceedToStep5Project('${j.id}')" title="เตรียมแผนงานโครงการ (Step 3)">
+                                            <span>Step 3</span> <i class="ph ph-arrow-right"></i>
                                         </button>
                                         ` : ''}
                                     </div>
@@ -12385,9 +12457,7 @@ const app = {
             },
 
             generateBOQFileObject(job, items, grandTotal) {
-                const customerName = (job && typeof job.customer === 'object' && job.customer !== null)
-                    ? (job.customer.name || '')
-                    : String(job && job.customer ? job.customer : '');
+                const customerName = this.getCustomerName(job);
                 const safeName = customerName ? customerName.replace(/[\s\/\\:*?"<>|]/g, '_') : 'Doc';
                 const fileName = `BOQ_${job ? job.id : 'EXPORT'}_${safeName}.xlsx`;
 
@@ -12424,41 +12494,34 @@ const app = {
                         size: Math.round(b64.length * 0.75),
                         size_formatted: `${(b64.length * 0.75 / 1024).toFixed(1)} KB`,
                         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                        dataUrl: 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + b64,
+                        dataUrl: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${b64}`,
                         uploaded_at: new Date().toISOString(),
-                        uploaded_by: 'PMT System Auto-Generated',
-                        source: 'generated'
-                    };
-                } else {
-                    let csv = "\uFEFF" + `รหัสโครงการ,${job ? job.id : ''},ลูกค้า,${customerName}\n`;
-                    csv += `ลำดับ,รายการวัสดุ/งานบริการ,ประเภท,จำนวน,หน่วย,ราคาต่อหน่วย,รวมเงิน\n`;
-                    items.forEach((it, idx) => {
-                        const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
-                        const qty = Math.max(0, Number(it.qty) || 1);
-                        const price = Math.max(0, Number(it.price) || 0);
-                        csv += `${idx + 1},"${(it.name || '').replace(/"/g, '""')}",${isLabor ? 'ค่าแรง' : 'วัสดุ'},${qty},${it.unit || 'ชุด'},${price},${qty * price}\n`;
-                    });
-                    csv += `,,,,ยอดสุทธิ,${grandTotal}\n`;
-                    const b64 = btoa(unescape(encodeURIComponent(csv)));
-                    return {
-                        name: `BOQ_${job ? job.id : 'EXPORT'}_${safeName}.csv`,
-                        size: csv.length,
-                        size_formatted: `${(csv.length / 1024).toFixed(1)} KB`,
-                        type: 'text/csv',
-                        dataUrl: 'data:text/csv;charset=utf-8;base64,' + b64,
-                        uploaded_at: new Date().toISOString(),
-                        uploaded_by: 'PMT System Auto-Generated',
+                        uploaded_by: 'PMT System Auto-Generator',
                         source: 'generated'
                     };
                 }
+
+                return {
+                    name: fileName.replace('.xlsx', '.csv'),
+                    size: 1024,
+                    size_formatted: '1.0 KB',
+                    type: 'text/csv',
+                    dataUrl: '',
+                    uploaded_at: new Date().toISOString(),
+                    uploaded_by: 'PMT System Auto-Generator',
+                    source: 'generated'
+                };
             },
 
-            exportCurrentBOQToExcel() {
-                const jobId = this.state.modalBOQJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
-                const items = this.state.modalBOQItems || [];
+            exportBOQExcel(jobId = null) {
+                const targetJobId = jobId || this.state.modalBOQJobId || this.state.currentJobId;
+                const job = (DB.jobs || []).find(j => j.id === targetJobId);
+                const items = (this.state.modalBOQJobId === targetJobId && this.state.modalBOQItems && this.state.modalBOQItems.length > 0)
+                    ? this.state.modalBOQItems
+                    : (job && job.boq_items ? job.boq_items : []);
+
                 if (items.length === 0) {
-                    this.showToast('⚠️ ยังไม่มีรายการในตารางสำหรับส่งออก');
+                    this.showToast('⚠️ ไม่พบรายการ BOQ สำหรับส่งออก Excel');
                     return;
                 }
 
@@ -12467,9 +12530,7 @@ const app = {
                     return;
                 }
 
-                const customerName = (job && typeof job.customer === 'object' && job.customer !== null)
-                    ? (job.customer.name || '')
-                    : String(job && job.customer ? job.customer : '');
+                const customerName = this.getCustomerName(job);
                 const safeName = customerName ? customerName.replace(/[\s\/\\:*?"<>|]/g, '_') : 'Doc';
                 const dateSuffix = (this.formatDateDMY ? this.formatDateDMY(new Date()) : new Date().toISOString().slice(0, 10)).replace(/\//g, '-');
                 const fileName = `BOQ_${job ? job.id : 'EXPORT'}_${safeName}_${dateSuffix}.xlsx`;
@@ -12573,7 +12634,7 @@ const app = {
                 this.updateStepBadges();
                 this.hideModal('modal-manage-boq');
                 this.renderBOQPage();
-                this.showToast(`💾 บันทึก BOQ โครงการ ${job.id} เรียบร้อย (${items.length} รายการ)${job.boq_file ? ' พร้อมจัดเก็บไฟล์ ' + job.boq_file.name : ''} และย้ายเข้าสู่ State 4 (บันทึก Ticket & ใบเสร็จ) สำเร็จ`);
+                this.showToast(`💾 บันทึก BOQ โครงการ ${job.id} เรียบร้อย (${items.length} รายการ)${job.boq_file ? ' พร้อมจัดเก็บไฟล์ ' + job.boq_file.name : ''} และย้ายเข้าสู่ Step 2 (บันทึก Ticket & แปลง Project) สำเร็จ`);
             },
 
             // Compatibility methods
@@ -12627,16 +12688,20 @@ const app = {
                 }
                 const boqItems = job ? (job.boq_items || []) : [];
                 if (boqItems.length === 0) {
-                    this.showToast(`⚠️ ไม่สามารถย้ายไป Step 5 ได้: โครงการ ${targetJobId} ยังไม่ผ่าน Step 3 (ยังไม่มีรายการ BOQ)`);
+                    this.showToast(`⚠️ ไม่สามารถย้ายไป Step 3 ได้: โครงการ ${targetJobId} ยังไม่มีรายการ BOQ`);
                     return;
                 }
                 this.state.selectedConversionJobId = targetJobId;
                 this.state.selectedGanttJobId = targetJobId;
                 this.navigate('project-conversion', targetJobId);
-                this.showToast(`🚀 เข้าสู่ Step 5: พร้อมบันทึก BOQ โครงการ ${targetJobId} เข้าเป็นแผนงาน Project`);
+                this.showToast(`🚀 เข้าสู่ Step 3: พร้อมเตรียมแผนงานและทีมช่าง โครงการ ${targetJobId}`);
             },
 
-            // ─── STEP 5: PROJECT CONVERSION & GANTT METHODS ─────────────
+            proceedToStep3Project(jobId) {
+                return this.proceedToStep5Project(jobId);
+            },
+
+            // ─── STEP 3: WORK PREPARATION & DISPATCH METHODS ─────────────
             switchConversionTab(tab) {
                 this.state.conversionTab = tab;
                 const tabPending = document.getElementById('tab-conversion-pending');
@@ -12740,7 +12805,7 @@ const app = {
                                 <td colspan="7" class="px-5 py-10 text-center text-muted-foreground">
                                     <div class="max-w-md mx-auto space-y-2">
                                         <i class="ph ph-kanban text-3xl text-amber-500/50"></i>
-                                        <div class="text-sm font-semibold text-foreground">ไม่มีรายการงานในคิว Step 5 ตามเงื่อนไข</div>
+                                        <div class="text-sm font-semibold text-foreground">ไม่มีรายการงานในคิว Step 3 ตามเงื่อนไข</div>
                                         <div class="text-xs text-muted-foreground">สามารถเลือกตัวกรอง "ทั้งหมดทุกขั้นตอน" เพื่อดูงานทั้งหมด</div>
                                     </div>
                                 </td>
@@ -12751,7 +12816,7 @@ const app = {
                             const isTopNew = idx < 3;
                             const jobTasks = (DB.tasks || []).filter(t => t.jobId === j.id);
                             const hasTasks = jobTasks.length > 0;
-                            const stageHtml = this.renderStageWithSLA(j, 5);
+                            const stageHtml = this.renderStageWithSLA(j, 3);
                             const isSelected = j.id === (jobId || this.state.selectedConversionJobId);
 
                             const actionButtons = hasTasks ? `
@@ -12985,7 +13050,7 @@ const app = {
                                 </div>
 
                                 <div class="flex items-center justify-between gap-2 pt-1 border-t border-border/50">
-                                    <button type="button" onclick="app.openJobDetailBOQ('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1 cursor-pointer hover:border-amber-500 hover:text-amber-600 transition" title="ดูรายละเอียด BOQ (Step 3)">
+                                    <button type="button" onclick="app.openJobDetailBOQ('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1 cursor-pointer hover:border-amber-500 hover:text-amber-600 transition" title="ดูรายละเอียด BOQ">
                                         <i class="ph ph-receipt"></i> <span>ดู BOQ</span>
                                     </button>
                                     <button type="button" onclick="app.openConvertBOQToTasksModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="แปลง BOQ เข้า Project">
@@ -13176,11 +13241,11 @@ const app = {
                                 </div>
                                 <div>
                                     <h4 class="font-bold text-foreground">โครงการนี้ยังไม่มีรายการ BOQ</h4>
-                                    <p class="text-muted-foreground text-[11px]">กรุณากลับไป Step 3: นำBOQ เข้าระบบ หรือกดปุ่มนำเข้าไฟล์ Excel ก่อนเพื่อสกัดรายการค่าแรง</p>
+                                    <p class="text-muted-foreground text-[11px]">กรุณาไปที่คลังรายการ BOQ กลาง หรือกดปุ่มนำเข้าไฟล์ Excel ก่อนเพื่อสกัดรายการค่าแรง</p>
                                 </div>
                             </div>
                             <button onclick="app.navigate('boq', '${targetJobId}')" class="btn-artifact-secondary px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer shrink-0">
-                                ➔ ไปหน้า Step 3: นำBOQ เข้าระบบ
+                                ➔ ไปหน้าคลังรายการ BOQ กลาง
                             </button>
                         `;
                     } else if (jobTasks.length === 0) {
@@ -13562,14 +13627,14 @@ const app = {
                         </div>
                         <div class="space-y-1">
                             <p class="text-xs font-bold text-foreground">ยังไม่มีโครงการที่มีการบันทึก BOQ ในระบบ</p>
-                            <p class="text-[11px] text-muted-foreground max-w-md mx-auto">แผนงาน Gantt Chart จะเกิดขึ้นได้เมื่อมีการนำเข้าและบันทึก BOQ ใน Step 3 หรือ Step 5 เรียบร้อยแล้วเท่านั้น</p>
+                            <p class="text-[11px] text-muted-foreground max-w-md mx-auto">แผนงาน Gantt Chart จะเกิดขึ้นได้เมื่อมีการนำเข้าและบันทึก BOQ ใน Step 1 หรือคลังรายการ BOQ กลาง และเตรียมแผนงานใน Step 3 เรียบร้อยแล้วเท่านั้น</p>
                         </div>
                         <div class="flex items-center justify-center gap-2 pt-1">
                             <button type="button" onclick="app.navigate('boq')" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white inline-flex items-center gap-1.5 shadow-sm cursor-pointer">
-                                <i class="ph ph-receipt"></i> ไปที่ Step 3: นำ BOQ เข้าระบบ
+                                <i class="ph ph-receipt"></i> ไปที่ คลังรายการ BOQ กลาง
                             </button>
                             <button type="button" onclick="app.navigate('project-conversion')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 inline-flex items-center gap-1.5 cursor-pointer">
-                                <i class="ph ph-folder-plus"></i> ไปที่ Step 5: บันทึก BOQ เข้า Project
+                                <i class="ph ph-folder-plus"></i> ไปที่ Step 3: เตรียมแผนงานและทีมช่าง
                             </button>
                         </div>
                     </div>
@@ -14085,7 +14150,7 @@ const app = {
                 if (jobId && jobId !== 'all') {
                     const job = (DB.jobs || []).find(j => j.id === jobId);
                     if (!job || !Array.isArray(job.boq_items) || job.boq_items.length === 0) {
-                        this.showToast(`⚠️ โครงการ ${jobId} ยังไม่มีการบันทึก BOQ (ไม่สามารถเปิดแผนงาน Gantt ได้ กรุณาบันทึก BOQ ใน Step 3 หรือ Step 5 ก่อน)`);
+                        this.showToast(`⚠️ โครงการ ${jobId} ยังไม่มีการบันทึก BOQ (ไม่สามารถเปิดแผนงาน Gantt ได้ กรุณาบันทึก BOQ ใน Step 1 หรือคลังรายการ BOQ กลางก่อน)`);
                         this.state.selectedGanttJobId = 'all';
                         const sel = document.getElementById('gantt-filter-job');
                         if (sel) sel.value = 'all';
@@ -14374,14 +14439,14 @@ const app = {
                                         <i class="ph ph-info text-base"></i> กฎเกณฑ์ระบบ (Business Rule):
                                     </div>
                                     <p class="font-semibold text-foreground">"แผนงาน Gantt Chart จะเกิดขึ้นได้ก็ต่อเมื่อ มีการบันทึก BOQ เข้าสู่ระบบเรียบร้อยแล้วเท่านั้น"</p>
-                                    <p class="text-[11px] text-muted-foreground">ระบบจะดึงเฉพาะรายการค่าแรงและงานบริการติดตั้งจาก BOQ มากำหนดช่วงเวลาและทีมช่างเพื่อแสดงบน Gantt Timeline ดังนั้นจึงต้องผ่านขั้นตอนบันทึก BOQ ใน Step 3 หรือ Step 5 ก่อนเสมอ</p>
+                                    <p class="text-[11px] text-muted-foreground">ระบบจะดึงเฉพาะรายการค่าแรงและงานบริการติดตั้งจาก BOQ มากำหนดช่วงเวลาและทีมช่างเพื่อแสดงบน Gantt Timeline ดังนั้นจึงต้องผ่านขั้นตอนบันทึก BOQ ใน Step 1 หรือเตรียมแผนงานใน Step 3 ก่อนเสมอ</p>
                                 </div>
                                 <div class="flex items-center justify-center gap-2 pt-2">
                                     <button onclick="app.navigate('boq', '${selectedJobFilter}')" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm bg-purple-600 hover:bg-purple-700 text-white cursor-pointer">
-                                        <i class="ph ph-receipt text-sm"></i> ไปที่ Step 3: นำ BOQ เข้าระบบ
+                                        <i class="ph ph-receipt text-sm"></i> ไปที่ คลังรายการ BOQ กลาง
                                     </button>
                                     <button onclick="app.navigate('project-conversion', '${selectedJobFilter}')" class="btn-artifact-secondary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 cursor-pointer">
-                                        <i class="ph ph-folder-plus text-sm"></i> ไปที่ Step 5: บันทึก BOQ เข้า Project
+                                        <i class="ph ph-folder-plus text-sm"></i> ไปที่ Step 3: เตรียมแผนงานและทีมช่าง
                                     </button>
                                 </div>
                             </div>
@@ -14705,10 +14770,10 @@ const app = {
                                     </button>
                                 ` : `
                                     <button onclick="app.navigate('boq')" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm bg-purple-600 hover:bg-purple-700 text-white cursor-pointer">
-                                        <i class="ph ph-receipt text-sm"></i> ไปที่ Step 3: นำ BOQ เข้าระบบ
+                                        <i class="ph ph-receipt text-sm"></i> ไปที่ คลังรายการ BOQ กลาง
                                     </button>
                                     <button onclick="app.navigate('project-conversion')" class="btn-artifact-secondary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 cursor-pointer">
-                                        <i class="ph ph-folder-plus text-sm"></i> ไปที่ Step 5: บันทึก BOQ เข้า Project
+                                        <i class="ph ph-folder-plus text-sm"></i> ไปที่ Step 3: เตรียมแผนงานและทีมช่าง
                                     </button>
                                 `}
                                 <button onclick="app.navigate('jobs')" class="btn-artifact-secondary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer">
@@ -16872,7 +16937,7 @@ const app = {
 
                     const qcDateStr = (j.step_timestamps && (j.step_timestamps.qc_pending_at || j.step_timestamps.qc_draft_at)) || j.created_at || j.date || new Date().toISOString();
                     const formattedDate = this.formatDateDMY(qcDateStr);
-                    const slaCalc = this.calculateJobSLA(j, 6);
+                    const slaCalc = this.calculateJobSLA(j, 5);
 
                     const bookingTechDisplay = booking.assignedQCTech || j.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)';
 
@@ -16946,7 +17011,7 @@ const app = {
                                 <div class="flex items-center justify-between gap-1.5">
                                     <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                        Step 6 (QC)
+                                        Step 5 (QC)
                                     </span>
                                     ${actionButtonHtml}
                                 </div>
@@ -17016,7 +17081,7 @@ const app = {
                 let ontimeCount = 0;
                 let warningCount = 0;
                 qcJobs.forEach(j => {
-                    const sla = this.calculateJobSLA(j, 6);
+                    const sla = this.calculateJobSLA(j, 5);
                     if (sla) {
                         if (sla.status === 'OVERDUE') overdueCount++;
                         else if (sla.status === 'WARNING') warningCount++;
@@ -17140,7 +17205,7 @@ const app = {
                     this.showToast('🔍 กรองเฉพาะงานที่ยังรอตรวจ QC');
                 } else if (type === 'OVERDUE') {
                     list = list.filter(j => {
-                        const sla = this.calculateJobSLA(j, 6);
+                        const sla = this.calculateJobSLA(j, 5);
                         return sla && sla.status === 'OVERDUE';
                     });
                     this.showToast('🔍 กรองงาน QC ที่เกินกำหนด SLA');
@@ -17621,7 +17686,7 @@ const app = {
                     if (progress.isAllComplete) {
                         btnCSAT.disabled = false;
                         btnCSAT.className = 'btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all';
-                        btnLabel.innerText = `✓ อนุมัติผ่านเกณฑ์ QC (${progress.averageScore} คะแนน) & ส่งต่อ CSAT (Step 7)`;
+                        btnLabel.innerText = `✓ อนุมัติผ่านเกณฑ์ QC (${progress.averageScore} คะแนน) & ส่งต่อ CSAT (Step 6)`;
                     } else if (progress.defect > 0) {
                         btnCSAT.disabled = true;
                         btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 bg-rose-500/10 text-rose-600 border border-rose-500/20 cursor-not-allowed opacity-80 transition-all';
@@ -18272,7 +18337,7 @@ const app = {
                                 url: p.url,
                                 title: p.title || p.name || 'รูปตรวจรับรอง QC',
                                 note: p.note || p.remarks || 'ผ่านการตรวจรับรองคุณภาพ QC',
-                                source: 'QC Inspection (Step 6)',
+                                source: 'QC Inspection (Step 5)',
                                 uploaded_at: p.uploaded_at || job.qc_passed_at || job.date
                             });
                         }

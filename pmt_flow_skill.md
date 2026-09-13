@@ -13,9 +13,9 @@
 | Role | ชื่อเรียกในระบบ | หน้าที่และความรับผิดชอบหลัก | สี/สัญลักษณ์ประจำตัว |
 | :--- | :--- | :--- | :--- |
 | **ADMIN** | ผู้ดูแลระบบ (Admin) | จัดการผู้ใช้ทั้งหมด, รีเซ็ตรหัสผ่าน, ดู Audit Logs, ตั้งค่าระบบ & API, สิทธิ์เต็มทุกขั้นตอน | ชมพู/แดง (`rose-500`) ไอคอน `ph-shield-star` |
-| **AE** | ฝ่ายขาย (Account Executive) | รับคำสั่งซื้อใหม่ (INT Intake Step 1), บันทึกแบบแปลน (Step 2), ประมาณการราคา BOQ (Step 3) | ฟ้า/น้ำเงิน (`blue-500`) ไอคอน `ph-briefcase` |
-| **QC** | ตรวจสอบคุณภาพ (Quality Control) | ตรวจรับงานหน้างาน (Step 6 / QC Inspection), ตรวจทานภาพถ่าย, อนุมัติ/ปฏิเสธงานพร้อมเหตุผล | เขียวมรกต (`emerald-500`) ไอคอน `ph-check-circle` |
-| **CONTACT_CENTER** | บริการลูกค้า (Contact Center) | จัดการ Ticket ปัญหา (Step 4), ดูแลสัญญา MA หลังการขาย และแบบสำรวจ CSAT | เหลืองส้ม (`amber-500`) ไอคอน `ph-phone` |
+| **AE** | ฝ่ายขาย (Account Executive) | รับคำสั่งซื้อใหม่ (INT Intake Step 1), บันทึกแบบแปลน (Step 2), จัดการคลัง BOQ และเตรียมแผนงาน (Step 3) | ฟ้า/น้ำเงิน (`blue-500`) ไอคอน `ph-briefcase` |
+| **QC** | ตรวจสอบคุณภาพ (Quality Control) | ตรวจรับงานหน้างานและ Online (Step 5 / QC Inspection), ตรวจทานภาพถ่าย, อนุมัติ/ปฏิเสธงานพร้อมเหตุผล | เขียวมรกต (`emerald-500`) ไอคอน `ph-check-circle` |
+| **CONTACT_CENTER** | บริการลูกค้า (Contact Center) | จัดการประเมินความพึงพอใจลูกค้า CSAT (Step 6), ปิดงานส่งมอบ, ดูแลสัญญา MA หลังการขาย | เหลืองส้ม (`amber-500`) ไอคอน `ph-phone` |
 
 ### 1.2 ฟังก์ชันบังคับของหน้าจอ User Management
 1. **การ์ดสถิติผู้ใช้งาน (Stat Summary Cards)**:
@@ -110,14 +110,14 @@
 ### 3.2 ขอบเขตการบังคับใช้ (Applicable Scope - All Views)
 ข้อกำหนดนี้ครอบคลุมทุกหน้าจอในระบบอย่างไม่มีข้อยกเว้น:
 1. **แดชบอร์ดภาพรวม (Dashboard Overview)**: วันที่สร้างคำสั่งซื้อ, วันที่เริ่มงาน, วันที่ส่งมอบ
-2. **Step 1: คิวงานรับคำสั่งซื้อ (Order Intake)**: วันที่รับงาน INT, วันที่นัดสำรวจหน้างาน, วันที่สั่งซื้อ
-3. **Step 2: บันทึก Design & แบบแปลน (Blueprints)**: วันที่อัปโหลดแบบ, วันที่อนุมัติแบบ CAD
-4. **Step 3: นำ BOQ เข้าระบบ & ประมาณการ (BOQ)**: วันที่สร้างใบเสนอราคา, วันที่อนุมัติงบประมาณ
-5. **Step 4: บันทึก Ticket & แนบใบเสร็จ (Tickets & Receipts)**: วันที่เบิกจ่าย, วันที่ในใบเสร็จ, วันที่แจ้งปัญหา
-6. **Step 5: บันทึก BOQ เข้า Project (Conversion)**: วันที่เริ่มงานโครงการ, วันที่คาดว่าจะเสร็จสิ้น
-7. **แผนงาน Gantt เต็มรูป (Gantt Timeline)**: วันที่เริ่มต้น/สิ้นสุดแต่ละ Task, วันนัดช่าง QC ล่วงหน้า
-8. **QC Inspection (ตรวจรับคุณภาพ)**: วันนัดตรวจ QC, วันที่ลงตรวจจริง, วันที่ส่งรายงาน
-9. **CSAT Survey & สัญญา MA**: วันที่ทำแบบประเมิน, วันที่เริ่ม-สิ้นสุดสัญญา MA, วันรอบตรวจบำรุงรักษา
+2. **Step 1: รับ Order & เปิดใบงาน (Survey / Order Intake)**: วันที่รับงาน INT, วันที่นัดสำรวจหน้างาน, วันที่สั่งซื้อ
+3. **Step 2: ออกแบบ & แปลนติดตั้ง (Design & Blueprint)**: วันที่อัปโหลดแบบ, วันที่อนุมัติแบบ CAD
+4. **Step 3: เตรียมแผนงานและทีมช่าง (Project Conversion)**: วันที่แปลงเข้าแผนงาน, วันที่มอบหมายช่าง
+5. **Step 4: ติดตั้ง & แผนงาน Gantt (Gantt Projects Timeline & Daily Logs)**: วันที่เริ่มต้น/สิ้นสุดแต่ละ Task, วันบันทึกช่างประจำวัน
+6. **Step 5: ตรวจรับงาน QC (QC Online / On-site Audit & Scoring)**: วันนัดตรวจ QC, วันที่ลงตรวจจริง, วันที่ส่งรายงาน
+7. **Step 6: จบงาน & ส่งมอบ (Closeout, CSAT, Payment & Receipt)**: วันที่ทำแบบประเมิน CSAT, วันที่ส่งมอบและปิดงาน BMT
+8. **คลังรายการ BOQ กลาง (Central BOQ Repository)**: วันที่สร้างใบเสนอราคา, วันที่อนุมัติงบประมาณ
+9. **บริการหลังการขาย & สัญญา MA**: วันที่เริ่ม-สิ้นสุดสัญญา MA, วันรอบตรวจบำรุงรักษา
 10. **User Management & Audit Logs**: วันที่เข้าสู่ระบบล่าสุด (Last Login), วันเวลาที่บันทึก Login Audit Trail
 
 ### 3.3 ข้อห้ามและแนวทางปฏิบัติ (Guidelines & Restrictions)
@@ -185,22 +185,23 @@
 
 ---
 
-## 🔄 6. ภาพรวมขอบเขต Flow งาน 5+2 ขั้นตอน (Pipeline Scope)
+## 🔄 6. ภาพรวมขอบเขต Flow งาน 6 ขั้นตอน (6-Step Pipeline Scope)
 
 ระบบ PMT Flow ควบคุมกระบวนการตั้งแต่ต้นน้ำถึงปลายน้ำ โดยแบ่งประเภทงานออกเป็น 2 สายหลัก:
-- **Renovate Projects (งานปรับปรุง/ต่อเติม)**: ดำเนินงานครบ 7 ขั้นตอน (Step 1 ➔ Step 2 ➔ Step 3 ➔ Step 4 ➔ Step 5 ➔ Step 6 [On-site QC & Advance Booking] ➔ Step 7)
-- **Quick Services (งานบริการติดตั้งด่วน)**: ดำเนินงานแบบ Fast-track (Step 1 ➔ Step 4 ➔ ข้าม Step 5 ตรงเข้า Step 6 [QC Online จากภาพถ่าย Visit Plan] ➔ Step 7)
+- **Renovate Projects (งานปรับปรุง/ต่อเติม)**: ดำเนินงานครบ 6 ขั้นตอน (Step 1 ➔ Step 2 ➔ Step 3 ➔ Step 4 ➔ Step 5 [On-site QC & Advance Booking] ➔ Step 6)
+- **Quick Services (งานบริการติดตั้งด่วน)**: ดำเนินงานแบบ Fast-track (Step 1 ➔ Step 2 ➔ ข้าม Step 3-4 ตรงเข้า Step 5 [QC Online จากภาพถ่าย Visit Plan] ➔ Step 6)
 
-รายละเอียดขั้นตอน:
-1. **Step 1: บันทึกคิวงานรับคำสั่งซื้อ (Order Intake)** - รับงานจากภายนอก/INT หรือสร้าง Order ภายใน
-2. **Step 2: บันทึก Design & แบบแปลนติดตั้ง (Blueprints & CAD)** - แนบแบบแปลน 2D/3D และแบบติดตั้ง
-3. **Step 3: นำ BOQ เข้าระบบ & ประมาณการราคา (Bill of Quantities)** - บันทึกรายการวัสดุ-อุปกรณ์ ค่าแรง ค่าติดตั้ง
-4. **Step 4: บันทึก Ticket & แนบใบเสร็จ (Tickets & Receipts)** - บันทึกเบิกจ่าย ใบเสร็จ และปัญหาหน้างาน (สำหรับงาน Quick เมื่อบันทึกเสร็จสิ้นจะข้าม Step 5 ไปยัง State QC Online ทันที)
-5. **Step 5: บันทึก BOQ เข้า Project & แผนงาน Gantt** - แปลงวัสดุและช่างเข้าสู่ Project Timeline (เฉพาะงาน Renovate ที่ต้องแปลง BOQ เป็น Task แผนงาน)
-6. **QC Inspection (ตรวจคุณภาพ)** - ตรวจรับรองงานตามเกณฑ์มาตรฐาน:
+รายละเอียดขั้นตอนหลัก 6 ขั้นตอน:
+1. **Step 1: รับเรื่อง & เปิดใบงาน (Survey / Order Intake)** - รับงานจากภายนอก/INT หรือสร้าง Order ภายใน พร้อมระบบนัดหมายสำรวจหน้างาน
+2. **Step 2: ออกแบบ & แปลนติดตั้ง (Design & Blueprint / Ticket & Receipt)** - แนบแบบแปลน 2D/3D และแบบติดตั้ง ออก Ticket และแนบสลิปชำระเงิน
+3. **Step 3: เตรียมแผนงานและทีมช่าง (Project Conversion: BOQ -> Tasks & Assign Tech)** - แปลงรายการค่าแรงจาก BOQ เป็น Task กิจกรรมและจัดสรรช่างเข้าทีม (เฉพาะงาน Renovate)
+4. **Step 4: ติดตั้ง & แผนงาน Gantt (Gantt Projects Timeline & Daily Work Logs)** - แผนงาน Gantt ติดตามความคืบหน้าหน้างาน และบันทึกงานช่างประจำวัน (Daily Log 24 ชม. พร้อมรูปถ่าย 5 ช่อง)
+5. **Step 5: ตรวจรับงาน QC (QC Online / On-site Audit & Scoring)** - ตรวจรับรองงานตามเกณฑ์มาตรฐาน:
    - **Quick Services**: ตรวจแบบ Online จากภาพถ่าย Visit Plan 5 หมวดหมู่ ไม่ต้องจองคิวช่าง On-site
-   - **Renovate Projects**: จองคิวช่าง QC Lead ล่วงหน้า และประเมินให้คะแนนแยกตาม BOQ Sub-Tasks
-7. **CSAT & MA Contracts** - ประเมินความพึงพอใจลูกค้าและติดตามสัญญาบำรุงรักษาหลังการขาย
+   - **Renovate Projects**: จองคิวช่าง QC Lead ล่วงหน้า และประเมินให้คะแนนมาตรฐาน Isara Chootip (5 ข้อคำถาม Yes=5/No=1)
+6. **Step 6: จบงาน & ส่งมอบ (Closeout, CSAT, Payment & Receipt)** - ประเมินความพึงพอใจลูกค้า CSAT (ผ่าน=5 / ไม่ผ่าน=1), แนบหลักฐานส่งมอบ, ปิดงานส่งต่อระบบ BMT และดูแลสัญญา MA ต่อเนื่อง
+
+*หมายเหตุเรื่องคลังรายการ BOQ*: **คลังรายการ BOQ กลาง (Central BOQ Repository)** ทำหน้าที่เป็นศูนย์กลางข้อมูลประมาณการราคาและรายการพัสดุ (Master BOQ Data) ที่เข้าถึงได้อิสระจาก Topbar/Sidebar/Job Modals โดยปลดออกจากลำดับขั้นตอนบังคับใน Pipeline เพื่อความคล่องตัวสูงสุด (Decoupled from linear execution)
 
 ---
 
@@ -254,22 +255,22 @@
    - State Variable: `blueprintViewMode = 'list'`
    - Storage Key: `localStorage.getItem('pmt_blueprint_view_mode') || 'list'`
    - HTML Active Button: ปุ่ม `#btn-blueprint-view-list` ต้องมีคลาส Active เป็นค่าเริ่มต้น
-2. **Step 3: นำ BOQ เข้าระบบ & ประมาณการราคา (Bill of Quantities)**:
-   - State Variable: `boqViewMode = 'list'`
-   - Storage Key: `localStorage.getItem('pmt_boq_view_mode') || 'list'`
-   - HTML Active Button: ปุ่ม `#btn-boq-view-list` ต้องมีคลาส Active เป็นค่าเริ่มต้น
-3. **Step 4: บันทึก Ticket & แนบใบเสร็จ (Tickets & Receipts)**:
-   - State Variable: `ticketViewMode = 'list'`
-   - Storage Key: `localStorage.getItem('pmt_ticket_view_mode') || 'list'`
-   - HTML Active Button: ปุ่ม `#btn-ticket-view-list` ต้องมีคลาส Active เป็นค่าเริ่มต้น
-4. **Step 5: บันทึก BOQ เข้า Project & แผนงาน Gantt (Conversion)**:
+2. **Step 3: เตรียมแผนงานและทีมช่าง (Project Conversion)**:
    - State Variable: `conversionViewMode = 'list'`
    - Storage Key: `localStorage.getItem('pmt_conversion_view_mode') || 'list'`
    - HTML Active Button: ปุ่ม `#btn-conversion-view-list` ต้องมีคลาส Active เป็นค่าเริ่มต้น
-5. **Gantt Projects (เลือกโครงการในหน้า Gantt Timeline)**:
+3. **Step 4: Gantt Projects (เลือกโครงการในหน้า Gantt Timeline)**:
    - State Variable: `projectViewMode = 'list'`
    - Storage Key: `localStorage.getItem('pmt_project_view_mode') || 'list'`
    - HTML Active Button: ปุ่ม `#btn-project-view-list` ต้องมีคลาส Active เป็นค่าเริ่มต้น
+4. **คลังรายการ BOQ กลาง (Central BOQ Repository)**:
+   - State Variable: `boqViewMode = 'list'`
+   - Storage Key: `localStorage.getItem('pmt_boq_view_mode') || 'list'`
+   - HTML Active Button: ปุ่ม `#btn-boq-view-list` ต้องมีคลาส Active เป็นค่าเริ่มต้น
+5. **รายการ Ticket & ใบเสร็จ (Tickets & Receipts)**:
+   - State Variable: `ticketViewMode = 'list'`
+   - Storage Key: `localStorage.getItem('pmt_ticket_view_mode') || 'list'`
+   - HTML Active Button: ปุ่ม `#btn-ticket-view-list` ต้องมีคลาส Active เป็นค่าเริ่มต้น
 
 ### 9.3 ข้อกำหนดทางเทคนิค (Technical Safeguards)
 - ทุกฟังก์ชันสลับมุมมอง เช่น `updateBlueprintViewModeButtons()`, `updateBOQViewModeButtons()`, `updateTicketViewModeButtons()`, `updateConversionViewModeButtons()`, `updateProjectViewModeButtons()` ต้องใช้ Fallback Value เป็น `'list'` เสมอ
