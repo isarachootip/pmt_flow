@@ -4621,7 +4621,7 @@
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <!-- Status Filter -->
                                     <div class="flex items-center gap-1.5 bg-card border border-border rounded-xl px-2.5 py-1 text-xs shadow-sm">
-                                        <span class="text-muted-foreground text-[11px] font-medium">สถานะ:</span>
+                                        <span class="text-muted-foreground text-[11px] font-medium whitespace-nowrap">สถานะ:</span>
                                         <select id="user-status-filter" onchange="userMgmt.setStatusFilter(this.value)" class="bg-transparent text-foreground text-xs focus:outline-none cursor-pointer pr-1">
                                             <option value="ALL">ทั้งหมด</option>
                                             <option value="ACTIVE">ใช้งานอยู่ (Active)</option>
@@ -4637,37 +4637,37 @@
 
                             <!-- Role Tabs -->
                             <div class="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 scrollbar-none text-xs">
-                                <button onclick="userMgmt.setRoleFilter('ALL')" id="role-pill-ALL" class="user-role-pill px-3 py-1.5 rounded-lg font-medium transition bg-brand-500/10 text-brand-500 border border-brand-500/20 shadow-xs cursor-pointer">
+                                <button onclick="userMgmt.setRoleFilter('ALL')" id="role-pill-ALL" class="user-role-pill px-3 py-1.5 rounded-lg font-medium transition bg-brand-500/10 text-brand-500 border border-brand-500/20 shadow-xs cursor-pointer whitespace-nowrap">
                                     ทั้งหมด (<span id="count-role-all">0</span>)
                                 </button>
-                                <button onclick="userMgmt.setRoleFilter('ADMIN')" id="role-pill-ADMIN" class="user-role-pill px-3 py-1.5 rounded-lg font-medium transition text-muted-foreground hover:bg-muted border border-transparent cursor-pointer">
+                                <button onclick="userMgmt.setRoleFilter('ADMIN')" id="role-pill-ADMIN" class="user-role-pill px-3 py-1.5 rounded-lg font-medium transition text-muted-foreground hover:bg-muted border border-transparent cursor-pointer whitespace-nowrap">
                                     Admin (<span id="count-role-admin">0</span>)
                                 </button>
-                                <button onclick="userMgmt.setRoleFilter('AE')" id="role-pill-AE" class="user-role-pill px-3 py-1.5 rounded-lg font-medium transition text-muted-foreground hover:bg-muted border border-transparent cursor-pointer">
+                                <button onclick="userMgmt.setRoleFilter('AE')" id="role-pill-AE" class="user-role-pill px-3 py-1.5 rounded-lg font-medium transition text-muted-foreground hover:bg-muted border border-transparent cursor-pointer whitespace-nowrap">
                                     AE (<span id="count-role-ae">0</span>)
                                 </button>
-                                <button onclick="userMgmt.setRoleFilter('QC')" id="role-pill-QC" class="user-role-pill px-3 py-1.5 rounded-lg font-medium transition text-muted-foreground hover:bg-muted border border-transparent cursor-pointer">
+                                <button onclick="userMgmt.setRoleFilter('QC')" id="role-pill-QC" class="user-role-pill px-3 py-1.5 rounded-lg font-medium transition text-muted-foreground hover:bg-muted border border-transparent cursor-pointer whitespace-nowrap">
                                     QC (<span id="count-role-qc">0</span>)
                                 </button>
-                                <button onclick="userMgmt.setRoleFilter('CONTACT_CENTER')" id="role-pill-CONTACT_CENTER" class="user-role-pill px-3 py-1.5 rounded-lg font-medium transition text-muted-foreground hover:bg-muted border border-transparent cursor-pointer">
+                                <button onclick="userMgmt.setRoleFilter('CONTACT_CENTER')" id="role-pill-CONTACT_CENTER" class="user-role-pill px-3 py-1.5 rounded-lg font-medium transition text-muted-foreground hover:bg-muted border border-transparent cursor-pointer whitespace-nowrap">
                                     Contact Center (<span id="count-role-cc">0</span>)
                                 </button>
                             </div>
                         </div>
 
                         <!-- Table -->
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-xs">
+                        <div class="overflow-x-auto scrollbar-thin" id="user-table-container">
+                            <table class="w-full text-xs text-left align-middle border-collapse">
                                 <thead>
                                     <tr class="border-b border-border bg-muted/40 text-muted-foreground">
-                                        <th class="px-5 py-3 text-left font-semibold"># รหัสผู้ใช้</th>
-                                        <th class="px-5 py-3 text-left font-semibold">ชื่อ-นามสกุล</th>
-                                        <th class="px-5 py-3 text-left font-semibold">Username</th>
-                                        <th class="px-5 py-3 text-left font-semibold">อีเมล</th>
-                                        <th class="px-5 py-3 text-left font-semibold">Role</th>
-                                        <th class="px-5 py-3 text-left font-semibold">สถานะ</th>
-                                        <th class="px-5 py-3 text-left font-semibold">เข้าสู่ระบบล่าสุด</th>
-                                        <th class="px-5 py-3 text-right font-semibold">จัดการ</th>
+                                        <th class="px-4 py-3 font-semibold whitespace-nowrap text-left w-24">รหัสผู้ใช้</th>
+                                        <th class="px-4 py-3 font-semibold whitespace-nowrap text-left min-w-[170px]">ชื่อ-นามสกุล</th>
+                                        <th class="px-4 py-3 font-semibold whitespace-nowrap text-left w-28">Username</th>
+                                        <th class="px-4 py-3 font-semibold whitespace-nowrap text-left min-w-[160px]">อีเมล</th>
+                                        <th class="px-4 py-3 font-semibold whitespace-nowrap text-left w-36">Role</th>
+                                        <th class="px-4 py-3 font-semibold whitespace-nowrap text-center w-28">สถานะ</th>
+                                        <th class="px-4 py-3 font-semibold whitespace-nowrap text-left min-w-[140px]">เข้าสู่ระบบล่าสุด</th>
+                                        <th class="px-4 py-3 font-semibold whitespace-nowrap text-right w-24">จัดการ</th>
                                     </tr>
                                 </thead>
                                 <tbody id="user-table-body" class="divide-y divide-border"></tbody>
@@ -7912,11 +7912,11 @@
 
     <!-- APPLICATION JAVASCRIPT LOGIC -->
     <!-- APPLICATION SCRIPTS -->
-    <script src="./public/js/db.js?v=1.6.3"></script>
-    <script src="./public/js/auth.js?v=1.6.3"></script>
-    <script src="./public/js/app.js?v=1.6.3"></script>
-    <script src="./public/js/userMgmt.js?v=1.6.3"></script>
-    <script src="./public/js/app.hooks.js?v=1.6.3"></script>
+    <script src="./public/js/db.js?v=1.6.4"></script>
+    <script src="./public/js/auth.js?v=1.6.4"></script>
+    <script src="./public/js/app.js?v=1.6.4"></script>
+    <script src="./public/js/userMgmt.js?v=1.6.4"></script>
+    <script src="./public/js/app.hooks.js?v=1.6.4"></script>
 
 </body>
 </html>

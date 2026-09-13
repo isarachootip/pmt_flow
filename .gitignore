@@ -24,3 +24,7 @@ data/
 .agents/sentinel*/
 .agents/swe_*/
 
+# Temp files
+~$*
+
+

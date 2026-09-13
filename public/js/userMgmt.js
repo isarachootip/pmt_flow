@@ -28,7 +28,7 @@ if (typeof window.roleBadge !== 'function') {
             cls: 'bg-muted text-muted-foreground border-border',
             icon: 'ph ph-user'
         };
-        return `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${r.cls}"><i class="${r.icon} text-xs"></i><span>${r.label}</span></span>`;
+        return `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border whitespace-nowrap ${r.cls}"><i class="${r.icon} text-xs shrink-0"></i><span>${r.label}</span></span>`;
     };
 }
 
@@ -139,15 +139,26 @@ window.userMgmt =  {
             }
 
             // Update stat cards border highlight
+            const roleBorderMap = {
+                ADMIN: 'ring-2 ring-rose-500/70 bg-rose-500/5',
+                AE: 'ring-2 ring-blue-500/70 bg-blue-500/5',
+                QC: 'ring-2 ring-emerald-500/70 bg-emerald-500/5',
+                CONTACT_CENTER: 'ring-2 ring-amber-500/70 bg-amber-500/5'
+            };
             document.querySelectorAll('.user-stat-card').forEach(card => {
-                card.classList.remove('ring-2', 'ring-brand-500');
+                card.classList.remove('ring-2', 'ring-brand-500', 'ring-rose-500/70', 'ring-blue-500/70', 'ring-emerald-500/70', 'ring-amber-500/70', 'bg-rose-500/5', 'bg-blue-500/5', 'bg-emerald-500/5', 'bg-amber-500/5');
             });
             if (role !== 'ALL') {
                 const activeCard = document.getElementById('stat-card-' + role);
-                if (activeCard) activeCard.classList.add('ring-2', 'ring-brand-500');
+                if (activeCard && roleBorderMap[role]) {
+                    const classes = roleBorderMap[role].split(' ');
+                    activeCard.classList.add(...classes);
+                }
             }
 
             this.applyFilters();
+            const tableContainer = document.getElementById('user-table-container');
+            if (tableContainer) tableContainer.scrollLeft = 0;
         },
 
         setStatusFilter(status) {
@@ -178,6 +189,8 @@ window.userMgmt =  {
             });
 
             this.render();
+            const tableContainer = document.getElementById('user-table-container');
+            if (tableContainer) tableContainer.scrollLeft = 0;
         },
 
         render() {
@@ -208,44 +221,51 @@ window.userMgmt =  {
 
             tbody.innerHTML = this.filtered.map(u => {
                 const avatarBgMap = {
-                    ADMIN: 'bg-rose-500/10 text-rose-500',
-                    AE: 'bg-blue-500/10 text-blue-500',
-                    QC: 'bg-emerald-500/10 text-emerald-600',
-                    CONTACT_CENTER: 'bg-amber-500/10 text-amber-600'
+                    ADMIN: 'bg-rose-500/10 text-rose-600 border border-rose-500/20',
+                    AE: 'bg-blue-500/10 text-blue-600 border border-blue-500/20',
+                    QC: 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20',
+                    CONTACT_CENTER: 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
                 };
-                const avatarCls = avatarBgMap[u.role] || 'bg-muted text-muted-foreground';
+                const avatarCls = avatarBgMap[u.role] || 'bg-muted text-muted-foreground border border-border';
                 const initial = (u.full_name || u.username || 'U').trim().charAt(0).toUpperCase();
-                const lastLogin = u.last_login_at ? (window.formatDateTimeDMY ? window.formatDateTimeDMY(u.last_login_at) : new Date(u.last_login_at).toLocaleDateString('en-GB') + ' ' + new Date(u.last_login_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })) : 'ยังไม่เคยเข้าสู่ระบบ';
+                const lastLogin = u.last_login_at 
+                    ? (window.formatDateTimeDMY ? window.formatDateTimeDMY(u.last_login_at) : new Date(u.last_login_at).toLocaleDateString('en-GB') + ' ' + new Date(u.last_login_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })) 
+                    : null;
 
                 return `
-                    <tr class="hover:bg-muted/30 transition-colors ${!u.is_active ? 'opacity-50' : ''}">
-                        <td class="px-5 py-3.5 text-muted-foreground font-mono text-[11px] font-medium">${u.user_code}</td>
-                        <td class="px-5 py-3.5">
+                    <tr class="hover:bg-muted/40 transition-colors ${!u.is_active ? 'opacity-55 bg-muted/10' : ''}">
+                        <td class="px-4 py-3 text-muted-foreground font-mono text-[11px] font-semibold whitespace-nowrap">${u.user_code}</td>
+                        <td class="px-4 py-3">
                             <div class="flex items-center gap-2.5">
-                                <div class="w-8 h-8 rounded-lg ${avatarCls} font-bold text-xs flex items-center justify-center shrink-0">
+                                <div class="w-8 h-8 rounded-lg ${avatarCls} font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
                                     ${initial}
                                 </div>
-                                <div>
-                                    <p class="font-medium text-foreground text-xs leading-none">${u.full_name}</p>
-                                    <p class="text-[10px] text-muted-foreground font-mono mt-1">${u.username}</p>
+                                <div class="min-w-0">
+                                    <p class="font-semibold text-foreground text-xs leading-snug truncate">${u.full_name}</p>
+                                    <p class="text-[10px] text-muted-foreground font-mono truncate">${u.username}</p>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-5 py-3.5">
-                            <span class="inline-block px-2 py-0.5 rounded-md bg-muted/70 text-foreground font-mono text-[11px] border border-border/60">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="inline-block px-2 py-0.5 rounded-md bg-muted/80 text-foreground font-mono text-[11px] border border-border/80">
                                 ${u.username}
                             </span>
                         </td>
-                        <td class="px-5 py-3.5 text-muted-foreground text-xs">${u.email || '-'}</td>
-                        <td class="px-5 py-3.5">${window.roleBadge(u.role)}</td>
-                        <td class="px-5 py-3.5">
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium border ${u.is_active ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-muted text-muted-foreground border-border'}">
-                                <span class="w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'}"></span>
-                                ${u.is_active ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
+                        <td class="px-4 py-3 text-muted-foreground text-xs truncate max-w-[200px]" title="${u.email || ''}">${u.email || '-'}</td>
+                        <td class="px-4 py-3 whitespace-nowrap">${window.roleBadge(u.role)}</td>
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border whitespace-nowrap ${u.is_active ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-muted text-muted-foreground border-border'}">
+                                <span class="w-1.5 h-1.5 rounded-full shrink-0 ${u.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'}"></span>
+                                <span>${u.is_active ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}</span>
                             </span>
                         </td>
-                        <td class="px-5 py-3.5 text-muted-foreground text-[11px]">${lastLogin}</td>
-                        <td class="px-5 py-3.5 text-right">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            ${lastLogin 
+                                ? `<span class="text-foreground/85 font-mono text-[11px]">${lastLogin}</span>` 
+                                : `<span class="text-muted-foreground/60 text-[11px] italic">ยังไม่เคยเข้าสู่ระบบ</span>`
+                            }
+                        </td>
+                        <td class="px-4 py-3 text-right whitespace-nowrap">
                             <div class="flex items-center justify-end gap-1">
                                 <button onclick="userMgmt.openEdit('${u.id}')" title="แก้ไขข้อมูล" class="p-1.5 rounded-lg hover:bg-brand-500/10 text-muted-foreground hover:text-brand-500 transition cursor-pointer">
                                     <i class="ph ph-pencil-simple text-sm"></i>

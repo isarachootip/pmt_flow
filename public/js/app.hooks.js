@@ -11,10 +11,14 @@
             return;
         }
         _origNavigate(view, param);
+        const pageContainer = document.getElementById('page-container');
+        if (pageContainer) pageContainer.scrollTop = 0;
         if (view === 'users') {
             if (typeof userMgmt !== 'undefined') userMgmt.load();
             const topCrumb = document.getElementById('topbar-breadcrumb');
             if (topCrumb) topCrumb.innerText = 'จัดการผู้ใช้งาน';
+            const tableScroll = document.getElementById('user-table-container');
+            if (tableScroll) tableScroll.scrollLeft = 0;
         }
     };
 

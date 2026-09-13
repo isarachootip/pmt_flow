@@ -579,7 +579,7 @@ window.auth =  {
             cls: 'bg-muted text-muted-foreground border-border',
             icon: 'ph ph-user'
         };
-        return `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${r.cls}"><i class="${r.icon} text-xs"></i><span>${r.label}</span></span>`;
+        return `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border whitespace-nowrap ${r.cls}"><i class="${r.icon} text-xs shrink-0"></i><span>${r.label}</span></span>`;
     }
     window.roleBadge = roleBadge;
 

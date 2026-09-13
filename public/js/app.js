@@ -2384,6 +2384,12 @@ const app = {
             },
 
             navigate(view, param = null) {
+                // Scroll container back to top on view change
+                const pageContainer = document.getElementById('page-container');
+                if (pageContainer) {
+                    pageContainer.scrollTop = 0;
+                }
+
                 // Update nav styles
                 document.querySelectorAll('.nav-link').forEach(el => {
                     el.classList.remove('nav-item-active');
