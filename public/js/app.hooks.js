@@ -108,8 +108,32 @@
                 // Escape HTML characters
                 let out = md.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 
-                // Code blocks ```...```
+                // Images: ![alt](url)
+                out = out.replace(/!\[([^\]]*)\]\(([^)]+)\)/gim, (m, alt, src) => {
+                    let resolvedSrc = src.trim();
+                    if (!resolvedSrc.startsWith('http://') && !resolvedSrc.startsWith('https://') && !resolvedSrc.startsWith('/')) {
+                        resolvedSrc = '/doc/' + resolvedSrc;
+                    }
+                    return `<div class="my-4 rounded-2xl overflow-hidden border border-border bg-card shadow-sm">
+                        <img src="${resolvedSrc}" alt="${alt}" class="w-full h-auto max-h-[460px] object-contain bg-muted/10 block" onerror="this.parentElement.style.display='none'">
+                        <div class="px-4 py-2 bg-muted/40 border-t border-border/60 text-[11px] text-center text-muted-foreground font-medium flex items-center justify-center gap-1.5">
+                            <i class="ph ph-image text-xs text-brand-500"></i>
+                            <span>${alt}</span>
+                        </div>
+                    </div>`;
+                });
+
+                // Code blocks ```...``` and Mermaid Diagrams
                 out = out.replace(/```([a-z0-9_-]*)\n([\s\S]*?)```/gim, (m, lang, code) => {
+                    if (lang.toLowerCase() === 'mermaid') {
+                        return `<div class="my-4 p-4 rounded-2xl bg-muted/40 border border-brand-500/20 shadow-xs">
+                            <div class="flex items-center gap-2 mb-2.5 pb-2 border-b border-border/60 text-xs font-semibold text-brand-600 dark:text-brand-400">
+                                <i class="ph ph-git-fork text-sm"></i>
+                                <span>แผนผังกระบวนการทำงาน (Process Flow Diagram)</span>
+                            </div>
+                            <pre class="text-foreground font-mono text-[11px] overflow-x-auto leading-relaxed whitespace-pre"><code>${code.trim()}</code></pre>
+                        </div>`;
+                    }
                     return `<pre class="p-3.5 my-3 rounded-xl bg-muted/80 text-foreground font-mono text-[11px] overflow-x-auto border border-border"><code>${code.trim()}</code></pre>`;
                 });
 
