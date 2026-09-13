@@ -19294,8 +19294,8 @@ const app = {
                                     <span>·</span>
                                     <span><i class="ph ph-calendar text-muted-foreground"></i> ส่งมอบ: ${this.formatDateDMY(j.date)}</span>
                                     <span>·</span>
-                                    <span class="text-amber-500 font-medium inline-flex items-center gap-0.5">
-                                        <i class="ph ph-star-fill text-xs"></i> CSAT: 5.0
+                                    <span class="text-emerald-600 font-medium inline-flex items-center gap-0.5">
+                                        <i class="ph ph-check-circle text-xs"></i> CSAT: ผ่าน (5.0)
                                     </span>
                                 </div>
                             </div>
@@ -19331,7 +19331,7 @@ const app = {
                     const servType = document.getElementById('ma-service-type');
                     if (servType) servType.value = (job.service && job.service.includes('แอร์')) ? 'ล้างแอร์' : 'บำรุงรักษาทั่วไป';
                     const notes = document.getElementById('ma-notes');
-                    if (notes) notes.value = `อ้างอิงงานติดตั้ง: ${job.id}\nบริการเดิม: ${job.service || ''}\nCSAT: 5 ดาว`;
+                    if (notes) notes.value = `อ้างอิงงานติดตั้ง: ${job.id}\nบริการเดิม: ${job.service || ''}\nCSAT: ผ่าน (5 คะแนน)`;
                     this.showToast(`ดึงข้อมูลจากงาน ${job.id} มาสร้างสัญญา MA แล้ว`);
                 }
             },
@@ -20749,8 +20749,8 @@ const app = {
                                 </div>
                             </div>
                             <div class="text-right shrink-0">
-                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${q.pass ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 border border-amber-500/20'} font-mono">
-                                    ${q.score}.0 ⭐ (Yes)
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${q.pass ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'} font-mono">
+                                    ${q.score}.0 คะแนน (${q.pass ? 'ผ่าน' : 'ไม่ผ่าน'})
                                 </span>
                             </div>
                         </div>
