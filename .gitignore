@@ -17,3 +17,10 @@ Thumbs.db
 
 # Runtime Data
 data/
+
+# Agent Run Scratch
+.agents/ORIGINAL_REQUEST.md
+.agents/auditor/
+.agents/sentinel*/
+.agents/swe_*/
+

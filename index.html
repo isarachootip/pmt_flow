@@ -3930,22 +3930,25 @@
                                 </div>
                             </div>
 
-                            <!-- Module 8: Daily Logs & Check-in -->
+                            <!-- Module 8: Job Detail & Check-in (Unified 3-in-1) -->
                             <div class="artifact-card p-4 rounded-2xl border border-border hover:border-cyan-500/40 transition-all space-y-3 flex flex-col justify-between group">
                                 <div class="space-y-2">
                                     <div class="flex items-center justify-between">
-                                        <span class="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-mono text-[10px] font-bold border border-cyan-500/20">TRN-PMT-LOG01</span>
+                                        <span class="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-600 font-mono text-[10px] font-bold border border-cyan-500/20">TRN-PMT-LOG01</span>
                                         <span class="text-[10px] text-muted-foreground font-mono">การปฏิบัติงาน</span>
                                     </div>
-                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-cyan-500 transition">บันทึกงานช่างประจำวัน & GPS</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">Geo-fence 400 เมตร, เวลาเข้า-ออก 24-Hr, มาตรฐานรูปถ่ายหน้างาน 5 รูป</p>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-cyan-500 transition">หน้ารายละเอียดงาน 3-in-1 & Check-in</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">ผัง 2 คอลัมน์รวม 3 กระบวนการ (Check-in, แนบแบบแปลน, นำเข้า BOQ) พร้อมคอลัมน์ LOG HISTORY แยก Process แบบ Realtime</p>
                                 </div>
-                                <div class="pt-2 border-t border-border flex items-center gap-2">
-                                    <button onclick="app.navigate('daily-logs')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
-                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
+                                <div class="pt-2 border-t border-border flex items-center gap-1.5">
+                                    <button onclick="app.navigate('jobs')" class="flex-1 py-1.5 px-2 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition" title="ไปหน้ารายละเอียดงาน 3-in-1">
+                                        <i class="ph ph-arrow-square-out"></i> งาน 3-in-1
                                     </button>
-                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_การเข้าหน้างานและCheckIn.md', 'โมดูล 8: บันทึกงานช่างและการ Check-in')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 flex items-center justify-center gap-1 cursor-pointer transition">
-                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    <button onclick="app.navigate('daily-logs')" class="flex-1 py-1.5 px-2 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition" title="ไปหน้าบันทึกงานช่างประจำวัน">
+                                        <i class="ph ph-calendar-check"></i> บันทึกช่าง
+                                    </button>
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_การเข้าหน้างานและCheckIn.md', 'โมดูล 8: หน้ารายละเอียดงาน 3-in-1 และการ Check-in')" class="flex-1 py-1.5 px-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-[11px] font-semibold text-cyan-600 flex items-center justify-center gap-1 cursor-pointer transition" title="อ่านคู่มือระบบ">
+                                        <i class="ph ph-book-open"></i> คู่มือ
                                     </button>
                                 </div>
                             </div>
