@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
-    "dev": "ts-node server.ts"
+    "dev": "ts-node server.ts",
+    "test": "node test_boq_import_scenario.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
