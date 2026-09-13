@@ -1208,6 +1208,7 @@ export interface CoreJob {
   service_type?: string;
   qc_inspection_type?: string;
   qc_passed_at?: string;
+  qc_score?: number | null;
   csat_score?: number | null;
   csat_remarks?: string;
   csat_photos?: any[];

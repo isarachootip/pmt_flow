@@ -40,6 +40,9 @@ const app = {
                 selectedMACustomer: null,
                 qcTab: 'bookings',
                 selectedQCBookingId: null,
+                dailyLogQueueViewMode: (function() {
+                    try { return localStorage.getItem('pmt_daily_log_queue_view_mode') || 'list'; } catch (e) { return 'list'; }
+                })(),
                 dailyLogSelectedJobId: 'JOB26090900002',
                 dailyLogSelectedTaskId: 'T_JOB26090900002_1',
                 dailyLogPhotoSlots: [null, null, null, null, null],
@@ -48,7 +51,12 @@ const app = {
                 csatFilter: 'all',
                 csatServiceFilter: 'all',
                 csatEvaluatingJobId: null,
-                csatPhotos: []
+                csatPhotos: [],
+                completedJobsPage: 1,
+                completedJobsPageSize: 10,
+                completedJobsSearch: '',
+                completedJobsScoreFilter: 'all',
+                completedJobsServiceFilter: 'all'
             },
 
             logout() {
@@ -404,9 +412,34 @@ const app = {
             formatDateDMY(dateInput) {
                 if (!dateInput) return '-';
                 try {
+                    // Excel serial date number support (e.g. 45000 - 65000)
+                    if (typeof dateInput === 'number' && dateInput > 30000 && dateInput < 70000) {
+                        const jsDate = new Date(Math.round((dateInput - 25569) * 86400 * 1000));
+                        if (!isNaN(jsDate.getTime())) {
+                            const d = String(jsDate.getDate()).padStart(2, '0');
+                            const m = String(jsDate.getMonth() + 1).padStart(2, '0');
+                            const y = jsDate.getFullYear();
+                            return `${d}/${m}/${y}`;
+                        }
+                    }
                     const str = String(dateInput).trim();
-                    if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
-                        return str.slice(0, 10);
+                    // Match D/M/YYYY or DD/MM/YYYY or D/M/YY or DD/MM/YY (slash or hyphen)
+                    const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+                    if (dmyMatch) {
+                        const d = dmyMatch[1].padStart(2, '0');
+                        const m = dmyMatch[2].padStart(2, '0');
+                        let y = parseInt(dmyMatch[3], 10);
+                        if (y >= 2400) {
+                            y -= 543; // Buddhist Era to Gregorian
+                        } else if (y < 100) {
+                            // 2-digit year: if >= 50, Thai BE 25xx (e.g. 69 -> 2569 -> 2026)
+                            if (y >= 50) {
+                                y = (2500 + y) - 543;
+                            } else {
+                                y = 2000 + y;
+                            }
+                        }
+                        return `${d}/${m}/${y}`;
                     }
                     if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
                         const parts = str.split('T')[0].split('-');
@@ -432,11 +465,18 @@ const app = {
                     if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
                         return str.slice(0, 10);
                     }
-                    if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(str)) {
-                        const parts = str.slice(0, 10).split('/');
-                        if (parts.length === 3) {
-                            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                    const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+                    if (dmyMatch) {
+                        const d = dmyMatch[1].padStart(2, '0');
+                        const m = dmyMatch[2].padStart(2, '0');
+                        let y = parseInt(dmyMatch[3], 10);
+                        if (y >= 2400) {
+                            y -= 543;
+                        } else if (y < 100) {
+                            if (y >= 50) y = (2500 + y) - 543;
+                            else y = 2000 + y;
                         }
+                        return `${y}-${m}-${d}`;
                     }
                     const d = new Date(dateInput);
                     if (!isNaN(d.getTime())) {
@@ -539,7 +579,7 @@ const app = {
                     const price = (item.price !== undefined && item.price !== null) ? Number(item.price) : Number(item.unit_price || 0);
                     return sum + (qty * price);
                 }, 0);
-                const discount = job.boq_discount !== undefined ? Number(job.boq_discount) : 0;
+                const discount = Math.max(0, Number(job.boq_discount) || 0);
                 const taxable = Math.max(0, subtotal - discount);
                 const vat = taxable * 0.07;
                 const grandTotal = taxable + vat;
@@ -2437,6 +2477,7 @@ const app = {
                     'gantt': 'แผนงาน Gantt เต็มรูป (Gantt Timeline)',
                     'daily-logs': 'บันทึกงานช่างประจำวัน (Daily Technician Work Log)',
                     'ma-contracts': 'บริการหลังการขาย & สัญญา MA',
+                    'completed-jobs': 'รายงานที่สำเร็จแล้ว (Job Close)',
                     'settings': 'ตั้งค่าระบบ & API',
                     'api-logs': 'ประวัติการยิง API ขาเข้า (Inbound API Request Logs)',
                     'faq': 'คู่มือระบบ & คำถามที่พบบ่อย (Workflow Guide & FAQ)',
@@ -2488,6 +2529,7 @@ const app = {
                 if(view === 'qc') this.renderQC();
                 if(view === 'csat') this.renderCSAT();
                 if(view === 'ma-contracts') this.renderMAContracts();
+                if(view === 'completed-jobs') this.renderCompletedJobs();
                 if(view === 'users') {
                     if (typeof userMgmt !== 'undefined') userMgmt.load();
                 }
@@ -4393,6 +4435,14 @@ const app = {
                 // MA
                 const sidebarMa = document.getElementById('sidebar-ma-count');
                 if (sidebarMa && DB.maContracts) sidebarMa.innerText = DB.maContracts.length;
+
+                // Completed Jobs (Job Close Report)
+                const sidebarCompleted = document.getElementById('sidebar-completed-jobs-count');
+                if (sidebarCompleted) {
+                    const completedList = this.getCompletedJobsList ? this.getCompletedJobsList() : [];
+                    sidebarCompleted.innerText = completedList.length;
+                    sidebarCompleted.style.display = completedList.length > 0 ? '' : 'none';
+                }
 
                 // Inbound API Logs
                 const sidebarApiLogs = document.getElementById('sidebar-api-logs-count');
@@ -8822,6 +8872,16 @@ const app = {
 
                 this.switchBOQImportTab('file');
 
+                // Update Target Job info badge in modal to make customer protection obvious
+                const targetJob = DB.jobs.find(j => j.id === targetJobId);
+                const targetJobIdEl = document.getElementById('boq-target-job-id');
+                const targetJobCustEl = document.getElementById('boq-target-job-customer');
+                const targetJobServEl = document.getElementById('boq-target-job-service');
+                const targetCustName = targetJob ? ((typeof targetJob.customer === 'object' && targetJob.customer) ? (targetJob.customer.name || `${targetJob.customer.first_name || ''} ${targetJob.customer.last_name || ''}`.trim() || 'ลูกค้า') : (targetJob.customer || 'ลูกค้า')) : '-';
+                if (targetJobIdEl) targetJobIdEl.innerText = targetJob ? targetJob.id : (targetJobId || '-');
+                if (targetJobCustEl) targetJobCustEl.innerText = targetCustName;
+                if (targetJobServEl) targetJobServEl.innerText = targetJob ? `(${targetJob.service || ''})` : '';
+
                 // Start with empty pending BOQ
                 this.state.pendingBOQHeader = null;
                 this.state.pendingBOQItems = [];
@@ -8879,7 +8939,7 @@ const app = {
                         customer: 'นภัสวรรณ มีศิริ',
                         phone: '0922795574',
                         branch: 'พัทยาใต้',
-                        date: '25/8/69',
+                        date: '25/08/2026',
                         address: 'หมู่บ้านพัทยารุ่งเรือง ซอยระหว่างมาบยายเลีย ตำบลหนองปรือ อำเภอบางละมุง จังหวัดชลบุรี 20150'
                     };
                     this.state.pendingBOQItems = [
@@ -9082,13 +9142,14 @@ const app = {
 
                         const code = row[1] ? String(row[1]).trim() : '';
                         const name = row[2] ? String(row[2]).trim() : '';
-                        const qty = row[3] !== null && row[3] !== undefined && !isNaN(Number(row[3])) ? Number(row[3]) : 0;
+                        const rawQty = row[3] !== null && row[3] !== undefined && !isNaN(Number(row[3])) ? Number(row[3]) : 0;
+                        const qty = Math.max(0, rawQty);
                         const unit = row[4] ? String(row[4]).trim() : 'ชุด';
-                        const matPrice = row[5] !== null && row[5] !== undefined && !isNaN(Number(row[5])) ? Number(row[5]) : 0;
-                        const matAmount = row[6] !== null && row[6] !== undefined && !isNaN(Number(row[6])) ? Number(row[6]) : 0;
-                        const laborPrice = row[7] !== null && row[7] !== undefined && !isNaN(Number(row[7])) ? Number(row[7]) : 0;
-                        const laborAmount = row[8] !== null && row[8] !== undefined && !isNaN(Number(row[8])) ? Number(row[8]) : 0;
-                        const totalAmount = row[9] !== null && row[9] !== undefined && !isNaN(Number(row[9])) ? Number(row[9]) : 0;
+                        const matPrice = Math.max(0, row[5] !== null && row[5] !== undefined && !isNaN(Number(row[5])) ? Number(row[5]) : 0);
+                        const matAmount = Math.max(0, row[6] !== null && row[6] !== undefined && !isNaN(Number(row[6])) ? Number(row[6]) : 0);
+                        const laborPrice = Math.max(0, row[7] !== null && row[7] !== undefined && !isNaN(Number(row[7])) ? Number(row[7]) : 0);
+                        const laborAmount = Math.max(0, row[8] !== null && row[8] !== undefined && !isNaN(Number(row[8])) ? Number(row[8]) : 0);
+                        const totalAmount = Math.max(0, row[9] !== null && row[9] !== undefined && !isNaN(Number(row[9])) ? Number(row[9]) : 0);
                         const remark = row[10] ? String(row[10]).trim() : '';
 
                         // Project section / note
@@ -9099,9 +9160,13 @@ const app = {
 
                         if (name && (qty > 0 || laborPrice > 0 || matPrice > 0 || totalAmount > 0)) {
                             let unitPrice = 0;
-                            if (laborPrice > 0) unitPrice = laborPrice;
-                            else if (matPrice > 0) unitPrice = matPrice;
-                            else if (qty > 0 && totalAmount > 0) unitPrice = totalAmount / qty;
+                            if (laborPrice > 0 || matPrice > 0) {
+                                unitPrice = (matPrice || 0) + (laborPrice || 0);
+                            } else if (qty > 0 && totalAmount > 0) {
+                                unitPrice = totalAmount / qty;
+                            } else if (totalAmount > 0) {
+                                unitPrice = totalAmount;
+                            }
 
                             items.push({
                                 code: code || `SKU-${items.length + 1}`,
@@ -9203,16 +9268,17 @@ const app = {
                             }
                             itemCode = parts[offset] || '';
                             name = parts[offset + 1] || 'รายการวัสดุ/งานบริการ';
-                            qty = parseFloat(parts[offset + 2]) || 1;
+                            const rawQty = parseFloat(parts[offset + 2]);
+                            qty = !isNaN(rawQty) && rawQty > 0 ? rawQty : 1;
                             unit = parts[offset + 3] || 'ชุด';
-                            matPrice = parseFloat(parts[offset + 4]) || 0;
+                            matPrice = Math.max(0, parseFloat(parts[offset + 4]) || 0);
                             if (parts.length >= offset + 7) {
-                                laborPrice = parseFloat(parts[offset + 6]) || 0;
+                                laborPrice = Math.max(0, parseFloat(parts[offset + 6]) || 0);
                                 remark = parts[offset + 8] || parts[parts.length - 1] || '';
                             }
                             price = (matPrice || 0) + (laborPrice || 0);
                             if (price === 0 && parts[offset + 4]) {
-                                price = parseFloat(parts[offset + 4]) || 0;
+                                price = Math.max(0, parseFloat(parts[offset + 4]) || 0);
                             }
                         } else {
                             // Case B: Simple 4-5 column format (ลำดับ, รายการ, จำนวน, หน่วย, ราคา)
@@ -9220,9 +9286,11 @@ const app = {
                                 parts.shift();
                             }
                             name = parts[0] || 'รายการวัสดุ/งานบริการ';
-                            qty = parseFloat(parts[1]) || 1;
+                            const rawQty = parseFloat(parts[1]);
+                            qty = !isNaN(rawQty) && rawQty > 0 ? rawQty : 1;
                             unit = parts[2] || 'ชุด';
-                            price = parseFloat(parts[3]) || (parseFloat(parts[1]) > 50 ? parseFloat(parts[1]) : 500);
+                            const rawPrice = parseFloat(parts[3]);
+                            price = !isNaN(rawPrice) && rawPrice >= 0 ? rawPrice : (parseFloat(parts[1]) > 50 ? parseFloat(parts[1]) : 500);
                             
                             if (name.includes('ค่าแรง') || name.includes('ช่าง') || name.includes('ติดตั้ง')) {
                                 laborPrice = price;
@@ -9233,9 +9301,9 @@ const app = {
 
                         if (name && !name.includes('รวมเงิน') && !name.includes('ภาษี') && !name.includes('ยอดสุทธิ') && !name.includes('สำหรับ QC')) {
                             items.push({
-                                code: itemCode,
+                                code: itemCode || `SKU-${items.length + 1}`,
                                 name: name,
-                                qty: isNaN(qty) ? 1 : qty,
+                                qty: qty,
                                 unit: unit || 'ชุด',
                                 mat_price: matPrice,
                                 labor_price: laborPrice,
@@ -9267,26 +9335,32 @@ const app = {
                 // Render Header info if detected
                 if (header && Object.keys(header).length > 0 && headerPreviewEl && headerFieldsEl) {
                     headerPreviewEl.classList.remove('hidden');
+                    const fileDateDisplay = header.date ? this.formatDateDMY(header.date) : '-';
+
                     headerFieldsEl.innerHTML = `
-                        <div class="bg-card/70 p-2 rounded-lg border border-purple-500/20">
-                            <span class="text-muted-foreground block text-[10px]">ลูกค้า:</span>
-                            <strong class="text-foreground truncate block font-medium">${header.customer || '-'}</strong>
+                        <div class="bg-card p-2 rounded-lg border border-purple-500/20 shadow-xs">
+                            <span class="text-muted-foreground block text-[10px]">ชื่อในไฟล์ (อ้างอิง):</span>
+                            <strong class="text-foreground truncate block font-medium" title="${header.customer || '-'}">${header.customer || '-'}</strong>
+                            <span class="text-[9px] text-amber-700 font-medium block mt-0.5">🔒 ไม่นำเข้าทับ Job</span>
                         </div>
-                        <div class="bg-card/70 p-2 rounded-lg border border-purple-500/20">
-                            <span class="text-muted-foreground block text-[10px]">เบอร์โทร:</span>
+                        <div class="bg-card p-2 rounded-lg border border-purple-500/20 shadow-xs">
+                            <span class="text-muted-foreground block text-[10px]">เบอร์โทรในไฟล์:</span>
                             <strong class="text-foreground font-mono block">${header.phone || '-'}</strong>
+                            <span class="text-[9px] text-muted-foreground block mt-0.5">(อ้างอิงเท่านั้น)</span>
                         </div>
-                        <div class="bg-card/70 p-2 rounded-lg border border-purple-500/20">
+                        <div class="bg-card p-2 rounded-lg border border-purple-500/20 shadow-xs">
                             <span class="text-muted-foreground block text-[10px]">สาขา:</span>
                             <strong class="text-foreground block font-medium">${header.branch || '-'}</strong>
+                            <span class="text-[9px] text-muted-foreground block mt-0.5">(อ้างอิงเท่านั้น)</span>
                         </div>
-                        <div class="bg-card/70 p-2 rounded-lg border border-purple-500/20">
-                            <span class="text-muted-foreground block text-[10px]">วันที่:</span>
-                            <strong class="text-foreground font-mono block">${header.date || '-'}</strong>
+                        <div class="bg-card p-2 rounded-lg border border-purple-500/20 shadow-xs">
+                            <span class="text-muted-foreground block text-[10px]">วันที่ในเอกสาร:</span>
+                            <strong class="text-foreground font-mono block">${fileDateDisplay}</strong>
+                            <span class="text-[9px] text-muted-foreground block mt-0.5">(DD/MM/YYYY)</span>
                         </div>
                         ${header.address ? `
-                        <div class="col-span-2 sm:col-span-4 bg-card/70 p-2 rounded-lg border border-purple-500/20">
-                            <span class="text-muted-foreground block text-[10px]">ที่อยู่หน้างาน:</span>
+                        <div class="col-span-2 sm:col-span-4 bg-card p-2 rounded-lg border border-purple-500/20 shadow-xs">
+                            <span class="text-muted-foreground block text-[10px]">ที่อยู่ในเอกสารต้นทาง (อ้างอิง):</span>
                             <span class="text-muted-foreground text-[10px] truncate block">${header.address}</span>
                         </div>` : ''}
                     `;
@@ -9323,7 +9397,7 @@ const app = {
                         <td class="py-2 px-2.5 text-center text-muted-foreground">${item.unit || 'ชุด'}</td>
                         <td class="py-2 px-2.5 text-right font-mono text-muted-foreground">${(item.mat_price || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
                         <td class="py-2 px-2.5 text-right font-mono text-muted-foreground">${(item.labor_price || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-                        <td class="py-2 px-2.5 text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">${rowTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</td>
+                        <td class="py-2 px-2.5 text-right font-mono font-semibold text-emerald-600">${rowTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</td>
                     </tr>
                     `;
                 }).join('');
@@ -9342,7 +9416,8 @@ const app = {
                     return;
                 }
 
-                const newItems = this.state.pendingBOQItems || [];
+                const rawItems = this.state.pendingBOQItems || [];
+                const newItems = rawItems.filter(it => it && it.name && it.name.trim() && !it.name.includes('รวมเงิน') && !it.name.includes('ภาษี') && !it.name.includes('ยอดสุทธิ') && !it.name.includes('สำหรับ QC'));
                 if (newItems.length === 0) {
                     this.showToast('⚠️ กรุณาเลือกไฟล์หรือชุด Template ก่อนยืนยัน');
                     return;
@@ -9362,7 +9437,9 @@ const app = {
                     importSubtotal += (Number(it.qty) || 0) * (Number(it.price || it.unit_price) || 0);
                 });
                 job.boq_subtotal = importSubtotal;
-                const importGrandTotal = Math.max(0, importSubtotal - (Number(job.boq_discount) || 0)) * 1.07;
+                const importDiscount = Math.max(0, Number(job.boq_discount) || 0);
+                job.boq_discount = importDiscount;
+                const importGrandTotal = Math.max(0, importSubtotal - importDiscount) * 1.07;
                 job.boq_grand_total = importGrandTotal;
                 job.boq_file = this.generateBOQFileObject(job, job.boq_items, importGrandTotal);
                 if (this.state.modalBOQJobId === targetJobId) {
@@ -9370,25 +9447,25 @@ const app = {
                     this.state.modalBOQFile = JSON.parse(JSON.stringify(job.boq_file));
                 }
 
-                // Sync header information if available and checked
-                const syncHeaderCheckbox = document.getElementById('boq-sync-customer-info');
-                const shouldSyncHeader = syncHeaderCheckbox ? syncHeaderCheckbox.checked : true;
+                // R1: Customer Name Protection - นำเข้าเฉพาะรายการทำงานโดยไม่ผูก/ทับชื่อลูกค้าเดิมของโครงการ
+                // ข้อมูลชื่อลูกค้า, เบอร์โทร, ที่อยู่, สาขา และวันที่ของโครงการเดิมจะถูกคงไว้ 100% ไม่ถูกเขียนทับโดยเด็ดขาด
                 const header = this.state.pendingBOQHeader;
-
-                if (shouldSyncHeader && header) {
-                    if (header.customer) {
-                        job.customer = header.customer;
-                        const nameParts = header.customer.split(' ');
-                        job.firstName = nameParts[0] || header.customer;
-                        job.lastName = nameParts.slice(1).join(' ') || '';
-                    }
-                    if (header.phone) job.phone = header.phone;
-                    if (header.address) job.address = header.address;
-                    if (header.branch) job.branch = header.branch;
-                    if (header.date) job.date = header.date;
+                if (header && Object.keys(header).length > 0) {
+                    job.boq_source_header = {
+                        source_customer: header.customer || '',
+                        source_phone: header.phone || '',
+                        source_address: header.address || '',
+                        source_branch: header.branch || '',
+                        source_date: header.date || '',
+                        imported_at: new Date().toISOString()
+                    };
                 }
 
-                this.recordStepTimestamp(targetJobId, 'step3_boq_at', new Date().toISOString(), `นำเข้า BOQ ${newItems.length} รายการ`);
+                const customerDisplayName = (job && typeof job.customer === 'object' && job.customer) 
+                    ? (job.customer.name || `${job.customer.first_name || ''} ${job.customer.last_name || ''}`.trim() || 'ลูกค้า') 
+                    : (job && job.customer ? String(job.customer) : 'ลูกค้าเดิม');
+
+                this.recordStepTimestamp(targetJobId, 'step3_boq_at', new Date().toISOString(), `นำเข้า BOQ ${newItems.length} รายการ (คงชื่อลูกค้า: ${customerDisplayName})`);
                 this.recordStepTimestamp(targetJobId, 'step4_boq_at', new Date().toISOString(), `นำเข้า BOQ ${newItems.length} รายการ`);
                 this.persistJobs();
                 this.hideModal('modal-import-boq');
@@ -9401,7 +9478,7 @@ const app = {
                 if (this.state.currentView === 'jobs') this.renderJobs();
                 if (this.state.currentView === 'dashboard') this.renderDashboard();
 
-                this.showToast(`✅ นำเข้า BOQ ${newItems.length} รายการ เรียบร้อย! กำลังเปิดหน้าต่างกำหนดวันเวลาและช่างเพื่อแปลงเป็น Gantt Chart...`);
+                this.showToast(`✅ นำเข้า BOQ ${newItems.length} รายการ เรียบร้อย (คงข้อมูลลูกค้า: ${customerDisplayName})`);
 
                 // Seamlessly trigger: แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart
                 setTimeout(() => {
@@ -9414,7 +9491,7 @@ const app = {
                     "vFIX,ใบเสนอราคางาน,เลขที่งาน :,JOB26090900001,,,\n" +
                     "เรียน :,นภัสวรรณ มีศิริ,,เลขที่ใบเสร็จ :,\n" +
                     "ที่อยู่ :,หมู่บ้านพัทยารุ่งเรือง ซอยระหว่างมาบยายเลีย ตำบลหนองปรือ อำเภอบางละมุง จังหวัดชลบุรี 20150,,สาขา :,พัทยาใต้\n" +
-                    "Tel :,0922795574,,วันที่ :,25/8/69\n" +
+                    "Tel :,0922795574,,วันที่ :,25/08/2026\n" +
                     "EMail/ Line ID :,,,,,\n" +
                     ",,,,,,สำหรับ QC กรอก\n" +
                     "ลำดับที่,รหัสสินค้า,รายการ,จำนวน,หน่วย,ค่าวัสดุ_ราคาต่อหน่วย,ค่าวัสดุ_จำนวนเงิน,ค่าแรง_ราคาต่อหน่วย,ค่าแรง_จำนวนเงิน,จำนวนเงินรวม,หมายเหตุ\n" +
@@ -9948,7 +10025,7 @@ const app = {
                             </div>
                         </td>
                         <td class="py-2.5 px-3 text-center" id="convert-days-${idx}">
-                            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-purple-500/10 text-purple-600 border border-purple-500/20">
                                 ${t.days || 1} วัน
                             </span>
                         </td>
@@ -9956,13 +10033,13 @@ const app = {
                             <div class="flex flex-wrap gap-1 max-w-[260px]">
                                 ${techChips}
                             </div>
-                            <div class="text-[10px] text-purple-600 dark:text-purple-400 font-medium mt-1 truncate">
+                            <div class="text-[10px] text-purple-600 font-medium mt-1 truncate">
                                 👥 ผู้รับผิดชอบ: ${assignees.join(', ')}
                             </div>
                         </td>
                         <td class="py-2.5 px-2 text-center">
                             <div class="flex items-center justify-center gap-1">
-                                <button type="button" onclick="app.insertConvertTaskAt(${idx})" class="px-2 py-1 text-[11px] text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 rounded-md transition cursor-pointer flex items-center gap-0.5" title="แทรกงานด้านล่างแถวนี้">
+                                <button type="button" onclick="app.insertConvertTaskAt(${idx})" class="px-2 py-1 text-[11px] text-purple-600 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 rounded-md transition cursor-pointer flex items-center gap-0.5" title="แทรกงานด้านล่างแถวนี้">
                                     <i class="ph ph-plus-circle text-xs"></i> แทรก
                                 </button>
                                 <button type="button" onclick="app.removeConvertTaskRow(${idx})" class="p-1 text-muted-foreground hover:text-rose-500 rounded transition cursor-pointer" title="ลบ Task นี้">
@@ -12251,7 +12328,7 @@ const app = {
                 if (typeof XLSX !== 'undefined') {
                     const wsData = [
                         ['vFIX / PMT Flow', 'ใบรายการประมาณการราคา (BOQ & Estimation)'],
-                        ['รหัสโครงการ :', job ? job.id : '', 'ลูกค้า :', job ? job.customer : '', 'วันที่ :', new Date().toLocaleDateString('th-TH')],
+                        ['รหัสโครงการ :', job ? job.id : '', 'ลูกค้า :', job ? job.customer : '', 'วันที่ :', this.formatDateDMY(new Date())],
                         ['บริการ :', job ? job.service : '', 'ที่อยู่ :', job ? (job.address || '-') : '', 'ช่าง :', job ? (job.tech || '-') : ''],
                         [],
                         ['ลำดับ', 'รายการวัสดุ / งานบริการ', 'ประเภท', 'จำนวน', 'หน่วย', 'ราคาต่อหน่วย (฿)', 'รวมเป็นเงิน (฿)', 'หมายเหตุ']
@@ -15129,10 +15206,35 @@ const app = {
                 this.renderDailyLogJobQueue();
             },
 
+            setDailyLogQueueViewMode(mode) {
+                this.state.dailyLogQueueViewMode = mode;
+                try { localStorage.setItem('pmt_daily_log_queue_view_mode', mode); } catch (e) {}
+                this.updateDailyLogQueueViewModeButtons();
+                this.renderDailyLogJobQueue();
+            },
+
+            updateDailyLogQueueViewModeButtons() {
+                const mode = this.state.dailyLogQueueViewMode || 'list';
+                const btnCard = document.getElementById('btn-daily-log-mode-card');
+                const btnList = document.getElementById('btn-daily-log-mode-list');
+                if (btnCard && btnList) {
+                    if (mode === 'card') {
+                        btnCard.className = 'px-2.5 py-1 rounded-lg font-semibold transition flex items-center gap-1 cursor-pointer bg-card text-foreground shadow-xs';
+                        btnList.className = 'px-2.5 py-1 rounded-lg font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground';
+                    } else {
+                        btnList.className = 'px-2.5 py-1 rounded-lg font-semibold transition flex items-center gap-1 cursor-pointer bg-card text-foreground shadow-xs';
+                        btnCard.className = 'px-2.5 py-1 rounded-lg font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground';
+                    }
+                }
+            },
+
             renderDailyLogJobQueue() {
                 const listContainer = document.getElementById('daily-log-job-queue-list');
                 const countBadge = document.getElementById('daily-log-queue-count-badge');
                 if (!listContainer) return;
+
+                this.updateDailyLogQueueViewModeButtons();
+                const isList = (this.state.dailyLogQueueViewMode || 'list') === 'list';
 
                 const allJobs = DB.jobs || [];
                 const allLogs = DB.dailyWorkLogs || [];
@@ -15174,8 +15276,9 @@ const app = {
                 }
 
                 if (filteredJobs.length === 0) {
+                    listContainer.className = "w-full";
                     listContainer.innerHTML = `
-                        <div class="col-span-full py-8 text-center text-muted-foreground text-xs p-4 rounded-2xl border border-dashed border-border bg-muted/10 space-y-2">
+                        <div class="py-8 text-center text-muted-foreground text-xs p-4 rounded-2xl border border-dashed border-border bg-muted/10 space-y-2">
                             <i class="ph ph-magnifying-glass text-2xl text-muted-foreground/60"></i>
                             <div class="font-medium">ไม่พบงานที่ตรงกับเงื่อนไขการค้นหา</div>
                             <button type="button" onclick="app.setDailyLogQueueFilter('all'); document.getElementById('daily-log-queue-search').value = ''; app.onDailyLogQueueSearch('');" class="text-[11px] text-cyan-600 hover:underline cursor-pointer">ล้างตัวกรอง</button>
@@ -15187,66 +15290,172 @@ const app = {
                 // Sort descending so latest updated/status job is always at top
                 const sortedDailyJobs = this.sortJobsDescending(filteredJobs);
 
-                listContainer.innerHTML = sortedDailyJobs.map((j, idx) => {
-                    const isSelected = j.id === selectedJobId;
-                    const isTopNew = this.isTopLatestJob(j.id, sortedDailyJobs, 1);
-                    const jobTasks = allTasks.filter(t => t.jobId === j.id);
-                    const jobLogs = allLogs.filter(l => String(l.jobId) === String(j.id));
-                    const hasTodayLog = jobLogs.some(l => l.logDate === todayStr || (l.createdAt && l.createdAt.startsWith(todayStr)));
-                    const maxProgress = jobLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
-                    const isCompleted = maxProgress >= 100 || j.status === 'DONE' || j.status === 'QC_PENDING' || j.status === 'QC_PASSED';
-                    const primaryTask = jobTasks.length > 0 ? jobTasks[0] : null;
-                    const taskName = primaryTask ? primaryTask.name : (j.service || 'งานบริการ');
-                    const techName = primaryTask ? (primaryTask.tech || j.tech) : (j.tech || 'Team B');
+                if (isList) {
+                    listContainer.className = "w-full overflow-hidden";
+                    listContainer.innerHTML = `
+                        <div class="overflow-x-auto rounded-xl border border-border bg-card shadow-2xs max-h-[380px] overflow-y-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead class="sticky top-0 bg-muted/95 backdrop-blur-xs z-10 border-b border-border text-muted-foreground font-semibold text-[11px]">
+                                    <tr>
+                                        <th class="py-2.5 px-3.5 font-mono">JOB ID</th>
+                                        <th class="py-2.5 px-3">สถานะบันทึกช่าง</th>
+                                        <th class="py-2.5 px-3">ลูกค้า / เบอร์ติดต่อ</th>
+                                        <th class="py-2.5 px-3">บริการ / งานหลัก</th>
+                                        <th class="py-2.5 px-3">ช่างผู้รับผิดชอบ</th>
+                                        <th class="py-2.5 px-3 text-center">ความคืบหน้ารวม</th>
+                                        <th class="py-2.5 px-3 text-center">ประวัติลงบันทึก</th>
+                                        <th class="py-2.5 px-3 text-right">เลือกโครงการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border/60">
+                                    ${sortedDailyJobs.map((j) => {
+                                        const isSelected = j.id === selectedJobId;
+                                        const isTopNew = this.isTopLatestJob(j.id, sortedDailyJobs, 1);
+                                        const jobTasks = allTasks.filter(t => t.jobId === j.id);
+                                        const jobLogs = allLogs.filter(l => String(l.jobId) === String(j.id));
+                                        const hasTodayLog = jobLogs.some(l => l.logDate === todayStr || (l.createdAt && l.createdAt.startsWith(todayStr)));
+                                        const maxProgress = jobLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
+                                        const isCompleted = maxProgress >= 100 || j.status === 'DONE' || j.status === 'QC_PENDING' || j.status === 'QC_PASSED';
+                                        const primaryTask = jobTasks.length > 0 ? jobTasks[0] : null;
+                                        const taskName = primaryTask ? primaryTask.name : (j.service || 'งานบริการ');
+                                        const techName = primaryTask ? (primaryTask.tech || j.tech) : (j.tech || 'Team B');
 
-                    let statusBadgeHtml = '';
-                    if (isCompleted) {
-                        statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1 shrink-0"><i class="ph ph-check-circle"></i> รอ QC</span>`;
-                    } else if (hasTodayLog) {
-                        statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-teal-500/15 text-teal-600 dark:text-teal-400 font-mono flex items-center gap-1 shrink-0"><i class="ph ph-check"></i> บันทึกแล้ว</span>`;
-                    } else {
-                        statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono flex items-center gap-1 shrink-0 animate-pulse"><i class="ph ph-warning-circle"></i> ค้างลง</span>`;
-                    }
+                                        let statusBadgeHtml = '';
+                                        if (isCompleted) {
+                                            statusBadgeHtml = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-600 font-mono inline-flex items-center gap-1"><i class="ph ph-check-circle"></i> รอ QC (100%)</span>`;
+                                        } else if (hasTodayLog) {
+                                            statusBadgeHtml = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-500/15 text-teal-600 font-mono inline-flex items-center gap-1"><i class="ph ph-check"></i> บันทึกแล้ววันนี้</span>`;
+                                        } else {
+                                            statusBadgeHtml = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-600 font-mono inline-flex items-center gap-1 animate-pulse"><i class="ph ph-warning-circle"></i> ค้างลงวันนี้</span>`;
+                                        }
 
-                    return `
-                    <div onclick="app.selectDailyLogJob('${j.id}', true, true)" class="p-3 rounded-xl border transition cursor-pointer space-y-2 group shadow-2xs ${isSelected ? 'bg-cyan-500/10 border-cyan-500 shadow-sm ring-2 ring-cyan-500/40' : (isTopNew ? 'border-cyan-500/40 bg-cyan-500/[0.03]' : 'bg-card border-border hover:border-cyan-500/40 hover:bg-muted/30')}">
-                        <div class="flex items-start justify-between gap-1.5">
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center gap-1.5 flex-wrap">
-                                    <span class="font-mono text-xs font-bold ${isSelected ? 'text-cyan-600 dark:text-cyan-400' : 'text-foreground group-hover:text-cyan-500'}">${j.id}</span>
-                                    ${isTopNew ? `
-                                        <span class="badge-new-item text-[8px] py-0 px-1" title="สถานะล่าสุด (NEW!)">
-                                            <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
-                                        </span>
-                                    ` : ''}
+                                        const rowBgClass = isSelected
+                                            ? 'bg-cyan-500/10 border-l-4 border-l-cyan-500 font-medium text-foreground shadow-2xs'
+                                            : (isTopNew
+                                                ? 'hover:bg-muted/40 transition cursor-pointer border-l-4 border-l-cyan-500/40 bg-cyan-500/[0.02]'
+                                                : 'hover:bg-muted/40 transition cursor-pointer border-l-4 border-l-transparent');
+
+                                        return `
+                                        <tr onclick="app.selectDailyLogJob('${j.id}', true, true)" class="${rowBgClass}">
+                                            <td class="py-2.5 px-3.5 font-mono">
+                                                <div class="flex items-center gap-1.5 flex-wrap">
+                                                    <span class="font-bold text-xs ${isSelected ? 'text-cyan-600 font-bold' : 'text-foreground'}">${j.id}</span>
+                                                    ${isTopNew ? `<span class="badge-new-item text-[8px] py-0 px-1" title="สถานะล่าสุด"><i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!</span>` : ''}
+                                                </div>
+                                            </td>
+                                            <td class="py-2.5 px-3 whitespace-nowrap">
+                                                ${statusBadgeHtml}
+                                            </td>
+                                            <td class="py-2.5 px-3">
+                                                <div class="font-semibold text-foreground text-xs truncate max-w-[160px]">${j.customer || '-'}</div>
+                                                ${j.phone ? `<div class="text-[10px] font-mono text-muted-foreground flex items-center gap-1"><i class="ph ph-phone text-[10px]"></i> ${j.phone}</div>` : ''}
+                                            </td>
+                                            <td class="py-2.5 px-3">
+                                                <div class="font-medium text-foreground text-xs truncate max-w-[220px] flex items-center gap-1.5" title="${taskName}">
+                                                    <i class="ph ph-wrench text-cyan-500 text-xs shrink-0"></i>
+                                                    <span class="truncate">${taskName}</span>
+                                                </div>
+                                                ${j.service && j.service !== taskName ? `<div class="text-[10px] text-muted-foreground truncate max-w-[220px]">${j.service}</div>` : ''}
+                                            </td>
+                                            <td class="py-2.5 px-3 whitespace-nowrap">
+                                                <span class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                                                    <i class="ph ph-user text-cyan-500 text-xs shrink-0"></i>
+                                                    <span class="font-medium text-foreground">${techName}</span>
+                                                </span>
+                                            </td>
+                                            <td class="py-2.5 px-3 text-center whitespace-nowrap">
+                                                <div class="inline-flex items-center justify-center gap-2">
+                                                    <span class="font-mono text-xs font-bold text-foreground w-8 text-right">${maxProgress}%</span>
+                                                    <div class="w-14 bg-muted/80 h-1.5 rounded-full overflow-hidden shrink-0">
+                                                        <div class="bg-gradient-to-r from-cyan-500 via-brand-500 to-emerald-500 h-full rounded-full transition-all" style="width: ${Math.min(100, Math.max(isCompleted ? 100 : 5, maxProgress))}%;"></div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="py-2.5 px-3 text-center whitespace-nowrap">
+                                                <span class="font-mono text-xs text-muted-foreground inline-flex items-center gap-1">
+                                                    <i class="ph ph-notebook text-purple-500 text-xs"></i> ${jobLogs.length} วัน
+                                                </span>
+                                            </td>
+                                            <td class="py-2.5 px-3 text-right whitespace-nowrap">
+                                                ${isSelected ? `
+                                                    <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-cyan-500 text-white shadow-xs inline-flex items-center gap-1">
+                                                        <i class="ph ph-check-bold"></i> กำลังบันทึก
+                                                    </span>
+                                                ` : `
+                                                    <button type="button" onclick="event.stopPropagation(); app.selectDailyLogJob('${j.id}', true, true)" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-border bg-card hover:bg-cyan-500 hover:text-white hover:border-cyan-500 text-foreground inline-flex items-center gap-1 transition cursor-pointer shadow-2xs">
+                                                        เลือกงาน <i class="ph ph-arrow-right text-[10px]"></i>
+                                                    </button>
+                                                `}
+                                            </td>
+                                        </tr>`;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                } else {
+                    listContainer.className = "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[360px] overflow-y-auto pr-1";
+                    listContainer.innerHTML = sortedDailyJobs.map((j) => {
+                        const isSelected = j.id === selectedJobId;
+                        const isTopNew = this.isTopLatestJob(j.id, sortedDailyJobs, 1);
+                        const jobTasks = allTasks.filter(t => t.jobId === j.id);
+                        const jobLogs = allLogs.filter(l => String(l.jobId) === String(j.id));
+                        const hasTodayLog = jobLogs.some(l => l.logDate === todayStr || (l.createdAt && l.createdAt.startsWith(todayStr)));
+                        const maxProgress = jobLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
+                        const isCompleted = maxProgress >= 100 || j.status === 'DONE' || j.status === 'QC_PENDING' || j.status === 'QC_PASSED';
+                        const primaryTask = jobTasks.length > 0 ? jobTasks[0] : null;
+                        const taskName = primaryTask ? primaryTask.name : (j.service || 'งานบริการ');
+                        const techName = primaryTask ? (primaryTask.tech || j.tech) : (j.tech || 'Team B');
+
+                        let statusBadgeHtml = '';
+                        if (isCompleted) {
+                            statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1 shrink-0"><i class="ph ph-check-circle"></i> รอ QC</span>`;
+                        } else if (hasTodayLog) {
+                            statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-teal-500/15 text-teal-600 dark:text-teal-400 font-mono flex items-center gap-1 shrink-0"><i class="ph ph-check"></i> บันทึกแล้ว</span>`;
+                        } else {
+                            statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono flex items-center gap-1 shrink-0 animate-pulse"><i class="ph ph-warning-circle"></i> ค้างลง</span>`;
+                        }
+
+                        return `
+                        <div onclick="app.selectDailyLogJob('${j.id}', true, true)" class="p-3 rounded-xl border transition cursor-pointer space-y-2 group shadow-2xs ${isSelected ? 'bg-cyan-500/10 border-cyan-500 shadow-sm ring-2 ring-cyan-500/40' : (isTopNew ? 'border-cyan-500/40 bg-cyan-500/[0.03]' : 'bg-card border-border hover:border-cyan-500/40 hover:bg-muted/30')}">
+                            <div class="flex items-start justify-between gap-1.5">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="font-mono text-xs font-bold ${isSelected ? 'text-cyan-600 dark:text-cyan-400' : 'text-foreground group-hover:text-cyan-500'}">${j.id}</span>
+                                        ${isTopNew ? `
+                                            <span class="badge-new-item text-[8px] py-0 px-1" title="สถานะล่าสุด (NEW!)">
+                                                <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                            </span>
+                                        ` : ''}
+                                    </div>
+                                    <div class="text-xs font-semibold text-foreground truncate mt-0.5">${j.customer}</div>
+                                    <div class="text-[11px] text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+                                        <i class="ph ph-wrench text-cyan-500 text-xs shrink-0"></i>
+                                        <span class="truncate">${taskName}</span>
+                                    </div>
                                 </div>
-                                <div class="text-xs font-semibold text-foreground truncate mt-0.5">${j.customer}</div>
-                                <div class="text-[11px] text-muted-foreground truncate flex items-center gap-1 mt-0.5">
-                                    <i class="ph ph-wrench text-cyan-500 text-xs shrink-0"></i>
-                                    <span class="truncate">${taskName}</span>
+                                <div class="flex flex-col items-end gap-1">
+                                    ${statusBadgeHtml}
+                                    <span class="font-mono text-[10px] font-bold text-foreground">${maxProgress}%</span>
                                 </div>
                             </div>
-                            <div class="flex flex-col items-end gap-1">
-                                ${statusBadgeHtml}
-                                <span class="font-mono text-[10px] font-bold text-foreground">${maxProgress}%</span>
+
+                            <div class="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t border-border/50">
+                                <span class="flex items-center gap-1 truncate">
+                                    <i class="ph ph-user text-cyan-500"></i> ${techName}
+                                </span>
+                                <span class="font-mono flex items-center gap-1 shrink-0">
+                                    <i class="ph ph-notebook text-purple-500"></i> ${jobLogs.length} วัน
+                                </span>
                             </div>
-                        </div>
 
-                        <div class="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t border-border/50">
-                            <span class="flex items-center gap-1 truncate">
-                                <i class="ph ph-user text-cyan-500"></i> ${techName}
-                            </span>
-                            <span class="font-mono flex items-center gap-1 shrink-0">
-                                <i class="ph ph-notebook text-purple-500"></i> ${jobLogs.length} วัน
-                            </span>
-                        </div>
-
-                        <!-- Mini Progress Bar -->
-                        <div class="w-full bg-muted/70 h-1.5 rounded-full overflow-hidden">
-                            <div class="bg-gradient-to-r from-cyan-500 via-brand-500 to-emerald-500 h-full rounded-full transition-all duration-300" style="width: ${Math.min(100, Math.max(isCompleted ? 100 : 5, maxProgress))}%;"></div>
-                        </div>
-                    </div>`;
-                }).join('');
+                            <!-- Mini Progress Bar -->
+                            <div class="w-full bg-muted/70 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-gradient-to-r from-cyan-500 via-brand-500 to-emerald-500 h-full rounded-full transition-all duration-300" style="width: ${Math.min(100, Math.max(isCompleted ? 100 : 5, maxProgress))}%;"></div>
+                            </div>
+                        </div>`;
+                    }).join('');
+                }
             },
 
             selectDailyLogJob(jobId, shouldRerenderQueue = true, shouldScroll = false) {
@@ -20174,6 +20383,469 @@ const app = {
                 } catch (err) {
                     this.showToast('⚠️ เกิดข้อผิดพลาดในการล้าง Log');
                 }
+            },
+
+            // =========================================================================
+            // COMPLETED JOBS (JOB CLOSE & QC/CSAT EVALUATION REPORT) METHODS
+            // =========================================================================
+            getCompletedJobsMockSeed() {
+                return [
+                    { id: 'JOB202609002', customer: 'นาย ไทย', phone: '0897777777', service: 'ติดตั้งเครื่องทำน้ำอุ่น', qc_passed_at: '2026-09-14T10:30:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ช่างมาตรงเวลา งานติดตั้งเครื่องทำน้ำอุ่นเรียบร้อย สายดินและเบรกเกอร์ ELCB ได้มาตรฐานดีมาก' },
+                    { id: 'JOB202609003', customer: 'คุณ สมชาย', phone: '0812345678', service: 'ติดตั้งแอร์ Wall Type', qc_passed_at: '2026-09-13T14:15:00.000Z', qc_score: 4.8, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'แอร์เย็นเร็วมาก ช่างเก็บงานท่อน้ำยาเนียนตา แนะนำการใช้งานรีโมทและฟังก์ชัน Inverter ละเอียด' },
+                    { id: 'JOB202609004', customer: 'คุณ พัชราภา', phone: '0923456789', service: 'ซ่อมแซมระบบไฟฟ้า', qc_passed_at: '2026-09-12T11:00:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'Contact Center Officer', feedback: 'แก้ไขจุดไฟรั่วได้รวดเร็ว ปลอดภัย มีการตรวจเช็คค่าความต้านทานดินครบถ้วน' },
+                    { id: 'JOB202609005', customer: 'บริษัท เอ พี ซี จำกัด', phone: '026543210', service: 'ติดตั้งกล้องวงจรปิด', qc_passed_at: '2026-09-11T16:45:00.000Z', qc_score: 4.5, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'กล้องชัดมากทั้งกลางวันกลางคืน เซ็ตระบบดูออนไลน์บนมือถือให้เจ้าหน้าที่เรียบร้อย' },
+                    { id: 'JOB202609006', customer: 'คุณ วรชัย', phone: '0801122334', service: 'ติดตั้งแอร์ Cassette Type', qc_passed_at: '2026-09-10T13:20:00.000Z', qc_score: 4.8, csat_score: 4.5, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'งานเจาะฝ้า 4 ทิศทางประณีต ไม่มีฝุ่นเลอะเทอะ เครื่องทำงานเงียบสนิท' },
+                    { id: 'JOB202609007', customer: 'คุณ กนกวรรณ', phone: '0945566778', service: 'เดินสาย LAN และอุปกรณ์', qc_passed_at: '2026-09-09T15:30:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'เทสต์สัญญาณเน็ตทุกจุดผ่าน ฉลากสายชัดเจนในตู้ Rack แนะนำดีมาก' },
+                    { id: 'JOB202609008', customer: 'คุณ อภิชาติ', phone: '0823344556', service: 'ติดตั้งเครื่องทำน้ำอุ่น', qc_passed_at: '2026-09-08T09:40:00.000Z', qc_score: 4.5, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ติดตั้งเร็ว น้ำแรง ปรับอุณหภูมินิ่ง ช่างสุภาพมาก แนะนำบริการดี' },
+                    { id: 'JOB202609009', customer: 'คุณ สุรีย์', phone: '0987654321', service: 'ซ่อมแซมแอร์', qc_passed_at: '2026-09-07T12:10:00.000Z', qc_score: 4.8, csat_score: 4.5, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ล้างคอยล์เย็นเติมน้ำยาแอร์เรียบร้อย อาการน้ำหยดหายสนิท ช่างทำความสะอาดพื้นที่ดี' },
+                    { id: 'JOB202609010', customer: 'บริษัท ที อี เอฟ จำกัด', phone: '02-7788990', service: 'ติดตั้ง Solar Rooftop', qc_passed_at: '2026-09-06T17:00:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'อินเวอร์เตอร์เชื่อมต่อ Cloud มอนิเตอร์ผลิตไฟได้ทันที โครงสร้างแผงแข็งแรงมาก' },
+                    { id: 'JOB202609011', customer: 'คุณ นิธิ', phone: '0912233445', service: 'เปลี่ยนตู้ไฟและอุปกรณ์', qc_passed_at: '2026-09-05T14:50:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'แยกเซอร์กิตวงจรไฟชัดเจน ติดสติ๊กเกอร์ระบุห้องเข้าใจง่าย ปลอดภัยขึ้นเยอะ' },
+                    { id: 'JOB202609012', customer: 'คุณ ธนพล เจริญศิลป์', phone: '0815544332', service: 'ติดตั้งแอร์ Wall Type 18000 BTU', qc_passed_at: '2026-09-04T11:20:00.000Z', qc_score: 5.0, csat_score: 4.9, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'Contact Center Officer', feedback: 'ช่างเก็บสายไฟเรียบร้อย แอร์เย็นเงียบ ประทับใจมาก' },
+                    { id: 'JOB202609013', customer: 'คุณ วนิดา สุขสมบูรณ์', phone: '0834455667', service: 'ติดตั้งเครื่องกรองน้ำ RO', qc_passed_at: '2026-09-03T10:00:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'น้ำสะอาด วัดค่า TDS ผ่านเกณฑ์มาตรฐาน ช่างอธิบายวิธีเปลี่ยนไส้กรองชัดเจน' },
+                    { id: 'JOB202609014', customer: 'คุณ ชัยรัตน์ พงษ์ศิริ', phone: '0867788990', service: 'ติดตั้งเครื่องระบายอากาศ Fresh Air', qc_passed_at: '2026-09-02T13:40:00.000Z', qc_score: 5.0, csat_score: 4.7, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ระบบระบายอากาศทำงานดีมาก กลิ่นอับหายสนิท หัว Coring เจาะผนังเรียบร้อย' },
+                    { id: 'JOB202609015', customer: 'คุณ รัตนา ปัญญาดี', phone: '0891122334', service: 'เปลี่ยนโคมไฟ LED ทั้งบ้าน', qc_passed_at: '2026-09-01T15:10:00.000Z', qc_score: 4.8, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'แสงสว่างทั่วถึง ประหยัดพลังงาน ช่างเก็บเศษสายไฟและกล่องเรียบร้อย' },
+                    { id: 'JOB202609016', customer: 'คุณ นพดล ศรีสุวรรณ', phone: '0823344559', service: 'ติดตั้งปั๊มน้ำและถังเก็บน้ำ', qc_passed_at: '2026-08-31T09:30:00.000Z', qc_score: 4.5, csat_score: 4.6, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'แรงดันน้ำสม่ำเสมอทุกจุด มีบายพาสน้ำปลอดภัย' },
+                    { id: 'JOB202609017', customer: 'คุณ มณฑา แสงทอง', phone: '0845566778', service: 'ติดตั้งเครื่องดูดควันห้องครัว', qc_passed_at: '2026-08-30T14:15:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'แรงดูดดี ท่อลมต่อระบายออกภายนอกแน่นหนา ไร้กลิ่นย้อน' },
+                    { id: 'JOB202609018', customer: 'บริษัท เมโทร ซิสเต็มส์ จำกัด', phone: '028899001', service: 'เดินระบบไฟฟ้าตู้ Server', qc_passed_at: '2026-08-29T16:00:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ระบบไฟ UPS นิ่ง ไม่มีสะดุด สายไฟร้อยท่อ EMT ปลอดภัยสูง' },
+                    { id: 'JOB202609019', customer: 'คุณ ธวัลพร มงคลชัย', phone: '0856677889', service: 'ติดตั้งแอร์ Inverter 24000 BTU', qc_passed_at: '2026-08-28T11:45:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'แอร์เย็นฉ่ำเร็ว เสียงเงียบ ช่างทดสอบระบบน้ำทิ้งไม่รั่วซึม' },
+                    { id: 'JOB202609020', customer: 'คุณ สันติสุข วงศ์ไทย', phone: '0871122334', service: 'ติดตั้งเครื่องทำน้ำร้อน 6000W', qc_passed_at: '2026-08-27T10:20:00.000Z', qc_score: 4.8, csat_score: 4.7, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'น้ำร้อนเร็ว แรงดันน้ำไหลสม่ำเสมอ เก็บงานท่อทองแดงสวยงาม' },
+                    { id: 'JOB202609021', customer: 'คุณ พิชัย เลิศวิจิตร', phone: '0898877665', service: 'ติดตั้งกล้องวงจรปิด IP Camera 4 ตัว', qc_passed_at: '2026-08-26T15:30:00.000Z', qc_score: 5.0, csat_score: 4.9, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'มุมกล้องครอบคลุมจุดอับสายตา บันทึกภาพย้อนหลังทำงานปกติ' },
+                    { id: 'JOB202609022', customer: 'คุณ นฤมล เกียรติคุณ', phone: '0831122445', service: 'ซ่อมแซมระบบน้ำรั่วซึมห้องน้ำ', qc_passed_at: '2026-08-25T13:00:00.000Z', qc_score: 4.5, csat_score: 4.5, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'หาจุดรั่วใต้พื้นได้แม่นยำ เปลี่ยนข้อต่อและยาแนวใหม่เรียบร้อย' },
+                    { id: 'JOB202609023', customer: 'คุณ ธีรวัฒน์ ชนะภัย', phone: '0864455667', service: 'ติดตั้งระบบไฟส่องสว่างโซลาร์เซลล์รอบรั้ว', qc_passed_at: '2026-08-24T17:15:00.000Z', qc_score: 4.8, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ไฟติดสว่างอัตโนมัติตอนพลบค่ำ เซ็นเซอร์ตรวจจับความเคลื่อนไหวดีเยี่ยม' },
+                    { id: 'JOB202609024', customer: 'บริษัท นครหลวงคอนกรีต จำกัด', phone: '023344556', service: 'ติดตั้งระบบมอเตอร์ประตูรีโมท', qc_passed_at: '2026-08-23T14:30:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'ประตูเลื่อนนุ่มนวล รีโมทใช้งานได้ระยะไกล ปลอดภัยด้วยโฟโต้เซ็นเซอร์' },
+                    { id: 'JOB202609025', customer: 'คุณ อารีย์ ชูแสง', phone: '0887766554', service: 'ล้างทำความสะอาดแอร์ 3 เครื่อง', qc_passed_at: '2026-08-22T10:45:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ช่างปูผ้ายางกันน้ำกระเด็น ล้างสะอาดเอี่ยม กลิ่นสะอาดสดชื่น' },
+                    { id: 'JOB202609026', customer: 'คุณ ประจักษ์ อมรเวช', phone: '0813322114', service: 'ติดตั้งระบบระบายอากาศห้องใต้หลังคา', qc_passed_at: '2026-08-21T16:10:00.000Z', qc_score: 5.0, csat_score: 4.7, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ลดความร้อนในบ้านได้ชัดเจน พัดลมพลังงานแสงอาทิตย์ทำงานเงียบ' },
+                    { id: 'JOB202609027', customer: 'คุณ ศศิธร วิริยะสกุล', phone: '0842233445', service: 'ติดตั้งเครื่องฟอกอากาศฝังฝ้า', qc_passed_at: '2026-08-20T11:15:00.000Z', qc_score: 4.8, csat_score: 4.9, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'แผ่นกรอง HEPA ทำงานดี ค่าฝุ่น PM2.5 ในห้องลดลงรวดเร็ว' },
+                    { id: 'JOB202609028', customer: 'คุณ วรพล ภูมินทร์', phone: '0876655443', service: 'ซ่อมแซมแผงสวิตช์และปลั๊กไฟชำรุด', qc_passed_at: '2026-08-19T09:50:00.000Z', qc_score: 4.5, csat_score: 4.6, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'เปลี่ยนเต้ารับกราวด์คู่มาตรฐาน ขันสกรูแน่นหนา ปลอดภัย' },
+                    { id: 'JOB202609029', customer: 'คุณ ดวงใจ เกษมราษฎร์', phone: '0894455667', service: 'ติดตั้งเครื่องกรองน้ำใช้ทั้งหลัง', qc_passed_at: '2026-08-18T13:30:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'น้ำใสสะอาด ไร้คราบตะกอน สุขภัณฑ์ในบ้านไม่เหลือง' },
+                    { id: 'JOB202609030', customer: 'คุณ สุชาติ มั่งคั่ง', phone: '0825566778', service: 'ติดตั้งแอร์แขวนใต้ฝ้า 36000 BTU', qc_passed_at: '2026-08-17T15:40:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'เหมาะกับห้องโถงกว้าง เย็นสม่ำเสมอ แขวนโครงสร้างมั่นคงแข็งแรง' },
+                    { id: 'JOB202609031', customer: 'คุณ เบญจวรรณ พัฒนพงศ์', phone: '0851122334', service: 'ติดตั้งเครื่องทำน้ำอุ่น 4500W', qc_passed_at: '2026-08-16T10:10:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ฝักบัวสายน้ำนุ่ม อาบสบาย ระบบตัดไฟอัตโนมัติทำงานแม่นยำ' },
+                    { id: 'JOB202609032', customer: 'คุณ ภานุมาศ ชื่นชม', phone: '0883344556', service: 'ติดตั้งระบบกลอนประตูดิจิทัล Smart Lock', qc_passed_at: '2026-08-15T14:20:00.000Z', qc_score: 4.8, csat_score: 4.9, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'สแกนนิ้วมือไวมาก แอพพลิเคชั่นปลดล็อกจากทางไกลสะดวก ช่างสอนตั้งรหัสชัดเจน' },
+                    { id: 'JOB202609033', customer: 'คุณ วรรณวิภา ศรีสุข', phone: '0817788990', service: 'ติดตั้งระบบไฟฉุกเฉิน Emergency Light', qc_passed_at: '2026-08-14T11:30:00.000Z', qc_score: 5.0, csat_score: 4.7, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ไฟฉุกเฉินติดสว่างตามเวลาที่กำหนด ทดสอบการจำลองไฟดับผ่านฉลุย' },
+                    { id: 'JOB202609034', customer: 'คุณ กิตติศักดิ์ เจริญดี', phone: '0846677889', service: 'ติดตั้งแอร์ Wall Type ห้องนอนใหญ่', qc_passed_at: '2026-08-13T16:15:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ตำแหน่งติดตั้งลงตัว ลมไม่ตกกระทบตัวตรงๆ นอนหลับสบาย' },
+                    { id: 'JOB202609035', customer: 'คุณ เพ็ญศรี อนันตชัย', phone: '0872233445', service: 'เปลี่ยนระบบท่อน้ำดี PVC เป็น PPR', qc_passed_at: '2026-08-12T13:50:00.000Z', qc_score: 4.5, csat_score: 4.5, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'เชื่อมท่อด้วยความร้อนแน่นหนา ทดสอบแรงดันน้ำ 8 บาร์ ไม่รั่วซึม' },
+                    { id: 'JOB202609036', customer: 'คุณ ชนินทร์ วรวัฒน์', phone: '0895566778', service: 'ติดตั้งระบบเซ็นเซอร์กันขโมยบ้าน', qc_passed_at: '2026-08-11T10:30:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'แจ้งเตือนเข้าสมาร์ทโฟนรวดเร็ว ไร้การแจ้งเตือนหลอก ประทับใจมาก' },
+                    { id: 'JOB202609037', customer: 'บริษัท สยามโลจิสติกส์ จำกัด', phone: '025566778', service: 'ซ่อมแซมระบบปรับอากาศห้องทำงานรวม', qc_passed_at: '2026-08-10T15:00:00.000Z', qc_score: 4.8, csat_score: 4.6, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'เปลี่ยนมอเตอร์พัดลมคอยล์ร้อน อุณหภูมิกลับมาเย็นสบายตามปกติ' },
+                    { id: 'JOB202609038', customer: 'คุณ อัญชลี รัตนโชติ', phone: '0837788991', service: 'ติดตั้งเครื่องทำน้ำอุ่นพร้อม Rain Shower', qc_passed_at: '2026-08-09T11:40:00.000Z', qc_score: 5.0, csat_score: 4.9, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'น้ำอุ่นแรงสม่ำเสมอ หัว Rain Shower สวยงามเข้ากับสีกระเบื้องห้องน้ำ' },
+                    { id: 'JOB202609039', customer: 'คุณ ประพันธ์ มีโชค', phone: '0861122334', service: 'เดินสายไฟเครื่องชาร์จรถยนต์ EV Charger', qc_passed_at: '2026-08-08T14:10:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ช่างใช้สายไฟขนาด 16 sq.mm. เบรกเกอร์ Type B ปลอดภัยตามมาตรฐานการไฟฟ้า' },
+                    { id: 'JOB202609040', customer: 'คุณ มาลี ทรัพย์สมบูรณ์', phone: '0884455667', service: 'ล้างแอร์ระบบล้างฆ่าเชื้อโฟมพรีเมียม', qc_passed_at: '2026-08-07T09:20:00.000Z', qc_score: 4.8, csat_score: 4.7, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'โฟมฆ่าเชื้อสะอาดดี ไร้กลิ่นอับ ช่างเช็ดคราบน้ำรอบเครื่องหมดจด' },
+                    { id: 'JOB202609041', customer: 'คุณ เกรียงไกร มั่นคง', phone: '0819988776', service: 'ติดตั้งระบบไฟสวน Garden Lighting', qc_passed_at: '2026-08-06T16:30:00.000Z', qc_score: 4.5, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'โคมไฟกันน้ำ IP65 ฝังดินอย่างดี เดินท่อร้อยสายใต้ดินเรียบร้อย' },
+                    { id: 'JOB202609042', customer: 'คุณ นฤพล เด่นนภา', phone: '0843344556', service: 'เปลี่ยนระบบเบรกเกอร์กันดูด RCD ทั้งบ้าน', qc_passed_at: '2026-08-05T13:15:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ทดสอบกดปุ่ม Test ตัดวงจรทันที มั่นใจในความปลอดภัยของคนในครอบครัว' }
+                ];
+            },
+
+            getCompletedJobsList() {
+                // 1. Get mock seed items
+                const seedList = this.getCompletedJobsMockSeed();
+
+                // 2. Combine with completed/closed jobs from DB.jobs
+                const dbCompleted = (DB.jobs || []).filter(j => {
+                    return j.status === 'CLOSED' || 
+                           j.status === 'AFTER_SALE' || 
+                           (j.qc_score && j.csat_score) ||
+                           (j.step_timestamps && j.step_timestamps.closed_at);
+                }).map(j => {
+                    const qcScore = (j.qc_score !== undefined && j.qc_score !== null) ? Number(j.qc_score) : 5.0;
+                    const csatScore = (j.csat_score !== undefined && j.csat_score !== null) ? Number(j.csat_score) : 5.0;
+                    return {
+                        id: j.id,
+                        customer: j.customer || j.customer_name || 'ลูกค้าโครงการ',
+                        phone: j.phone || j.customer_phone || '-',
+                        service: j.service || (Array.isArray(j.services) ? j.services[0] : null) || 'บริการมาตรฐาน PMT',
+                        qc_passed_at: j.qc_passed_at || (j.step_timestamps && j.step_timestamps.qc_passed_at) || j.date || new Date().toISOString(),
+                        qc_score: qcScore,
+                        csat_score: csatScore,
+                        status: j.status || 'CLOSED',
+                        bmt_ref: j.bmt_ref || null,
+                        inspector: j.qc_inspector || 'วิศวกร ธนกร ชำนาญการ',
+                        surveyor: j.csat_surveyor || 'Contact Center Officer',
+                        feedback: j.csat_remarks || j.additional_notes || 'ลูกค้ามีความพึงพอใจในคุณภาพงานและการให้บริการ'
+                    };
+                });
+
+                // Merge dbCompleted on top of seedList, deduplicating by ID
+                const seenIds = new Set();
+                const merged = [];
+
+                // Put DB jobs first
+                for (const item of dbCompleted) {
+                    if (!seenIds.has(item.id)) {
+                        seenIds.add(item.id);
+                        merged.push(item);
+                    }
+                }
+                // Then seed items
+                for (const item of seedList) {
+                    if (!seenIds.has(item.id)) {
+                        seenIds.add(item.id);
+                        merged.push(item);
+                    }
+                }
+
+                // Calculate combined total score for all jobs
+                return merged.map(job => {
+                    const qc = Number(job.qc_score) || 5.0;
+                    const csat = Number(job.csat_score) || 5.0;
+                    const total = Number(((qc + csat) / 2).toFixed(1));
+                    return {
+                        ...job,
+                        qc_score: qc,
+                        csat_score: csat,
+                        total_score: total
+                    };
+                });
+            },
+
+            renderCompletedJobs() {
+                const allJobs = this.getCompletedJobsList();
+
+                // 1. Filter by Search Query
+                const query = (this.state.completedJobsSearch || '').trim().toLowerCase();
+                let filtered = allJobs;
+                if (query) {
+                    filtered = filtered.filter(j => 
+                        (j.id && j.id.toLowerCase().includes(query)) ||
+                        (j.customer && j.customer.toLowerCase().includes(query)) ||
+                        (j.phone && j.phone.toLowerCase().includes(query)) ||
+                        (j.service && j.service.toLowerCase().includes(query))
+                    );
+                }
+
+                // 2. Filter by Score Range
+                const scoreFilter = this.state.completedJobsScoreFilter || 'all';
+                if (scoreFilter === '5') {
+                    filtered = filtered.filter(j => j.total_score >= 5.0);
+                } else if (scoreFilter === '4.8') {
+                    filtered = filtered.filter(j => j.total_score >= 4.8 && j.total_score < 5.0);
+                } else if (scoreFilter === '4.5') {
+                    filtered = filtered.filter(j => j.total_score >= 4.5 && j.total_score < 4.8);
+                } else if (scoreFilter === 'below4.5') {
+                    filtered = filtered.filter(j => j.total_score < 4.5);
+                }
+
+                // 3. Filter by Service Type
+                const serviceFilter = this.state.completedJobsServiceFilter || 'all';
+                if (serviceFilter !== 'all') {
+                    filtered = filtered.filter(j => j.service && j.service.includes(serviceFilter));
+                }
+
+                // 4. Update Summary Counters
+                const filterCountEl = document.getElementById('completed-jobs-filter-count');
+                if (filterCountEl) {
+                    filterCountEl.innerText = `แสดง ${filtered.length} จาก ${allJobs.length} รายการ`;
+                }
+                const totalLabelEl = document.getElementById('completed-jobs-total-label');
+                if (totalLabelEl) {
+                    totalLabelEl.innerText = `ทั้งหมด ${filtered.length} รายการ`;
+                }
+                const sidebarBadge = document.getElementById('sidebar-completed-jobs-count');
+                if (sidebarBadge) {
+                    sidebarBadge.innerText = allJobs.length;
+                    sidebarBadge.style.display = allJobs.length > 0 ? '' : 'none';
+                }
+
+                // 5. Pagination Calculation
+                const pageSize = Number(this.state.completedJobsPageSize) || 10;
+                const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+                if (this.state.completedJobsPage > totalPages) {
+                    this.state.completedJobsPage = totalPages;
+                }
+                const currentPage = Math.max(1, this.state.completedJobsPage || 1);
+                const startIndex = (currentPage - 1) * pageSize;
+                const pageItems = filtered.slice(startIndex, startIndex + pageSize);
+
+                // 6. Render Table Rows (Strict Light Theme List View)
+                const tbody = document.getElementById('completed-jobs-table-body');
+                if (!tbody) return;
+
+                if (pageItems.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="text-center py-12 text-muted-foreground">
+                                <i class="ph ph-magnifying-glass text-3xl mb-2 text-muted-foreground/60 block"></i>
+                                <span class="font-medium text-xs">ไม่พบรายการงานที่สำเร็จแล้วตรงตามเงื่อนไข</span>
+                                <div class="mt-2">
+                                    <button type="button" onclick="app.resetCompletedJobsFilter()" class="btn-artifact-secondary px-3 py-1 text-xs text-brand-600 border-brand-500/30">
+                                        ล้างตัวกรองทั้งหมด
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = pageItems.map(job => {
+                        const qcFormatted = job.qc_score.toFixed(1);
+                        const csatFormatted = job.csat_score.toFixed(1);
+                        const totalFormatted = job.total_score.toFixed(1);
+                        const dateFormatted = this.formatDateDMY(job.qc_passed_at);
+
+                        return `
+                            <tr class="hover:bg-muted/40 transition-colors group">
+                                <td class="py-3.5 px-5 font-mono font-bold">
+                                    <a href="#" onclick="app.openJobCloseDetailModal('${job.id}'); return false;" class="text-indigo-600 dark:text-indigo-400 hover:underline hover:text-indigo-700 flex items-center gap-1">
+                                        <span>${job.id}</span>
+                                    </a>
+                                </td>
+                                <td class="py-3.5 px-5">
+                                    <div class="font-medium text-foreground text-xs">${job.customer}</div>
+                                    <div class="text-[11px] text-muted-foreground font-mono mt-0.5">${job.phone || '-'}</div>
+                                </td>
+                                <td class="py-3.5 px-5">
+                                    <span class="text-foreground text-xs font-medium">${job.service}</span>
+                                </td>
+                                <td class="py-3.5 px-5 whitespace-nowrap">
+                                    <div class="flex items-center gap-1.5 text-muted-foreground font-mono text-xs">
+                                        <i class="ph ph-calendar text-muted-foreground/70"></i>
+                                        <span>${dateFormatted}</span>
+                                    </div>
+                                </td>
+                                <td class="py-3.5 px-4 text-center">
+                                    <span class="inline-flex items-center justify-center min-w-[50px] px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/15 text-amber-700 border border-amber-500/25">
+                                        ${qcFormatted}
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 text-center">
+                                    <span class="inline-flex items-center justify-center min-w-[50px] px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-500/15 text-blue-700 border border-blue-500/25">
+                                        ${csatFormatted}
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 text-center">
+                                    <span class="inline-flex items-center justify-center min-w-[50px] px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                                        ${totalFormatted}
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 text-center">
+                                    <button type="button" onclick="app.openJobCloseDetailModal('${job.id}')" class="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted hover:border-brand-500/40 transition cursor-pointer shadow-2xs group-hover:border-border/80" title="ดูสรุปผลการประเมิน">
+                                        <i class="ph ph-caret-right text-sm"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                // 7. Render Pagination Controls
+                this.renderCompletedJobsPagination(totalPages, currentPage);
+            },
+
+            renderCompletedJobsPagination(totalPages, currentPage) {
+                const container = document.getElementById('completed-jobs-pagination-controls');
+                if (!container) return;
+
+                if (totalPages <= 1) {
+                    container.innerHTML = `
+                        <button type="button" disabled class="w-8 h-8 rounded-lg border border-border/50 text-muted-foreground/50 flex items-center justify-center text-xs opacity-50 cursor-not-allowed">
+                            <i class="ph ph-caret-left"></i>
+                        </button>
+                        <button type="button" class="w-8 h-8 rounded-lg bg-brand-500 text-white font-bold flex items-center justify-center text-xs shadow-xs">
+                            1
+                        </button>
+                        <button type="button" disabled class="w-8 h-8 rounded-lg border border-border/50 text-muted-foreground/50 flex items-center justify-center text-xs opacity-50 cursor-not-allowed">
+                            <i class="ph ph-caret-right"></i>
+                        </button>
+                    `;
+                    return;
+                }
+
+                let html = '';
+
+                // Prev Button
+                const prevDisabled = currentPage <= 1;
+                html += `
+                    <button type="button" onclick="app.setCompletedJobsPage(${currentPage - 1})" ${prevDisabled ? 'disabled' : ''} class="w-8 h-8 rounded-lg border border-border text-foreground flex items-center justify-center text-xs hover:bg-muted transition cursor-pointer ${prevDisabled ? 'opacity-40 cursor-not-allowed' : ''}">
+                        <i class="ph ph-caret-left"></i>
+                    </button>
+                `;
+
+                // Page Number Buttons (Show 1..5)
+                const startPage = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+                const endPage = Math.min(totalPages, Math.max(startPage + 4, 5));
+
+                for (let p = 1; p <= totalPages; p++) {
+                    if (p >= startPage && p <= endPage) {
+                        const isActive = p === currentPage;
+                        if (isActive) {
+                            html += `
+                                <button type="button" class="w-8 h-8 rounded-lg bg-brand-500 text-white font-bold flex items-center justify-center text-xs shadow-xs">
+                                    ${p}
+                                </button>
+                            `;
+                        } else {
+                            html += `
+                                <button type="button" onclick="app.setCompletedJobsPage(${p})" class="w-8 h-8 rounded-lg border border-border text-foreground font-medium flex items-center justify-center text-xs hover:bg-muted transition cursor-pointer">
+                                    ${p}
+                                </button>
+                            `;
+                        }
+                    }
+                }
+
+                // Next Button
+                const nextDisabled = currentPage >= totalPages;
+                html += `
+                    <button type="button" onclick="app.setCompletedJobsPage(${currentPage + 1})" ${nextDisabled ? 'disabled' : ''} class="w-8 h-8 rounded-lg border border-border text-foreground flex items-center justify-center text-xs hover:bg-muted transition cursor-pointer ${nextDisabled ? 'opacity-40 cursor-not-allowed' : ''}">
+                        <i class="ph ph-caret-right"></i>
+                    </button>
+                `;
+
+                container.innerHTML = html;
+            },
+
+            setCompletedJobsPage(page) {
+                this.state.completedJobsPage = Math.max(1, page);
+                this.renderCompletedJobs();
+            },
+
+            changeCompletedJobsPageSize(size) {
+                this.state.completedJobsPageSize = Number(size) || 10;
+                this.state.completedJobsPage = 1;
+                this.renderCompletedJobs();
+            },
+
+            filterCompletedJobs() {
+                const searchEl = document.getElementById('completed-jobs-search-input');
+                const scoreEl = document.getElementById('completed-jobs-score-filter');
+                const serviceEl = document.getElementById('completed-jobs-service-filter');
+
+                this.state.completedJobsSearch = searchEl ? searchEl.value : '';
+                this.state.completedJobsScoreFilter = scoreEl ? scoreEl.value : 'all';
+                this.state.completedJobsServiceFilter = serviceEl ? serviceEl.value : 'all';
+                this.state.completedJobsPage = 1;
+
+                this.renderCompletedJobs();
+            },
+
+            resetCompletedJobsFilter() {
+                this.state.completedJobsSearch = '';
+                this.state.completedJobsScoreFilter = 'all';
+                this.state.completedJobsServiceFilter = 'all';
+                this.state.completedJobsPage = 1;
+
+                const searchEl = document.getElementById('completed-jobs-search-input');
+                if (searchEl) searchEl.value = '';
+                const scoreEl = document.getElementById('completed-jobs-score-filter');
+                if (scoreEl) scoreEl.value = 'all';
+                const serviceEl = document.getElementById('completed-jobs-service-filter');
+                if (serviceEl) serviceEl.value = 'all';
+
+                this.renderCompletedJobs();
+            },
+
+            showAllCompletedJobs() {
+                this.resetCompletedJobsFilter();
+                this.showToast('📋 แสดงรายการงานที่สำเร็จแล้วทั้งหมด 42 รายการ');
+            },
+
+            openJobCloseDetailModal(jobId) {
+                const allJobs = this.getCompletedJobsList();
+                const job = allJobs.find(j => j.id === jobId);
+                if (!job) {
+                    this.showToast('⚠️ ไม่พบข้อมูลโครงการ ' + jobId);
+                    return;
+                }
+
+                // Header & Summary
+                const setText = (id, txt) => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerText = txt || '-';
+                };
+
+                setText('jcd-job-id', job.id);
+                setText('jcd-customer', job.customer);
+                setText('jcd-phone', job.phone || '-');
+                setText('jcd-service', job.service);
+                setText('jcd-bmt-ref', job.bmt_ref || `BMT-SYNC-${job.id.replace('JOB', '')}`);
+                setText('jcd-qc-date', this.formatDateDMY(job.qc_passed_at));
+                setText('jcd-qc-score', job.qc_score.toFixed(1));
+                setText('jcd-inspector', job.inspector || 'วิศวกร ธนกร ชำนาญการ');
+                setText('jcd-csat-score', job.csat_score.toFixed(1));
+                setText('jcd-surveyor', job.surveyor || 'Contact Center Officer');
+                setText('jcd-total-score', job.total_score.toFixed(1));
+                setText('jcd-customer-feedback', job.feedback || 'ลูกค้ามีความพึงพอใจในคุณภาพงานและการให้บริการ');
+                setText('jcd-csat-date', this.formatDateDMY(job.qc_passed_at));
+
+                // 5 QC Standard Subtasks Breakdown (Yes=5, No=1)
+                const subtaskList = document.getElementById('jcd-qc-subtasks-list');
+                if (subtaskList) {
+                    const isPerfectQC = job.qc_score >= 5.0;
+                    const questions = [
+                        { num: 1, title: 'ช่างทำงานตาม BOQ และมาตรฐานการติดตั้งที่กำหนด', pass: true, score: 5 },
+                        { num: 2, title: 'ความเรียบร้อยของงานติดตั้งและเก็บงานหน้างาน', pass: isPerfectQC, score: isPerfectQC ? 5 : (job.qc_score >= 4.8 ? 4 : 3) },
+                        { num: 3, title: 'ช่างเข้าปฏิบัติงานตรงตามเวลาที่นัดหมายกับลูกค้า', pass: true, score: 5 },
+                        { num: 4, title: 'ส่งมอบงานได้ตามกำหนดเวลาที่วางแผนไว้', pass: true, score: 5 },
+                        { num: 5, title: 'ช่างป้องกันพื้นที่ติดตั้งและส่งมอบพื้นที่คืนเรียบร้อย ไร้ความเสียหาย', pass: true, score: 5 }
+                    ];
+
+                    setText('jcd-subtask-summary', isPerfectQC ? '5 จาก 5 ข้อ ผ่านเกณฑ์สมบูรณ์ (Yes=5 ทุกข้อ)' : 'ผ่านเกณฑ์มาตรฐาน พร้อมส่งมอบเรียบร้อย');
+
+                    subtaskList.innerHTML = questions.map(q => `
+                        <div class="p-3 flex items-center justify-between gap-3 hover:bg-muted/20 transition">
+                            <div class="flex items-start gap-2.5">
+                                <span class="w-5 h-5 rounded-md ${q.pass ? 'bg-emerald-500/15 text-emerald-600' : 'bg-amber-500/15 text-amber-600'} flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                                    <i class="ph ${q.pass ? 'ph-check-circle' : 'ph-warning-circle'}"></i>
+                                </span>
+                                <div>
+                                    <div class="font-medium text-foreground text-xs">${q.num}. ${q.title}</div>
+                                    <div class="text-[10px] text-muted-foreground mt-0.5">เกณฑ์มาตรฐาน: ผ่าน (Yes) = 5 คะแนน, ไม่ผ่าน (No) = 1 คะแนน</div>
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${q.pass ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 border border-amber-500/20'} font-mono">
+                                    ${q.score}.0 ⭐ (Yes)
+                                </span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                // View Job Detail button handler
+                const viewBtn = document.getElementById('jcd-view-job-btn');
+                if (viewBtn) {
+                    viewBtn.onclick = () => {
+                        this.hideModal('modal-job-close-detail');
+                        this.navigate('job-detail', job.id);
+                    };
+                }
+
+                this.showModal('modal-job-close-detail');
+            },
+
+            exportCompletedJobsCSV() {
+                const allJobs = this.getCompletedJobsList();
+                if (!allJobs || allJobs.length === 0) {
+                    this.showToast('⚠️ ไม่มีข้อมูลสำหรับส่งออก CSV');
+                    return;
+                }
+
+                let csv = '\uFEFF'; // BOM UTF-8 for Excel in Thai
+                csv += 'รหัสงาน,ลูกค้า,เบอร์โทร,บริการ,วันที่ QC ผ่าน,คะแนน QC,คะแนน CSAT,คะแนน รวม,สถานะ\n';
+
+                allJobs.forEach(j => {
+                    const row = [
+                        `"${j.id}"`,
+                        `"${j.customer.replace(/"/g, '""')}"`,
+                        `"${(j.phone || '').replace(/"/g, '""')}"`,
+                        `"${j.service.replace(/"/g, '""')}"`,
+                        `"${this.formatDateDMY(j.qc_passed_at)}"`,
+                        j.qc_score.toFixed(1),
+                        j.csat_score.toFixed(1),
+                        j.total_score.toFixed(1),
+                        `"${j.status}"`
+                    ];
+                    csv += row.join(',') + '\n';
+                });
+
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `PMT_Flow_Job_Close_Report_${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                this.showToast('📥 ส่งออกไฟล์ CSV รายงานที่สำเร็จแล้วเรียบร้อย');
             },
 
             formatDateTime(isoStr) {

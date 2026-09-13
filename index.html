@@ -388,6 +388,14 @@
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono font-medium" id="sidebar-ma-count">0</span>
                         </a>
+                        <!-- รายงานที่สำเร็จแล้ว (Job Close) -->
+                        <a href="#" onclick="app.navigate('completed-jobs')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-completed-jobs">
+                            <div class="flex items-center gap-2.5">
+                                <i class="ph ph-check-circle text-base text-emerald-500"></i>
+                                <span>รายงานที่สำเร็จแล้ว</span>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-mono font-medium" id="sidebar-completed-jobs-count">0</span>
+                        </a>
                     </nav>
                 </div>
 
@@ -2676,22 +2684,36 @@
                                     <input type="text" id="daily-log-queue-search" oninput="app.onDailyLogQueueSearch(this.value)" placeholder="ค้นหา Job, ช่าง, ลูกค้า, บริการ..." class="w-full pl-8 pr-3 py-1.5 bg-muted/40 border border-border focus:border-cyan-500 rounded-xl text-xs text-foreground focus:outline-none placeholder:text-muted-foreground/70 transition">
                                 </div>
 
-                                <!-- Filter Buttons -->
-                                <div class="flex items-center gap-1 p-1 bg-muted/50 rounded-xl border border-border text-[11px] shrink-0">
-                                    <button type="button" id="daily-log-tab-filter-all" onclick="app.setDailyLogQueueFilter('all')" class="px-3 py-1 rounded-lg font-semibold transition cursor-pointer text-center bg-card text-foreground shadow-xs">
-                                        ทั้งหมด
-                                    </button>
-                                    <button type="button" id="daily-log-tab-filter-pending" onclick="app.setDailyLogQueueFilter('pending')" class="px-3 py-1 rounded-lg font-medium transition cursor-pointer text-center text-muted-foreground hover:text-foreground">
-                                        ⚠️ ค้างลงวันนี้
-                                    </button>
-                                    <button type="button" id="daily-log-tab-filter-done" onclick="app.setDailyLogQueueFilter('done')" class="px-3 py-1 rounded-lg font-medium transition cursor-pointer text-center text-muted-foreground hover:text-foreground">
-                                        ✓ บันทึกแล้ว
-                                    </button>
+                                <!-- Filter Buttons & View Mode Switcher -->
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <div class="flex items-center gap-1 p-1 bg-muted/50 rounded-xl border border-border text-[11px] shrink-0">
+                                        <button type="button" id="daily-log-tab-filter-all" onclick="app.setDailyLogQueueFilter('all')" class="px-3 py-1 rounded-lg font-semibold transition cursor-pointer text-center bg-card text-foreground shadow-xs">
+                                            ทั้งหมด
+                                        </button>
+                                        <button type="button" id="daily-log-tab-filter-pending" onclick="app.setDailyLogQueueFilter('pending')" class="px-3 py-1 rounded-lg font-medium transition cursor-pointer text-center text-muted-foreground hover:text-foreground">
+                                            ⚠️ ค้างลงวันนี้
+                                        </button>
+                                        <button type="button" id="daily-log-tab-filter-done" onclick="app.setDailyLogQueueFilter('done')" class="px-3 py-1 rounded-lg font-medium transition cursor-pointer text-center text-muted-foreground hover:text-foreground">
+                                            ✓ บันทึกแล้ว
+                                        </button>
+                                    </div>
+
+                                    <!-- View Mode Switcher: List View (Default) vs Card View -->
+                                    <div class="flex items-center p-1 bg-muted/50 rounded-xl border border-border text-[11px] shrink-0">
+                                        <button type="button" id="btn-daily-log-mode-list" onclick="app.setDailyLogQueueViewMode('list')" class="px-2.5 py-1 rounded-lg font-semibold transition flex items-center gap-1 cursor-pointer bg-card text-foreground shadow-xs" title="แสดงแบบตารางรายการ (List View)">
+                                            <i class="ph ph-list text-xs"></i>
+                                            <span>รายการ (List)</span>
+                                        </button>
+                                        <button type="button" id="btn-daily-log-mode-card" onclick="app.setDailyLogQueueViewMode('card')" class="px-2.5 py-1 rounded-lg font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground" title="แสดงแบบการ์ด (Card View)">
+                                            <i class="ph ph-squares-four text-xs"></i>
+                                            <span>การ์ด (Card)</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Responsive Master Job Queue Grid (Top Master Strip) -->
-                            <div id="daily-log-job-queue-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[360px] overflow-y-auto pr-1">
+                            <!-- Master Job Queue Container (List Table or Card Grid) -->
+                            <div id="daily-log-job-queue-list" class="w-full">
                                 <!-- Populated dynamically by app.renderDailyLogJobQueue() -->
                             </div>
                         </div>
@@ -3447,6 +3469,106 @@
                                 <!-- Populated by JS -->
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <!-- 8. COMPLETED JOBS (JOB CLOSE & QC/CSAT SUMMARY) VIEW -->
+                <div id="page-completed-jobs" class="page-view hidden-view space-y-6">
+                    <!-- Page Header -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-500/20 shadow-2xs">
+                                    <i class="ph ph-check-circle text-lg"></i>
+                                </span>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">รายงานที่ สำเร็จแล้ว ( Job Close )</h2>
+                            </div>
+                            <p class="text-xs text-muted-foreground mt-0.5">สรุปผลการประเมินคุณภาพงาน (QC Score) และความพึงพอใจลูกค้า (CSAT Score) ประจำโครงการที่ส่งมอบสำเร็จและปิดงานแล้ว</p>
+                        </div>
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            <button type="button" onclick="app.resetCompletedJobsFilter()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-brand-600 hover:bg-brand-500/10 border-brand-500/30 cursor-pointer shadow-xs transition" title="แสดงรายการทั้งหมด">
+                                <span>ดูทั้งหมด</span>
+                                <i class="ph ph-arrow-right text-sm"></i>
+                            </button>
+                            <button type="button" onclick="app.exportCompletedJobsCSV()" class="btn-artifact-secondary px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer shadow-xs" title="ส่งออกข้อมูลเป็นไฟล์ CSV">
+                                <i class="ph ph-download-simple text-sm"></i>
+                                <span>Export CSV</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search & Filter Controls Bar -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/40 p-3.5 rounded-2xl border border-border">
+                        <div class="flex flex-wrap items-center gap-2.5 flex-1">
+                            <div class="relative flex-1 sm:max-w-xs">
+                                <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
+                                <input type="text" id="completed-jobs-search-input" oninput="app.filterCompletedJobs()" placeholder="ค้นหารหัสงาน, ลูกค้า, หรือบริการ..." class="w-full pl-9 pr-3.5 py-1.5 rounded-xl text-xs bg-card border border-border text-foreground focus:outline-none focus:border-brand-500 shadow-2xs">
+                            </div>
+                            <select id="completed-jobs-score-filter" onchange="app.filterCompletedJobs()" class="px-3 py-1.5 rounded-xl text-xs bg-card border border-border text-foreground font-medium focus:outline-none focus:border-brand-500 shadow-2xs cursor-pointer">
+                                <option value="all">คะแนนรวมทั้งหมด (All Scores)</option>
+                                <option value="5">⭐⭐⭐⭐⭐ รวม 5.0 ดาวเต็ม</option>
+                                <option value="4.8">⭐ รวม 4.8 - 4.9 ดาว (ดีเยี่ยม)</option>
+                                <option value="4.5">⭐ รวม 4.5 - 4.7 ดาว (มาตรฐาน)</option>
+                                <option value="below4.5">⭐ ต่ำกว่า 4.5 ดาว</option>
+                            </select>
+                            <select id="completed-jobs-service-filter" onchange="app.filterCompletedJobs()" class="px-3 py-1.5 rounded-xl text-xs bg-card border border-border text-foreground font-medium focus:outline-none focus:border-brand-500 shadow-2xs cursor-pointer">
+                                <option value="all">ทุกประเภทบริการ</option>
+                                <option value="แอร์">เครื่องปรับอากาศ (Air Conditioning)</option>
+                                <option value="น้ำอุ่น">เครื่องทำน้ำอุ่น</option>
+                                <option value="ไฟฟ้า">ระบบไฟฟ้า</option>
+                                <option value="กล้อง">กล้องวงจรปิด CCTV</option>
+                                <option value="LAN">สายสัญญาณ & LAN</option>
+                                <option value="Solar">Solar Rooftop</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs text-muted-foreground whitespace-nowrap self-end sm:self-center">
+                            <span id="completed-jobs-filter-count" class="font-mono">แสดง 0 รายการ</span>
+                        </div>
+                    </div>
+
+                    <!-- Completed Jobs Table Card (Strict Light Theme List View) -->
+                    <div class="artifact-card overflow-hidden shadow-xs border border-border bg-card rounded-2xl">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="border-b border-border bg-muted/40 text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">
+                                        <th class="py-3.5 px-5">รหัสงาน</th>
+                                        <th class="py-3.5 px-5">ลูกค้า</th>
+                                        <th class="py-3.5 px-5">บริการ</th>
+                                        <th class="py-3.5 px-5">วันที่ QC ผ่าน</th>
+                                        <th class="py-3.5 px-4 text-center">คะแนน QC</th>
+                                        <th class="py-3.5 px-4 text-center">คะแนน CSAT</th>
+                                        <th class="py-3.5 px-4 text-center">คะแนน รวม</th>
+                                        <th class="py-3.5 px-4 text-center w-12"></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border/60" id="completed-jobs-table-body">
+                                    <!-- Populated dynamically by app.renderCompletedJobs() -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination Footer -->
+                        <div class="p-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground bg-muted/15">
+                            <div class="flex items-center gap-2">
+                                <span>แสดง</span>
+                                <select id="completed-jobs-page-size" onchange="app.changeCompletedJobsPageSize(this.value)" class="bg-card border border-border rounded-lg px-2.5 py-1 text-xs text-foreground font-medium focus:outline-none focus:border-brand-500 shadow-2xs cursor-pointer">
+                                    <option value="10" selected>10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                </select>
+                                <span>รายการ ต่อหน้า</span>
+                            </div>
+
+                            <!-- Page Selector Buttons -->
+                            <div class="flex items-center gap-1" id="completed-jobs-pagination-controls">
+                                <!-- Rendered dynamically by app.renderCompletedJobsPagination() -->
+                            </div>
+
+                            <div class="font-medium text-foreground text-xs" id="completed-jobs-total-label">
+                                ทั้งหมด 0 รายการ
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -4353,9 +4475,9 @@
                                 <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
                                     <p><strong class="text-foreground">คำตอบ:</strong> แผนงาน Gantt Chart ของระบบ PMT Flow ได้รับการอัปเกรดเป็น <strong>Real-time Daily Timeline Engine</strong> ที่จำแนกและติดตามความคืบหน้ารายวันของช่างและทีม QC แบบวันต่อวัน โดยใช้รหัสสีมาตรฐานดังนี้:</p>
                                     <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
-                                        <li><strong class="text-emerald-600 dark:text-emerald-400">🟢 สีเขียว (✓ เสร็จสิ้น):</strong> วันที่ช่างหรือ QC ได้เข้ามาลงบันทึกความคืบหน้าเรียบร้อยแล้ว (จะขึ้นสีเขียวเฉพาะวันที่มีการอัปเดตงาน)</li>
-                                        <li><strong class="text-rose-600 dark:text-rose-400">🔴 สีแดง (ยังไม่อัปเดต):</strong> วันทำงานตั้งแต่เริ่มสัญญาจนถึง <strong>"วันนี้" (Today)</strong> ที่ยังไม่มีการส่งบันทึกงาน เพื่อแจ้งเตือนให้เจ้าหน้าที่และช่างเร่งดำเนินการ</li>
-                                        <li><strong class="text-purple-600 dark:text-purple-400">🟣 สีม่วง (Xd / ช่วงเวลาที่ยังไม่เริ่ม):</strong> วันทำงานในอนาคตที่ยังมาไม่ถึงตามกรอบระยะเวลาของ Task</li>
+                                        <li><strong class="text-emerald-600">🟢 สีเขียว (✓ เสร็จสิ้น):</strong> วันที่ช่างหรือ QC ได้เข้ามาลงบันทึกความคืบหน้าเรียบร้อยแล้ว (จะขึ้นสีเขียวเฉพาะวันที่มีการอัปเดตงาน)</li>
+                                        <li><strong class="text-rose-600">🔴 สีแดง (ยังไม่อัปเดต):</strong> วันทำงานตั้งแต่เริ่มสัญญาจนถึง <strong>"วันนี้" (Today)</strong> ที่ยังไม่มีการส่งบันทึกงาน เพื่อแจ้งเตือนให้เจ้าหน้าที่และช่างเร่งดำเนินการ</li>
+                                        <li><strong class="text-purple-600">🟣 สีม่วง (Xd / ช่วงเวลาที่ยังไม่เริ่ม):</strong> วันทำงานในอนาคตที่ยังมาไม่ถึงตามกรอบระยะเวลาของ Task</li>
                                     </ul>
                                     <p class="text-[11px] mt-1.5"><strong class="text-foreground">กฎเกณฑ์การอัปเดตย้อนหลัง (3-Day Retroactive Policy):</strong></p>
                                     <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
@@ -4363,6 +4485,45 @@
                                         <li>หากพ้นกำหนดเกิน 3 วัน ระบบจะทำการล็อกสถานะ (<code class="bg-muted px-1.5 py-0.5 rounded font-mono text-[10px]">เกิน 3 วัน (ล็อค)</code>) และไม่อนุญาตให้บันทึกย้อนหลัง เพื่อรักษาความถูกต้องของบันทึกเวลาปฏิบัติงานจริง</li>
                                         <li>มีเส้นบอกตำแหน่ง <strong>"วันนี้" (Today Indicator)</strong> เส้นประสีแดงในแนวตั้งพร้อมจุดกำกับแถว เพื่อให้เห็นรอยต่อระหว่างอดีต ปัจจุบัน และอนาคตได้ทันที</li>
                                     </ul>
+                                </div>
+                            </details>
+
+                            <!-- Q13: BOQ Ingestion & Customer Name Protection Standard -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q13:</span>
+                                        <span>การนำเข้าใบ BOQ / ใบเสนอราคา vFIX (Import BOQ) มีการทำงานอย่างไร และทำไมระบบจึงไม่จับหรือเปลี่ยนชื่อลูกค้าเดิมของโครงการ?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> เพื่อรักษาความถูกต้องของข้อมูลลูกค้าและคำสั่งซื้อเดิมที่ได้รับมอบหมายมาจากฝ่ายขายหรือระบบ INT ระบบ PMT Flow มีมาตรการ <strong>การปกป้องข้อมูลลูกค้าเดิม (Customer Name Protection Standard)</strong> ในกระบวนการนำเข้า BOQ ดังนี้:</p>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
+                                        <li><strong>นำเข้าเฉพาะรายการทำงาน (Line Items Only):</strong> ระบบจะดึงเฉพาะรหัสสินค้า, รายการวัสดุ/อุปกรณ์, งานบริการ, จำนวน, หน่วย, ค่าวัสดุ, ค่าแรง และยอดเงิน เข้าสู่ตาราง BOQ ของ Job เท่านั้น</li>
+                                        <li><strong>ล็อคข้อมูลลูกค้าเดิม 100%:</strong> ข้อมูลชื่อลูกค้า, เบอร์โทรศัพท์, ที่อยู่หน้างาน, สาขา และวันที่ของโครงการเดิม จะไม่ถูกจับคู่หรือเขียนทับโดยเด็ดขาด ไม่ว่าหัวเอกสารในไฟล์ Excel หรือ AI OCR จะระบุชื่อลูกค้าท่านใดก็ตาม</li>
+                                        <li><strong>ข้อมูลหัวเอกสารเพื่อการอ้างอิงเท่านั้น:</strong> หากตรวจพบข้อมูลหัวเอกสารในไฟล์ vFIX ระบบจะจัดเก็บเป็น Metadata อ้างอิงแหล่งที่มาของเอกสารต้นทาง เพื่อใช้ในการตรวจสอบย้อนกลับ (Audit Trail) เท่านั้น โดยไม่กระทบข้อมูลหลักของโครงการ</li>
+                                    </ul>
+                                </div>
+                            </details>
+
+                            <!-- Q14: Completed Jobs & QC/CSAT Summary Score -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q14:</span>
+                                        <span>หน้าจอ "รายงานที่สำเร็จแล้ว (Job Close)" และสูตรคำนวณคะแนนรวม QC & CSAT ทำงานอย่างไร?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> หน้าจอ <strong>"รายงานที่สำเร็จแล้ว (Job Close)"</strong> รวบรวมโครงการที่ส่งมอบสำเร็จ ผ่านการตรวจรับรองคุณภาพ QC และผ่านการโทรประเมินความพึงพอใจลูกค้า CSAT เรียบร้อยแล้ว เพื่อให้ผู้บริหารและทีมงานสแกนผลการดำเนินงานได้อย่างรวดเร็วในแบบตารางรายการ (List View) โดยมีสูตรการคำนวณคะแนนดังนี้:</p>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
+                                        <li><strong>คะแนน QC (1.0 - 5.0 ดาว):</strong> คำนวณจากค่าเฉลี่ยของ 5 ข้อคำถามมาตรฐาน โดยเกณฑ์ข้อย่อยคือ <code class="bg-muted px-1.5 py-0.2 rounded text-emerald-600 font-bold">ผ่าน (Yes) = 5 คะแนน</code> และ <code class="bg-muted px-1.5 py-0.2 rounded text-rose-600 font-bold">ไม่ผ่าน (No) = 1 คะแนน</code></li>
+                                        <li><strong>คะแนน CSAT (1.0 - 5.0 ดาว):</strong> คะแนนความพึงพอใจที่ลูกค้าประเมินผ่านโทรศัพท์กับทีม Contact Center</li>
+                                        <li><strong>คะแนน รวม (Combined Total Score):</strong> คำนวณจากสูตร <code class="bg-muted px-1.5 py-0.2 rounded text-emerald-700 font-bold">(คะแนน QC + คะแนน CSAT) ÷ 2</code> (ปัดเศษทศนิยม 1 ตำแหน่ง)</li>
+                                    </ul>
+                                    <p class="text-[11px] mt-1.5">ผู้ใช้สามารถคลิกที่รหัสงานหรือปุ่ม <code class="bg-muted px-1 py-0.5 rounded">&gt;</code> เพื่อเปิดดูหน้าต่างสรุปผลการประเมินโครงการฉบับสมบูรณ์ ซึ่งแจกแจงผลตรวจ QC รายข้อ, คำติชมของลูกค้า, ผู้ตรวจ/ผู้ประเมิน และสถานะการซิงค์ข้อมูลปิดงานส่งระบบ BMT</p>
                                 </div>
                             </details>
                         </div>
@@ -5589,6 +5750,148 @@
         </div>
     </div>
 
+    <!-- ============================================================================= -->
+    <!-- MODAL: JOB CLOSE & QC/CSAT EVALUATION SUMMARY (สรุปผลการประเมินโครงการ)       -->
+    <!-- ============================================================================= -->
+    <div id="modal-job-close-detail" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
+        <div class="artifact-card rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border flex flex-col max-h-[90vh]">
+            <!-- Header -->
+            <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center text-xl font-bold border border-emerald-500/20 shadow-2xs">
+                        <i class="ph ph-check-circle"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-display font-bold text-base text-foreground">สรุปผลการประเมินโครงการ (Job Close Summary)</h3>
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-brand-500/10 text-brand-600 border border-brand-500/20" id="jcd-job-id">JOB...</span>
+                        </div>
+                        <p class="text-xs text-muted-foreground mt-0.5">รายงานผลการตรวจมาตรฐาน QC ร่วมกับผลประเมินความพึงพอใจลูกค้า CSAT ฉบับสมบูรณ์</p>
+                    </div>
+                </div>
+                <button type="button" onclick="app.hideModal('modal-job-close-detail')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-xl hover:bg-muted transition cursor-pointer">
+                    <i class="ph ph-x text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Scrollable Body -->
+            <div class="p-6 overflow-y-auto space-y-6 text-xs" id="jcd-modal-body">
+                <!-- Top Job Information Banner -->
+                <div class="p-4 rounded-2xl bg-muted/40 border border-border space-y-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <span class="text-[11px] text-muted-foreground">ลูกค้า:</span>
+                            <span class="text-sm font-bold text-foreground ml-1" id="jcd-customer">-</span>
+                            <span class="ml-2 font-mono text-xs text-muted-foreground" id="jcd-phone">08x-xxx-xxxx</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">ส่งมอบสำเร็จ (Closed)</span>
+                            <span class="font-mono text-[11px] text-muted-foreground" id="jcd-bmt-ref">BMT-REF: -</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-muted-foreground border-t border-border/50 pt-2">
+                        <div><span class="font-medium text-foreground">งานบริการ:</span> <span id="jcd-service">-</span></div>
+                        <div class="flex items-center gap-1.5 font-mono"><i class="ph ph-calendar"></i> วันที่ตรวจผ่าน: <span id="jcd-qc-date" class="font-semibold text-foreground">-</span></div>
+                    </div>
+                </div>
+
+                <!-- 3 Score KPI Summary Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <!-- QC Card -->
+                    <div class="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-amber-700">1. คะแนน QC</span>
+                            <span class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-600 flex items-center justify-center text-xs"><i class="ph ph-shield-check"></i></span>
+                        </div>
+                        <div class="my-2 text-center">
+                            <span class="text-3xl font-display font-extrabold text-amber-600" id="jcd-qc-score">5.0</span>
+                            <span class="text-amber-500 text-sm ml-0.5">⭐</span>
+                        </div>
+                        <div class="text-[11px] text-muted-foreground text-center">
+                            ผู้ตรวจ: <span class="font-medium text-foreground" id="jcd-inspector">-</span>
+                        </div>
+                    </div>
+
+                    <!-- CSAT Card -->
+                    <div class="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20 flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-blue-700">2. คะแนน CSAT</span>
+                            <span class="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-600 flex items-center justify-center text-xs"><i class="ph ph-heart"></i></span>
+                        </div>
+                        <div class="my-2 text-center">
+                            <span class="text-3xl font-display font-extrabold text-blue-600" id="jcd-csat-score">5.0</span>
+                            <span class="text-blue-500 text-sm ml-0.5">⭐</span>
+                        </div>
+                        <div class="text-[11px] text-muted-foreground text-center">
+                            ผู้โทร: <span class="font-medium text-foreground" id="jcd-surveyor">Contact Center</span>
+                        </div>
+                    </div>
+
+                    <!-- Combined Score Card -->
+                    <div class="p-4 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/30 flex flex-col justify-between shadow-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-emerald-700">3. คะแนน รวม</span>
+                            <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-600 flex items-center justify-center text-xs"><i class="ph ph-star"></i></span>
+                        </div>
+                        <div class="my-2 text-center">
+                            <span class="text-3xl font-display font-extrabold text-emerald-600" id="jcd-total-score">5.0</span>
+                            <span class="text-emerald-500 text-sm ml-0.5">⭐</span>
+                        </div>
+                        <div class="text-[10px] text-emerald-700 font-mono text-center">
+                            (คะแนน QC + CSAT) ÷ 2
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: QC Subtasks Breakdown (Yes=5, No=1) -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-bold text-foreground text-xs flex items-center gap-1.5">
+                            <i class="ph ph-list-checks text-amber-500 text-base"></i>
+                            <span>รายละเอียดผลการประเมิน 5 ข้อคำถาม QC (ผ่าน = 5 ดาว, ไม่ผ่าน = 1 ดาว)</span>
+                        </h4>
+                        <span class="text-[10px] text-muted-foreground font-mono" id="jcd-subtask-summary">5 จาก 5 ข้อผ่านเกณฑ์</span>
+                    </div>
+                    <div class="border border-border rounded-xl overflow-hidden divide-y divide-border/60 bg-card" id="jcd-qc-subtasks-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Section: CSAT Feedback & Remarks -->
+                <div class="space-y-3">
+                    <h4 class="font-bold text-foreground text-xs flex items-center gap-1.5">
+                        <i class="ph ph-chat-circle-dots text-blue-500 text-base"></i>
+                        <span>ความคิดเห็นและคำติชมของลูกค้า (CSAT Customer Feedback)</span>
+                    </h4>
+                    <div class="p-3.5 rounded-xl bg-muted/40 border border-border space-y-2">
+                        <div class="italic text-foreground text-xs flex items-start gap-2">
+                            <span class="text-blue-500 text-base">“</span>
+                            <span id="jcd-customer-feedback">ลูกค้ามีความพึงพอใจสูงมาก การติดตั้งเรียบร้อย ช่างตรงเวลาและเก็บกวาดสะอาดเรียบร้อย</span>
+                            <span class="text-blue-500 text-base">”</span>
+                        </div>
+                        <div class="text-[11px] text-muted-foreground pt-1 border-t border-border/40 flex items-center justify-between">
+                            <span>วันที่โทรสำรวจ: <span id="jcd-csat-date" class="font-mono text-foreground">-</span></span>
+                            <span>สถานะ BMT: <span class="text-emerald-600 font-bold font-mono">EXPORTED & BILLED</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="p-4 border-t border-border flex items-center justify-between bg-muted/20 shrink-0">
+                <button type="button" onclick="app.hideModal('modal-job-close-detail')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs cursor-pointer">
+                    ปิดหน้าต่าง
+                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="jcd-view-job-btn" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+                        <i class="ph ph-arrow-square-out text-sm"></i>
+                        <span>ดูรายละเอียดโครงการฉบับเต็ม</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: CREATE TICKET & RECEIPT (STEP 4) -->
     <div id="modal-create-ticket" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
         <div class="artifact-card rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-create-ticket-content">
@@ -6450,7 +6753,7 @@
             <!-- Header -->
             <div class="p-4 sm:p-5 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center font-bold text-lg">
                         <i class="ph ph-check-circle"></i>
                     </div>
                     <div>
@@ -6468,7 +6771,7 @@
             <div class="p-5 space-y-4 overflow-y-auto flex-1 min-h-0 text-xs">
                 <!-- Question Banner: ตามที่ผู้ใช้ระบุ: เมื่อกดแล้วให้ถามยืนยันอีกครั้งว่าคุณจบขั้นตอน Design แล้ว เพื่อย้ายไป สร้าง BOQ -->
                 <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 text-lg">
+                    <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-600 flex items-center justify-center shrink-0 text-lg">
                         <i class="ph ph-question"></i>
                     </div>
                     <div class="space-y-1">
@@ -6483,7 +6786,7 @@
                 <div class="p-3.5 rounded-xl bg-muted/40 border border-border space-y-2">
                     <div class="flex items-center justify-between">
                         <span class="text-[11px] text-muted-foreground">รหัสโครงการ:</span>
-                        <span id="confirm-boq-job-id" class="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs">JOB26090900002</span>
+                        <span id="confirm-boq-job-id" class="font-mono font-bold text-indigo-600 text-xs">JOB26090900002</span>
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-[11px] text-muted-foreground">ลูกค้า:</span>
@@ -6502,7 +6805,7 @@
                             <i class="ph ph-blueprint text-indigo-500"></i>
                             <span>แบบแปลนที่บันทึกแล้วใน Step 2 (<span id="confirm-boq-blueprint-count">0</span> ฉบับ)</span>
                         </label>
-                        <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">พร้อมส่งต่อทำ BOQ</span>
+                        <span class="text-[10px] text-emerald-600 font-medium">พร้อมส่งต่อทำ BOQ</span>
                     </div>
                     <div id="confirm-boq-blueprint-list" class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
                         <!-- Populated dynamically by JS -->
@@ -6538,7 +6841,7 @@
             <!-- Fixed Sticky Header with Prominent Close Button -->
             <div class="p-4 sm:p-5 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-lg">
+                    <div class="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-600 flex items-center justify-center font-bold text-lg">
                         <i class="ph ph-receipt"></i>
                     </div>
                     <div>
@@ -6597,7 +6900,7 @@
                 <!-- Action Toolbar: Import & Add Row -->
                 <div class="flex items-center justify-between pt-1">
                     <div class="flex items-center gap-2 flex-wrap">
-                        <button type="button" onclick="document.getElementById('modal-boq-file-input').click()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 shadow-xs" title="แนบไฟล์ Excel หรือใบเสนอราคา vFIX เพื่อสกัดข้อมูลและบันทึกไฟล์">
+                        <button type="button" onclick="document.getElementById('modal-boq-file-input').click()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer text-emerald-600 hover:bg-emerald-500/10 border-emerald-500/30 shadow-xs" title="แนบไฟล์ Excel หรือใบเสนอราคา vFIX เพื่อสกัดข้อมูลและบันทึกไฟล์">
                             <i class="ph ph-file-arrow-up text-sm font-bold"></i>
                             <span>📂 แนบ/นำเข้าไฟล์ BOQ</span>
                         </button>
@@ -6644,7 +6947,7 @@
                     <div class="space-y-1.5 text-xs text-muted-foreground">
                         <div class="flex items-center gap-2">
                             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                            <span>⚡ ค่าแรง/บริการ: <strong class="text-foreground font-semibold" id="modal-boq-labor-count">0</strong> รายการ <span class="text-[10px] text-emerald-600 dark:text-emerald-400">(จะแปลงเป็น Task ใน Step 5)</span></span>
+                            <span>⚡ ค่าแรง/บริการ: <strong class="text-foreground font-semibold" id="modal-boq-labor-count">0</strong> รายการ <span class="text-[10px] text-emerald-600">(จะแปลงเป็น Task ใน Step 5)</span></span>
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="w-2.5 h-2.5 rounded-full bg-zinc-400"></span>
@@ -6656,7 +6959,7 @@
                             <span>ราคารวม (Subtotal):</span>
                             <span class="font-mono font-medium text-foreground" id="modal-boq-subtotal-val">0.00 ฿</span>
                         </div>
-                        <div class="flex justify-between text-emerald-600 dark:text-emerald-400">
+                        <div class="flex justify-between text-emerald-600">
                             <span>ส่วนลดพิเศษโครงการ:</span>
                             <span class="font-mono font-medium" id="modal-boq-discount-val">-0.00 ฿</span>
                         </div>
@@ -6666,7 +6969,7 @@
                         </div>
                         <div class="flex justify-between text-sm font-bold text-foreground pt-1.5 border-t border-border">
                             <span>ยอดสุทธิ (Grand Total):</span>
-                            <span class="font-mono text-purple-600 dark:text-purple-400 text-base font-bold" id="modal-boq-grandtotal-val">0.00 ฿</span>
+                            <span class="font-mono text-purple-600 text-base font-bold" id="modal-boq-grandtotal-val">0.00 ฿</span>
                         </div>
                     </div>
                 </div>
@@ -6698,12 +7001,12 @@
         <div class="artifact-card rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-import-boq-content">
             <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                    <div class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center font-bold">
                         <i class="ph ph-file-arrow-up text-lg"></i>
                     </div>
                     <div>
                         <h3 class="font-display font-bold text-sm text-foreground">📥 นำเข้าใบ BOQ / ใบเสนอราคา vFIX (Import BOQ)</h3>
-                        <p class="text-[10px] text-muted-foreground">รองรับไฟล์ Excel/CSV ทั้งแบบมาตรฐาน PMT และแบบฟอร์มใบเสนอราคางาน vFIX (สกัดข้อมูลลูกค้า + ค่าวัสดุ + ค่าแรง)</p>
+                        <p class="text-[10px] text-muted-foreground">รองรับไฟล์ Excel/CSV ทั้งแบบมาตรฐาน PMT และใบเสนอราคา vFIX (นำเข้าเฉพาะรายการวัสดุ + ค่าแรง โดยไม่เปลี่ยนชื่อลูกค้าเดิมของโครงการ)</p>
                     </div>
                 </div>
                 <button onclick="app.hideModal('modal-import-boq')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition cursor-pointer">
@@ -6712,6 +7015,42 @@
             </div>
 
             <div class="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+                <!-- Notice / Alert: นำเข้าเฉพาะรายการทำงาน ยังไม่จับ/ทับชื่อลูกค้า (Customer Name Protection) -->
+                <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 flex items-start gap-2.5">
+                    <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                        <i class="ph ph-shield-check text-lg"></i>
+                    </div>
+                    <div class="text-xs leading-relaxed">
+                        <div class="font-bold text-amber-900 flex items-center gap-1.5 flex-wrap">
+                            <span>💡 หมายเหตุสำคัญ: นำเข้าเฉพาะรายการทำงาน ยังไม่จับ/ทับชื่อลูกค้า</span>
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                <i class="ph ph-lock-key mr-0.5"></i> ล็อคข้อมูลลูกค้าเดิม
+                            </span>
+                        </div>
+                        <p class="mt-1 text-amber-800">
+                            ระบบจะนำเข้าเฉพาะรายการวัสดุ ค่าแรง และขั้นตอนการทำงานเท่านั้น โดยไม่มีการจับคู่หรือเปลี่ยนชื่อลูกค้าของโครงการ เพื่อความถูกต้องและป้องกันการบันทึกทับข้อมูลลูกค้าเดิมโดยเด็ดขาด
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Target Job Card -->
+                <div class="p-3 rounded-xl bg-muted/40 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-muted-foreground">โครงการเป้าหมาย:</span>
+                        <span class="font-mono font-bold text-foreground" id="boq-target-job-id">-</span>
+                        <span class="text-muted-foreground">•</span>
+                        <span class="font-semibold text-foreground flex items-center gap-1">
+                            <i class="ph ph-user text-brand-600"></i>
+                            <span id="boq-target-job-customer">-</span>
+                        </span>
+                        <span class="text-[10px] text-muted-foreground" id="boq-target-job-service"></span>
+                    </div>
+                    <div class="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0">
+                        <i class="ph ph-shield-check text-xs"></i>
+                        <span>คงข้อมูลลูกค้าเดิม 100%</span>
+                    </div>
+                </div>
+
                 <!-- Ingestion Method Tabs: Excel/CSV vs Photo OCR -->
                 <div class="flex items-center gap-2 p-1 bg-muted/40 rounded-xl border border-border text-xs">
                     <button type="button" onclick="app.switchBOQImportTab('file')" id="boq-tab-file" class="flex-1 py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5 bg-card text-foreground shadow-xs">
@@ -6727,7 +7066,7 @@
                 <!-- 1. Download Standard Excel Template Section (Visible on file tab) -->
                 <div id="boq-section-template-download" class="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="flex items-start gap-3">
-                        <div class="w-9 h-9 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl shrink-0">
+                        <div class="w-9 h-9 rounded-lg bg-emerald-500/15 text-emerald-600 flex items-center justify-center text-xl shrink-0">
                             <i class="ph ph-file-xls"></i>
                         </div>
                         <div>
@@ -6755,7 +7094,7 @@
                         <i class="ph ph-cloud-arrow-up text-3xl text-emerald-500 mb-1.5"></i>
                         <div class="text-xs font-semibold text-foreground">ลากไฟล์ Excel / CSV มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
                         <div class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์ใบเสนอราคา vFIX หรือ CSV (ลำดับ, รหัสสินค้า, รายการ, จำนวน, หน่วย, ค่าวัสดุ, ค่าแรง)</div>
-                        <div id="boq-file-name" class="mt-2 text-xs font-mono text-emerald-600 dark:text-emerald-400 font-semibold"></div>
+                        <div id="boq-file-name" class="mt-2 text-xs font-mono text-emerald-600 font-semibold"></div>
                     </div>
 
                     <!-- Dynamic Sheet Selector (when Excel has multiple sheets) -->
@@ -6773,7 +7112,7 @@
 
                 <!-- 3. Image / Photo OCR Section (Visible on image tab) -->
                 <div id="boq-section-image-ocr" class="hidden space-y-3">
-                    <div class="p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs text-purple-700 dark:text-purple-300 flex items-center gap-2">
+                    <div class="p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs text-purple-700 flex items-center gap-2">
                         <i class="ph ph-sparkle text-lg shrink-0"></i>
                         <span><strong>AI Vision OCR Reader:</strong> ถ่ายภาพใบเสนอราคา vFIX จากกล้องมือถือ หรือเลือกไฟล์รูปภาพ (.png, .jpg, .pdf) ระบบจะอ่านข้อความและสกัดตารางอัตโนมัติ</span>
                     </div>
@@ -6781,18 +7120,18 @@
                     <div class="border-2 border-dashed border-purple-500/40 hover:border-purple-500 rounded-xl p-6 text-center cursor-pointer bg-purple-500/5 hover:bg-purple-500/10 transition relative" onclick="document.getElementById('boq-image-input').click()">
                         <input type="file" id="boq-image-input" accept="image/*,.pdf" capture="environment" class="hidden" onchange="app.handleBOQImageSelect(event)">
                         <div class="flex items-center justify-center gap-3 mb-2">
-                            <i class="ph ph-camera text-3xl text-purple-600 dark:text-purple-400"></i>
-                            <i class="ph ph-image text-3xl text-purple-600 dark:text-purple-400"></i>
+                            <i class="ph ph-camera text-3xl text-purple-600"></i>
+                            <i class="ph ph-image text-3xl text-purple-600"></i>
                         </div>
                         <div class="text-xs font-semibold text-foreground">คลิกเพื่อถ่ายภาพ หรือเลือกรูปภาพใบเสนอราคา / สแกน PDF</div>
                         <div class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์ภาพ JPEG, PNG, WEBP, PDF จากมือถือและเอกสารสแกน</div>
-                        <div id="boq-image-name" class="mt-2 text-xs font-mono text-purple-600 dark:text-purple-400 font-semibold"></div>
+                        <div id="boq-image-name" class="mt-2 text-xs font-mono text-purple-600 font-semibold"></div>
                     </div>
 
                     <!-- OCR Progress Scanning Overlay Preview -->
                     <div id="boq-ocr-scanning" class="hidden p-4 rounded-xl border border-purple-500/30 bg-muted/40 space-y-3">
                         <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-2">
+                            <span class="text-xs font-bold text-purple-700 flex items-center gap-2">
                                 <i class="ph ph-spinner animate-spin text-base"></i> AI Vision OCR กำลังประมวลผลสแกนใบเสนอราคา...
                             </span>
                             <span class="text-[10px] font-mono text-muted-foreground" id="ocr-progress-pct">กำลังสแกนโครงสร้างตาราง 95%</span>
@@ -6801,23 +7140,23 @@
                             <div class="bg-gradient-to-r from-purple-600 to-brand-500 h-1.5 rounded-full animate-pulse" style="width: 95%"></div>
                         </div>
                         <div class="flex items-center gap-2 text-[10px] text-muted-foreground">
-                            <i class="ph ph-check-circle text-emerald-500"></i> สกัดชื่อลูกค้า •
-                            <i class="ph ph-check-circle text-emerald-500"></i> สกัดที่อยู่ & สาขา •
-                            <i class="ph ph-check-circle text-emerald-500"></i> แยกค่าวัสดุและค่าแรง
+                            <i class="ph ph-check-circle text-emerald-500"></i> สกัดรายการวัสดุและอุปกรณ์ •
+                            <i class="ph ph-check-circle text-emerald-500"></i> แยกค่าวัสดุและค่าแรง •
+                            <i class="ph ph-shield-check text-purple-600"></i> คงข้อมูลลูกค้าเดิมของโครงการ
                         </div>
                     </div>
                 </div>
 
-                <!-- vFIX Header Information Detected (Dynamic) -->
+                <!-- vFIX Header Information Detected (Reference Only) -->
                 <div id="boq-vfix-header-preview" class="hidden p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/30 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
-                            <i class="ph ph-sparkle text-sm"></i> ตรวจพบข้อมูลหัวเอกสารใบเสนอราคา vFIX:
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                        <span class="text-xs font-bold text-purple-800 flex items-center gap-1.5">
+                            <i class="ph ph-file-text text-sm text-purple-600"></i> ข้อมูลหัวเอกสารตรวจพบ (อ้างอิงจากไฟล์ต้นทาง):
                         </span>
-                        <label class="flex items-center gap-1 text-[11px] font-medium text-foreground cursor-pointer">
-                            <input type="checkbox" id="boq-sync-customer-info" checked class="accent-purple-600 rounded">
-                            <span>อัปเดตข้อมูลลูกค้าและสถานที่เข้าโครงการนี้</span>
-                        </label>
+                        <div class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
+                            <i class="ph ph-lock-key text-xs"></i>
+                            <span>ระบบคงชื่อลูกค้าเดิมของ Job ไว้ (ไม่เขียนทับ)</span>
+                        </div>
                     </div>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]" id="boq-vfix-header-fields">
                         <!-- Populated dynamically -->
@@ -6850,7 +7189,7 @@
                             <span class="text-muted-foreground">•</span>
                             <span class="text-muted-foreground" id="boq-preview-labor-total">ค่าแรง: 0.00 ฿</span>
                             <span class="text-muted-foreground">•</span>
-                            <span class="font-bold text-emerald-600 dark:text-emerald-400" id="boq-preview-total">ยอดรวม: 0.00 ฿</span>
+                            <span class="font-bold text-emerald-600" id="boq-preview-total">ยอดรวม: 0.00 ฿</span>
                         </div>
                     </div>
                     <div class="border border-border rounded-xl overflow-hidden max-h-56 overflow-y-auto">
@@ -6897,13 +7236,13 @@
         <div class="artifact-card rounded-2xl w-full max-w-5xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-convert-boq-tasks-content">
             <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+                    <div class="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-600 flex items-center justify-center font-bold">
                         <i class="ph ph-calendar-plus text-xl"></i>
                     </div>
                     <div>
                         <div class="flex items-center gap-2">
                             <h3 class="font-display font-bold text-sm sm:text-base text-foreground">⚡ นำเข้า BOQ สู่ Project Tasks & แผนงาน Gantt</h3>
-                            <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-semibold">Auto-Sort by Start Date</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-purple-500/10 text-purple-600 border border-purple-500/20 font-semibold">Auto-Sort by Start Date</span>
                         </div>
                         <p class="text-[11px] text-muted-foreground mt-0.5">ดึงหรือนำเข้าไฟล์ BOQ แปลงเป็น Task พร้อมกำหนด <strong>Start Date</strong>, <strong>End Date</strong> และสามารถแทรกงานได้ (จัดเรียงตามวันเริ่มงานอัตโนมัติ)</p>
                     </div>
@@ -6924,19 +7263,19 @@
                         <span class="text-muted-foreground" id="convert-job-service">บริการ: Renovate ครัว</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 border border-emerald-500/20 flex items-center gap-1">
                             <i class="ph ph-check-circle"></i> จัดเรียงตามวันเริ่มต้น
                         </span>
                     </div>
                 </div>
 
                 <!-- Labor-Only Policy Notice Banner -->
-                <div class="p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-purple-700 dark:text-purple-300">
+                <div class="p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-purple-700">
                     <div class="flex items-center gap-2 font-medium">
                         <i class="ph ph-wrench text-base shrink-0"></i>
                         <span>ระบบดึงเฉพาะรายการ <strong class="underline decoration-purple-500 font-bold">ค่าแรง / งานบริการติดตั้ง</strong> จาก BOQ เข้าเป็น Project Tasks (<span id="convert-labor-ratio" class="font-mono font-bold">เฉพาะค่าแรง</span>)</span>
                     </div>
-                    <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 shrink-0">
+                    <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-purple-500/20 text-purple-700 border border-purple-500/30 shrink-0">
                         ⚡ Labor Items Only
                     </span>
                 </div>
@@ -6951,13 +7290,13 @@
                             <i class="ph ph-list-checks text-brand-500"></i> รายการ Project Tasks (<span id="convert-task-count">0</span> งานที่เลือก)
                         </span>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <button type="button" onclick="document.getElementById('task-boq-file-input').click()" class="text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/30 flex items-center gap-1 cursor-pointer font-medium">
+                            <button type="button" onclick="document.getElementById('task-boq-file-input').click()" class="text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 px-2.5 py-1 rounded-lg border border-emerald-500/30 flex items-center gap-1 cursor-pointer font-medium">
                                 <i class="ph ph-file-arrow-up"></i> นำเข้าไฟล์ BOQ (.csv/.xlsx)
                             </button>
                             <button type="button" onclick="app.downloadTaskBOQTemplate()" class="text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-muted transition flex items-center gap-1 cursor-pointer" title="ดาวน์โหลด Template สำหรับนำเข้าไฟล์ Task">
                                 <i class="ph ph-download-simple"></i> Template
                             </button>
-                            <button type="button" onclick="app.insertConvertTaskAt(-1)" class="text-[11px] bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 px-2.5 py-1 rounded-lg border border-purple-500/30 flex items-center gap-1 cursor-pointer font-medium">
+                            <button type="button" onclick="app.insertConvertTaskAt(-1)" class="text-[11px] bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 px-2.5 py-1 rounded-lg border border-purple-500/30 flex items-center gap-1 cursor-pointer font-medium">
                                 <i class="ph ph-plus"></i> + แทรกงานใหม่
                             </button>
                             <button type="button" onclick="app.sortConvertTasksByStartDate(true)" class="text-[11px] bg-muted hover:bg-muted/80 text-foreground px-2.5 py-1 rounded-lg border border-border flex items-center gap-1 cursor-pointer" title="จัดเรียงรายการ Task ตามวันเริ่มต้น">
@@ -6995,7 +7334,7 @@
                         <i class="ph ph-info text-base text-brand-500 shrink-0"></i>
                         <span><strong>หมายเหตุ:</strong> ระบบจะจัดเรียงตาม <strong>Start Date</strong> อัตโนมัติเมื่อแทรกงานหรือแก้ไขวันเริ่มงาน และเมื่อกดยืนยันจะแปลงเป็น Gantt Timeline ทันที</span>
                     </div>
-                    <span class="text-[10px] text-purple-600 dark:text-purple-400 font-medium">✨ สามารถกด "แทรกงานด้านล่าง" ในแต่ละแถวได้</span>
+                    <span class="text-[10px] text-purple-600 font-medium">✨ สามารถกด "แทรกงานด้านล่าง" ในแต่ละแถวได้</span>
                 </div>
             </div>
 
@@ -7025,7 +7364,7 @@
                     <div>
                         <h3 class="font-display font-bold text-base text-foreground flex items-center gap-2">
                             <span>สรุปรายการ BOQ & กำหนดวันเวลาทำงานและช่างผู้รับผิดชอบ</span>
-                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/15 text-brand-600 dark:text-brand-400 border border-brand-500/20">บันทึก BOQ สมบูรณ์</span>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/15 text-brand-600 border border-brand-500/20">บันทึก BOQ สมบูรณ์</span>
                         </h3>
                         <div class="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                             <span class="font-mono font-semibold text-foreground" id="save-boq-job-id">JOB26090900004</span>
@@ -7044,12 +7383,12 @@
             <!-- Body (Scrollable) -->
             <div class="p-6 overflow-y-auto space-y-6 flex-1">
                 <!-- Status Banner -->
-                <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-700 dark:text-emerald-300">
+                <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-700">
                     <div class="flex items-center gap-2 font-medium">
                         <i class="ph ph-check-circle text-base text-emerald-500 shrink-0"></i>
                         <span>ระบบบันทึกและประมวลผลข้อมูล BOQ เรียบร้อย พร้อมกำหนด <strong>วันเวลาเริ่ม-จบงาน</strong> และ <strong>ช่างผู้รับผิดชอบ</strong> เข้าสู่แผนงาน</span>
                     </div>
-                    <span class="px-2.5 py-1 rounded-md font-mono text-[10px] font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shrink-0 self-start sm:self-auto">
+                    <span class="px-2.5 py-1 rounded-md font-mono text-[10px] font-bold bg-emerald-500/20 text-emerald-700 border border-emerald-500/30 shrink-0 self-start sm:self-auto">
                         ✨ PMT Schedule Sync
                     </span>
                 </div>
@@ -7088,7 +7427,7 @@
                             </div>
                             <div class="flex items-center justify-between text-[10px]">
                                 <span class="text-muted-foreground">กำหนดวันและเวลาที่คาดว่าจะปิดงานสมบูรณ์</span>
-                                <span id="save-boq-duration-badge" class="font-mono font-bold text-brand-600 dark:text-brand-400 bg-brand-500/15 px-2 py-0.5 rounded border border-brand-500/20">ระยะเวลา: 1 วัน</span>
+                                <span id="save-boq-duration-badge" class="font-mono font-bold text-brand-600 bg-brand-500/15 px-2 py-0.5 rounded border border-brand-500/20">ระยะเวลา: 1 วัน</span>
                             </div>
                         </div>
                     </div>
@@ -7148,7 +7487,7 @@
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl bg-muted/20 border border-border gap-4">
                         <div class="text-xs text-muted-foreground flex items-center gap-2">
                             <i class="ph ph-receipt text-base text-brand-500"></i>
-                            <span>สถานะ BOQ: <strong class="text-emerald-600 dark:text-emerald-400 font-semibold">อนุมัติและพร้อมนำไปสร้างแผนปฏิบัติงาน</strong></span>
+                            <span>สถานะ BOQ: <strong class="text-emerald-600 font-semibold">อนุมัติและพร้อมนำไปสร้างแผนปฏิบัติงาน</strong></span>
                         </div>
                         <div class="w-full sm:w-80 space-y-1.5 text-xs">
                             <div class="flex justify-between text-muted-foreground">
@@ -7175,9 +7514,9 @@
                 <div class="artifact-card p-4 rounded-xl border border-purple-500/30 bg-purple-500/5 space-y-3">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div class="flex items-center gap-2">
-                            <i class="ph ph-calendar-plus text-purple-600 dark:text-purple-400 text-base"></i>
+                            <i class="ph ph-calendar-plus text-purple-600 text-base"></i>
                             <span class="text-xs font-bold text-foreground">แผนงานย่อยที่แตกจาก BOQ (Project Tasks & Gantt Timeline)</span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-700 dark:text-purple-300">Auto-Generated</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-700">Auto-Generated</span>
                         </div>
                         <span class="text-[11px] text-muted-foreground">ระบบแปลงรายการค่าแรงเป็น Task พร้อมจัดสรรวันที่ให้อัตโนมัติ</span>
                     </div>

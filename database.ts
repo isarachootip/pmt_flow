@@ -236,6 +236,7 @@ export async function initDatabase(): Promise<boolean> {
         ADD COLUMN IF NOT EXISTS step3_confirmed BOOLEAN DEFAULT FALSE,
         ADD COLUMN IF NOT EXISTS qc_inspection_type VARCHAR(50),
         ADD COLUMN IF NOT EXISTS qc_passed_at TIMESTAMP WITH TIME ZONE,
+        ADD COLUMN IF NOT EXISTS qc_score NUMERIC DEFAULT NULL,
         ADD COLUMN IF NOT EXISTS csat_score NUMERIC DEFAULT NULL,
         ADD COLUMN IF NOT EXISTS csat_remarks TEXT,
         ADD COLUMN IF NOT EXISTS csat_photos JSONB DEFAULT '[]'::jsonb,
@@ -478,6 +479,7 @@ export function mapDbJobRow(row: any): any {
     step3_confirmed: Boolean(row.step3_confirmed),
     qc_inspection_type: row.qc_inspection_type || null,
     qc_passed_at: row.qc_passed_at || null,
+    qc_score: row.qc_score !== null && row.qc_score !== undefined ? Number(row.qc_score) : null,
     csat_score: row.csat_score !== null && row.csat_score !== undefined ? Number(row.csat_score) : null,
     csat_remarks: row.csat_remarks || '',
     csat_photos: Array.isArray(row.csat_photos) ? row.csat_photos : [],
@@ -672,7 +674,7 @@ export async function dbUpdateJob(jobNoOrId: string | number, updates: any): Pro
       'agent_name', 'assigned_tech', 'plan_date', 'special_instructions',
       'additional_notes', 'qc_inspection_type', 'csat_remarks', 'csat_surveyor', 'file_int_image'
     ];
-    const numFields = ['customer_id', 'overall_progress', 'boq_discount', 'boq_subtotal', 'boq_grand_total', 'csat_score'];
+    const numFields = ['customer_id', 'overall_progress', 'boq_discount', 'boq_subtotal', 'boq_grand_total', 'qc_score', 'csat_score'];
     const boolFields = ['pmt_accepted', 'step3_confirmed'];
     const dateFields = ['pmt_accepted_at', 'qc_passed_at', 'csat_evaluated_at'];
 

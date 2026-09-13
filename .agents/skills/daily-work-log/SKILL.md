@@ -41,6 +41,9 @@ Provide 1-click preset buttons for technicians:
 ### 2.1 Dual-Access Views
 1. **Dedicated Page (`page-daily-logs`)**:
    - Accessible via sidebar menu **"บันทึกงานช่างประจำวัน"** (`nav-daily-logs`).
+   - **Master Job Queue (`daily-log-job-queue-list`)**: Displays jobs waiting or active for daily logging.
+     - **Default View: STRICTLY LIST VIEW (`list`) 100%**: Clean, scannable table showing Job ID, Daily Log Status, Customer & Phone, Service/Task, Technician, Progress bar & %, Log count, and Select button.
+     - Switchable to Card View (`card`) if chosen by user, persisted in `localStorage.getItem('pmt_daily_log_queue_view_mode')`.
    - Filterable by Job (Project) and Gantt Task.
    - Shows chronological timeline cards and active day progress.
 2. **Integrated Gantt Modal (`modal-daily-work-log`)**:
