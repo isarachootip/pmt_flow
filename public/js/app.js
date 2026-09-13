@@ -416,9 +416,9 @@ const app = {
                     if (typeof dateInput === 'number' && dateInput > 30000 && dateInput < 70000) {
                         const jsDate = new Date(Math.round((dateInput - 25569) * 86400 * 1000));
                         if (!isNaN(jsDate.getTime())) {
-                            const d = String(jsDate.getDate()).padStart(2, '0');
-                            const m = String(jsDate.getMonth() + 1).padStart(2, '0');
-                            const y = jsDate.getFullYear();
+                            const d = String(jsDate.getUTCDate()).padStart(2, '0');
+                            const m = String(jsDate.getUTCMonth() + 1).padStart(2, '0');
+                            const y = jsDate.getUTCFullYear();
                             return `${d}/${m}/${y}`;
                         }
                     }
@@ -723,7 +723,7 @@ const app = {
                         timestamp: ts.csat_completed_at || ts.after_sale_at || ts.csat_pending_at,
                         isDone: !!(job.status === 'AFTER_SALE' || job.status === 'CLOSED' || job.csat_score || ts.csat_completed_at),
                         statusLabel: (job.status === 'AFTER_SALE' || job.status === 'CLOSED' || job.csat_score) ? 'ประเมิน CSAT & ปิดงานแล้ว' : (job.status === 'QC_PASSED' ? 'รอสำรวจ CSAT' : 'รอดำเนินการ'),
-                        reference: job.csat_score ? `CSAT: ${job.csat_score} ⭐ (ปิดงาน BMT)` : 'รอประเมินความพึงพอใจ',
+                        reference: job.csat_score ? (Number(job.csat_score) >= 3 ? 'CSAT: ผ่าน (5 คะแนน) (ปิดงาน BMT)' : 'CSAT: ไม่ผ่าน (1 คะแนน)') : 'รอประเมินความพึงพอใจ',
                         detail: 'Contact Center สำรวจความพึงพอใจลูกค้า ส่งสถานะปิดงาน BMT และดูแลสัญญาบำรุงรักษา MA'
                     }
                 ];
@@ -4462,7 +4462,7 @@ const app = {
                 // 1. ยอดงานเข้า ทั้งหมด
                 const totalCount = allJobs.length;
 
-                // 2. ยอดที่ยังคงเหลือ (คิว Step 1 ที่ยังไม่ได้กดรับเข้าระบบ PMT)
+                // 2. รอรับเข้า PMT (คิว Step 1 ที่ยังไม่ได้กดรับเข้าระบบ PMT)
                 const remainingJobs = allJobs.filter(j => 
                     !j.pmt_accepted &&
                     (j.status === 'SURVEYED' || j.status === 'Survey' || j.status === 'Surveyed' || j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
@@ -11883,12 +11883,13 @@ const app = {
                     const bpCount = jBps.length || (job.blueprint_id ? 1 : 0);
                     const hasBOQ = items.length > 0;
                     const hasBOQFile = !!currentBOQFile;
+                    const customerName = (typeof job.customer === 'object' && job.customer !== null) ? (job.customer.name || '') : String(job.customer || '');
                     infoEl.innerHTML = `
                         <div class="space-y-1">
                             <div class="flex items-center gap-2 flex-wrap">
-                                <span class="font-mono font-bold text-purple-600 dark:text-purple-400 bg-purple-500/15 px-2 py-0.5 rounded border border-purple-500/30">${job.id}</span>
-                                <span class="font-bold text-foreground text-sm">${job.customer}</span>
-                                <span class="text-brand-600 dark:text-brand-400 font-medium">• ${job.service}</span>
+                                <span class="font-mono font-bold text-purple-600 bg-purple-500/15 px-2 py-0.5 rounded border border-purple-500/30">${job.id}</span>
+                                <span class="font-bold text-foreground text-sm">${customerName || '-'}</span>
+                                <span class="text-brand-600 font-medium">• ${job.service}</span>
                             </div>
                             <div class="text-[11px] text-muted-foreground flex items-center gap-2 flex-wrap">
                                 <span>ที่อยู่: ${job.address || '-'}</span>
@@ -11898,25 +11899,25 @@ const app = {
                         </div>
                         <div class="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
                             ${hasBps ? `
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/30 flex items-center gap-1">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-700 border border-indigo-500/30 flex items-center gap-1">
                                 <i class="ph ph-blueprint"></i> มีแบบแปลน (${bpCount} โซน)
                             </span>
                             ` : `
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 border border-amber-500/30 flex items-center gap-1">
                                 <i class="ph ph-hourglass-high"></i> ยังไม่มีแบบแปลน
                             </span>
                             `}
                             ${hasBOQ ? `
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 flex items-center gap-1">
                                 <i class="ph ph-check-circle"></i> บันทึกแล้ว ${items.length} รายการ
                             </span>
                             ` : `
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border border-zinc-500/30 flex items-center gap-1">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-500/15 text-zinc-600 border border-zinc-500/30 flex items-center gap-1">
                                 <i class="ph ph-circle-dashed"></i> ยังไม่มีรายการ BOQ
                             </span>
                             `}
                             ${hasBOQFile ? `
-                            <button type="button" onclick="app.downloadModalBOQFile()" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 flex items-center gap-1 cursor-pointer hover:bg-purple-500/25 transition" title="คลิกเพื่อดาวน์โหลดไฟล์ BOQ ที่แนบไว้ (${currentBOQFile.name})">
+                            <button type="button" onclick="app.downloadModalBOQFile()" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-700 border border-purple-500/30 flex items-center gap-1 cursor-pointer hover:bg-purple-500/25 transition" title="คลิกเพื่อดาวน์โหลดไฟล์ BOQ ที่แนบไว้ (${currentBOQFile.name})">
                                 <i class="ph ph-file-arrow-down text-emerald-500 font-bold"></i> แนบไฟล์ BOQ (${currentBOQFile.size_formatted || 'พร้อมโหลด'})
                             </button>
                             ` : ''}
@@ -11932,21 +11933,21 @@ const app = {
                         const isPdf = currentBOQFile.name && currentBOQFile.name.endsWith('.pdf');
                         const iconClass = isXls ? 'ph-file-xls text-emerald-500' : (isPdf ? 'ph-file-pdf text-rose-500' : 'ph-file-text text-purple-500');
                         const isReadyToSave = !!this.state.modalBOQFile;
-                        const uploadDate = currentBOQFile.uploaded_at ? new Date(currentBOQFile.uploaded_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : (new Date().toLocaleDateString('th-TH'));
+                        const uploadDate = currentBOQFile.uploaded_at ? (this.formatDateTimeDMY ? this.formatDateTimeDMY(currentBOQFile.uploaded_at) : String(currentBOQFile.uploaded_at)) : (this.formatDateDMY ? this.formatDateDMY(new Date()) : '-');
 
                         fileContainer.innerHTML = `
                             <div class="p-3.5 rounded-xl border border-purple-500/30 bg-purple-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition">
                                 <div class="flex items-center gap-3 min-w-0">
-                                    <div class="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl shrink-0">
+                                    <div class="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-600 flex items-center justify-center text-xl shrink-0">
                                         <i class="ph ${iconClass}"></i>
                                     </div>
                                     <div class="min-w-0">
                                         <div class="flex items-center gap-2 flex-wrap">
                                             <span class="text-xs font-bold text-foreground truncate max-w-[280px]" title="${currentBOQFile.name}">${currentBOQFile.name}</span>
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
                                                 <i class="ph ph-check-circle"></i> ${isReadyToSave ? 'นำเข้าระบบแล้ว (พร้อมบันทึกไฟล์)' : 'ไฟล์ BOQ ในระบบ'}
                                             </span>
-                                            ${currentBOQFile.source === 'generated' ? '<span class="text-[10px] text-purple-600 dark:text-purple-400 font-medium">(สร้างจากตารางในระบบ)</span>' : ''}
+                                            ${currentBOQFile.source === 'generated' ? '<span class="text-[10px] text-purple-600 font-medium">(สร้างจากตารางในระบบ)</span>' : ''}
                                         </div>
                                         <div class="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5 font-mono">
                                             <span>ขนาด: ${currentBOQFile.size_formatted || 'ไม่ระบุ'}</span>
@@ -11973,7 +11974,7 @@ const app = {
                     } else {
                         fileContainer.innerHTML = `
                             <div class="border-2 border-dashed border-border hover:border-purple-500/50 rounded-xl p-3.5 text-center cursor-pointer bg-muted/20 hover:bg-purple-500/5 transition group" onclick="document.getElementById('modal-boq-file-input').click()">
-                                <div class="flex items-center justify-center gap-2 mb-1 text-purple-600 dark:text-purple-400 group-hover:scale-105 transition-transform">
+                                <div class="flex items-center justify-center gap-2 mb-1 text-purple-600 group-hover:scale-105 transition-transform">
                                     <i class="ph ph-file-arrow-up text-2xl"></i>
                                     <i class="ph ph-file-xls text-2xl text-emerald-500"></i>
                                 </div>
@@ -12003,14 +12004,14 @@ const app = {
                 let subtotal = 0;
 
                 items.forEach(it => {
-                    const qty = Number(it.qty) || 0;
-                    const price = Number(it.price || it.unit_price) || 0;
+                    const qty = Math.max(0, Number(it.qty) || 0);
+                    const price = Math.max(0, Number(it.price || it.unit_price) || 0);
                     subtotal += (qty * price);
                     const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
                     if (isLabor) laborCount++; else matCount++;
                 });
 
-                const discount = Number(this.state.modalBOQDiscount) || 0;
+                const discount = Math.max(0, Number(this.state.modalBOQDiscount) || 0);
                 const afterDiscount = Math.max(0, subtotal - discount);
                 const vat = afterDiscount * 0.07;
                 const grandTotal = afterDiscount + vat;
@@ -12047,8 +12048,8 @@ const app = {
                     } else {
                         tbody.innerHTML = items.map((it, idx) => {
                             const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
-                            const qty = Number(it.qty) || 0;
-                            const price = Number(it.price || it.unit_price) || 0;
+                            const qty = Math.max(0, Number(it.qty) || 0);
+                            const price = Math.max(0, Number(it.price || it.unit_price) || 0);
                             const itemTotal = qty * price;
 
                             return `
@@ -12058,7 +12059,7 @@ const app = {
                                     <input type="text" value="${it.name || ''}" oninput="app.updateModalBOQItem(${idx}, 'name', this.value)" placeholder="ชื่อรายการ..." class="w-full bg-transparent hover:bg-muted/40 focus:bg-card border border-transparent hover:border-border focus:border-purple-500 rounded px-2 py-1 text-xs text-foreground font-medium transition focus:outline-none">
                                 </td>
                                 <td class="py-2.5 px-3 text-center">
-                                    <button type="button" onclick="app.toggleModalBOQItemType(${idx})" class="px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer transition ${isLabor ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border border-zinc-500/30'}" title="คลิกเพื่อสลับประเภท ค่าแรง vs วัสดุ">
+                                    <button type="button" onclick="app.toggleModalBOQItemType(${idx})" class="px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer transition ${isLabor ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30' : 'bg-zinc-500/15 text-zinc-600 border border-zinc-500/30'}" title="คลิกเพื่อสลับประเภท ค่าแรง vs วัสดุ">
                                         ${isLabor ? '⚡ ค่าแรง/บริการ' : '📦 วัสดุอุปกรณ์'}
                                     </button>
                                 </td>
@@ -12149,7 +12150,7 @@ const app = {
                 if (!this.state.modalBOQItems || !this.state.modalBOQItems[idx]) return;
                 const it = this.state.modalBOQItems[idx];
                 if (field === 'qty' || field === 'price') {
-                    it[field] = Number(value) || 0;
+                    it[field] = Math.max(0, Number(value) || 0);
                     const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
                     if (isLabor) {
                         it.labor_price = it.price;
@@ -12171,14 +12172,14 @@ const app = {
                 let subtotal = 0;
 
                 items.forEach(it => {
-                    const qty = Number(it.qty) || 0;
-                    const price = Number(it.price || it.unit_price) || 0;
+                    const qty = Math.max(0, Number(it.qty) || 0);
+                    const price = Math.max(0, Number(it.price || it.unit_price) || 0);
                     subtotal += (qty * price);
                     const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
                     if (isLabor) laborCount++; else matCount++;
                 });
 
-                const discount = Number(this.state.modalBOQDiscount) || 0;
+                const discount = Math.max(0, Number(this.state.modalBOQDiscount) || 0);
                 const afterDiscount = Math.max(0, subtotal - discount);
                 const vat = afterDiscount * 0.07;
                 const grandTotal = afterDiscount + vat;
@@ -12322,13 +12323,16 @@ const app = {
             },
 
             generateBOQFileObject(job, items, grandTotal) {
-                const safeName = job && job.customer ? job.customer.replace(/[\s\/\\:*?"<>|]/g, '_') : 'Doc';
+                const customerName = (job && typeof job.customer === 'object' && job.customer !== null)
+                    ? (job.customer.name || '')
+                    : String(job && job.customer ? job.customer : '');
+                const safeName = customerName ? customerName.replace(/[\s\/\\:*?"<>|]/g, '_') : 'Doc';
                 const fileName = `BOQ_${job ? job.id : 'EXPORT'}_${safeName}.xlsx`;
 
                 if (typeof XLSX !== 'undefined') {
                     const wsData = [
                         ['vFIX / PMT Flow', 'ใบรายการประมาณการราคา (BOQ & Estimation)'],
-                        ['รหัสโครงการ :', job ? job.id : '', 'ลูกค้า :', job ? job.customer : '', 'วันที่ :', this.formatDateDMY(new Date())],
+                        ['รหัสโครงการ :', job ? job.id : '', 'ลูกค้า :', customerName, 'วันที่ :', this.formatDateDMY(new Date())],
                         ['บริการ :', job ? job.service : '', 'ที่อยู่ :', job ? (job.address || '-') : '', 'ช่าง :', job ? (job.tech || '-') : ''],
                         [],
                         ['ลำดับ', 'รายการวัสดุ / งานบริการ', 'ประเภท', 'จำนวน', 'หน่วย', 'ราคาต่อหน่วย (฿)', 'รวมเป็นเงิน (฿)', 'หมายเหตุ']
@@ -12336,8 +12340,8 @@ const app = {
 
                     let subtotal = 0;
                     items.forEach((it, idx) => {
-                        const qty = Number(it.qty) || 0;
-                        const price = Number(it.price || it.unit_price) || 0;
+                        const qty = Math.max(0, Number(it.qty) || 0);
+                        const price = Math.max(0, Number(it.price || it.unit_price) || 0);
                         const total = qty * price;
                         subtotal += total;
                         const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
@@ -12364,11 +12368,13 @@ const app = {
                         source: 'generated'
                     };
                 } else {
-                    let csv = "\uFEFF" + `รหัสโครงการ,${job ? job.id : ''},ลูกค้า,${job ? job.customer : ''}\n`;
+                    let csv = "\uFEFF" + `รหัสโครงการ,${job ? job.id : ''},ลูกค้า,${customerName}\n`;
                     csv += `ลำดับ,รายการวัสดุ/งานบริการ,ประเภท,จำนวน,หน่วย,ราคาต่อหน่วย,รวมเงิน\n`;
                     items.forEach((it, idx) => {
                         const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
-                        csv += `${idx + 1},"${(it.name || '').replace(/"/g, '""')}",${isLabor ? 'ค่าแรง' : 'วัสดุ'},${it.qty || 1},${it.unit || 'ชุด'},${it.price || 0},${(it.qty || 1) * (it.price || 0)}\n`;
+                        const qty = Math.max(0, Number(it.qty) || 1);
+                        const price = Math.max(0, Number(it.price) || 0);
+                        csv += `${idx + 1},"${(it.name || '').replace(/"/g, '""')}",${isLabor ? 'ค่าแรง' : 'วัสดุ'},${qty},${it.unit || 'ชุด'},${price},${qty * price}\n`;
                     });
                     csv += `,,,,ยอดสุทธิ,${grandTotal}\n`;
                     const b64 = btoa(unescape(encodeURIComponent(csv)));
@@ -12399,12 +12405,16 @@ const app = {
                     return;
                 }
 
-                const safeName = job && job.customer ? job.customer.replace(/[\s\/\\:*?"<>|]/g, '_') : 'Doc';
-                const fileName = `BOQ_${job ? job.id : 'EXPORT'}_${safeName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                const customerName = (job && typeof job.customer === 'object' && job.customer !== null)
+                    ? (job.customer.name || '')
+                    : String(job && job.customer ? job.customer : '');
+                const safeName = customerName ? customerName.replace(/[\s\/\\:*?"<>|]/g, '_') : 'Doc';
+                const dateSuffix = (this.formatDateDMY ? this.formatDateDMY(new Date()) : new Date().toISOString().slice(0, 10)).replace(/\//g, '-');
+                const fileName = `BOQ_${job ? job.id : 'EXPORT'}_${safeName}_${dateSuffix}.xlsx`;
 
                 const wsData = [
                     ['vFIX / PMT Flow', 'ใบรายการประมาณการราคา (BOQ & Estimation)'],
-                    ['รหัสโครงการ :', job ? job.id : '', 'ลูกค้า :', job ? job.customer : '', 'วันที่ :', new Date().toLocaleDateString('th-TH')],
+                    ['รหัสโครงการ :', job ? job.id : '', 'ลูกค้า :', customerName, 'วันที่ :', this.formatDateDMY ? this.formatDateDMY(new Date()) : new Date().toLocaleDateString('en-GB')],
                     ['บริการ :', job ? job.service : '', 'ที่อยู่ :', job ? (job.address || '-') : '', 'ช่าง :', job ? (job.tech || '-') : ''],
                     [],
                     ['ลำดับ', 'รายการวัสดุ / งานบริการ', 'ประเภท', 'จำนวน', 'หน่วย', 'ราคาต่อหน่วย (฿)', 'รวมเป็นเงิน (฿)', 'หมายเหตุ']
@@ -12412,15 +12422,15 @@ const app = {
 
                 let subtotal = 0;
                 items.forEach((it, idx) => {
-                    const qty = Number(it.qty) || 0;
-                    const price = Number(it.price || it.unit_price) || 0;
+                    const qty = Math.max(0, Number(it.qty) || 0);
+                    const price = Math.max(0, Number(it.price || it.unit_price) || 0);
                     const total = qty * price;
                     subtotal += total;
                     const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
                     wsData.push([idx + 1, it.name || '', isLabor ? 'ค่าแรง/บริการ' : 'วัสดุอุปกรณ์', qty, it.unit || 'ชุด', price, total, it.remark || '']);
                 });
 
-                const discount = Number(this.state.modalBOQDiscount) || 0;
+                const discount = Math.max(0, Number(this.state.modalBOQDiscount) || 0);
                 const afterDiscount = Math.max(0, subtotal - discount);
                 const vat = afterDiscount * 0.07;
                 const grandTotal = afterDiscount + vat;
@@ -13279,41 +13289,6 @@ const app = {
                     const text = row.innerText.toLowerCase();
                     row.style.display = (!q || text.includes(q)) ? '' : 'none';
                 });
-            },
-
-            formatDateDMY(dateStr) {
-                if (!dateStr) return '-';
-                try {
-                    const cleanDate = String(dateStr).split('T')[0];
-                    const parts = cleanDate.split('-');
-                    if (parts.length === 3 && parts[0].length === 4) {
-                        return `${parts[2]}/${parts[1]}/${parts[0]}`;
-                    }
-                    const d = new Date(dateStr);
-                    if (!isNaN(d.getTime())) {
-                        const day = String(d.getDate()).padStart(2, '0');
-                        const month = String(d.getMonth() + 1).padStart(2, '0');
-                        const year = d.getFullYear();
-                        return `${day}/${month}/${year}`;
-                    }
-                } catch(e) {}
-                return String(dateStr);
-            },
-
-            formatDateTimeDMY(isoStr) {
-                if (!isoStr) return '-';
-                try {
-                    const d = new Date(isoStr);
-                    if (!isNaN(d.getTime())) {
-                        const day = String(d.getDate()).padStart(2, '0');
-                        const month = String(d.getMonth() + 1).padStart(2, '0');
-                        const year = d.getFullYear();
-                        const hours = String(d.getHours()).padStart(2, '0');
-                        const minutes = String(d.getMinutes()).padStart(2, '0');
-                        return `${day}/${month}/${year} ${hours}:${minutes} น.`;
-                    }
-                } catch(e) {}
-                return String(isoStr);
             },
 
             calculateQCBookingDate(endDateStr, daysBefore = 5) {
@@ -16887,7 +16862,7 @@ const app = {
                             <div class="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-2">
                                 <span>งานย่อย: <strong>${completedCount}/${subtaskCount}</strong></span>
                                 <span>•</span>
-                                <span>คะแนน: <strong class="text-amber-600 dark:text-amber-400">${avgScore} ⭐</strong></span>
+                                <span>คะแนน: <strong class="text-amber-600">${avgScore}</strong></span>
                             </div>
                         </td>
                         <td class="px-5 py-4 text-muted-foreground">
@@ -17578,7 +17553,7 @@ const app = {
                     if (progress.isAllComplete) {
                         btnCSAT.disabled = false;
                         btnCSAT.className = 'btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all';
-                        btnLabel.innerText = `✓ อนุมัติผ่านเกณฑ์ QC (${progress.averageScore} ⭐) & ส่งต่อ CSAT (Step 7)`;
+                        btnLabel.innerText = `✓ อนุมัติผ่านเกณฑ์ QC (${progress.averageScore} คะแนน) & ส่งต่อ CSAT (Step 7)`;
                     } else if (progress.defect > 0) {
                         btnCSAT.disabled = true;
                         btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 bg-rose-500/10 text-rose-600 border border-rose-500/20 cursor-not-allowed opacity-80 transition-all';
@@ -17598,7 +17573,7 @@ const app = {
                 let html = `
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-muted/40 rounded-xl border border-border/80 mb-3 shadow-2xs">
                         <div class="flex items-center gap-2">
-                            <span class="w-6 h-6 rounded-lg bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center font-mono font-bold text-xs">
+                            <span class="w-6 h-6 rounded-lg bg-brand-500/15 text-brand-600 flex items-center justify-center font-mono font-bold text-xs">
                                 <i class="ph ph-checks"></i>
                             </span>
                             <div>
@@ -17609,7 +17584,7 @@ const app = {
                         <div class="flex items-center gap-2 shrink-0">
                             <button type="button" onclick="app.setAllQCSubtasksYes('${job.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition cursor-pointer shadow-xs" title="ตอบ Yes (5 คะแนน) ให้ครบทั้ง 5 ข้อในคลิกเดียว">
                                 <i class="ph ph-check-circle"></i>
-                                <span>✓ เลือก Yes ทั้งหมด (5.0 ⭐)</span>
+                                <span>✓ เลือก Yes ทั้งหมด (ได้ 5 คะแนนทุกข้อ)</span>
                             </button>
                             <button type="button" onclick="app.resetAllQCSubtasks('${job.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 border border-border flex items-center gap-1 transition cursor-pointer" title="ล้างผลการตอบ">
                                 <i class="ph ph-arrow-counter-clockwise"></i>
@@ -17756,7 +17731,7 @@ const app = {
                 this.persistJobs();
                 this.renderQCSubtasks(job);
                 this.updateQCDashboard();
-                this.showToast('✅ เลือก Yes (5 คะแนน) ให้ครบทั้ง 5 ข้อเรียบร้อย (คะแนนรวม 5.0 ⭐)');
+                this.showToast('✅ เลือก Yes (5 คะแนน) ให้ครบทั้ง 5 ข้อเรียบร้อย (คะแนนรวม 5.0 คะแนน)');
             },
 
             resetAllQCSubtasks(jobId) {
@@ -17901,7 +17876,7 @@ const app = {
                 if (!job.step_timestamps) job.step_timestamps = {};
                 job.step_timestamps.qc_passed_at = job.qc_passed_at;
 
-                this.recordStepTimestamp(job.id, 'qc_passed_at', job.qc_passed_at, `ตรวจประเมินคุณภาพ QC ผ่านครบทุกงานย่อย (${progress.averageScore} ⭐) และส่งต่อ CSAT`);
+                this.recordStepTimestamp(job.id, 'qc_passed_at', job.qc_passed_at, `ตรวจประเมินคุณภาพ QC ผ่านครบทุกงานย่อย (${progress.averageScore} คะแนน) และส่งต่อ CSAT`);
                 this.persistJobs();
                 this.updateStepBadges();
                 this.updateQCDashboard();
@@ -17920,7 +17895,7 @@ const app = {
 
                 this.hideModal('modal-qc-job-detail');
                 this.renderQC();
-                this.showToast(`🎉 อนุมัติผ่านเกณฑ์ QC โครงการ ${job.id} (${progress.averageScore} ⭐) ครบทุกงานย่อยแล้ว! ส่งต่องานไปยังขั้นตอน CSAT เรียบร้อย`);
+                this.showToast(`🎉 อนุมัติผ่านเกณฑ์ QC โครงการ ${job.id} (${progress.averageScore} คะแนน) ครบทุกงานย่อยแล้ว! ส่งต่องานไปยังขั้นตอน CSAT เรียบร้อย`);
             },
 
             simulateMockQCJobs() {
@@ -18638,7 +18613,7 @@ const app = {
                     if (!isEvaluated) {
                         actionHtml = `
                             <button class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 ml-auto shadow-xs cursor-pointer hover:scale-105 transition-transform" onclick="app.openCSATModal('${j.id}')">
-                                <i class="ph ph-phone-call"></i> โทรประเมิน (0-5 ดาว)
+                                <i class="ph ph-phone-call"></i> โทรประเมิน (ผ่าน=5 / ไม่ผ่าน=1)
                             </button>
                         `;
                     } else {
@@ -18848,73 +18823,53 @@ const app = {
                     return; // Ignore clicking when read-only
                 }
                 score = Number(score);
-                if (isNaN(score) || score < 0) score = 0;
-                if (score > 5) score = 5;
+                // Binary scoring: ผ่าน = 5, ไม่ผ่าน = 1
+                if (isNaN(score) || score < 3) {
+                    score = 1;
+                } else {
+                    score = 5;
+                }
                 const inputEl = document.getElementById('csat-current-score');
                 if (inputEl) inputEl.value = score;
 
                 const isLocked = Boolean(this.state.csatModalReadOnly);
+                const pointerClass = isLocked ? 'pointer-events-none cursor-default' : 'cursor-pointer';
 
-                // Update 6 score buttons
-                const scoreDescs = {
-                    0: { text: '0.0 - ไม่พึงพอใจอย่างยิ่ง / ปัญหาหนัก', class: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30', exp: 'ลูกค้าไม่พึงพอใจอย่างยิ่ง หรือมีข้อร้องเรียนเกี่ยวกับคุณภาพงาน/การบริการ ต้องส่งเรื่องแก้ไขด่วน' },
-                    1: { text: '1.0 - ต้องปรับปรุงมาก / ต่ำกว่าเกณฑ์', class: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30', exp: 'มีจุดบกพร่องหลายจุด หรือการบริการไม่เป็นไปตามข้อตกลง ต้องติดตามปรับปรุง' },
-                    2: { text: '2.0 - พอใช้ / มีจุดต้องแก้ไข', class: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30', exp: 'งานผ่านเกณฑ์ขั้นต่ำ แต่ลูกค้ายังไม่ประทับใจ มีข้อเสนอแนะให้ปรับปรุง' },
-                    3: { text: '3.0 - ปานกลาง / ตามมาตรฐาน', class: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30', exp: 'ส่งมอบงานได้ตรงตามมาตรฐานทั่วไป ไม่พบข้อบกพร่องสำคัญ' },
-                    4: { text: '4.0 - ดีมาก / พึงพอใจ', class: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30', exp: 'ลูกค้ามีความพึงพอใจในคุณภาพงานและการให้บริการของทีมช่างเป็นอย่างดี' },
-                    5: { text: '5.0 - ยอดเยี่ยม ดีเลิศ', class: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30', exp: 'ลูกค้าพึงพอใจสูงสุด ยินดีแนะนำบอกต่อ และพร้อมใช้งานบริการต่อเนื่อง' }
-                };
+                const btn5 = document.getElementById('csat-btn-score-5');
+                const btn1 = document.getElementById('csat-btn-score-1');
 
-                for (let s = 0; s <= 5; s++) {
-                    const btn = document.getElementById(`csat-btn-score-${s}`);
-                    if (btn) {
-                        const pointerClass = isLocked ? 'pointer-events-none cursor-default' : 'cursor-pointer';
-                        if (s === score) {
-                            btn.className = `csat-score-btn p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition shadow-xs ${pointerClass} ${
-                                s === 0 ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/10 text-rose-600' :
-                                s <= 2 ? 'border-orange-500 ring-2 ring-orange-500/20 bg-orange-500/10 text-orange-600' :
-                                s === 3 ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/10 text-amber-600' :
-                                s === 4 ? 'border-teal-500 ring-2 ring-teal-500/20 bg-teal-500/10 text-teal-600' :
-                                'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/10 text-emerald-600'
-                            }`;
-                        } else {
-                            btn.className = `csat-score-btn p-2 rounded-xl border border-border ${isLocked ? 'opacity-40' : 'hover:border-muted-foreground/40'} flex flex-col items-center justify-center gap-1 transition ${pointerClass} bg-card text-foreground`;
-                        }
+                if (score === 5) {
+                    if (btn5) {
+                        btn5.className = `p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-500/10 text-emerald-700 flex items-center justify-between gap-3 transition shadow-2xs ${pointerClass}`;
+                    }
+                    if (btn1) {
+                        btn1.className = `p-4 rounded-2xl border border-border bg-card text-foreground flex items-center justify-between gap-3 transition ${pointerClass} ${isLocked ? 'opacity-40' : 'hover:border-rose-400'}`;
+                    }
+                } else {
+                    if (btn5) {
+                        btn5.className = `p-4 rounded-2xl border border-border bg-card text-foreground flex items-center justify-between gap-3 transition ${pointerClass} ${isLocked ? 'opacity-40' : 'hover:border-emerald-400'}`;
+                    }
+                    if (btn1) {
+                        btn1.className = `p-4 rounded-2xl border-2 border-rose-500 bg-rose-500/10 text-rose-700 flex items-center justify-between gap-3 transition shadow-2xs ${pointerClass}`;
                     }
                 }
 
                 // Update badge & explanation
-                const info = scoreDescs[score] || scoreDescs[5];
                 const badgeEl = document.getElementById('csat-score-desc-badge');
                 if (badgeEl) {
-                    badgeEl.className = `px-2.5 py-0.5 rounded-full font-bold text-[11px] border ${info.class}`;
-                    badgeEl.innerText = isLocked ? `🔒 ${info.text} (ล็อกคะแนน)` : info.text;
+                    if (score === 5) {
+                        badgeEl.className = 'px-2.5 py-0.5 rounded-full font-bold text-[11px] bg-emerald-500/10 text-emerald-600 border border-emerald-500/20';
+                        badgeEl.innerText = isLocked ? '🔒 ผ่าน = 5 คะแนน (ล็อกผลการประเมิน)' : 'ผ่าน = 5 คะแนน';
+                    } else {
+                        badgeEl.className = 'px-2.5 py-0.5 rounded-full font-bold text-[11px] bg-rose-500/10 text-rose-600 border border-rose-500/20';
+                        badgeEl.innerText = isLocked ? '🔒 ไม่ผ่าน = 1 คะแนน (ล็อกผลการประเมิน)' : 'ไม่ผ่าน = 1 คะแนน';
+                    }
                 }
                 const expEl = document.getElementById('csat-score-explanation');
                 if (expEl) {
-                    expEl.innerText = info.exp;
-                }
-
-                // Update stars visual
-                const starsContainer = document.getElementById('csat-interactive-stars');
-                if (starsContainer) {
-                    let starsHtml = '';
-                    const starPointerClass = isLocked ? 'pointer-events-none cursor-default' : 'hover:scale-110 cursor-pointer';
-                    for (let i = 1; i <= 5; i++) {
-                        if (score === 0) {
-                            starsHtml += `<i class="ph ph-star text-muted-foreground/30 ${starPointerClass} transition" onclick="app.selectCSATScore(${i}, true)" title="${i} ดาว"></i>`;
-                        } else if (i <= score) {
-                            starsHtml += `<i class="ph ph-star-fill text-amber-400 ${starPointerClass} transition" onclick="app.selectCSATScore(${i}, true)" title="${i} ดาว"></i>`;
-                        } else {
-                            starsHtml += `<i class="ph ph-star text-muted-foreground/30 ${starPointerClass} transition" onclick="app.selectCSATScore(${i}, true)" title="${i} ดาว"></i>`;
-                        }
-                    }
-                    starsContainer.innerHTML = starsHtml;
-                    if (isLocked) {
-                        starsContainer.className = 'flex items-center gap-1 text-2xl text-amber-400 pointer-events-none cursor-default opacity-90';
-                    } else {
-                        starsContainer.className = 'flex items-center gap-1 text-2xl text-amber-400 cursor-pointer';
-                    }
+                    expEl.innerText = (score === 5)
+                        ? 'ลูกค้ามีความพึงพอใจในคุณภาพงานและการให้บริการ (บันทึกผล 5 คะแนน)'
+                        : 'ลูกค้าไม่พึงพอใจ หรือพบข้อร้องเรียน/จุดบกพร่องที่ต้องปรับปรุง (บันทึกผล 1 คะแนน)';
                 }
             },
 
@@ -19011,10 +18966,13 @@ const app = {
                     return;
                 }
                 const first = job.csat_photos[0];
+                const scoreLabel = (job.csat_score !== undefined)
+                    ? (job.csat_score >= 3 ? 'CSAT: ผ่าน (5 คะแนน)' : 'CSAT: ไม่ผ่าน (1 คะแนน)')
+                    : 'CSAT: ผ่าน (5 คะแนน)';
                 this.showLightbox(
                     first.url,
                     first.name || `ภาพประกอบ CSAT (${job.id})`,
-                    `CSAT: ${job.csat_score !== undefined ? job.csat_score : 5} ★`,
+                    scoreLabel,
                     job.csat_remarks || 'รูปถ่ายประกอบการประเมินความพึงพอใจลูกค้า',
                     this.formatDateTimeDMY(first.uploaded_at || job.csat_evaluated_at || new Date().toISOString())
                 );
@@ -19088,9 +19046,10 @@ const app = {
                 }).catch(() => {});
 
                 this.hideModal('modal-csat-eval');
+                const scoreDesc = (score >= 3) ? 'ผ่าน (5 คะแนน)' : 'ไม่ผ่าน (1 คะแนน)';
                 const msg = closeNow
-                    ? `✅ บันทึกผล CSAT ${score} ดาว สำหรับ ${job.id} และปิดงานส่งต่อระบบ BMT เรียบร้อยแล้ว`
-                    : `⭐ บันทึกผลการประเมิน CSAT ${score} ดาว สำหรับ ${job.id} แล้ว ส่งต่องานเข้าสู่บริการหลังการขาย`;
+                    ? `✅ บันทึกผล CSAT: ${scoreDesc} สำหรับ ${job.id} และปิดงานส่งต่อระบบ BMT เรียบร้อยแล้ว`
+                    : `✅ บันทึกผลการประเมิน CSAT: ${scoreDesc} สำหรับ ${job.id} แล้ว ส่งต่องานเข้าสู่บริการหลังการขาย`;
                 this.showToast(msg);
 
                 this.renderCSAT();
