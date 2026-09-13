@@ -6,13 +6,15 @@
 ## 📑 สารบัญ (Table of Contents)
 1. [ภาพรวมระบบและสถาปัตยกรรมกระบวนการ (System Overview)](#1-ภาพรวมระบบและสถาปัตยกรรมกระบวนการ)
 2. [บทบาทและหน้าที่ผู้ใช้งาน (User Roles & Responsibilities)](#2-บทบาทและหน้าที่ผู้ใช้งาน)
-3. [ขั้นตอนการปฏิบัติงานมาตรฐาน (Standard Operating Procedure: 6-Step Pipeline)](#3-ขั้นตอนการปฏิบัติงานมาตรฐานของระบบ-pmt-flow-6-step-pipeline-architecture)
+3. [ขั้นตอนการปฏิบัติงานมาตรฐาน (Standard Operating Procedure: Main Pipeline)](#3-ขั้นตอนการปฏิบัติงานมาตรฐานของระบบ-pmt-flow-main-pipeline-architecture)
    - [Step 1: รับเรื่อง & เปิดใบงาน (Survey / Order Intake & Unified Studio)](#step-1-รับเรื่อง--เปิดใบงาน-survey--order-intake--unified-studio)
-   - [Step 2: บันทึก Ticket & แปลง Project (Tickets & Receipts)](#step-2-บันทึก-ticket--แปลง-project-tickets--receipts)
-   - [Step 3: เตรียมแผนงานและทีมช่าง (Project Conversion: BOQ -> Tasks & Assign Tech)](#step-3-เตรียมแผนงานและทีมช่าง-project-conversion-boq---tasks--assign-tech)
-   - [Step 4: ติดตั้ง & แผนงาน Gantt (Gantt Timeline & Daily Work Logs 24h)](#step-4-ติดตั้ง--แผนงาน-gantt-gantt-timeline--daily-work-logs-24h)
-   - [Step 5: ตรวจรับงาน QC (QC Online & On-site Inspection)](#step-5-ตรวจรับงาน-qc-qc-online--on-site-inspection)
-   - [Step 6: ประเมินความพึงพอใจลูกค้า & ปิดงาน (CSAT Survey & Job Closeout)](#step-6-ประเมินความพึงพอใจลูกค้า--ปิดงาน-csat-survey--job-closeout)
+     - *งานย่อย: แนบแบบแปลน CAD/3D & ใส่ BOQ ประมาณการราคา*
+   - [Step 2: บันทึก Ticket & แปลง Project (Tickets, Receipts & Project Conversion)](#step-2-บันทึก-ticket--แปลง-project-tickets-receipts--project-conversion-studio)
+     - *งานย่อยที่ 1: แนบใบเสร็จ และสัญญา*
+     - *งานย่อยที่ 2: แปลง BOQ เป็น Project*
+   - [การควบคุมคุณภาพ & แผนงาน: แผนงาน Gantt และบันทึกงานช่างประจำวัน](#การควบคุมคุณภาพ--แผนงาน-แผนงาน-gantt-และบันทึกงานช่างประจำวัน)
+   - [การควบคุมคุณภาพ: ตรวจรับงาน QC (QC Online & On-site Inspection)](#การควบคุมคุณภาพ-ตรวจรับงาน-qc-qc-online--on-site-inspection)
+   - [ประเมินความพึงพอใจลูกค้า & ปิดงาน (CSAT Survey & Job Closeout)](#ประเมินความพึงพอใจลูกค้า--ปิดงาน-csat-survey--job-closeout)
 4. [คลังข้อมูลกลางและการดำเนินงาน (Central Repositories & Operations)](#4-คลังข้อมูลกลางและการดำเนินงาน)
    - [4.1 คลังแบบแปลนและไฟล์ CAD กลาง (Central Blueprints & CAD Repository)](#41-คลังแบบแปลนและไฟล์-cad-กลาง-central-blueprints--cad-repository)
    - [4.2 คลังรายการประมาณการราคา BOQ กลาง (Central BOQ Repository)](#42-คลังรายการประมาณการราคา-boq-กลาง-central-boq-repository)
@@ -28,16 +30,19 @@
 
 ```mermaid
 flowchart LR
-    A["🛒 ระบบ AE / INT<br/>(ขาย & จองคิว)"] -->|"Webhook / API<br/>Auto-Ingest"| B["⚡ ระบบ PMT Flow<br/>(6-Step Pipeline • Gantt • QC)"]
+    A["🛒 ระบบ AE / INT<br/>(ขาย & จองคิว)"] -->|"Webhook / API<br/>Auto-Ingest"| B["⚡ ระบบ PMT Flow<br/>(Intake Studio • Tickets & Conversion • Gantt • QC)"]
     B -->|"Close Job API<br/>Auto-Sync"| C["🏢 ระบบ BMT<br/>(บัญชี & ปิดงานสมบูรณ์)"]
 ```
 
 ### จุดเด่นของ Workflow:
-1. **One-Stop Order Studio (Step 1):** รวมการรับ Order, แนบแบบแปลน CAD/PDF และจัดทำรายการประมาณการ BOQ ไว้ในหน้าต่างเดียวจบในขั้นตอนแรก
-2. **Dual Fast-track & Project Track:** รองรับทั้งงาน Quick Services (จบงานเร็วใน 1 คลิกข้าม Gantt ไป QC Online ใน Step 5) และงาน Renovate (แปลงค่าแรงเข้าสู่ระบบวิศวกรรมและผัง Gantt)
-3. **GPS & Photo Verification:** ยืนยันพิกัดเข้างานจริงด้วย Geo-fence รัศมี 400 เมตร พร้อมตรวจสอบภาพถ่ายหน้างาน 5 รูปหลัก
-4. **Standardized QC Inspection (Step 5):** ตรวจสอบคุณภาพงานทั้งแบบ QC Online (งานด่วน) และ QC On-site พร้อมระบบประเมินงานย่อย BOQ 1-5 ดาว
-5. **CSAT to BMT (Step 6):** บันทึกคะแนนความพึงพอใจลูกค้า 5 ดาว และส่งข้อมูลปิดงานเข้าสู่ระบบบัญชี/การเงิน BMT อัตโนมัติ
+1. **One-Stop Order Studio (Step 1):** รวมการรับ Order, แนบแบบแปลน CAD/PDF และจัดทำรายการประมาณการ BOQ ไว้ในหน้าต่างเดียวจบในขั้นตอนแรก พร้อม Subtasks กรองงานย่อย
+2. **Step 2 Ticket & Conversion Studio:** รวม 2 งานย่อยที่เชื่อมโยงกันอย่างแม่นยำ:
+   - **งานย่อยที่ 1 (แนบใบเสร็จ และสัญญา):** เปิดใบสั่งงาน Ticket และแนบสลิปการชำระเงิน
+   - **งานย่อยที่ 2 (แปลง BOQ เป็น Project):** แปลงค่าแรง BOQ เป็น Task โครงการเข้าสู่ Gantt Chart
+3. **Dual Fast-track & Project Track:** รองรับทั้งงาน Quick Services (จบงานเร็วใน 1 คลิกข้าม Gantt ไป QC Online) และงาน Renovate (แปลงค่าแรงเข้าสู่ระบบวิศวกรรมและผัง Gantt)
+4. **GPS & Photo Verification:** ยืนยันพิกัดเข้างานจริงด้วย Geo-fence รัศมี 400 เมตร พร้อมตรวจสอบภาพถ่ายหน้างาน 5 รูปหลัก
+5. **Standardized QC Inspection:** ตรวจสอบคุณภาพงานทั้งแบบ QC Online (งานด่วน) และ QC On-site พร้อมระบบประเมินงานย่อย BOQ 1-5 ดาว
+6. **CSAT to BMT:** บันทึกคะแนนความพึงพอใจลูกค้า 5 ดาว และส่งข้อมูลปิดงานเข้าสู่ระบบบัญชี/การเงิน BMT อัตโนมัติ
 
 ---
 
@@ -45,7 +50,7 @@ flowchart LR
 
 | บทบาท (Role) | สิทธิ์และหน้าที่หลักในระบบ PMT |
 | :--- | :--- |
-| **Project Manager (PM) / Solutions Architect (SA)** | บริหารจัดการคำสั่งซื้อผ่าน One-Stop Studio ใน Step 1, จัดสรรทีมช่าง, และติดตามภาพรวมความคืบหน้าบน Gantt Timeline |
+| **Project Manager (PM) / Solutions Architect (SA)** | บริหารจัดการคำสั่งซื้อผ่าน One-Stop Studio ใน Step 1, จัดการ Ticket และแปลง BOQ ใน Step 2, และติดตามภาพรวมความคืบหน้าบน Gantt Timeline |
 | **ทีมช่างเทคนิค (Field Technician)** | กด Check-in ยืนยันพิกัด GPS, บันทึกรูปถ่ายหน้างาน (5 รูปหลัก) และลงบันทึกประจำวัน (Daily Logs) |
 | **เจ้าหน้าที่ควบคุมคุณภาพ (QC Inspector)** | บันทึกข้อควรระวังหน้างาน, ตรวจสอบ Checklist มาตรฐาน (PASS/FAIL), ประเมินงานย่อย BOQ 1-5 ดาว (QC Online / On-site) |
 | **Cost Controller / Designer** | จัดการคลังแบบแปลน (Blueprints) และคลังรายการ BOQ กลาง, นำเข้า/ส่งออกและวิเคราะห์ต้นทุน |
@@ -53,25 +58,23 @@ flowchart LR
 
 ---
 
-## 3. ขั้นตอนการปฏิบัติงานมาตรฐานของระบบ PMT Flow (6-Step Pipeline Architecture)
+## 3. ขั้นตอนการปฏิบัติงานมาตรฐานของระบบ PMT Flow (Main Pipeline Architecture)
 
-ระบบ PMT Flow จัดลำดับการทำงานเป็น 6 ขั้นตอนหลัก (6-Step Pipeline):
+ระบบ PMT Flow จัดลำดับการทำงานผ่าน Pipeline หลัก และโมดูลควบคุมคุณภาพ & แผนงาน:
 
 ```mermaid
 graph TD
     S1["Step 1: ศูนย์รับ Order, Design & BOQ Studio<br/>(Intake + CAD Blueprints + BOQ Pricing)"]
     
-    S1 --> S2["Step 2: บันทึก Ticket & แนบสลิปใบเสร็จ<br/>(Tickets & Receipts)"]
+    S1 --> S2["Step 2: บันทึก Ticket & แปลง BOQ เข้า Project<br/>(1. แนบใบเสร็จ & สัญญา | 2. แปลง BOQ เข้า Project)"]
     
-    S2 -->|Quick Services (Fast-track)| S5["Step 5: ตรวจรับงาน QC<br/>(QC Online ผ่านรูปถ่ายหน้างาน)"]
-    S2 -->|Renovate Projects| S3["Step 3: เตรียมแผนงานและทีมช่าง<br/>(Labor-to-Task Conversion & Assign Tech)"]
+    S2 -->|Quick Services (Fast-track)| QC["การควบคุมคุณภาพ (QC)<br/>(QC Online ผ่านรูปถ่ายหน้างาน)"]
+    S2 -->|Renovate Projects| GANTT["แผนงาน Gantt & Daily Logs<br/>(Gantt Projects Timeline & Daily Work Logs 24h)"]
     
-    S3 --> S4["Step 4: ติดตั้ง & แผนงาน Gantt<br/>(Gantt Projects Timeline & Daily Work Logs 24h)"]
+    GANTT --> QC2["การควบคุมคุณภาพ (QC)<br/>(QC On-site & ประเมินงานย่อย BOQ)"]
     
-    S4 --> S5B["Step 5: ตรวจรับงาน QC<br/>(QC On-site & ประเมินงานย่อย BOQ)"]
-    
-    S5 --> S6["Step 6: ประเมินความพึงพอใจลูกค้า & ปิดงาน<br/>(CSAT Survey & Close BMT)"]
-    S5B --> S6
+    QC --> CSAT["ความพึงพอใจลูกค้า (CSAT) & ปิดงาน<br/>(CSAT Survey & Close BMT)"]
+    QC2 --> CSAT
 ```
 
 ---
@@ -92,45 +95,41 @@ graph TD
 
 ---
 
-### Step 2: บันทึก Ticket & แปลง Project (Tickets & Receipts / Slips)
-*(สำหรับคู่มือฝึกอบรมฉบับสมบูรณ์ โปรดดูที่: [คู่มือการใช้งาน_Step4_บันทึกTicketและใบเสร็จ.md](คู่มือการใช้งาน_Step4_บันทึกTicketและใบเสร็จ.md))*
+### Step 2: บันทึก Ticket & แปลง Project (Tickets, Receipts & Project Conversion Studio)
+*(สำหรับคู่มือฝึกอบรมฉบับสมบูรณ์ โปรดดูที่: [คู่มือการใช้งาน_Step4_บันทึกTicketและใบเสร็จ.md](คู่มือการใช้งาน_Step4_บันทึกTicketและใบเสร็จ.md) และ [คู่มือการใช้งาน_Step5_บันทึกBOQเข้าProjectและGantt.md](คู่มือการใช้งาน_Step5_บันทึกBOQเข้าProjectและGantt.md))*
 
-1. เปิดใบสั่งงาน (Work Ticket) สำหรับมอบหมายให้ทีมช่างเข้าปฏิบัติงาน
-2. บันทึกและแนบหลักฐานสลิปการชำระเงิน หรือใบเสร็จรับเงินจากลูกค้า
-3. เมื่อตรวจสอบความถูกต้องเรียบร้อย:
-   - งาน Quick Services: ส่งลัดไปยัง **Step 5: ตรวจรับงาน QC (QC Online)**
-   - งาน Renovate: ส่งต่อไปยัง **Step 3: เตรียมแผนงานและทีมช่าง (Project Conversion)**
-
----
-
-### Step 3: เตรียมแผนงานและทีมช่าง (Project Conversion: BOQ -> Tasks & Assign Tech)
-*(สำหรับคู่มือฝึกอบรมฉบับสมบูรณ์ โปรดดูที่: [คู่มือการใช้งาน_Step5_บันทึกBOQเข้าProjectและGantt.md](คู่มือการใช้งาน_Step5_บันทึกBOQเข้าProjectและGantt.md))*
-
-1. ระบบดึงเฉพาะรายการหมวด **"ค่าแรง / บริการ"** จาก BOQ มาแปลงเป็น Tasks บน Gantt Chart โดยอัตโนมัติ
-2. กำหนดช่วงเวลาปฏิบัติงาน (Start - End Date รูปแบบ 24 ชม.) และมอบหมายทีมช่างหลักและช่างเสริม
-3. กดปุ่มบันทึกและแปลงเข้าสู่แผนงานโครงการใน Step 4
+หน้าจอ Step 2 มี 2 งานย่อยหลัก (Subtasks) ที่สามารถเลือกสลับดูข้อมูลผ่านแถบสวิตช์ด้านบน (`#step2-subtasks-bar`) หรือเลือกจากเมนูด้านซ้าย:
+1. **งานย่อยที่ 1: แนบใบเสร็จ และสัญญา (`#step2-subview-ticket`):**
+   - เปิดใบสั่งงาน (Work Ticket) สำหรับมอบหมายให้ทีมช่างเข้าปฏิบัติงาน
+   - บันทึกและแนบหลักฐานสลิปการชำระเงิน หรือใบเสร็จรับเงิน และสัญญาจ้างจากลูกค้า
+   - สำหรับงานบริการติดตั้งด่วน (Quick Services): เมื่อบันทึกใบเสร็จเรียบร้อย จะส่งลัดไปยัง **Step 5: ตรวจรับงาน QC (QC Online)** ได้ทันที
+2. **งานย่อยที่ 2: แปลง BOQ เป็น Project (`#step2-subview-conversion`):**
+   - ศูนย์กลางการแปลงรายการ BOQ (Labor-to-Task Conversion Studio) สำหรับงาน Renovate
+   - ระบบดึงเฉพาะรายการหมวด **"ค่าแรง / บริการ"** จาก BOQ มาแปลงเป็น Tasks บน Gantt Chart โดยอัตโนมัติ (Labor-to-Task Rule)
+   - กำหนดช่วงเวลาปฏิบัติงาน (Start - End Date รูปแบบ 24 ชม.) และมอบหมายทีมช่างหลักและช่างเสริม
+   - กดปุ่มบันทึกและแปลงเข้าสู่แผนงานโครงการ Gantt
 
 ---
 
-### Step 4: ติดตั้ง & แผนงาน Gantt (Gantt Projects Timeline & Daily Work Logs 24h)
+### การควบคุมคุณภาพ & แผนงาน: แผนงาน Gantt และบันทึกงานช่างประจำวัน (Gantt Timeline & Daily Work Logs 24h)
 *(สำหรับคู่มือฝึกอบรมฉบับสมบูรณ์ โปรดดูที่: [คู่มือการใช้งาน_การเข้าหน้างานและCheckIn.md](คู่มือการใช้งาน_การเข้าหน้างานและCheckIn.md))*
 
 1. ติดตามสถานะงานติดตั้งและความคืบหน้าโครงการบน Gantt Timeline แบบ Real-time
 2. ทีมช่าง Check-in GPS และบันทึก Daily Technician Work Logs ประจำวัน (เวลา 24 ชม. พร้อมแนบรูปถ่าย 5 รูป)
-3. เมื่อการติดตั้งหน้างานเสร็จสมบูรณ์ ส่งต่องานไปยังขั้นตอนตรวจรับคุณภาพใน Step 5
+3. เมื่อการติดตั้งหน้างานเสร็จสมบูรณ์ ส่งต่องานไปยังขั้นตอนตรวจรับคุณภาพ QC
 
 ---
 
-### Step 5: ตรวจรับงาน QC (QC Online & On-site Inspection)
+### การควบคุมคุณภาพ: ตรวจรับงาน QC (QC Online & On-site Inspection)
 *(สำหรับคู่มือฝึกอบรมฉบับสมบูรณ์ โปรดดูที่: [คู่มือการใช้งาน_Step6_ตรวจรับรองคุณภาพQC.md](คู่มือการใช้งาน_Step6_ตรวจรับรองคุณภาพQC.md))*
 
 1. **QC Online (สำหรับงาน Quick Services):** ตรวจสอบรูปถ่ายหน้างาน 5 รูปหลักที่ช่างอัปโหลดผ่าน Visit Plan และอนุมัติผลผ่านระบบ
 2. **QC On-site (สำหรับงาน Renovate):** จองคิวช่าง Lead QC เข้าตรวจสอบหน้างานจริงพร้อมประเมิน Checklist มาตรฐาน 5 ข้อ และให้คะแนนงานย่อย BOQ 1-5 ดาว
-3. เมื่อผ่านการตรวจรับรองคุณภาพ ส่งต่อไปยัง Step 6 เพื่อประเมินความพึงพอใจลูกค้า
+3. เมื่อผ่านการตรวจรับรองคุณภาพ ส่งต่อไปยังการประเมินความพึงพอใจลูกค้า (CSAT)
 
 ---
 
-### Step 6: ประเมินความพึงพอใจลูกค้า & ปิดงาน (CSAT Survey & Job Closeout)
+### ประเมินความพึงพอใจลูกค้า & ปิดงาน (CSAT Survey & Job Closeout)
 *(สำหรับคู่มือฝึกอบรมฉบับสมบูรณ์ โปรดดูที่: [คู่มือการใช้งาน_Step7_CSATและบริการหลังการขาย.md](คู่มือการใช้งาน_Step7_CSATและบริการหลังการขาย.md))*
 
 1. Contact Center โทรสอบถามความพึงพอใจลูกค้า บันทึกผลประเมินตามเกณฑ์ระบบ (ผ่าน = 5 คะแนน, ไม่ผ่าน = 1 คะแนน) และข้อเสนอแนะ

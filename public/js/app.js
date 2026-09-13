@@ -2498,7 +2498,7 @@ const app = {
                     'jobs': 'Step 1: รับ Order, Design & BOQ Studio',
                     'job-detail': `รายละเอียดงาน ${param || ''}`,
                     'tickets': 'Step 2: บันทึก Ticket & แปลง BOQ เข้า Project',
-                    'project-conversion': 'Step 3: เตรียมแผนงานและทีมช่าง (Work Preparation & Dispatch)',
+                    'project-conversion': 'Step 2: แปลง BOQ เป็น Project (Project Conversion Studio)',
                     'gantt': 'Step 4: แผนงาน & บันทึกช่างประจำวัน (Gantt Timeline)',
                     'daily-logs': 'บันทึกงานช่างประจำวัน (Daily Technician Work Log)',
                     'qc': 'Step 5: การตรวจรับรองคุณภาพ (Quality Control - Step 5)',
@@ -2526,9 +2526,16 @@ const app = {
                 // Page specific renders
                 if(view === 'jobs') this.renderJobs();
                 if(view === 'blueprints') this.renderBlueprints();
-                if(view === 'tickets') this.renderTickets();
+                if(view === 'tickets') {
+                    const subtask = this.state.step2Subtask || 'all';
+                    this.switchStep2Subtask(subtask, param);
+                }
                 if(view === 'boq') this.renderBOQPage(param);
-                if(view === 'project-conversion') this.renderProjectConversion(param);
+                if(view === 'project-conversion') {
+                    this.navigate('tickets');
+                    this.switchStep2Subtask('conversion', param);
+                    return;
+                }
                 if(view === 'dashboard') {
                     this.renderDashboard();
                     setTimeout(() => this.updateCharts(), 50);
@@ -3376,6 +3383,62 @@ const app = {
                     const sideSub = document.getElementById(`subnav-${st}`);
                     if (sideSub) {
                         if (st === current) {
+                            sideSub.classList.add('bg-muted', 'text-foreground', 'font-bold');
+                            sideSub.classList.remove('text-muted-foreground');
+                        } else {
+                            sideSub.classList.remove('bg-muted', 'text-foreground', 'font-bold');
+                            sideSub.classList.add('text-muted-foreground');
+                        }
+                    }
+                });
+            },
+
+            switchStep2Subtask(subtask = 'all', jobId = null) {
+                this.state.step2Subtask = subtask;
+                if (this.state.currentView !== 'tickets') {
+                    this.navigate('tickets');
+                    return;
+                }
+
+                const subviewTicket = document.getElementById('step2-subview-ticket');
+                const subviewConversion = document.getElementById('step2-subview-conversion');
+
+                if (subtask === 'all') {
+                    if (subviewTicket) subviewTicket.classList.remove('hidden-view');
+                    if (subviewConversion) subviewConversion.classList.remove('hidden-view');
+                    this.renderTickets();
+                    this.renderProjectConversion(jobId);
+                } else if (subtask === 'ticket') {
+                    if (subviewTicket) subviewTicket.classList.remove('hidden-view');
+                    if (subviewConversion) subviewConversion.classList.add('hidden-view');
+                    this.renderTickets();
+                } else if (subtask === 'conversion') {
+                    if (subviewTicket) subviewTicket.classList.add('hidden-view');
+                    if (subviewConversion) subviewConversion.classList.remove('hidden-view');
+                    this.renderProjectConversion(jobId);
+                }
+
+                this.updateStep2SubtaskUI();
+                this.updateStepBadges();
+            },
+
+            updateStep2SubtaskUI() {
+                const current = this.state.step2Subtask || 'all';
+                ['all', 'ticket', 'conversion'].forEach(s => {
+                    const btn = document.getElementById(`btn-step2-subtask-${s}`);
+                    if (btn) {
+                        if (s === current) {
+                            btn.className = "step2-subtask-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-500 text-white shadow-xs flex items-center gap-1.5 cursor-pointer transition";
+                        } else {
+                            btn.className = "step2-subtask-btn px-3 py-1.5 rounded-xl text-xs font-medium bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted border border-border flex items-center gap-1.5 cursor-pointer transition";
+                        }
+                    }
+                });
+
+                ['ticket', 'conversion'].forEach(s => {
+                    const sideSub = document.getElementById(`subnav-step2-${s}`);
+                    if (sideSub) {
+                        if (s === current || (current === 'all' && s === 'ticket')) {
                             sideSub.classList.add('bg-muted', 'text-foreground', 'font-bold');
                             sideSub.classList.remove('text-muted-foreground');
                         } else {
@@ -4486,20 +4549,49 @@ const app = {
                 if (pillBoq) pillBoq.innerText = boqCount;
                 if (pillAll) pillAll.innerText = step1Count;
 
-                // Step 2: Tickets (Queue of jobs waiting for Ticket or issued tickets)
+                // Step 2: Tickets & Project Conversion Hub
+                const ticketJobIds = new Set((DB.tickets || []).map(t => t.job_id || t.jobId));
+                const allTasks = DB.tasks || [];
+                const convertedJobIds = new Set(allTasks.map(t => t.jobId));
+
+                // Step 2 Task 1: แนบใบเสร็จ และสัญญา
+                const step2TicketJobs = allJobs.filter(j => 
+                    !ticketJobIds.has(j.id) &&
+                    (
+                        (this.isQuickJob(j) && (j.pmt_accepted || (j.step_timestamps && (j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at)))) ||
+                        (j.boq_items && j.boq_items.length > 0) ||
+                        (j.step_timestamps && (j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at))
+                    )
+                );
+                const ticketCount = step2TicketJobs.length > 0 ? step2TicketJobs.length : (DB.tickets || []).length;
+
+                // Step 2 Task 2: แปลง BOQ เป็น Project
+                const step2ConversionJobs = allJobs.filter(j => 
+                    !this.isQuickJob(j) &&
+                    j.pmt_accepted &&
+                    ((j.step_timestamps && (j.step_timestamps.step5_project_at || j.step_timestamps.step3_conversion_at)) ||
+                     (DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id) ||
+                     j.ticket_id) &&
+                    !convertedJobIds.has(j.id)
+                );
+                const conversionCount = step2ConversionJobs.length > 0 ? step2ConversionJobs.length : allJobs.filter(j => !this.isQuickJob(j) && !convertedJobIds.has(j.id)).length;
+
+                const step2TotalCount = ticketCount + conversionCount;
+
                 const sidebarTicket = document.getElementById('sidebar-ticket-count');
-                if (sidebarTicket) {
-                    const ticketJobIds = new Set((DB.tickets || []).map(t => t.job_id || t.jobId));
-                    const step2QueueCount = allJobs.filter(j => 
-                        !ticketJobIds.has(j.id) &&
-                        (
-                            (this.isQuickJob(j) && (j.pmt_accepted || (j.step_timestamps && (j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at)))) ||
-                            (j.boq_items && j.boq_items.length > 0) ||
-                            (j.step_timestamps && (j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at))
-                        )
-                    ).length;
-                    sidebarTicket.innerText = step2QueueCount > 0 ? step2QueueCount : (DB.tickets || []).length;
-                }
+                if (sidebarTicket) sidebarTicket.innerText = step2TotalCount;
+
+                const subTicket = document.getElementById('sidebar-sub-ticket-count');
+                const subConversion = document.getElementById('sidebar-sub-conversion-count');
+                if (subTicket) subTicket.innerText = ticketCount;
+                if (subConversion) subConversion.innerText = conversionCount;
+
+                const pillStep2All = document.getElementById('step2-pill-all-count');
+                const pillStep2Ticket = document.getElementById('step2-pill-ticket-count');
+                const pillStep2Conversion = document.getElementById('step2-pill-conversion-count');
+                if (pillStep2All) pillStep2All.innerText = step2TotalCount;
+                if (pillStep2Ticket) pillStep2Ticket.innerText = ticketCount;
+                if (pillStep2Conversion) pillStep2Conversion.innerText = conversionCount;
 
                 // Step 3: Tasks & Conversion (Work Preparation & Dispatch)
                 const sidebarTask = document.getElementById('sidebar-task-count');
@@ -5490,7 +5582,7 @@ const app = {
 
                 const boqItems = job.boq_items || [];
                 if (boqItems.length === 0) {
-                    this.showToast(`⚠️ ไม่สามารถย้ายไป Step 3 ได้: คำสั่งซื้อ [${job.id}] ยังไม่มีรายการ BOQ`);
+                    this.showToast(`⚠️ ไม่สามารถย้ายไป Step 2 งานย่อย 2 ได้: คำสั่งซื้อ [${job.id}] ยังไม่มีรายการ BOQ`);
                     return;
                 }
 
@@ -5500,7 +5592,7 @@ const app = {
                 job.step_timestamps.step5_project_at = now;
                 job.progress = Math.max(job.progress || 0, 80);
                 
-                this.recordStepTimestamp(job.id, 'step3_conversion_at', now, 'ส่งต่องานเข้าสู่คิวแปลงเข้า Project (Step 3)');
+                this.recordStepTimestamp(job.id, 'step3_conversion_at', now, 'ส่งต่องานเข้าสู่คิวแปลงเข้า Project (Step 2 งานย่อย 2)');
                 this.persistJobs();
 
                 // Sync with backend server
@@ -5514,10 +5606,10 @@ const app = {
                 }).catch(() => {});
 
                 this.updateStepBadges();
-                this.showToast(`✅ ย้าย Order [${job.id}] เข้าสู่คิว "Step 3: บันทึก BOQ เข้า Project & Gantt" สำเร็จ`);
+                this.showToast(`✅ ย้าย Order [${job.id}] เข้าสู่คิว "Step 2 งานย่อย 2: แปลง BOQ เป็น Project" สำเร็จ <button onclick="app.switchStep2Subtask('conversion', '${job.id}')" class="ml-2 font-bold text-amber-400 hover:underline cursor-pointer">เปิดดูงานย่อย 2 (แปลง BOQ) →</button>`);
 
                 if (this.state.currentView === 'tickets') {
-                    this.renderTickets();
+                    this.switchStep2Subtask('conversion', jobId);
                 }
                 if (this.state.currentView === 'job-detail') {
                     this.renderJobDetail();
@@ -12755,16 +12847,20 @@ const app = {
                 }
                 const boqItems = job ? (job.boq_items || []) : [];
                 if (boqItems.length === 0) {
-                    this.showToast(`⚠️ ไม่สามารถย้ายไป Step 3 ได้: โครงการ ${targetJobId} ยังไม่มีรายการ BOQ`);
+                    this.showToast(`⚠️ ไม่สามารถย้ายไป Step 2 งานย่อย 2 ได้: โครงการ ${targetJobId} ยังไม่มีรายการ BOQ`);
                     return;
                 }
                 this.state.selectedConversionJobId = targetJobId;
                 this.state.selectedGanttJobId = targetJobId;
-                this.navigate('project-conversion', targetJobId);
-                this.showToast(`🚀 เข้าสู่ Step 3: พร้อมเตรียมแผนงานและทีมช่าง โครงการ ${targetJobId}`);
+                this.switchStep2Subtask('conversion', targetJobId);
+                this.showToast(`🚀 เข้าสู่ Step 2 (งานย่อย 2: แปลง BOQ เป็น Project) โครงการ ${targetJobId}`);
             },
 
             proceedToStep3Project(jobId) {
+                return this.proceedToStep5Project(jobId);
+            },
+
+            proceedToStep2Conversion(jobId) {
                 return this.proceedToStep5Project(jobId);
             },
 

@@ -334,14 +334,33 @@
                                 </a>
                             </div>
                         </div>
-                        <!-- Step 2: บันทึก Ticket & ใบเสร็จ -->
-                        <a href="#" onclick="app.navigate('tickets')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-tickets">
-                            <div class="flex items-center gap-2.5">
-                                <span class="w-5 h-5 rounded-md bg-emerald-500/15 text-emerald-600 text-[10px] font-mono font-bold flex items-center justify-center border border-emerald-500/30 shrink-0">2</span>
-                                <span class="truncate font-semibold">Step 2: บันทึก Ticket & ใบเสร็จ</span>
+                        <!-- Step 2: บันทึก Ticket & แปลง BOQ พร้อม task งานย่อย -->
+                        <div>
+                            <a href="#" onclick="app.navigate('tickets'); app.switchStep2Subtask('all');" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-tickets">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-5 h-5 rounded-md bg-emerald-500/15 text-emerald-600 text-[10px] font-mono font-bold flex items-center justify-center border border-emerald-500/30 shrink-0">2</span>
+                                    <span class="truncate font-semibold">Step 2: บันทึก Ticket & แปลง BOQ</span>
+                                </div>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-mono font-medium shrink-0" id="sidebar-ticket-count">0</span>
+                            </a>
+                            <!-- Task งานย่อย: 1. แนบใบเสร็จ และสัญญา, 2. แปลง BOQ เป็น Project -->
+                            <div class="ml-6 pl-2.5 border-l-2 border-border/70 space-y-0.5 my-1" id="sidebar-step2-subtasks">
+                                <a href="#" onclick="app.switchStep2Subtask('ticket')" class="subtask-link flex items-center justify-between px-2 py-1.5 rounded-md text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all group cursor-pointer" id="subnav-step2-ticket" title="งานย่อย 1: แนบใบเสร็จ และสัญญา">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 group-hover:scale-125 transition-transform shrink-0"></span>
+                                        <span class="truncate font-medium">1. แนบใบเสร็จ &amp; สัญญา</span>
+                                    </div>
+                                    <span class="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 font-mono font-medium shrink-0" id="sidebar-sub-ticket-count">0</span>
+                                </a>
+                                <a href="#" onclick="app.switchStep2Subtask('conversion')" class="subtask-link flex items-center justify-between px-2 py-1.5 rounded-md text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all group cursor-pointer" id="subnav-step2-conversion" title="งานย่อย 2: แปลง BOQ เป็น Project">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 group-hover:scale-125 transition-transform shrink-0"></span>
+                                        <span class="truncate font-medium">2. แปลง BOQ เป็น Project</span>
+                                    </div>
+                                    <span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 font-mono font-medium shrink-0" id="sidebar-sub-conversion-count">0</span>
+                                </a>
                             </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-mono font-medium shrink-0" id="sidebar-ticket-count">0</span>
-                        </a>
+                        </div>
                     </nav>
                 </div>
 
@@ -1400,42 +1419,87 @@
                     </div>
                 </div>
 
-                <!-- STEP 2: TICKETS & RECEIPTS VIEW -->
+                <!-- STEP 2: TICKETS, RECEIPTS & PROJECT CONVERSION VIEW -->
                 <div id="page-tickets" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">Step 2</span>
                                 <span class="text-2xl">🧾</span>
-                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">บันทึก Ticket ใบเสร็จ & แปลง BOQ เข้า Project (Tickets & Conversion)</h2>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight" id="step2-page-title">บันทึก Ticket &amp; แนบใบเสร็จ / แปลง BOQ เข้า Project</h2>
                             </div>
-                            <p class="text-xs text-muted-foreground mt-1">บันทึกหมายเลข Ticket ชำระเงิน แนบไฟล์สลิปใบเสร็จ และแปลงรายการค่าแรง BOQ เข้าสู่แผนงานโครงการ (Labor-to-Task) ครบวงจรในขั้นตอนเดียว</p>
+                            <p class="text-xs text-muted-foreground mt-1" id="step2-page-subtitle">บันทึกหมายเลข Ticket ชำระเงิน แนบไฟล์สลิปใบเสร็จ และแปลงรายการค่าแรง BOQ เข้าสู่แผนงานโครงการ (Labor-to-Task) ครบวงจร</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2.5">
-                            <select id="filter-tickets-service" onchange="app.renderTickets()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-emerald-500">
-                                <option value="all">ทุกประเภทบริการ</option>
-                                <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
-                                <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
-                                <option value="Renovate ครัว">Renovate ครัว</option>
-                                <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
-                            </select>
-                            <select id="filter-tickets-status" onchange="app.renderTickets()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-emerald-500">
-                                <option value="STEP4_QUEUE" selected>🧾 คิวงาน Step 2 (รอออก Ticket & สลิป)</option>
-                                <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
-                                <option value="NO_TICKET">ยังไม่ออก Ticket (No Ticket)</option>
-                                <option value="HAS_TICKET">ออก Ticket แล้ว (Has Ticket)</option>
-                                <option value="VERIFIED">ตรวจสอบแล้ว (Verified)</option>
-                            </select>
                             <button onclick="app.showStep2TrainingGuide()" class="btn-artifact-secondary text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 2 (Tickets & Receipts)">
                                 <i class="ph ph-graduation-cap text-emerald-500 text-sm"></i>
                                 <span>คู่มือ Training Step 2</span>
                             </button>
                             <button onclick="app.openCreateTicketModal()" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
                                 <i class="ph ph-plus-circle text-sm"></i>
-                                <span>+ บันทึก Ticket & ใบเสร็จใหม่</span>
+                                <span>+ บันทึก Ticket &amp; ใบเสร็จใหม่</span>
+                            </button>
+                            <button onclick="app.openConvertBOQToTasksModal(app.state.selectedConversionJobId || app.state.selectedGanttJobId)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white cursor-pointer">
+                                <i class="ph ph-lightning text-sm"></i>
+                                <span>⚡ แปลง BOQ เป็น Task ใน Gantt</span>
                             </button>
                         </div>
                     </div>
+
+                    <!-- Step 2 Subtask Switcher Bar (Task งานย่อย: 1. แนบใบเสร็จ และสัญญา / 2. แปลง BOQ เป็น Project) -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-card border border-border shadow-xs" id="step2-subtasks-bar">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-xs font-bold text-foreground flex items-center gap-1.5 mr-1">
+                                <i class="ph ph-git-fork text-emerald-500 text-sm"></i> Task งานย่อย:
+                            </span>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button type="button" onclick="app.switchStep2Subtask('all')" class="step2-subtask-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-500 text-white shadow-xs flex items-center gap-1.5 cursor-pointer transition" data-subtask="all" id="btn-step2-subtask-all">
+                                    <span>ทั้งหมด</span>
+                                    <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 text-white font-mono font-bold" id="step2-pill-all-count">0</span>
+                                </button>
+                                <button type="button" onclick="app.switchStep2Subtask('ticket')" class="step2-subtask-btn px-3 py-1.5 rounded-xl text-xs font-medium bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted border border-border flex items-center gap-1.5 cursor-pointer transition" data-subtask="ticket" id="btn-step2-subtask-ticket">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    <span>1. แนบใบเสร็จ และสัญญา</span>
+                                    <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-500/10 text-emerald-600 font-mono font-bold" id="step2-pill-ticket-count">0</span>
+                                </button>
+                                <button type="button" onclick="app.switchStep2Subtask('conversion')" class="step2-subtask-btn px-3 py-1.5 rounded-xl text-xs font-medium bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted border border-border flex items-center gap-1.5 cursor-pointer transition" data-subtask="conversion" id="btn-step2-subtask-conversion">
+                                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                    <span>2. แปลง BOQ เป็น Project</span>
+                                    <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/10 text-amber-600 font-mono font-bold" id="step2-pill-conversion-count">0</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                            <i class="ph ph-info text-xs text-emerald-500"></i>
+                            <span>เลือก Task งานย่อยเพื่อสลับดูการแนบสลิป/สัญญา หรือการแปลงค่าแรงเข้า Project</span>
+                        </div>
+                    </div>
+
+                    <!-- SUBVIEW 1: แนบใบเสร็จ และสัญญา (TICKETS, RECEIPTS & CONTRACTS) -->
+                    <div id="step2-subview-ticket" class="space-y-6">
+                        <!-- Filters for Tickets -->
+                        <div class="flex flex-wrap items-center justify-between gap-3 bg-muted/30 p-3 rounded-xl border border-border">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                <span class="text-xs font-bold text-foreground">ตัวกรองคิว Ticket:</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2.5">
+                                <select id="filter-tickets-service" onchange="app.renderTickets()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-emerald-500">
+                                    <option value="all">ทุกประเภทบริการ</option>
+                                    <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                                    <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
+                                    <option value="Renovate ครัว">Renovate ครัว</option>
+                                    <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
+                                </select>
+                                <select id="filter-tickets-status" onchange="app.renderTickets()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-emerald-500">
+                                    <option value="STEP4_QUEUE" selected>🧾 คิวงาน Step 2 (รอออก Ticket &amp; สลิป)</option>
+                                    <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
+                                    <option value="NO_TICKET">ยังไม่ออก Ticket (No Ticket)</option>
+                                    <option value="HAS_TICKET">ออก Ticket แล้ว (Has Ticket)</option>
+                                    <option value="VERIFIED">ตรวจสอบแล้ว (Verified)</option>
+                                </select>
+                            </div>
+                        </div>
 
                     <!-- STEP 2 DASHBOARD (KPI CARDS & SEGMENT DISTRIBUTION & SLA) -->
                     <div class="artifact-card p-5 space-y-5 bg-card/70 border border-border/80 rounded-2xl shadow-xs">
@@ -1771,7 +1835,421 @@
                         <select id="ticket-filter-status"><option value="all">all</option></select>
                         <table><tbody id="tickets-table-body"></tbody></table>
                     </div>
-                </div>
+                </div><!-- /#step2-subview-ticket -->
+
+                <!-- SUBVIEW 2: แปลง BOQ เป็น Project (PROJECT CONVERSION STUDIO & GANTT DISPATCH) -->
+                <div id="step2-subview-conversion" class="hidden-view space-y-6">
+                    <!-- Top Filters for Step 2 Task 2: แปลง BOQ เป็น Project -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 bg-muted/30 p-3 rounded-xl border border-border">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                            <span class="text-xs font-bold text-foreground">ตัวกรองคิวแปลง BOQ เข้า Project:</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <select id="filter-conversion-service" onchange="app.renderProjectConversion()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-amber-500">
+                                <option value="all">ทุกประเภทบริการ</option>
+                                <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                                <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
+                                <option value="Renovate ครัว">Renovate ครัว</option>
+                                <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
+                            </select>
+                            <select id="filter-conversion-status" onchange="app.renderProjectConversion()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-amber-500">
+                                <option value="STEP5_QUEUE" selected>⚡ คิวงาน Step 2 (รอแปลงเข้า Project)</option>
+                                <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
+                                <option value="NOT_CONVERTED">รอแปลงเข้า Project (Not Converted)</option>
+                                <option value="CONVERTED">แปลงเป็น Task แล้ว (Converted)</option>
+                            </select>
+                            <button onclick="app.showStep3TrainingGuide()" class="btn-artifact-secondary text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอแปลง BOQ เข้า Project">
+                                <i class="ph ph-graduation-cap text-amber-500 text-sm"></i>
+                                <span>คู่มือ Training การแปลง BOQ</span>
+                            </button>
+                            <button onclick="app.openConvertBOQToTasksModal(app.state.selectedConversionJobId || app.state.selectedGanttJobId)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white cursor-pointer">
+                                <i class="ph ph-lightning text-sm"></i>
+                                <span>⚡ แปลง BOQ เป็น Task ใน Gantt</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2 TASK 2 DASHBOARD (KPI CARDS & SEGMENT DISTRIBUTION & SLA) -->
+                    <div class="artifact-card p-5 space-y-5 bg-card/70 border border-border/80 rounded-2xl shadow-xs">
+                        <!-- Dashboard Header -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-base">
+                                    <i class="ph ph-chart-pie-slice"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-display text-base font-bold text-foreground tracking-tight flex items-center gap-2">
+                                        Project Conversion &amp; Gantt Analytics &amp; KPI
+                                        <span class="text-[11px] font-normal text-muted-foreground font-sans">(ภาพรวมสถิติแปลงงานเข้าโครงการ)</span>
+                                    </h3>
+                                    <p class="text-[11px] text-muted-foreground">สรุปปริมาณงานรอแปลงเข้าสู่แผนงาน Gantt (Step 2 งานย่อย 2) อัตราความสำเร็จ และประสิทธิภาพเกณฑ์เวลา SLA</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 self-start sm:self-auto">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    Realtime Live
+                                </span>
+                                <span id="step5-date-indicator" class="text-[11px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/60 border border-border">วันนี้</span>
+                                <button type="button" onclick="app.openSLAConfigModal('step3')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับการแปลง BOQ">
+                                    <i class="ph ph-gear-six text-xs"></i>
+                                    <span>ตั้งค่า SLA</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Top 4 Primary KPI Cards for Step 2 Task 2 -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <!-- Card 1: ยอดงานเข้า ทั้งหมดใน Step 2 Task 2 -->
+                            <div onclick="app.filterJobsByDashboard('ALL', 3)" class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานทั้งหมดในขั้นตอนแปลง BOQ เข้า Project">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-kanban"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดงานเข้า ทั้งหมด</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step5-stat-total" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-foreground">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-muted-foreground/80 mt-0.5">งานพร้อมแปลงเข้าแผนงาน</p>
+                                    </div>
+                                </div>
+                                <div class="text-muted-foreground/40 group-hover:text-amber-500 group-hover:translate-x-0.5 transition flex flex-col items-end gap-2 shrink-0">
+                                    <i class="ph ph-arrow-right text-lg"></i>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Task 2 Total</span>
+                                </div>
+                            </div>
+
+                            <!-- Card 2: ยอดเข้าวันนี้ -->
+                            <div onclick="app.filterJobsByDashboard('TODAY', 3)" class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่แปลงเข้าแผนงานสำเร็จวันนี้">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-calendar-plus"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดเข้าวันนี้</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step5-stat-today" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-emerald-600 dark:text-emerald-400">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5 flex items-center gap-1">
+                                            <i class="ph ph-check-circle"></i> แปลงเข้า Project วันนี้
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">วันนี้</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card 3: ยอดที่ยังคงเหลือ (รอแปลงเข้า Project) -->
+                            <div onclick="app.filterJobsByDashboard('REMAINING', 3)" class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่ยังไม่ได้แปลงเป็น Task ใน Gantt">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-hourglass-high"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดที่ยังคงเหลือ</p>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step5-stat-remaining" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-amber-600 dark:text-amber-400">0</span>
+                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
+                                        </div>
+                                        <p class="text-[11px] text-amber-600/80 dark:text-amber-400/80 mt-0.5 flex items-center gap-1">
+                                            <i class="ph ph-clock"></i> รอกดแปลงเข้าแผนงาน
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">รอแปลงงาน</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-amber-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card 4: สถานะ SLA Step 2 Task 2 -->
+                            <div onclick="app.filterJobsByDashboard('OVERDUE', 3)" class="p-4.5 rounded-xl bg-card border border-border hover:border-rose-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อตรวจสอบสถานะ SLA การแปลง BOQ">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="ph ph-timer"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-1.5">
+                                            <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">สถานะ SLA</p>
+                                            <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground" id="step5-sla-target-label">12 ชม.</span>
+                                        </div>
+                                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                                            <span id="step5-stat-sla-overdue" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-rose-600 dark:text-rose-400">0</span>
+                                            <span class="text-xs text-rose-500 font-medium">เกินกำหนด</span>
+                                        </div>
+                                        <p class="text-[11px] text-muted-foreground/80 mt-0.5 flex items-center gap-1.5">
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">ในเกณฑ์: <b id="step5-stat-sla-ontime">0</b></span>
+                                            <span>•</span>
+                                            <span class="text-amber-600 dark:text-amber-400 font-medium">ใกล้ครบ: <b id="step5-stat-sla-warning">0</b></span>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span onclick="event.stopPropagation(); app.openSLAConfigModal('step3');" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer" title="ตั้งค่า SLA การแปลง BOQ">⚙️ Config</span>
+                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-rose-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Segment Distribution Summary for Step 2 Task 2 -->
+                        <div class="pt-2">
+                            <div class="flex items-center justify-between mb-2.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold text-foreground font-display">สัดส่วนประเภทงานใน Step 2 Task 2 (Segment Distribution Summary)</span>
+                                </div>
+                                <div class="text-[11px] font-mono text-muted-foreground">ความคืบหน้าโครงการ</div>
+                            </div>
+
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div onclick="app.filterJobsByDashboard('quick', 3)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500 hover:bg-muted/60 transition cursor-pointer group">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                            Quick Services
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold" id="step5-dist-quick-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step5-dist-quick-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">ติดตั้งด่วน</span>
+                                    </div>
+                                </div>
+
+                                <div onclick="app.filterJobsByDashboard('renovate', 3)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500 hover:bg-muted/60 transition cursor-pointer group">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                            Renovate
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold" id="step5-dist-renovate-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step5-dist-renovate-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">งานปรับปรุง</span>
+                                    </div>
+                                </div>
+
+                                <div onclick="app.filterJobsByDashboard('ma', 3)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-purple-500 hover:bg-muted/60 transition cursor-pointer group">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                                            MA &amp; Maintenance
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold" id="step5-dist-ma-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step5-dist-ma-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">บำรุงรักษา</span>
+                                    </div>
+                                </div>
+
+                                <div onclick="app.filterJobsByDashboard('transferred', 3)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500 hover:bg-muted/60 transition cursor-pointer group">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-medium text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                            แปลงเข้า Project แล้ว
+                                        </span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold" id="step5-dist-transferred-pct">0%</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between mt-1">
+                                        <span class="text-lg font-bold font-display text-foreground" id="step5-dist-transferred-count">0</span>
+                                        <span class="text-[10px] text-muted-foreground">มี Task ในแผนงาน</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Segmented Progress Bar -->
+                            <div class="mt-3">
+                                <div class="w-full bg-muted/60 rounded-full h-2 flex overflow-hidden border border-border/40">
+                                    <div id="bar-step5-quick" class="bg-amber-500 transition-all duration-300 h-full" style="width: 30%"></div>
+                                    <div id="bar-step5-renovate" class="bg-indigo-500 transition-all duration-300 h-full" style="width: 40%"></div>
+                                    <div id="bar-step5-ma" class="bg-purple-500 transition-all duration-300 h-full" style="width: 30%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden compatibility span -->
+                        <div class="hidden">
+                            <span id="step5-stat-completed">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Contextual Queue Banner -->
+                    <div id="step5-queue-banner" class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-xs shrink-0">⚡</span>
+                            <div>
+                                <span class="font-bold">คิวงาน Step 2 งานย่อย 2 (แปลง BOQ เป็น Project):</span>
+                                <span class="text-muted-foreground ml-1">แสดงเฉพาะงานที่พร้อมแปลงรายการค่าแรง/บริการจาก BOQ เข้าสู่แผนงาน Gantt Timeline ตามกฎ Labor-to-Task Rule เมื่องานถูกแปลงแล้ว สามารถเปิดดูแผนงาน Gantt ได้ทันที</span>
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold shrink-0">Single State Queue</span>
+                    </div>
+
+                    <!-- Standard Work Order List Table -->
+                    <div class="artifact-card overflow-hidden shadow-sm">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
+                                    <tr>
+                                        <th class="px-5 py-3.5">เลขที่งาน</th>
+                                        <th class="px-5 py-3.5">ลูกค้า &amp; เบอร์ติดต่อ</th>
+                                        <th class="px-5 py-3.5">ประเภทบริการ</th>
+                                        <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
+                                        <th class="px-5 py-3.5">สถานะ</th>
+                                        <th class="px-5 py-3.5">ขั้นตอน (STAGE)</th>
+                                        <th class="px-5 py-3.5 text-right">การจัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border" id="conversion-jobs-table-body">
+                                    <!-- Populated dynamically by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tab Switcher: Pending Conversion Jobs vs Uploaded / Converted Projects Library -->
+                    <div class="flex border-b border-border gap-6">
+                        <button type="button" id="tab-conversion-pending" onclick="app.switchConversionTab('pending')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-amber-500 text-foreground cursor-pointer">
+                            <i class="ph ph-hourglass-high text-amber-500 text-sm"></i>
+                            <span>คิวโครงการที่รอแปลงเข้า Project (Labor-to-Task)</span>
+                            <span id="tab-conversion-pending-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold">0</span>
+                        </button>
+                        <button type="button" id="tab-conversion-library" onclick="app.switchConversionTab('library')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer">
+                            <i class="ph ph-kanban text-amber-500 text-sm"></i>
+                            <span>คลังโครงการที่แปลงเข้า Gantt แล้ว (Active Projects)</span>
+                            <span id="tab-conversion-library-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Search & Filter Card -->
+                    <div class="artifact-card p-4">
+                        <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
+                            <div class="relative flex-1 w-full">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+                                <input type="text" id="conversion-search" oninput="app.filterConversion()" placeholder="ค้นหาตามรหัสงาน (JOB ID), ชื่อลูกค้า, บริการ, หรือชื่องาน Task..." class="w-full bg-card border border-border rounded-lg pl-9 pr-4 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div class="flex items-center gap-2 w-full sm:w-auto">
+                                <select id="conversion-filter-service" onchange="app.filterConversion()" class="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-amber-500">
+                                    <option value="all">ทุกประเภทบริการ</option>
+                                    <option value="Renovate ครัว">Renovate ครัว</option>
+                                    <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
+                                    <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                                    <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
+                                    <option value="ติดตั้งเครื่องปรับอากาศ">ติดตั้งเครื่องปรับอากาศ</option>
+                                    <option value="โซลาร์เซลล์">โซลาร์เซลล์</option>
+                                </select>
+
+                                <!-- Conversion View Mode Switcher: Card View vs List View -->
+                                <div class="inline-flex p-1 bg-muted/60 border border-border rounded-xl text-xs shrink-0">
+                                    <button type="button" id="btn-conversion-mode-card" onclick="app.setConversionViewMode('card')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground" title="แสดงแบบการ์ด (Card View)">
+                                        <i class="ph ph-squares-four text-sm"></i>
+                                        <span>Card View</span>
+                                    </button>
+                                    <button type="button" id="btn-conversion-mode-list" onclick="app.setConversionViewMode('list')" class="px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs" title="แสดงแบบรายการ (List View)">
+                                        <i class="ph ph-list-bullets text-amber-500 text-sm"></i>
+                                        <span>List View</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 1: Pending Conversion Queue Container -->
+                    <div id="conversion-pending-container" class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                <h3 class="font-display font-bold text-sm text-foreground">รายการโครงการที่พร้อมแปลง BOQ เข้าแผนงานโครงการ (Labor-to-Task Queue)</h3>
+                            </div>
+                            <span class="text-xs text-muted-foreground">คลิกปุ่ม <strong class="text-amber-600 dark:text-amber-400 font-semibold">⚡ บันทึก BOQ เข้า Project</strong> เพื่อแปลงรายการค่าแรงสู่แผนงาน Gantt</span>
+                        </div>
+                        <div id="conversion-pending-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Converted Projects Library Container -->
+                    <div id="conversion-library-container" class="space-y-4 hidden-view">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                <h3 class="font-display font-bold text-sm text-foreground">คลังโครงการที่แปลงเข้าแผนงาน Gantt Timeline แล้ว (Active Projects)</h3>
+                            </div>
+                            <span class="text-xs text-muted-foreground" id="conversion-library-count-text">แสดงโครงการทั้งหมด</span>
+                        </div>
+                        <div id="conversion-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Step 5 Conversion Control Center -->
+                    <div class="artifact-card p-5 space-y-4 border border-amber-500/30 bg-amber-500/5">
+                        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                    <h3 class="font-display font-bold text-sm text-foreground">ศูนย์กลางการบันทึก BOQ เข้าแผนงานโครงการ</h3>
+                                </div>
+                                <p class="text-xs text-muted-foreground">เลือกโครงการเพื่อตรวจสอบรายการค่าแรง และกดยืนยันบันทึกเพื่อนำเข้า Task สู่ตาราง Gantt Timeline</p>
+                            </div>
+                            <div class="flex items-center gap-3 w-full md:w-auto">
+                                <label for="conversion-job-select" class="text-xs font-semibold text-foreground shrink-0">โครงการ:</label>
+                                <select id="conversion-job-select" onchange="app.switchConversionJob(this.value)" class="flex-1 md:w-72 bg-card border border-border rounded-xl px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:border-amber-500 cursor-pointer">
+                                    <!-- Populated dynamically -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Status Alert / Details -->
+                        <div id="conversion-status-banner" class="p-3.5 rounded-xl bg-card border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <!-- Populated dynamically -->
+                        </div>
+
+                        <!-- Rule Notice -->
+                        <div class="text-[11px] text-muted-foreground flex items-center gap-2 bg-muted/40 p-2.5 rounded-lg border border-border">
+                            <i class="ph ph-info text-amber-500 text-sm shrink-0"></i>
+                            <span><strong>Labor-to-Task Rule:</strong> ตามมาตรฐานระบบ PMT แผนงาน Gantt Timeline จะสร้าง Task เฉพาะรายการที่เป็น <u>"ค่าแรง/งานบริการ"</u> เท่านั้น ส่วนรายการวัสดุจะถูกคัดกรองออกเพื่อรักษาความสะอาดของตารางงานช่าง</span>
+                        </div>
+                    </div>
+
+                    <!-- Tasks List in Project -->
+                    <div class="artifact-card p-5 space-y-4">
+                        <div class="flex items-center justify-between pb-3 border-b border-border">
+                            <div class="flex items-center gap-2">
+                                <i class="ph ph-list-checks text-amber-500 text-base"></i>
+                                <h3 class="font-display font-semibold text-sm text-foreground" id="conversion-tasks-title">รายการ Task ในโครงการ (Project Tasks)</h3>
+                            </div>
+                            <button onclick="app.navigate('gantt')" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer">
+                                <i class="ph ph-chart-bar"></i> ดูหน้า Gantt เต็มรูป
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-muted/40 text-muted-foreground uppercase text-[10px]">
+                                    <tr>
+                                        <th class="px-4 py-2.5">Task Name</th>
+                                        <th class="px-4 py-2.5">ทีมช่างผู้รับผิดชอบ</th>
+                                        <th class="px-4 py-2.5">วันเริ่มต้น</th>
+                                        <th class="px-4 py-2.5">วันสิ้นสุด</th>
+                                        <th class="px-4 py-2.5 text-center">ระยะเวลา (วัน)</th>
+                                        <th class="px-4 py-2.5 text-center">สถานะ</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border" id="conversion-tasks-tbody">
+                                    <!-- Populated dynamically by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div><!-- /#step2-subview-conversion -->
+            </div><!-- /#page-tickets -->
 
                 <!-- BOQ MANAGEMENT VIEW (CENTRAL BOQ REPOSITORY) -->
                 <div id="page-boq" class="page-view hidden-view space-y-6">
@@ -2136,421 +2614,9 @@
                     </div>
                 </div>
 
-                <!-- STEP 3: PROJECT CONVERSION & DISPATCH PREPARATION VIEW -->
-                <div id="page-project-conversion" class="page-view hidden-view space-y-6">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">Step 3</span>
-                                <span class="text-2xl">🚀</span>
-                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">เตรียมแผนงานและทีมช่าง (Work Preparation & Dispatch Studio)</h2>
-                            </div>
-                            <p class="text-xs text-muted-foreground mt-1">ตรวจสอบความพร้อมของวัสดุ คัดแยกแปลงรายการค่าแรง BOQ เข้าสู่แผนงาน (Labor-to-Task Rule) และจัดสรรทีมช่างผู้รับผิดชอบก่อนเริ่มงาน</p>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-2.5">
-                            <select id="filter-conversion-service" onchange="app.renderProjectConversion()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-amber-500">
-                                <option value="all">ทุกประเภทบริการ</option>
-                                <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
-                                <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
-                                <option value="Renovate ครัว">Renovate ครัว</option>
-                                <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
-                            </select>
-                            <select id="filter-conversion-status" onchange="app.renderProjectConversion()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-amber-500">
-                                <option value="STEP5_QUEUE" selected>⚡ คิวงาน Step 3 (รอแปลงเข้า Project)</option>
-                                <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
-                                <option value="NOT_CONVERTED">รอแปลงเข้า Project (Not Converted)</option>
-                                <option value="CONVERTED">แปลงเป็น Task แล้ว (Converted)</option>
-                            </select>
-                            <button onclick="app.showStep3TrainingGuide()" class="btn-artifact-secondary text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 3 (BOQ to Project & Gantt)">
-                                <i class="ph ph-graduation-cap text-amber-500 text-sm"></i>
-                                <span>คู่มือ Training Step 3</span>
-                            </button>
-                            <button onclick="app.openConvertBOQToTasksModal(app.state.selectedConversionJobId || app.state.selectedGanttJobId)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white cursor-pointer">
-                                <i class="ph ph-lightning text-sm"></i>
-                                <span>⚡ แปลง BOQ เป็น Task ใน Gantt</span>
-                            </button>
-                        </div>
-                    </div>
+                <!-- STEP 2 SUBTASK 2 ALIAS (PROJECT CONVERSION REDIRECT CONTAINER) -->
+                <div id="page-project-conversion" class="page-view hidden-view"></div>
 
-                    <!-- STEP 3 DASHBOARD (KPI CARDS & SEGMENT DISTRIBUTION & SLA) -->
-                    <div class="artifact-card p-5 space-y-5 bg-card/70 border border-border/80 rounded-2xl shadow-xs">
-                        <!-- Dashboard Header -->
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-base">
-                                    <i class="ph ph-chart-pie-slice"></i>
-                                </div>
-                                <div>
-                                    <h3 class="font-display text-base font-bold text-foreground tracking-tight flex items-center gap-2">
-                                        Project Conversion & Gantt Analytics & KPI
-                                        <span class="text-[11px] font-normal text-muted-foreground font-sans">(ภาพรวมสถิติแปลงงานเข้าโครงการ)</span>
-                                    </h3>
-                                    <p class="text-[11px] text-muted-foreground">สรุปปริมาณงานรอแปลงเข้าสู่แผนงาน Gantt (Step 3) อัตราความสำเร็จ และประสิทธิภาพเกณฑ์เวลา SLA</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 self-start sm:self-auto">
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    Realtime Live
-                                </span>
-                                <span id="step5-date-indicator" class="text-[11px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/60 border border-border">วันนี้</span>
-                                <button type="button" onclick="app.openSLAConfigModal('step3')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ Step 3">
-                                    <i class="ph ph-gear-six text-xs"></i>
-                                    <span>ตั้งค่า SLA</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Top 4 Primary KPI Cards for Step 3 -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <!-- Card 1: ยอดงานเข้า ทั้งหมดใน Step 3 -->
-                            <div onclick="app.filterJobsByDashboard('ALL', 3)" class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานทั้งหมดในขั้นตอน Step 3">
-                                <div class="flex items-center gap-3.5">
-                                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
-                                        <i class="ph ph-kanban"></i>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดงานเข้า ทั้งหมด</p>
-                                        <div class="flex items-baseline gap-1.5 mt-0.5">
-                                            <span id="step5-stat-total" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-foreground">0</span>
-                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
-                                        </div>
-                                        <p class="text-[11px] text-muted-foreground/80 mt-0.5">งานพร้อมแปลงเข้าแผนงาน</p>
-                                    </div>
-                                </div>
-                                <div class="text-muted-foreground/40 group-hover:text-amber-500 group-hover:translate-x-0.5 transition flex flex-col items-end gap-2 shrink-0">
-                                    <i class="ph ph-arrow-right text-lg"></i>
-                                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Step 3 Total</span>
-                                </div>
-                            </div>
-
-                            <!-- Card 2: ยอดเข้าวันนี้ -->
-                            <div onclick="app.filterJobsByDashboard('TODAY', 3)" class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่แปลงเข้าแผนงานสำเร็จวันนี้">
-                                <div class="flex items-center gap-3.5">
-                                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
-                                        <i class="ph ph-calendar-plus"></i>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดเข้าวันนี้</p>
-                                        <div class="flex items-baseline gap-1.5 mt-0.5">
-                                            <span id="step5-stat-today" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-emerald-600 dark:text-emerald-400">0</span>
-                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
-                                        </div>
-                                        <p class="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5 flex items-center gap-1">
-                                            <i class="ph ph-check-circle"></i> แปลงเข้า Project วันนี้
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col items-end gap-2 shrink-0">
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">วันนี้</span>
-                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition text-base"></i>
-                                </div>
-                            </div>
-
-                            <!-- Card 3: ยอดที่ยังคงเหลือ (รอแปลงเข้า Project) -->
-                            <div onclick="app.filterJobsByDashboard('REMAINING', 3)" class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="งานที่ยังไม่ได้แปลงเป็น Task ใน Gantt">
-                                <div class="flex items-center gap-3.5">
-                                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
-                                        <i class="ph ph-hourglass-high"></i>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดที่ยังคงเหลือ</p>
-                                        <div class="flex items-baseline gap-1.5 mt-0.5">
-                                            <span id="step5-stat-remaining" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-amber-600 dark:text-amber-400">0</span>
-                                            <span class="text-xs text-muted-foreground font-medium">รายการ</span>
-                                        </div>
-                                        <p class="text-[11px] text-amber-600/80 dark:text-amber-400/80 mt-0.5 flex items-center gap-1">
-                                            <i class="ph ph-clock"></i> รอกดแปลงเข้าแผนงาน
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col items-end gap-2 shrink-0">
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">รอแปลงงาน</span>
-                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-amber-500 group-hover:translate-x-0.5 transition text-base"></i>
-                                </div>
-                            </div>
-
-                            <!-- Card 4: สถานะ SLA Step 3 -->
-                            <div onclick="app.filterJobsByDashboard('OVERDUE', 3)" class="p-4.5 rounded-xl bg-card border border-border hover:border-rose-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อตรวจสอบสถานะ SLA Step 3">
-                                <div class="flex items-center gap-3.5">
-                                    <div class="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
-                                        <i class="ph ph-timer"></i>
-                                    </div>
-                                    <div>
-                                        <div class="flex items-center gap-1.5">
-                                            <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">สถานะ SLA</p>
-                                            <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground" id="step5-sla-target-label">12 ชม.</span>
-                                        </div>
-                                        <div class="flex items-baseline gap-1.5 mt-0.5">
-                                            <span id="step5-stat-sla-overdue" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-rose-600 dark:text-rose-400">0</span>
-                                            <span class="text-xs text-rose-500 font-medium">เกินกำหนด</span>
-                                        </div>
-                                        <p class="text-[11px] text-muted-foreground/80 mt-0.5 flex items-center gap-1.5">
-                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">ในเกณฑ์: <b id="step5-stat-sla-ontime">0</b></span>
-                                            <span>•</span>
-                                            <span class="text-amber-600 dark:text-amber-400 font-medium">ใกล้ครบ: <b id="step5-stat-sla-warning">0</b></span>
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col items-end gap-2 shrink-0">
-                                    <span onclick="event.stopPropagation(); app.openSLAConfigModal('step3');" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer" title="ตั้งค่า SLA Step 3">⚙️ Config</span>
-                                    <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-rose-500 group-hover:translate-x-0.5 transition text-base"></i>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Segment Distribution Summary for Step 3 -->
-                        <div class="pt-2">
-                            <div class="flex items-center justify-between mb-2.5">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xs font-bold text-foreground font-display">สัดส่วนประเภทงานใน Step 3 (Segment Distribution Summary)</span>
-                                </div>
-                                <div class="text-[11px] font-mono text-muted-foreground">ความคืบหน้าโครงการ</div>
-                            </div>
-
-                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                <div onclick="app.filterJobsByDashboard('quick', 3)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500 hover:bg-muted/60 transition cursor-pointer group">
-                                    <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 flex items-center gap-1.5">
-                                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                                            Quick Services
-                                        </span>
-                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold" id="step5-dist-quick-pct">0%</span>
-                                    </div>
-                                    <div class="flex items-baseline justify-between mt-1">
-                                        <span class="text-lg font-bold font-display text-foreground" id="step5-dist-quick-count">0</span>
-                                        <span class="text-[10px] text-muted-foreground">ติดตั้งด่วน</span>
-                                    </div>
-                                </div>
-
-                                <div onclick="app.filterJobsByDashboard('renovate', 3)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500 hover:bg-muted/60 transition cursor-pointer group">
-                                    <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 flex items-center gap-1.5">
-                                            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-                                            Renovate
-                                        </span>
-                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold" id="step5-dist-renovate-pct">0%</span>
-                                    </div>
-                                    <div class="flex items-baseline justify-between mt-1">
-                                        <span class="text-lg font-bold font-display text-foreground" id="step5-dist-renovate-count">0</span>
-                                        <span class="text-[10px] text-muted-foreground">งานปรับปรุง</span>
-                                    </div>
-                                </div>
-
-                                <div onclick="app.filterJobsByDashboard('ma', 3)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-purple-500 hover:bg-muted/60 transition cursor-pointer group">
-                                    <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 flex items-center gap-1.5">
-                                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
-                                            MA & Maintenance
-                                        </span>
-                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold" id="step5-dist-ma-pct">0%</span>
-                                    </div>
-                                    <div class="flex items-baseline justify-between mt-1">
-                                        <span class="text-lg font-bold font-display text-foreground" id="step5-dist-ma-count">0</span>
-                                        <span class="text-[10px] text-muted-foreground">บำรุงรักษา</span>
-                                    </div>
-                                </div>
-
-                                <div onclick="app.filterJobsByDashboard('transferred', 3)" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500 hover:bg-muted/60 transition cursor-pointer group">
-                                    <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-medium text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 flex items-center gap-1.5">
-                                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                            แปลงเข้า Project แล้ว
-                                        </span>
-                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold" id="step5-dist-transferred-pct">0%</span>
-                                    </div>
-                                    <div class="flex items-baseline justify-between mt-1">
-                                        <span class="text-lg font-bold font-display text-foreground" id="step5-dist-transferred-count">0</span>
-                                        <span class="text-[10px] text-muted-foreground">มี Task ในแผนงาน</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Segmented Progress Bar -->
-                            <div class="mt-3">
-                                <div class="w-full bg-muted/60 rounded-full h-2 flex overflow-hidden border border-border/40">
-                                    <div id="bar-step5-quick" class="bg-amber-500 transition-all duration-300 h-full" style="width: 30%"></div>
-                                    <div id="bar-step5-renovate" class="bg-indigo-500 transition-all duration-300 h-full" style="width: 40%"></div>
-                                    <div id="bar-step5-ma" class="bg-purple-500 transition-all duration-300 h-full" style="width: 30%"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Hidden compatibility span -->
-                        <div class="hidden">
-                            <span id="step5-stat-completed">0</span>
-                        </div>
-                    </div>
-
-                    <!-- Contextual Queue Banner -->
-                    <div id="step5-queue-banner" class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-2.5">
-                            <span class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-xs shrink-0">⚡</span>
-                            <div>
-                                <span class="font-bold">คิวงาน Step 3 (เตรียมแผนงานและทีมช่าง):</span>
-                                <span class="text-muted-foreground ml-1">แสดงเฉพาะงานที่พร้อมแปลงรายการค่าแรง/บริการจาก BOQ เข้าสู่แผนงาน Gantt Timeline ตามกฎ Labor-to-Task Rule เมื่องานถูกแปลงแล้ว สามารถเปิดดูแผนงาน Gantt ได้ทันที</span>
-                            </div>
-                        </div>
-                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold shrink-0">Single State Queue</span>
-                    </div>
-
-                    <!-- Standard Work Order List Table -->
-                    <div class="artifact-card overflow-hidden shadow-sm">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs">
-                                <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
-                                    <tr>
-                                        <th class="px-5 py-3.5">เลขที่งาน</th>
-                                        <th class="px-5 py-3.5">ลูกค้า & เบอร์ติดต่อ</th>
-                                        <th class="px-5 py-3.5">ประเภทบริการ</th>
-                                        <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
-                                        <th class="px-5 py-3.5">สถานะ</th>
-                                        <th class="px-5 py-3.5">ขั้นตอน (STAGE)</th>
-                                        <th class="px-5 py-3.5 text-right">การจัดการ</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-border" id="conversion-jobs-table-body">
-                                    <!-- Populated dynamically by JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Tab Switcher: Pending Conversion Jobs vs Uploaded / Converted Projects Library -->
-                    <div class="flex border-b border-border gap-6">
-                        <button type="button" id="tab-conversion-pending" onclick="app.switchConversionTab('pending')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-amber-500 text-foreground cursor-pointer">
-                            <i class="ph ph-hourglass-high text-amber-500 text-sm"></i>
-                            <span>คิวโครงการที่รอแปลงเข้า Project (Labor-to-Task)</span>
-                            <span id="tab-conversion-pending-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold">0</span>
-                        </button>
-                        <button type="button" id="tab-conversion-library" onclick="app.switchConversionTab('library')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer">
-                            <i class="ph ph-kanban text-amber-500 text-sm"></i>
-                            <span>คลังโครงการที่แปลงเข้า Gantt แล้ว (Active Projects)</span>
-                            <span id="tab-conversion-library-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold">0</span>
-                        </button>
-                    </div>
-
-                    <!-- Search & Filter Card -->
-                    <div class="artifact-card p-4">
-                        <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
-                            <div class="relative flex-1 w-full">
-                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
-                                <input type="text" id="conversion-search" oninput="app.filterConversion()" placeholder="ค้นหาตามรหัสงาน (JOB ID), ชื่อลูกค้า, บริการ, หรือชื่องาน Task..." class="w-full bg-card border border-border rounded-lg pl-9 pr-4 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-amber-500">
-                            </div>
-                            <div class="flex items-center gap-2 w-full sm:w-auto">
-                                <select id="conversion-filter-service" onchange="app.filterConversion()" class="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-amber-500">
-                                    <option value="all">ทุกประเภทบริการ</option>
-                                    <option value="Renovate ครัว">Renovate ครัว</option>
-                                    <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
-                                    <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
-                                    <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
-                                    <option value="ติดตั้งเครื่องปรับอากาศ">ติดตั้งเครื่องปรับอากาศ</option>
-                                    <option value="โซลาร์เซลล์">โซลาร์เซลล์</option>
-                                </select>
-
-                                <!-- Conversion View Mode Switcher: Card View vs List View -->
-                                <div class="inline-flex p-1 bg-muted/60 border border-border rounded-xl text-xs shrink-0">
-                                    <button type="button" id="btn-conversion-mode-card" onclick="app.setConversionViewMode('card')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground" title="แสดงแบบการ์ด (Card View)">
-                                        <i class="ph ph-squares-four text-sm"></i>
-                                        <span>Card View</span>
-                                    </button>
-                                    <button type="button" id="btn-conversion-mode-list" onclick="app.setConversionViewMode('list')" class="px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer bg-card text-foreground shadow-xs" title="แสดงแบบรายการ (List View)">
-                                        <i class="ph ph-list-bullets text-amber-500 text-sm"></i>
-                                        <span>List View</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Section 1: Pending Conversion Queue Container -->
-                    <div id="conversion-pending-container" class="space-y-4">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                <h3 class="font-display font-bold text-sm text-foreground">รายการโครงการที่พร้อมแปลง BOQ เข้าแผนงานโครงการ (Labor-to-Task Queue)</h3>
-                            </div>
-                            <span class="text-xs text-muted-foreground">คลิกปุ่ม <strong class="text-amber-600 dark:text-amber-400 font-semibold">⚡ บันทึก BOQ เข้า Project</strong> เพื่อแปลงรายการค่าแรงสู่แผนงาน Gantt</span>
-                        </div>
-                        <div id="conversion-pending-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <!-- Populated dynamically by JS -->
-                        </div>
-                    </div>
-
-                    <!-- Section 2: Converted Projects Library Container -->
-                    <div id="conversion-library-container" class="space-y-4 hidden-view">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                                <h3 class="font-display font-bold text-sm text-foreground">คลังโครงการที่แปลงเข้าแผนงาน Gantt Timeline แล้ว (Active Projects)</h3>
-                            </div>
-                            <span class="text-xs text-muted-foreground" id="conversion-library-count-text">แสดงโครงการทั้งหมด</span>
-                        </div>
-                        <div id="conversion-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <!-- Populated dynamically by JS -->
-                        </div>
-                    </div>
-
-                    <!-- Step 5 Conversion Control Center -->
-                    <div class="artifact-card p-5 space-y-4 border border-amber-500/30 bg-amber-500/5">
-                        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                            <div class="space-y-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                    <h3 class="font-display font-bold text-sm text-foreground">ศูนย์กลางการบันทึก BOQ เข้าแผนงานโครงการ</h3>
-                                </div>
-                                <p class="text-xs text-muted-foreground">เลือกโครงการเพื่อตรวจสอบรายการค่าแรง และกดยืนยันบันทึกเพื่อนำเข้า Task สู่ตาราง Gantt Timeline</p>
-                            </div>
-                            <div class="flex items-center gap-3 w-full md:w-auto">
-                                <label for="conversion-job-select" class="text-xs font-semibold text-foreground shrink-0">โครงการ:</label>
-                                <select id="conversion-job-select" onchange="app.switchConversionJob(this.value)" class="flex-1 md:w-72 bg-card border border-border rounded-xl px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:border-amber-500 cursor-pointer">
-                                    <!-- Populated dynamically -->
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Status Alert / Details -->
-                        <div id="conversion-status-banner" class="p-3.5 rounded-xl bg-card border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                            <!-- Populated dynamically -->
-                        </div>
-
-                        <!-- Rule Notice -->
-                        <div class="text-[11px] text-muted-foreground flex items-center gap-2 bg-muted/40 p-2.5 rounded-lg border border-border">
-                            <i class="ph ph-info text-amber-500 text-sm shrink-0"></i>
-                            <span><strong>Labor-to-Task Rule:</strong> ตามมาตรฐานระบบ PMT แผนงาน Gantt Timeline จะสร้าง Task เฉพาะรายการที่เป็น <u>"ค่าแรง/งานบริการ"</u> เท่านั้น ส่วนรายการวัสดุจะถูกคัดกรองออกเพื่อรักษาความสะอาดของตารางงานช่าง</span>
-                        </div>
-                    </div>
-
-                    <!-- Tasks List in Project -->
-                    <div class="artifact-card p-5 space-y-4">
-                        <div class="flex items-center justify-between pb-3 border-b border-border">
-                            <div class="flex items-center gap-2">
-                                <i class="ph ph-list-checks text-amber-500 text-base"></i>
-                                <h3 class="font-display font-semibold text-sm text-foreground" id="conversion-tasks-title">รายการ Task ในโครงการ (Project Tasks)</h3>
-                            </div>
-                            <button onclick="app.navigate('gantt')" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer">
-                                <i class="ph ph-chart-bar"></i> ดูหน้า Gantt เต็มรูป
-                            </button>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs">
-                                <thead class="bg-muted/40 text-muted-foreground uppercase text-[10px]">
-                                    <tr>
-                                        <th class="px-4 py-2.5">Task Name</th>
-                                        <th class="px-4 py-2.5">ทีมช่างผู้รับผิดชอบ</th>
-                                        <th class="px-4 py-2.5">วันเริ่มต้น</th>
-                                        <th class="px-4 py-2.5">วันสิ้นสุด</th>
-                                        <th class="px-4 py-2.5 text-center">ระยะเวลา (วัน)</th>
-                                        <th class="px-4 py-2.5 text-center">สถานะ</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-border" id="conversion-tasks-tbody">
-                                    <!-- Populated by JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- 4. GANTT CHART & DAILY WORK LOG VIEW (Step 4) -->
                 <div id="page-gantt" class="page-view hidden-view space-y-6">
@@ -4006,27 +4072,27 @@
                                     <button onclick="app.navigate('tickets')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
                                     </button>
-                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step4_บันทึกTicketและใบเสร็จ.md', 'โมดูล 2: Step 2 — บันทึก Ticket & ใบเสร็จ')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] font-semibold text-emerald-600 flex items-center justify-center gap-1 cursor-pointer transition">
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step4_บันทึกTicketและใบเสร็จ.md', 'โมดูล 2: Step 2 — บันทึก Ticket &amp; ใบเสร็จ')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] font-semibold text-emerald-600 flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-book-open"></i> อ่านคู่มือ
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Module 3: Step 3 -->
+                            <!-- Module 2B: Step 2 งานย่อย 2 (แปลง BOQ เข้า Project) -->
                             <div class="artifact-card p-4 rounded-2xl border border-border hover:border-amber-500/40 transition-all space-y-3 flex flex-col justify-between group">
                                 <div class="space-y-2">
                                     <div class="flex items-center justify-between">
-                                        <span class="px-2 py-0.5 rounded bg-amber-500/15 text-amber-600 font-mono text-[10px] font-bold border border-amber-500/20">TRN-PMT-STEP03</span>
-                                        <span class="text-[10px] text-muted-foreground font-mono">Step 3 (Dispatch)</span>
+                                        <span class="px-2 py-0.5 rounded bg-amber-500/15 text-amber-600 font-mono text-[10px] font-bold border border-amber-500/20">TRN-PMT-STEP02B</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Step 2 (Task 2)</span>
                                     </div>
-                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-amber-600 transition">Step 3: เตรียมแผนงานและทีมช่าง</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">Labor-to-Task Rule สำหรับงาน Renovate, คำนวณวันเริ่ม-จบ, มอบหมายทีมช่างก่อนเริ่มงานจริง (งาน Quick ข้ามขั้นตอนนี้)</p>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-amber-600 transition">Step 2 งานย่อย 2: แปลง BOQ เข้า Project</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">Labor-to-Task Rule สำหรับงาน Renovate คัดแยกเฉพาะค่าแรง/บริการแปลงเข้าสู่ Gantt Tasks และมอบหมายทีมช่าง</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
-                                    <button onclick="app.navigate('project-conversion')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                    <button onclick="app.navigate('tickets'); app.switchStep2Subtask('conversion');" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
                                     </button>
-                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step5_บันทึกBOQเข้าProjectและGantt.md', 'โมดูล 3: Step 3 — เตรียมแผนงานและทีมช่าง')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-[11px] font-semibold text-amber-600 flex items-center justify-center gap-1 cursor-pointer transition">
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step5_บันทึกBOQเข้าProjectและGantt.md', 'โมดูล 2B: Step 2 งานย่อย 2 — แปลง BOQ เข้า Project')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-[11px] font-semibold text-amber-600 flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-book-open"></i> อ่านคู่มือ
                                     </button>
                                 </div>
