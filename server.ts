@@ -255,6 +255,45 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+// Serve Documentation files (/doc/*) with Unicode / URI decoding and NFC/NFD tolerance
+app.get('/doc/:filename(*)', (req: Request, res: Response) => {
+  try {
+    const rawParam = req.params.filename || '';
+    const decodedFilename = decodeURIComponent(rawParam).trim();
+    const docDirs = [
+      path.join(__dirname, '../doc'),
+      path.join(__dirname, './doc'),
+      path.join(process.cwd(), 'doc')
+    ];
+    for (const d of docDirs) {
+      if (!fs.existsSync(d)) continue;
+      // 1. Direct match
+      const direct = path.join(d, decodedFilename);
+      if (fs.existsSync(direct) && fs.statSync(direct).isFile()) {
+        res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+        return res.sendFile(direct);
+      }
+      // 2. Unicode normalized match (NFC / NFD)
+      const files = fs.readdirSync(d);
+      const match = files.find(f => 
+        f === decodedFilename || 
+        f.normalize('NFC') === decodedFilename.normalize('NFC') ||
+        f.normalize('NFD') === decodedFilename.normalize('NFD')
+      );
+      if (match) {
+        res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+        return res.sendFile(path.join(d, match));
+      }
+    }
+    return res.status(404).send('Document not found: ' + decodedFilename);
+  } catch (e: any) {
+    return res.status(500).send('Error reading document: ' + e.message);
+  }
+});
+app.use('/doc', express.static(path.join(__dirname, '../doc')));
+app.use('/doc', express.static(path.join(__dirname, './doc')));
+app.use('/doc', express.static(path.join(process.cwd(), 'doc')));
+
 // Serve static frontend files (index.html)
 app.use(express.static(path.join(__dirname, '../')));
 app.use(express.static(path.join(__dirname, './')));

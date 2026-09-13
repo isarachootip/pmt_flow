@@ -46,9 +46,13 @@
         if (!modal) {
             modal = document.createElement('div');
             modal.id = 'modal-training-viewer';
-            modal.className = 'fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden-view';
+            modal.className = 'fixed inset-0 z-[9990] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden-view';
+            modal.style.zIndex = '9990';
+            modal.onclick = function(e) {
+                if (e.target === this) this.classList.add('hidden-view');
+            };
             modal.innerHTML = `
-                <div class="bg-card border border-border rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div class="bg-card border border-border rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
                     <div class="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/40 shrink-0">
                         <div class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center text-lg font-bold border border-purple-500/20">
@@ -63,13 +67,16 @@
                             <a id="manual-modal-raw-link" href="#" target="_blank" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted hover:bg-muted/80 text-foreground flex items-center gap-1.5 transition">
                                 <i class="ph ph-arrow-square-out"></i> เปิดไฟล์เต็ม
                             </a>
-                            <button onclick="document.getElementById('modal-training-viewer').classList.add('hidden-view')" class="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer">
+                            <button onclick="document.getElementById('modal-training-viewer').classList.add('hidden-view')" class="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer" title="ปิดหน้าต่าง">
                                 <i class="ph ph-x text-base"></i>
                             </button>
                         </div>
                     </div>
                     <div id="manual-modal-body" class="p-6 overflow-y-auto space-y-4 text-xs leading-relaxed text-foreground/90 font-sans">
-                        <div class="text-center py-10 text-muted-foreground">กำลังโหลดเนื้อหาคู่มือ...</div>
+                        <div class="text-center py-12 text-muted-foreground flex flex-col items-center justify-center gap-2">
+                            <i class="ph ph-spinner animate-spin text-2xl text-brand-500"></i>
+                            <span>กำลังโหลดเนื้อหาคู่มือ...</span>
+                        </div>
                     </div>
                 </div>
             `;
@@ -81,6 +88,14 @@
         const rawLink = document.getElementById('manual-modal-raw-link');
         const docUrl = '/doc/' + encodeURIComponent(fileName);
         rawLink.href = docUrl;
+        
+        // Reset body to loading state on every open
+        document.getElementById('manual-modal-body').innerHTML = `
+            <div class="text-center py-12 text-muted-foreground flex flex-col items-center justify-center gap-2">
+                <i class="ph ph-spinner animate-spin text-2xl text-brand-500"></i>
+                <span>กำลังโหลดเนื้อหาคู่มือ...</span>
+            </div>
+        `;
         modal.classList.remove('hidden-view');
 
         try {
@@ -179,8 +194,22 @@
             document.getElementById('manual-modal-body').innerHTML = `<div class="max-w-none space-y-2">${html}</div>`;
         } catch(err) {
             document.getElementById('manual-modal-body').innerHTML = `
-                <div class="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs">
-                    ไม่สามารถโหลดตัวอย่างในหน้านี้ได้ กรุณากดปุ่ม <strong>"เปิดไฟล์เต็ม"</strong> ด้านบนเพื่ออ่านเนื้อหาโดยตรง
+                <div class="p-5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs space-y-3">
+                    <div class="flex items-center gap-2 font-semibold">
+                        <i class="ph ph-warning-circle text-base text-rose-500"></i>
+                        <span>ไม่สามารถโหลดไฟล์ Markdown ตัวอย่างได้โดยตรง (${err.message})</span>
+                    </div>
+                    <p class="text-muted-foreground leading-relaxed">
+                        ท่านสามารถเปิดอ่านคู่มือฉบับเต็มได้โดยตรง หรือไปยังแท็บ "หลักสูตรฝึกอบรม (Training Guide)" ในหน้า FAQ ของระบบ
+                    </p>
+                    <div class="flex items-center gap-2 pt-1">
+                        <a href="${docUrl}" target="_blank" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5">
+                            <i class="ph ph-arrow-square-out"></i> เปิดไฟล์เอกสารเต็ม
+                        </a>
+                        <button onclick="document.getElementById('modal-training-viewer').classList.add('hidden-view'); app.navigate('faq'); app.switchFaqTab('training');" class="btn-artifact-secondary px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer inline-flex items-center gap-1.5">
+                            <i class="ph ph-book-open"></i> ไปยังคู่มือระบบในหน้า FAQ
+                        </button>
+                    </div>
                 </div>
             `;
         }

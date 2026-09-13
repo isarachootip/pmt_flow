@@ -204,6 +204,44 @@ app.use((req, res, next) => {
     res.setHeader('Expires', '0');
     next();
 });
+// Serve Documentation files (/doc/*) with Unicode / URI decoding and NFC/NFD tolerance
+app.get('/doc/:filename(*)', (req, res) => {
+    try {
+        const rawParam = req.params.filename || '';
+        const decodedFilename = decodeURIComponent(rawParam).trim();
+        const docDirs = [
+            path_1.default.join(__dirname, '../doc'),
+            path_1.default.join(__dirname, './doc'),
+            path_1.default.join(process.cwd(), 'doc')
+        ];
+        for (const d of docDirs) {
+            if (!fs_1.default.existsSync(d))
+                continue;
+            // 1. Direct match
+            const direct = path_1.default.join(d, decodedFilename);
+            if (fs_1.default.existsSync(direct) && fs_1.default.statSync(direct).isFile()) {
+                res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+                return res.sendFile(direct);
+            }
+            // 2. Unicode normalized match (NFC / NFD)
+            const files = fs_1.default.readdirSync(d);
+            const match = files.find(f => f === decodedFilename ||
+                f.normalize('NFC') === decodedFilename.normalize('NFC') ||
+                f.normalize('NFD') === decodedFilename.normalize('NFD'));
+            if (match) {
+                res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+                return res.sendFile(path_1.default.join(d, match));
+            }
+        }
+        return res.status(404).send('Document not found: ' + decodedFilename);
+    }
+    catch (e) {
+        return res.status(500).send('Error reading document: ' + e.message);
+    }
+});
+app.use('/doc', express_1.default.static(path_1.default.join(__dirname, '../doc')));
+app.use('/doc', express_1.default.static(path_1.default.join(__dirname, './doc')));
+app.use('/doc', express_1.default.static(path_1.default.join(process.cwd(), 'doc')));
 // Serve static frontend files (index.html)
 app.use(express_1.default.static(path_1.default.join(__dirname, '../')));
 app.use(express_1.default.static(path_1.default.join(__dirname, './')));

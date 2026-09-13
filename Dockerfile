@@ -9,6 +9,7 @@ COPY dist ./dist
 COPY index.html ./
 COPY openapi.yaml ./
 COPY public ./public
+COPY doc ./doc
 
 EXPOSE 3000
 CMD ["node", "dist/server.js"]
