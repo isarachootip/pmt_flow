@@ -503,7 +503,7 @@ function mapDbJobRow(row) {
         boq_discount: Number(row.boq_discount) || 0,
         boq_subtotal: Number(row.boq_subtotal) || 0,
         boq_grand_total: Number(row.boq_grand_total) || 0,
-        pmt_accepted: row.pmt_accepted !== undefined ? row.pmt_accepted : (row.status !== 'DRAFT' && row.status !== 'NEW'),
+        pmt_accepted: row.pmt_accepted !== undefined && row.pmt_accepted !== null ? Boolean(row.pmt_accepted) : (row.status !== 'DRAFT' && row.status !== 'NEW' && row.status !== 'SURVEYED' && row.status !== 'Survey'),
         pmt_accepted_at: row.pmt_accepted_at || null,
         step3_confirmed: Boolean(row.step3_confirmed),
         qc_inspection_type: row.qc_inspection_type || null,
@@ -779,13 +779,12 @@ async function dbResetJobStatus() {
     try {
         const res = await exports.pool.query(`
       UPDATE core_jobs 
-      SET status = 'DRAFT', 
-          overall_progress = 0, 
+      SET status = 'SURVEYED', 
+          overall_progress = 25, 
           pmt_accepted = false, 
           pmt_accepted_at = null,
           step3_confirmed = false,
           tasks = '[]'::jsonb,
-          photos = '[]'::jsonb,
           boq_items = '[]'::jsonb,
           updated_at = CURRENT_TIMESTAMP;
     `);
@@ -1064,6 +1063,7 @@ async function dbSeedMockJobs() {
         };
         await dbSaveJob({
             ...j,
+            status: 'SURVEYED',
             customer: customerData,
             customer_data: customerData,
             step_timestamps: { step1_order_at: isoTime },
@@ -1072,7 +1072,7 @@ async function dbSeedMockJobs() {
             photos: [],
             boq_items: [],
             pmt_accepted: false,
-            overall_progress: 0
+            overall_progress: 25
         });
     }
     console.log(`[DB SEED] Successfully seeded ${mockJobs.length} mock jobs into PostgreSQL core_jobs.`);

@@ -864,15 +864,21 @@ const app = {
                     this.showToast('⚠️ ฟังก์ชันนี้สงวนไว้เฉพาะผู้ใช้ Isara Chootip เท่านั้น', 'warning');
                     return;
                 }
-                if (confirmAction && !confirm('คุณแน่ใจหรือไม่ที่จะถอยสถานะของทุกโครงการกลับไปจุดเริ่มต้น (Step 1 / Draft / 0%) เพื่อเริ่มต้นใหม่?')) {
+                if (confirmAction && !confirm('คุณแน่ใจหรือไม่ที่จะถอยสถานะของทุกโครงการกลับไปจุดเริ่มต้น (Step 1 / Survey / 25%) เพื่อเริ่มต้นใหม่?')) {
                     return;
                 }
                 (DB.jobs || []).forEach(job => {
-                    job.status = 'DRAFT';
-                    job.progress = 0;
+                    job.status = 'SURVEYED';
+                    job.progress = 25;
                     job.pmt_accepted = false;
                     job.pmt_accepted_at = null;
-                    job.step_timestamps = { step1_order_at: job.step_timestamps?.step1_order_at || new Date().toISOString() };
+                    job.step_timestamps = { 
+                        step1_order_at: job.step_timestamps?.step1_order_at || new Date().toISOString(),
+                        step1_survey_at: new Date().toISOString()
+                    };
+                    if (!job.photos || job.photos.length === 0) {
+                        job.photos = this.getSampleVisitPlanPhotos(job);
+                    }
                     job.boq_items = [];
                     job.boq_discount = 0;
                     job.boq_grand_total = 0;
@@ -912,7 +918,7 @@ const app = {
                 if (this.state.currentView === 'blueprints') this.renderBlueprints();
                 if (this.state.currentView === 'tickets') this.renderTickets();
 
-                this.showToast('🔄 ล้างค่าและถอยสถานะทุกโครงการกลับสู่จุดเริ่มต้น (Step 1 / Draft / 0%) เรียบร้อยแล้ว');
+                this.showToast('🔄 ล้างค่าและถอยสถานะทุกโครงการกลับสู่จุดเริ่มต้น (Step 1 / Survey / 25%) เรียบร้อยแล้ว');
             },
 
             async clearAllProjects(confirmAction = true) {
@@ -1471,7 +1477,7 @@ const app = {
                     console.warn('Server reset failed, continuing with local mock:', e);
                 }
 
-                // 3. Populate local DB with 20 pure Step 1 jobs (0% DRAFT) starting completely from Step 1
+                // 3. Populate local DB with 20 Step 1 jobs in SURVEYED status starting at Step 1
                 const mockOrders = this.getINTMockOrders();
                 const baseTime = Date.now();
                 const currentDate = new Date().toISOString().slice(0, 10);
@@ -1479,18 +1485,19 @@ const app = {
                     // Chronological arrival timestamp: JOB020 is newest (now), JOB001 arrived earliest
                     const jobIso = new Date(baseTime - (mockOrders.length - 1 - idx) * 12 * 60000).toISOString();
                     o.step_timestamps = {
-                        step1_order_at: jobIso
+                        step1_order_at: jobIso,
+                        step1_survey_at: jobIso
                     };
                     o.created_at = jobIso;
                     o.date = currentDate;
-                    o.status = 'DRAFT';
-                    o.progress = 0;
+                    o.status = 'SURVEYED';
+                    o.progress = 25;
                     o.pmt_accepted = false;
                     o.pmt_accepted_at = null;
                     o.boq_items = [];
                     o.boq_discount = 0;
                     o.boq_grand_total = 0;
-                    o.photos = [];
+                    o.photos = this.getSampleVisitPlanPhotos(o);
                 });
                 DB.jobs = this.sortJobsDescending(JSON.parse(JSON.stringify(mockOrders)));
                 DB.tasks = [];
@@ -1525,7 +1532,7 @@ const app = {
 
                 this.updateStepBadges();
                 this.updateStep1Dashboard();
-                this.showToast(`✨ นำเข้า 20 รายการคำสั่งซื้อใหม่จาก INT (Quick 10, Renovate 10) เริ่มต้นที่ Step 1 เรียบร้อยแล้ว (${DB.jobs.length} งาน 0% Draft)`, 'success');
+                this.showToast(`✨ นำเข้า 20 รายการคำสั่งซื้อใหม่จาก INT (สถานะ Survey) เริ่มต้นที่ Step 1 เรียบร้อยแล้ว (${DB.jobs.length} งาน Surveyed 25%)`, 'success');
             },
 
             simulateINT16Orders(confirmAction = true) {
@@ -2759,11 +2766,11 @@ const app = {
                     if (serviceFilter !== 'all') {
                         list = list.filter(j => j.service === serviceFilter);
                     }
-                    // Show Step 1 jobs: NEW/DRAFT (not yet accepted) AND SURVEYED (survey jobs from INT that need PMT processing)
+                    // Show Step 1 jobs: SURVEYED (survey jobs from INT) AND NEW/DRAFT (not yet accepted)
                     list = list.filter(j => 
                         (
-                            // Standard new intake: not accepted, status DRAFT/NEW
-                            (!j.pmt_accepted && (j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New'))
+                            // Standard intake / Survey jobs: not accepted, status SURVEYED / DRAFT / NEW
+                            (!j.pmt_accepted && (j.status === 'SURVEYED' || j.status === 'Survey' || j.status === 'Surveyed' || j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New'))
                             ||
                             // Survey jobs from INT: SURVEYED status but not yet fully processed into pipeline
                             (j.status === 'SURVEYED' && !j.step_timestamps?.step5_project_at && !(DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id))
@@ -2786,7 +2793,7 @@ const app = {
                 const html = list.map((j, idx) => {
                     const isTop3New = idx < 3;
                     const isQuick = this.isQuickJob(j);
-                    const isSurvey = j.status === 'SURVEYED';
+                    const isSurvey = j.status === 'SURVEYED' || j.status === 'Survey' || j.status === 'Surveyed';
 
                     // Design / Blueprints status
                     const jobBps = (DB.blueprints || []).filter(b => b.jobId === j.id);
@@ -2940,18 +2947,29 @@ const app = {
                 if (titleEl) titleEl.innerText = job.id;
                 const custEl = document.getElementById('unified-modal-customer');
                 if (custEl) custEl.innerText = job.customer || 'คุณลูกค้า';
+
+                const schedEl = document.getElementById('unified-modal-schedule-preview');
+                if (schedEl) {
+                    const sDate = this.formatDateDMY(job.survey_date || job.date || job.plan_date);
+                    const sTime = job.survey_time || job.start_time || '09:00 - 12:00 น.';
+                    schedEl.innerText = `${sDate} (${sTime})`;
+                }
+
                 const badgeEl = document.getElementById('unified-modal-status-badge');
                 if (badgeEl) {
-                    if (job.status === 'DRAFT' || job.status === 'NEW' || job.status === 'Draft') {
-                        badgeEl.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30';
+                    if (job.status === 'SURVEYED' || job.status === 'Survey' || job.status === 'Surveyed') {
+                        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30';
+                        badgeEl.innerHTML = '<i class="ph ph-compass-tool mr-0.5"></i> SURVEYED (สำรวจแล้ว)';
+                    } else if (job.status === 'DRAFT' || job.status === 'NEW' || job.status === 'Draft') {
+                        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30';
                         badgeEl.innerText = 'รอจัดเตรียมข้อเสนอ';
                     } else {
-                        badgeEl.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30';
+                        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30';
                         badgeEl.innerText = job.status || 'ดำเนินการอยู่';
                     }
                 }
 
-                // Populate Tab 1: Intake
+                // Populate Section 1: Intake
                 const nameInp = document.getElementById('unified-intake-customer');
                 if (nameInp) nameInp.value = job.customer || '';
                 const phoneInp = document.getElementById('unified-intake-phone');
@@ -3001,42 +3019,155 @@ const app = {
                 const notesInp = document.getElementById('unified-intake-notes');
                 if (notesInp) notesInp.value = job.internal_notes || '';
 
-                // Populate Tab 2: Design
+                // Populate Survey Photos Gallery in Section 1
+                this.renderUnifiedSurveyPhotos();
+
+                // Populate Section 2: Design
                 this.renderUnifiedBlueprintsGrid();
                 this.resetUnifiedDesignForm();
 
-                // Populate Tab 3: BOQ
+                // Populate Section 3: BOQ
                 this.renderUnifiedBOQTable();
                 this.calculateUnifiedBOQSummary();
 
-                // Update Indicators
+                // Update Indicators & Metrics
                 this.updateUnifiedStudioIndicators();
 
-                // Show modal & switch to target tab
+                // Show modal & scroll/switch to target section
                 this.showModal('modal-unified-order-studio');
-                this.switchUnifiedStudioTab(initialTab);
+                this.scrollUnifiedStudioTo(initialTab);
             },
 
-            switchUnifiedStudioTab(tab) {
-                const tabs = ['intake', 'design', 'boq'];
-                tabs.forEach(t => {
-                    const btn = document.getElementById(`tab-btn-unified-${t}`);
-                    const pane = document.getElementById(`unified-tab-pane-${t}`);
+            scrollUnifiedStudioTo(sec) {
+                const secEl = document.getElementById(`unified-sec-${sec}`);
+                const scrollBody = document.getElementById('unified-studio-scroll-body');
+                if (secEl && scrollBody) {
+                    secEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                ['intake', 'design', 'boq'].forEach(s => {
+                    const btn = document.getElementById(`tab-btn-unified-${s}`);
                     if (btn) {
-                        if (t === tab) {
-                            btn.className = 'pb-2.5 px-3.5 text-xs font-bold border-b-2 border-indigo-600 text-foreground flex items-center gap-1.5 cursor-pointer transition';
+                        if (s === sec) {
+                            btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-xl bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5 cursor-pointer transition shadow-2xs';
                         } else {
-                            btn.className = 'pb-2.5 px-3.5 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 cursor-pointer transition';
-                        }
-                    }
-                    if (pane) {
-                        if (t === tab) {
-                            pane.classList.remove('hidden-view');
-                        } else {
-                            pane.classList.add('hidden-view');
+                            btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-card hover:bg-muted text-muted-foreground hover:text-foreground border border-border flex items-center gap-1.5 cursor-pointer transition';
                         }
                     }
                 });
+            },
+
+            switchUnifiedStudioTab(tab) {
+                this.scrollUnifiedStudioTo(tab);
+            },
+
+            renderUnifiedSurveyPhotos() {
+                const jobId = this.state.unifiedStudioJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const grid = document.getElementById('unified-survey-photos-grid');
+                const countEl = document.getElementById('unified-survey-photos-count');
+                const metricEl = document.getElementById('unified-metric-photos');
+                if (!grid || !job) return;
+
+                if (!job.photos || job.photos.length === 0) {
+                    job.photos = this.getSampleVisitPlanPhotos(job);
+                    this.persistJobs();
+                }
+
+                const photos = job.photos || [];
+                if (countEl) countEl.innerText = `${photos.length} รูป`;
+                if (metricEl) metricEl.innerText = `${photos.length} รูปถ่าย`;
+
+                if (photos.length === 0) {
+                    grid.innerHTML = `
+                        <div class="col-span-full p-6 text-center bg-muted/20 rounded-xl border border-dashed border-border text-muted-foreground">
+                            <i class="ph ph-camera-slash text-2xl text-muted-foreground/60 mb-1"></i>
+                            <p class="text-xs font-medium">ยังไม่มีรูปถ่ายสำรวจหน้างาน</p>
+                            <button type="button" onclick="app.openUnifiedPhotoUpload()" class="mt-2 btn-artifact-secondary px-3 py-1 rounded-lg text-xs font-semibold text-teal-600 hover:underline cursor-pointer">
+                                + อัปโหลดรูปหน้างาน
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                grid.innerHTML = photos.map((p, idx) => {
+                    const photoUrl = p.url || p.dataUrl || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800';
+                    const photoTitle = p.title || p.name || `ภาพสำรวจหน้างาน #${idx + 1}`;
+                    const photoTag = p.tag || p.category || (idx === 0 ? 'Check-in' : (idx === photos.length - 1 ? 'Check-out' : 'Survey Site'));
+                    const photoDate = p.uploaded_at ? this.formatDateDMY(p.uploaded_at) : this.formatDateDMY(new Date());
+
+                    return `
+                        <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs hover:border-teal-500/50 hover:shadow-md transition flex flex-col">
+                            <div class="relative aspect-4/3 overflow-hidden bg-muted/50 cursor-pointer" onclick="app.previewJobPhotoLightbox('${jobId}', '${p.id || idx}')" title="คลิกเพื่อขยายดูรูปภาพเต็มตา">
+                                <img src="${photoUrl}" alt="${photoTitle}" class="w-full h-full object-cover group-hover:scale-105 transition duration-200" loading="lazy">
+                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <span class="w-8 h-8 rounded-full bg-white/90 text-foreground flex items-center justify-center text-sm shadow-md">
+                                        <i class="ph ph-magnifying-glass-plus"></i>
+                                    </span>
+                                </div>
+                                <span class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-black/60 text-white backdrop-blur-xs">
+                                    #${idx + 1} ${photoTag}
+                                </span>
+                            </div>
+                            <div class="p-2.5 flex-1 flex flex-col justify-between">
+                                <p class="text-[11px] font-bold text-foreground line-clamp-1" title="${photoTitle}">${photoTitle}</p>
+                                <div class="flex items-center justify-between text-[10px] text-muted-foreground mt-1">
+                                    <span>📅 ${photoDate}</span>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="app.previewJobPhotoLightbox('${jobId}', '${p.id || idx}')" class="text-teal-600 hover:underline font-semibold cursor-pointer">
+                                            ขยายดู
+                                        </button>
+                                        ${p.id ? `<button type="button" onclick="app.deletePhoto('${jobId}', '${p.id}')" class="text-rose-500 hover:text-rose-700 transition cursor-pointer" title="ลบรูปภาพนี้"><i class="ph ph-trash"></i></button>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            openUnifiedPhotoUpload() {
+                const jobId = this.state.unifiedStudioJobId;
+                if (!jobId) return;
+                this.openPhotoUploadModal(jobId);
+            },
+
+            previewJobPhotoLightbox(jobId, photoId) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job || !job.photos) return;
+                let photo = job.photos.find(p => p.id === photoId);
+                if (!photo && typeof photoId === 'string' && !isNaN(Number(photoId))) {
+                    photo = job.photos[Number(photoId)];
+                }
+                if (!photo) return;
+                const timeStr = photo.uploaded_at ? this.formatDateDMY(photo.uploaded_at) : this.formatDateDMY(new Date());
+                this.showLightbox(
+                    photo.url || photo.dataUrl,
+                    photo.title || photo.name || 'ภาพถ่ายสำรวจหน้างาน',
+                    photo.tag || 'สำรวจหน้างาน',
+                    photo.note || photo.remark || 'ภาพถ่ายสำรวจพื้นที่หน้างานและตำแหน่งติดตั้งจริง',
+                    timeStr
+                );
+            },
+
+            addQuickBOQPreset(name, type, qty, unit, price) {
+                const jobId = this.state.unifiedStudioJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+                if (!job.boq_items) job.boq_items = [];
+                job.boq_items.push({
+                    id: 'BOQ-' + Date.now() + Math.floor(Math.random() * 100),
+                    name: name,
+                    type: type === 'labor' ? 'LABOR' : 'MATERIAL',
+                    category: type === 'labor' ? 'LABOR' : 'MATERIAL',
+                    qty: Number(qty) || 1,
+                    unit: unit || 'จุด',
+                    price: Number(price) || 0
+                });
+                this.renderUnifiedBOQTable();
+                this.calculateUnifiedBOQSummary();
+                this.updateUnifiedStudioIndicators();
+                this.showToast(`✨ เพิ่มรายการ "${name}" เรียบร้อยแล้ว`, 'success');
             },
 
             onUnifiedTimePresetChange(val) {
@@ -3048,11 +3179,13 @@ const app = {
                 const grid = document.getElementById('unified-design-grid');
                 const pill = document.getElementById('unified-design-count-pill');
                 const badge = document.getElementById('tab-unified-design-badge');
+                const metricBp = document.getElementById('unified-metric-blueprints');
                 if (!grid) return;
 
                 const bps = (DB.blueprints || []).filter(b => b.jobId === jobId);
                 if (pill) pill.innerText = `${bps.length} ไฟล์`;
                 if (badge) badge.innerText = bps.length;
+                if (metricBp) metricBp.innerText = `${bps.length} แบบแปลน`;
 
                 if (bps.length === 0) {
                     grid.innerHTML = `
@@ -3383,6 +3516,8 @@ const app = {
                 if (grandEl) grandEl.innerText = `${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
                 const badgeEl = document.getElementById('tab-unified-boq-badge');
                 if (badgeEl) badgeEl.innerText = `฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+                const metricBoq = document.getElementById('unified-metric-boq');
+                if (metricBoq) metricBoq.innerText = `${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
 
                 this.updateUnifiedStudioIndicators();
             },
@@ -3621,7 +3756,7 @@ const app = {
                 // Step 1: Count only jobs waiting in Step 1 (not yet accepted into PMT)
                 const step1Count = allJobs.filter(j => 
                     !j.pmt_accepted &&
-                    (j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
+                    (j.status === 'SURVEYED' || j.status === 'Survey' || j.status === 'Surveyed' || j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
                     !(j.step_timestamps && (j.step_timestamps.step1_accepted_at || j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at || j.step_timestamps.step3_conversion_at || j.step_timestamps.step5_project_at)) &&
                     !(DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id)
                 ).length;
@@ -3705,7 +3840,7 @@ const app = {
                 // 2. ยอดที่ยังคงเหลือ (คิว Step 1 ที่ยังไม่ได้กดรับเข้าระบบ PMT)
                 const remainingJobs = allJobs.filter(j => 
                     !j.pmt_accepted &&
-                    (j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
+                    (j.status === 'SURVEYED' || j.status === 'Survey' || j.status === 'Surveyed' || j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
                     !designedJobIds.has(j.id) &&
                     !(j.step_timestamps && (j.step_timestamps.step2_design_at || j.step_timestamps.step4_ticket_at || j.step_timestamps.step3_boq_at || j.step_timestamps.step5_project_at)) &&
                     !(DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id)
@@ -4904,6 +5039,9 @@ const app = {
                 this.clearPhotoPreview();
                 this.showToast(`📷 อัปโหลดรูปภาพ "${title}" (รูปที่ ${5 + job.photos.length}) เรียบร้อยแล้ว`);
                 this.renderJobDetail();
+                if (this.state.unifiedStudioJobId === jobId) {
+                    this.renderUnifiedSurveyPhotos();
+                }
             },
 
             deletePhoto(jobId, photoId) {
@@ -4927,6 +5065,9 @@ const app = {
 
                 this.showToast('🗑️ ลบรูปภาพเรียบร้อยแล้ว');
                 this.renderJobDetail();
+                if (this.state.unifiedStudioJobId === jobId) {
+                    this.renderUnifiedSurveyPhotos();
+                }
             },
 
             openBasePhotoLightbox(num) {

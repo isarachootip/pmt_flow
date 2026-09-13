@@ -1315,9 +1315,8 @@ function seedInitialCoreData(populateMocks = false) {
         j.boq_items = [];
         j.boq_discount = 0;
         j.boq_grand_total = 0;
-        j.photos = [];
-        j.overall_progress = 0;
-        j.status = JobStatus.DRAFT;
+        j.overall_progress = 25;
+        j.status = JobStatus.SURVEYED;
         const cust = mockCustomers.find(c => c.id === j.customer_id);
         if (cust) {
             j.customer = {
@@ -2160,7 +2159,7 @@ app.get('/api/v1/jobs', requireAuth, async (req, res) => {
                     special_instructions: job.special_instructions || '',
                     additional_notes: job.additional_notes || '',
                     photos: job.photos || [],
-                    pmt_accepted: job.pmt_accepted !== undefined ? job.pmt_accepted : (job.status !== JobStatus.DRAFT && job.status !== JobStatus.NEW),
+                    pmt_accepted: job.pmt_accepted !== undefined && job.pmt_accepted !== null ? Boolean(job.pmt_accepted) : (job.status !== JobStatus.DRAFT && job.status !== JobStatus.NEW && job.status !== JobStatus.SURVEYED),
                     pmt_accepted_at: job.pmt_accepted_at || null,
                     job_type: job.job_type || 'quick',
                     step_timestamps: job.step_timestamps || null,
@@ -2384,9 +2383,8 @@ app.post(['/api/v1/system/wipe-transactions', '/api/v1/jobs/wipe-all'], wipeAllT
 app.post('/api/v1/jobs/reset-status', async (req, res) => {
     const count = await (0, database_1.dbResetJobStatus)();
     exports.coreJobStore.forEach(j => {
-        j.status = JobStatus.DRAFT;
-        j.overall_progress = 0;
-        j.photos = [];
+        j.status = JobStatus.SURVEYED;
+        j.overall_progress = 25;
         j.boq_items = [];
         j.pmt_accepted = false;
     });
@@ -2395,7 +2393,7 @@ app.post('/api/v1/jobs/reset-status', async (req, res) => {
     exports.coreDailyWorkLogStore.length = 0;
     return res.json({
         success: true,
-        message: 'ถอยสถานะของทุก Job กลับสู่จุดเริ่มต้น (DRAFT / 0%) เรียบร้อย',
+        message: 'ถอยสถานะของทุก Job กลับสู่จุดเริ่มต้น (SURVEYED / 25%) พร้อมทำแบบและ BOQ เรียบร้อย',
         total_jobs: count || exports.coreJobStore.length
     });
 });
