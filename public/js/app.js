@@ -3195,6 +3195,16 @@ const app = {
                 // CRITICAL RULE: Sort jobs descending so the 3 latest incoming jobs are always on top!
                 list = this.sortJobsDescending(list);
 
+                // Subtask filter (Task งานย่อย: สำรวจ, แนบแปลน, ใส่ BOQ)
+                const subtask = this.state.step1SubtaskFilter || 'all';
+                if (subtask === 'survey') {
+                    list = list.filter(j => j.status === 'SURVEYED' || j.status === 'Survey' || j.status === 'Surveyed' || j.service === 'สำรวจหน้างาน');
+                } else if (subtask === 'design') {
+                    list = list.filter(j => (DB.blueprints || []).some(b => b.jobId === j.id) || !this.isQuickJob(j));
+                } else if (subtask === 'boq') {
+                    list = list.filter(j => (j.boq_items && j.boq_items.length > 0) || !this.isQuickJob(j));
+                }
+
                 // Contextual banner display
                 const bannerEl = document.getElementById('step1-queue-banner');
                 if (bannerEl) {
@@ -3339,6 +3349,41 @@ const app = {
                     </tr>
                 `;
                 this.updateStepBadges();
+                this.updateStep1SubtaskUI();
+            },
+
+            filterStep1Subtask(subtask = 'all') {
+                this.state.step1SubtaskFilter = subtask;
+                if (this.state.currentView !== 'jobs') {
+                    this.navigate('jobs');
+                } else {
+                    this.renderJobs();
+                }
+                this.updateStep1SubtaskUI();
+            },
+
+            updateStep1SubtaskUI() {
+                const current = this.state.step1SubtaskFilter || 'all';
+                ['all', 'survey', 'design', 'boq'].forEach(st => {
+                    const btn = document.getElementById(`btn-subtask-${st}`);
+                    if (btn) {
+                        if (st === current) {
+                            btn.className = "step1-subtask-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-500 text-white shadow-xs flex items-center gap-1.5 cursor-pointer transition";
+                        } else {
+                            btn.className = "step1-subtask-btn px-3 py-1.5 rounded-xl text-xs font-medium bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted border border-border flex items-center gap-1.5 cursor-pointer transition";
+                        }
+                    }
+                    const sideSub = document.getElementById(`subnav-${st}`);
+                    if (sideSub) {
+                        if (st === current) {
+                            sideSub.classList.add('bg-muted', 'text-foreground', 'font-bold');
+                            sideSub.classList.remove('text-muted-foreground');
+                        } else {
+                            sideSub.classList.remove('bg-muted', 'text-foreground', 'font-bold');
+                            sideSub.classList.add('text-muted-foreground');
+                        }
+                    }
+                });
             },
 
             // =========================================================================
@@ -4410,14 +4455,36 @@ const app = {
                 const allJobs = DB.jobs || [];
 
                 // Step 1: Count only jobs waiting in Step 1 (not yet accepted into PMT)
-                const step1Count = allJobs.filter(j => 
+                const step1Jobs = allJobs.filter(j => 
                     !j.pmt_accepted &&
                     (j.status === 'SURVEYED' || j.status === 'Survey' || j.status === 'Surveyed' || j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
                     !(j.step_timestamps && (j.step_timestamps.step1_accepted_at || j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at || j.step_timestamps.step3_conversion_at || j.step_timestamps.step5_project_at)) &&
                     !(DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id)
-                ).length;
+                );
+                const step1Count = step1Jobs.length;
                 const sidebarJob = document.getElementById('sidebar-job-count');
                 if (sidebarJob) sidebarJob.innerText = step1Count;
+
+                // Step 1 Task งานย่อย: สำรวจ, แนบแปลน, ใส่ BOQ
+                const surveyCount = step1Jobs.filter(j => j.status === 'SURVEYED' || j.status === 'Survey' || j.status === 'Surveyed' || j.service === 'สำรวจหน้างาน').length;
+                const designCount = step1Jobs.filter(j => (DB.blueprints || []).some(b => b.jobId === j.id) || !this.isQuickJob(j)).length;
+                const boqCount = step1Jobs.filter(j => (j.boq_items && j.boq_items.length > 0)).length;
+
+                const subSurvey = document.getElementById('sidebar-sub-survey-count');
+                const subDesign = document.getElementById('sidebar-sub-design-count');
+                const subBoq = document.getElementById('sidebar-sub-boq-count');
+                if (subSurvey) subSurvey.innerText = surveyCount;
+                if (subDesign) subDesign.innerText = designCount;
+                if (subBoq) subBoq.innerText = boqCount;
+
+                const pillSurvey = document.getElementById('subtask-pill-survey-count');
+                const pillDesign = document.getElementById('subtask-pill-design-count');
+                const pillBoq = document.getElementById('subtask-pill-boq-count');
+                const pillAll = document.getElementById('subtask-pill-all-count');
+                if (pillSurvey) pillSurvey.innerText = surveyCount;
+                if (pillDesign) pillDesign.innerText = designCount;
+                if (pillBoq) pillBoq.innerText = boqCount;
+                if (pillAll) pillAll.innerText = step1Count;
 
                 // Step 2: Tickets (Queue of jobs waiting for Ticket or issued tickets)
                 const sidebarTicket = document.getElementById('sidebar-ticket-count');
@@ -5951,12 +6018,12 @@ const app = {
                 }).catch(() => {});
 
                 this.updateStepBadges();
-                this.addJobActivityLog(id, 1, 'บันทึกรับ Order เข้าสู่ระบบ PMT', isQuick ? 'ข้ามขั้นตอน Design & BOQ ย้ายเข้าสู่ Step 4 (Quick Service)' : 'ย้ายเข้าสู่ Step 2 (บันทึก Design)');
+                this.addJobActivityLog(id, 1, 'บันทึกรับ Order เข้าสู่ระบบ PMT', isQuick ? 'ข้ามขั้นตอนย้ายเข้าสู่ Step 2 (Quick Service)' : 'ย้ายเข้าสู่ Step 1 One-Stop Studio');
                 
                 if (isQuick) {
-                    this.showToast(`⚡ ย้าย Order [${id}] (Quick Service) เข้าสู่ Step 4 (บันทึก Ticket & ใบเสร็จ) เรียบร้อยแล้ว <button onclick="app.navigate('tickets')" class="ml-2 font-bold text-emerald-400 hover:underline cursor-pointer">เปิดดูใน Step 4 →</button>`);
+                    this.showToast(`⚡ ย้าย Order [${id}] (Quick Service) เข้าสู่ Step 2 (บันทึก Ticket & ใบเสร็จ) เรียบร้อยแล้ว <button onclick="app.navigate('tickets')" class="ml-2 font-bold text-emerald-400 hover:underline cursor-pointer">เปิดดูใน Step 2 →</button>`);
                 } else {
-                    this.showToast(`🎉 บันทึกรับ Order [${id}] เข้าสู่ระบบ PMT สำเร็จ! ย้ายเข้าสู่ Step 2 (บันทึก Design) <button onclick="app.navigate('blueprints')" class="ml-2 font-bold text-indigo-400 hover:underline cursor-pointer">เปิดดูใน Step 2 →</button>`);
+                    this.showToast(`🎉 บันทึกรับ Order [${id}] เข้าสู่ระบบ PMT สำเร็จ! ดำเนินการใน Step 1 Studio <button onclick="app.openUnifiedOrderStudio('${id}')" class="ml-2 font-bold text-indigo-400 hover:underline cursor-pointer">เปิด Studio →</button>`);
                 }
 
                 this.renderJobDetail();
