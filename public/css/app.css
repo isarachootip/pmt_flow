@@ -209,7 +209,13 @@
         /* Lightbox Modals & Overlays Stacking Context */
         .lightbox-modal,
         #modal-photo-lightbox,
-        #modal-ticket-receipt-lightbox {
+        #modal-ticket-receipt-lightbox,
+        #modal-upload-photo,
+        #modal-upload-blueprint,
+        #modal-import-boq,
+        #modal-confirm-proceed-boq,
+        #modal-save-boq-schedule,
+        #modal-convert-boq-tasks {
             z-index: 100 !important;
         }
 

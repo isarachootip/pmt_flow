@@ -196,7 +196,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="/public/css/app.css?v=1.4.2">
+    <link rel="stylesheet" href="/public/css/app.css?v=1.6.7">
 </head>
 <body class="h-screen flex overflow-hidden font-sans select-none antialiased">
 
@@ -4967,7 +4967,7 @@
     </div>
 
     <!-- MODAL: UPLOAD SITE PHOTO -->
-    <div id="modal-upload-photo" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
+    <div id="modal-upload-photo" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4" style="z-index: 100 !important;" onclick="if(event.target === this) app.hideModal('modal-upload-photo')">
         <div class="artifact-card rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-upload-photo-content">
             <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
                 <div class="flex items-center gap-2.5">
@@ -6047,7 +6047,12 @@
 
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span id="unified-survey-photos-count" class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300">0 รูป</span>
-                                <button type="button" onclick="app.openUnifiedPhotoUpload()" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white cursor-pointer shadow-xs flex items-center gap-1.5 transition">
+                                <input type="file" id="unified-quick-photo-input" accept="image/*" multiple class="hidden" onchange="app.handleUnifiedQuickPhotoUpload(event)">
+                                <button type="button" onclick="document.getElementById('unified-quick-photo-input').click()" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold border border-teal-500/30 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10 cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="เลือกรูปถ่ายหลายไฟล์พร้อมกันจากเครื่องโดยตรง">
+                                    <i class="ph ph-images-square text-sm"></i>
+                                    <span>เลือกรูปด่วน</span>
+                                </button>
+                                <button type="button" onclick="app.openUnifiedPhotoUpload()" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="เปิดฟอร์มระบุรายละเอียดรูปถ่าย">
                                     <i class="ph ph-plus-circle text-sm"></i>
                                     <span>📷 เพิ่มรูปถ่ายหน้างาน</span>
                                 </button>
@@ -6251,7 +6256,7 @@
     </div>
 
     <!-- MODAL: UPLOAD BLUEPRINT -->
-    <div id="modal-upload-blueprint" onclick="if(event.target === this) app.hideModal('modal-upload-blueprint')" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-4">
+    <div id="modal-upload-blueprint" onclick="if(event.target === this) app.hideModal('modal-upload-blueprint')" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-4" style="z-index: 100 !important;">
         <div class="artifact-card rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-upload-blueprint-content">
             <!-- Fixed Sticky Header with Prominent Close Button -->
             <div class="p-4 sm:p-5 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
@@ -6436,7 +6441,7 @@
     </div>
 
     <!-- MODAL: CONFIRM PROCEED FROM STEP 2 (DESIGN) TO STEP 3 (BOQ) -->
-    <div id="modal-confirm-proceed-boq" onclick="if(event.target === this) app.hideModal('modal-confirm-proceed-boq')" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-4">
+    <div id="modal-confirm-proceed-boq" onclick="if(event.target === this) app.hideModal('modal-confirm-proceed-boq')" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-4" style="z-index: 100 !important;">
         <div class="artifact-card rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-confirm-proceed-boq-content">
             <!-- Header -->
             <div class="p-4 sm:p-5 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
@@ -6685,7 +6690,7 @@
 
     <!-- MODAL: IMPORT BOQ (EXCEL / CSV / TEMPLATE) -->
     <!-- MODAL: IMPORT BOQ VIA EXCEL / TEMPLATE -->
-    <div id="modal-import-boq" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
+    <div id="modal-import-boq" onclick="if(event.target === this) app.hideModal('modal-import-boq')" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4" style="z-index: 100 !important;">
         <div class="artifact-card rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-import-boq-content">
             <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
                 <div class="flex items-center gap-2.5">
@@ -7005,7 +7010,7 @@
         </div>
     </div>
     <!-- Modal: Save BOQ, Schedule & Assign Technicians -->
-    <div id="modal-save-boq-schedule" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
+    <div id="modal-save-boq-schedule" onclick="if(event.target === this) app.hideModal('modal-save-boq-schedule')" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4" style="z-index: 100 !important;">
         <div class="artifact-card rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-save-boq-schedule-content">
             <!-- Header -->
             <div class="p-5 border-b border-border flex justify-between items-center bg-muted/40 shrink-0">
@@ -7914,7 +7919,7 @@
     <!-- APPLICATION SCRIPTS -->
     <script src="./public/js/db.js?v=1.6.6"></script>
     <script src="./public/js/auth.js?v=1.6.6"></script>
-    <script src="./public/js/app.js?v=1.6.6"></script>
+    <script src="./public/js/app.js?v=1.6.7"></script>
     <script src="./public/js/userMgmt.js?v=1.6.6"></script>
     <script src="./public/js/app.hooks.js?v=1.6.6"></script>
 

@@ -2196,36 +2196,59 @@ const app = {
                 // Automatically generate/sync QC bookings (5 days before each task end date)
                 this.syncQCBookingsFromTasks();
 
-                // Global Paste Listener for Blueprint Image Upload
+                // Global Paste Listener for Blueprint & Photo Upload
                 window.addEventListener('paste', (e) => {
-                    const modal = document.getElementById('modal-upload-blueprint');
-                    if (modal && !modal.classList.contains('hidden-view')) {
-                        const items = e.clipboardData && e.clipboardData.items;
-                        if (items) {
-                            for (let i = 0; i < items.length; i++) {
-                                if (items[i].type.indexOf('image') !== -1) {
-                                    const blob = items[i].getAsFile();
-                                    if (blob) {
-                                        this.processSelectedBlueprintFile(blob);
-                                        this.showToast('📋 วางภาพแบบ Design จาก Clipboard สำเร็จ');
-                                        break;
-                                    }
-                                }
-                            }
+                    const items = e.clipboardData && e.clipboardData.items;
+                    if (!items) return;
+                    let imgBlob = null;
+                    for (let i = 0; i < items.length; i++) {
+                        if (items[i].type && items[i].type.indexOf('image') !== -1) {
+                            imgBlob = items[i].getAsFile();
+                            break;
                         }
+                    }
+                    if (!imgBlob) return;
+
+                    const photoModal = document.getElementById('modal-upload-photo');
+                    if (photoModal && !photoModal.classList.contains('hidden-view')) {
+                        this.handlePhotoFiles([imgBlob]);
+                        this.showToast('📋 วางรูปภาพหน้างานจาก Clipboard สำเร็จ');
+                        return;
+                    }
+
+                    const bpModal = document.getElementById('modal-upload-blueprint');
+                    if (bpModal && !bpModal.classList.contains('hidden-view')) {
+                        this.processSelectedBlueprintFile(imgBlob);
+                        this.showToast('📋 วางภาพแบบ Design จาก Clipboard สำเร็จ');
+                        return;
+                    }
+
+                    const studioModal = document.getElementById('modal-unified-order-studio');
+                    if (studioModal && !studioModal.classList.contains('hidden-view')) {
+                        this.handleUnifiedQuickPhotoFiles([imgBlob]);
+                        return;
                     }
                 });
 
                 // Global Keydown Listener (Esc to close any active modal or lightbox)
                 window.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape') {
-                        // Priority 1: Close top-level lightbox if open, preserving background parent modal
-                        const openLightboxes = Array.from(document.querySelectorAll('#modal-photo-lightbox:not(.hidden-view), #modal-ticket-receipt-lightbox:not(.hidden-view), .lightbox-modal:not(.hidden-view)'));
-                        if (openLightboxes.length > 0) {
-                            openLightboxes.forEach(lb => {
-                                if (lb.id) this.hideModal(lb.id);
-                            });
-                            return;
+                        // Priority 1: Close top-level submodals/lightboxes first, preserving background parent modal
+                        const submodals = [
+                            'modal-photo-lightbox',
+                            'modal-ticket-receipt-lightbox',
+                            'modal-upload-photo',
+                            'modal-upload-blueprint',
+                            'modal-import-boq',
+                            'modal-confirm-proceed-boq',
+                            'modal-save-boq-schedule'
+                        ];
+                        for (const smId of submodals) {
+                            const sm = document.getElementById(smId);
+                            if (sm && !sm.classList.contains('hidden-view')) {
+                                this.hideModal(smId);
+                                return;
+                            }
                         }
 
                         // Priority 2: Close top-most regular modal (excluding login-overlay and toast)
@@ -3434,13 +3457,86 @@ const app = {
             },
 
             openUnifiedPhotoUpload() {
-                const jobId = this.state.unifiedStudioJobId;
-                if (!jobId) return;
+                const jobId = this.state.unifiedStudioJobId || document.getElementById('unified-modal-job-id')?.innerText.trim() || this.state.currentJobId;
+                if (!jobId) {
+                    this.showToast('⚠️ ไม่พบรหัสคำสั่งซื้อ');
+                    return;
+                }
                 this.openPhotoUploadModal(jobId);
             },
 
+            async handleUnifiedQuickPhotoUpload(event) {
+                const files = event.target.files;
+                if (!files || files.length === 0) return;
+                await this.handleUnifiedQuickPhotoFiles(files);
+                event.target.value = '';
+            },
+
+            async handleUnifiedQuickPhotoFiles(files) {
+                const jobId = this.state.unifiedStudioJobId || document.getElementById('unified-modal-job-id')?.innerText.trim() || this.state.currentJobId;
+                let job = (DB.jobs || []).find(j => j.id === jobId || String(j.id) === String(jobId));
+                if (!job && jobId) {
+                    job = { id: jobId, photos: [] };
+                    if (!DB.jobs) DB.jobs = [];
+                    DB.jobs.push(job);
+                }
+                if (!job) {
+                    this.showToast('⚠️ ไม่พบรหัสคำสั่งซื้อ', 'error');
+                    return;
+                }
+                if (!job.photos) job.photos = [];
+
+                let addedCount = 0;
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    if (!file.type || !file.type.startsWith('image/')) continue;
+                    let dataUrl = await this.compressImage(file, 1200, 0.75);
+                    if (!dataUrl) {
+                        dataUrl = await new Promise(r => {
+                            const rd = new FileReader();
+                            rd.onload = ev => r(ev.target.result);
+                            rd.onerror = () => r(null);
+                            rd.readAsDataURL(file);
+                        });
+                    }
+                    if (!dataUrl) continue;
+
+                    const title = file.name.replace(/\.[^/.]+$/, "") || `ภาพสำรวจหน้างาน #${job.photos.length + 1}`;
+                    const newPhoto = {
+                        id: 'PHT-' + Date.now() + '-' + i,
+                        title: title,
+                        name: file.name,
+                        url: dataUrl,
+                        tag: 'ภาพสำรวจหน้างาน',
+                        note: 'อัปโหลดผ่าน Studio Step 1',
+                        lat: job.lat || 13.7563,
+                        lng: job.lng || 100.5018,
+                        gps_verified: true,
+                        uploaded_at: new Date().toISOString()
+                    };
+                    job.photos.push(newPhoto);
+                    addedCount++;
+
+                    // Sync with server in background
+                    fetch(`/api/v1/jobs/${jobId}/photos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newPhoto)
+                    }).catch(() => {});
+                }
+
+                if (addedCount > 0) {
+                    this.persistJobs();
+                    this.renderUnifiedSurveyPhotos();
+                    this.updateUnifiedStudioIndicators();
+                    this.renderJobDetail();
+                    this.showToast(`📷 เพิ่มรูปถ่ายหน้างานเรียบร้อยแล้ว (${addedCount} รูป)`);
+                    this.addJobActivityLog(jobId, 1, 'เพิ่มรูปภาพสำรวจหน้างาน', `เพิ่มรูปถ่ายจำนวน ${addedCount} รูป`);
+                }
+            },
+
             previewJobPhotoLightbox(jobId, photoId) {
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = (DB.jobs || []).find(j => j.id === jobId || String(j.id) === String(jobId));
                 if (!job || !job.photos) return;
                 let photo = job.photos.find(p => p.id === photoId);
                 if (!photo && typeof photoId === 'string' && !isNaN(Number(photoId))) {
@@ -5210,7 +5306,7 @@ const app = {
 
             openPhotoUploadModal(jobId) {
                 this.state.uploadTargetJobId = jobId;
-                const job = DB.jobs.find(j => j.id === jobId);
+                const job = (DB.jobs || []).find(j => j.id === jobId || String(j.id) === String(jobId));
                 const titleEl = document.getElementById('pht-title');
                 const noteEl = document.getElementById('pht-note');
                 const tagEl = document.getElementById('pht-tag');
@@ -5219,7 +5315,9 @@ const app = {
                 if (titleEl) titleEl.value = '';
                 if (noteEl) noteEl.value = '';
                 if (tagEl) tagEl.value = 'สภาพหน้างานทั่วไป';
-                if (gpsEl && job) gpsEl.value = `📍 ${job.lat || 13.7563}, ${job.lng || 100.5018} (Verified)`;
+                if (gpsEl) {
+                    gpsEl.value = job ? `📍 ${job.lat || 13.7563}, ${job.lng || 100.5018} (Verified)` : '📍 13.7563, 100.5018 (Verified)';
+                }
 
                 this.clearPhotoPreview();
                 this.showModal('modal-upload-photo');
@@ -5306,9 +5404,17 @@ const app = {
 
             async submitUploadPhoto(event) {
                 event.preventDefault();
-                const jobId = this.state.uploadTargetJobId || this.state.currentJobId;
-                const job = DB.jobs.find(j => j.id === jobId);
-                if (!job) return;
+                const jobId = this.state.uploadTargetJobId || this.state.unifiedStudioJobId || document.getElementById('unified-modal-job-id')?.innerText.trim() || this.state.currentJobId;
+                let job = (DB.jobs || []).find(j => j.id === jobId || String(j.id) === String(jobId));
+                if (!job && jobId) {
+                    job = { id: jobId, photos: [] };
+                    if (!DB.jobs) DB.jobs = [];
+                    DB.jobs.push(job);
+                }
+                if (!job) {
+                    this.showToast('⚠️ ไม่พบข้อมูลคำสั่งซื้อที่จะบันทึกรูปภาพ', 'error');
+                    return;
+                }
 
                 const dataUrl = this._currentPhotoDataUrl;
                 if (!dataUrl) {
@@ -5355,17 +5461,18 @@ const app = {
 
                 this.hideModal('modal-upload-photo');
                 this.clearPhotoPreview();
-                this.showToast(`📷 อัปโหลดรูปภาพ "${title}" (รูปที่ ${5 + job.photos.length}) เรียบร้อยแล้ว`);
-                this.addJobActivityLog(jobId, 1, 'อัปโหลดรูปภาพหน้างานเพิ่ม', `รูปที่ ${5 + job.photos.length}: ${title} (${tag})`);
+                this.showToast(`📷 อัปโหลดรูปภาพ "${title}" (รวม ${job.photos.length} รูป) เรียบร้อยแล้ว`);
+                this.addJobActivityLog(jobId, 1, 'อัปโหลดรูปภาพหน้างานเพิ่ม', `รูปที่ ${job.photos.length}: ${title} (${tag})`);
                 this.renderJobDetail();
-                if (this.state.unifiedStudioJobId === jobId) {
+                if (this.state.unifiedStudioJobId == jobId || String(this.state.unifiedStudioJobId) === String(jobId)) {
                     this.renderUnifiedSurveyPhotos();
+                    this.updateUnifiedStudioIndicators();
                 }
             },
 
             deletePhoto(jobId, photoId) {
                 if (!confirm('ต้องการลบรูปภาพนี้ออกจากงานใช่หรือไม่?')) return;
-                const job = DB.jobs.find(j => j.id === jobId);
+                const job = (DB.jobs || []).find(j => j.id === jobId || String(j.id) === String(jobId));
                 if (!job || !job.photos) return;
 
                 job.photos = job.photos.filter(p => p.id !== photoId);
@@ -5385,8 +5492,9 @@ const app = {
                 this.showToast('🗑️ ลบรูปภาพเรียบร้อยแล้ว');
                 this.addJobActivityLog(jobId, 1, 'ลบรูปภาพหน้างาน', 'ลบรูปภาพเพิ่มเติมออกจากโครงการ');
                 this.renderJobDetail();
-                if (this.state.unifiedStudioJobId === jobId) {
+                if (this.state.unifiedStudioJobId == jobId || String(this.state.unifiedStudioJobId) === String(jobId)) {
                     this.renderUnifiedSurveyPhotos();
+                    this.updateUnifiedStudioIndicators();
                 }
             },
 
