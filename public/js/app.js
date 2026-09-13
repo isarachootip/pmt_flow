@@ -2029,6 +2029,157 @@ const app = {
                     });
                 }
 
+                // Ensure default BOQ, Tasks & Daily Work Logs for JOB202609001 (คุณสมหมาย ใจดี - Renovate ครัว)
+                if (Array.isArray(DB.jobs)) {
+                    let jobSommai = DB.jobs.find(j => j.id === 'JOB202609001' || (j.customer && j.customer.includes('สมหมาย')));
+                    if (!jobSommai) {
+                        jobSommai = {
+                            id: 'JOB202609001',
+                            job_no: 'JOB202609001',
+                            job_type: 'renovate',
+                            external_ref_id: 'INT-2026-001',
+                            customer: 'สมหมาย ใจดี',
+                            phone: '089-999-9999',
+                            service: 'Renovate ครัว',
+                            services: ['Renovate ครัว'],
+                            status: 'IN_PROGRESS',
+                            date: '2026-09-11',
+                            progress: 45,
+                            address: '99/1 ซอยสุขุมวิท 101/1 แขวงบางจาก เขตพระโขนง กรุงเทพฯ 10260',
+                            tech: 'ทีมช่าง สมศักดิ์ (team c)',
+                            boq_items: [
+                                { id: 'boq_sm_1', name: 'งานบริการทาสี', unit: 'ตร.ม.', qty: 120, unit_price: 250, amount: 30000, labor_price: 30000 },
+                                { id: 'boq_sm_2', name: 'งานบริการรื้อถอน', unit: 'เหมา', qty: 1, unit_price: 15000, amount: 15000, labor_price: 15000 },
+                                { id: 'boq_sm_3', name: 'งานบริการติดตั้งเพิ่มเติม', unit: 'จุด', qty: 8, unit_price: 1800, amount: 14400, labor_price: 14400 },
+                                { id: 'boq_sm_4', name: 'งานบริการติดตั้งครัว', unit: 'ชุด', qty: 1, unit_price: 45000, amount: 45000, labor_price: 45000 }
+                            ],
+                            boq_discount: 0,
+                            boq_grand_total: 104400
+                        };
+                        DB.jobs.unshift(jobSommai);
+                    } else if (!jobSommai.boq_items || jobSommai.boq_items.length === 0) {
+                        jobSommai.boq_items = [
+                            { id: 'boq_sm_1', name: 'งานบริการทาสี', unit: 'ตร.ม.', qty: 120, unit_price: 250, amount: 30000, labor_price: 30000 },
+                            { id: 'boq_sm_2', name: 'งานบริการรื้อถอน', unit: 'เหมา', qty: 1, unit_price: 15000, amount: 15000, labor_price: 15000 },
+                            { id: 'boq_sm_3', name: 'งานบริการติดตั้งเพิ่มเติม', unit: 'จุด', qty: 8, unit_price: 1800, amount: 14400, labor_price: 14400 },
+                            { id: 'boq_sm_4', name: 'งานบริการติดตั้งครัว', unit: 'ชุด', qty: 1, unit_price: 45000, amount: 45000, labor_price: 45000 }
+                        ];
+                    }
+
+                    if (!DB.tasks) DB.tasks = [];
+                    const sommaiTasks = DB.tasks.filter(t => t.jobId === jobSommai.id);
+                    if (sommaiTasks.length === 0) {
+                        DB.tasks.push(
+                            { id: 'T_JOB202609001_1', jobId: jobSommai.id, name: 'งานบริการทาสี', start: '2026-09-14', end: '2026-09-25', days: 12, tech: 'ทีมช่าง สมศักดิ์ (team c)', status: 'DONE', progress: 100 },
+                            { id: 'T_JOB202609001_2', jobId: jobSommai.id, name: 'งานบริการรื้อถอน', start: '2026-09-11', end: '2026-09-16', days: 6, tech: 'ทีมช่าง สมศักดิ์ (team c)', status: 'IN_PROGRESS', progress: 60 },
+                            { id: 'T_JOB202609001_3', jobId: jobSommai.id, name: 'งานบริการติดตั้งเพิ่มเติม', start: '2026-09-16', end: '2026-10-02', days: 17, tech: 'ทีมช่าง สมศักดิ์ (team c)', status: 'IN_PROGRESS', progress: 0 },
+                            { id: 'T_JOB202609001_4', jobId: jobSommai.id, name: 'งานบริการติดตั้งครัว', start: '2026-09-17', end: '2026-09-30', days: 14, tech: 'ทีมช่าง สมศักดิ์ (team c)', status: 'IN_PROGRESS', progress: 0 }
+                        );
+                    }
+
+                    if (!DB.dailyWorkLogs) DB.dailyWorkLogs = [];
+                    const sommaiLogs = DB.dailyWorkLogs.filter(l => l.jobId === jobSommai.id);
+                    if (sommaiLogs.length === 0) {
+                        DB.dailyWorkLogs.push(
+                            {
+                                id: 'LOG_SM_01',
+                                jobId: jobSommai.id,
+                                taskId: 'T_JOB202609001_1',
+                                taskName: 'งานบริการทาสี',
+                                logDate: '2026-09-14',
+                                startTime: '08:30',
+                                endTime: '17:00',
+                                workHours: '8 ชม. 30 นาที',
+                                dayNumber: 1,
+                                totalDays: 12,
+                                technician: 'ทีมช่าง สมศักดิ์ (team c)',
+                                recordedBy: 'ช่างสมศักดิ์',
+                                reporterRole: 'TECH',
+                                progressPercent: 100,
+                                workDescription: 'ดำเนินการทาสีรองพื้นและทาสีผนังครัวรอบแรกเรียบร้อย 100%',
+                                isCompleted: true,
+                                createdAt: '2026-09-14T17:00:00.000Z'
+                            },
+                            {
+                                id: 'LOG_SM_02',
+                                jobId: jobSommai.id,
+                                taskId: 'T_JOB202609001_2',
+                                taskName: 'งานบริการรื้อถอน',
+                                logDate: '2026-09-11',
+                                startTime: '08:30',
+                                endTime: '17:00',
+                                workHours: '8 ชม. 30 นาที',
+                                dayNumber: 1,
+                                totalDays: 6,
+                                technician: 'ทีมช่าง สมศักดิ์ (team c)',
+                                recordedBy: 'ช่างสมศักดิ์',
+                                reporterRole: 'TECH',
+                                progressPercent: 20,
+                                workDescription: 'รื้อถอนตู้แขวนและเคาน์เตอร์เดิม',
+                                isCompleted: false,
+                                createdAt: '2026-09-11T17:00:00.000Z'
+                            },
+                            {
+                                id: 'LOG_SM_03',
+                                jobId: jobSommai.id,
+                                taskId: 'T_JOB202609001_2',
+                                taskName: 'งานบริการรื้อถอน',
+                                logDate: '2026-09-12',
+                                startTime: '08:30',
+                                endTime: '17:00',
+                                workHours: '8 ชม. 30 นาที',
+                                dayNumber: 2,
+                                totalDays: 6,
+                                technician: 'ทีมช่าง สมศักดิ์ (team c)',
+                                recordedBy: 'ช่างสมศักดิ์',
+                                reporterRole: 'TECH',
+                                progressPercent: 40,
+                                workDescription: 'สกัดแนวกระเบื้องเดิมและเคลียร์เศษปูน',
+                                isCompleted: false,
+                                createdAt: '2026-09-12T17:00:00.000Z'
+                            },
+                            {
+                                id: 'LOG_SM_04',
+                                jobId: jobSommai.id,
+                                taskId: 'T_JOB202609001_2',
+                                taskName: 'งานบริการรื้อถอน',
+                                logDate: '2026-09-13',
+                                startTime: '08:30',
+                                endTime: '17:00',
+                                workHours: '8 ชม. 30 นาที',
+                                dayNumber: 3,
+                                totalDays: 6,
+                                technician: 'ทีมช่าง สมศักดิ์ (team c)',
+                                recordedBy: 'ช่างสมศักดิ์',
+                                reporterRole: 'TECH',
+                                progressPercent: 50,
+                                workDescription: 'ตรวจสอบท่อน้ำทิ้งและเดินแนวท่อชั่วคราว',
+                                isCompleted: false,
+                                createdAt: '2026-09-13T17:00:00.000Z'
+                            },
+                            {
+                                id: 'LOG_SM_05',
+                                jobId: jobSommai.id,
+                                taskId: 'T_JOB202609001_2',
+                                taskName: 'งานบริการรื้อถอน',
+                                logDate: '2026-09-14',
+                                startTime: '08:30',
+                                endTime: '17:00',
+                                workHours: '8 ชม. 30 นาที',
+                                dayNumber: 4,
+                                totalDays: 6,
+                                technician: 'ทีมช่าง สมศักดิ์ (team c)',
+                                recordedBy: 'ช่างสมศักดิ์',
+                                reporterRole: 'TECH',
+                                progressPercent: 60,
+                                workDescription: 'รื้อถอนท่อน้ำทิ้งและเตรียมพื้นที่ติดตั้งท่อใหม่',
+                                isCompleted: false,
+                                createdAt: '2026-09-14T17:00:00.000Z'
+                            }
+                        );
+                    }
+                }
+
                 // Rule Enforcement: แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart
                 // Filter out any tasks whose jobs do not have BOQ items
                 if (Array.isArray(DB.jobs)) {
@@ -13219,6 +13370,280 @@ const app = {
                 stripEl.innerHTML = cardsHtml;
             },
 
+            getGanttTodayDate() {
+                if (this.state.ganttSimulatedToday) return this.state.ganttSimulatedToday;
+                const now = new Date();
+                const y = now.getFullYear();
+                const m = String(now.getMonth() + 1).padStart(2, '0');
+                const d = String(now.getDate()).padStart(2, '0');
+                if (y === 2026 && m === '09') {
+                    return `${y}-${m}-${d}`;
+                }
+                // Default fallback to 2026-09-15 matching standard test scenario
+                return '2026-09-15';
+            },
+
+            setGanttSimulatedToday(dateStr) {
+                this.state.ganttSimulatedToday = dateStr;
+                this.showToast(`📅 ปรับจำลอง "วันนี้" เป็น ${this.formatDateDMY(dateStr)} เรียบร้อย`);
+                this.renderGantt();
+            },
+
+            renderRealtimeGanttTimelineHtml(tasks, isSingleJob, selectedJobId) {
+                if (!tasks || tasks.length === 0) {
+                    return `<div class="py-10 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในแผนงาน</div>`;
+                }
+
+                const todayStr = this.getGanttTodayDate();
+                const todayTimestamp = new Date(todayStr).getTime();
+                const oneDayMs = 1000 * 60 * 60 * 24;
+
+                // Calculate timeline bounds
+                let minTimestamp = Infinity;
+                let maxTimestamp = -Infinity;
+                tasks.forEach(t => {
+                    const s = new Date(t.start || '2026-09-01').getTime();
+                    let e = t.end ? new Date(t.end).getTime() : s;
+                    if (s < minTimestamp) minTimestamp = s;
+                    if (e > maxTimestamp) maxTimestamp = e;
+                });
+
+                if (minTimestamp === Infinity) {
+                    minTimestamp = new Date('2026-09-01').getTime();
+                    maxTimestamp = new Date('2026-09-30').getTime();
+                }
+
+                // Ensure today is always visible in the chart timeline
+                if (todayTimestamp < minTimestamp) minTimestamp = todayTimestamp - (oneDayMs * 2);
+                if (todayTimestamp > maxTimestamp) maxTimestamp = todayTimestamp + (oneDayMs * 2);
+
+                const totalDays = Math.max(10, Math.round((maxTimestamp - minTimestamp) / oneDayMs) + 2);
+                const timelineDates = [];
+                const startDateObj = new Date(minTimestamp);
+                for (let i = 0; i < totalDays; i++) {
+                    const cur = new Date(startDateObj);
+                    cur.setDate(cur.getDate() + i);
+                    timelineDates.push(cur);
+                }
+
+                const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                const todayIndex = timelineDates.findIndex(d => d.toISOString().slice(0, 10) === todayStr);
+                const colWidthPercent = 100 / totalDays;
+                const todayCenterPercent = todayIndex !== -1 ? (todayIndex * colWidthPercent) + (colWidthPercent / 2) : -1;
+
+                // Timeline Header
+                const dayHeaderHtml = timelineDates.map((d, idx) => {
+                    const dayNum = String(d.getDate()).padStart(2, '0');
+                    const monthStr = monthNames[d.getMonth()];
+                    const dStr = d.toISOString().slice(0, 10);
+                    const isToday = (idx === todayIndex);
+
+                    if (isToday) {
+                        return `
+                        <div class="flex-1 text-center relative border-l border-rose-500/40 pb-1.5 px-0.5" title="วันนี้ (${this.formatDateDMY(dStr)})">
+                            <div class="inline-flex flex-col items-center bg-rose-500 text-white rounded-lg px-2 py-0.5 shadow-sm">
+                                <span class="text-[9px] font-bold uppercase tracking-wider leading-tight">วันนี้</span>
+                                <span class="text-[10px] font-mono font-bold leading-tight">${dayNum} ${monthStr}</span>
+                            </div>
+                        </div>`;
+                    }
+
+                    return `<div class="flex-1 text-center text-[10px] font-mono text-muted-foreground border-l border-border pb-1.5 px-0.5 truncate" title="${this.formatDateDMY(dStr)}">${dayNum} ${monthStr}</div>`;
+                }).join('');
+
+                // Date Range Label in Top Bar
+                const dateRangeLabel = document.getElementById('gantt-date-range-label');
+                if (dateRangeLabel) {
+                    const firstD = timelineDates[0];
+                    const lastD = timelineDates[timelineDates.length - 1];
+                    dateRangeLabel.innerText = `ช่วงเวลา: ${this.formatDateDMY(firstD.toISOString().slice(0, 10))} - ${this.formatDateDMY(lastD.toISOString().slice(0, 10))}`;
+                }
+
+                // Task Rows
+                const rowsHtml = tasks.map(t => {
+                    const tStartObj = new Date(t.start || '2026-09-01');
+                    const tEndObj = new Date(t.end || t.start || '2026-09-01');
+                    const taskDaysCount = Math.max(1, Math.round((tEndObj.getTime() - tStartObj.getTime()) / oneDayMs) + 1);
+
+                    const endDateStr = t.end || t.start;
+                    const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
+                    const rawQcDate = qcBooking ? qcBooking.qcBookingDate : this.calculateQCBookingDate(endDateStr, 5);
+                    const qcDateDisplay = this.formatDateDMY(rawQcDate);
+
+                    // Daily breakdown
+                    const dailyStatuses = [];
+                    for (let dayIdx = 0; dayIdx < taskDaysCount; dayIdx++) {
+                        const curD = new Date(tStartObj);
+                        curD.setDate(curD.getDate() + dayIdx);
+                        const curDStr = curD.toISOString().slice(0, 10);
+                        const diffDaysFromToday = Math.round((todayTimestamp - curD.getTime()) / oneDayMs);
+
+                        const dayLog = (DB.dailyWorkLogs || []).find(l => 
+                            (String(l.taskId) === String(t.id) || (String(l.jobId) === String(t.jobId) && l.taskName === t.name)) && 
+                            l.logDate === curDStr
+                        );
+                        const isLogCompleted = dayLog && (dayLog.isCompleted || (Number(dayLog.progressPercent) || 0) > 0);
+                        const isTaskDone = (t.status === 'DONE');
+
+                        let status = 'FUTURE';
+                        if (isLogCompleted || (isTaskDone && curDStr <= todayStr)) {
+                            status = 'DONE'; // Green
+                        } else if (curDStr <= todayStr) {
+                            status = 'OVERDUE'; // Red
+                        } else {
+                            status = 'FUTURE'; // Purple
+                        }
+
+                        dailyStatuses.push({
+                            dateStr: curDStr,
+                            dayIdx: dayIdx,
+                            status: status,
+                            canRetro: (diffDaysFromToday <= 3 && diffDaysFromToday >= 0),
+                            isToday: (curDStr === todayStr),
+                            dayLog: dayLog
+                        });
+                    }
+
+                    // Group contiguous segments
+                    const segments = [];
+                    let currentSeg = null;
+                    dailyStatuses.forEach((ds, idx) => {
+                        if (!currentSeg || currentSeg.status !== ds.status) {
+                            if (currentSeg) segments.push(currentSeg);
+                            currentSeg = {
+                                status: ds.status,
+                                startIndex: idx,
+                                days: 1,
+                                dates: [ds.dateStr],
+                                firstDs: ds
+                            };
+                        } else {
+                            currentSeg.days++;
+                            currentSeg.dates.push(ds.dateStr);
+                        }
+                    });
+                    if (currentSeg) segments.push(currentSeg);
+
+                    // Generate Segment HTML
+                    const segmentsHtml = segments.map(seg => {
+                        const segStart = new Date(tStartObj);
+                        segStart.setDate(segStart.getDate() + seg.startIndex);
+                        const diffFromMin = Math.round((segStart.getTime() - minTimestamp) / oneDayMs);
+                        const offsetPercent = Math.max(0, (diffFromMin / totalDays) * 100);
+                        const widthPercent = Math.max(1.5, (seg.days / totalDays) * 100);
+
+                        if (seg.status === 'DONE') {
+                            return `
+                            <div onclick="app.openDailyWorkLogModal('${t.id}', '${seg.dates[0]}')" class="bg-emerald-500 text-white border border-emerald-600 absolute h-8 rounded-lg text-[11px] px-2 flex items-center justify-center truncate shadow-xs transition hover:brightness-110 cursor-pointer hover:ring-2 hover:ring-emerald-400 z-10" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 60px;" title="${t.name}: งานเสร็จแล้ว (${seg.days} วัน) - คลิกเพื่อดูบันทึกงานช่าง">
+                                <span class="truncate font-medium flex items-center gap-1"><i class="ph ph-check-circle text-xs"></i> ✓ เสร็จสิ้น</span>
+                            </div>`;
+                        } else if (seg.status === 'OVERDUE') {
+                            const targetUpdateDate = seg.dates[seg.dates.length - 1];
+                            return `
+                            <div onclick="app.openDailyWorkLogModal('${t.id}', '${targetUpdateDate}')" class="bg-rose-500 text-white border border-rose-600 absolute h-8 rounded-lg text-[11px] px-2 flex items-center justify-center truncate shadow-xs transition hover:brightness-110 cursor-pointer hover:ring-2 hover:ring-rose-400 z-10" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 45px;" title="วันที่ ${seg.dates.map(d => this.formatDateDMY(d)).join(', ')}: ยังไม่อัปเดต (คลิกเพื่อบันทึกงานช่าง/QC ${seg.firstDs.canRetro ? 'ย้อนหลังได้ไม่เกิน 3 วัน' : 'เกินกำหนด 3 วัน'})">
+                                <span class="truncate font-medium flex items-center gap-1 text-[10px]"><i class="ph ph-warning-circle text-xs"></i> ยังไม่อัปเดต</span>
+                            </div>`;
+                        } else {
+                            return `
+                            <div onclick="app.openDailyWorkLogModal('${t.id}')" class="bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-300/70 dark:border-purple-800/70 absolute h-8 rounded-lg text-[11px] px-2 flex items-center justify-between truncate shadow-xs transition hover:brightness-105 cursor-pointer hover:ring-2 hover:ring-purple-400 z-10" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 55px;" title="${t.name}: ช่วงเวลาที่ยังไม่เริ่ม (${this.formatDateDMY(seg.dates[0])} ถึง ${this.formatDateDMY(seg.dates[seg.dates.length - 1])} - ${seg.days} วัน)">
+                                <span class="truncate font-medium flex items-center gap-1 text-[10px]"><i class="ph ph-user text-[11px]"></i> ${t.tech || 'ทีมช่าง'}</span>
+                                <span class="text-[10px] font-mono font-bold bg-white/80 dark:bg-purple-900/60 px-1 py-0.5 rounded shadow-xs ml-1">${taskDaysCount}d</span>
+                            </div>`;
+                        }
+                    }).join('');
+
+                    const jobBadgeHtml = (!isSingleJob) ? `
+                        <button onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-600 dark:text-purple-400 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-[11px] transition cursor-pointer flex items-center gap-1 mr-1.5 inline-flex" title="คลิกเพื่อเลือก ${t.jobId}">
+                            <i class="ph ph-folder text-[10px]"></i> ${t.jobId}
+                        </button>
+                    ` : '';
+
+                    return `
+                    <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group">
+                        <!-- Left Info Column -->
+                        <div class="w-64 shrink-0 text-xs font-medium text-foreground truncate pr-4">
+                            <div class="flex items-center gap-1.5">
+                                ${jobBadgeHtml}
+                                <span class="truncate font-semibold text-foreground" title="${t.name}">${t.name}</span>
+                                <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-[10px] text-purple-600 dark:text-purple-400 hover:text-purple-700 bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded font-medium transition cursor-pointer flex items-center gap-0.5 shrink-0" title="เปิดดูรายละเอียดและบันทึกงานช่าง">
+                                    <i class="ph ph-magnifying-glass text-[11px]"></i> ดูงาน
+                                </button>
+                            </div>
+                            <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2 flex-wrap">
+                                <span>📅 ${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} (${taskDaysCount} วัน)</span>
+                                <span onclick="app.openQCFromTask('${t.id}')" class="text-brand-500 hover:underline cursor-pointer flex items-center gap-0.5" title="คลิกเพื่อดูการจองช่าง QC"><i class="ph ph-shield-check text-[11px]"></i> จอง QC: ${qcDateDisplay}</span>
+                                <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-blue-500 hover:underline cursor-pointer flex items-center gap-0.5" title="เปิดบันทึกงานช่างประจำวัน"><i class="ph ph-notebook text-[11px]"></i> บันทึกช่าง</button>
+                            </div>
+                        </div>
+
+                        <!-- Right Timeline Bars Container -->
+                        <div class="flex-1 relative h-full flex items-center">
+                            <!-- Today Vertical Dotted Guideline across row -->
+                            ${todayCenterPercent !== -1 ? `
+                                <div class="absolute inset-y-0 -translate-x-1/2 border-l-2 border-dashed border-rose-500/80 pointer-events-none z-0" style="left: ${todayCenterPercent}%;"></div>
+                                <div class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-rose-500 border-2 border-white dark:border-card shadow-md z-20 pointer-events-none" style="left: ${todayCenterPercent}%;" title="ตำแหน่งวันปัจจุบัน (${this.formatDateDMY(todayStr)})"></div>
+                            ` : ''}
+
+                            <!-- Segmented Daily Color Bars -->
+                            ${segmentsHtml}
+                        </div>
+                    </div>`;
+                }).join('');
+
+                return `
+                    <!-- Gantt Visual Chart Section -->
+                    <div class="space-y-2">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-muted-foreground px-1 pb-1 gap-2">
+                            <span class="font-semibold text-foreground flex items-center gap-1.5">
+                                <i class="ph ph-chart-bar text-brand-500"></i> แผนภูมิแท่งแสดงช่วงเวลา (Gantt Timeline Chart):
+                            </span>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-[11px] font-medium text-foreground flex items-center gap-1">
+                                    <i class="ph ph-clock text-rose-500"></i> จำลองวันนี้:
+                                </span>
+                                <div class="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-[11px]">
+                                    <button type="button" onclick="app.setGanttSimulatedToday('2026-09-14')" class="px-2 py-0.5 rounded-md ${todayStr === '2026-09-14' ? 'bg-rose-500 text-white font-bold shadow-xs' : 'text-muted-foreground hover:text-foreground cursor-pointer'}">14 ก.ย.</button>
+                                    <button type="button" onclick="app.setGanttSimulatedToday('2026-09-15')" class="px-2 py-0.5 rounded-md ${todayStr === '2026-09-15' ? 'bg-rose-500 text-white font-bold shadow-xs' : 'text-muted-foreground hover:text-foreground cursor-pointer'}">15 ก.ย. (ปัจจุบัน)</button>
+                                    <button type="button" onclick="app.setGanttSimulatedToday('2026-09-16')" class="px-2 py-0.5 rounded-md ${todayStr === '2026-09-16' ? 'bg-rose-500 text-white font-bold shadow-xs' : 'text-muted-foreground hover:text-foreground cursor-pointer'}">16 ก.ย.</button>
+                                    <button type="button" onclick="app.setGanttSimulatedToday('2026-09-17')" class="px-2 py-0.5 rounded-md ${todayStr === '2026-09-17' ? 'bg-rose-500 text-white font-bold shadow-xs' : 'text-muted-foreground hover:text-foreground cursor-pointer'}">17 ก.ย.</button>
+                                    <button type="button" onclick="app.setGanttSimulatedToday(new Date().toISOString().slice(0, 10))" class="px-2 py-0.5 rounded-md text-muted-foreground hover:text-foreground cursor-pointer" title="รีเซ็ตเป็นวันจริงตามเวลาเครื่อง">วันจริง</button>
+                                </div>
+                                <span class="text-[11px] text-muted-foreground hidden lg:inline">แสดงระยะเวลาการดำเนินงานตามวันเริ่ม-สิ้นสุด และสถานะการอัปเดตในวันนี้</span>
+                            </div>
+                        </div>
+                        <div class="border border-border rounded-2xl p-4 bg-card shadow-xs">
+                            <div class="flex border-b border-border mb-2 pb-1">
+                                <div class="w-64 shrink-0 text-xs font-bold text-muted-foreground">รายการงาน & วันเริ่ม-สิ้นสุด</div>
+                                <div class="flex-1 flex">${dayHeaderHtml}</div>
+                            </div>
+                            ${rowsHtml}
+
+                            <!-- Legend Bar & Retroactive Policy Standard -->
+                            <div class="mt-4 pt-3 border-t border-border flex flex-wrap items-center justify-between gap-3 text-xs">
+                                <div class="flex items-center gap-4 flex-wrap">
+                                    <span class="flex items-center gap-1.5 font-medium text-foreground">
+                                        <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 inline-block shadow-xs"></span>
+                                        <span>งานที่เสร็จสิ้นแล้ว</span>
+                                    </span>
+                                    <span class="flex items-center gap-1.5 font-medium text-foreground">
+                                        <span class="w-3.5 h-3.5 rounded-full bg-rose-500 inline-block shadow-xs"></span>
+                                        <span>ยังไม่อัปเดต (จนถึงวันนี้)</span>
+                                    </span>
+                                    <span class="flex items-center gap-1.5 font-medium text-foreground">
+                                        <span class="w-3.5 h-3.5 rounded-full bg-purple-200 dark:bg-purple-900 border border-purple-300 dark:border-purple-700 inline-block shadow-xs"></span>
+                                        <span>ช่วงเวลาที่ยังไม่เริ่ม</span>
+                                    </span>
+                                </div>
+                                <div class="text-[11px] flex items-center gap-1 bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2.5 py-1 rounded-lg border border-amber-500/20 font-medium">
+                                    <i class="ph ph-clock-counter-clockwise font-bold text-xs"></i>
+                                    <span>( สามารถอัปเดทย้อนหลังได้ไม่เกิน 3 วัน )</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
             setGanttViewMode(mode) {
                 this.state.ganttViewMode = mode;
                 try { localStorage.setItem('pmt_gantt_view_mode', mode); } catch (e) {}
@@ -13783,84 +14208,7 @@ const app = {
                     }
 
                     // --- IF GANTT TIMELINE MODE ---
-                    // Calculate timeline dates for Gantt Bars
-                    let minTimestamp = Infinity;
-                    let maxTimestamp = -Infinity;
-                    jobTasks.forEach(t => {
-                        const s = new Date(t.start || '2026-09-01').getTime();
-                        let e = t.end ? new Date(t.end).getTime() : s;
-                        if (s < minTimestamp) minTimestamp = s;
-                        if (e > maxTimestamp) maxTimestamp = e;
-                    });
-                    if (minTimestamp === Infinity) {
-                        minTimestamp = new Date('2026-09-01').getTime();
-                        maxTimestamp = new Date('2026-09-10').getTime();
-                    }
-
-                    const oneDayMs = 1000 * 60 * 60 * 24;
-                    const totalDays = Math.max(10, Math.round((maxTimestamp - minTimestamp) / oneDayMs) + 2);
-                    const timelineDates = [];
-                    const startDateObj = new Date(minTimestamp);
-                    for (let i = 0; i < totalDays; i++) {
-                        const cur = new Date(startDateObj);
-                        cur.setDate(cur.getDate() + i);
-                        timelineDates.push(cur);
-                    }
-
-                    const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-                    const dayHeaderHtml = timelineDates.map(d => {
-                        const dayNum = String(d.getDate()).padStart(2, '0');
-                        const monthStr = monthNames[d.getMonth()];
-                        return `<div class="flex-1 text-center text-[10px] font-mono text-muted-foreground border-l border-border pb-1.5 px-0.5 truncate" title="${d.toISOString().slice(0, 10)}">${dayNum} ${monthStr}</div>`;
-                    }).join('');
-
-                    const dateRangeLabel = document.getElementById('gantt-date-range-label');
-                    if (dateRangeLabel) {
-                        const firstD = timelineDates[0];
-                        const lastD = timelineDates[timelineDates.length - 1];
-                        dateRangeLabel.innerText = `ช่วงเวลา: ${String(firstD.getDate()).padStart(2, '0')} ${monthNames[firstD.getMonth()]} - ${String(lastD.getDate()).padStart(2, '0')} ${monthNames[lastD.getMonth()]} ${lastD.getFullYear()}`;
-                    }
-
-                    const ganttRowsHtml = jobTasks.map(t => {
-                        const taskStart = new Date(t.start || '2026-09-01').getTime();
-                        let taskDays = t.days || 1;
-                        if (t.end && t.start) {
-                            const s = new Date(t.start);
-                            const e = new Date(t.end);
-                            taskDays = Math.max(1, Math.round((e - s) / oneDayMs) + 1);
-                        }
-
-                        const diffFromMin = Math.max(0, Math.round((taskStart - minTimestamp) / oneDayMs));
-                        const offsetPercent = Math.min(95, (diffFromMin / totalDays) * 100);
-                        const widthPercent = Math.max(4, Math.min(100 - offsetPercent, (taskDays / totalDays) * 100));
-
-                        let bgClass = 'bg-muted text-muted-foreground border-border';
-                        if (t.status === 'DONE') bgClass = 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 font-semibold';
-                        else if (t.status === 'IN_PROGRESS') bgClass = 'bg-gradient-to-r from-purple-500/20 to-brand-500/20 text-purple-700 dark:text-purple-300 border-purple-500/40 shadow-xs font-semibold';
-
-                        const endDateStr = t.end || t.start;
-                        const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
-                        const rawQcDate = qcBooking ? qcBooking.qcBookingDate : this.calculateQCBookingDate(endDateStr, 5);
-                        const qcDateDisplay = this.formatDateDMY(rawQcDate);
-
-                        return `
-                        <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group">
-                            <div class="w-64 shrink-0 text-xs font-medium text-foreground truncate pr-4">
-                                <div class="truncate font-semibold text-foreground">${t.name}</div>
-                                <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2">
-                                    <span>📅 ${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} (${taskDays} วัน)</span>
-                                    <span onclick="app.openQCFromTask('${t.id}')" class="text-brand-500 hover:underline cursor-pointer flex items-center gap-0.5" title="คลิกเพื่อดูการจองช่าง QC"><i class="ph ph-shield-check text-[11px]"></i> จอง QC: ${qcDateDisplay}</span>
-                                    <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-blue-500 hover:underline cursor-pointer flex items-center gap-0.5" title="เปิดบันทึกงานช่างประจำวัน"><i class="ph ph-notebook text-[11px]"></i> บันทึกช่าง</button>
-                                </div>
-                            </div>
-                            <div class="flex-1 relative h-full flex items-center">
-                                <div class="${bgClass} border absolute h-8 rounded-lg text-[11px] px-2.5 flex items-center justify-between truncate shadow-xs transition hover:brightness-105 cursor-pointer hover:ring-2 hover:ring-brand-500/40" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 80px;" title="${t.name} (${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} - ${t.tech}) | จองตรวจ QC: ${qcDateDisplay}">
-                                    <span class="truncate font-medium flex items-center gap-1"><i class="ph ph-user text-[11px]"></i> ${t.tech}</span>
-                                    <span class="text-[10px] opacity-90 ml-1 font-mono font-bold bg-card/60 px-1 py-0.5 rounded">${taskDays}d</span>
-                                </div>
-                            </div>
-                        </div>`;
-                    }).join('');
+                    const ganttVisualHtml = this.renderRealtimeGanttTimelineHtml(jobTasks, true, selectedJobFilter);
 
                     container.innerHTML = `
                         <!-- Task Scheduler & Assignment Section -->
@@ -13898,16 +14246,16 @@ const app = {
                                 <table class="w-full text-left text-xs">
                                     <thead class="bg-muted/40 text-muted-foreground text-[11px] uppercase tracking-wider border-b border-border">
                                         <tr>
-                                            <th class="py-2.5 px-3 w-10 text-center">#</th>
-                                            <th class="py-2.5 px-3 min-w-[200px]">ชื่องานบริการ / Task</th>
-                                            <th class="py-2.5 px-3 w-36">วันเริ่ม (Start Date)</th>
-                                            <th class="py-2.5 px-3 w-36">วันสิ้นสุด (End Date)</th>
-                                            <th class="py-2.5 px-2 text-center w-20">ระยะเวลา</th>
+                                            <th class="py-2.5 px-3 w-10 text-center font-bold">#</th>
+                                            <th class="py-2.5 px-3 min-w-[200px] font-bold">ชื่องานบริการ / Task</th>
+                                            <th class="py-2.5 px-3 w-36 font-bold">วันเริ่ม (Start Date)</th>
+                                            <th class="py-2.5 px-3 w-36 font-bold">วันสิ้นสุด (End Date)</th>
+                                            <th class="py-2.5 px-2 text-center w-20 font-bold">ระยะเวลา</th>
                                             <th class="py-2.5 px-3 w-44 font-bold text-brand-600 dark:text-brand-400">จองตรวจ QC (วันสิ้นสุด)</th>
                                             <th class="py-2.5 px-3 w-44 font-bold text-blue-600 dark:text-blue-400">บันทึกงานประจำวัน</th>
-                                            <th class="py-2.5 px-3 w-48">ช่างผู้รับผิดชอบ</th>
-                                            <th class="py-2.5 px-3 w-28">สถานะ</th>
-                                            <th class="py-2.5 px-2 w-10 text-center">ลบ</th>
+                                            <th class="py-2.5 px-3 w-48 font-bold">ช่างผู้รับผิดชอบ</th>
+                                            <th class="py-2.5 px-3 w-28 font-bold">สถานะ</th>
+                                            <th class="py-2.5 px-2 w-10 text-center font-bold">ลบ</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-border">
@@ -13917,23 +14265,9 @@ const app = {
                             </div>
                         </div>
 
-                        <!-- Gantt Visual Chart Section -->
-                        <div class="space-y-2">
-                            <div class="flex items-center justify-between text-xs text-muted-foreground px-1">
-                                <span class="font-semibold text-foreground flex items-center gap-1.5">
-                                    <i class="ph ph-chart-bar text-brand-500"></i> แผนภูมิแท่งแสดงช่วงเวลา (Gantt Timeline Chart):
-                                </span>
-                                <span class="text-[11px]">แถบสีจะเปลี่ยนตามวันเริ่ม-สิ้นสุด และสถานะงานอัตโนมัติ</span>
-                            </div>
-                            <div class="border border-border rounded-2xl p-4 bg-card">
-                                <div class="flex border-b border-border mb-2 pb-1">
-                                    <div class="w-64 shrink-0 text-xs font-bold text-muted-foreground">รายการงาน & วันเริ่ม-สิ้นสุด</div>
-                                    <div class="flex-1 flex">${dayHeaderHtml}</div>
-                                </div>
-                                ${ganttRowsHtml}
-                            </div>
-                        </div>
+                        ${ganttVisualHtml}
                     `;
+                    this.initAllDatePickers(container);
                     return;
                 }
 
@@ -14162,98 +14496,32 @@ const app = {
                 }
 
                 // --- ALL JOBS: IF GANTT TIMELINE MODE ---
-                // Calculate timeline dates for All Jobs
-                let minTimestamp = Infinity;
-                let maxTimestamp = -Infinity;
-                tasks.forEach(t => {
-                    const s = new Date(t.start || '2026-09-01').getTime();
-                    let e = t.end ? new Date(t.end).getTime() : s;
-                    if (s < minTimestamp) minTimestamp = s;
-                    if (e > maxTimestamp) maxTimestamp = e;
-                });
-                if (minTimestamp === Infinity) {
-                    minTimestamp = new Date('2026-09-01').getTime();
-                    maxTimestamp = new Date('2026-09-10').getTime();
-                }
-
-                const oneDayMs = 1000 * 60 * 60 * 24;
-                const totalDays = Math.max(10, Math.round((maxTimestamp - minTimestamp) / oneDayMs) + 2);
-                const timelineDates = [];
-                const startDateObj = new Date(minTimestamp);
-                for (let i = 0; i < totalDays; i++) {
-                    const cur = new Date(startDateObj);
-                    cur.setDate(cur.getDate() + i);
-                    timelineDates.push(cur);
-                }
-
-                const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-                const dayHeaderHtml = timelineDates.map(d => {
-                    const dayNum = String(d.getDate()).padStart(2, '0');
-                    const monthStr = monthNames[d.getMonth()];
-                    return `<div class="flex-1 text-center text-[10px] font-mono text-muted-foreground border-l border-border pb-1.5 px-0.5 truncate" title="${d.toISOString().slice(0, 10)}">${dayNum} ${monthStr}</div>`;
-                }).join('');
-
-                const dateRangeLabel = document.getElementById('gantt-date-range-label');
-                if (dateRangeLabel) {
-                    const firstD = timelineDates[0];
-                    const lastD = timelineDates[timelineDates.length - 1];
-                    dateRangeLabel.innerText = `ช่วงเวลา: ${String(firstD.getDate()).padStart(2, '0')}/${String(firstD.getMonth() + 1).padStart(2, '0')}/${firstD.getFullYear()} - ${String(lastD.getDate()).padStart(2, '0')}/${String(lastD.getMonth() + 1).padStart(2, '0')}/${lastD.getFullYear()}`;
-                }
-
-                const rowsHtml = tasks.map(t => {
-                    const taskStart = new Date(t.start || '2026-09-01').getTime();
-                    let taskDays = t.days || 1;
-                    if (t.end && t.start) {
-                        const s = new Date(t.start);
-                        const e = new Date(t.end);
-                        taskDays = Math.max(1, Math.round((e - s) / oneDayMs) + 1);
-                    }
-
-                    const diffFromMin = Math.max(0, Math.round((taskStart - minTimestamp) / oneDayMs));
-                    const offsetPercent = Math.min(95, (diffFromMin / totalDays) * 100);
-                    const widthPercent = Math.max(4, Math.min(100 - offsetPercent, (taskDays / totalDays) * 100));
-
-                    let bgClass = 'bg-muted text-muted-foreground border-border';
-                    if (t.status === 'DONE') bgClass = 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 font-semibold';
-                    else if (t.status === 'IN_PROGRESS') bgClass = 'bg-gradient-to-r from-purple-500/20 to-brand-500/20 text-purple-700 dark:text-purple-300 border-purple-500/40 shadow-xs font-semibold';
-
-                    const endDateStr = t.end || t.start;
-                    const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
-                    const rawQcDate = qcBooking ? qcBooking.qcBookingDate : this.calculateQCBookingDate(endDateStr, 5);
-                    const qcDateDisplay = this.formatDateDMY(rawQcDate);
-
-                    return `
-                    <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group">
-                        <div class="w-64 shrink-0 text-xs font-medium text-foreground truncate pr-4">
-                            <div class="flex items-center gap-1.5">
-                                <button onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-600 dark:text-purple-400 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-[11px] transition cursor-pointer flex items-center gap-1" title="คลิกเพื่อเปิดดูและแก้ไข Task ของ ${t.jobId}">
-                                    <i class="ph ph-folder text-[10px]"></i> ${t.jobId}
+                const allJobsGanttHtml = this.renderRealtimeGanttTimelineHtml(tasks, false, 'all');
+                container.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="p-4 rounded-2xl bg-card border border-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-600 flex items-center justify-center text-lg font-bold">
+                                    <i class="ph ph-chart-bar-horizontal"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="font-display font-bold text-sm text-foreground">แผนงานภาพรวมทุกโครงการ (All Projects Timeline)</h3>
+                                        <span class="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold">${tasks.length} Tasks</span>
+                                    </div>
+                                    <p class="text-[11px] text-muted-foreground mt-0.5">แผนภูมิแท่งแสดงช่วงเวลาและสถานะ Real-time รายวัน ทุกโครงการพร้อมกัน</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="app.setGanttViewMode('list')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-600 dark:text-brand-400 border border-brand-500/20 hover:bg-brand-500/10 cursor-pointer" title="สลับเป็นตาราง List View">
+                                    <i class="ph ph-list-bullets text-sm"></i>
+                                    <span>สลับเป็น List View</span>
                                 </button>
-                                <span onclick="app.selectGanttJob('${t.jobId}')" class="truncate font-medium text-foreground hover:text-brand-500 cursor-pointer transition" title="คลิกเพื่อเลือก ${t.jobId}">${t.name}</span>
-                            </div>
-                            <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2">
-                                <span>📅 ${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} (${taskDays} วัน)</span>
-                                <span onclick="app.openQCFromTask('${t.id}')" class="text-brand-500 hover:underline cursor-pointer flex items-center gap-0.5" title="คลิกเพื่อดูการจองช่าง QC"><i class="ph ph-shield-check text-[11px]"></i> จอง QC: ${qcDateDisplay}</span>
-                                <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-blue-500 hover:underline cursor-pointer flex items-center gap-0.5" title="เปิดบันทึกงานช่างประจำวัน"><i class="ph ph-notebook text-[11px]"></i> บันทึกช่าง</button>
                             </div>
                         </div>
-                        <div class="flex-1 relative h-full flex items-center">
-                            <div onclick="app.selectGanttJob('${t.jobId}')" class="${bgClass} border absolute h-8 rounded-lg text-[11px] px-2.5 flex items-center justify-between truncate shadow-xs transition hover:brightness-105 cursor-pointer hover:ring-2 hover:ring-brand-500/40" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 80px;" title="${t.name} (${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} - ${t.tech}) | จองตรวจ QC: ${qcDateDisplay}">
-                                <span class="truncate font-medium flex items-center gap-1"><i class="ph ph-user text-[11px]"></i> ${t.tech}</span>
-                                <span class="text-[10px] opacity-90 ml-1 font-mono font-bold bg-card/60 px-1 py-0.5 rounded">${taskDays}d</span>
-                            </div>
-                        </div>
-                    </div>`;
-                }).join('');
-
-                const html = `
-                    <div class="flex border-b border-border mb-2 pb-1">
-                        <div class="w-64 shrink-0 text-xs font-bold text-muted-foreground">รายการงาน & วันเริ่ม-สิ้นสุด (คลิกเพื่อแก้ไข)</div>
-                        <div class="flex-1 flex">${dayHeaderHtml}</div>
+                        ${allJobsGanttHtml}
                     </div>
-                    ${rowsHtml}
                 `;
-                container.innerHTML = html;
             },
 
             // ─── DAILY WORK LOGS ENGINE (หน้าจอบันทึกงานช่างประจำวัน & MODAL) ───────────
@@ -15231,10 +15499,10 @@ const app = {
             },
 
             // ─── MODAL: DAILY TECHNICIAN WORK LOG (INTEGRATED WITH GANTT) ───────────
-            openDailyWorkLogModal(taskId) {
+            openDailyWorkLogModal(taskId, targetDate = null) {
                 let task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
                 let jobId = task ? task.jobId : this.state.selectedGanttJobId;
-                if (!jobId || jobId === 'all') jobId = 'JOB26090900002';
+                if (!jobId || jobId === 'all') jobId = 'JOB202609001';
                 
                 if (!task) {
                     const jobTasks = (DB.tasks || []).filter(t => t.jobId === jobId);
@@ -15248,6 +15516,9 @@ const app = {
 
                 this.state.activeDailyLogTaskId = taskId;
                 this.state.activeDailyLogJobId = jobId;
+                if (targetDate) {
+                    this.state.targetDailyLogDate = targetDate;
+                }
 
                 const modal = document.getElementById('modal-daily-work-log');
                 const content = document.getElementById('modal-daily-work-log-content');
@@ -15278,6 +15549,19 @@ const app = {
                 }, 10);
             },
 
+            setDailyLogInputDate(dateStr, dayNum) {
+                const inputDate = document.getElementById('dwl-input-date');
+                if (inputDate) {
+                    inputDate.value = this.formatDateDMY(dateStr);
+                    if (inputDate._flatpickr) inputDate._flatpickr.setDate(this.formatDateDMY(dateStr), true);
+                }
+                const inputDay = document.getElementById('dwl-input-day-num');
+                if (inputDay && dayNum) {
+                    inputDay.value = dayNum;
+                }
+                this.showToast(`📅 เลือกวันที่ ${this.formatDateDMY(dateStr)} (รอบที่ ${dayNum || 1}) สำหรับลงบันทึก`);
+            },
+
             openDailyWorkLogModalForJob(jobId) {
                 const jobTasks = (DB.tasks || []).filter(t => t.jobId === jobId);
                 const firstTask = jobTasks.length > 0 ? jobTasks[0] : null;
@@ -15305,8 +15589,12 @@ const app = {
                 
                 const taskName = task ? task.name : 'งาน set ระบบ ไฟ';
                 const startDateStr = task ? (task.start || '2026-09-07') : '2026-09-07';
-                const endDateStr = task ? (task.end || '2026-09-09') : '2026-09-09';
+                const endDateStr = task ? (task.end || task.start) : '2026-09-09';
                 const taskDays = task ? (task.days || 3) : 3;
+
+                const todayStr = this.getGanttTodayDate();
+                const todayTimestamp = new Date(todayStr).getTime();
+                const oneDayMs = 1000 * 60 * 60 * 24;
 
                 // Fetch logs for this task or job
                 const allLogs = DB.dailyWorkLogs || [];
@@ -15327,21 +15615,33 @@ const app = {
                 const isCompleted = taskLogs.some(l => l.isCompleted) || (task && task.status === 'DONE') || (job && (job.status === 'QC_PENDING' || job.status === 'QC_PASSED'));
 
                 // Determine next day number & suggest next date
-                let nextDayNum = taskLogs.length + 1;
-                let nextDate = endDateStr;
-                if (taskLogs.length > 0) {
-                    const lastLog = taskLogs[0]; // latest log since sorted descending
-                    if (lastLog.logDate) {
-                        const d = new Date(lastLog.logDate);
-                        d.setDate(d.getDate() + 1);
-                        nextDate = d.toISOString().slice(0, 10);
-                        if (new Date(nextDate) > new Date(endDateStr)) nextDate = endDateStr;
+                let nextDate = this.state.targetDailyLogDate || endDateStr;
+                let isTargetDateConsumed = false;
+                if (!this.state.targetDailyLogDate) {
+                    if (taskLogs.length > 0) {
+                        const lastLog = taskLogs[0]; // latest log since sorted descending
+                        if (lastLog.logDate) {
+                            const d = new Date(lastLog.logDate);
+                            d.setDate(d.getDate() + 1);
+                            nextDate = d.toISOString().slice(0, 10);
+                            if (new Date(nextDate) > new Date(endDateStr)) nextDate = endDateStr;
+                        }
+                    } else {
+                        nextDate = startDateStr;
                     }
                 } else {
-                    nextDate = startDateStr;
+                    isTargetDateConsumed = true;
+                    this.state.targetDailyLogDate = null;
                 }
 
-                // Daily Timeline Steps Pills
+                let nextDayNum = taskLogs.length + 1;
+                // If nextDate matches one of the timeline days, find its day number
+                const matchedDayIndex = Math.round((new Date(nextDate) - new Date(startDateStr)) / oneDayMs) + 1;
+                if (matchedDayIndex >= 1 && matchedDayIndex <= taskDays + 5) {
+                    nextDayNum = matchedDayIndex;
+                }
+
+                // Daily Timeline Steps Pills with Realtime Status & 3-Day Retroactive Rule
                 const timelineStepHtml = Array.from({ length: taskDays }).map((_, i) => {
                     const dayIdx = i + 1;
                     const d = new Date(startDateStr);
@@ -15350,17 +15650,42 @@ const app = {
                     const dayLog = taskLogs.find(l => Number(l.dayNumber) === dayIdx || l.logDate === dStr);
                     const isDayDone = dayLog && (dayLog.progressPercent > 0 || dayLog.isCompleted);
                     const isLastDay = dayIdx === taskDays;
+                    const isToday = (dStr === todayStr);
+                    const diffFromToday = Math.round((todayTimestamp - d.getTime()) / oneDayMs);
+                    const canRetro = (diffFromToday <= 3 && diffFromToday >= 0);
+
+                    let cardBgClass = 'bg-muted/40 border-border';
+                    let statusBadgeHtml = '';
+                    if (isDayDone) {
+                        cardBgClass = 'bg-emerald-500/10 border-emerald-500/30';
+                        statusBadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">✓ ${dayLog.progressPercent}%</span>`;
+                    } else if (isToday) {
+                        cardBgClass = 'bg-rose-500/10 border-rose-500/40 ring-1 ring-rose-500/30';
+                        statusBadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold">วันนี้ (รออัปเดต)</span>`;
+                    } else if (diffFromToday > 0 && canRetro) {
+                        cardBgClass = 'bg-amber-500/10 border-amber-500/30';
+                        statusBadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-semibold cursor-pointer" title="อัปเดตย้อนหลังได้">${diffFromToday} วันก่อน (อัปเดตได้)</span>`;
+                    } else if (diffFromToday > 3) {
+                        cardBgClass = 'bg-muted/30 border-border opacity-60';
+                        statusBadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground font-mono" title="เกินกำหนด 3 วัน">เกิน 3 วัน (ล็อค)</span>`;
+                    } else {
+                        cardBgClass = 'bg-muted/40 border-border';
+                        statusBadgeHtml = isLastDay 
+                            ? `<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold">นัดตรวจ QC</span>` 
+                            : `<span class="text-[10px] text-muted-foreground">ตามแผนงาน</span>`;
+                    }
+
+                    const clickHandler = (!isDayDone && canRetro) ? `onclick="app.setDailyLogInputDate('${dStr}', ${dayIdx})"` : '';
+                    const hoverClass = (!isDayDone && canRetro) ? 'cursor-pointer hover:border-amber-500/60 hover:shadow-xs' : '';
 
                     return `
-                    <div class="flex-1 min-w-[120px] p-2.5 rounded-xl border ${isDayDone ? 'bg-emerald-500/10 border-emerald-500/30' : (isLastDay ? 'bg-amber-500/10 border-amber-500/30' : 'bg-muted/40 border-border')} transition flex flex-col justify-between">
+                    <div ${clickHandler} class="flex-1 min-w-[120px] p-2.5 rounded-xl border ${cardBgClass} transition flex flex-col justify-between ${hoverClass}">
                         <div class="flex items-center justify-between text-[11px]">
-                            <span class="font-bold ${isDayDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}">วันที่ ${dayIdx} (${this.formatDateDMY(dStr).slice(0, 5)})</span>
-                            ${isDayDone 
-                                ? `<span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">✓ ${dayLog.progressPercent}%</span>`
-                                : (isLastDay ? `<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold">นัดตรวจ QC</span>` : `<span class="text-[10px] text-muted-foreground">รอลงบันทึก</span>`)}
+                            <span class="font-bold ${isDayDone ? 'text-emerald-600 dark:text-emerald-400' : (isToday ? 'text-rose-600 dark:text-rose-400' : 'text-foreground')}">วันที่ ${dayIdx} (${this.formatDateDMY(dStr).slice(0, 5)})</span>
+                            ${statusBadgeHtml}
                         </div>
                         <div class="text-[10px] text-muted-foreground mt-1 truncate">
-                            ${isDayDone ? (dayLog.workDescription || 'บันทึกแล้ว') : (isLastDay ? 'วันสิ้นสุดงาน & ตรวจ QC' : 'ตามแผนงาน')}
+                            ${isDayDone ? (dayLog.workDescription || 'บันทึกแล้ว') : (isToday ? 'งานที่ต้องอัปเดตในวันนี้' : (canRetro ? 'คลิกเพื่ออัปเดตย้อนหลัง' : (isLastDay ? 'วันสิ้นสุดงาน & ตรวจ QC' : 'ตามแผนงาน')))}
                         </div>
                     </div>`;
                 }).join('');
@@ -15641,6 +15966,20 @@ const app = {
 
                 if (!descVal.trim()) {
                     alert('กรุณาระบุรายละเอียดงานที่ทำในวันนี้');
+                    return;
+                }
+
+                // Retroactive 3-Day Rule Policy Check
+                const todayDateStr = this.getGanttTodayDate();
+                const todayObj = new Date(todayDateStr);
+                const selectedDateObj = new Date(dateVal);
+                const diffDaysFromToday = Math.round((todayObj.getTime() - selectedDateObj.getTime()) / (1000 * 60 * 60 * 24));
+                if (diffDaysFromToday > 3) {
+                    this.showToast('⚠️ ระบบไม่อนุญาตให้อัปเดตย้อนหลังเกิน 3 วัน (ตามนโยบายระบบ)', 'error');
+                    return;
+                }
+                if (diffDaysFromToday < 0) {
+                    this.showToast('⚠️ ไม่สามารถลงบันทึกงานล่วงหน้าสำหรับวันที่ยังมาไม่ถึงได้', 'error');
                     return;
                 }
 
