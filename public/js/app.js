@@ -2551,8 +2551,51 @@ const app = {
             },
 
             renderDashboard() {
-                document.getElementById('kpi-progress').innerText = DB.jobs.filter(j => j.status==='IN_PROGRESS').length;
-                document.getElementById('kpi-qc').innerText = DB.jobs.filter(j => j.status==='QC_PASSED' || j.status==='AFTER_SALE' || j.status==='CLOSED').length;
+                const allJobs = DB.jobs || [];
+                const designedJobIds = new Set((DB.blueprints || []).map(b => b.jobId));
+                const now = new Date();
+                const todayStr = now.toLocaleDateString('en-CA');
+
+                // 1. Active Jobs
+                const elProg = document.getElementById('kpi-progress');
+                if (elProg) elProg.innerText = allJobs.filter(j => j.status === 'IN_PROGRESS').length;
+
+                // 2. Overdue Jobs (คำนวณงานที่เกิน SLA ในระบบ)
+                const overdueJobs = allJobs.filter(j => {
+                    if (j.status === 'CLOSED' || j.status === 'QC_PASSED' || j.status === 'AFTER_SALE') return false;
+                    // Check SLA across relevant step
+                    for (let s = 1; s <= 5; s++) {
+                        const sla = this.calculateJobSLA(j, s);
+                        if (sla && sla.status === 'OVERDUE') return true;
+                    }
+                    return false;
+                });
+                const elOverdue = document.getElementById('kpi-overdue');
+                if (elOverdue) elOverdue.innerText = overdueJobs.length;
+
+                // 3. Today's Jobs (งานที่รับเข้าหรือมีนัดหมายวันนี้)
+                let todayList = allJobs.filter(j => {
+                    const ts = (j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date;
+                    return ts && ts.slice(0, 10) === todayStr;
+                });
+                if (todayList.length === 0 && allJobs.length > 0) {
+                    const latestDate = allJobs.reduce((max, j) => {
+                        const d = ((j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date || '').slice(0, 10);
+                        return d > max ? d : max;
+                    }, '');
+                    if (latestDate) {
+                        todayList = allJobs.filter(j => {
+                            const d = ((j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date || '').slice(0, 10);
+                            return d === latestDate;
+                        });
+                    }
+                }
+                const elToday = document.getElementById('kpi-today');
+                if (elToday) elToday.innerText = todayList.length;
+
+                // Backward compatibility if old id exists
+                const elQc = document.getElementById('kpi-qc');
+                if (elQc) elQc.innerText = allJobs.filter(j => j.status === 'QC_PASSED' || j.status === 'AFTER_SALE' || j.status === 'CLOSED').length;
                 
                 // Recent Jobs Table (Sorted descending so newest jobs are at the top)
                 const sortedJobs = this.sortJobsDescending(DB.jobs || []);
