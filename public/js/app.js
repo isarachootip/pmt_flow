@@ -8920,10 +8920,24 @@ const app = {
                 }
             },
 
-            handleBOQImageSelect(event) {
-                const file = event.target.files && event.target.files[0];
-                if (!file) return;
+            handleBOQImageDrop(event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                const files = event && event.dataTransfer && event.dataTransfer.files;
+                if (!files || files.length === 0) return;
+                this.processBOQImageFile(files[0]);
+            },
 
+            handleBOQImageSelect(event) {
+                const file = event && event.target && event.target.files && event.target.files[0];
+                if (!file) return;
+                this.processBOQImageFile(file);
+            },
+
+            processBOQImageFile(file) {
+                if (!file) return;
                 const nameEl = document.getElementById('boq-image-name');
                 if (nameEl) nameEl.innerText = `📸 กำลังประมวลผลรูปภาพ: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
 
@@ -8956,10 +8970,24 @@ const app = {
                 }, 900);
             },
 
-            handleBOQFileSelect(event) {
-                const file = event.target.files && event.target.files[0];
-                if (!file) return;
+            handleBOQFileDrop(event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                const files = event && event.dataTransfer && event.dataTransfer.files;
+                if (!files || files.length === 0) return;
+                this.processBOQFile(files[0]);
+            },
 
+            handleBOQFileSelect(event) {
+                const file = event && event.target && event.target.files && event.target.files[0];
+                if (!file) return;
+                this.processBOQFile(file);
+            },
+
+            processBOQFile(file) {
+                if (!file) return;
                 const nameEl = document.getElementById('boq-file-name');
                 if (nameEl) nameEl.innerText = `📄 ไฟล์ที่เลือก: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
 
@@ -9243,14 +9271,17 @@ const app = {
                         return;
                     }
 
-                    // Split cells by tab, semicolon, or comma
+                    // Split cells by tab, pipe, semicolon, or comma
                     let parts = line.split('\t');
+                    if (parts.length === 1 && line.includes('|')) {
+                        parts = line.split('|').map(p => p.trim()).filter((p, pIdx, arr) => (pIdx > 0 && pIdx < arr.length - 1) || arr.length <= 2);
+                    }
                     if (parts.length === 1) parts = line.split(';');
                     if (parts.length === 1) parts = line.split(',');
                     parts = parts.map(p => p.trim().replace(/^"|"$/g, ''));
 
                     // Parse data row
-                    if (parts.length >= 3) {
+                    if (parts.length >= 2) {
                         let itemCode = '';
                         let name = '';
                         let qty = 1;
@@ -9280,8 +9311,8 @@ const app = {
                             if (price === 0 && parts[offset + 4]) {
                                 price = Math.max(0, parseFloat(parts[offset + 4]) || 0);
                             }
-                        } else {
-                            // Case B: Simple 4-5 column format (ลำดับ, รายการ, จำนวน, หน่วย, ราคา)
+                        } else if (parts.length >= 3) {
+                            // Case B: Simple 3-5 column format (ลำดับ, รายการ, จำนวน, หน่วย, ราคา)
                             if (/^\d+$/.test(parts[0]) && isNaN(parts[1])) {
                                 parts.shift();
                             }
@@ -9292,7 +9323,19 @@ const app = {
                             const rawPrice = parseFloat(parts[3]);
                             price = !isNaN(rawPrice) && rawPrice >= 0 ? rawPrice : (parseFloat(parts[1]) > 50 ? parseFloat(parts[1]) : 500);
                             
-                            if (name.includes('ค่าแรง') || name.includes('ช่าง') || name.includes('ติดตั้ง')) {
+                            if (name.includes('ค่าแรง') || name.includes('ช่าง') || name.includes('ติดตั้ง') || name.includes('บริการ')) {
+                                laborPrice = price;
+                            } else {
+                                matPrice = price;
+                            }
+                        } else if (parts.length === 2) {
+                            // Case C: Quick 2-column format (รายการ, ราคา)
+                            name = parts[0] || 'รายการวัสดุ/งานบริการ';
+                            const rawPrice = parseFloat(parts[1]);
+                            price = !isNaN(rawPrice) && rawPrice >= 0 ? rawPrice : 0;
+                            qty = 1;
+                            unit = 'ชุด';
+                            if (name.includes('ค่าแรง') || name.includes('ช่าง') || name.includes('ติดตั้ง') || name.includes('บริการ')) {
                                 laborPrice = price;
                             } else {
                                 matPrice = price;
@@ -9534,12 +9577,12 @@ const app = {
             },
 
             downloadTaskBOQTemplate() {
-                const csvContent = "\uFEFF" + "ลำดับ,ชื่อ Task ตาม BOQ,วันเริ่มต้น (Start Date YYYY-MM-DD),วันสิ้นสุด (End Date YYYY-MM-DD),จำนวนวัน,ผู้รับผิดชอบ\n" +
-                    "1,งานสำรวจและเตรียมพื้นที่หน้างาน,2026-09-01,2026-09-02,2,Team A (สมศักดิ์)\n" +
-                    "2,งานรื้อถอนและปรับระดับพื้นเดิม,2026-09-03,2026-09-04,2,Team A (สมศักดิ์)\n" +
-                    "3,งานเดินท่อประปาและระบบไฟฟ้าฝังผนัง,2026-09-05,2026-09-07,3,กิตติพงษ์ (ช่างไฟฟ้า)\n" +
-                    "4,งานติดตั้งเคาน์เตอร์ครัวและท็อปหิน,2026-09-08,2026-09-10,3,Team A (สมศักดิ์)\n" +
-                    "5,งานติดตั้งอุปกรณ์เตาอบและฮูดดูดควัน,2026-09-11,2026-09-12,2,ธนกฤต (ช่างแอร์)\n";
+                const csvContent = "\uFEFF" + "ลำดับ,ชื่อ Task ตาม BOQ,วันเริ่มต้น (Start Date DD/MM/YYYY),วันสิ้นสุด (End Date DD/MM/YYYY),จำนวนวัน,ผู้รับผิดชอบ\n" +
+                    "1,งานสำรวจและเตรียมพื้นที่หน้างาน,01/09/2026,02/09/2026,2,Team A (สมศักดิ์)\n" +
+                    "2,งานรื้อถอนและปรับระดับพื้นเดิม,03/09/2026,04/09/2026,2,Team A (สมศักดิ์)\n" +
+                    "3,งานเดินท่อประปาและระบบไฟฟ้าฝังผนัง,05/09/2026,07/09/2026,3,กิตติพงษ์ (ช่างไฟฟ้า)\n" +
+                    "4,งานติดตั้งเคาน์เตอร์ครัวและท็อปหิน,08/09/2026,10/09/2026,3,Team A (สมศักดิ์)\n" +
+                    "5,งานติดตั้งอุปกรณ์เตาอบและฮูดดูดควัน,11/09/2026,12/09/2026,2,ธนกฤต (ช่างแอร์)\n";
                 
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
@@ -9663,8 +9706,8 @@ const app = {
                                     parts.shift();
                                 }
                                 taskName = parts[0] || `งานติดตั้ง ${parsedTasks.length + 1}`;
-                                startDate = parts[1] && /^\d{4}-\d{2}-\d{2}$/.test(parts[1]) ? parts[1] : '';
-                                endDate = parts[2] && /^\d{4}-\d{2}-\d{2}$/.test(parts[2]) ? parts[2] : '';
+                                startDate = parts[1] ? (this.formatDateISO(parts[1]) || '') : '';
+                                endDate = parts[2] ? (this.formatDateISO(parts[2]) || '') : '';
                                 days = parseInt(parts[3]) || 1;
                                 tech = parts[4] || defaultTech;
                                 isLabor = true;
@@ -11973,7 +12016,12 @@ const app = {
                         `;
                     } else {
                         fileContainer.innerHTML = `
-                            <div class="border-2 border-dashed border-border hover:border-purple-500/50 rounded-xl p-3.5 text-center cursor-pointer bg-muted/20 hover:bg-purple-500/5 transition group" onclick="document.getElementById('modal-boq-file-input').click()">
+                            <div id="modal-boq-dropzone" 
+                                 ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('border-purple-600', 'bg-purple-500/15');" 
+                                 ondragleave="event.preventDefault(); event.stopPropagation(); this.classList.remove('border-purple-600', 'bg-purple-500/15');" 
+                                 ondrop="app.handleModalBOQFileDrop(event); this.classList.remove('border-purple-600', 'bg-purple-500/15');" 
+                                 class="border-2 border-dashed border-border hover:border-purple-500/50 rounded-xl p-3.5 text-center cursor-pointer bg-muted/20 hover:bg-purple-500/5 transition group" 
+                                 onclick="document.getElementById('modal-boq-file-input').click()">
                                 <div class="flex items-center justify-center gap-2 mb-1 text-purple-600 group-hover:scale-105 transition-transform">
                                     <i class="ph ph-file-arrow-up text-2xl"></i>
                                     <i class="ph ph-file-xls text-2xl text-emerald-500"></i>
@@ -12205,10 +12253,24 @@ const app = {
                 this.showToast('🗑️ ลบรายการเรียบร้อย');
             },
 
-            handleModalBOQFileSelect(event) {
-                const file = event.target.files && event.target.files[0];
-                if (!file) return;
+            handleModalBOQFileDrop(event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                const files = event && event.dataTransfer && event.dataTransfer.files;
+                if (!files || files.length === 0) return;
+                this.processModalBOQFile(files[0]);
+            },
 
+            handleModalBOQFileSelect(event) {
+                const file = event && event.target && event.target.files && event.target.files[0];
+                if (!file) return;
+                this.processModalBOQFile(file);
+            },
+
+            processModalBOQFile(file) {
+                if (!file) return;
                 const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.xlsm') || (file.type && (file.type.includes('spreadsheet') || file.type.includes('excel')));
                 const isCsv = file.name.endsWith('.csv') || (file.type && file.type.includes('csv'));
                 const isImageOrPdf = (file.type && file.type.includes('image')) || file.name.endsWith('.pdf');
@@ -12459,14 +12521,20 @@ const app = {
                 const items = this.state.modalBOQItems || [];
                 let subtotal = 0;
                 items.forEach(it => {
-                    const qty = Number(it.qty) || 0;
-                    const price = Number(it.price || it.unit_price) || 0;
+                    const qty = Math.max(0, Number(it.qty) || 0);
+                    const price = Math.max(0, Number(it.price || it.unit_price) || 0);
                     subtotal += (qty * price);
                 });
-                const discount = Number(this.state.modalBOQDiscount) || 0;
+                const discount = Math.max(0, Number(this.state.modalBOQDiscount) || 0);
                 const grandTotal = Math.max(0, subtotal - discount) * 1.07;
 
-                job.boq_items = JSON.parse(JSON.stringify(items));
+                job.boq_items = items.map(it => ({
+                    ...it,
+                    qty: Math.max(0, Number(it.qty) || 0),
+                    price: Math.max(0, Number(it.price || it.unit_price) || 0),
+                    labor_price: Math.max(0, Number(it.labor_price) || 0),
+                    mat_price: Math.max(0, Number(it.mat_price) || 0)
+                }));
                 job.boq_subtotal = subtotal;
                 job.boq_discount = discount;
                 job.boq_grand_total = grandTotal;
@@ -19890,8 +19958,10 @@ const app = {
             },
 
             async rescheduleMARound(roundId, roundNum, curDate) {
-                const newDate = prompt(`วันใหม่สำหรับรอบที่ ${roundNum} (YYYY-MM-DD):`, curDate || '');
+                const curDMY = curDate ? (this.formatDateDMY(curDate) || '') : '';
+                const newDate = prompt(`วันใหม่สำหรับรอบที่ ${roundNum} (DD/MM/YYYY):`, curDMY);
                 if (!newDate) return;
+                const isoDate = this.formatDateISO(newDate) || newDate;
 
                 try {
                     const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
@@ -19903,18 +19973,18 @@ const app = {
                         },
                         body: JSON.stringify({
                             status: 'Rescheduled',
-                            scheduled_date: newDate
+                            scheduled_date: isoDate
                         })
                     });
                 } catch (e) {
                     const r = DB.maRounds.find(item => item.id === roundId);
                     if (r) {
                         r.status = 'Rescheduled';
-                        r.scheduled_date = newDate;
+                        r.scheduled_date = isoDate;
                     }
                 }
 
-                this.showToast(`เลื่อนนัดรอบที่ ${roundNum} เป็นวันที่ ${this.formatDate(newDate)} แล้ว`);
+                this.showToast(`เลื่อนนัดรอบที่ ${roundNum} เป็นวันที่ ${this.formatDateDMY(isoDate)} แล้ว`);
                 await this.fetchMAFromApi();
                 this.renderMAContracts();
             },
