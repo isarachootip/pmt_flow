@@ -5886,18 +5886,27 @@
             <div class="px-4 sm:px-6 py-2.5 bg-muted/20 border-b border-border flex items-center justify-between gap-3 shrink-0 overflow-x-auto">
                 <div class="flex items-center gap-2">
                     <button type="button" id="tab-btn-unified-intake" onclick="app.scrollUnifiedStudioTo('intake')" class="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5 cursor-pointer transition shadow-2xs">
-                        <i class="ph ph-clipboard-text text-sm"></i>
+                        <i id="tab-icon-unified-intake" class="ph ph-clipboard-text text-sm"></i>
                         <span>1. ข้อมูลสำรวจ & คลังรูปภาพ (Intake & Photos)</span>
+                        <span id="tab-badge-unified-intake-passed" class="hidden px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 items-center gap-0.5 shadow-2xs">
+                            <i class="ph ph-check-bold text-[9px]"></i> Passed
+                        </span>
                     </button>
                     <button type="button" id="tab-btn-unified-design" onclick="app.scrollUnifiedStudioTo('design')" class="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-card hover:bg-indigo-500/10 text-muted-foreground hover:text-indigo-600 border border-border flex items-center gap-1.5 cursor-pointer transition">
-                        <i class="ph ph-blueprint text-sm text-indigo-500"></i>
+                        <i id="tab-icon-unified-design" class="ph ph-blueprint text-sm text-indigo-500"></i>
                         <span>2. แบบแปลนติดตั้ง (Design & CAD)</span>
                         <span id="tab-unified-design-badge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-mono font-bold">0</span>
+                        <span id="tab-badge-unified-design-passed" class="hidden px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 items-center gap-0.5 shadow-2xs">
+                            <i class="ph ph-check-bold text-[9px]"></i> Passed
+                        </span>
                     </button>
                     <button type="button" id="tab-btn-unified-boq" onclick="app.scrollUnifiedStudioTo('boq')" class="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-card hover:bg-purple-500/10 text-muted-foreground hover:text-purple-600 border border-border flex items-center gap-1.5 cursor-pointer transition">
-                        <i class="ph ph-calculator text-sm text-purple-500"></i>
+                        <i id="tab-icon-unified-boq" class="ph ph-calculator text-sm text-purple-500"></i>
                         <span>3. ประมาณการราคา BOQ (Pricing & Costing)</span>
                         <span id="tab-unified-boq-badge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono font-bold">0 ฿</span>
+                        <span id="tab-badge-unified-boq-passed" class="hidden px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 items-center gap-0.5 shadow-2xs">
+                            <i class="ph ph-check-bold text-[9px]"></i> Passed
+                        </span>
                     </button>
                 </div>
 
@@ -5923,9 +5932,15 @@
                                 <p class="text-xs text-muted-foreground">ข้อมูลลูกค้า, นัดหมายช่าง, สถานที่ติดตั้ง, และรูปถ่ายสำรวจหน้างานที่ส่งมาจากระบบภายนอก (INT)</p>
                             </div>
                         </div>
-                        <span class="text-xs font-mono font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-lg border border-teal-500/20">
-                            Status: Surveyed
-                        </span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-mono font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-lg border border-teal-500/20">
+                                Status: Surveyed
+                            </span>
+                            <button type="button" onclick="app.saveUnifiedStep(1)" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="บันทึกข้อมูลและผลสำรวจหน้างาน (Step 1)">
+                                <i class="ph ph-floppy-disk text-sm"></i>
+                                <span>บันทึก Step 1</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -6079,7 +6094,13 @@
                                 <p class="text-xs text-muted-foreground">แนบไฟล์แบบแปลน 2D/3D (DWG, DXF, PDF, หรือรูปภาพ) แยกตามโซนห้อง พร้อมตรวจสอบก่อนส่งต่อ</p>
                             </div>
                         </div>
-                        <span id="unified-design-count-pill" class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300">0 ไฟล์</span>
+                        <div class="flex items-center gap-2">
+                            <span id="unified-design-count-pill" class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300">0 ไฟล์</span>
+                            <button type="button" onclick="app.saveUnifiedStep(2)" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold border border-indigo-500/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/10 cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="บันทึกข้อมูลแบบแปลน (Step 2)">
+                                <i class="ph ph-floppy-disk text-sm"></i>
+                                <span>บันทึก Step 2</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Uploaded Blueprints Grid (Expanded 3-Col Layout) -->
@@ -6094,18 +6115,7 @@
                             + อัปโหลดแบบแปลน / ไดอะแกรมติดตั้งใหม่ (New Blueprint)
                         </h5>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                            <div class="sm:col-span-2 space-y-1.5">
-                                <label class="block text-xs font-semibold text-foreground">โซนห้อง / งานย่อย (Area / Room Zone)</label>
-                                <div class="flex flex-wrap gap-1.5">
-                                    <button type="button" onclick="app.setUnifiedDesignZone('ห้องรับแขก')" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🛋️ ห้องรับแขก</button>
-                                    <button type="button" onclick="app.setUnifiedDesignZone('ห้องนั่งเล่น')" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">📺 ห้องนั่งเล่น</button>
-                                    <button type="button" onclick="app.setUnifiedDesignZone('ห้องครัว Built-in')" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🍳 ห้องครัว</button>
-                                    <button type="button" onclick="app.setUnifiedDesignZone('ห้องนอนใหญ่')" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🛏️ ห้องนอนใหญ่</button>
-                                    <button type="button" onclick="app.setUnifiedDesignZone('ห้องน้ำ')" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">🚿 ห้องน้ำ</button>
-                                    <button type="button" onclick="app.setUnifiedDesignZone('ระบบไฟ & ประปา')" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-indigo-500/15 hover:text-indigo-600 border border-border cursor-pointer transition">⚡ ระบบไฟ/ประปา</button>
-                                </div>
-                                <input type="text" id="unified-design-zone-input" placeholder="ระบุโซนห้อง เช่น ห้องครัว Built-in..." class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500">
-                            </div>
+
                             <div>
                                 <label class="block text-xs font-semibold text-foreground mb-1">ชื่อแบบแปลน / รายละเอียด</label>
                                 <input type="text" id="unified-design-title-input" placeholder="เช่น แบบแปลน 3D Layout ครัวและท่อระบายน้ำ" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500">
@@ -6164,20 +6174,14 @@
                                 <i class="ph ph-plus-circle text-sm"></i>
                                 <span>+ เพิ่มรายการ</span>
                             </button>
+                            <button type="button" onclick="app.saveUnifiedStep(3)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs flex items-center gap-1 transition" title="บันทึกราคาและรายการ BOQ (Step 3)">
+                                <i class="ph ph-floppy-disk text-sm"></i>
+                                <span>บันทึก Step 3 (BOQ)</span>
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Quick Add Service Preset Chips Bar -->
-                    <div class="flex items-center gap-1.5 flex-wrap p-2.5 rounded-xl bg-purple-500/5 border border-purple-500/15">
-                        <span class="text-[11px] font-bold text-purple-700 dark:text-purple-300 mr-1 flex items-center gap-1">
-                            <i class="ph ph-lightning"></i> รายการด่วน:
-                        </span>
-                        <button type="button" onclick="app.addQuickBOQPreset('ค่าแรงติดตั้งแอร์ 18000 BTU', 'labor', 1, 'จุด', 2500)" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-purple-500/15 hover:text-purple-600 border border-border cursor-pointer transition">+ ค่าแรงติดตั้งแอร์ (2,500฿)</button>
-                        <button type="button" onclick="app.addQuickBOQPreset('ชุดท่อน้ำยาแอร์ 4 เมตร', 'material', 1, 'ชุด', 1800)" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-purple-500/15 hover:text-purple-600 border border-border cursor-pointer transition">+ ท่อน้ำยาแอร์ (1,800฿)</button>
-                        <button type="button" onclick="app.addQuickBOQPreset('รางครอบท่อและข้อต่อ 4 เมตร', 'material', 1, 'ชุด', 950)" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-purple-500/15 hover:text-purple-600 border border-border cursor-pointer transition">+ รางครอบท่อ (950฿)</button>
-                        <button type="button" onclick="app.addQuickBOQPreset('ขาแขวนคอยล์ร้อนชุบกันสนิม', 'material', 1, 'ชุด', 650)" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-purple-500/15 hover:text-purple-600 border border-border cursor-pointer transition">+ ขาแขวนคอยล์ร้อน (650฿)</button>
-                        <button type="button" onclick="app.addQuickBOQPreset('เบรกเกอร์และสายดินมาตรฐาน', 'material', 1, 'จุด', 500)" class="px-2.5 py-1 rounded-lg text-[11px] bg-card hover:bg-purple-500/15 hover:text-purple-600 border border-border cursor-pointer transition">+ เบรกเกอร์/สายดิน (500฿)</button>
-                    </div>
+
 
                     <!-- BOQ Items Table (Full-Width Responsive Table) -->
                     <div class="overflow-x-auto rounded-xl border border-border shadow-2xs">

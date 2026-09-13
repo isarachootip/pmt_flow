@@ -3374,20 +3374,175 @@ const app = {
                 if (secEl && scrollBody) {
                     secEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
-                ['intake', 'design', 'boq'].forEach(s => {
-                    const btn = document.getElementById(`tab-btn-unified-${s}`);
-                    if (btn) {
-                        if (s === sec) {
-                            btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-xl bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5 cursor-pointer transition shadow-2xs';
+                this.state.unifiedActiveSec = sec;
+                this.updateUnifiedStudioTabs();
+            },
+
+            switchUnifiedStudioTab(tab) {
+                this.scrollUnifiedStudioTo(tab);
+            },
+
+            updateUnifiedStudioTabs() {
+                const jobId = this.state.unifiedStudioJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+
+                const activeSec = this.state.unifiedActiveSec || 'intake';
+                const bps = (DB.blueprints || []).filter(b => b.jobId === jobId);
+                const boqItems = job.boq_items || [];
+                const isQuick = this.isQuickJob(job);
+
+                // Step 1: Passed if explicitly marked, or timestamp exists, or customer with survey info / photos
+                const step1Passed = !!(job.step1_passed || (job.step_timestamps && job.step_timestamps.step1_intake_at) || (job.customer && (job.phone || job.address || (job.photos && job.photos.length > 0) || job.survey_date)));
+
+                // Step 2: Passed if explicitly marked, or blueprints exist, or timestamp exists, or is quick job
+                const step2Passed = !!(job.step2_passed || bps.length > 0 || (job.step_timestamps && job.step_timestamps.step2_design_at) || (isQuick && (job.step1_passed || job.pmt_accepted)));
+
+                // Step 3: Passed if explicitly marked, or boq items exist, or timestamp exists
+                const step3Passed = !!(job.step3_passed || boqItems.length > 0 || (job.step_timestamps && job.step_timestamps.step3_boq_at) || (job.boq_grand_total && job.boq_grand_total > 0));
+
+                const stepsConfig = [
+                    {
+                        key: 'intake',
+                        passed: step1Passed,
+                        iconId: 'tab-icon-unified-intake',
+                        badgeId: 'tab-badge-unified-intake-passed',
+                        iconClass: 'ph ph-clipboard-text'
+                    },
+                    {
+                        key: 'design',
+                        passed: step2Passed,
+                        iconId: 'tab-icon-unified-design',
+                        badgeId: 'tab-badge-unified-design-passed',
+                        iconClass: 'ph ph-blueprint'
+                    },
+                    {
+                        key: 'boq',
+                        passed: step3Passed,
+                        iconId: 'tab-icon-unified-boq',
+                        badgeId: 'tab-badge-unified-boq-passed',
+                        iconClass: 'ph ph-calculator'
+                    }
+                ];
+
+                stepsConfig.forEach(sc => {
+                    const btn = document.getElementById(`tab-btn-unified-${sc.key}`);
+                    const icon = document.getElementById(sc.iconId);
+                    const badge = document.getElementById(sc.badgeId);
+                    const isActive = (activeSec === sc.key);
+
+                    // 1. Icon color & style (Turns Vibrant Green when Passed!)
+                    if (icon) {
+                        if (sc.passed) {
+                            icon.className = `${sc.iconClass} text-sm text-emerald-500 dark:text-emerald-400 font-bold transition-all drop-shadow-xs`;
                         } else {
-                            btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-card hover:bg-muted text-muted-foreground hover:text-foreground border border-border flex items-center gap-1.5 cursor-pointer transition';
+                            if (sc.key === 'design') {
+                                icon.className = `${sc.iconClass} text-sm text-indigo-500`;
+                            } else if (sc.key === 'boq') {
+                                icon.className = `${sc.iconClass} text-sm text-purple-500`;
+                            } else {
+                                icon.className = `${sc.iconClass} text-sm ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-muted-foreground'}`;
+                            }
+                        }
+                    }
+
+                    // 2. Passed Badge: Shows "Passed" pill with green checkmark
+                    if (badge) {
+                        if (sc.passed) {
+                            badge.className = 'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-all shadow-2xs animate-in fade-in zoom-in-95';
+                            badge.innerHTML = '<i class="ph ph-check-bold text-[9px]"></i> Passed';
+                        } else {
+                            badge.className = 'hidden';
+                        }
+                    }
+
+                    // 3. Tab Button active/inactive styling
+                    if (btn) {
+                        if (isActive) {
+                            if (sc.passed) {
+                                btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 cursor-pointer transition shadow-2xs ring-2 ring-emerald-500/20';
+                            } else {
+                                btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-xl bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5 cursor-pointer transition shadow-2xs';
+                            }
+                        } else {
+                            if (sc.passed) {
+                                btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-card hover:bg-emerald-500/10 text-foreground border border-emerald-500/30 flex items-center gap-1.5 cursor-pointer transition';
+                            } else {
+                                btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-card hover:bg-muted text-muted-foreground hover:text-foreground border border-border flex items-center gap-1.5 cursor-pointer transition';
+                            }
                         }
                     }
                 });
             },
 
-            switchUnifiedStudioTab(tab) {
-                this.scrollUnifiedStudioTo(tab);
+            saveUnifiedStep(stepNum) {
+                const jobId = this.state.unifiedStudioJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) return;
+
+                const now = new Date();
+                if (!job.step_timestamps) job.step_timestamps = {};
+
+                if (stepNum === 1) {
+                    const nameInp = document.getElementById('unified-intake-customer');
+                    if (nameInp && nameInp.value) job.customer = nameInp.value.trim();
+                    const phoneInp = document.getElementById('unified-intake-phone');
+                    if (phoneInp && phoneInp.value) job.phone = phoneInp.value.trim();
+                    const srvSelect = document.getElementById('unified-intake-service');
+                    if (srvSelect) job.service = srvSelect.value;
+                    const addrInp = document.getElementById('unified-intake-address');
+                    if (addrInp) job.address = addrInp.value.trim();
+                    const scopeInp = document.getElementById('unified-intake-scope');
+                    if (scopeInp) job.scope_of_work = scopeInp.value.trim();
+                    
+                    const radioQuick = document.getElementById('unified-type-quick');
+                    job.job_type = (radioQuick && radioQuick.checked) ? 'quick' : 'renovate';
+
+                    const dateInp = document.getElementById('unified-intake-survey-date');
+                    if (dateInp && dateInp.value) {
+                        job.survey_date = this.formatDateDMY(dateInp.value);
+                    }
+
+                    const timePreset = document.getElementById('unified-intake-time-preset');
+                    if (timePreset && timePreset.value !== 'custom') {
+                        job.survey_time = timePreset.value;
+                    }
+
+                    const techInp = document.getElementById('unified-intake-tech');
+                    if (techInp) job.tech = techInp.value.trim();
+                    const notesInp = document.getElementById('unified-intake-notes');
+                    if (notesInp) job.internal_notes = notesInp.value.trim();
+
+                    job.step1_passed = true;
+                    job.step_timestamps.step1_intake_at = now.toISOString();
+
+                    this.persistJobs();
+                    this.renderJobs();
+                    this.updateUnifiedStudioTabs();
+                    this.updateUnifiedStudioIndicators();
+                    this.showToast('✅ บันทึก Step 1: ข้อมูลสำรวจ & คลังรูปภาพ เรียบร้อยแล้ว (Passed)', 'success');
+                } else if (stepNum === 2) {
+                    const bps = (DB.blueprints || []).filter(b => b.jobId === jobId);
+                    job.step2_passed = true;
+                    job.step_timestamps.step2_design_at = now.toISOString();
+
+                    this.persistJobs();
+                    this.updateUnifiedStudioTabs();
+                    this.updateUnifiedStudioIndicators();
+                    this.updateStepBadges();
+                    this.showToast(`✅ บันทึก Step 2: แบบแปลนติดตั้ง (Design & CAD) เรียบร้อยแล้ว (${bps.length} ไฟล์ - Passed)`, 'success');
+                } else if (stepNum === 3) {
+                    this.calculateUnifiedBOQSummary();
+                    job.step3_passed = true;
+                    job.step_timestamps.step3_boq_at = now.toISOString();
+
+                    this.persistJobs();
+                    this.renderJobs();
+                    this.updateUnifiedStudioTabs();
+                    this.updateUnifiedStudioIndicators();
+                    const itemsCount = (job.boq_items || []).length;
+                    this.showToast(`✅ บันทึก Step 3: ประมาณการราคา BOQ เรียบร้อยแล้ว (${itemsCount} รายการ - Passed)`, 'success');
+                }
             },
 
             renderUnifiedSurveyPhotos() {
@@ -3706,12 +3861,14 @@ const app = {
                 DB.blueprints.push(sample1, sample2);
                 if (!job.step_timestamps) job.step_timestamps = {};
                 if (!job.step_timestamps.step2_design_at) job.step_timestamps.step2_design_at = now.toISOString();
+                job.step2_passed = true;
 
                 this.persistJobs();
                 this.renderUnifiedBlueprintsGrid();
+                this.updateUnifiedStudioTabs();
                 this.updateUnifiedStudioIndicators();
                 this.updateStepBadges();
-                this.showToast('✅ โหลดแบบแปลนจำลอง (DWG + PDF) เรียบร้อยแล้ว');
+                this.showToast('✅ โหลดแบบแปลนจำลอง (DWG + PDF) เรียบร้อยแล้ว (Passed)');
             },
 
             submitUnifiedDesignBlueprint() {
@@ -3724,8 +3881,8 @@ const app = {
                 const verSelect = document.getElementById('unified-design-version-select');
                 const fileInp = document.getElementById('unified-design-file-input');
 
-                const zone = (zoneInp && zoneInp.value.trim()) || 'ห้องทั่วไป';
-                const title = (titleInp && titleInp.value.trim()) || `${jobId}_${zone}_Layout.pdf`;
+                const zone = (zoneInp && zoneInp.value.trim()) || 'แบบแปลนโครงการ';
+                const title = (titleInp && titleInp.value.trim()) || `${jobId}_Layout.pdf`;
                 const version = (verSelect && verSelect.value) || 'v2.0 Approved';
                 const fileName = (fileInp && fileInp.files && fileInp.files[0]) ? fileInp.files[0].name : title;
                 const fileSize = (fileInp && fileInp.files && fileInp.files[0]) ? `${(fileInp.files[0].size / 1024 / 1024).toFixed(2)} MB` : '3.2 MB';
@@ -3752,13 +3909,15 @@ const app = {
                 DB.blueprints.push(newBp);
                 if (!job.step_timestamps) job.step_timestamps = {};
                 if (!job.step_timestamps.step2_design_at) job.step_timestamps.step2_design_at = now.toISOString();
+                job.step2_passed = true;
 
                 this.persistJobs();
                 this.renderUnifiedBlueprintsGrid();
                 this.resetUnifiedDesignForm();
+                this.updateUnifiedStudioTabs();
                 this.updateUnifiedStudioIndicators();
                 this.updateStepBadges();
-                this.showToast(`📐 บันทึกแบบแปลน [${fileName}] สำเร็จ!`);
+                this.showToast(`📐 บันทึกแบบแปลน [${fileName}] สำเร็จแล้ว (Passed)!`);
             },
 
             deleteUnifiedBlueprint(bpId) {
@@ -3766,8 +3925,15 @@ const app = {
                 const idx = DB.blueprints.findIndex(b => b.id === bpId || String(b.id) === String(bpId));
                 if (idx !== -1) {
                     DB.blueprints.splice(idx, 1);
+                    const jobId = this.state.unifiedStudioJobId;
+                    const job = (DB.jobs || []).find(j => j.id === jobId);
+                    const remainingBps = (DB.blueprints || []).filter(b => b.jobId === jobId);
+                    if (job && remainingBps.length === 0 && !this.isQuickJob(job)) {
+                        job.step2_passed = false;
+                    }
                     this.persistJobs();
                     this.renderUnifiedBlueprintsGrid();
+                    this.updateUnifiedStudioTabs();
                     this.updateUnifiedStudioIndicators();
                     this.updateStepBadges();
                     this.showToast('🗑️ ลบแบบแปลนเรียบร้อยแล้ว');
@@ -4059,6 +4225,7 @@ const app = {
                         }
                     }
                 }
+                this.updateUnifiedStudioTabs();
             },
 
             saveUnifiedOrderStudio() {
@@ -4098,23 +4265,28 @@ const app = {
                 const notesInp = document.getElementById('unified-intake-notes');
                 if (notesInp) job.internal_notes = notesInp.value.trim();
 
-                // Timestamps
+                // Timestamps & Passed flags
                 const now = new Date();
                 if (!job.step_timestamps) job.step_timestamps = {};
+                job.step1_passed = true;
                 if (!job.step_timestamps.step1_intake_at) job.step_timestamps.step1_intake_at = now.toISOString();
 
                 const bps = (DB.blueprints || []).filter(b => b.jobId === jobId);
-                if (bps.length > 0 && !job.step_timestamps.step2_design_at) {
-                    job.step_timestamps.step2_design_at = now.toISOString();
+                if (bps.length > 0 || this.isQuickJob(job)) {
+                    job.step2_passed = true;
+                    if (!job.step_timestamps.step2_design_at) job.step_timestamps.step2_design_at = now.toISOString();
                 }
-                if (job.boq_items && job.boq_items.length > 0 && !job.step_timestamps.step3_boq_at) {
-                    job.step_timestamps.step3_boq_at = now.toISOString();
+                if (job.boq_items && job.boq_items.length > 0) {
+                    job.step3_passed = true;
+                    if (!job.step_timestamps.step3_boq_at) job.step_timestamps.step3_boq_at = now.toISOString();
                 }
 
                 this.persistJobs();
                 this.renderJobs();
                 this.updateStepBadges();
-                this.showToast(`💾 บันทึกข้อมูล Order & Design & BOQ สำหรับ [${jobId}] สำเร็จแล้ว`);
+                this.updateUnifiedStudioTabs();
+                this.updateUnifiedStudioIndicators();
+                this.showToast(`💾 บันทึกข้อมูล Order & Design & BOQ สำหรับ [${jobId}] สำเร็จแล้ว (Passed)`);
             },
 
             proceedUnifiedOrderToNextStage() {
