@@ -808,11 +808,67 @@ export async function dbSeedMockJobs(): Promise<number> {
     { id: 17, customer_code: 'CUST-017', first_name: 'มนัสชนก', last_name: 'ศรีวิชัยพฤกษ์', phone: '096-635-6789', address: '38/66 ทาวน์โฮม พาทิโอ แจ้งวัฒนะ-เมืองทองธานี ตำบลคลองเกลือ อำเภอปากเกร็ด นนทบุรี 11120', lat: 13.9124, lng: 100.5489 },
     { id: 18, customer_code: 'CUST-018', first_name: 'พิชญ์สินี', last_name: 'อัครวิวัฒน์', phone: '094-457-8901', address: '620/14 อาคารโฮมออฟฟิศ 4 ชั้น ถนนนวลจันทร์ แขวงนวลจันทร์ เขตบึงกุ่ม กรุงเทพฯ 10230', lat: 13.8214, lng: 100.6458 },
     { id: 19, customer_code: 'CUST-019', first_name: 'ศุภณัฐ', last_name: 'อัศวเมธิน', phone: '086-345-6789', address: '168/40 หมู่บ้านนันทวัน บางนา กม.7 ตำบลบางแก้ว อำเภอบางพลี สมุทรปราการ 10540', lat: 13.6521, lng: 100.6689 },
-    { id: 20, customer_code: 'CUST-020', first_name: 'ศศิธร', last_name: 'พัชรเกียรติกุล', phone: '097-890-1234', address: '89/12 โครงการ เดอะ ปาล์ม พัฒนาการ แขวงสวนหลวง เขตสวนหลวง กรุงเทพฯ 10250', lat: 13.7314, lng: 100.6285 }
+    { id: 20, customer_code: 'CUST-020', first_name: 'ศศิธร', last_name: 'พัชรเกียรติกุล', phone: '097-890-1234', address: '89/12 โครงการ เดอะ ปาล์ม พัฒนาการ แขวงสวนหลวง เขตสวนหลวง กรุงเทพฯ 10250', lat: 13.7314, lng: 100.6285 },
+    { id: 21, customer_code: 'CUST-VFIX-001', first_name: 'นภัสวรรณ', last_name: 'มีศิริ', phone: '081-234-5678', address: 'มาบยายเลีย 41 เมืองพัทยา อำเภอบางละมุง ชลบุรี 20150', lat: 12.9326, lng: 100.9239 },
+    { id: 22, customer_code: 'CUST-VFIX-002', first_name: 'กิตติศักดิ์', last_name: 'เจริญพร', phone: '089-876-5432', address: '88/12 ถ.พระราม 2 ซอย 50 บางขุนเทียน กทม. 10150', lat: 13.6800, lng: 100.4500 },
+    { id: 23, customer_code: 'CUST-VFIX-003', first_name: 'สิริกร', last_name: 'วงศ์สุวรรณ', phone: '086-555-4321', address: 'Condo Ideo สาทร-ท่าพระ ชั้น 18 ถนนราชพฤกษ์ บุคคโล ธนบุรี กทม. 10600', lat: 13.7200, lng: 100.5300 },
+    { id: 24, customer_code: 'CUST-VFIX-004', first_name: 'ณัฐพงษ์', last_name: 'เตชะสกุล', phone: '081-999-8877', address: '99 หมู่บ้านเพอร์เฟค ราชพฤกษ์ ตำบลบางรักน้อย อำเภอเมือง นนทบุรี 11000', lat: 13.7650, lng: 100.4890 },
+    { id: 25, customer_code: 'CUST-VFIX-005', first_name: 'อรวรรณ', last_name: 'จิตรสมบูรณ์', phone: '083-112-2334', address: '45/3 ซอยสุขุมวิท 39 แขวงคลองตันเหนือ เขตวัฒนา กรุงเทพฯ 10110', lat: 13.7340, lng: 100.5670 }
   ];
 
   const mockJobs = [
-    // 10 Quick Services
+    // 5 Original VFIX Orders
+    {
+      id: 101, job_no: 'VFIX-260901-001', booking_no: 'VFIX-260901-001', ticket_no: '209051119', external_ref_id: 'REQ-PT2-2608220003', customer_id: 21, status: 'SURVEYED', job_type: 'quick',
+      property_type: 'บ้านเดี่ยว', project_type: 'Installation',
+      project_sub_type: 'ติดตั้งแอร์ติดผนัง Inverter 18000 BTU พร้อมรื้อถอน',
+      assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-05',
+      services: ['ติดตั้งแอร์ติดผนัง Inverter 18000 BTU พร้อมรื้อถอน'],
+      overall_progress: 25,
+      special_instructions: 'พื้นที่พร้อมติดตั้ง ท่อน้ำทิ้งสามารถต่อออกระเบียงได้',
+      additional_notes: 'ลูกค้าขอเข้าช่วงเช้า ตรวจเช็คจุดติดตั้งคอมเพรสเซอร์เรียบร้อย'
+    },
+    {
+      id: 102, job_no: 'VFIX-260901-002', booking_no: 'VFIX-260901-002', ticket_no: '209051120', external_ref_id: 'REQ-PT2-2608220004', customer_id: 22, status: 'SURVEYED', job_type: 'quick',
+      property_type: 'ทาวน์โฮม', project_type: 'Installation',
+      project_sub_type: 'ติดตั้งปั้มแท็งก์ ถังเก็บน้ำ DOS 1000L บนฐานปูน + ปั้มอัตโนมัติ Mitsubishi 250W',
+      assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-09-05',
+      services: ['ติดตั้งปั้มแท็งก์ ถังเก็บน้ำ DOS 1000L บนฐานปูน + ปั้มอัตโนมัติ Mitsubishi 250W'],
+      overall_progress: 25,
+      special_instructions: 'ฐานปูนด้านหลังบ้านเทเสร็จเรียบร้อย มีปลั๊กไฟกันน้ำพร้อมเชื่อมต่อ',
+      additional_notes: 'จุดตั้งปั้มห่างจากตู้เมน 12 เมตร รวมเดินท่อบายพาส'
+    },
+    {
+      id: 103, job_no: 'VFIX-260901-003', booking_no: 'VFIX-260901-003', ticket_no: '209051121', external_ref_id: 'REQ-PT2-2608220005', customer_id: 23, status: 'SURVEYED', job_type: 'quick',
+      property_type: 'คอนโดมิเนียม', project_type: 'Installation',
+      project_sub_type: 'ติดตั้งเครื่องทำน้ำอุ่น Stiebel Eltron 4500W พร้อมเดินสายดินและเบรกเกอร์',
+      assigned_tech: 'Team C (วิชัย)', plan_date: '2026-09-06',
+      services: ['ติดตั้งเครื่องทำน้ำอุ่น Stiebel Eltron 4500W พร้อมเดินสายดินและเบรกเกอร์'],
+      overall_progress: 25,
+      special_instructions: 'มีท่อน้ำดีและสายไฟร้อยท่อฝังผนังไว้แล้ว เข้าติดตั้งได้ทันที',
+      additional_notes: 'นิติบุคคลคอนโดอนุญาตทำงาน 09:00-17:00 ต้องแลกบัตรช่าง'
+    },
+    {
+      id: 104, job_no: 'VFIX-260901-004', booking_no: 'VFIX-260901-004', ticket_no: '209051122', external_ref_id: 'REQ-PT2-2608220006', customer_id: 24, status: 'SURVEYED', job_type: 'renovate',
+      property_type: 'บ้านเดี่ยว', project_type: 'Renovate',
+      project_sub_type: 'ปูกระเบื้องพื้นห้องน้ำ แกรนิตโต้ 60x60 cm พื้นที่ 15 ตร.ม. พร้อมระบบกันซึม 3 ชั้น',
+      assigned_tech: 'Team A (สมศักดิ์)', plan_date: '2026-09-06',
+      services: ['ปูกระเบื้องพื้นห้องน้ำ แกรนิตโต้ 60x60 cm พื้นที่ 15 ตร.ม. พร้อมระบบกันซึม 3 ชั้น'],
+      overall_progress: 25,
+      special_instructions: 'วัดระดับ Slope ท่อระบายน้ำทิ้งเดิมเรียบร้อย เสริมกันซึมรอบท่อน้ำทิ้ง',
+      additional_notes: 'ลูกค้าเลือกกระเบื้องรหัส TILE-GR-6060 จากโฮมโปรแล้ว'
+    },
+    {
+      id: 105, job_no: 'VFIX-260901-005', booking_no: 'VFIX-260901-005', ticket_no: '209051123', external_ref_id: 'REQ-PT2-2608220007', customer_id: 25, status: 'SURVEYED', job_type: 'renovate',
+      property_type: 'อาคารพาณิชย์', project_type: 'Renovate',
+      project_sub_type: 'ติดตั้งสุขภัณฑ์ Kohler 2 ชิ้น และฉากกั้นอาบน้ำกระจกนิรภัย Tempered 10mm',
+      assigned_tech: 'Team B (ประเสริฐ)', plan_date: '2026-09-07',
+      services: ['ติดตั้งสุขภัณฑ์ Kohler 2 ชิ้น และฉากกั้นอาบน้ำกระจกนิรภัย Tempered 10mm'],
+      overall_progress: 25,
+      special_instructions: 'ระยะท่อชักโครก 30.5 cm ตรงตามมาตรฐาน พร้อมติดตั้งได้ทันที',
+      additional_notes: 'มีที่จอดรถหน้าอาคาร ช่างขนย้ายสินค้าสะดวก'
+    },
+    // 10 Quick Services (INT)
     { 
       id: 1, job_no: 'JOB26090900001', external_ref_id: 'INT-2026-001', customer_id: 1, status: 'NEW', job_type: 'quick',
       property_type: 'บ้านเดี่ยว 2 ชั้น', project_type: 'Installation', 

@@ -3035,7 +3035,7 @@ app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], async (req: Reques
   maRoundStore.length = 0;
   return res.json({
     success: true,
-    message: 'จำลองและ Reset รายการ 20 คำสั่งซื้อจาก INT (Quick 10, Renovate 10) เข้าสู่ระบบ PMT สำเร็จ (บันทึกลงฐานข้อมูล PostgreSQL core_jobs เริ่มต้น Step 1 ทั้งหมด)',
+    message: 'จำลองและ Reset รายการคำสั่งซื้อเข้าสู่ระบบ PMT สำเร็จ (5 รายการ VFIX + 20 รายการ INT บันทึกลงฐานข้อมูล PostgreSQL core_jobs เริ่มต้น Step 1 ทั้งหมด)',
     total_jobs: count || coreJobStore.length
   });
 });

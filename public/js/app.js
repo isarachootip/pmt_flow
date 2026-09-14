@@ -1154,6 +1154,141 @@ const app = {
             getINTMockOrders() {
                 return [
                     {
+                        id: 'VFIX-260901-001',
+                        job_no: 'VFIX-260901-001',
+                        booking_no: 'VFIX-260901-001',
+                        ticket_no: '209051119',
+                        external_ref_id: 'REQ-PT2-2608220003',
+                        job_type: 'quick',
+                        customer: 'คุณนภัสวรรณ มีศิริ',
+                        phone: '081-234-5678',
+                        service: 'ติดตั้งแอร์ติดผนัง Inverter 18000 BTU พร้อมรื้อถอน',
+                        services: ['ติดตั้งแอร์ติดผนัง Inverter 18000 BTU พร้อมรื้อถอน'],
+                        status: 'SURVEYED',
+                        date: '2026-09-05',
+                        progress: 25,
+                        address: 'มาบยายเลีย 41 เมืองพัทยา อำเภอบางละมุง ชลบุรี 20150',
+                        tech: 'Team A (สมศักดิ์)',
+                        special_instructions: 'พื้นที่พร้อมติดตั้ง ท่อน้ำทิ้งสามารถต่อออกระเบียงได้',
+                        additional_notes: 'ลูกค้าขอเข้าช่วงเช้า ตรวจเช็คจุดติดตั้งคอมเพรสเซอร์เรียบร้อย',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        boq_grand_total: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-08T08:00:00.000Z",
+                            step1_survey_at: "2026-09-08T08:00:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'VFIX-260901-002',
+                        job_no: 'VFIX-260901-002',
+                        booking_no: 'VFIX-260901-002',
+                        ticket_no: '209051120',
+                        external_ref_id: 'REQ-PT2-2608220004',
+                        job_type: 'quick',
+                        customer: 'คุณกิตติศักดิ์ เจริญพร',
+                        phone: '089-876-5432',
+                        service: 'ติดตั้งปั้มแท็งก์ ถังเก็บน้ำ DOS 1000L บนฐานปูน + ปั้มอัตโนมัติ Mitsubishi 250W',
+                        services: ['ติดตั้งปั้มแท็งก์ ถังเก็บน้ำ DOS 1000L บนฐานปูน + ปั้มอัตโนมัติ Mitsubishi 250W'],
+                        status: 'SURVEYED',
+                        date: '2026-09-05',
+                        progress: 25,
+                        address: '88/12 ถ.พระราม 2 ซอย 50 บางขุนเทียน กทม. 10150',
+                        tech: 'Team B (ประเสริฐ)',
+                        special_instructions: 'ฐานปูนด้านหลังบ้านเทเสร็จเรียบร้อย มีปลั๊กไฟกันน้ำพร้อมเชื่อมต่อ',
+                        additional_notes: 'จุดตั้งปั้มห่างจากตู้เมน 12 เมตร รวมเดินท่อบายพาส',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        boq_grand_total: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-08T08:10:00.000Z",
+                            step1_survey_at: "2026-09-08T08:10:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'VFIX-260901-003',
+                        job_no: 'VFIX-260901-003',
+                        booking_no: 'VFIX-260901-003',
+                        ticket_no: '209051121',
+                        external_ref_id: 'REQ-PT2-2608220005',
+                        job_type: 'quick',
+                        customer: 'คุณสิริกร วงศ์สุวรรณ',
+                        phone: '086-555-4321',
+                        service: 'ติดตั้งเครื่องทำน้ำอุ่น Stiebel Eltron 4500W พร้อมเดินสายดินและเบรกเกอร์',
+                        services: ['ติดตั้งเครื่องทำน้ำอุ่น Stiebel Eltron 4500W พร้อมเดินสายดินและเบรกเกอร์'],
+                        status: 'SURVEYED',
+                        date: '2026-09-06',
+                        progress: 25,
+                        address: 'Condo Ideo สาทร-ท่าพระ ชั้น 18 ถนนราชพฤกษ์ บุคคโล ธนบุรี กทม. 10600',
+                        tech: 'Team C (วิชัย)',
+                        special_instructions: 'มีท่อน้ำดีและสายไฟร้อยท่อฝังผนังไว้แล้ว เข้าติดตั้งได้ทันที',
+                        additional_notes: 'นิติบุคคลคอนโดอนุญาตทำงาน 09:00-17:00 ต้องแลกบัตรช่าง',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        boq_grand_total: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-08T08:15:00.000Z",
+                            step1_survey_at: "2026-09-08T08:15:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'VFIX-260901-004',
+                        job_no: 'VFIX-260901-004',
+                        booking_no: 'VFIX-260901-004',
+                        ticket_no: '209051122',
+                        external_ref_id: 'REQ-PT2-2608220006',
+                        job_type: 'renovate',
+                        customer: 'คุณณัฐพงษ์ เตชะสกุล',
+                        phone: '081-999-8877',
+                        service: 'ปูกระเบื้องพื้นห้องน้ำ แกรนิตโต้ 60x60 cm พื้นที่ 15 ตร.ม. พร้อมระบบกันซึม 3 ชั้น',
+                        services: ['ปูกระเบื้องพื้นห้องน้ำ แกรนิตโต้ 60x60 cm พื้นที่ 15 ตร.ม. พร้อมระบบกันซึม 3 ชั้น'],
+                        status: 'SURVEYED',
+                        date: '2026-09-06',
+                        progress: 25,
+                        address: '99 หมู่บ้านเพอร์เฟค ราชพฤกษ์ ตำบลบางรักน้อย อำเภอเมือง นนทบุรี 11000',
+                        tech: 'Team A (สมศักดิ์)',
+                        special_instructions: 'วัดระดับ Slope ท่อระบายน้ำทิ้งเดิมเรียบร้อย เสริมกันซึมรอบท่อน้ำทิ้ง',
+                        additional_notes: 'ลูกค้าเลือกกระเบื้องรหัส TILE-GR-6060 จากโฮมโปรแล้ว',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        boq_grand_total: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-08T08:20:00.000Z",
+                            step1_survey_at: "2026-09-08T08:20:00.000Z"
+                        }
+                    },
+                    {
+                        id: 'VFIX-260901-005',
+                        job_no: 'VFIX-260901-005',
+                        booking_no: 'VFIX-260901-005',
+                        ticket_no: '209051123',
+                        external_ref_id: 'REQ-PT2-2608220007',
+                        job_type: 'renovate',
+                        customer: 'คุณอรวรรณ จิตรสมบูรณ์',
+                        phone: '083-112-2334',
+                        service: 'ติดตั้งสุขภัณฑ์ Kohler 2 ชิ้น และฉากกั้นอาบน้ำกระจกนิรภัย Tempered 10mm',
+                        services: ['ติดตั้งสุขภัณฑ์ Kohler 2 ชิ้น และฉากกั้นอาบน้ำกระจกนิรภัย Tempered 10mm'],
+                        status: 'SURVEYED',
+                        date: '2026-09-07',
+                        progress: 25,
+                        address: '45/3 ซอยสุขุมวิท 39 แขวงคลองตันเหนือ เขตวัฒนา กรุงเทพฯ 10110',
+                        tech: 'Team B (ประเสริฐ)',
+                        special_instructions: 'ระยะท่อชักโครก 30.5 cm ตรงตามมาตรฐาน พร้อมติดตั้งได้ทันที',
+                        additional_notes: 'มีที่จอดรถหน้าอาคาร ช่างขนย้ายสินค้าสะดวก',
+                        photos: [],
+                        boq_items: [],
+                        boq_discount: 0,
+                        boq_grand_total: 0,
+                        step_timestamps: {
+                            step1_order_at: "2026-09-08T08:25:00.000Z",
+                            step1_survey_at: "2026-09-08T08:25:00.000Z"
+                        }
+                    },
+                    {
                         id: 'JOB26090900001',
                         job_no: 'JOB26090900001',
                         job_type: 'quick',
@@ -1627,7 +1762,7 @@ const app = {
                     this.showToast('⚠️ ฟังก์ชันนี้สงวนไว้เฉพาะผู้ใช้ Isara Chootip เท่านั้น', 'warning');
                     return;
                 }
-                if (confirmAction && !confirm('คุณต้องการล้างข้อมูล Transaction ทั้งหมดในระบบ และเริ่มต้นใหม่โดยคงไว้เฉพาะ 20 คำสั่งซื้อจากระบบ INT ในสถานะ Step 1 ใช่หรือไม่?')) {
+                if (confirmAction && !confirm('คุณต้องการล้างข้อมูล Transaction ทั้งหมดในระบบ และเริ่มต้นใหม่โดยคงไว้เฉพาะรายการคำสั่งซื้อจากระบบ (5 รายการ VFIX + 20 รายการ INT) ในสถานะ Step 1 ใช่หรือไม่?')) {
                     return;
                 }
 
@@ -1646,7 +1781,7 @@ const app = {
                     localStorage.removeItem('pmt_ma_contracts');
                     localStorage.removeItem('pmt_ma_rounds');
                     localStorage.removeItem('pmt_int_mock_10jobs_v4');
-                    localStorage.setItem('pmt_clean_reset_v10', 'true');
+                    localStorage.setItem('pmt_clean_reset_v11', 'true');
                 } catch(e) {}
 
                 // 2. Tell backend server to seed the 20 initial INT orders and wipe downstream stores
@@ -1715,7 +1850,7 @@ const app = {
 
                 this.updateStepBadges();
                 this.updateStep1Dashboard();
-                this.showToast(`✨ ล้างระบบและเริ่มต้นใหม่โดยคงไว้เฉพาะ 20 Order จาก INT (${DB.jobs.length} งาน สถานะ Survey 25%) เรียบร้อยแล้ว`, 'success');
+                this.showToast(`✨ ล้างระบบและเริ่มต้นใหม่โดยคงไว้เฉพาะ Order จากระบบ (${DB.jobs.length} งาน: 5 VFIX + 20 INT สถานะ Survey 25%) เรียบร้อยแล้ว`, 'success');
             },
 
             simulateINT16Orders(confirmAction = true) {
@@ -1863,8 +1998,8 @@ const app = {
                 document.documentElement.classList.remove('dark');
                 try { localStorage.setItem('pmt-theme', 'light'); } catch(e) {}
 
-                // Auto-Wipe & Fresh Clean Slate v10 (Fulfilling: "ล้างข้อมูลในระบบแล้วเริ่มใหม่ โดย คงไว้ เฉพาะ order ที่เข้ามาจาก Int")
-                const FRESH_RESET_KEY = 'pmt_clean_reset_v10';
+                // Auto-Wipe & Fresh Clean Slate v11 (Fulfilling: Restore original VFIX orders + INT orders in Step 1)
+                const FRESH_RESET_KEY = 'pmt_clean_reset_v11';
                 if (localStorage.getItem(FRESH_RESET_KEY) !== 'true') {
                     try {
                         localStorage.setItem(FRESH_RESET_KEY, 'true');
@@ -3557,11 +3692,18 @@ const app = {
                     const grandTotal = j.boq_grand_total || (boqItems.reduce((acc, item) => acc + ((Number(item.qty) || 0) * (Number(item.price) || 0)), 0) * 1.07);
                     const hasBOQ = itemsCount > 0;
 
+                    const isVFix = (j.booking_no && j.booking_no.startsWith('VFIX')) || (j.id && j.id.startsWith('VFIX')) || (j.job_no && j.job_no.startsWith('VFIX'));
+
                     return `
                     <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSurvey ? 'bg-teal-500/[0.03] border-l-2 border-l-teal-500' : isTop3New ? 'bg-indigo-500/[0.02]' : ''}" onclick="app.openUnifiedOrderStudio('${j.id}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${j.id})">
                         <td class="px-5 py-4 font-mono font-semibold text-brand-500">
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span>${j.id}</span>
+                                ${isVFix ? `
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 shadow-2xs" title="คำสั่งซื้อต้นทางระบบ vFIX (${j.booking_no || j.id})">
+                                        <i class="ph ph-wrench text-[10px]"></i> vFIX
+                                    </span>
+                                ` : ''}
                                 ${isSurvey ? `
                                     <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-teal-500/15 text-teal-700 border border-teal-500/30" title="งานสำรวจหน้างานจากระบบภายนอก (INT)">
                                         <i class="ph ph-compass-tool"></i> SURVEY
@@ -3695,7 +3837,14 @@ const app = {
 
                 // Header info
                 const titleEl = document.getElementById('unified-modal-job-id');
-                if (titleEl) titleEl.innerText = job.id;
+                if (titleEl) {
+                    const isVFix = (job.booking_no && job.booking_no.startsWith('VFIX')) || (job.id && job.id.startsWith('VFIX')) || (job.job_no && job.job_no.startsWith('VFIX'));
+                    if (isVFix) {
+                        titleEl.innerHTML = `${job.id} <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans"><i class="ph ph-wrench"></i> vFIX: ${job.booking_no || job.id}</span>`;
+                    } else {
+                        titleEl.innerText = job.id;
+                    }
+                }
                 const custEl = document.getElementById('unified-modal-customer');
                 if (custEl) custEl.innerText = job.customer || 'คุณลูกค้า';
 
@@ -7168,6 +7317,7 @@ const app = {
                             <div>
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <h2 class="font-display text-xl font-bold text-foreground tracking-tight">${job.id}</h2>
+                                    ${(job.booking_no && job.booking_no.startsWith('VFIX')) || (job.id && job.id.startsWith('VFIX')) ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 shadow-2xs"><i class="ph ph-wrench"></i> vFIX: ${job.booking_no || job.id}</span>` : ''}
                                     ${this.isTop3LatestJob(job) ? `<span class="badge-new-item" title="3 รายการล่าสุดที่รับเข้า (NEW!)"><i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!</span>` : ''}
                                     <span class="text-sm text-muted-foreground font-medium">/ ${job.customer}</span>
                                 </div>
