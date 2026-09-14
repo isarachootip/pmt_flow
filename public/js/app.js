@@ -6227,6 +6227,26 @@ const app = {
                     6: 'Step 6: CSAT Evaluation'
                 };
 
+                const ts = job.step_timestamps || {};
+                let enterStateIso = null;
+                if (stepNumber === 1) {
+                    enterStateIso = ts.step1_intake_at || ts.step1_order_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
+                } else if (stepNumber === 2) {
+                    enterStateIso = ts.step2_ticket_at || ts.step4_ticket_at || ts.step1_accepted_at || ts.step1_order_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
+                } else if (stepNumber === 3) {
+                    enterStateIso = ts.step3_conversion_at || ts.step5_project_at || ts.step2_ticket_at || ts.step4_ticket_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
+                } else if (stepNumber === 4) {
+                    enterStateIso = ts.step4_gantt_at || ts.step3_conversion_at || ts.step5_project_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
+                } else if (stepNumber === 5) {
+                    enterStateIso = ts.qc_pending_at || ts.qc_draft_at || ts.step4_gantt_at || ts.step3_conversion_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
+                } else if (stepNumber === 6) {
+                    enterStateIso = ts.csat_pending_at || ts.qc_passed_at || ts.qc_inspected_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
+                }
+                if (!enterStateIso) {
+                    enterStateIso = job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
+                }
+                const enterFormatted = enterStateIso ? this.formatDateTimeDMY(enterStateIso, false, true) : '-';
+
                 const stepDots = rep ? rep.steps.map(s => {
                     const done = s.isDone;
                     const skipped = s.isSkipped;
@@ -6243,12 +6263,16 @@ const app = {
                     <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden mb-1.5">
                         <div class="bg-gradient-to-r from-brand-600 to-indigo-500 h-1.5 rounded-full" style="width: ${progress}%"></div>
                     </div>
-                    <div class="flex items-center justify-between gap-1 flex-wrap">
+                    <div class="flex items-center justify-between gap-1 flex-wrap mb-1">
                         <div class="flex items-center gap-1" onclick="event.stopPropagation(); app.openStepAuditReportModal('${job.id}')" title="คลิกเพื่อดู Audit Report บันทึกเวลาทั้ง 6 ขั้นตอน">
                             ${stepDots}
                             <span class="text-[9px] text-brand-500 ml-1 hover:underline cursor-pointer"><i class="ph ph-clock"></i></span>
                         </div>
                         <div class="shrink-0">${slaBadge}</div>
+                    </div>
+                    <div class="text-[10px] text-muted-foreground flex items-center gap-1 font-mono pt-0.5" title="วันเวลาที่เข้าสู่ State นี้ (เริ่มนับ SLA จากเวลานี้)">
+                        <i class="ph ph-clock text-brand-600 dark:text-brand-400 text-xs shrink-0"></i>
+                        <span class="truncate">เข้า State: <strong class="text-foreground font-semibold">${enterFormatted}</strong></span>
                     </div>
                 `;
             },
@@ -8257,7 +8281,7 @@ const app = {
                                     </td>
                                     <td class="px-5 py-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
                                     <td class="px-5 py-4">${this.getStatusHtml(j.status, isTopNew)}</td>
-                                    <td class="px-5 py-4 w-48">${stageHtml}</td>
+                                    <td class="px-5 py-4 min-w-[210px] w-52">${stageHtml}</td>
                                     <td class="px-5 py-4 text-right">${actionButtons}</td>
                                 </tr>
                             `;
@@ -11248,7 +11272,7 @@ const app = {
                                     </td>
                                     <td class="px-5 py-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
                                     <td class="px-5 py-4">${this.getStatusHtml(j.status, isTopNew)}</td>
-                                    <td class="px-5 py-4 w-48">${stageHtml}</td>
+                                    <td class="px-5 py-4 min-w-[210px] w-52">${stageHtml}</td>
                                     <td class="px-5 py-4 text-right">${actionButtons}</td>
                                 </tr>
                             `;
@@ -11364,7 +11388,7 @@ const app = {
                                     <thead>
                                         <tr class="border-b border-border bg-muted/40 text-muted-foreground font-semibold text-[11px]">
                                             <th class="py-3 px-4 font-mono">JOB ID</th>
-                                            <th class="py-3 px-4">วันที่รับ Order</th>
+                                            <th class="py-3 px-4">วันที่รับ Order / เข้า Step 2</th>
                                             <th class="py-3 px-4">ลูกค้า</th>
                                             <th class="py-3 px-4">บริการ / งานติดตั้ง</th>
                                             <th class="py-3 px-4">ยอดเงิน BOQ / สัญญา</th>
@@ -11378,6 +11402,9 @@ const app = {
                                             const jobTkts = ticketsByJob[job.id] || [];
                                             const hasTkt = jobTkts.length > 0;
                                             const grandTotal = job.boq_grand_total || (job.boq_items ? job.boq_items.reduce((s, it) => s + ((Number(it.qty) || 1) * (Number(it.price) || 0)), 0) : 25000);
+                                            const jts = job.step_timestamps || {};
+                                            const s2Iso = jts.step2_ticket_at || jts.step4_ticket_at || jts.step1_accepted_at || jts.step1_order_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
+                                            const s2Formatted = s2Iso ? this.formatDateTimeDMY(s2Iso, false, true) : '-';
                                             return `
                                             <tr class="hover:bg-muted/30 transition-colors ${isTopNew ? 'bg-rose-500/[0.02]' : ''}">
                                                 <td class="py-3 px-4 font-mono font-bold text-foreground">
@@ -11392,7 +11419,13 @@ const app = {
                                                         ` : ''}
                                                     </div>
                                                 </td>
-                                                <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${this.formatDateDMY(job.date)}</td>
+                                                <td class="py-3 px-4">
+                                                    <div class="font-mono text-foreground font-medium text-[11px]">${this.formatDateDMY(job.date)}</div>
+                                                    <div class="text-[10px] text-muted-foreground font-mono flex items-center gap-1 mt-0.5" title="วันเวลาที่เข้าสู่คิว Step 2">
+                                                        <i class="ph ph-clock text-[9px] text-brand-500"></i>
+                                                        <span>เข้า State: <strong class="text-foreground">${s2Formatted}</strong></span>
+                                                    </div>
+                                                </td>
                                                 <td class="py-3 px-4 font-medium text-foreground">
                                                     <div class="flex items-center gap-1.5">
                                                         <span>${job.customer}</span>
@@ -11482,6 +11515,14 @@ const app = {
                                     <div class="flex items-center justify-between text-[11px]">
                                         <span class="text-muted-foreground flex items-center gap-1"><i class="ph ph-wrench"></i> ${job.service}</span>
                                         <span class="font-mono text-muted-foreground">${this.formatDateDMY(job.date)}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-[10px] font-mono text-muted-foreground pt-1 border-t border-border/40">
+                                        <span class="flex items-center gap-1"><i class="ph ph-clock text-brand-500"></i> เข้า State:</span>
+                                        <strong class="text-foreground">${(() => {
+                                            const jts = job.step_timestamps || {};
+                                            const s2Iso = jts.step2_ticket_at || jts.step4_ticket_at || jts.step1_accepted_at || jts.step1_order_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
+                                            return s2Iso ? this.formatDateTimeDMY(s2Iso, false, true) : '-';
+                                        })()}</strong>
                                     </div>
                                     <div class="flex items-center justify-between text-[11px] pt-1 border-t border-border/40">
                                         <span class="text-muted-foreground">ช่าง: <strong class="text-foreground">${job.tech || 'ยังไม่ระบุ'}</strong></span>
@@ -11716,6 +11757,20 @@ const app = {
                 const nextNum = (DB.tickets || []).length + 1;
                 const nextNumStr = String(nextNum).padStart(3, '0');
 
+                const updateJobStateInfo = (target) => {
+                    const infoEl = document.getElementById('create-ticket-job-state-info');
+                    if (!infoEl) return;
+                    if (!target) {
+                        infoEl.innerHTML = '';
+                        return;
+                    }
+                    const ts = target.step_timestamps || {};
+                    const enterIso = ts.step2_ticket_at || ts.step4_ticket_at || ts.step1_accepted_at || ts.step1_order_at || target.created_at || (target.date ? `${target.date}T08:30:00.000Z` : null);
+                    const enterStr = enterIso ? this.formatDateTimeDMY(enterIso, false, true) : '-';
+                    infoEl.innerHTML = `<span class="inline-flex items-center gap-1 text-[11px] text-muted-foreground"><i class="ph ph-clock text-emerald-600 dark:text-emerald-400"></i> วันเวลาที่เข้าสู่ Step 2: <strong class="text-foreground">${enterStr}</strong></span>`;
+                };
+                updateJobStateInfo(targetJob);
+
                 const tktInput = document.getElementById('create-ticket-no');
                 if (tktInput) tktInput.value = `TKT-202609-${nextNumStr}`;
 
@@ -11759,9 +11814,18 @@ const app = {
 
             handleTicketJobChange(jobId) {
                 const job = (DB.jobs || []).find(j => j.id === jobId);
-                if (job && job.boq_grand_total) {
-                    const amtInput = document.getElementById('create-ticket-amount');
-                    if (amtInput) amtInput.value = job.boq_grand_total;
+                if (job) {
+                    if (job.boq_grand_total) {
+                        const amtInput = document.getElementById('create-ticket-amount');
+                        if (amtInput) amtInput.value = job.boq_grand_total;
+                    }
+                    const infoEl = document.getElementById('create-ticket-job-state-info');
+                    if (infoEl) {
+                        const ts = job.step_timestamps || {};
+                        const enterIso = ts.step2_ticket_at || ts.step4_ticket_at || ts.step1_accepted_at || ts.step1_order_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
+                        const enterStr = enterIso ? this.formatDateTimeDMY(enterIso, false, true) : '-';
+                        infoEl.innerHTML = `<span class="inline-flex items-center gap-1 text-[11px] text-muted-foreground"><i class="ph ph-clock text-emerald-600 dark:text-emerald-400"></i> วันเวลาที่เข้าสู่ Step 2: <strong class="text-foreground">${enterStr}</strong></span>`;
+                    }
                 }
             },
 
@@ -12306,7 +12370,7 @@ const app = {
                                     </td>
                                     <td class="px-5 py-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
                                     <td class="px-5 py-4">${this.getStatusHtml(j.status, isTopNew)}</td>
-                                    <td class="px-5 py-4 w-48">${stageHtml}</td>
+                                    <td class="px-5 py-4 min-w-[210px] w-52">${stageHtml}</td>
                                     <td class="px-5 py-4 text-right">${actionButtons}</td>
                                 </tr>
                             `;
@@ -13606,7 +13670,7 @@ const app = {
                                     </td>
                                     <td class="px-5 py-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
                                     <td class="px-5 py-4">${this.getStatusHtml(j.status, isTopNew)}</td>
-                                    <td class="px-5 py-4 w-48">${stageHtml}</td>
+                                    <td class="px-5 py-4 min-w-[210px] w-52">${stageHtml}</td>
                                     <td class="px-5 py-4 text-right">${actionButtons}</td>
                                 </tr>
                             `;
