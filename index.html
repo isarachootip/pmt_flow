@@ -5536,12 +5536,12 @@
                                 <i class="ph ph-trash"></i> ล้างรูป
                             </button>
                             <button type="button" onclick="app.addCreateJobSamplePhotos()" class="text-[10px] text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1 transition cursor-pointer">
-                                <i class="ph ph-sparkle text-amber-500"></i> แนบรูปตัวอย่าง INT (2 รูป)
+                                <i class="ph ph-sparkle text-amber-500"></i> แนบรูปตัวอย่าง INT (5 รูป)
                             </button>
                         </div>
                     </div>
 
-                    <input type="file" id="cj-photo-input" accept="image/*" class="hidden" onchange="app.handleCreateJobPhotoChange(event)">
+                    <input type="file" id="cj-photo-input" accept="image/*" multiple class="hidden" onchange="app.handleCreateJobPhotoChange(event)">
                     <input type="file" id="cj-camera-input" accept="image/*" capture="environment" class="hidden" onchange="app.handleCreateJobPhotoChange(event)">
 
                     <!-- Dropzone -->
@@ -5550,12 +5550,12 @@
                             <i class="ph ph-cloud-arrow-up text-xl"></i>
                         </div>
                         <div>
-                            <div class="text-xs font-semibold text-foreground">ลากไฟล์รูปภาพมาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์ (แนบทีละรูปหรือหลายรูปได้)</div>
-                            <div class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์ JPG, PNG, WEBP, HEIC</div>
+                            <div class="text-xs font-semibold text-foreground">ลากไฟล์รูปภาพมาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์ (เลือกพร้อมกันทีละ 5 รูป หรือแนบเพิ่มได้เรื่อยๆ)</div>
+                            <div class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์ JPG, PNG, WEBP, HEIC (กด Ctrl หรือ Shift เพื่อเลือกหลายรูปพร้อมกัน)</div>
                         </div>
                         <div class="flex items-center gap-2 pt-1" onclick="event.stopPropagation()">
                             <button type="button" onclick="document.getElementById('cj-photo-input').click()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium shadow-xs cursor-pointer">
-                                <i class="ph ph-folder-open text-xs"></i> เลือกรูปจากเครื่อง
+                                <i class="ph ph-folder-open text-xs"></i> เลือกรูปจากเครื่อง (ทีละหลายรูป)
                             </button>
                             <button type="button" onclick="document.getElementById('cj-camera-input').click()" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium shadow-xs cursor-pointer">
                                 <i class="ph ph-camera text-xs"></i> ถ่ายภาพ

@@ -2989,19 +2989,43 @@ const app = {
                     samplePhotos: [
                         {
                             id: 'INT-PHT-01',
-                            title: 'จุดติดตั้งเครื่องทำน้ำอุ่นเดิมในห้องน้ำ',
-                            name: 'int_waterheater_site.jpg',
+                            title: '1. จุดติดตั้งเครื่องทำน้ำอุ่นเดิมในห้องน้ำ',
+                            name: '01_waterheater_site.jpg',
                             url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1000&auto=format&fit=crop&q=80',
                             category: 'survey',
                             tag: 'จุดติดตั้งเดิม'
                         },
                         {
                             id: 'INT-PHT-02',
-                            title: 'ตู้คอนซูเมอร์ยูนิตและเบรกเกอร์ ELCB',
-                            name: 'int_circuit_breaker.jpg',
+                            title: '2. ตู้คอนซูเมอร์ยูนิตและเบรกเกอร์ ELCB',
+                            name: '02_circuit_breaker.jpg',
                             url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80',
                             category: 'survey',
                             tag: 'ระบบไฟ'
+                        },
+                        {
+                            id: 'INT-PHT-03',
+                            title: '3. จุดเดินท่อน้ำดีและสต็อปวาล์วใต้อ่าง/ฝักบัว',
+                            name: '03_water_inlet_valve.jpg',
+                            url: 'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'ระบบท่อน้ำ'
+                        },
+                        {
+                            id: 'INT-PHT-04',
+                            title: '4. จุดตอกหลักดิน Ground Rod และสายดิน',
+                            name: '04_grounding_rod.jpg',
+                            url: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'ระบบสายดิน'
+                        },
+                        {
+                            id: 'INT-PHT-05',
+                            title: '5. พื้นที่ทำงานและทางเดินเข้าห้องน้ำ',
+                            name: '05_bathroom_access.jpg',
+                            url: 'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'พื้นที่ปฏิบัติงาน'
                         }
                     ]
                 },
@@ -3019,20 +3043,44 @@ const app = {
                     notes: 'แอร์ Inverter 18,000 BTU ท่อน้ำยายาว 4 เมตร รวมติดตั้งเบรกเกอร์และท่อครอบสายไฟ',
                     samplePhotos: [
                         {
-                            id: 'INT-PHT-03',
-                            title: 'ตำแหน่งเจาะรูท่อน้ำยาแอร์และผนังติดตั้ง',
-                            name: 'int_aircon_wall.jpg',
+                            id: 'INT-PHT-06',
+                            title: '1. ตำแหน่งเจาะรูท่อน้ำยาแอร์และผนังติดตั้งคอยล์เย็น',
+                            name: '01_aircon_wall.jpg',
                             url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80',
                             category: 'survey',
                             tag: 'ตำแหน่งติดตั้ง'
                         },
                         {
-                            id: 'INT-PHT-04',
-                            title: 'ระเบียงคอนโดจุดวางคอนเดนซิ่งยูนิต',
-                            name: 'int_aircon_balcony.jpg',
+                            id: 'INT-PHT-07',
+                            title: '2. ระเบียงคอนโดจุดวางคอนเดนซิ่งยูนิตคอยล์ร้อน',
+                            name: '02_aircon_balcony.jpg',
                             url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80',
                             category: 'survey',
                             tag: 'จุดวางคอยล์ร้อน'
+                        },
+                        {
+                            id: 'INT-PHT-08',
+                            title: '3. เบรกเกอร์ควบคุมและแนวเดินท่อร้อยสายไฟ',
+                            name: '03_aircon_breaker.jpg',
+                            url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'ระบบไฟฟ้า'
+                        },
+                        {
+                            id: 'INT-PHT-09',
+                            title: '4. แนวท่อน้ำทิ้งแอร์และจุดระบายน้ำทิ้ง',
+                            name: '04_aircon_drain_pipe.jpg',
+                            url: 'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'ท่อน้ำทิ้ง'
+                        },
+                        {
+                            id: 'INT-PHT-10',
+                            title: '5. ช่องเปิดฝ้าเพดานและโครงสร้างรับน้ำหนัก',
+                            name: '05_ceiling_structure.jpg',
+                            url: 'https://images.unsplash.com/photo-1541888946425-d0fbb1861564?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'โครงสร้างฝ้า'
                         }
                     ]
                 },
@@ -3050,20 +3098,44 @@ const app = {
                     notes: 'ปรับปรุงเคาน์เตอร์ครัวปูน Built-in L-Shape ปูกระเบื้องแกรนิตโต้และติดตั้งฮูดดูดควัน',
                     samplePhotos: [
                         {
-                            id: 'INT-PHT-05',
-                            title: 'สภาพห้องครัวเดิมก่อนการรีโนเวท',
-                            name: 'int_kitchen_before.jpg',
+                            id: 'INT-PHT-11',
+                            title: '1. สภาพห้องครัวเดิมก่อนการรีโนเวท',
+                            name: '01_kitchen_before.jpg',
                             url: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1000&auto=format&fit=crop&q=80',
                             category: 'survey',
                             tag: 'สภาพก่อนปรับปรุง'
                         },
                         {
-                            id: 'INT-PHT-06',
-                            title: 'จุดต่อท่อน้ำทิ้งและปลั๊กไฟเตาแม่เหล็ก',
-                            name: 'int_kitchen_piping.jpg',
+                            id: 'INT-PHT-12',
+                            title: '2. จุดต่อท่อน้ำทิ้งและปลั๊กไฟเตาแม่เหล็ก',
+                            name: '02_kitchen_piping.jpg',
                             url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80',
                             category: 'survey',
-                            tag: 'ระบบสุขาภิบาล/ไฟฟ้า'
+                            tag: 'สุขาภิบาล/ไฟฟ้า'
+                        },
+                        {
+                            id: 'INT-PHT-13',
+                            title: '3. แนวเคาน์เตอร์เดิมและผนังติดตั้งกระเบื้อง',
+                            name: '03_kitchen_countertop.jpg',
+                            url: 'https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'เคาน์เตอร์ครัว'
+                        },
+                        {
+                            id: 'INT-PHT-14',
+                            title: '4. ตำแหน่งเจาะช่องระบายอากาศและติดตั้งฮูดดูดควัน',
+                            name: '04_exhaust_hood_spot.jpg',
+                            url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'ฮูดดูดควัน'
+                        },
+                        {
+                            id: 'INT-PHT-15',
+                            title: '5. ช่องทางขนย้ายวัสดุและจุดปูพลาสติกกันรอยหน้างาน',
+                            name: '05_site_protection.jpg',
+                            url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'ป้องกันพื้นที่'
                         }
                     ]
                 },
@@ -3081,20 +3153,44 @@ const app = {
                     notes: 'สัญญาบริการบำรุงรักษาอาคารสำนักงานประจำปีรอบที่ 1 พร้อมตรวจวัดแรงดันและคลอรีนตกค้าง',
                     samplePhotos: [
                         {
-                            id: 'INT-PHT-07',
-                            title: 'ถังพักน้ำและปั๊มน้ำบูสเตอร์หลักของอาคาร',
-                            name: 'int_booster_pump.jpg',
+                            id: 'INT-PHT-16',
+                            title: '1. ถังพักน้ำและปั๊มน้ำบูสเตอร์หลักของอาคาร',
+                            name: '01_booster_pump.jpg',
                             url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80',
                             category: 'survey',
                             tag: 'อุปกรณ์ปั๊มน้ำ'
                         },
                         {
-                            id: 'INT-PHT-08',
-                            title: 'เกจวัดแรงดันน้ำ Pressure Gauge',
-                            name: 'int_pressure_gauge.jpg',
+                            id: 'INT-PHT-17',
+                            title: '2. เกจวัดแรงดันน้ำ Pressure Gauge',
+                            name: '02_pressure_gauge.jpg',
                             url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80',
                             category: 'survey',
-                            tag: 'การตรวจวัดแรงดัน'
+                            tag: 'ตรวจวัดแรงดัน'
+                        },
+                        {
+                            id: 'INT-PHT-18',
+                            title: '3. เช็ควาล์วและระบบท่อจ่ายน้ำหลัก',
+                            name: '03_check_valve_manifold.jpg',
+                            url: 'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'ท่อจ่ายน้ำ'
+                        },
+                        {
+                            id: 'INT-PHT-19',
+                            title: '4. ตู้ควบคุมไฟฟ้าปั๊มน้ำ Control Panel',
+                            name: '04_pump_control_panel.jpg',
+                            url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'ตู้คอนโทรล'
+                        },
+                        {
+                            id: 'INT-PHT-20',
+                            title: '5. สภาพภายในถังพักน้ำสเตนเลสก่อนล้าง',
+                            name: '05_stainless_watertank.jpg',
+                            url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'ถังพักน้ำ'
                         }
                     ]
                 }
