@@ -265,6 +265,25 @@ app.get(['/', '/index.html'], (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
+// Dedicated Standalone Inbound API Monitor (/apimonitor)
+app.get(['/apimonitor', '/apimonitor.html', '/api-monitor', '/monitor'], (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    const filePaths = [
+        path_1.default.join(__dirname, '../public/apimonitor.html'),
+        path_1.default.join(__dirname, './public/apimonitor.html'),
+        path_1.default.join(process.cwd(), 'public/apimonitor.html'),
+        path_1.default.join(__dirname, '../apimonitor.html'),
+        path_1.default.join(__dirname, './apimonitor.html'),
+        path_1.default.join(process.cwd(), 'apimonitor.html')
+    ];
+    for (const p of filePaths) {
+        if (fs_1.default.existsSync(p))
+            return res.sendFile(p);
+    }
+    return res.status(404).send('Inbound API Monitor page not found');
+});
 // Swagger Specification & Interactive UI (/docs and /api-docs)
 app.get('/openapi.yaml', (req, res) => {
     const rootOpenapi = path_1.default.join(__dirname, '../openapi.yaml');
@@ -544,7 +563,10 @@ async function seedUsers() {
 seedUsers().catch(() => { });
 const requireAuth = (req, res, next) => {
     const header = req.headers['authorization'] || '';
-    const token = header.replace('Bearer ', '').trim();
+    let token = header.replace('Bearer ', '').trim();
+    if (!token && req.query && typeof req.query.token === 'string') {
+        token = req.query.token.trim();
+    }
     if (!token)
         return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'กรุณา Login ก่อนใช้งาน' } });
     let session = exports.sysSessionStore.find(s => s.token === token && !s.revoked_at && new Date(s.expires_at) > new Date());

@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PMT Flow - Inbound API Monitor (Live Traffic)</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>">
+    
+    <!-- Google Fonts: Inter & Prompt for Thai typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Prompt', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', 'Prompt', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .pulse-badge {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: pulse-green 2s infinite;
+        }
+        @keyframes pulse-green {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+        pre {
+            font-family: 'JetBrains Mono', monospace;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900 antialiased selection:bg-cyan-500 selection:text-white">
+
+    <!-- TOPBAR / HEADER -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            
+            <!-- Left: Logo & Status Badge -->
+            <div class="flex items-center gap-3">
+                <a href="/" class="flex items-center gap-2.5 text-slate-900 hover:text-cyan-600 transition group" title="กลับสู่ระบบ PMT Flow หลัก">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                        <i class="ph ph-terminal-window text-xl font-bold"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-base tracking-tight font-display text-slate-900">PMT Flow</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-100 text-cyan-800 border border-cyan-300">API MONITOR</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 -mt-0.5">Inbound API Traffic & Diagnostics</p>
+                    </div>
+                </a>
+
+                <!-- Live Pulse -->
+                <div class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-medium text-emerald-700">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-badge" id="live-indicator-dot"></span>
+                    <span id="live-indicator-text">LIVE (3s)</span>
+                </div>
+            </div>
+
+            <!-- Right: Navigation & Actions -->
+            <div class="flex items-center gap-2.5">
+                <!-- Swagger Docs -->
+                <a href="/docs" target="_blank" class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition border border-slate-300">
+                    <i class="ph ph-book-open text-sm text-cyan-600"></i>
+                    <span>Swagger Docs</span>
+                </a>
+
+                <!-- Return to PMT Flow App -->
+                <a href="/" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-cyan-700 bg-cyan-50 hover:bg-cyan-100 transition border border-cyan-200">
+                    <i class="ph ph-arrow-square-out text-sm"></i>
+                    <span>ระบบหลัก PMT Flow</span>
+                </a>
+
+                <!-- User Profile / Auth State -->
+                <div id="auth-section" class="flex items-center gap-2 border-l border-slate-200 pl-2.5">
+                    <!-- User badge rendered via JS -->
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- METRICS / KPI SUMMARY -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+            <!-- Total Requests -->
+            <div onclick="apiMonitor.filterByStatus('ALL')" class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between cursor-pointer hover:border-cyan-500 hover:shadow-md transition-all group">
+                <div>
+                    <span class="text-xs font-medium text-slate-500 group-hover:text-slate-800 transition-colors">ยิงเข้ามาทั้งหมด (Total)</span>
+                    <div class="text-2xl font-bold font-mono text-slate-900 mt-1" id="kpi-total">0</div>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-lg group-hover:bg-cyan-50 group-hover:text-cyan-600 transition-colors">
+                    <i class="ph ph-hash"></i>
+                </div>
+            </div>
+
+            <!-- 2xx Success -->
+            <div onclick="apiMonitor.filterByStatus('2xx')" class="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200 shadow-xs flex items-center justify-between cursor-pointer hover:border-emerald-500 hover:shadow-md transition-all group">
+                <div>
+                    <span class="text-xs font-medium text-emerald-700">สำเร็จ (2xx Success)</span>
+                    <div class="text-2xl font-bold font-mono text-emerald-700 mt-1" id="kpi-2xx">0</div>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                    <i class="ph ph-check-circle"></i>
+                </div>
+            </div>
+
+            <!-- 4xx Client Error -->
+            <div onclick="apiMonitor.filterByStatus('4xx')" class="bg-amber-50/50 p-4 rounded-xl border border-amber-200 shadow-xs flex items-center justify-between cursor-pointer hover:border-amber-500 hover:shadow-md transition-all group">
+                <div>
+                    <span class="text-xs font-medium text-amber-700">ผิดพลาดผู้ส่ง (4xx Error)</span>
+                    <div class="text-2xl font-bold font-mono text-amber-700 mt-1" id="kpi-4xx">0</div>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                    <i class="ph ph-warning-circle"></i>
+                </div>
+            </div>
+
+            <!-- 5xx Server Error -->
+            <div onclick="apiMonitor.filterByStatus('5xx')" class="bg-rose-50/50 p-4 rounded-xl border border-rose-200 shadow-xs flex items-center justify-between cursor-pointer hover:border-rose-500 hover:shadow-md transition-all group">
+                <div>
+                    <span class="text-xs font-medium text-rose-700">เซิร์ฟเวอร์ขัดข้อง (5xx)</span>
+                    <div class="text-2xl font-bold font-mono text-rose-700 mt-1" id="kpi-5xx">0</div>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                    <i class="ph ph-x-circle"></i>
+                </div>
+            </div>
+
+            <!-- Avg Latency -->
+            <div class="col-span-2 sm:col-span-1 bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-medium text-slate-500">เวลาเฉลี่ย (Avg Latency)</span>
+                    <div class="text-2xl font-bold font-mono text-cyan-700 mt-1" id="kpi-latency">0 <span class="text-xs font-sans text-slate-500">ms</span></div>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-lg">
+                    <i class="ph ph-gauge"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTROLS & FILTER TOOLBAR -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                
+                <!-- Search Input -->
+                <div class="flex-1 relative">
+                    <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="filter-search" oninput="apiMonitor.filterLogs()" placeholder="ค้นหา Path, Client IP, หรือเนื้อหา Payload / Response..." class="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:bg-white transition">
+                </div>
+
+                <!-- Filters & Controls -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    
+                    <!-- Method Filter -->
+                    <select id="filter-method" onchange="apiMonitor.filterLogs()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-cyan-500 cursor-pointer">
+                        <option value="ALL">ทุก Method (All)</option>
+                        <option value="POST">POST (ส่งคำขอเข้า)</option>
+                        <option value="GET">GET (เรียกดู)</option>
+                        <option value="PATCH">PATCH (อัปเดต)</option>
+                        <option value="DELETE">DELETE (ลบข้อมูล)</option>
+                    </select>
+
+                    <!-- Status Filter -->
+                    <select id="filter-status" onchange="apiMonitor.filterLogs()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-cyan-500 cursor-pointer">
+                        <option value="ALL">ทุกสถานะ HTTP</option>
+                        <option value="2xx">2xx สำเร็จ (Success)</option>
+                        <option value="4xx">4xx ข้อผิดพลาด (Client Error)</option>
+                        <option value="5xx">5xx ขัดข้อง (Server Error)</option>
+                    </select>
+
+                    <!-- Refresh Interval Selector -->
+                    <div class="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 gap-1">
+                        <i class="ph ph-clock text-slate-400 text-xs"></i>
+                        <select id="refresh-interval" onchange="apiMonitor.changeRefreshInterval(this.value)" class="bg-transparent text-xs text-slate-800 font-medium focus:outline-none cursor-pointer">
+                            <option value="0">หยุด Auto-Refresh</option>
+                            <option value="2000">รีเฟรชทุก 2s</option>
+                            <option value="3000" selected>รีเฟรชทุก 3s (ค่าเริ่มต้น)</option>
+                            <option value="5000">รีเฟรชทุก 5s</option>
+                            <option value="10000">รีเฟรชทุก 10s</option>
+                        </select>
+                    </div>
+
+                    <!-- Manual Refresh Button -->
+                    <button type="button" onclick="apiMonitor.fetchLogs(true)" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-cyan-600 hover:bg-cyan-700 transition shadow-xs cursor-pointer" title="รีเฟรชดึงข้อมูลเดี๋ยวนี้">
+                        <i class="ph ph-arrows-clockwise text-sm" id="refresh-spinner"></i>
+                        <span class="hidden sm:inline">รีเฟรช</span>
+                    </button>
+
+                    <!-- Clear Logs Button (Admin) -->
+                    <button type="button" id="btn-clear-logs" onclick="apiMonitor.clearLogs()" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 transition cursor-pointer" title="ล้างประวัติ Log ทั้งหมด">
+                        <i class="ph ph-trash text-sm"></i>
+                        <span class="hidden sm:inline">ล้าง Log</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Secondary Toolbar: Sound & Checkboxes -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-600 pt-2 border-t border-slate-100 gap-2">
+                <div class="flex items-center gap-4 flex-wrap">
+                    <!-- Hide Routine Polling -->
+                    <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="filter-hide-routine" checked onchange="apiMonitor.filterLogs()" class="w-3.5 h-3.5 rounded text-cyan-600 focus:ring-cyan-500 border-slate-300">
+                        <span class="font-medium text-slate-700">ซ่อน Routine Polling อัตโนมัติ (GET /jobs, /ma-*)</span>
+                    </label>
+
+                    <!-- Audio Alert on 4xx/5xx -->
+                    <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="setting-sound-alert" onchange="apiMonitor.toggleSound(this.checked)" class="w-3.5 h-3.5 rounded text-cyan-600 focus:ring-cyan-500 border-slate-300">
+                        <span class="text-slate-600 flex items-center gap-1">
+                            <i class="ph ph-speaker-high text-xs text-slate-500"></i>
+                            เสียงเตือนเมื่อมี 4xx / 5xx Error
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Table Summary -->
+                <div class="flex items-center gap-3 font-mono text-[11px] text-slate-500">
+                    <span id="log-counter-label">แสดง 0 จากทั้งหมด 0 รายการ</span>
+                    <button type="button" onclick="apiMonitor.exportCSV()" class="hover:text-cyan-700 font-sans font-semibold underline flex items-center gap-1 cursor-pointer">
+                        <i class="ph ph-download-simple"></i> Export CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOGS TABLE -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100/75 border-b border-slate-200 text-slate-600 font-semibold">
+                            <th class="py-3 px-4 w-48">วัน-เวลา (DD/MM/YYYY)</th>
+                            <th class="py-3 px-3 w-20">Method</th>
+                            <th class="py-3 px-4">URL Path / Endpoint</th>
+                            <th class="py-3 px-3 w-28 text-center">Status</th>
+                            <th class="py-3 px-3 w-28">Client IP</th>
+                            <th class="py-3 px-3 w-24 text-right">เวลา (ms)</th>
+                            <th class="py-3 px-4">สรุปผลลัพธ์</th>
+                            <th class="py-3 px-4 w-32 text-center">การกระทำ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="api-log-table-body" class="divide-y divide-slate-100">
+                        <tr>
+                            <td colspan="8" class="py-16 text-center text-slate-500">
+                                <div class="flex flex-col items-center justify-center gap-2">
+                                    <i class="ph ph-spinner animate-spin text-2xl text-cyan-600"></i>
+                                    <span class="font-medium">กำลังโหลดข้อมูล Inbound API Traffic...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="font-semibold text-slate-700">PMT Flow Live Inbound API Monitor</span>
+                <span>•</span>
+                <span>Strict Light Theme Standard</span>
+                <span>•</span>
+                <span>Time Format: 24-Hour (DD/MM/YYYY HH:mm:ss น.)</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="/docs" target="_blank" class="hover:underline hover:text-cyan-700">REST API Docs</a>
+                <span>•</span>
+                <a href="/" class="hover:underline hover:text-cyan-700">Main Application</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL: INSPECT LOG DETAIL (Drawer/Modal) -->
+    <div id="modal-log-detail" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                <div class="flex items-center gap-2.5">
+                    <span id="modal-detail-method" class="px-2.5 py-1 rounded text-xs font-mono font-bold">POST</span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 id="modal-detail-path" class="text-sm font-bold font-mono text-slate-900">/api/v1/...</h3>
+                            <span id="modal-detail-status" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold">200 OK</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
+                            <span id="modal-detail-time">14/09/2026 10:30:22 น.</span>
+                            <span>•</span>
+                            <span id="modal-detail-ip">127.0.0.1</span>
+                            <span>•</span>
+                            <span id="modal-detail-duration">12 ms</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="apiMonitor.copyCurl()" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 transition flex items-center gap-1 cursor-pointer" title="คัดลอกเป็นคำสั่ง cURL">
+                        <i class="ph ph-terminal"></i>
+                        <span>Copy cURL</span>
+                    </button>
+                    <button type="button" onclick="apiMonitor.closeDetailModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition flex items-center justify-center cursor-pointer">
+                        <i class="ph ph-x text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="px-6 border-b border-slate-200 bg-white flex items-center gap-4 text-xs font-semibold">
+                <button type="button" onclick="apiMonitor.switchTab('body')" id="tab-btn-body" class="py-3 border-b-2 border-cyan-600 text-cyan-700 cursor-pointer flex items-center gap-1.5">
+                    <i class="ph ph-brackets-curly"></i> Request Payload (Body)
+                </button>
+                <button type="button" onclick="apiMonitor.switchTab('response')" id="tab-btn-response" class="py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 cursor-pointer flex items-center gap-1.5">
+                    <i class="ph ph-arrow-bend-down-left"></i> Response Body
+                </button>
+                <button type="button" onclick="apiMonitor.switchTab('headers')" id="tab-btn-headers" class="py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 cursor-pointer flex items-center gap-1.5">
+                    <i class="ph ph-list-dashes"></i> Request Headers
+                </button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="p-6 flex-1 overflow-y-auto bg-slate-50/50 space-y-4">
+                
+                <!-- Tab 1: Request Body -->
+                <div id="tab-content-body" class="space-y-2">
+                    <div class="flex items-center justify-between text-xs text-slate-500">
+                        <span class="font-medium">JSON Request Body:</span>
+                        <button type="button" onclick="apiMonitor.copyJson('body')" class="text-cyan-700 hover:underline font-semibold flex items-center gap-1 cursor-pointer">
+                            <i class="ph ph-copy"></i> คัดลอก JSON
+                        </button>
+                    </div>
+                    <pre id="modal-json-body" class="p-4 rounded-xl bg-slate-900 text-emerald-400 text-xs overflow-x-auto border border-slate-800 shadow-inner max-h-96"></pre>
+                </div>
+
+                <!-- Tab 2: Response Body -->
+                <div id="tab-content-response" class="space-y-2 hidden">
+                    <div class="flex items-center justify-between text-xs text-slate-500">
+                        <span class="font-medium">JSON Response Body:</span>
+                        <button type="button" onclick="apiMonitor.copyJson('response')" class="text-cyan-700 hover:underline font-semibold flex items-center gap-1 cursor-pointer">
+                            <i class="ph ph-copy"></i> คัดลอก JSON
+                        </button>
+                    </div>
+                    <pre id="modal-json-response" class="p-4 rounded-xl bg-slate-900 text-cyan-300 text-xs overflow-x-auto border border-slate-800 shadow-inner max-h-96"></pre>
+                </div>
+
+                <!-- Tab 3: Request Headers -->
+                <div id="tab-content-headers" class="space-y-2 hidden">
+                    <div class="flex items-center justify-between text-xs text-slate-500">
+                        <span class="font-medium">Headers Received:</span>
+                        <button type="button" onclick="apiMonitor.copyJson('headers')" class="text-cyan-700 hover:underline font-semibold flex items-center gap-1 cursor-pointer">
+                            <i class="ph ph-copy"></i> คัดลอก Headers
+                        </button>
+                    </div>
+                    <pre id="modal-json-headers" class="p-4 rounded-xl bg-slate-900 text-slate-300 text-xs overflow-x-auto border border-slate-800 shadow-inner max-h-96"></pre>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3 border-t border-slate-200 bg-white flex items-center justify-between">
+                <span class="text-[11px] text-slate-500">กดปุ่ม Esc เพื่อปิดหน้าต่างนี้</span>
+                <button type="button" onclick="apiMonitor.closeDetailModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer">
+                    ปิด
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL: LOGIN (Appears when unauthenticated) -->
+    <div id="modal-auth" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div class="text-center space-y-1">
+                <div class="w-12 h-12 rounded-2xl bg-cyan-100 text-cyan-700 mx-auto flex items-center justify-center text-2xl font-bold shadow-xs">
+                    <i class="ph ph-shield-check"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900">เข้าสู่ระบบ Inbound API Monitor</h3>
+                <p class="text-xs text-slate-500">กรุณาเข้าสู่ระบบด้วยบัญชี PMT Flow เพื่อเข้าดูข้อมูล Request Logs</p>
+            </div>
+
+            <form onsubmit="apiMonitor.submitLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อผู้ใช้ (Username หรือ Email)</label>
+                    <input type="text" id="login-username" required placeholder="admin หรืออีเมลผู้ดูแล" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-cyan-500 focus:bg-white transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสผ่าน (Password)</label>
+                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-cyan-500 focus:bg-white transition">
+                </div>
+
+                <div id="login-error" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-3 flex items-center gap-2">
+                    <i class="ph ph-warning-circle text-base"></i>
+                    <span id="login-error-msg">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</span>
+                </div>
+
+                <button type="submit" id="login-submit-btn" class="w-full py-2.5 rounded-xl text-xs font-semibold text-white bg-cyan-600 hover:bg-cyan-700 shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="ph ph-sign-in"></i>
+                    <span>เข้าสู่ระบบ (Sign In)</span>
+                </button>
+            </form>
+
+            <div class="pt-3 border-t border-slate-100 text-center">
+                <span class="text-[11px] text-slate-400">เข้าสู่ระบบหลักเพื่อจดจำ Session: </span>
+                <a href="/" class="text-[11px] font-semibold text-cyan-600 hover:underline">เปิดหน้าแรก PMT Flow</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 hidden bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl border border-slate-800 text-xs font-medium flex items-center gap-2.5 animate-in slide-in-from-bottom-3 duration-200">
+        <i class="ph ph-info text-base text-cyan-400" id="toast-icon"></i>
+        <span id="toast-message">ข้อความ</span>
+    </div>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        const apiMonitor = {
+            state: {
+                token: null,
+                user: null,
+                logs: [],
+                summary: { total: 0, success_2xx: 0, client_error_4xx: 0, server_error_5xx: 0 },
+                refreshTimer: null,
+                refreshIntervalMs: 3000,
+                selectedLog: null,
+                currentTab: 'body',
+                enableSound: false,
+                lastNewestLogId: null,
+                isFetching: false
+            },
+
+            init() {
+                // Check token from URL query, localStorage, or sessionStorage
+                const urlParams = new URLSearchParams(window.location.search);
+                const queryToken = urlParams.get('token');
+                if (queryToken) {
+                    this.state.token = queryToken;
+                    localStorage.setItem('pmt_token', queryToken);
+                } else {
+                    this.state.token = localStorage.getItem('pmt_token') || sessionStorage.getItem('pmt_token');
+                }
+
+                // Check stored user
+                try {
+                    const rawUser = localStorage.getItem('pmt_user') || sessionStorage.getItem('pmt_user');
+                    if (rawUser) this.state.user = JSON.parse(rawUser);
+                } catch(e) {}
+
+                this.renderAuthSection();
+
+                if (!this.state.token) {
+                    this.showAuthModal();
+                } else {
+                    this.fetchLogs();
+                    this.startAutoRefresh();
+                }
+
+                // Keyboard escape to close modal
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.closeDetailModal();
+                    }
+                });
+            },
+
+            showToast(msg, icon = 'ph-info') {
+                const toast = document.getElementById('toast');
+                const toastMsg = document.getElementById('toast-message');
+                const toastIcon = document.getElementById('toast-icon');
+                if (!toast || !toastMsg) return;
+                toastMsg.innerText = msg;
+                if (toastIcon) toastIcon.className = `ph ${icon} text-base text-cyan-400`;
+                toast.classList.remove('hidden');
+                clearTimeout(this._toastTimeout);
+                this._toastTimeout = setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 3500);
+            },
+
+            renderAuthSection() {
+                const container = document.getElementById('auth-section');
+                if (!container) return;
+
+                if (this.state.user && this.state.token) {
+                    const roleBadge = this.state.user.role === 'ADMIN' ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-slate-100 text-slate-700 border-slate-200';
+                    container.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-cyan-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                                ${this.state.user.username ? this.state.user.username[0].toUpperCase() : 'U'}
+                            </div>
+                            <div class="hidden sm:block text-left">
+                                <div class="text-xs font-bold text-slate-800 leading-tight">${this.state.user.full_name || this.state.user.username}</div>
+                                <span class="px-1.5 py-0.2 rounded text-[9px] font-semibold border ${roleBadge}">${this.state.user.role || 'USER'}</span>
+                            </div>
+                            <button type="button" onclick="apiMonitor.logout()" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 transition cursor-pointer" title="ออกจากระบบ">
+                                <i class="ph ph-sign-out text-base"></i>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <button type="button" onclick="apiMonitor.showAuthModal()" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-cyan-600 hover:bg-cyan-700 transition shadow-xs cursor-pointer flex items-center gap-1">
+                            <i class="ph ph-sign-in"></i>
+                            <span>เข้าสู่ระบบ</span>
+                        </button>
+                    `;
+                }
+
+                // Show/hide Clear Logs button according to role
+                const clearBtn = document.getElementById('btn-clear-logs');
+                if (clearBtn) {
+                    if (this.state.user && this.state.user.role === 'ADMIN') {
+                        clearBtn.classList.remove('hidden');
+                    } else {
+                        clearBtn.classList.add('hidden');
+                    }
+                }
+            },
+
+            showAuthModal() {
+                document.getElementById('modal-auth')?.classList.remove('hidden');
+            },
+
+            hideAuthModal() {
+                document.getElementById('modal-auth')?.classList.add('hidden');
+            },
+
+            async submitLogin(e) {
+                e.preventDefault();
+                const u = document.getElementById('login-username').value.trim();
+                const p = document.getElementById('login-password').value;
+                const errBox = document.getElementById('login-error');
+                const errMsg = document.getElementById('login-error-msg');
+                const btn = document.getElementById('login-submit-btn');
+
+                if (errBox) errBox.classList.add('hidden');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = `<i class="ph ph-spinner animate-spin"></i> กำลังตรวจสอบ...`;
+                }
+
+                try {
+                    const res = await fetch('/api/v1/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: u, password: p })
+                    });
+                    const data = await res.json();
+                    if (!res.ok || !data.success) {
+                        throw new Error(data.error?.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+                    }
+
+                    this.state.token = data.data.token;
+                    this.state.user = data.data.user;
+                    localStorage.setItem('pmt_token', this.state.token);
+                    localStorage.setItem('pmt_user', JSON.stringify(this.state.user));
+
+                    this.hideAuthModal();
+                    this.renderAuthSection();
+                    this.showToast(`ยินดีต้อนรับคุณ ${this.state.user.full_name || this.state.user.username}`);
+                    this.fetchLogs();
+                    this.startAutoRefresh();
+                } catch (err) {
+                    if (errBox && errMsg) {
+                        errMsg.innerText = err.message;
+                        errBox.classList.remove('hidden');
+                    }
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = `<i class="ph ph-sign-in"></i> <span>เข้าสู่ระบบ (Sign In)</span>`;
+                    }
+                }
+            },
+
+            logout() {
+                localStorage.removeItem('pmt_token');
+                sessionStorage.removeItem('pmt_token');
+                this.state.token = null;
+                this.state.user = null;
+                this.stopAutoRefresh();
+                this.renderAuthSection();
+                this.showAuthModal();
+            },
+
+            async fetchLogs(showNotification = false) {
+                if (!this.state.token || this.state.isFetching) return;
+                this.state.isFetching = true;
+
+                const spinner = document.getElementById('refresh-spinner');
+                if (spinner) spinner.classList.add('animate-spin');
+
+                try {
+                    const res = await fetch('/api/v1/system/api-logs?limit=200', {
+                        headers: { 'Authorization': `Bearer ${this.state.token}` }
+                    });
+
+                    if (res.status === 401) {
+                        this.logout();
+                        return;
+                    }
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                    const json = await res.json();
+                    if (json.success && Array.isArray(json.data)) {
+                        const prevLogsCount = this.state.logs.length;
+                        const newestLog = json.data[0];
+
+                        // Play sound alert if new error arrived
+                        if (this.state.enableSound && newestLog && this.state.lastNewestLogId && newestLog.id !== this.state.lastNewestLogId) {
+                            if (newestLog.status >= 400) {
+                                this.playAlertSound();
+                            }
+                        }
+                        if (newestLog) {
+                            this.state.lastNewestLogId = newestLog.id;
+                        }
+
+                        this.state.logs = json.data;
+                        this.state.summary = json.summary || {
+                            total: json.data.length,
+                            success_2xx: json.data.filter(l => l.status >= 200 && l.status < 300).length,
+                            client_error_4xx: json.data.filter(l => l.status >= 400 && l.status < 500).length,
+                            server_error_5xx: json.data.filter(l => l.status >= 500).length
+                        };
+
+                        this.renderKPI();
+                        this.renderTable();
+                        if (showNotification) this.showToast('🔄 อัปเดตข้อมูล Inbound API Logs ล่าสุดแล้ว');
+                    }
+                } catch (err) {
+                    console.error('Fetch logs error:', err);
+                    if (showNotification) this.showToast('⚠️ ไม่สามารถดึงข้อมูล API Logs ได้', 'ph-warning-circle');
+                } finally {
+                    this.state.isFetching = false;
+                    if (spinner) {
+                        setTimeout(() => spinner.classList.remove('animate-spin'), 300);
+                    }
+                }
+            },
+
+            renderKPI() {
+                const s = this.state.summary;
+                document.getElementById('kpi-total').innerText = s.total;
+                document.getElementById('kpi-2xx').innerText = s.success_2xx;
+                document.getElementById('kpi-4xx').innerText = s.client_error_4xx;
+                document.getElementById('kpi-5xx').innerText = s.server_error_5xx;
+
+                // Calculate average latency
+                const logs = this.state.logs || [];
+                if (logs.length > 0) {
+                    const sum = logs.reduce((acc, l) => acc + (Number(l.duration_ms) || 0), 0);
+                    const avg = Math.round(sum / logs.length);
+                    document.getElementById('kpi-latency').innerHTML = `${avg} <span class="text-xs font-sans text-slate-500">ms</span>`;
+                } else {
+                    document.getElementById('kpi-latency').innerHTML = `0 <span class="text-xs font-sans text-slate-500">ms</span>`;
+                }
+            },
+
+            filterByStatus(status) {
+                const select = document.getElementById('filter-status');
+                const hideRoutine = document.getElementById('filter-hide-routine');
+                if (select) select.value = status;
+                if (status === '2xx' || status === 'ALL') {
+                    if (hideRoutine) hideRoutine.checked = false;
+                }
+                this.filterLogs();
+            },
+
+            filterLogs() {
+                this.renderTable();
+            },
+
+            renderTable() {
+                const logs = this.state.logs || [];
+                const searchVal = (document.getElementById('filter-search')?.value || '').toLowerCase().trim();
+                const methodVal = document.getElementById('filter-method')?.value || 'ALL';
+                const statusVal = document.getElementById('filter-status')?.value || 'ALL';
+                const hideRoutine = document.getElementById('filter-hide-routine')?.checked === true;
+
+                const filtered = logs.filter(l => {
+                    const isRoutine = l.method === 'GET' && (
+                        l.path === '/api/v1/jobs' ||
+                        l.path === '/api/ma-contracts' ||
+                        l.path === '/api/v1/ma-contracts' ||
+                        l.path === '/api/ma-checklist-templates' ||
+                        l.path === '/api/v1/ma-checklist-templates'
+                    );
+
+                    // Don't hide routine if it's an error (4xx/5xx)
+                    if (hideRoutine && isRoutine && l.status >= 200 && l.status < 300 && statusVal !== '2xx') {
+                        return false;
+                    }
+
+                    if (methodVal !== 'ALL' && l.method.toUpperCase() !== methodVal.toUpperCase()) {
+                        return false;
+                    }
+
+                    if (statusVal !== 'ALL') {
+                        if (statusVal === '2xx' && (l.status < 200 || l.status >= 300)) return false;
+                        if (statusVal === '4xx' && (l.status < 400 || l.status >= 500)) return false;
+                        if (statusVal === '5xx' && l.status < 500) return false;
+                    }
+
+                    if (searchVal) {
+                        const inPath = (l.path || '').toLowerCase().includes(searchVal);
+                        const inIp = (l.ip || '').toLowerCase().includes(searchVal);
+                        const inBody = JSON.stringify(l.body || '').toLowerCase().includes(searchVal);
+                        const inRes = JSON.stringify(l.response_body || '').toLowerCase().includes(searchVal);
+                        if (!inPath && !inIp && !inBody && !inRes) return false;
+                    }
+
+                    return true;
+                });
+
+                // Update counter label
+                const counterLabel = document.getElementById('log-counter-label');
+                if (counterLabel) {
+                    counterLabel.innerText = `แสดง ${filtered.length} จากทั้งหมด ${logs.length} รายการ`;
+                }
+
+                const tbody = document.getElementById('api-log-table-body');
+                if (!tbody) return;
+
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="py-16 text-center text-slate-500">
+                                <div class="flex flex-col items-center justify-center gap-2">
+                                    <div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-2xl text-slate-400">
+                                        <i class="ph ph-magnifying-glass"></i>
+                                    </div>
+                                    <span class="font-semibold text-slate-700 text-sm">ไม่พบประวัติการยิง API ในเงื่อนไขนี้</span>
+                                    ${hideRoutine && logs.length > 0 ? `
+                                        <div class="text-xs text-amber-600 flex items-center gap-1.5">
+                                            <span>ระบบซ่อน Routine Polling อัตโนมัติไว้</span>
+                                            <button type="button" onclick="document.getElementById('filter-hide-routine').checked = false; apiMonitor.filterLogs();" class="underline font-bold hover:text-amber-800 cursor-pointer">แสดงทั้งหมด</button>
+                                        </div>
+                                    ` : `
+                                        <p class="text-xs text-slate-400 max-w-sm">คุณสามารถส่งคำขอผ่าน Postman หรือทดสอบใน <a href="/docs" target="_blank" class="text-cyan-600 underline font-medium">Swagger UI</a></p>
+                                    `}
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                tbody.innerHTML = filtered.map((log, idx) => {
+                    const isNewest = idx === 0;
+
+                    // Method Badge Color
+                    let methodBadge = 'bg-slate-100 text-slate-700 border-slate-300';
+                    if (log.method === 'POST') methodBadge = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+                    else if (log.method === 'GET') methodBadge = 'bg-cyan-50 text-cyan-700 border-cyan-200';
+                    else if (log.method === 'PATCH' || log.method === 'PUT') methodBadge = 'bg-amber-50 text-amber-700 border-amber-200';
+                    else if (log.method === 'DELETE') methodBadge = 'bg-rose-50 text-rose-700 border-rose-200';
+
+                    // Status Badge Color
+                    let statusBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                    let statusIcon = 'ph-check-circle';
+                    if (log.status >= 400 && log.status < 500) {
+                        statusBadge = 'bg-amber-50 text-amber-700 border-amber-200';
+                        statusIcon = 'ph-warning-circle';
+                    } else if (log.status >= 500) {
+                        statusBadge = 'bg-rose-50 text-rose-700 border-rose-200';
+                        statusIcon = 'ph-x-circle';
+                    }
+
+                    // Format Time: DD/MM/YYYY HH:mm:ss น. (24-Hour Strictly)
+                    const timeStr = this.formatDateTimeDMY(log.timestamp);
+
+                    // Summary Text
+                    let summary = '-';
+                    if (log.status >= 200 && log.status < 300) {
+                        if (log.path.includes('/api/v1/jobs') && log.method === 'GET') summary = '✅ ดึงข้อมูล Jobs สำเร็จ';
+                        else if (log.path.includes('/api/ma-contracts') && log.method === 'GET') summary = '✅ ดึงสัญญา MA สำเร็จ';
+                        else if (log.path.includes('/api/v1/auth/login')) summary = `✅ เข้าสู่ระบบสำเร็จ (${log.body?.username || ''})`;
+                        else if (log.response_body?.data?.job_no) summary = `✅ สร้างงาน: ${log.response_body.data.job_no}`;
+                        else if (log.response_body?.message) summary = `✅ ${log.response_body.message}`;
+                        else summary = '✅ ดำเนินการสำเร็จ (200 OK)';
+                    } else if (log.response_body?.error?.message) {
+                        summary = `❌ ${log.response_body.error.message}`;
+                    } else if (log.response_body?.message) {
+                        summary = log.response_body.message;
+                    } else if (log.body) {
+                        if (log.body.job_info?.job_number) summary = `Job: ${log.body.job_info.job_number}`;
+                        else if (log.body.external_ref_id) summary = `Ref: ${log.body.external_ref_id}`;
+                    }
+
+                    return `
+                        <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100 ${isNewest ? 'bg-cyan-50/20' : ''}">
+                            <td class="py-3 px-4 font-mono text-[11px] text-slate-800 font-medium whitespace-nowrap">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span>${timeStr}</span>
+                                    ${isNewest ? `
+                                        <span class="px-1.5 py-0.2 rounded text-[8px] font-bold bg-cyan-100 text-cyan-800 border border-cyan-300 animate-pulse">
+                                            NEW!
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </td>
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${methodBadge}">
+                                    ${log.method}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 font-mono text-xs font-semibold text-slate-900 break-all">
+                                ${log.path}
+                            </td>
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${statusBadge}">
+                                    <i class="ph ${statusIcon}"></i>
+                                    ${log.status}
+                                </span>
+                            </td>
+                            <td class="py-3 px-3 font-mono text-[11px] text-slate-600 whitespace-nowrap">
+                                ${log.ip}
+                            </td>
+                            <td class="py-3 px-3 font-mono text-[11px] text-slate-600 text-right whitespace-nowrap">
+                                ${log.duration_ms} ms
+                            </td>
+                            <td class="py-3 px-4 text-[11px] text-slate-600 truncate max-w-xs" title="${summary.replace(/"/g, '&quot;')}">
+                                ${summary}
+                            </td>
+                            <td class="py-3 px-4 text-center whitespace-nowrap">
+                                <button type="button" onclick="apiMonitor.openDetail('${log.id}')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-cyan-50 hover:text-cyan-700 border border-slate-200 text-[11px] font-medium transition inline-flex items-center gap-1 cursor-pointer">
+                                    <i class="ph ph-eye"></i> ดูข้อมูล
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            },
+
+            openDetail(logId) {
+                const log = this.state.logs.find(l => l.id === logId);
+                if (!log) return;
+                this.state.selectedLog = log;
+
+                // Header Info
+                const methodEl = document.getElementById('modal-detail-method');
+                const pathEl = document.getElementById('modal-detail-path');
+                const statusEl = document.getElementById('modal-detail-status');
+                const timeEl = document.getElementById('modal-detail-time');
+                const ipEl = document.getElementById('modal-detail-ip');
+                const durationEl = document.getElementById('modal-detail-duration');
+
+                methodEl.innerText = log.method;
+                methodEl.className = `px-2.5 py-1 rounded text-xs font-mono font-bold ${
+                    log.method === 'POST' ? 'bg-indigo-100 text-indigo-800' :
+                    log.method === 'GET' ? 'bg-cyan-100 text-cyan-800' :
+                    log.method === 'DELETE' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                }`;
+
+                pathEl.innerText = log.path;
+                statusEl.innerText = `${log.status}`;
+                statusEl.className = `px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                    log.status >= 200 && log.status < 300 ? 'bg-emerald-100 text-emerald-800' :
+                    log.status >= 400 && log.status < 500 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                }`;
+
+                timeEl.innerText = this.formatDateTimeDMY(log.timestamp);
+                ipEl.innerText = `Client IP: ${log.ip}`;
+                durationEl.innerText = `${log.duration_ms} ms`;
+
+                // Render Tab Bodies
+                document.getElementById('modal-json-body').textContent = log.body ? JSON.stringify(log.body, null, 2) : '// No Request Body (GET / empty)';
+                document.getElementById('modal-json-response').textContent = log.response_body ? JSON.stringify(log.response_body, null, 2) : '// No Response Body Recorded';
+                document.getElementById('modal-json-headers').textContent = log.headers ? JSON.stringify(log.headers, null, 2) : '// No Headers';
+
+                this.switchTab('body');
+                document.getElementById('modal-log-detail')?.classList.remove('hidden');
+            },
+
+            closeDetailModal() {
+                document.getElementById('modal-log-detail')?.classList.add('hidden');
+            },
+
+            switchTab(tab) {
+                this.state.currentTab = tab;
+                const tabs = ['body', 'response', 'headers'];
+                tabs.forEach(t => {
+                    const btn = document.getElementById(`tab-btn-${t}`);
+                    const content = document.getElementById(`tab-content-${t}`);
+                    if (t === tab) {
+                        btn.className = 'py-3 border-b-2 border-cyan-600 text-cyan-700 cursor-pointer flex items-center gap-1.5 font-semibold';
+                        content.classList.remove('hidden');
+                    } else {
+                        btn.className = 'py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 cursor-pointer flex items-center gap-1.5 font-medium';
+                        content.classList.add('hidden');
+                    }
+                });
+            },
+
+            copyJson(tab) {
+                if (!this.state.selectedLog) return;
+                let text = '';
+                if (tab === 'body') text = JSON.stringify(this.state.selectedLog.body || {}, null, 2);
+                else if (tab === 'response') text = JSON.stringify(this.state.selectedLog.response_body || {}, null, 2);
+                else if (tab === 'headers') text = JSON.stringify(this.state.selectedLog.headers || {}, null, 2);
+
+                navigator.clipboard.writeText(text).then(() => {
+                    this.showToast('📋 คัดลอกข้อมูล JSON ไปยังคลิปบอร์ดแล้ว');
+                });
+            },
+
+            copyCurl() {
+                const log = this.state.selectedLog;
+                if (!log) return;
+                let curl = `curl -X ${log.method} "${window.location.origin}${log.path}" \\\n`;
+                curl += `  -H "Content-Type: application/json" \\\n`;
+                if (this.state.token) {
+                    curl += `  -H "Authorization: Bearer ${this.state.token}" \\\n`;
+                }
+                if (log.body && Object.keys(log.body).length > 0) {
+                    curl += `  -d '${JSON.stringify(log.body)}'`;
+                }
+                navigator.clipboard.writeText(curl.trim()).then(() => {
+                    this.showToast('📋 คัดลอกคำสั่ง cURL เรียบร้อยแล้ว');
+                });
+            },
+
+            startAutoRefresh() {
+                this.stopAutoRefresh();
+                if (this.state.refreshIntervalMs <= 0) {
+                    this.updateLiveIndicator(false);
+                    return;
+                }
+                this.updateLiveIndicator(true, this.state.refreshIntervalMs / 1000);
+                this.state.refreshTimer = setInterval(() => {
+                    if (document.hidden) return;
+                    this.fetchLogs(false);
+                }, this.state.refreshIntervalMs);
+            },
+
+            stopAutoRefresh() {
+                if (this.state.refreshTimer) {
+                    clearInterval(this.state.refreshTimer);
+                    this.state.refreshTimer = null;
+                }
+                this.updateLiveIndicator(false);
+            },
+
+            changeRefreshInterval(val) {
+                this.state.refreshIntervalMs = Number(val);
+                if (this.state.refreshIntervalMs <= 0) {
+                    this.stopAutoRefresh();
+                    this.showToast('หยุดการรีเฟรชอัตโนมัติชั่วคราว');
+                } else {
+                    this.startAutoRefresh();
+                    this.showToast(`ตั้งค่ารีเฟรชสดทุก ${this.state.refreshIntervalMs / 1000} วินาที`);
+                }
+            },
+
+            updateLiveIndicator(active, seconds = 3) {
+                const dot = document.getElementById('live-indicator-dot');
+                const text = document.getElementById('live-indicator-text');
+                if (!dot || !text) return;
+                if (active) {
+                    dot.className = 'w-2 h-2 rounded-full bg-emerald-500 pulse-badge';
+                    text.innerText = `LIVE (${seconds}s)`;
+                } else {
+                    dot.className = 'w-2 h-2 rounded-full bg-slate-400';
+                    text.innerText = 'PAUSED';
+                }
+            },
+
+            toggleSound(enabled) {
+                this.state.enableSound = Boolean(enabled);
+                if (this.state.enableSound) {
+                    this.playAlertSound();
+                    this.showToast('🔊 เปิดเสียงเตือนเมื่อมี 4xx/5xx Error แล้ว');
+                } else {
+                    this.showToast('🔇 ปิดเสียงเตือน');
+                }
+            },
+
+            playAlertSound() {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.3);
+                } catch(e) {}
+            },
+
+            async clearLogs() {
+                if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างประวัติ Inbound API Logs ทั้งหมด?')) return;
+                try {
+                    const res = await fetch('/api/v1/system/api-logs', {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${this.state.token}` }
+                    });
+                    const data = await res.json();
+                    if (!res.ok || !data.success) {
+                        throw new Error(data.error?.message || 'ไม่สามารถล้างประวัติ Log ได้');
+                    }
+                    this.showToast('🗑️ ล้างประวัติ Inbound API Logs เรียบร้อยแล้ว');
+                    this.state.logs = [];
+                    this.state.summary = { total: 0, success_2xx: 0, client_error_4xx: 0, server_error_5xx: 0 };
+                    this.renderKPI();
+                    this.renderTable();
+                } catch(err) {
+                    this.showToast(`⚠️ ${err.message}`, 'ph-warning-circle');
+                }
+            },
+
+            exportCSV() {
+                const logs = this.state.logs || [];
+                if (logs.length === 0) {
+                    this.showToast('⚠️ ไม่มีข้อมูลสำหรับ Export CSV');
+                    return;
+                }
+
+                let csv = '\uFEFF'; // BOM UTF-8 for Excel in Thai
+                csv += 'Timestamp,Method,Path,Status,Client_IP,Duration_ms,Summary\n';
+                logs.forEach(l => {
+                    const row = [
+                        `"${this.formatDateTimeDMY(l.timestamp)}"`,
+                        `"${l.method}"`,
+                        `"${l.path}"`,
+                        l.status,
+                        `"${l.ip}"`,
+                        l.duration_ms,
+                        `"${(l.response_body?.message || l.response_body?.error?.message || '').replace(/"/g, '""')}"`
+                    ];
+                    csv += row.join(',') + '\n';
+                });
+
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `PMT_Inbound_API_Logs_${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                this.showToast('📥 ส่งออกไฟล์ CSV เรียบร้อย');
+            },
+
+            // Format DateTime: DD/MM/YYYY HH:mm:ss น. (24-Hour Strictly)
+            formatDateTimeDMY(isoStr) {
+                if (!isoStr) return '-';
+                try {
+                    const d = new Date(isoStr);
+                    if (isNaN(d.getTime())) return isoStr;
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const year = d.getFullYear();
+                    const hours = String(d.getHours()).padStart(2, '0');
+                    const mins = String(d.getMinutes()).padStart(2, '0');
+                    const secs = String(d.getSeconds()).padStart(2, '0');
+                    return `${day}/${month}/${year} ${hours}:${mins}:${secs} น.`;
+                } catch (e) {
+                    return isoStr;
+                }
+            }
+        };
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            apiMonitor.init();
+        });
+    </script>
+</body>
+</html>

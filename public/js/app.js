@@ -2336,7 +2336,13 @@ const app = {
                 this.initAllDatePickers();
 
                 if (window.auth && window.auth.user) {
-                    this.navigate('dashboard');
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const targetView = urlParams.get('view') || (window.location.hash ? window.location.hash.replace('#', '') : null);
+                    if (targetView && document.getElementById(`page-${targetView}`)) {
+                        this.navigate(targetView);
+                    } else {
+                        this.navigate('dashboard');
+                    }
                     this.fetchJobsFromApi();
                     this.fetchMAFromApi();
                     this.fetchApiLogs();

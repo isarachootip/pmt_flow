@@ -250,7 +250,15 @@ window.auth =  {
                     if (typeof app.fetchJobsFromApi === 'function') app.fetchJobsFromApi();
                     if (typeof app.fetchMAFromApi === 'function') app.fetchMAFromApi();
                     if (typeof app.fetchApiLogs === 'function') app.fetchApiLogs();
-                    if (typeof app.navigate === 'function') app.navigate('dashboard');
+                    if (typeof app.navigate === 'function') {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const targetView = urlParams.get('view') || (window.location.hash ? window.location.hash.replace('#', '') : null);
+                        if (targetView && document.getElementById(`page-${targetView}`)) {
+                            app.navigate(targetView);
+                        } else {
+                            app.navigate('dashboard');
+                        }
+                    }
                 }
             } catch(e) {
                 console.warn('onLogin app navigate err:', e);

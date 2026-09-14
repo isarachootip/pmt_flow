@@ -3,7 +3,8 @@
 > **เอกสารสำหรับ:** ทีมพัฒนาระบบ INT (Inbound Caller) และทีมพัฒนาระบบ SPMT  
 > **เวอร์ชัน:** 1.0.0 | **วันที่:** 2 กันยายน 2569 | **สถานะ:** พร้อมใช้งาน (Production Ready)  
 > **Production Base URL:** `https://vibepmt.online/api/v1`  
-> **Swagger UI:** [https://vibepmt.online/docs](https://vibepmt.online/docs)
+> **Swagger UI:** [https://vibepmt.online/docs](https://vibepmt.online/docs)  
+> **Live Inbound API Monitor:** [https://vibepmt.online/apimonitor](https://vibepmt.online/apimonitor)
 
 ---
 
@@ -232,5 +233,6 @@
 ## 6. ช่องทางการทดสอบและติดต่อ (Testing Tools & Contacts)
 
 - **Swagger UI (ทดสอบออนไลน์):** [https://vibepmt.online/docs](https://vibepmt.online/docs)
+- **Live Inbound API Monitor (มอนิเตอร์ Traffic สดแยกหน้าต่าง):** [https://vibepmt.online/apimonitor](https://vibepmt.online/apimonitor)
 - **Postman Collection:** สามารถ Import ไฟล์ `PMT_INT_Integration_Postman_Collection.json`
 - **ทีมผู้ประสานงาน SPMT:** ทีมพัฒนาระบบ SPMT / System Architect

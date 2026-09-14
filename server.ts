@@ -320,6 +320,25 @@ app.get(['/', '/index.html'], (req: Request, res: Response) => {
   });
 });
 
+// Dedicated Standalone Inbound API Monitor (/apimonitor)
+app.get(['/apimonitor', '/apimonitor.html', '/api-monitor', '/monitor'], (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  const filePaths = [
+    path.join(__dirname, '../public/apimonitor.html'),
+    path.join(__dirname, './public/apimonitor.html'),
+    path.join(process.cwd(), 'public/apimonitor.html'),
+    path.join(__dirname, '../apimonitor.html'),
+    path.join(__dirname, './apimonitor.html'),
+    path.join(process.cwd(), 'apimonitor.html')
+  ];
+  for (const p of filePaths) {
+    if (fs.existsSync(p)) return res.sendFile(p);
+  }
+  return res.status(404).send('Inbound API Monitor page not found');
+});
+
 // Swagger Specification & Interactive UI (/docs and /api-docs)
 app.get('/openapi.yaml', (req: Request, res: Response) => {
   const rootOpenapi = path.join(__dirname, '../openapi.yaml');
@@ -642,7 +661,10 @@ export interface AuthRequest extends Request {
 
 const requireAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
   const header = req.headers['authorization'] || '';
-  const token  = header.replace('Bearer ', '').trim();
+  let token = header.replace('Bearer ', '').trim();
+  if (!token && req.query && typeof req.query.token === 'string') {
+    token = req.query.token.trim();
+  }
   if (!token) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'กรุณา Login ก่อนใช้งาน' } });
 
   let session = sysSessionStore.find(s => s.token === token && !s.revoked_at && new Date(s.expires_at) > new Date());
