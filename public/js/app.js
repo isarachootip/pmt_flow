@@ -3644,6 +3644,8 @@ const app = {
                     this.showToast('❌ ไม่สามารถส่งออกรายงานได้: ' + e.message);
                 }
             },
+
+            handleGlobalSearch(event) {
                 const query = (event && event.target && event.target.value) ? event.target.value.trim().toLowerCase() : '';
                 if (!query) {
                     if (this.state.currentView === 'jobs') this.renderJobs();
