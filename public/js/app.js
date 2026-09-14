@@ -2643,9 +2643,13 @@ const app = {
                                     if (finalStatus === 'NEW') finalStatus = 'DRAFT';
                                     if (!localMatch) return { ...rj, status: finalStatus };
                                     const combinedPhotos = (localMatch.photos && localMatch.photos.length > 0) ? localMatch.photos : (rj.photos || []);
+                                    const mergedTimestamps = Object.assign({}, rj.step_timestamps || {}, localMatch.step_timestamps || {});
+                                    const createdAt = rj.created_at || localMatch.created_at || new Date().toISOString();
                                     return { 
                                         ...rj, 
                                         ...localMatch, 
+                                        created_at: createdAt,
+                                        step_timestamps: mergedTimestamps,
                                         customer: rj.customer || localMatch.customer,
                                         phone: rj.phone || localMatch.phone,
                                         address: rj.address || localMatch.address,
@@ -3594,8 +3598,11 @@ const app = {
                 if (tUpdated > maxTime) maxTime = tUpdated;
                 const tCreated = new Date(job.created_at || 0).getTime();
                 if (tCreated > maxTime) maxTime = tCreated;
-                const tDate = new Date(job.date ? `${job.date}T00:00:00Z` : 0).getTime();
-                if (tDate > maxTime) maxTime = tDate;
+                // Only fallback to job.date if no actual workflow or creation timestamp exists
+                if (maxTime === 0 && job.date) {
+                    const tDate = new Date(`${job.date}T00:00:00Z`).getTime();
+                    if (!isNaN(tDate)) maxTime = tDate;
+                }
                 return maxTime;
             },
 
@@ -4441,13 +4448,19 @@ const app = {
                     const grandTotal = j.boq_grand_total || (boqItems.reduce((acc, item) => acc + ((Number(item.qty) || 0) * (Number(item.price) || 0)), 0) * 1.07);
                     const hasBOQ = itemsCount > 0;
 
-                    const isVFix = (j.booking_no && j.booking_no.startsWith('VFIX')) || (j.id && j.id.startsWith('VFIX')) || (j.job_no && j.job_no.startsWith('VFIX'));
+                    const isRecentlyCreated = j.created_at && (Date.now() - new Date(j.created_at).getTime() < 24 * 60 * 60 * 1000);
+                    const shouldShowNewBadge = isTop3New || isRecentlyCreated;
 
                     return `
-                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSurvey ? 'bg-teal-500/[0.03] border-l-2 border-l-teal-500' : isTop3New ? 'bg-indigo-500/[0.02]' : ''}" onclick="app.openUnifiedOrderStudio('${j.id}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${j.id})">
+                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSurvey ? 'bg-teal-500/[0.03] border-l-2 border-l-teal-500' : shouldShowNewBadge ? 'bg-indigo-500/[0.02]' : ''}" onclick="app.openUnifiedOrderStudio('${j.id}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${j.id})">
                         <td class="px-5 py-4 font-mono font-semibold text-brand-500">
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span>${j.id}</span>
+                                ${shouldShowNewBadge ? `
+                                    <span class="badge-new-item" title="รายการคำสั่งซื้อใหม่ล่าสุด (NEW!)">
+                                        <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                    </span>
+                                ` : ''}
                                 ${isVFix ? `
                                     <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 shadow-2xs" title="คำสั่งซื้อต้นทางระบบ vFIX (${j.booking_no || j.id})">
                                         <i class="ph ph-wrench text-[10px]"></i> vFIX
@@ -4457,17 +4470,13 @@ const app = {
                                     <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-teal-500/15 text-teal-700 border border-teal-500/30" title="งานสำรวจหน้างานจากระบบภายนอก (INT)">
                                         <i class="ph ph-compass-tool"></i> SURVEY
                                     </span>
-                                ` : isTop3New ? `
-                                    <span class="badge-new-item" title="3 รายการล่าสุดที่รับเข้า (NEW!)">
-                                        <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
-                                    </span>
                                 ` : ''}
                             </div>
                         </td>
                         <td class="px-5 py-4">
                             <div class="text-foreground font-medium group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition flex items-center gap-1.5">
                                 <span>${j.customer}</span>
-                                ${isTop3New ? `<span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" title="รายการใหม่ล่าสุด"></span>` : ''}
+                                ${shouldShowNewBadge ? `<span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" title="รายการใหม่ล่าสุด"></span>` : ''}
                             </div>
                             <div class="text-[11px] text-muted-foreground font-mono flex items-center gap-1 mt-0.5">
                                 <i class="ph ph-phone text-[10px]"></i>

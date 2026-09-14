@@ -2239,14 +2239,20 @@ app.get('/api/v1/jobs', requireAuth, async (req, res) => {
                     }
                 }
             }
+            if (job.updated_at) {
+                const t = new Date(job.updated_at).getTime();
+                if (!isNaN(t) && t > maxTime)
+                    maxTime = t;
+            }
             if (job.created_at) {
                 const t = new Date(job.created_at).getTime();
                 if (!isNaN(t) && t > maxTime)
                     maxTime = t;
             }
-            if (job.date) {
+            // Only fallback to job.date if no actual workflow or creation timestamp exists
+            if (maxTime === 0 && job.date) {
                 const t = new Date(job.date).getTime();
-                if (!isNaN(t) && t > maxTime)
+                if (!isNaN(t))
                     maxTime = t;
             }
             return maxTime;

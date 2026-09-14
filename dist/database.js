@@ -585,10 +585,10 @@ async function dbSaveJob(job) {
         special_instructions, additional_notes, customer_data, tasks, photos,
         boq_items, boq_discount, boq_subtotal, boq_grand_total, pmt_accepted, pmt_accepted_at, step3_confirmed,
         job_details, agent_data, store_data, schedule_plan, checkin_data, checkout_data, approval_data,
-        visit_results, remarks_data, file_int_image, raw_payload
+        visit_results, remarks_data, file_int_image, raw_payload, created_at
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29,
-        $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40
+        $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, COALESCE($41::timestamptz, CURRENT_TIMESTAMP)
       ) ON CONFLICT (job_no) DO UPDATE SET
         external_ref_id = EXCLUDED.external_ref_id,
         booking_no = EXCLUDED.booking_no,
@@ -669,7 +669,8 @@ async function dbSaveJob(job) {
             JSON.stringify(visitResults),
             JSON.stringify(remarksData),
             job.file_int_image || null,
-            JSON.stringify(rawPayload)
+            JSON.stringify(rawPayload),
+            job.created_at || null
         ]);
     }
     catch (err) {
