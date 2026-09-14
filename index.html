@@ -370,11 +370,27 @@
                         <i class="ph-fill ph-check-circle text-2xl text-emerald-600 shrink-0"></i>
                         <span class="font-bold text-sm text-foreground">รายงานที่สำเร็จแล้ว</span>
                     </a>
-                    <!-- Report -->
-                    <a href="#" onclick="app.openStepAuditReportModal()" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl text-foreground hover:bg-muted transition-all cursor-pointer" id="nav-report">
-                        <img src="./public/img_report_icon.svg" alt="Report" class="w-6 h-6 object-contain shrink-0">
-                        <span class="font-bold text-base text-foreground font-display">Report</span>
-                    </a>
+                    <!-- Report เมนูหลัก -->
+                    <div>
+                        <a href="#" onclick="app.navigate('report')" class="nav-link flex items-center justify-between px-3 py-2 rounded-xl text-foreground hover:bg-muted transition-all cursor-pointer" id="nav-report">
+                            <div class="flex items-center gap-3">
+                                <img src="./public/img_report_icon.svg" alt="Report" class="w-6 h-6 object-contain shrink-0">
+                                <span class="font-bold text-base text-foreground font-display">Report</span>
+                            </div>
+                            <i class="ph ph-caret-down text-xs text-muted-foreground transition-transform duration-200" id="report-submenu-arrow"></i>
+                        </a>
+                        <!-- เมนูย่อยใน Report -->
+                        <div id="report-submenu-links" class="mt-1 ml-4 pl-3 border-l-2 border-border/70 space-y-1">
+                            <a href="#" onclick="app.navigate('report')" class="report-sub-link flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-brand-600 bg-brand-500/10 transition-all cursor-pointer" id="subnav-report-overview">
+                                <i class="ph ph-chart-pie-slice text-sm text-brand-500"></i>
+                                <span>ภาพรวมผลการดำเนินงาน</span>
+                            </a>
+                            <a href="#" onclick="app.openStepAuditReportModal()" class="report-sub-link flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer" id="subnav-report-audit">
+                                <i class="ph ph-clock-counter-clockwise text-sm text-muted-foreground"></i>
+                                <span>รายงานตรวจสอบขั้นตอน</span>
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Group: การจัดการระบบ -->
@@ -3544,6 +3560,390 @@
                     </div>
                 </div>
 
+                <!-- 9. REPORT (ภาพรวมผลการดำเนินงาน แยกตามประเภทงาน และรายได้) VIEW -->
+                <div id="page-report" class="page-view hidden-view space-y-6">
+                    <!-- Page Header & Filters Bar -->
+                    <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center p-1.5 shadow-2xs border border-border">
+                                <img src="./public/img_report_icon.svg" alt="Report Icon" class="w-7 h-7 object-contain">
+                            </div>
+                            <div>
+                                <h1 class="text-2xl font-bold font-display text-foreground tracking-tight flex items-center gap-2">Report</h1>
+                                <p class="text-xs text-muted-foreground mt-0.5">ภาพรวมผลการดำเนินงาน แยกตามประเภทงาน และรายได้</p>
+                            </div>
+                        </div>
+
+                        <!-- Filters & Quick Actions -->
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <!-- Date Range Picker (Flatpickr DD/MM/YYYY) -->
+                            <div class="flex items-center gap-2 bg-card border border-border px-3 py-1.5 rounded-xl shadow-2xs">
+                                <i class="ph ph-calendar-blank text-muted-foreground text-sm"></i>
+                                <input type="text" id="report-date-range-picker" readonly class="text-xs font-mono font-medium text-foreground bg-transparent border-none focus:outline-none cursor-pointer w-48" placeholder="DD/MM/YYYY - DD/MM/YYYY" value="01/09/2026 - 30/09/2026">
+                            </div>
+
+                            <!-- Quick Filter Pills: 7D, 30D (Active), 3M, 1Y, Custom -->
+                            <div class="flex items-center p-1 bg-muted/70 rounded-xl border border-border shadow-2xs" id="report-pills-container">
+                                <button type="button" onclick="app.setReportTimeRange('7D', this)" class="report-range-btn px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer">7D</button>
+                                <button type="button" onclick="app.setReportTimeRange('30D', this)" class="report-range-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-brand-600 text-white shadow-xs transition-all cursor-pointer">30D</button>
+                                <button type="button" onclick="app.setReportTimeRange('3M', this)" class="report-range-btn px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer">3M</button>
+                                <button type="button" onclick="app.setReportTimeRange('1Y', this)" class="report-range-btn px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer">1Y</button>
+                                <button type="button" onclick="app.setReportTimeRange('Custom', this)" class="report-range-btn px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer">Custom</button>
+                            </div>
+
+                            <!-- Export Action Button -->
+                            <button type="button" onclick="app.exportReportData()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white shadow-sm flex items-center gap-1.5 transition-all cursor-pointer">
+                                <i class="ph ph-download-simple text-sm"></i>
+                                <span>Export</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ================================================================= -->
+                    <!-- SECTION 1: QUICK (งานซ่อม/ติดตั้งทั่วไป ระยะสั้น)                 -->
+                    <!-- ================================================================= -->
+                    <div class="rounded-2xl border border-indigo-100 bg-indigo-50/30 p-5 md:p-6 space-y-5 shadow-xs">
+                        <!-- Quick Section Header -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-xl bg-indigo-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                                    <i class="ph ph-lightning text-lg"></i>
+                                </div>
+                                <div>
+                                    <h2 class="font-display font-bold text-base text-foreground leading-tight">Quick</h2>
+                                    <p class="text-xs text-muted-foreground">งานซ่อม/ติดตั้งทั่วไป (ระยะสั้น)</p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="app.drillDownReport('quick')" class="text-xs text-indigo-600 hover:text-indigo-700 font-semibold flex items-center gap-1 cursor-pointer transition">
+                                <span>ดูรายละเอียด</span>
+                                <i class="ph ph-arrow-right text-xs"></i>
+                            </button>
+                        </div>
+
+                        <!-- Quick 3 KPI Metric Cards -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Quick Card 1: Total Job -->
+                            <div class="bg-card p-4 rounded-xl border border-border shadow-2xs flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <p class="text-xs text-muted-foreground font-medium">Total Job</p>
+                                    <div class="flex items-baseline gap-2">
+                                        <span class="text-2xl font-bold font-display text-foreground" id="quick-total-jobs">124</span>
+                                        <span class="inline-flex items-center gap-0.5 text-xs font-semibold text-emerald-600">
+                                            <i class="ph ph-arrow-up text-[11px]"></i> 12%
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-muted-foreground">จากช่วงก่อนหน้า 111 งาน</p>
+                                </div>
+                                <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center border border-blue-500/20 shrink-0">
+                                    <i class="ph ph-clipboard-text text-xl"></i>
+                                </div>
+                            </div>
+
+                            <!-- Quick Card 2: Type Job -->
+                            <div class="bg-card p-4 rounded-xl border border-border shadow-2xs flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <p class="text-xs text-muted-foreground font-medium">Type Job</p>
+                                    <div class="flex items-baseline gap-2">
+                                        <span class="text-2xl font-bold font-display text-foreground" id="quick-type-jobs">6</span>
+                                    </div>
+                                    <p class="text-[11px] text-muted-foreground">ประเภทงาน</p>
+                                </div>
+                                <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center border border-blue-500/20 shrink-0">
+                                    <i class="ph ph-stack text-xl"></i>
+                                </div>
+                            </div>
+
+                            <!-- Quick Card 3: Revenue -->
+                            <div class="bg-card p-4 rounded-xl border border-border shadow-2xs flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <p class="text-xs text-muted-foreground font-medium">Revenue</p>
+                                    <div class="flex items-baseline gap-2">
+                                        <span class="text-2xl font-bold font-display text-foreground" id="quick-revenue">฿ 1,248,500</span>
+                                        <span class="inline-flex items-center gap-0.5 text-xs font-semibold text-emerald-600">
+                                            <i class="ph ph-arrow-up text-[11px]"></i> 18%
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-muted-foreground">จากช่วงก่อนหน้า ฿ 1,057,300</p>
+                                </div>
+                                <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center border border-blue-500/20 shrink-0">
+                                    <i class="ph ph-database text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick 3 Visual Panels -->
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                            <!-- Quick Panel 1: Type Job Donut Chart (4 cols) -->
+                            <div class="lg:col-span-4 bg-card p-4 rounded-xl border border-border shadow-2xs flex flex-col justify-between">
+                                <h3 class="text-xs font-bold text-foreground mb-2">Type Job (Quick)</h3>
+                                <div class="flex items-center justify-center gap-3 flex-1 min-h-[190px]">
+                                    <div class="relative w-32 h-32 flex items-center justify-center shrink-0">
+                                        <canvas id="chart-quick-donut"></canvas>
+                                        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                            <span class="text-base font-bold font-display text-foreground" id="quick-donut-total-label">124</span>
+                                            <span class="text-[9px] text-muted-foreground font-medium">Total</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1 space-y-1 text-xs">
+                                        <div class="flex items-center justify-between">
+                                            <span class="flex items-center gap-1.5 text-muted-foreground truncate"><span class="w-2.5 h-2.5 rounded-full bg-[#6366f1] shrink-0"></span>ติดตั้งแอร์</span>
+                                            <span class="font-mono text-foreground font-medium shrink-0">42 <span class="text-muted-foreground text-[10px]">33.9%</span></span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="flex items-center gap-1.5 text-muted-foreground truncate"><span class="w-2.5 h-2.5 rounded-full bg-[#3b82f6] shrink-0"></span>ซ่อมเครื่องใช้ไฟฟ้า</span>
+                                            <span class="font-mono text-foreground font-medium shrink-0">28 <span class="text-muted-foreground text-[10px]">22.6%</span></span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="flex items-center gap-1.5 text-muted-foreground truncate"><span class="w-2.5 h-2.5 rounded-full bg-[#06b6d4] shrink-0"></span>งานประปา</span>
+                                            <span class="font-mono text-foreground font-medium shrink-0">20 <span class="text-muted-foreground text-[10px]">16.1%</span></span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="flex items-center gap-1.5 text-muted-foreground truncate"><span class="w-2.5 h-2.5 rounded-full bg-[#10b981] shrink-0"></span>งานไฟฟ้า</span>
+                                            <span class="font-mono text-foreground font-medium shrink-0">18 <span class="text-muted-foreground text-[10px]">14.5%</span></span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="flex items-center gap-1.5 text-muted-foreground truncate"><span class="w-2.5 h-2.5 rounded-full bg-[#f59e0b] shrink-0"></span>งานทั่วไป</span>
+                                            <span class="font-mono text-foreground font-medium shrink-0">10 <span class="text-muted-foreground text-[10px]">8.1%</span></span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="flex items-center gap-1.5 text-muted-foreground truncate"><span class="w-2.5 h-2.5 rounded-full bg-[#a855f7] shrink-0"></span>อื่นๆ</span>
+                                            <span class="font-mono text-foreground font-medium shrink-0">6 <span class="text-muted-foreground text-[10px]">4.8%</span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quick Panel 2: Total Job & Revenue Mixed Chart (4 cols) -->
+                            <div class="lg:col-span-4 bg-card p-4 rounded-xl border border-border shadow-2xs flex flex-col justify-between">
+                                <div class="flex items-center justify-between mb-1">
+                                    <h3 class="text-xs font-bold text-foreground">Total Job & Revenue (Quick)</h3>
+                                    <div class="flex items-center gap-3 text-[10px]">
+                                        <span class="flex items-center gap-1 text-muted-foreground"><span class="w-2 h-2 rounded-xs bg-[#818cf8]"></span>Total Job</span>
+                                        <span class="flex items-center gap-1 text-muted-foreground"><span class="w-2 h-2 rounded-full bg-[#6366f1]"></span>Revenue (฿)</span>
+                                    </div>
+                                </div>
+                                <div class="relative w-full h-[200px]">
+                                    <canvas id="chart-quick-mixed"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Quick Panel 3: Top 5 Ranked Table (4 cols) -->
+                            <div class="lg:col-span-4 bg-card p-4 rounded-xl border border-border shadow-2xs flex flex-col justify-between">
+                                <h3 class="text-xs font-bold text-foreground mb-2">Top 5 Type Job (Quick)</h3>
+                                <div class="overflow-x-auto flex-1">
+                                    <table class="w-full text-xs">
+                                        <thead>
+                                            <tr class="border-b border-border/80 text-muted-foreground font-medium text-[11px]">
+                                                <th class="text-left py-1.5 px-2 w-7 font-medium">#</th>
+                                                <th class="text-left py-1.5 px-2 font-medium">ประเภทงาน</th>
+                                                <th class="text-right py-1.5 px-2 font-medium">จำนวนงาน</th>
+                                                <th class="text-right py-1.5 px-2 font-medium">รายได้ (฿)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-border/50 text-foreground">
+                                            <tr class="hover:bg-muted/40 transition">
+                                                <td class="py-1.5 px-2"><span class="w-5 h-5 rounded-full bg-[#6366f1] text-white text-[10px] font-bold flex items-center justify-center">1</span></td>
+                                                <td class="py-1.5 px-2 font-medium">ติดตั้งแอร์</td>
+                                                <td class="py-1.5 px-2 text-right font-mono">42</td>
+                                                <td class="py-1.5 px-2 text-right font-mono font-medium">415,000</td>
+                                            </tr>
+                                            <tr class="hover:bg-muted/40 transition">
+                                                <td class="py-1.5 px-2"><span class="w-5 h-5 rounded-full bg-[#3b82f6] text-white text-[10px] font-bold flex items-center justify-center">2</span></td>
+                                                <td class="py-1.5 px-2 font-medium">ซ่อมเครื่องใช้ไฟฟ้า</td>
+                                                <td class="py-1.5 px-2 text-right font-mono">28</td>
+                                                <td class="py-1.5 px-2 text-right font-mono font-medium">286,500</td>
+                                            </tr>
+                                            <tr class="hover:bg-muted/40 transition">
+                                                <td class="py-1.5 px-2"><span class="w-5 h-5 rounded-full bg-[#06b6d4] text-white text-[10px] font-bold flex items-center justify-center">3</span></td>
+                                                <td class="py-1.5 px-2 font-medium">งานประปา</td>
+                                                <td class="py-1.5 px-2 text-right font-mono">20</td>
+                                                <td class="py-1.5 px-2 text-right font-mono font-medium">198,000</td>
+                                            </tr>
+                                            <tr class="hover:bg-muted/40 transition">
+                                                <td class="py-1.5 px-2"><span class="w-5 h-5 rounded-full bg-[#10b981] text-white text-[10px] font-bold flex items-center justify-center">4</span></td>
+                                                <td class="py-1.5 px-2 font-medium">งานไฟฟ้า</td>
+                                                <td class="py-1.5 px-2 text-right font-mono">18</td>
+                                                <td class="py-1.5 px-2 text-right font-mono font-medium">176,000</td>
+                                            </tr>
+                                            <tr class="hover:bg-muted/40 transition">
+                                                <td class="py-1.5 px-2"><span class="w-5 h-5 rounded-full bg-[#f59e0b] text-white text-[10px] font-bold flex items-center justify-center">5</span></td>
+                                                <td class="py-1.5 px-2 font-medium">งานทั่วไป</td>
+                                                <td class="py-1.5 px-2 text-right font-mono">10</td>
+                                                <td class="py-1.5 px-2 text-right font-mono font-medium">95,000</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================================= -->
+                    <!-- SECTION 2: RENOVATE (งานตกแต่ง / ปรับปรุง ระยะยาว)                 -->
+                    <!-- ================================================================= -->
+                    <div class="rounded-2xl border border-orange-100 bg-orange-50/30 p-5 md:p-6 space-y-5 shadow-xs">
+                        <!-- Renovate Section Header -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                                    <i class="ph ph-house text-lg"></i>
+                                </div>
+                                <div>
+                                    <h2 class="font-display font-bold text-base text-foreground leading-tight">Renovate</h2>
+                                    <p class="text-xs text-muted-foreground">งานตกแต่ง / ปรับปรุง (ระยะยาว)</p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="app.drillDownReport('renovate')" class="text-xs text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1 cursor-pointer transition">
+                                <span>ดูรายละเอียด</span>
+                                <i class="ph ph-arrow-right text-xs"></i>
+                            </button>
+                        </div>
+
+                        <!-- Renovate 3 KPI Metric Cards -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Renovate Card 1: Total Job -->
+                            <div class="bg-card p-4 rounded-xl border border-border shadow-2xs flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <p class="text-xs text-muted-foreground font-medium">Total Job</p>
+                                    <div class="flex items-baseline gap-2">
+                                        <span class="text-2xl font-bold font-display text-foreground" id="renovate-total-jobs">36</span>
+                                        <span class="inline-flex items-center gap-0.5 text-xs font-semibold text-emerald-600">
+                                            <i class="ph ph-arrow-up text-[11px]"></i> 9%
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-muted-foreground">จากช่วงก่อนหน้า 33 งาน</p>
+                                </div>
+                                <div class="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center border border-orange-500/20 shrink-0">
+                                    <i class="ph ph-clipboard-text text-xl"></i>
+                                </div>
+                            </div>
+
+                            <!-- Renovate Card 2: Type Job -->
+                            <div class="bg-card p-4 rounded-xl border border-border shadow-2xs flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <p class="text-xs text-muted-foreground font-medium">Type Job</p>
+                                    <div class="flex items-baseline gap-2">
+                                        <span class="text-2xl font-bold font-display text-foreground" id="renovate-type-jobs">4</span>
+                                    </div>
+                                    <p class="text-[11px] text-muted-foreground">ประเภทงาน</p>
+                                </div>
+                                <div class="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center border border-orange-500/20 shrink-0">
+                                    <i class="ph ph-stack text-xl"></i>
+                                </div>
+                            </div>
+
+                            <!-- Renovate Card 3: Revenue -->
+                            <div class="bg-card p-4 rounded-xl border border-border shadow-2xs flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <p class="text-xs text-muted-foreground font-medium">Revenue</p>
+                                    <div class="flex items-baseline gap-2">
+                                        <span class="text-2xl font-bold font-display text-foreground" id="renovate-revenue">฿ 2,980,000</span>
+                                        <span class="inline-flex items-center gap-0.5 text-xs font-semibold text-emerald-600">
+                                            <i class="ph ph-arrow-up text-[11px]"></i> 24%
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-muted-foreground">จากช่วงก่อนหน้า ฿ 2,403,000</p>
+                                </div>
+                                <div class="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center border border-orange-500/20 shrink-0">
+                                    <i class="ph ph-database text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Renovate 3 Visual Panels -->
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                            <!-- Renovate Panel 1: Type Job Donut Chart (4 cols) -->
+                            <div class="lg:col-span-4 bg-card p-4 rounded-xl border border-border shadow-2xs flex flex-col justify-between">
+                                <h3 class="text-xs font-bold text-foreground mb-2">Type Job (Renovate)</h3>
+                                <div class="flex items-center justify-center gap-3 flex-1 min-h-[190px]">
+                                    <div class="relative w-32 h-32 flex items-center justify-center shrink-0">
+                                        <canvas id="chart-renovate-donut"></canvas>
+                                        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                            <span class="text-base font-bold font-display text-foreground" id="renovate-donut-total-label">36</span>
+                                            <span class="text-[9px] text-muted-foreground font-medium">Total</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1 space-y-1.5 text-xs">
+                                        <div class="flex items-center justify-between">
+                                            <span class="flex items-center gap-1.5 text-muted-foreground truncate"><span class="w-2.5 h-2.5 rounded-full bg-[#f97316] shrink-0"></span>รีโนเวทบ้าน</span>
+                                            <span class="font-mono text-foreground font-medium shrink-0">16 <span class="text-muted-foreground text-[10px]">44.4%</span></span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="flex items-center gap-1.5 text-muted-foreground truncate"><span class="w-2.5 h-2.5 rounded-full bg-[#3b82f6] shrink-0"></span>ต่อเติมอาคาร</span>
+                                            <span class="font-mono text-foreground font-medium shrink-0">9 <span class="text-muted-foreground text-[10px]">25.0%</span></span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="flex items-center gap-1.5 text-muted-foreground truncate"><span class="w-2.5 h-2.5 rounded-full bg-[#10b981] shrink-0"></span>ตกแต่งภายใน</span>
+                                            <span class="font-mono text-foreground font-medium shrink-0">7 <span class="text-muted-foreground text-[10px]">19.4%</span></span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="flex items-center gap-1.5 text-muted-foreground truncate"><span class="w-2.5 h-2.5 rounded-full bg-[#eab308] shrink-0"></span>งานโครงสร้าง</span>
+                                            <span class="font-mono text-foreground font-medium shrink-0">4 <span class="text-muted-foreground text-[10px]">11.1%</span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Renovate Panel 2: Total Job & Revenue Mixed Chart (4 cols) -->
+                            <div class="lg:col-span-4 bg-card p-4 rounded-xl border border-border shadow-2xs flex flex-col justify-between">
+                                <div class="flex items-center justify-between mb-1">
+                                    <h3 class="text-xs font-bold text-foreground">Total Job & Revenue (Renovate)</h3>
+                                    <div class="flex items-center gap-3 text-[10px]">
+                                        <span class="flex items-center gap-1 text-muted-foreground"><span class="w-2 h-2 rounded-xs bg-[#fb923c]"></span>Total Job</span>
+                                        <span class="flex items-center gap-1 text-muted-foreground"><span class="w-2 h-2 rounded-full bg-[#ea580c]"></span>Revenue (฿)</span>
+                                    </div>
+                                </div>
+                                <div class="relative w-full h-[200px]">
+                                    <canvas id="chart-renovate-mixed"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Renovate Panel 3: Top 5 Ranked Table (4 cols) -->
+                            <div class="lg:col-span-4 bg-card p-4 rounded-xl border border-border shadow-2xs flex flex-col justify-between">
+                                <h3 class="text-xs font-bold text-foreground mb-2">Top 5 Type Job (Renovate)</h3>
+                                <div class="overflow-x-auto flex-1">
+                                    <table class="w-full text-xs">
+                                        <thead>
+                                            <tr class="border-b border-border/80 text-muted-foreground font-medium text-[11px]">
+                                                <th class="text-left py-1.5 px-2 w-7 font-medium">#</th>
+                                                <th class="text-left py-1.5 px-2 font-medium">ประเภทงาน</th>
+                                                <th class="text-right py-1.5 px-2 font-medium">จำนวนงาน</th>
+                                                <th class="text-right py-1.5 px-2 font-medium">รายได้ (฿)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-border/50 text-foreground">
+                                            <tr class="hover:bg-muted/40 transition">
+                                                <td class="py-1.5 px-2"><span class="w-5 h-5 rounded-full bg-[#f97316] text-white text-[10px] font-bold flex items-center justify-center">1</span></td>
+                                                <td class="py-1.5 px-2 font-medium">รีโนเวทบ้าน</td>
+                                                <td class="py-1.5 px-2 text-right font-mono">16</td>
+                                                <td class="py-1.5 px-2 text-right font-mono font-medium">1,480,000</td>
+                                            </tr>
+                                            <tr class="hover:bg-muted/40 transition">
+                                                <td class="py-1.5 px-2"><span class="w-5 h-5 rounded-full bg-[#3b82f6] text-white text-[10px] font-bold flex items-center justify-center">2</span></td>
+                                                <td class="py-1.5 px-2 font-medium">ต่อเติมอาคาร</td>
+                                                <td class="py-1.5 px-2 text-right font-mono">9</td>
+                                                <td class="py-1.5 px-2 text-right font-mono font-medium">780,000</td>
+                                            </tr>
+                                            <tr class="hover:bg-muted/40 transition">
+                                                <td class="py-1.5 px-2"><span class="w-5 h-5 rounded-full bg-[#10b981] text-white text-[10px] font-bold flex items-center justify-center">3</span></td>
+                                                <td class="py-1.5 px-2 font-medium">ตกแต่งภายใน</td>
+                                                <td class="py-1.5 px-2 text-right font-mono">7</td>
+                                                <td class="py-1.5 px-2 text-right font-mono font-medium">520,000</td>
+                                            </tr>
+                                            <tr class="hover:bg-muted/40 transition">
+                                                <td class="py-1.5 px-2"><span class="w-5 h-5 rounded-full bg-[#eab308] text-white text-[10px] font-bold flex items-center justify-center">4</span></td>
+                                                <td class="py-1.5 px-2 font-medium">งานโครงสร้าง</td>
+                                                <td class="py-1.5 px-2 text-right font-mono">4</td>
+                                                <td class="py-1.5 px-2 text-right font-mono font-medium">200,000</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 7. SETTINGS VIEW -->
                 <div id="page-settings" class="page-view hidden-view space-y-6 max-w-3xl">
                     <div>
@@ -4139,6 +4539,26 @@
                                     </button>
                                     <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_แดชบอร์ดและจัดการผู้ใช้งาน.md', 'โมดูล 11: แดชบอร์ดและจัดการผู้ใช้งาน')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-[11px] font-semibold text-rose-600 flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Module 12: Report Overview & Submenus -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-purple-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded bg-purple-500/15 text-purple-600 font-mono text-[10px] font-bold border border-purple-500/20">TRN-PMT-REP01</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">ศูนย์รายงาน</span>
+                                    </div>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-purple-600 transition">ศูนย์รายงานผลการดำเนินงาน (Report)</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">วิเคราะห์ผลงานและรายได้แยกประเภท Quick & Renovate, Donut & Mixed Charts, กรองเวลา 7D/30D/3M/1Y/Custom และ Export Excel</p>
+                                </div>
+                                <div class="pt-2 border-t border-border flex items-center gap-2">
+                                    <button onclick="app.navigate('report')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
+                                    </button>
+                                    <button onclick="app.openStepAuditReportModal()" class="flex-1 py-1.5 px-2.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-[11px] font-semibold text-purple-600 flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-clock-counter-clockwise"></i> Audit 6 ขั้นตอน
                                     </button>
                                 </div>
                             </div>

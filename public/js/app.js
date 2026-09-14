@@ -2510,9 +2510,20 @@ const app = {
                     'settings': 'ตั้งค่าระบบ & API',
                     'api-logs': 'ประวัติการยิง API ขาเข้า (Inbound API Request Logs)',
                     'faq': 'คลังความรู้ & คู่มือระบบ (KM Portal & System Guide)',
-                    'users': 'จัดการผู้ใช้งาน'
+                    'users': 'จัดการผู้ใช้งาน',
+                    'report': 'Report (ภาพรวมผลการดำเนินงาน)'
                 };
                 document.getElementById('topbar-breadcrumb').innerText = breadcrumbMap[view] || view;
+
+                // Submenu active state in Report
+                const subReportOverview = document.getElementById('subnav-report-overview');
+                if (subReportOverview) {
+                    if (view === 'report') {
+                        subReportOverview.className = "report-sub-link flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-brand-600 bg-brand-500/10 transition-all cursor-pointer";
+                    } else {
+                        subReportOverview.className = "report-sub-link flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer";
+                    }
+                }
 
                 // Hide all pages
                 document.querySelectorAll('.page-view').forEach(el => el.classList.add('hidden-view'));
@@ -2559,6 +2570,7 @@ const app = {
                 if(view === 'csat') this.renderCSAT();
                 if(view === 'ma-contracts') this.renderMAContracts();
                 if(view === 'completed-jobs') this.renderCompletedJobs();
+                if(view === 'report') this.renderReportPage();
                 if(view === 'users') {
                     if (typeof userMgmt !== 'undefined') userMgmt.load();
                 }
@@ -3138,7 +3150,494 @@ const app = {
                 }
             },
 
-            handleGlobalSearch(event) {
+            // =========================================================================
+            // 📊 OPERATIONS REPORT ENGINE (Quick & Renovate Overview)
+            // =========================================================================
+            reportState: {
+                currentRange: '30D',
+                datePickerInstance: null,
+                quickData: {
+                    totalJobs: 124,
+                    jobGrowth: 12,
+                    prevJobs: 111,
+                    typeJobsCount: 6,
+                    revenue: 1248500,
+                    revGrowth: 18,
+                    prevRevenue: 1057300,
+                    typeDistribution: [
+                        { label: 'ติดตั้งแอร์', count: 42, pct: 33.9, color: '#6366f1', rev: 415000 },
+                        { label: 'ซ่อมเครื่องใช้ไฟฟ้า', count: 28, pct: 22.6, color: '#3b82f6', rev: 286500 },
+                        { label: 'งานประปา', count: 20, pct: 16.1, color: '#06b6d4', rev: 198000 },
+                        { label: 'งานไฟฟ้า', count: 18, pct: 14.5, color: '#10b981', rev: 176000 },
+                        { label: 'งานทั่วไป', count: 10, pct: 8.1, color: '#f59e0b', rev: 95000 },
+                        { label: 'อื่นๆ', count: 6, pct: 4.8, color: '#a855f7', rev: 78000 }
+                    ],
+                    trendLabels: ['1 - 7 ก.ย.', '8 - 14 ก.ย.', '15 - 21 ก.ย.', '22 - 28 ก.ย.', '29 - 30 ก.ย.'],
+                    trendJobs: [25, 22, 34, 45, 23],
+                    trendRev: [195000, 210000, 315000, 420000, 235000]
+                },
+                renovateData: {
+                    totalJobs: 36,
+                    jobGrowth: 9,
+                    prevJobs: 33,
+                    typeJobsCount: 4,
+                    revenue: 2980000,
+                    revGrowth: 24,
+                    prevRevenue: 2403000,
+                    typeDistribution: [
+                        { label: 'รีโนเวทบ้าน', count: 16, pct: 44.4, color: '#f97316', rev: 1480000 },
+                        { label: 'ต่อเติมอาคาร', count: 9, pct: 25.0, color: '#3b82f6', rev: 780000 },
+                        { label: 'ตกแต่งภายใน', count: 7, pct: 19.4, color: '#10b981', rev: 520000 },
+                        { label: 'งานโครงสร้าง', count: 4, pct: 11.1, color: '#eab308', rev: 200000 }
+                    ],
+                    trendLabels: ['1 - 7 ก.ย.', '8 - 14 ก.ย.', '15 - 21 ก.ย.', '22 - 28 ก.ย.', '29 - 30 ก.ย.'],
+                    trendJobs: [7, 5, 9, 14, 5],
+                    trendRev: [450000, 520000, 980000, 1150000, 380000]
+                }
+            },
+
+            renderReportPage(range = null) {
+                if (range) this.reportState.currentRange = range;
+
+                // Bind Flatpickr date range picker
+                const dateInput = document.getElementById('report-date-range-picker');
+                if (dateInput && typeof flatpickr !== 'undefined' && !this.reportState.datePickerInstance) {
+                    this.reportState.datePickerInstance = flatpickr(dateInput, {
+                        mode: "range",
+                        dateFormat: "d/m/Y",
+                        defaultDate: ["01/09/2026", "30/09/2026"],
+                        locale: (typeof flatpickr.l1ons !== 'undefined' && flatpickr.l1ons.th) ? flatpickr.l1ons.th : "default",
+                        onChange: (selectedDates) => {
+                            if (selectedDates && selectedDates.length === 2) {
+                                this.showToast(`📅 เลือกช่วงวันที่: ${this.formatDateDMY(selectedDates[0])} - ${this.formatDateDMY(selectedDates[1])}`);
+                            }
+                        }
+                    });
+                }
+
+                // Render metrics to UI
+                this.syncReportKPIs();
+
+                // Render or update charts
+                setTimeout(() => this.updateReportCharts(), 60);
+            },
+
+            syncReportKPIs() {
+                const q = this.reportState.quickData;
+                const r = this.reportState.renovateData;
+
+                // Quick KPIs
+                const qTot = document.getElementById('quick-total-jobs');
+                if (qTot) qTot.innerText = q.totalJobs;
+                const qType = document.getElementById('quick-type-jobs');
+                if (qType) qType.innerText = q.typeJobsCount;
+                const qRev = document.getElementById('quick-revenue');
+                if (qRev) qRev.innerText = `฿ ${q.revenue.toLocaleString()}`;
+                const qDonutTotal = document.getElementById('quick-donut-total-label');
+                if (qDonutTotal) qDonutTotal.innerText = q.totalJobs;
+
+                // Renovate KPIs
+                const rTot = document.getElementById('renovate-total-jobs');
+                if (rTot) rTot.innerText = r.totalJobs;
+                const rType = document.getElementById('renovate-type-jobs');
+                if (rType) rType.innerText = r.typeJobsCount;
+                const rRev = document.getElementById('renovate-revenue');
+                if (rRev) rRev.innerText = `฿ ${r.revenue.toLocaleString()}`;
+                const rDonutTotal = document.getElementById('renovate-donut-total-label');
+                if (rDonutTotal) rDonutTotal.innerText = r.totalJobs;
+            },
+
+            updateReportCharts() {
+                try {
+                    const qData = this.reportState.quickData;
+                    const rData = this.reportState.renovateData;
+                    const textColor = '#71717a';
+                    const gridColor = 'rgba(0,0,0,0.06)';
+
+                    // 1. Quick Donut Chart
+                    const qDonutEl = document.getElementById('chart-quick-donut');
+                    if (qDonutEl && typeof Chart !== 'undefined') {
+                        let oldChart = Chart.getChart(qDonutEl);
+                        if (oldChart) oldChart.destroy();
+
+                        new Chart(qDonutEl.getContext('2d'), {
+                            type: 'doughnut',
+                            data: {
+                                labels: qData.typeDistribution.map(t => t.label),
+                                datasets: [{
+                                    data: qData.typeDistribution.map(t => t.count),
+                                    backgroundColor: qData.typeDistribution.map(t => t.color),
+                                    borderWidth: 2,
+                                    borderColor: '#ffffff',
+                                    hoverOffset: 4
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                cutout: '72%',
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                        backgroundColor: '#ffffff',
+                                        titleColor: '#09090b',
+                                        bodyColor: '#71717a',
+                                        borderColor: 'rgba(0,0,0,0.1)',
+                                        borderWidth: 1,
+                                        cornerRadius: 8,
+                                        padding: 8,
+                                        callbacks: {
+                                            label: (ctx) => ` ${ctx.label}: ${ctx.raw} งาน (${qData.typeDistribution[ctx.dataIndex].pct}%)`
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    // 2. Quick Mixed Bar & Line Chart (Dual Y-Axes)
+                    const qMixedEl = document.getElementById('chart-quick-mixed');
+                    if (qMixedEl && typeof Chart !== 'undefined') {
+                        let oldChart = Chart.getChart(qMixedEl);
+                        if (oldChart) oldChart.destroy();
+
+                        new Chart(qMixedEl.getContext('2d'), {
+                            data: {
+                                labels: qData.trendLabels,
+                                datasets: [
+                                    {
+                                        type: 'bar',
+                                        label: 'Total Job',
+                                        data: qData.trendJobs,
+                                        backgroundColor: '#818cf8',
+                                        borderRadius: 4,
+                                        barThickness: 16,
+                                        yAxisID: 'yJobs'
+                                    },
+                                    {
+                                        type: 'line',
+                                        label: 'Revenue (฿)',
+                                        data: qData.trendRev,
+                                        borderColor: '#6366f1',
+                                        backgroundColor: '#6366f1',
+                                        borderWidth: 2.5,
+                                        pointRadius: 4,
+                                        pointHoverRadius: 6,
+                                        pointBackgroundColor: '#6366f1',
+                                        tension: 0.35,
+                                        yAxisID: 'yRevenue'
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: { mode: 'index', intersect: false },
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                        backgroundColor: '#ffffff',
+                                        titleColor: '#09090b',
+                                        bodyColor: '#71717a',
+                                        borderColor: 'rgba(0,0,0,0.1)',
+                                        borderWidth: 1,
+                                        cornerRadius: 8,
+                                        padding: 8,
+                                        callbacks: {
+                                            label: (ctx) => ctx.datasetIndex === 0 ? ` Total Job: ${ctx.raw} งาน` : ` Revenue: ฿${ctx.raw.toLocaleString()}`
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    x: {
+                                        grid: { display: false },
+                                        ticks: { color: textColor, font: { family: 'Noto Sans Thai, Inter', size: 10 } }
+                                    },
+                                    yJobs: {
+                                        type: 'linear',
+                                        position: 'left',
+                                        min: 0,
+                                        max: 50,
+                                        ticks: {
+                                            stepSize: 10,
+                                            color: textColor,
+                                            font: { size: 10 }
+                                        },
+                                        grid: { color: gridColor },
+                                        title: { display: true, text: 'จำนวนงาน', color: textColor, font: { size: 9 } }
+                                    },
+                                    yRevenue: {
+                                        type: 'linear',
+                                        position: 'right',
+                                        min: 0,
+                                        max: 500000,
+                                        ticks: {
+                                            stepSize: 100000,
+                                            color: textColor,
+                                            font: { size: 10 },
+                                            callback: (val) => val === 0 ? '0' : (val / 1000) + 'K'
+                                        },
+                                        grid: { drawOnChartArea: false },
+                                        title: { display: true, text: 'รายได้ (฿)', color: textColor, font: { size: 9 } }
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    // 3. Renovate Donut Chart
+                    const rDonutEl = document.getElementById('chart-renovate-donut');
+                    if (rDonutEl && typeof Chart !== 'undefined') {
+                        let oldChart = Chart.getChart(rDonutEl);
+                        if (oldChart) oldChart.destroy();
+
+                        new Chart(rDonutEl.getContext('2d'), {
+                            type: 'doughnut',
+                            data: {
+                                labels: rData.typeDistribution.map(t => t.label),
+                                datasets: [{
+                                    data: rData.typeDistribution.map(t => t.count),
+                                    backgroundColor: rData.typeDistribution.map(t => t.color),
+                                    borderWidth: 2,
+                                    borderColor: '#ffffff',
+                                    hoverOffset: 4
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                cutout: '72%',
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                        backgroundColor: '#ffffff',
+                                        titleColor: '#09090b',
+                                        bodyColor: '#71717a',
+                                        borderColor: 'rgba(0,0,0,0.1)',
+                                        borderWidth: 1,
+                                        cornerRadius: 8,
+                                        padding: 8,
+                                        callbacks: {
+                                            label: (ctx) => ` ${ctx.label}: ${ctx.raw} งาน (${rData.typeDistribution[ctx.dataIndex].pct}%)`
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    // 4. Renovate Mixed Bar & Line Chart (Dual Y-Axes)
+                    const rMixedEl = document.getElementById('chart-renovate-mixed');
+                    if (rMixedEl && typeof Chart !== 'undefined') {
+                        let oldChart = Chart.getChart(rMixedEl);
+                        if (oldChart) oldChart.destroy();
+
+                        new Chart(rMixedEl.getContext('2d'), {
+                            data: {
+                                labels: rData.trendLabels,
+                                datasets: [
+                                    {
+                                        type: 'bar',
+                                        label: 'Total Job',
+                                        data: rData.trendJobs,
+                                        backgroundColor: '#fb923c',
+                                        borderRadius: 4,
+                                        barThickness: 16,
+                                        yAxisID: 'yJobs'
+                                    },
+                                    {
+                                        type: 'line',
+                                        label: 'Revenue (฿)',
+                                        data: rData.trendRev,
+                                        borderColor: '#ea580c',
+                                        backgroundColor: '#ea580c',
+                                        borderWidth: 2.5,
+                                        pointRadius: 4,
+                                        pointHoverRadius: 6,
+                                        pointBackgroundColor: '#ea580c',
+                                        tension: 0.35,
+                                        yAxisID: 'yRevenue'
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: { mode: 'index', intersect: false },
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                        backgroundColor: '#ffffff',
+                                        titleColor: '#09090b',
+                                        bodyColor: '#71717a',
+                                        borderColor: 'rgba(0,0,0,0.1)',
+                                        borderWidth: 1,
+                                        cornerRadius: 8,
+                                        padding: 8,
+                                        callbacks: {
+                                            label: (ctx) => ctx.datasetIndex === 0 ? ` Total Job: ${ctx.raw} งาน` : ` Revenue: ฿${ctx.raw.toLocaleString()}`
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    x: {
+                                        grid: { display: false },
+                                        ticks: { color: textColor, font: { family: 'Noto Sans Thai, Inter', size: 10 } }
+                                    },
+                                    yJobs: {
+                                        type: 'linear',
+                                        position: 'left',
+                                        min: 0,
+                                        max: 20,
+                                        ticks: {
+                                            stepSize: 5,
+                                            color: textColor,
+                                            font: { size: 10 }
+                                        },
+                                        grid: { color: gridColor },
+                                        title: { display: true, text: 'จำนวนงาน', color: textColor, font: { size: 9 } }
+                                    },
+                                    yRevenue: {
+                                        type: 'linear',
+                                        position: 'right',
+                                        min: 0,
+                                        max: 1200000,
+                                        ticks: {
+                                            stepSize: 300000,
+                                            color: textColor,
+                                            font: { size: 10 },
+                                            callback: (val) => val === 0 ? '0' : (val >= 1000000 ? (val / 1000000).toFixed(1) + 'M' : (val / 1000) + 'K')
+                                        },
+                                        grid: { drawOnChartArea: false },
+                                        title: { display: true, text: 'รายได้ (฿)', color: textColor, font: { size: 9 } }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.warn('[updateReportCharts Error]', err);
+                }
+            },
+
+            setReportTimeRange(range, btn) {
+                this.reportState.currentRange = range;
+
+                // Update active pill button
+                document.querySelectorAll('.report-range-btn').forEach(b => {
+                    b.className = "report-range-btn px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer";
+                });
+                if (btn) {
+                    btn.className = "report-range-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-brand-600 text-white shadow-xs transition-all cursor-pointer";
+                }
+
+                // Update date input text
+                const dateInput = document.getElementById('report-date-range-picker');
+                if (range === '7D') {
+                    if (dateInput) dateInput.value = "24/09/2026 - 30/09/2026";
+                } else if (range === '30D') {
+                    if (dateInput) dateInput.value = "01/09/2026 - 30/09/2026";
+                } else if (range === '3M') {
+                    if (dateInput) dateInput.value = "01/07/2026 - 30/09/2026";
+                } else if (range === '1Y') {
+                    if (dateInput) dateInput.value = "01/10/2025 - 30/09/2026";
+                } else if (range === 'Custom') {
+                    if (this.reportState.datePickerInstance) {
+                        this.reportState.datePickerInstance.open();
+                    }
+                }
+
+                this.renderReportPage();
+                this.showToast(`📊 ปรับช่วงเวลาเป็น ${range}`);
+            },
+
+            drillDownReport(type) {
+                if (type === 'quick') {
+                    this.navigate('jobs');
+                    this.showToast('🔍 นำทางไปยังงาน Quick (งานซ่อม/ติดตั้งทั่วไป)');
+                } else {
+                    this.navigate('jobs');
+                    this.showToast('🔍 นำทางไปยังงาน Renovate (ตกแต่ง / ปรับปรุง)');
+                }
+            },
+
+            exportReportData() {
+                try {
+                    const q = this.reportState.quickData;
+                    const r = this.reportState.renovateData;
+                    const rangeLabel = document.getElementById('report-date-range-picker')?.value || '01/09/2026 - 30/09/2026';
+
+                    if (typeof XLSX !== 'undefined') {
+                        const wb = XLSX.utils.book_new();
+
+                        // Sheet 1: Quick Report
+                        const quickRows = [
+                            ['PMT Flow — รายงานผลการดำเนินงาน Quick (งานซ่อม/ติดตั้งทั่วไป ระยะสั้น)'],
+                            ['ช่วงเวลาวิเคราะห์', rangeLabel],
+                            [''],
+                            ['1. ภาพรวมตัวชี้วัด (KPIs)'],
+                            ['Total Job (จำนวนงานทั้งหมด)', q.totalJobs, 'งาน'],
+                            ['อัตราเติบโตของงาน', `+${q.jobGrowth}%`, `จากช่วงก่อนหน้า ${q.prevJobs} งาน`],
+                            ['ประเภทงานทั้งหมด', q.typeJobsCount, 'ประเภท'],
+                            ['รายได้รวม (Revenue)', q.revenue, 'บาท'],
+                            ['อัตราเติบโตของรายได้', `+${q.revGrowth}%`, `จากช่วงก่อนหน้า ฿${q.prevRevenue.toLocaleString()}`],
+                            [''],
+                            ['2. สัดส่วนงานแยกตามประเภท (Type Job Quick)'],
+                            ['ลำดับ', 'ประเภทงาน', 'จำนวนงาน', 'สัดส่วน (%)', 'รายได้โดยประมาณ (บาท)']
+                        ];
+                        q.typeDistribution.forEach((t, i) => {
+                            quickRows.push([i + 1, t.label, t.count, `${t.pct}%`, t.rev]);
+                        });
+
+                        quickRows.push(['']);
+                        quickRows.push(['3. แนวโน้มรายสัปดาห์ (Weekly Trend)']);
+                        quickRows.push(['ช่วงวันที่', 'จำนวนงาน (Total Job)', 'รายได้ (Revenue บาท)']);
+                        q.trendLabels.forEach((lbl, idx) => {
+                            quickRows.push([lbl, q.trendJobs[idx], q.trendRev[idx]]);
+                        });
+
+                        const wsQuick = XLSX.utils.aoa_to_sheet(quickRows);
+                        XLSX.utils.book_append_sheet(wb, wsQuick, 'Quick_Report');
+
+                        // Sheet 2: Renovate Report
+                        const renoRows = [
+                            ['PMT Flow — รายงานผลการดำเนินงาน Renovate (งานตกแต่ง / ปรับปรุง ระยะยาว)'],
+                            ['ช่วงเวลาวิเคราะห์', rangeLabel],
+                            [''],
+                            ['1. ภาพรวมตัวชี้วัด (KPIs)'],
+                            ['Total Job (จำนวนงานทั้งหมด)', r.totalJobs, 'งาน'],
+                            ['อัตราเติบโตของงาน', `+${r.jobGrowth}%`, `จากช่วงก่อนหน้า ${r.prevJobs} งาน`],
+                            ['ประเภทงานทั้งหมด', r.typeJobsCount, 'ประเภท'],
+                            ['รายได้รวม (Revenue)', r.revenue, 'บาท'],
+                            ['อัตราเติบโตของรายได้', `+${r.revGrowth}%`, `จากช่วงก่อนหน้า ฿${r.prevRevenue.toLocaleString()}`],
+                            [''],
+                            ['2. สัดส่วนงานแยกตามประเภท (Type Job Renovate)'],
+                            ['ลำดับ', 'ประเภทงาน', 'จำนวนงาน', 'สัดส่วน (%)', 'รายได้โดยประมาณ (บาท)']
+                        ];
+                        r.typeDistribution.forEach((t, i) => {
+                            renoRows.push([i + 1, t.label, t.count, `${t.pct}%`, t.rev]);
+                        });
+
+                        renoRows.push(['']);
+                        renoRows.push(['3. แนวโน้มรายสัปดาห์ (Weekly Trend)']);
+                        renoRows.push(['ช่วงวันที่', 'จำนวนงาน (Total Job)', 'รายได้ (Revenue บาท)']);
+                        r.trendLabels.forEach((lbl, idx) => {
+                            renoRows.push([lbl, r.trendJobs[idx], r.trendRev[idx]]);
+                        });
+
+                        const wsReno = XLSX.utils.aoa_to_sheet(renoRows);
+                        XLSX.utils.book_append_sheet(wb, wsReno, 'Renovate_Report');
+
+                        XLSX.writeFile(wb, `PMT_Flow_Operations_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
+                        this.showToast('✅ ส่งออกรายงาน Excel สำเร็จเรียบร้อย');
+                    } else {
+                        this.showToast('⚠️ ไม่พบคลัง XLSX ในเบราว์เซอร์');
+                    }
+                } catch (e) {
+                    console.error('[exportReportData Error]', e);
+                    this.showToast('❌ ไม่สามารถส่งออกรายงานได้: ' + e.message);
+                }
+            },
                 const query = (event && event.target && event.target.value) ? event.target.value.trim().toLowerCase() : '';
                 if (!query) {
                     if (this.state.currentView === 'jobs') this.renderJobs();
