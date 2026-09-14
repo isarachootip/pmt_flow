@@ -5397,13 +5397,16 @@
                         <i class="ph ph-plus-circle text-lg"></i>
                     </div>
                     <div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
                             <h3 class="font-display font-bold text-sm text-foreground">สร้างงานใหม่ (Manual Order)</h3>
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center gap-1">
                                 <i class="ph ph-hand-pointing"></i> Manual Order
                             </span>
+                            <span id="cj-preview-jobno" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/25 flex items-center gap-1">
+                                <i class="ph ph-hash"></i> รหัสงาน: Running อัตโนมัติ
+                            </span>
                         </div>
-                        <p class="text-[10px] text-muted-foreground">บันทึกเปิด Order ใหม่แบบ Manual พร้อมข้อมูลจำลอง INT และแนบรูปภาพ</p>
+                        <p class="text-[10px] text-muted-foreground">บันทึกเปิด Order ใหม่แบบ Manual พร้อมข้อมูลจำลอง INT และแนบรูปภาพ (ระบบ Running รหัสงานให้อัตโนมัติ)</p>
                     </div>
                 </div>
                 <button onclick="app.hideModal('modal-create-job')" class="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted transition">
@@ -5503,9 +5506,9 @@
                     </div>
                     <div>
                         <label class="block text-[11px] font-medium text-muted-foreground mb-1">วันนัดติดตั้ง (DD/MM/YYYY)</label>
-                        <div class="relative">
-                            <input type="text" id="cj-date" value="14/09/2026" placeholder="DD/MM/YYYY" data-datepicker="true" class="w-full bg-card border border-border rounded-lg pl-3 pr-9 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-brand-500 cursor-pointer">
-                            <i class="ph ph-calendar absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-sm"></i>
+                        <div class="relative cursor-pointer" onclick="app.openCreateJobDatePicker()">
+                            <input type="text" id="cj-date" value="14/09/2026" placeholder="DD/MM/YYYY" data-datepicker="true" class="w-full bg-card border border-border rounded-lg pl-3 pr-9 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-brand-500 cursor-pointer" onclick="app.openCreateJobDatePicker()">
+                            <i class="ph ph-calendar absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm cursor-pointer" onclick="app.openCreateJobDatePicker()"></i>
                         </div>
                     </div>
                 </div>
@@ -5525,15 +5528,20 @@
                     <div class="flex items-center justify-between">
                         <label class="block text-[11px] font-bold text-foreground flex items-center gap-1.5">
                             <i class="ph ph-camera text-brand-500 text-sm"></i>
-                            <span>แนบรูปภาพหน้างาน / เอกสารประกอบจาก INT</span>
+                            <span>แนบรูปภาพหน้างาน / เอกสารประกอบ (แนบทีละรูปได้)</span>
                             <span id="cj-photos-count" class="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 font-semibold">0 รูป</span>
                         </label>
-                        <button type="button" onclick="app.addCreateJobSamplePhotos()" class="text-[10px] text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1 transition cursor-pointer">
-                            <i class="ph ph-sparkle text-amber-500"></i> แนบรูปตัวอย่าง INT (2 รูป)
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="app.clearAllCreateJobPhotos()" class="text-[10px] text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1 transition cursor-pointer" title="ลบรูปที่แนบทั้งหมด">
+                                <i class="ph ph-trash"></i> ล้างรูป
+                            </button>
+                            <button type="button" onclick="app.addCreateJobSamplePhotos()" class="text-[10px] text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1 transition cursor-pointer">
+                                <i class="ph ph-sparkle text-amber-500"></i> แนบรูปตัวอย่าง INT (2 รูป)
+                            </button>
+                        </div>
                     </div>
 
-                    <input type="file" id="cj-photo-input" accept="image/*" multiple class="hidden" onchange="app.handleCreateJobPhotoChange(event)">
+                    <input type="file" id="cj-photo-input" accept="image/*" class="hidden" onchange="app.handleCreateJobPhotoChange(event)">
                     <input type="file" id="cj-camera-input" accept="image/*" capture="environment" class="hidden" onchange="app.handleCreateJobPhotoChange(event)">
 
                     <!-- Dropzone -->
@@ -5542,14 +5550,14 @@
                             <i class="ph ph-cloud-arrow-up text-xl"></i>
                         </div>
                         <div>
-                            <div class="text-xs font-semibold text-foreground">ลากไฟล์รูปภาพมาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
-                            <div class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์ JPG, PNG, WEBP (เลือกได้หลายรูป)</div>
+                            <div class="text-xs font-semibold text-foreground">ลากไฟล์รูปภาพมาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์ (แนบทีละรูปหรือหลายรูปได้)</div>
+                            <div class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์ JPG, PNG, WEBP, HEIC</div>
                         </div>
                         <div class="flex items-center gap-2 pt-1" onclick="event.stopPropagation()">
-                            <button type="button" onclick="document.getElementById('cj-photo-input').click()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium shadow-xs">
+                            <button type="button" onclick="document.getElementById('cj-photo-input').click()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium shadow-xs cursor-pointer">
                                 <i class="ph ph-folder-open text-xs"></i> เลือกรูปจากเครื่อง
                             </button>
-                            <button type="button" onclick="document.getElementById('cj-camera-input').click()" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium shadow-xs">
+                            <button type="button" onclick="document.getElementById('cj-camera-input').click()" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium shadow-xs cursor-pointer">
                                 <i class="ph ph-camera text-xs"></i> ถ่ายภาพ
                             </button>
                         </div>

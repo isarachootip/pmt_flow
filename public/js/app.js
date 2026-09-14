@@ -3100,6 +3100,54 @@ const app = {
                 }
             },
 
+            compressImage(file, maxWidth = 1200, quality = 0.8) {
+                return new Promise((resolve) => {
+                    if (!file || !file.type || !file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.onerror = () => resolve(null);
+                        reader.readAsDataURL(file);
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            try {
+                                const canvas = document.createElement('canvas');
+                                let width = img.width || 800;
+                                let height = img.height || 600;
+                                if (width > maxWidth) {
+                                    height = Math.round((height * maxWidth) / width);
+                                    width = maxWidth;
+                                }
+                                canvas.width = width;
+                                canvas.height = height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0, width, height);
+                                const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                                resolve(compressedDataUrl);
+                            } catch (err) {
+                                resolve(e.target.result);
+                            }
+                        };
+                        img.onerror = () => resolve(e.target.result);
+                        img.src = e.target.result;
+                    };
+                    reader.onerror = () => resolve(null);
+                    reader.readAsDataURL(file);
+                });
+            },
+
+            getNextJobNoPreview() {
+                const now = new Date();
+                const yy = String(now.getFullYear()).slice(-2);
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const dd = String(now.getDate()).padStart(2, '0');
+                const nextSeq = String((DB.jobs?.length || 0) + 1).padStart(5, '0');
+                return `JOB${yy}${mm}${dd}${nextSeq}`;
+            },
+
             initCreateJobModal() {
                 if (!this.state.createJobPhotos) {
                     this.state.createJobPhotos = [];
@@ -3108,17 +3156,37 @@ const app = {
                 if (fn && !fn.value) {
                     this.loadCreateJobPreset('water_heater', false);
                 }
-                // Ensure date is set in DD/MM/YYYY
+                // Ensure date is set in DD/MM/YYYY and bind flatpickr
                 const dtEl = document.getElementById('cj-date');
-                if (dtEl && (!dtEl.value || dtEl.value.includes('YYYY'))) {
-                    const today = new Date();
-                    const dd = String(today.getDate()).padStart(2, '0');
-                    const mm = String(today.getMonth() + 1).padStart(2, '0');
-                    const yyyy = today.getFullYear();
-                    dtEl.value = `${dd}/${mm}/${yyyy}`;
+                if (dtEl) {
+                    if (!dtEl.value || dtEl.value.includes('YYYY')) {
+                        const today = new Date();
+                        const dd = String(today.getDate()).padStart(2, '0');
+                        const mm = String(today.getMonth() + 1).padStart(2, '0');
+                        const yyyy = today.getFullYear();
+                        dtEl.value = `${dd}/${mm}/${yyyy}`;
+                    }
+                    setTimeout(() => {
+                        this.initDatePicker(dtEl, { static: false, appendTo: document.body });
+                    }, 50);
+                }
+                const pvwJobNo = document.getElementById('cj-preview-jobno');
+                if (pvwJobNo) {
+                    pvwJobNo.innerHTML = `<i class="ph ph-hash"></i> รหัสงาน: ${this.getNextJobNoPreview()} (ระบบ Run ให้อัตโนมัติ)`;
                 }
                 this.bindCreateJobDropzone();
                 this.renderCreateJobPhotoPreviews();
+            },
+
+            openCreateJobDatePicker() {
+                const dtInp = document.getElementById('cj-date');
+                if (!dtInp) return;
+                if (!dtInp._flatpickr) {
+                    this.initDatePicker(dtInp, { static: false, appendTo: document.body });
+                }
+                if (dtInp._flatpickr) {
+                    dtInp._flatpickr.open();
+                }
             },
 
             loadCreateJobPreset(presetKey, showToastMsg = true) {
@@ -3178,11 +3246,13 @@ const app = {
                 });
             },
 
-            handleCreateJobPhotoChange(event) {
-                if (event.target.files && event.target.files.length > 0) {
-                    this.handleCreateJobPhotoFiles(event.target.files);
-                    event.target.value = '';
+            async handleCreateJobPhotoChange(event) {
+                const inputEl = event.target;
+                const fileList = inputEl && inputEl.files ? Array.from(inputEl.files) : [];
+                if (fileList.length > 0) {
+                    await this.handleCreateJobPhotoFiles(fileList);
                 }
+                if (inputEl) inputEl.value = '';
             },
 
             async handleCreateJobPhotoFiles(fileList) {
@@ -3190,36 +3260,27 @@ const app = {
                 if (!this.state.createJobPhotos) this.state.createJobPhotos = [];
                 const files = Array.from(fileList);
                 for (const file of files) {
-                    let dataUrl = null;
-                    if (file.type && file.type.startsWith('image/')) {
-                        try {
-                            dataUrl = await this.compressImage(file, 1000, 0.75);
-                        } catch (err) {
-                            console.warn('[PHOTO COMPRESS ERROR]', err);
-                        }
-                    }
-                    if (!dataUrl) {
-                        dataUrl = await new Promise(res => {
-                            const rd = new FileReader();
-                            rd.onload = e => res(e.target.result);
-                            rd.onerror = () => res(null);
-                            rd.readAsDataURL(file);
-                        });
-                    }
+                    const dataUrl = await this.compressImage(file, 1200, 0.8);
                     if (dataUrl) {
                         this.state.createJobPhotos.push({
                             id: `INT-PHT-${Date.now()}-${Math.floor(Math.random()*1000)}`,
-                            title: file.name.replace(/\.[^/.]+$/, ""),
-                            name: file.name,
+                            title: file.name ? file.name.replace(/\.[^/.]+$/, "") : 'รูปถ่ายหน้างาน',
+                            name: file.name || `photo_${Date.now()}.jpg`,
                             url: dataUrl,
                             category: 'survey',
-                            tag: 'แนบจาก INT/หน้างาน',
+                            tag: 'แนบจากเครื่อง',
                             uploaded_at: new Date().toISOString()
                         });
                     }
                 }
                 this.renderCreateJobPhotoPreviews();
-                this.showToast(`📷 แนบรูปภาพสำเร็จ (${files.length} รูป)`);
+                this.showToast(`📷 แนบรูปภาพสำเร็จ (+${files.length} รูป, รวมทั้งหมด ${this.state.createJobPhotos.length} รูป)`);
+            },
+
+            clearAllCreateJobPhotos() {
+                this.state.createJobPhotos = [];
+                this.renderCreateJobPhotoPreviews();
+                this.showToast('🗑️ ล้างรูปภาพที่แนบทั้งหมดเรียบร้อยแล้ว');
             },
 
             addCreateJobSamplePhotos() {
@@ -3269,7 +3330,7 @@ const app = {
                     return;
                 }
                 grid.classList.remove('hidden-view');
-                grid.innerHTML = photos.map((p, idx) => `
+                const photoCards = photos.map((p, idx) => `
                     <div class="relative group rounded-xl overflow-hidden border border-border bg-card shadow-xs aspect-4/3 flex flex-col justify-end">
                         <img src="${p.url}" alt="${p.title || 'Photo'}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
@@ -3282,6 +3343,16 @@ const app = {
                         </div>
                     </div>
                 `).join('');
+
+                // Append an "+ แนบรูปเพิ่ม" card to allow adding photos one by one
+                grid.innerHTML = photoCards + `
+                    <div onclick="document.getElementById('cj-photo-input').click()" class="rounded-xl border-2 border-dashed border-border hover:border-brand-500 bg-muted/20 hover:bg-brand-500/10 transition flex flex-col items-center justify-center p-3 text-center cursor-pointer aspect-4/3 group">
+                        <div class="w-8 h-8 rounded-lg bg-brand-500/10 text-brand-600 flex items-center justify-center text-base mb-1 group-hover:scale-110 transition">
+                            <i class="ph ph-plus-bold"></i>
+                        </div>
+                        <span class="text-[10px] font-semibold text-foreground">แนบรูปเพิ่ม</span>
+                    </div>
+                `;
             },
 
             onModalServiceChange(serviceName) {
