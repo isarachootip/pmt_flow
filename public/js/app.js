@@ -3349,7 +3349,7 @@ const app = {
                     if (res.ok) {
                         const result = await res.json();
                         const photoMsg = photos.length > 0 ? ` (พร้อมแนบรูปภาพ ${photos.length} รูป)` : '';
-                        this.showToast(`สร้างงาน ${result.data?.job_no || 'ใหม่'} (ลูกค้า: ${firstName} ${lastName})${photoMsg} สำเร็จแล้ว`);
+                        this.showToast(`สร้างงาน Manual Order ${result.data?.job_no || 'ใหม่'} (ลูกค้า: ${firstName} ${lastName})${photoMsg} สำเร็จแล้ว`);
                         await this.fetchJobsFromApi();
                     } else {
                         throw new Error('API create failed');
@@ -3366,7 +3366,7 @@ const app = {
                         id: newId,
                         job_no: newId,
                         job_type: jobType,
-                        external_ref_id: `INT-${yyyy}-${runningStr}`,
+                        external_ref_id: `MANUAL-${yyyy}-${runningStr}`,
                         firstName: firstName,
                         lastName: lastName,
                         customer: fullName,
@@ -3394,7 +3394,7 @@ const app = {
                     });
                     DB.jobs = this.sortJobsDescending(DB.jobs);
                     const photoMsg = photos.length > 0 ? ` (พร้อมแนบรูปภาพ ${photos.length} รูป)` : '';
-                    this.showToast(`สร้างงาน ${newId} (ลูกค้า: ${fullName})${photoMsg} สำเร็จแล้ว [สถานะ: Draft]`);
+                    this.showToast(`สร้างงาน Manual Order ${newId} (ลูกค้า: ${fullName})${photoMsg} สำเร็จแล้ว [สถานะ: Draft]`);
                     if(this.state.currentView === 'jobs') this.renderJobs();
                     if(this.state.currentView === 'dashboard') this.renderDashboard();
                 }
@@ -4395,7 +4395,7 @@ const app = {
                                     ` : ''}
                                     <button type="button" onclick="app.showModal('modal-create-job')" class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-muted text-foreground inline-flex items-center gap-1.5 cursor-pointer">
                                         <i class="ph ph-plus-bold"></i>
-                                        <span>+ บันทึก Order ใหม่</span>
+                                        <span>+ Manual Order</span>
                                     </button>
                                 </div>
                             </div>

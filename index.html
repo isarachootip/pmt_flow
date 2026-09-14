@@ -757,9 +757,9 @@
                                     <i class="ph ph-arrows-clockwise text-brand-500 text-sm"></i>
                                     <span>รีเซ็ตเหลือเฉพาะ Order INT</span>
                                 </button>
-                                <button onclick="app.showModal('modal-create-job')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-xs" title="สร้างงานใหม่ / รับคำสั่งซื้อจาก INT">
+                                <button onclick="app.showModal('modal-create-job')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-xs" title="สร้างงานใหม่ (Manual Order)">
                                     <i class="ph ph-plus-bold"></i>
-                                    <span>รับ Order ใหม่ (INT)</span>
+                                    <span>+ Manual Order</span>
                                 </button>
                             </div>
                         </div>
@@ -5388,7 +5388,7 @@
         </main>
     </div>
 
-    <!-- MODAL: CREATE NEW JOB (INT Intake) -->
+    <!-- MODAL: CREATE NEW JOB (Manual Order) -->
     <div id="modal-create-job" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
         <div class="artifact-card rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200" id="modal-create-job-content">
             <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
@@ -5398,12 +5398,12 @@
                     </div>
                     <div>
                         <div class="flex items-center gap-2">
-                            <h3 class="font-display font-bold text-sm text-foreground">สร้างงานใหม่ (รับ Order จาก INT)</h3>
+                            <h3 class="font-display font-bold text-sm text-foreground">สร้างงานใหม่ (Manual Order)</h3>
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center gap-1">
-                                <i class="ph ph-lightning"></i> INT Inbound Payload
+                                <i class="ph ph-hand-pointing"></i> Manual Order
                             </span>
                         </div>
-                        <p class="text-[10px] text-muted-foreground">จำลองหรือสร้าง Job ใหม่จากข้อมูล Payload ระบบ INT พร้อมแนบรูปภาพ</p>
+                        <p class="text-[10px] text-muted-foreground">บันทึกเปิด Order ใหม่แบบ Manual พร้อมข้อมูลจำลอง INT และแนบรูปภาพ</p>
                     </div>
                 </div>
                 <button onclick="app.hideModal('modal-create-job')" class="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted transition">
@@ -5566,7 +5566,7 @@
                 <button onclick="app.hideModal('modal-create-job')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs">ยกเลิก</button>
                 <button onclick="app.submitCreateJob()" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5">
                     <i class="ph ph-plus-circle-bold"></i>
-                    <span>บันทึกสร้างงาน</span>
+                    <span>บันทึกสร้างงาน (Manual Order)</span>
                 </button>
             </div>
         </div>

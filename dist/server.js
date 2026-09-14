@@ -2412,7 +2412,7 @@ app.post('/api/v1/jobs', requireAuth, async (req, res) => {
         const newJob = {
             id: Date.now(),
             job_no: jobNo,
-            external_ref_id: external_ref_id || `INT-${Date.now()}`,
+            external_ref_id: external_ref_id || `MANUAL-${Date.now()}`,
             customer_id: customerData.id,
             customer: customerData,
             customer_data: customerData,
