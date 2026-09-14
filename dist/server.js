@@ -2366,7 +2366,7 @@ app.delete('/api/v1/jobs/:id/photos/:photoId', requireAuth, async (req, res) => 
 });
 app.post('/api/v1/jobs', requireAuth, async (req, res) => {
     try {
-        const { firstName, lastName, phone, address, lat, lng, service, tech, date, job_type } = req.body;
+        const { firstName, lastName, phone, address, lat, lng, service, tech, date, job_type, special_instructions, additional_notes, photos, external_ref_id } = req.body;
         if (!firstName || !lastName) {
             return res.status(400).json({ success: false, error: { code: 'INVALID_PAYLOAD', message: 'firstName and lastName are required' } });
         }
@@ -2383,15 +2383,36 @@ app.post('/api/v1/jobs', requireAuth, async (req, res) => {
             name: `คุณ${firstName} ${lastName}`.trim(),
             first_name: firstName,
             last_name: lastName,
-            phone: phone || '089-000-0000',
-            address: address || 'Bangkok, Thailand',
+            phone: phone || '081-234-5678',
+            address: address || '123/45 ถนนพหลโยธิน แขวงสามเสนใน เขตพญาไท กทม. 10400',
             lat: Number(lat) || 13.7563,
             lng: Number(lng) || 100.5018
         };
+        const formattedPhotos = Array.isArray(photos) ? photos.map((p, idx) => {
+            if (typeof p === 'string') {
+                return {
+                    id: `PHOTO_${Date.now()}_${idx + 1}`,
+                    category: 'survey',
+                    url: p,
+                    remark: 'ภาพถ่ายประกอบงานจากระบบ INT / หน้างาน',
+                    uploaded_at: new Date().toISOString()
+                };
+            }
+            return {
+                id: p.id || `PHOTO_${Date.now()}_${idx + 1}`,
+                title: p.title || p.name || 'ภาพถ่ายประกอบงาน',
+                name: p.name || `photo_${idx + 1}.jpg`,
+                url: p.url || p.dataUrl || '',
+                category: p.category || 'survey',
+                tag: p.tag || 'แนบจาก INT/หน้างาน',
+                remark: p.remark || p.title || '',
+                uploaded_at: p.uploaded_at || new Date().toISOString()
+            };
+        }) : [];
         const newJob = {
             id: Date.now(),
             job_no: jobNo,
-            external_ref_id: `WEB-${Date.now()}`,
+            external_ref_id: external_ref_id || `INT-${Date.now()}`,
             customer_id: customerData.id,
             customer: customerData,
             customer_data: customerData,
@@ -2402,8 +2423,13 @@ app.post('/api/v1/jobs', requireAuth, async (req, res) => {
             overall_progress: 0,
             job_type: job_type || 'quick',
             tasks: [],
-            photos: [],
+            photos: formattedPhotos,
             boq_items: [],
+            special_instructions: special_instructions || '',
+            additional_notes: additional_notes || '',
+            step_timestamps: {
+                step1_order_at: new Date().toISOString()
+            },
             created_at: new Date().toISOString()
         };
         await (0, database_1.dbSaveJob)(newJob);
@@ -2411,7 +2437,7 @@ app.post('/api/v1/jobs', requireAuth, async (req, res) => {
         return res.status(201).json({
             success: true,
             data: newJob,
-            meta: { message: 'Job created successfully' }
+            meta: { message: 'Job created successfully with INT payload and attachments' }
         });
     }
     catch (err) {

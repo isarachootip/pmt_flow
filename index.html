@@ -5393,12 +5393,17 @@
         <div class="artifact-card rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200" id="modal-create-job-content">
             <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-7 h-7 rounded-lg bg-brand-500/15 text-brand-500 flex items-center justify-center">
-                        <i class="ph ph-plus-circle text-base"></i>
+                    <div class="w-8 h-8 rounded-xl bg-brand-500/15 text-brand-500 flex items-center justify-center">
+                        <i class="ph ph-plus-circle text-lg"></i>
                     </div>
                     <div>
-                        <h3 class="font-display font-bold text-sm text-foreground">สร้างงานใหม่ (รับ Order จาก INT)</h3>
-                        <p class="text-[10px] text-muted-foreground">กรอกข้อมูลลูกค้าและพิกัดสถานที่ติดตั้ง</p>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-display font-bold text-sm text-foreground">สร้างงานใหม่ (รับ Order จาก INT)</h3>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center gap-1">
+                                <i class="ph ph-lightning"></i> INT Inbound Payload
+                            </span>
+                        </div>
+                        <p class="text-[10px] text-muted-foreground">จำลองหรือสร้าง Job ใหม่จากข้อมูล Payload ระบบ INT พร้อมแนบรูปภาพ</p>
                     </div>
                 </div>
                 <button onclick="app.hideModal('modal-create-job')" class="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted transition">
@@ -5407,26 +5412,52 @@
             </div>
             
             <div class="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+                <!-- INT PAYLOAD PRESET QUICK SELECTOR -->
+                <div class="p-3 bg-brand-500/5 border border-brand-500/20 rounded-xl space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-brand-600 dark:text-brand-400 flex items-center gap-1.5">
+                            <i class="ph ph-sliders text-sm"></i> ชุดข้อมูลเริ่มต้นจาก INT API Payload:
+                        </span>
+                        <button type="button" onclick="app.resetCreateJobFormToINT()" class="text-[10px] text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1 transition cursor-pointer">
+                            <i class="ph ph-arrows-clockwise"></i> รีเซ็ตค่าเริ่มต้น INT
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px]">
+                        <button type="button" onclick="app.loadCreateJobPreset('water_heater')" class="px-2.5 py-1.5 rounded-lg border border-border bg-card hover:border-brand-500 hover:bg-brand-500/10 text-left font-medium transition cursor-pointer flex items-center gap-1 text-foreground">
+                            <span>⚡ น้ำอุ่น (Quick)</span>
+                        </button>
+                        <button type="button" onclick="app.loadCreateJobPreset('air_con')" class="px-2.5 py-1.5 rounded-lg border border-border bg-card hover:border-brand-500 hover:bg-brand-500/10 text-left font-medium transition cursor-pointer flex items-center gap-1 text-foreground">
+                            <span>⚡ แอร์ (Quick)</span>
+                        </button>
+                        <button type="button" onclick="app.loadCreateJobPreset('kitchen_reno')" class="px-2.5 py-1.5 rounded-lg border border-border bg-card hover:border-brand-500 hover:bg-brand-500/10 text-left font-medium transition cursor-pointer flex items-center gap-1 text-foreground">
+                            <span>🔨 ครัว (Reno)</span>
+                        </button>
+                        <button type="button" onclick="app.loadCreateJobPreset('ma_service')" class="px-2.5 py-1.5 rounded-lg border border-border bg-card hover:border-brand-500 hover:bg-brand-500/10 text-left font-medium transition cursor-pointer flex items-center gap-1 text-foreground">
+                            <span>🔧 สัญญา MA</span>
+                        </button>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[11px] font-medium text-muted-foreground mb-1">ชื่อลูกค้า *</label>
-                        <input type="text" id="cj-firstname" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="สมชาย">
+                        <input type="text" id="cj-firstname" value="สมชาย" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="สมชาย">
                     </div>
                     <div>
                         <label class="block text-[11px] font-medium text-muted-foreground mb-1">นามสกุล *</label>
-                        <input type="text" id="cj-lastname" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="ใจดี">
+                        <input type="text" id="cj-lastname" value="ใจดี" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="ใจดี">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[11px] font-medium text-muted-foreground mb-1">เบอร์โทรติดต่อ</label>
-                        <input type="text" id="cj-phone" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="0812345678">
+                        <input type="text" id="cj-phone" value="081-234-5678" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="0812345678">
                     </div>
                     <div>
                         <label class="block text-[11px] font-medium text-muted-foreground mb-1">ประเภทบริการ</label>
                         <select id="cj-service" onchange="app.onModalServiceChange(this.value)" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500">
-                            <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
+                            <option value="ติดตั้งเครื่องทำน้ำอุ่น" selected>ติดตั้งเครื่องทำน้ำอุ่น</option>
                             <option value="ติดตั้งเครื่องปรับอากาศ">ติดตั้งเครื่องปรับอากาศ</option>
                             <option value="ติดตั้ง Solar Rooftop">ติดตั้ง Solar Rooftop</option>
                             <option value="ติดตั้ง Digital Door Lock & CCTV">ติดตั้ง Digital Door Lock & CCTV</option>
@@ -5440,7 +5471,7 @@
                 <div>
                     <div class="flex items-center justify-between mb-1">
                         <label class="block text-[11px] font-medium text-muted-foreground">ประเภทกระบวนการ (Pipeline Flow)</label>
-                        <span id="cj-job-type-hint" class="text-[10px] text-brand-500 font-medium">เข้าสู่กระบวนการมาตรฐาน 6 Steps (Step 1-6)</span>
+                        <span id="cj-job-type-hint" class="text-[10px] text-brand-500 font-medium">⚡ งาน Quick จะข้ามขั้นตอนไป Step 2 (Ticket) และ Step 5 (QC Online)</span>
                     </div>
                     <select id="cj-job-type" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs font-semibold text-brand-600 dark:text-brand-400 focus:outline-none focus:border-brand-500 cursor-pointer">
                         <option value="quick" selected>⚡ Quick Services (บริการติดตั้งอุปกรณ์เดี่ยว / ด่วน)</option>
@@ -5451,29 +5482,29 @@
 
                 <div>
                     <label class="block text-[11px] font-medium text-muted-foreground mb-1">ที่อยู่สถานที่ติดตั้ง</label>
-                    <textarea id="cj-address" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" rows="2" placeholder="123/45 ถนนพหลโยธิน แขวงสามเสนใน เขตพญาไท กทม."></textarea>
+                    <textarea id="cj-address" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" rows="2" placeholder="123/45 ถนนพหลโยธิน แขวงสามเสนใน เขตพญาไท กทม.">123/45 ถนนพหลโยธิน แขวงสามเสนใน เขตพญาไท กทม. 10400</textarea>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[11px] font-medium text-muted-foreground mb-1">พิกัด GPS Latitude</label>
-                        <input type="number" step="any" id="cj-lat" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs font-mono text-brand-500 focus:outline-none focus:border-brand-500" placeholder="13.7563">
+                        <input type="number" step="any" id="cj-lat" value="13.7563" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs font-mono text-brand-500 focus:outline-none focus:border-brand-500" placeholder="13.7563">
                     </div>
                     <div>
                         <label class="block text-[11px] font-medium text-muted-foreground mb-1">พิกัด GPS Longitude</label>
-                        <input type="number" step="any" id="cj-lng" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs font-mono text-brand-500 focus:outline-none focus:border-brand-500" placeholder="100.5018">
+                        <input type="number" step="any" id="cj-lng" value="100.5018" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs font-mono text-brand-500 focus:outline-none focus:border-brand-500" placeholder="100.5018">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[11px] font-medium text-muted-foreground mb-1">ทีมช่างผู้รับผิดชอบ</label>
-                        <input type="text" id="cj-tech" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="ทีมช่าง สมศักดิ์ (Team A)">
+                        <input type="text" id="cj-tech" value="ทีมช่าง สมศักดิ์ (Team A)" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="ทีมช่าง สมศักดิ์ (Team A)">
                     </div>
                     <div>
                         <label class="block text-[11px] font-medium text-muted-foreground mb-1">วันนัดติดตั้ง (DD/MM/YYYY)</label>
                         <div class="relative">
-                            <input type="text" id="cj-date" value="06/09/2026" placeholder="DD/MM/YYYY" data-datepicker="true" class="w-full bg-card border border-border rounded-lg pl-3 pr-9 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-brand-500 cursor-pointer">
+                            <input type="text" id="cj-date" value="14/09/2026" placeholder="DD/MM/YYYY" data-datepicker="true" class="w-full bg-card border border-border rounded-lg pl-3 pr-9 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-brand-500 cursor-pointer">
                             <i class="ph ph-calendar absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-sm"></i>
                         </div>
                     </div>
@@ -5481,18 +5512,62 @@
 
                 <div>
                     <label class="block text-[11px] font-medium text-muted-foreground mb-1 flex items-center gap-1"><i class="ph ph-warning-circle text-amber-500"></i> คำสั่งพิเศษ (Special Instructions)</label>
-                    <input type="text" id="cj-instructions" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="เช่น ระวังหมาดุ, เข้าหลัง 10:00 น.">
+                    <input type="text" id="cj-instructions" value="ระวังหมาดุ, เข้าหน้างานช่วงเช้า 10:00 น. ตรวจสอบเบรกเกอร์ ELCB" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" placeholder="เช่น ระวังหมาดุ, เข้าหลัง 10:00 น.">
                 </div>
 
                 <div>
                     <label class="block text-[11px] font-medium text-muted-foreground mb-1 flex items-center gap-1"><i class="ph ph-note-pencil text-brand-500"></i> ข้อมูลเพิ่มเติม / หมายเหตุหน้างาน (Notes)</label>
-                    <textarea id="cj-notes" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" rows="2" placeholder="รายละเอียดหรือข้อควรระวังเพิ่มเติม..."></textarea>
+                    <textarea id="cj-notes" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-brand-500" rows="2" placeholder="รายละเอียดหรือข้อควรระวังเพิ่มเติม...">Order ส่งตรงจากระบบ INT (Inbound API #1) ลูกค้าเตรียมพื้นที่ติดตั้งพร้อมสายไฟเมนเบอร์ 4 แล้ว</textarea>
+                </div>
+
+                <!-- PHOTO ATTACHMENT SECTION (รูปภาพจาก INT หรือหน้างาน) -->
+                <div class="border border-border/80 rounded-xl p-3.5 bg-muted/20 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-[11px] font-bold text-foreground flex items-center gap-1.5">
+                            <i class="ph ph-camera text-brand-500 text-sm"></i>
+                            <span>แนบรูปภาพหน้างาน / เอกสารประกอบจาก INT</span>
+                            <span id="cj-photos-count" class="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 font-semibold">0 รูป</span>
+                        </label>
+                        <button type="button" onclick="app.addCreateJobSamplePhotos()" class="text-[10px] text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1 transition cursor-pointer">
+                            <i class="ph ph-sparkle text-amber-500"></i> แนบรูปตัวอย่าง INT (2 รูป)
+                        </button>
+                    </div>
+
+                    <input type="file" id="cj-photo-input" accept="image/*" multiple class="hidden" onchange="app.handleCreateJobPhotoChange(event)">
+                    <input type="file" id="cj-camera-input" accept="image/*" capture="environment" class="hidden" onchange="app.handleCreateJobPhotoChange(event)">
+
+                    <!-- Dropzone -->
+                    <div id="cj-dropzone" class="border-2 border-dashed border-border hover:border-brand-500 rounded-xl p-4 text-center transition bg-card/60 flex flex-col items-center justify-center gap-2 group cursor-pointer" onclick="document.getElementById('cj-photo-input').click()">
+                        <div class="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center group-hover:scale-110 transition">
+                            <i class="ph ph-cloud-arrow-up text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-semibold text-foreground">ลากไฟล์รูปภาพมาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
+                            <div class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์ JPG, PNG, WEBP (เลือกได้หลายรูป)</div>
+                        </div>
+                        <div class="flex items-center gap-2 pt-1" onclick="event.stopPropagation()">
+                            <button type="button" onclick="document.getElementById('cj-photo-input').click()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium shadow-xs">
+                                <i class="ph ph-folder-open text-xs"></i> เลือกรูปจากเครื่อง
+                            </button>
+                            <button type="button" onclick="document.getElementById('cj-camera-input').click()" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 font-medium shadow-xs">
+                                <i class="ph ph-camera text-xs"></i> ถ่ายภาพ
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Photo Previews Grid -->
+                    <div id="cj-photos-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 hidden-view">
+                        <!-- Populated dynamically by app.renderCreateJobPhotoPreviews() -->
+                    </div>
                 </div>
             </div>
 
             <div class="p-4 border-t border-border flex justify-end items-center gap-2 bg-muted/30">
                 <button onclick="app.hideModal('modal-create-job')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs">ยกเลิก</button>
-                <button onclick="app.submitCreateJob()" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium">บันทึกสร้างงาน</button>
+                <button onclick="app.submitCreateJob()" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5">
+                    <i class="ph ph-plus-circle-bold"></i>
+                    <span>บันทึกสร้างงาน</span>
+                </button>
             </div>
         </div>
     </div>

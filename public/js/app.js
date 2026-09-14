@@ -2936,16 +2936,21 @@ const app = {
 
             showModal(id) {
                 const m = document.getElementById(id);
+                if (!m) return;
+                if (id === 'modal-create-job') {
+                    this.initCreateJobModal();
+                }
                 m.classList.remove('hidden-view');
                 setTimeout(() => {
                     m.classList.remove('opacity-0');
                     const dialog = m.querySelector('#' + id + '-content') || m.querySelector('div');
-                    dialog.classList.remove('scale-95');
+                    if (dialog) dialog.classList.remove('scale-95');
                 }, 10);
             },
 
             hideModal(id) {
                 const m = document.getElementById(id);
+                if (!m) return;
                 m.classList.add('opacity-0');
                 const dialog = m.querySelector('#' + id + '-content') || m.querySelector('div');
                 if(dialog) dialog.classList.add('scale-95');
@@ -2966,6 +2971,317 @@ const app = {
                     );
                     this.renderJobs(filtered);
                 }
+            },
+
+            INT_PAYLOAD_PRESETS: {
+                water_heater: {
+                    firstName: 'สมชาย',
+                    lastName: 'ใจดี',
+                    phone: '081-234-5678',
+                    service: 'ติดตั้งเครื่องทำน้ำอุ่น',
+                    jobType: 'quick',
+                    address: '123/45 ถนนพหลโยธิน แขวงสามเสนใน เขตพญาไท กทม. 10400',
+                    lat: 13.7563,
+                    lng: 100.5018,
+                    tech: 'ทีมช่าง สมศักดิ์ (Team A)',
+                    instructions: 'ระวังหมาดุ, เข้าหน้างานช่วงเช้า 10:00 น. ตรวจสอบเบรกเกอร์ ELCB',
+                    notes: 'Order ส่งตรงจากระบบ INT (Inbound API #1) ลูกค้าเตรียมพื้นที่ติดตั้งพร้อมสายไฟเมนเบอร์ 4 แล้ว',
+                    samplePhotos: [
+                        {
+                            id: 'INT-PHT-01',
+                            title: 'จุดติดตั้งเครื่องทำน้ำอุ่นเดิมในห้องน้ำ',
+                            name: 'int_waterheater_site.jpg',
+                            url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'จุดติดตั้งเดิม'
+                        },
+                        {
+                            id: 'INT-PHT-02',
+                            title: 'ตู้คอนซูเมอร์ยูนิตและเบรกเกอร์ ELCB',
+                            name: 'int_circuit_breaker.jpg',
+                            url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'ระบบไฟ'
+                        }
+                    ]
+                },
+                air_con: {
+                    firstName: 'กิตติศักดิ์',
+                    lastName: 'รุ่งเรืองกิจ',
+                    phone: '089-876-5432',
+                    service: 'ติดตั้งเครื่องปรับอากาศ',
+                    jobType: 'quick',
+                    address: '88/12 ซอยสุขุมวิท 101/1 แขวงบางจาก เขตพระโขนง กทม. 10260',
+                    lat: 13.6894,
+                    lng: 100.6125,
+                    tech: 'ทีมช่าง เอกชัย (Team B)',
+                    instructions: 'คอนโดชั้น 14 ติดต่อนิติบุคคลแลกบัตรก่อนขึ้นอาคาร, มีขาแขวนคอยล์ร้อนเดิม',
+                    notes: 'แอร์ Inverter 18,000 BTU ท่อน้ำยายาว 4 เมตร รวมติดตั้งเบรกเกอร์และท่อครอบสายไฟ',
+                    samplePhotos: [
+                        {
+                            id: 'INT-PHT-03',
+                            title: 'ตำแหน่งเจาะรูท่อน้ำยาแอร์และผนังติดตั้ง',
+                            name: 'int_aircon_wall.jpg',
+                            url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'ตำแหน่งติดตั้ง'
+                        },
+                        {
+                            id: 'INT-PHT-04',
+                            title: 'ระเบียงคอนโดจุดวางคอนเดนซิ่งยูนิต',
+                            name: 'int_aircon_balcony.jpg',
+                            url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'จุดวางคอยล์ร้อน'
+                        }
+                    ]
+                },
+                kitchen_reno: {
+                    firstName: 'คุณหญิงนภา',
+                    lastName: 'สิริโชคชัย',
+                    phone: '082-345-6789',
+                    service: 'Renovate ครัว',
+                    jobType: 'renovate',
+                    address: '55/9 มัณฑนา พุทธมณฑลสาย 2 แขวงศาลาธรรมสพน์ เขตทวีวัฒนา กทม. 10170',
+                    lat: 13.7845,
+                    lng: 100.3921,
+                    tech: 'ทีมช่าง วิชัย (Team C)',
+                    instructions: 'เข้าปฏิบัติงานได้เฉพาะ จ.-ส. 09:00 - 17:00 น. ปูพลาสติกกันฝุ่นบริเวณโถงบ้าน',
+                    notes: 'ปรับปรุงเคาน์เตอร์ครัวปูน Built-in L-Shape ปูกระเบื้องแกรนิตโต้และติดตั้งฮูดดูดควัน',
+                    samplePhotos: [
+                        {
+                            id: 'INT-PHT-05',
+                            title: 'สภาพห้องครัวเดิมก่อนการรีโนเวท',
+                            name: 'int_kitchen_before.jpg',
+                            url: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'สภาพก่อนปรับปรุง'
+                        },
+                        {
+                            id: 'INT-PHT-06',
+                            title: 'จุดต่อท่อน้ำทิ้งและปลั๊กไฟเตาแม่เหล็ก',
+                            name: 'int_kitchen_piping.jpg',
+                            url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'ระบบสุขาภิบาล/ไฟฟ้า'
+                        }
+                    ]
+                },
+                ma_service: {
+                    firstName: 'บจก. สยามอินโนเวชั่น คอนซัลติ้ง',
+                    lastName: '(คุณธนวัฒน์)',
+                    phone: '02-789-0123',
+                    service: 'ปั้มแท็งก์',
+                    jobType: 'ma',
+                    address: '99/8 อาคารสยามทาวเวอร์ ชั้น 18 ถนนพระราม 9 ห้วยขวาง กทม. 10310',
+                    lat: 13.7538,
+                    lng: 100.5694,
+                    tech: 'ทีมช่าง สมศักดิ์ (Team A)',
+                    instructions: 'ตรวจเช็คปั๊มน้ำแรงดันคงที่และล้างถังพักน้ำสเตนเลสประจำปี 4 รอบ/ปี',
+                    notes: 'สัญญาบริการบำรุงรักษาอาคารสำนักงานประจำปีรอบที่ 1 พร้อมตรวจวัดแรงดันและคลอรีนตกค้าง',
+                    samplePhotos: [
+                        {
+                            id: 'INT-PHT-07',
+                            title: 'ถังพักน้ำและปั๊มน้ำบูสเตอร์หลักของอาคาร',
+                            name: 'int_booster_pump.jpg',
+                            url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'อุปกรณ์ปั๊มน้ำ'
+                        },
+                        {
+                            id: 'INT-PHT-08',
+                            title: 'เกจวัดแรงดันน้ำ Pressure Gauge',
+                            name: 'int_pressure_gauge.jpg',
+                            url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80',
+                            category: 'survey',
+                            tag: 'การตรวจวัดแรงดัน'
+                        }
+                    ]
+                }
+            },
+
+            initCreateJobModal() {
+                if (!this.state.createJobPhotos) {
+                    this.state.createJobPhotos = [];
+                }
+                const fn = document.getElementById('cj-firstname');
+                if (fn && !fn.value) {
+                    this.loadCreateJobPreset('water_heater', false);
+                }
+                // Ensure date is set in DD/MM/YYYY
+                const dtEl = document.getElementById('cj-date');
+                if (dtEl && (!dtEl.value || dtEl.value.includes('YYYY'))) {
+                    const today = new Date();
+                    const dd = String(today.getDate()).padStart(2, '0');
+                    const mm = String(today.getMonth() + 1).padStart(2, '0');
+                    const yyyy = today.getFullYear();
+                    dtEl.value = `${dd}/${mm}/${yyyy}`;
+                }
+                this.bindCreateJobDropzone();
+                this.renderCreateJobPhotoPreviews();
+            },
+
+            loadCreateJobPreset(presetKey, showToastMsg = true) {
+                const p = this.INT_PAYLOAD_PRESETS[presetKey] || this.INT_PAYLOAD_PRESETS['water_heater'];
+                if (!p) return;
+                const setVal = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = val;
+                };
+                setVal('cj-firstname', p.firstName);
+                setVal('cj-lastname', p.lastName);
+                setVal('cj-phone', p.phone);
+                setVal('cj-service', p.service);
+                setVal('cj-address', p.address);
+                setVal('cj-lat', p.lat);
+                setVal('cj-lng', p.lng);
+                setVal('cj-tech', p.tech);
+                setVal('cj-instructions', p.instructions);
+                setVal('cj-notes', p.notes);
+                this.onModalServiceChange(p.service);
+                const jtEl = document.getElementById('cj-job-type');
+                if (jtEl && p.jobType) jtEl.value = p.jobType;
+
+                // Load sample photos from preset
+                if (p.samplePhotos && Array.isArray(p.samplePhotos)) {
+                    this.state.createJobPhotos = p.samplePhotos.map(sp => ({ ...sp, uploaded_at: new Date().toISOString() }));
+                    this.renderCreateJobPhotoPreviews();
+                }
+
+                if (showToastMsg) {
+                    this.showToast(`✨ โหลดข้อมูลจำลอง INT Payload (${p.service}) เรียบร้อยแล้ว`);
+                }
+            },
+
+            resetCreateJobFormToINT() {
+                this.loadCreateJobPreset('water_heater', true);
+            },
+
+            bindCreateJobDropzone() {
+                const dz = document.getElementById('cj-dropzone');
+                if (!dz || dz._bound) return;
+                dz._bound = true;
+                dz.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dz.classList.add('border-brand-500', 'bg-brand-500/10');
+                });
+                dz.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    dz.classList.remove('border-brand-500', 'bg-brand-500/10');
+                });
+                dz.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dz.classList.remove('border-brand-500', 'bg-brand-500/10');
+                    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        this.handleCreateJobPhotoFiles(e.dataTransfer.files);
+                    }
+                });
+            },
+
+            handleCreateJobPhotoChange(event) {
+                if (event.target.files && event.target.files.length > 0) {
+                    this.handleCreateJobPhotoFiles(event.target.files);
+                    event.target.value = '';
+                }
+            },
+
+            async handleCreateJobPhotoFiles(fileList) {
+                if (!fileList || fileList.length === 0) return;
+                if (!this.state.createJobPhotos) this.state.createJobPhotos = [];
+                const files = Array.from(fileList);
+                for (const file of files) {
+                    let dataUrl = null;
+                    if (file.type && file.type.startsWith('image/')) {
+                        try {
+                            dataUrl = await this.compressImage(file, 1000, 0.75);
+                        } catch (err) {
+                            console.warn('[PHOTO COMPRESS ERROR]', err);
+                        }
+                    }
+                    if (!dataUrl) {
+                        dataUrl = await new Promise(res => {
+                            const rd = new FileReader();
+                            rd.onload = e => res(e.target.result);
+                            rd.onerror = () => res(null);
+                            rd.readAsDataURL(file);
+                        });
+                    }
+                    if (dataUrl) {
+                        this.state.createJobPhotos.push({
+                            id: `INT-PHT-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+                            title: file.name.replace(/\.[^/.]+$/, ""),
+                            name: file.name,
+                            url: dataUrl,
+                            category: 'survey',
+                            tag: 'แนบจาก INT/หน้างาน',
+                            uploaded_at: new Date().toISOString()
+                        });
+                    }
+                }
+                this.renderCreateJobPhotoPreviews();
+                this.showToast(`📷 แนบรูปภาพสำเร็จ (${files.length} รูป)`);
+            },
+
+            addCreateJobSamplePhotos() {
+                if (!this.state.createJobPhotos) this.state.createJobPhotos = [];
+                const currentService = document.getElementById('cj-service')?.value || '';
+                let presetKey = 'water_heater';
+                if (currentService.includes('ปรับอากาศ') || currentService.includes('แอร์')) presetKey = 'air_con';
+                else if (currentService.includes('Renovate') || currentService.includes('ครัว')) presetKey = 'kitchen_reno';
+                else if (currentService.includes('ปั้ม')) presetKey = 'ma_service';
+
+                const preset = this.INT_PAYLOAD_PRESETS[presetKey] || this.INT_PAYLOAD_PRESETS['water_heater'];
+                if (preset && preset.samplePhotos) {
+                    preset.samplePhotos.forEach(sp => {
+                        this.state.createJobPhotos.push({
+                            ...sp,
+                            id: `INT-PHT-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+                            uploaded_at: new Date().toISOString()
+                        });
+                    });
+                    this.renderCreateJobPhotoPreviews();
+                    this.showToast(`✨ แนบรูปตัวอย่าง INT (${preset.samplePhotos.length} รูป) สำเร็จแล้ว`);
+                }
+            },
+
+            removeCreateJobPhoto(idx) {
+                if (!this.state.createJobPhotos) return;
+                this.state.createJobPhotos.splice(idx, 1);
+                this.renderCreateJobPhotoPreviews();
+            },
+
+            renderCreateJobPhotoPreviews() {
+                const grid = document.getElementById('cj-photos-grid');
+                const countBadge = document.getElementById('cj-photos-count');
+                const photos = this.state.createJobPhotos || [];
+                if (countBadge) {
+                    countBadge.innerText = `${photos.length} รูป`;
+                    if (photos.length > 0) {
+                        countBadge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-semibold';
+                    } else {
+                        countBadge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 font-semibold';
+                    }
+                }
+                if (!grid) return;
+                if (photos.length === 0) {
+                    grid.classList.add('hidden-view');
+                    grid.innerHTML = '';
+                    return;
+                }
+                grid.classList.remove('hidden-view');
+                grid.innerHTML = photos.map((p, idx) => `
+                    <div class="relative group rounded-xl overflow-hidden border border-border bg-card shadow-xs aspect-4/3 flex flex-col justify-end">
+                        <img src="${p.url}" alt="${p.title || 'Photo'}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                        <button type="button" onclick="app.removeCreateJobPhoto(${idx})" class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-rose-600/90 hover:bg-rose-600 text-white flex items-center justify-center text-[10px] shadow transition cursor-pointer" title="ลบรูปนี้">
+                            ✕
+                        </button>
+                        <div class="relative p-1.5 text-white">
+                            <div class="text-[10px] font-semibold truncate leading-tight">${p.title || p.name || 'รูปถ่าย'}</div>
+                            <div class="text-[9px] text-white/75 truncate">${p.tag || 'ภาพประกอบ'}</div>
+                        </div>
+                    </div>
+                `).join('');
             },
 
             onModalServiceChange(serviceName) {
@@ -2993,14 +3309,15 @@ const app = {
                     (service.includes('Renovate') ? 'renovate' : (service.includes('ปั้ม') ? 'ma' : 'quick'));
                 const lat = parseFloat(document.getElementById('cj-lat').value) || 13.7563;
                 const lng = parseFloat(document.getElementById('cj-lng').value) || 100.5018;
-                const phone = document.getElementById('cj-phone').value || '089-000-0000';
-                const address = document.getElementById('cj-address').value || 'Bangkok, Thailand';
+                const phone = document.getElementById('cj-phone').value || '081-234-5678';
+                const address = document.getElementById('cj-address').value || '123/45 ถนนพหลโยธิน แขวงสามเสนใน เขตพญาไท กทม. 10400';
                 const tech = document.getElementById('cj-tech').value || 'Team A (สมศักดิ์)';
-                const rawDate = document.getElementById('cj-date')?.value || '06/09/2026';
-                const date = this.formatDateISO(rawDate) || '2026-09-06';
+                const rawDate = document.getElementById('cj-date')?.value || '14/09/2026';
+                const date = this.formatDateISO(rawDate) || '2026-09-14';
                 const special_instructions = document.getElementById('cj-instructions')?.value.trim() || '';
                 const additional_notes = document.getElementById('cj-notes')?.value.trim() || '';
-                
+                const photos = (this.state.createJobPhotos && Array.isArray(this.state.createJobPhotos)) ? [...this.state.createJobPhotos] : [];
+
                 if(!firstName || !lastName) {
                     return this.showToast('กรุณากรอกชื่อและนามสกุลลูกค้า');
                 }
@@ -3013,11 +3330,26 @@ const app = {
                             'Content-Type': 'application/json',
                             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                         },
-                        body: JSON.stringify({ firstName, lastName, service, job_type: jobType, lat, lng, phone, address, tech, date, special_instructions, additional_notes })
+                        body: JSON.stringify({ 
+                            firstName, 
+                            lastName, 
+                            service, 
+                            job_type: jobType, 
+                            lat, 
+                            lng, 
+                            phone, 
+                            address, 
+                            tech, 
+                            date, 
+                            special_instructions, 
+                            additional_notes,
+                            photos 
+                        })
                     });
                     if (res.ok) {
                         const result = await res.json();
-                        this.showToast(`สร้างงาน ${result.data?.job_no || 'ใหม่'} (ลูกค้า: ${firstName} ${lastName}) สำเร็จแล้ว`);
+                        const photoMsg = photos.length > 0 ? ` (พร้อมแนบรูปภาพ ${photos.length} รูป)` : '';
+                        this.showToast(`สร้างงาน ${result.data?.job_no || 'ใหม่'} (ลูกค้า: ${firstName} ${lastName})${photoMsg} สำเร็จแล้ว`);
                         await this.fetchJobsFromApi();
                     } else {
                         throw new Error('API create failed');
@@ -3049,7 +3381,7 @@ const app = {
                         tech: tech,
                         special_instructions: special_instructions,
                         additional_notes: additional_notes,
-                        photos: [],
+                        photos: photos,
                         boq_items: [],
                         boq_discount: 0,
                         created_at: nowIso,
@@ -3061,19 +3393,17 @@ const app = {
                         ]
                     });
                     DB.jobs = this.sortJobsDescending(DB.jobs);
-                    this.showToast(`สร้างงาน ${newId} (ลูกค้า: ${fullName}) สำเร็จแล้ว [สถานะ: Draft]`);
+                    const photoMsg = photos.length > 0 ? ` (พร้อมแนบรูปภาพ ${photos.length} รูป)` : '';
+                    this.showToast(`สร้างงาน ${newId} (ลูกค้า: ${fullName})${photoMsg} สำเร็จแล้ว [สถานะ: Draft]`);
                     if(this.state.currentView === 'jobs') this.renderJobs();
                     if(this.state.currentView === 'dashboard') this.renderDashboard();
                 }
 
+                this.state.createJobPhotos = [];
+                this.renderCreateJobPhotoPreviews();
                 this.hideModal('modal-create-job');
-                document.getElementById('cj-firstname').value = '';
-                document.getElementById('cj-lastname').value = '';
-                document.getElementById('cj-address').value = '';
-                const instEl = document.getElementById('cj-instructions');
-                const noteEl = document.getElementById('cj-notes');
-                if (instEl) instEl.value = '';
-                if (noteEl) noteEl.value = '';
+                // Reset form to default INT values
+                this.loadCreateJobPreset('water_heater', false);
             },
 
             getJobLatestTimestamp(job) {
