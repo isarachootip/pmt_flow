@@ -2509,7 +2509,7 @@ const app = {
                     'completed-jobs': 'รายงานโครงการที่สำเร็จแล้ว (Job Close Report)',
                     'settings': 'ตั้งค่าระบบ & API',
                     'api-logs': 'ประวัติการยิง API ขาเข้า (Inbound API Request Logs)',
-                    'faq': 'คู่มือระบบ & คำถามที่พบบ่อย (Workflow Guide & FAQ)',
+                    'faq': 'คลังความรู้ & คู่มือระบบ (KM Portal & System Guide)',
                     'users': 'จัดการผู้ใช้งาน'
                 };
                 document.getElementById('topbar-breadcrumb').innerText = breadcrumbMap[view] || view;
@@ -5951,12 +5951,12 @@ const app = {
                 }).catch(() => {});
 
                 this.updateStepBadges();
-                this.addJobActivityLog(id, 1, 'บันทึกรับ Order เข้าสู่ระบบ PMT', isQuick ? 'ข้ามขั้นตอน Design & BOQ ย้ายเข้าสู่ Step 4 (Quick Service)' : 'ย้ายเข้าสู่ Step 2 (บันทึก Design)');
+                this.addJobActivityLog(id, 1, 'บันทึกรับ Order เข้าสู่ระบบ PMT', isQuick ? 'ข้ามขั้นตอน Design & BOQ ย้ายเข้าสู่ Step 2 (Quick Service)' : 'ส่งเข้าขั้นตอนจัดทำแบบและ BOQ');
                 
                 if (isQuick) {
-                    this.showToast(`⚡ ย้าย Order [${id}] (Quick Service) เข้าสู่ Step 4 (บันทึก Ticket & ใบเสร็จ) เรียบร้อยแล้ว <button onclick="app.navigate('tickets')" class="ml-2 font-bold text-emerald-400 hover:underline cursor-pointer">เปิดดูใน Step 4 →</button>`);
+                    this.showToast(`⚡ ย้าย Order [${id}] (Quick Service) เข้าสู่ Step 2 (บันทึก Ticket & ใบเสร็จ) เรียบร้อยแล้ว <button onclick="app.navigate('tickets')" class="ml-2 font-bold text-emerald-400 hover:underline cursor-pointer">เปิดดูใน Step 2 →</button>`);
                 } else {
-                    this.showToast(`🎉 บันทึกรับ Order [${id}] เข้าสู่ระบบ PMT สำเร็จ! ย้ายเข้าสู่ Step 2 (บันทึก Design) <button onclick="app.navigate('blueprints')" class="ml-2 font-bold text-indigo-400 hover:underline cursor-pointer">เปิดดูใน Step 2 →</button>`);
+                    this.showToast(`🎉 บันทึกรับ Order [${id}] เข้าสู่ระบบ PMT สำเร็จ! เข้าสู่ขั้นตอนจัดทำข้อเสนอ <button onclick="app.openUnifiedOrderStudio('${id}')" class="ml-2 font-bold text-indigo-400 hover:underline cursor-pointer">เปิด Studio →</button>`);
                 }
 
                 this.renderJobDetail();
@@ -6730,7 +6730,7 @@ const app = {
                         ${checkinBadge}
                         <button class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-xs cursor-pointer ${isQuick ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}" onclick="app.acceptJobToPMT('${job.id}')" title="${isQuick ? 'บันทึกรับ Order นี้เข้าสู่ระบบ PMT' : 'บันทึกรับ Order นี้เข้าสู่ระบบ PMT'}">
                             <i class="ph ${isQuick ? 'ph-lightning-bold text-amber-300' : 'ph-check-circle'} text-sm"></i>
-                            <span>${isQuick ? 'รับเข้า (ไป Step 4)' : 'รับเข้าระบบ PMT'}</span>
+                            <span>${isQuick ? 'รับเข้า (ไป Step 2)' : 'รับเข้าระบบ PMT'}</span>
                             <i class="ph ph-arrow-right text-xs ml-0.5"></i>
                         </button>
                     `;

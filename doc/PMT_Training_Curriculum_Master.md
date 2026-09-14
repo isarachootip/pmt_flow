@@ -1,6 +1,6 @@
-# 📘 คู่มือฝึกอบรมแม่บทระบบ PMT Flow (Master Training Curriculum & Syllabus)
-### กรอบหลักสูตรการเรียนรู้และคู่มือปฏิบัติการระดับองค์กร (Enterprise Operations Training Program)
-**รหัสโปรแกรม:** `TRN-PMT-MASTER-2026` | **ระบบ:** PMT Flow (Store Project Management Tool) | **เวอร์ชัน:** 2.0 (Pipeline Architecture)
+# 📘 หลักสูตรฝึกอบรมแม่บทและการจัดการองค์ความรู้ (PMT Flow KM & Master Training Curriculum)
+### กรอบหลักสูตรการเรียนรู้และคลังความรู้ปฏิบัติการระดับองค์กร (Enterprise Operations Knowledge Management)
+**รหัสโปรแกรม:** `TRN-PMT-MASTER-2026` | **ระบบ:** PMT Flow (Store Project Management Tool) | **เวอร์ชัน:** 3.0 (6-Step Pipeline Architecture)
 
 ---
 

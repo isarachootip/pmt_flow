@@ -1,5 +1,5 @@
-# 📘 คู่มือการใช้งานระบบ PMT Flow (Enterprise Operations Manual)
-### เอกสารประกอบการฝึกอบรมผู้ใช้งาน (User & Trainer Training Manual)
+# 📘 คลังความรู้และคู่มือปฏิบัติการมาตรฐาน (PMT Flow Knowledge Management - KM System)
+### เอกสารจัดการความรู้และการฝึกอบรมผู้ใช้งานระดับองค์กร (Enterprise KM & Operations Training Manual)
 
 ---
 

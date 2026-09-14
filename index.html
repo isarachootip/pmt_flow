@@ -294,11 +294,11 @@
                     </nav>
                 </div>
 
-                <!-- Group: ขั้นตอนการดำเนินงาน (5 STEPS) -->
+                <!-- Group: ขั้นตอนการดำเนินงาน (2 STEPS) -->
                 <div>
                     <div class="px-3 mb-2">
                         <div class="text-[11px] font-bold text-foreground">ขั้นตอนการดำเนินงาน</div>
-                        <div class="text-[11px] font-bold text-foreground">(5 STEPS)</div>
+                        <div class="text-[11px] font-bold text-foreground">(2 STEPS)</div>
                     </div>
                     <nav class="space-y-1">
                         <!-- Step 1: บันทึกงาน / รับ Order -->
@@ -309,11 +309,11 @@
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono shrink-0" id="sidebar-job-count">0</span>
                         </a>
-                        <!-- Step 4: บันทึก Ticket & ใบเสร็จ -->
+                        <!-- Step 2: บันทึก Ticket & ใบเสร็จ -->
                         <a href="#" onclick="app.navigate('tickets')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-tickets">
                             <div class="flex items-center gap-2.5">
-                                <span class="w-5 h-5 rounded-md bg-emerald-500/15 text-emerald-600 text-[10px] font-mono font-bold flex items-center justify-center border border-emerald-500/30 shrink-0">4</span>
-                                <span class="truncate">Step 4: บันทึก Ticket & ใบเสร็จ</span>
+                                <span class="w-5 h-5 rounded-md bg-emerald-500/15 text-emerald-600 text-[10px] font-mono font-bold flex items-center justify-center border border-emerald-500/30 shrink-0">2</span>
+                                <span class="truncate font-semibold">Step 2: บันทึก Ticket & ใบเสร็จ</span>
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-mono font-medium shrink-0" id="sidebar-ticket-count">0</span>
                         </a>
@@ -395,9 +395,9 @@
                         <a href="#" onclick="app.navigate('faq')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-faq">
                             <div class="flex items-center gap-2.5">
                                 <i class="ph ph-book-open text-base text-purple-500"></i>
-                                <span>คู่มือระบบ &amp; FAQ</span>
+                                <span>คลังความรู้ &amp; คู่มือ (KM)</span>
                             </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 font-mono font-medium shrink-0">SOP</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 font-mono font-bold shrink-0">KM</span>
                         </a>
                     </nav>
                 </div>
@@ -464,9 +464,9 @@
                     </button>
 
                     <!-- FAQ & Workflow Guide Button -->
-                    <button onclick="app.navigate('faq')" class="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition flex items-center gap-1 text-xs" title="คู่มือระบบ & FAQ ขั้นตอนการทำงาน">
-                        <i class="ph ph-question text-lg text-brand-500"></i>
-                        <span class="hidden sm:inline font-medium">FAQ & คู่มือ</span>
+                    <button onclick="app.navigate('faq')" class="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition flex items-center gap-1 text-xs" title="คลังความรู้ KM & คู่มือขั้นตอนการทำงาน">
+                        <i class="ph ph-book-bookmark text-lg text-purple-600"></i>
+                        <span class="hidden sm:inline font-medium">KM & คู่มือ</span>
                     </button>
 
                     <!-- Notifications -->
@@ -1979,8 +1979,8 @@
                         <div class="flex items-center gap-2.5">
                             <span class="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-600 dark:text-purple-300 flex items-center justify-center font-bold text-xs shrink-0">📋</span>
                             <div>
-                                <span class="font-bold">คิวงาน Step 3 (BOQ Ingestion Queue):</span>
-                                <span class="text-muted-foreground ml-1">แสดงเฉพาะงานที่พร้อมจัดทำ BOQ หรือนำเข้าไฟล์ Excel/vFIX เมื่อจัดทำ BOQ เสร็จแล้ว สามารถกดส่งต่อไปยัง Step 4 (ออก Ticket & สลิป) ได้ทันที</span>
+                                <span class="font-bold">คิวงาน BOQ (BOQ Ingestion Queue):</span>
+                                <span class="text-muted-foreground ml-1">แสดงเฉพาะงานที่พร้อมจัดทำ BOQ หรือนำเข้าไฟล์ Excel/vFIX เมื่อจัดทำ BOQ เสร็จแล้ว สามารถกดส่งต่อไปยัง Step 2 (ออก Ticket & สลิป) ได้ทันที</span>
                             </div>
                         </div>
                         <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold shrink-0">Single State Queue</span>
@@ -3885,10 +3885,10 @@
                             </div>
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <h2 class="font-display text-xl md:text-2xl font-bold text-foreground tracking-tight">คู่มือระบบ & ขั้นตอนการทำงาน (System Workflow & FAQ)</h2>
-                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/20 text-brand-600 border border-brand-500/30">PMT Flow Standard</span>
+                                    <h2 class="font-display text-xl md:text-2xl font-bold text-foreground tracking-tight">คลังความรู้ & คู่มือระบบ (KM - Knowledge Management Portal)</h2>
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-700 border border-purple-500/30">KM System</span>
                                 </div>
-                                <p class="text-xs text-muted-foreground mt-1 leading-relaxed">สรุปสถานะและกระบวนการทำงานแบบ End-to-End ตั้งแต่รับ Order จากระบบ INT จนถึงการตรวจ QC, ส่งต่อ CSAT และสร้างสัญญาบริการ MA หลังการขาย</p>
+                                <p class="text-xs text-muted-foreground mt-1 leading-relaxed">ศูนย์จัดการองค์ความรู้ (Knowledge Management - KM) ประจำระบบ PMT Flow รวบรวมกระบวนการทำงานแบบ End-to-End, คู่มือฝึกอบรมรายโมดูล, กฎเกณฑ์ทางธุรกิจ และคำถามที่พบบ่อยสำหรับทุกบทบาทหน้าที่</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
@@ -5941,7 +5941,7 @@
         </div>
     </div>
 
-    <!-- MODAL: CREATE TICKET & RECEIPT (STEP 4) -->
+    <!-- MODAL: CREATE TICKET & RECEIPT (STEP 2) -->
     <div id="modal-create-ticket" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
         <div class="artifact-card rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-create-ticket-content">
             <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
@@ -5950,7 +5950,7 @@
                         <i class="ph ph-receipt text-lg"></i>
                     </div>
                     <div>
-                        <h3 class="font-display font-bold text-sm text-foreground">บันทึก Ticket & แนบใบเสร็จ พร้อมสัญญาการทำงาน (Step 4)</h3>
+                        <h3 class="font-display font-bold text-sm text-foreground">บันทึก Ticket & แนบใบเสร็จ พร้อมสัญญาการทำงาน (Step 2)</h3>
                         <p class="text-[11px] text-muted-foreground">บันทึกเลขที่ Ticket, ใบเสร็จรับเงิน, สัญญาจ้างงาน และแนบสลิป/เอกสารหลักฐาน</p>
                     </div>
                 </div>
