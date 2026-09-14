@@ -5087,12 +5087,21 @@ const app = {
                 grid.innerHTML = bps.map((b, idx) => {
                     const isPdf = b.fileName && b.fileName.toLowerCase().endsWith('.pdf');
                     const isDwg = b.fileName && (b.fileName.toLowerCase().endsWith('.dwg') || b.fileName.toLowerCase().endsWith('.dxf'));
+                    const isImg = b.previewImg || (!isPdf && !isDwg);
                     const iconType = isDwg ? 'DWG' : (isPdf ? 'PDF' : 'IMG');
                     const iconColor = isDwg ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' : (isPdf ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400');
                     const formattedDate = b.uploadedAt ? this.formatDateDMY(b.uploadedAt) : this.formatDateDMY(new Date());
 
+                    // Thumbnail block: show image preview if available
+                    const thumbnailHtml = b.previewImg
+                        ? `<div class="w-full rounded-lg overflow-hidden border border-border bg-muted/20 cursor-pointer" onclick="app.previewBlueprintLightbox('${b.id || idx}')" title="คลิกเพื่อขยายดูรูปภาพ">
+                            <img src="${b.previewImg}" alt="${b.fileName || 'Blueprint'}" class="w-full object-contain max-h-40 hover:scale-105 transition duration-200">
+                           </div>`
+                        : '';
+
                     return `
                     <div class="p-4 rounded-xl border border-border bg-card space-y-3 hover:border-indigo-500/40 hover:shadow-xs transition">
+                        ${thumbnailHtml}
                         <div class="flex items-start justify-between gap-2">
                             <div class="flex items-center gap-2.5">
                                 <div class="w-10 h-10 rounded-lg ${iconColor} flex items-center justify-center font-mono font-bold text-xs shrink-0">
@@ -5137,11 +5146,39 @@ const app = {
             handleUnifiedDesignFileSelect(event) {
                 const file = event.target.files && event.target.files[0];
                 const lbl = document.getElementById('unified-design-file-name-label');
+                // Clear old pending preview
+                this.state._pendingDesignPreview = null;
                 if (file && lbl) {
                     lbl.innerText = `📄 ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
                     const titleInp = document.getElementById('unified-design-title-input');
                     if (titleInp && !titleInp.value) {
                         titleInp.value = file.name;
+                    }
+                    // If it's an image, read and show inline preview
+                    const isImage = file.type.startsWith('image/');
+                    if (isImage) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const dataUrl = e.target.result;
+                            this.state._pendingDesignPreview = dataUrl;
+                            // Show inline preview below the label
+                            const dropzone = document.querySelector('[onclick="document.getElementById(\'unified-design-file-input\').click()"]');
+                            if (dropzone) {
+                                let previewImg = dropzone.querySelector('#unified-design-inline-preview');
+                                if (!previewImg) {
+                                    previewImg = document.createElement('img');
+                                    previewImg.id = 'unified-design-inline-preview';
+                                    previewImg.className = 'mt-2 mx-auto rounded-lg border border-border object-contain max-h-32';
+                                    dropzone.appendChild(previewImg);
+                                }
+                                previewImg.src = dataUrl;
+                            }
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        // Remove old preview if any
+                        const old = document.getElementById('unified-design-inline-preview');
+                        if (old) old.remove();
                     }
                 }
             },
@@ -5231,13 +5268,17 @@ const app = {
                     fileSize: fileSize,
                     notes: title,
                     uploadedAt: formattedDate,
-                    createdAt: now.toISOString()
+                    createdAt: now.toISOString(),
+                    previewImg: this.state._pendingDesignPreview || null
                 };
 
                 DB.blueprints.push(newBp);
                 if (!job.step_timestamps) job.step_timestamps = {};
                 if (!job.step_timestamps.step2_design_at) job.step_timestamps.step2_design_at = now.toISOString();
                 job.step2_passed = true;
+
+                // Clear pending preview
+                this.state._pendingDesignPreview = null;
 
                 this.persistJobs();
                 this.renderUnifiedBlueprintsGrid();
@@ -5277,6 +5318,10 @@ const app = {
                 if (fileInp) fileInp.value = '';
                 const lbl = document.getElementById('unified-design-file-name-label');
                 if (lbl) lbl.innerText = 'คลิกเพื่อเลือกไฟล์แบบแปลน (DWG, DXF, PDF, หรือรูปภาพ)';
+                // Remove inline image preview
+                const inlinePrev = document.getElementById('unified-design-inline-preview');
+                if (inlinePrev) inlinePrev.remove();
+                this.state._pendingDesignPreview = null;
             },
 
             renderUnifiedBOQTable() {
