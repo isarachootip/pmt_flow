@@ -4436,6 +4436,7 @@ const app = {
                     const isTop3New = idx < 3;
                     const isQuick = this.isQuickJob(j);
                     const isSurvey = j.status === 'SURVEYED' || j.status === 'Survey' || j.status === 'Surveyed';
+                    const isVFix = (j.booking_no && j.booking_no.startsWith('VFIX')) || (j.id && j.id.startsWith('VFIX')) || (j.job_no && j.job_no.startsWith('VFIX')) || (j.source_channel === 'VFIX');
 
                     // Design / Blueprints status
                     const jobBps = (DB.blueprints || []).filter(b => b.jobId === j.id);
