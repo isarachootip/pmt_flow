@@ -196,7 +196,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="/public/css/app.css?v=1.6.9">
+    <link rel="stylesheet" href="/public/css/app.css?v=1.7.0">
 </head>
 <body class="h-screen flex overflow-hidden font-sans select-none antialiased">
 
@@ -753,9 +753,9 @@
                                     <i class="ph ph-file-csv text-emerald-500 text-sm"></i>
                                     <span>Export รายงาน Timestamps</span>
                                 </button>
-                                <button id="btn-dev-simulate-int" onclick="app.simulateINT10Orders(false)" class="btn-artifact-secondary isara-only text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer shadow-xs" title="Import รายการคำสั่งซื้อใหม่ 20 งาน (Quick 10, Renovate 10) จาก INT เข้าสู่ PMT [เฉพาะ Isara Chootip]">
-                                    <i class="ph ph-lightning text-amber-500"></i>
-                                    <span>นำเข้า 20 งาน (INT)</span>
+                                <button id="btn-dev-simulate-int" onclick="app.resetToINTOrdersOnly(true)" class="btn-artifact-secondary isara-only text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer shadow-xs" title="ล้างระบบและรีเซ็ตเริ่มต้นใหม่ โดยคงไว้เฉพาะ 20 Order จาก INT (Quick 10, Renovate 10) ในสถานะ Step 1 [เฉพาะ Isara Chootip]">
+                                    <i class="ph ph-arrows-clockwise text-brand-500 text-sm"></i>
+                                    <span>รีเซ็ตเหลือเฉพาะ Order INT</span>
                                 </button>
                                 <button onclick="app.showModal('modal-create-job')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-xs" title="สร้างงานใหม่ / รับคำสั่งซื้อจาก INT">
                                     <i class="ph ph-plus-bold"></i>
@@ -8780,11 +8780,11 @@
 
     <!-- APPLICATION JAVASCRIPT LOGIC -->
     <!-- APPLICATION SCRIPTS -->
-    <script src="./public/js/db.js?v=1.6.9"></script>
-    <script src="./public/js/auth.js?v=1.6.9"></script>
-    <script src="./public/js/app.js?v=1.6.9"></script>
-    <script src="./public/js/userMgmt.js?v=1.6.9"></script>
-    <script src="./public/js/app.hooks.js?v=1.6.9"></script>
+    <script src="./public/js/db.js?v=1.7.0"></script>
+    <script src="./public/js/auth.js?v=1.7.0"></script>
+    <script src="./public/js/app.js?v=1.7.0"></script>
+    <script src="./public/js/userMgmt.js?v=1.7.0"></script>
+    <script src="./public/js/app.hooks.js?v=1.7.0"></script>
 
 </body>
 </html>

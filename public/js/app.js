@@ -1619,11 +1619,15 @@ const app = {
             },
 
             async simulateINT10Orders(confirmAction = true) {
+                return this.resetToINTOrdersOnly(confirmAction);
+            },
+
+            async resetToINTOrdersOnly(confirmAction = true) {
                 if (!window.auth || !window.auth.isIsaraChootip()) {
                     this.showToast('⚠️ ฟังก์ชันนี้สงวนไว้เฉพาะผู้ใช้ Isara Chootip เท่านั้น', 'warning');
                     return;
                 }
-                if (confirmAction && !confirm('คุณต้องการนำเข้าข้อมูลงานใหม่จากระบบ INT จำนวน 20 รายการ (Quick 10, Renovate 10) เข้าสู่ Step 1 ใช่หรือไม่?')) {
+                if (confirmAction && !confirm('คุณต้องการล้างข้อมูล Transaction ทั้งหมดในระบบ และเริ่มต้นใหม่โดยคงไว้เฉพาะ 20 คำสั่งซื้อจากระบบ INT ในสถานะ Step 1 ใช่หรือไม่?')) {
                     return;
                 }
 
@@ -1634,15 +1638,15 @@ const app = {
                     localStorage.removeItem('pmt_jobs_cleared_v7');
                     localStorage.removeItem('pmt_jobs_cleared_v5');
                     localStorage.removeItem('pmt_jobs_cleared_v3');
+                    localStorage.removeItem('pmt_tasks');
+                    localStorage.removeItem('pmt_blueprints');
+                    localStorage.removeItem('pmt_tickets');
+                    localStorage.removeItem('pmt_qc_bookings');
+                    localStorage.removeItem('pmt_daily_work_logs');
                     localStorage.removeItem('pmt_ma_contracts');
                     localStorage.removeItem('pmt_ma_rounds');
-                    localStorage.setItem('pmt_tasks', JSON.stringify([]));
-                    localStorage.setItem('pmt_blueprints', JSON.stringify([]));
-                    localStorage.setItem('pmt_tickets', JSON.stringify([]));
-                    localStorage.setItem('pmt_qc_bookings', JSON.stringify([]));
-                    localStorage.setItem('pmt_daily_work_logs', JSON.stringify([]));
-                    localStorage.setItem('pmt_ma_contracts', JSON.stringify([]));
-                    localStorage.setItem('pmt_ma_rounds', JSON.stringify([]));
+                    localStorage.removeItem('pmt_int_mock_10jobs_v4');
+                    localStorage.setItem('pmt_clean_reset_v10', 'true');
                 } catch(e) {}
 
                 // 2. Tell backend server to seed the 20 initial INT orders and wipe downstream stores
@@ -1698,7 +1702,10 @@ const app = {
 
                 // 4. Update UI across all views
                 if (this.state.currentView === 'jobs') this.renderJobs();
-                if (this.state.currentView === 'dashboard') this.renderDashboard();
+                if (this.state.currentView === 'dashboard') {
+                    this.renderDashboard();
+                    this.updateCharts();
+                }
                 if (this.state.currentView === 'gantt') this.renderGantt();
                 if (this.state.currentView === 'qc') this.renderQC();
                 if (this.state.currentView === 'csat') this.renderCSAT();
@@ -1708,14 +1715,14 @@ const app = {
 
                 this.updateStepBadges();
                 this.updateStep1Dashboard();
-                this.showToast(`✨ นำเข้า 20 รายการคำสั่งซื้อใหม่จาก INT (สถานะ Survey) เริ่มต้นที่ Step 1 เรียบร้อยแล้ว (${DB.jobs.length} งาน Surveyed 25%)`, 'success');
+                this.showToast(`✨ ล้างระบบและเริ่มต้นใหม่โดยคงไว้เฉพาะ 20 Order จาก INT (${DB.jobs.length} งาน สถานะ Survey 25%) เรียบร้อยแล้ว`, 'success');
             },
 
             simulateINT16Orders(confirmAction = true) {
-                return this.simulateINT10Orders(confirmAction);
+                return this.resetToINTOrdersOnly(confirmAction);
             },
             simulateINT20Orders(confirmAction = true) {
-                return this.simulateINT10Orders(confirmAction);
+                return this.resetToINTOrdersOnly(confirmAction);
             },
 
             getInitialDailyWorkLogs() {
@@ -1856,13 +1863,16 @@ const app = {
                 document.documentElement.classList.remove('dark');
                 try { localStorage.setItem('pmt-theme', 'light'); } catch(e) {}
 
-                // Auto-Wipe & Fresh Clean Slate v9 (Fulfilling: "ล้างข้อมูล Transaction ทั้งหมด เริ่มต้นนำเข้าตั้งแต่ step1")
-                const FRESH_RESET_KEY = 'pmt_clean_reset_v9';
+                // Auto-Wipe & Fresh Clean Slate v10 (Fulfilling: "ล้างข้อมูลในระบบแล้วเริ่มใหม่ โดย คงไว้ เฉพาะ order ที่เข้ามาจาก Int")
+                const FRESH_RESET_KEY = 'pmt_clean_reset_v10';
                 if (localStorage.getItem(FRESH_RESET_KEY) !== 'true') {
                     try {
                         localStorage.setItem(FRESH_RESET_KEY, 'true');
-                        localStorage.setItem('pmt_jobs_cleared_v9', 'true');
-                        localStorage.removeItem('pmt_jobs');
+                        localStorage.removeItem('pmt_jobs_cleared_v9');
+                        localStorage.removeItem('pmt_jobs_cleared_v8');
+                        localStorage.removeItem('pmt_jobs_cleared_v7');
+                        localStorage.removeItem('pmt_jobs_cleared_v5');
+                        localStorage.removeItem('pmt_jobs_cleared_v3');
                         localStorage.removeItem('pmt_tasks');
                         localStorage.removeItem('pmt_blueprints');
                         localStorage.removeItem('pmt_tickets');
@@ -1871,11 +1881,28 @@ const app = {
                         localStorage.removeItem('pmt_ma_contracts');
                         localStorage.removeItem('pmt_ma_rounds');
                         localStorage.removeItem('pmt_int_mock_10jobs_v4');
-                        localStorage.removeItem('pmt_jobs_cleared_v3');
-                        localStorage.removeItem('pmt_jobs_cleared_v5');
-                        localStorage.removeItem('pmt_jobs_cleared_v7');
-                        localStorage.removeItem('pmt_jobs_cleared_v8');
-                        DB.jobs = [];
+
+                        const mockOrders = this.getINTMockOrders();
+                        const baseTime = Date.now();
+                        const currentDate = new Date().toISOString().slice(0, 10);
+                        mockOrders.forEach((o, idx) => {
+                            const jobIso = new Date(baseTime - (mockOrders.length - 1 - idx) * 12 * 60000).toISOString();
+                            o.step_timestamps = {
+                                step1_order_at: jobIso,
+                                step1_survey_at: jobIso
+                            };
+                            o.created_at = jobIso;
+                            o.date = currentDate;
+                            o.status = 'SURVEYED';
+                            o.progress = 25;
+                            o.pmt_accepted = false;
+                            o.pmt_accepted_at = null;
+                            o.boq_items = [];
+                            o.boq_discount = 0;
+                            o.boq_grand_total = 0;
+                            o.photos = this.getSampleVisitPlanPhotos(o);
+                        });
+                        DB.jobs = this.sortJobsDescending(JSON.parse(JSON.stringify(mockOrders)));
                         DB.tasks = [];
                         DB.blueprints = [];
                         DB.tickets = [];
@@ -1887,31 +1914,32 @@ const app = {
                         this.persistBlueprints();
                         this.persistTickets();
                         this.persistDailyWorkLogs();
+                        localStorage.setItem('pmt_tasks', JSON.stringify([]));
+                        localStorage.setItem('pmt_qc_bookings', JSON.stringify([]));
+                        localStorage.setItem('pmt_daily_work_logs', JSON.stringify([]));
+                        localStorage.setItem('pmt_ma_contracts', JSON.stringify([]));
+                        localStorage.setItem('pmt_ma_rounds', JSON.stringify([]));
                     } catch(e) {}
                 }
 
-                const isExplicitlyCleared = localStorage.getItem('pmt_jobs_cleared_v9') === 'true' || localStorage.getItem('pmt_jobs_cleared_v8') === 'true';
-
                 // Restore saved jobs
                 const savedJobs = localStorage.getItem('pmt_jobs');
-                if (isExplicitlyCleared) {
-                    DB.jobs = [];
-                } else if (savedJobs) {
+                if (savedJobs) {
                     try {
                         const parsed = JSON.parse(savedJobs);
-                        if (Array.isArray(parsed)) {
-                            parsed.forEach(j => {
-                                if (j.status === 'NEW' || !j.status) j.status = 'DRAFT';
-                            });
+                        if (Array.isArray(parsed) && parsed.length > 0) {
                             DB.jobs = this.sortJobsDescending(parsed);
                         } else {
-                            DB.jobs = [];
+                            DB.jobs = this.sortJobsDescending(this.getINTMockOrders());
+                            this.persistJobs();
                         }
                     } catch (e) {
-                        DB.jobs = [];
+                        DB.jobs = this.sortJobsDescending(this.getINTMockOrders());
+                        this.persistJobs();
                     }
                 } else {
-                    DB.jobs = [];
+                    DB.jobs = this.sortJobsDescending(this.getINTMockOrders());
+                    this.persistJobs();
                 }
 
                 // Ensure all jobs have a valid job_type (quick, renovate, ma)
@@ -2052,201 +2080,6 @@ const app = {
                             delete j.step_timestamps.step5_project_at;
                         }
                     });
-                }
-
-                // Ensure default BOQ & Tasks for JOB26090900002 (คุณกุลนารี ทรงเกียรติ)
-                const jobKulnaree = (DB.jobs || []).find(j => j.id === 'JOB26090900002');
-                if (jobKulnaree) {
-                    if (!jobKulnaree.boq_items || jobKulnaree.boq_items.length === 0) {
-                        jobKulnaree.boq_items = [
-                            { id: 'boq_item_1', name: 'งานรื้อถอนและทำระบบกันซึม 3 ชั้น พร้อมปูกระเบื้อง R11', unit: 'ตร.ม.', qty: 18, unit_price: 1800, amount: 32400 },
-                            { id: 'boq_item_2', name: 'งานติดตั้งสุขภัณฑ์อัตโนมัติและราวจับสแตนเลส Universal Design', unit: 'ชุด', qty: 1, unit_price: 35000, amount: 35000 }
-                        ];
-                    }
-                }
-                if (!DB.tasks) DB.tasks = [];
-                const kulnareeTasks = DB.tasks.filter(t => t.jobId === 'JOB26090900002');
-                if (kulnareeTasks.length === 0) {
-                    DB.tasks.push({
-                        id: 'T_JOB26090900002_1',
-                        jobId: 'JOB26090900002',
-                        name: 'งานสกัดพื้นและทำระบบกันซึม 3 ชั้น',
-                        start: '2026-09-08',
-                        end: '2026-09-10',
-                        days: 3,
-                        tech: 'Team A (สมศักดิ์)',
-                        status: 'IN_PROGRESS',
-                        progress: 60
-                    });
-                    DB.tasks.push({
-                        id: 'T_JOB26090900002_2',
-                        jobId: 'JOB26090900002',
-                        name: 'งานปูกระเบื้องและติดตั้งสุขภัณฑ์ Universal Design',
-                        start: '2026-09-11',
-                        end: '2026-09-14',
-                        days: 4,
-                        tech: 'Team A (สมศักดิ์)',
-                        status: 'TODO',
-                        progress: 0
-                    });
-                }
-                if (Array.isArray(DB.dailyWorkLogs)) {
-                    DB.dailyWorkLogs.forEach(l => {
-                        if (l.jobId === 'JOB26090900002' && (!l.taskId || l.taskId === '')) {
-                            l.taskId = 'T_JOB26090900002_1';
-                        }
-                    });
-                }
-
-                // Ensure default BOQ, Tasks & Daily Work Logs for JOB202609001 (คุณสมหมาย ใจดี - Renovate ครัว)
-                if (Array.isArray(DB.jobs)) {
-                    let jobSommai = DB.jobs.find(j => j.id === 'JOB202609001' || (j.customer && j.customer.includes('สมหมาย')));
-                    if (!jobSommai) {
-                        jobSommai = {
-                            id: 'JOB202609001',
-                            job_no: 'JOB202609001',
-                            job_type: 'renovate',
-                            external_ref_id: 'INT-2026-001',
-                            customer: 'สมหมาย ใจดี',
-                            phone: '089-999-9999',
-                            service: 'Renovate ครัว',
-                            services: ['Renovate ครัว'],
-                            status: 'IN_PROGRESS',
-                            date: '2026-09-11',
-                            progress: 45,
-                            address: '99/1 ซอยสุขุมวิท 101/1 แขวงบางจาก เขตพระโขนง กรุงเทพฯ 10260',
-                            tech: 'ทีมช่าง สมศักดิ์ (team c)',
-                            boq_items: [
-                                { id: 'boq_sm_1', name: 'งานบริการทาสี', unit: 'ตร.ม.', qty: 120, unit_price: 250, amount: 30000, labor_price: 30000 },
-                                { id: 'boq_sm_2', name: 'งานบริการรื้อถอน', unit: 'เหมา', qty: 1, unit_price: 15000, amount: 15000, labor_price: 15000 },
-                                { id: 'boq_sm_3', name: 'งานบริการติดตั้งเพิ่มเติม', unit: 'จุด', qty: 8, unit_price: 1800, amount: 14400, labor_price: 14400 },
-                                { id: 'boq_sm_4', name: 'งานบริการติดตั้งครัว', unit: 'ชุด', qty: 1, unit_price: 45000, amount: 45000, labor_price: 45000 }
-                            ],
-                            boq_discount: 0,
-                            boq_grand_total: 104400
-                        };
-                        DB.jobs.unshift(jobSommai);
-                    } else if (!jobSommai.boq_items || jobSommai.boq_items.length === 0) {
-                        jobSommai.boq_items = [
-                            { id: 'boq_sm_1', name: 'งานบริการทาสี', unit: 'ตร.ม.', qty: 120, unit_price: 250, amount: 30000, labor_price: 30000 },
-                            { id: 'boq_sm_2', name: 'งานบริการรื้อถอน', unit: 'เหมา', qty: 1, unit_price: 15000, amount: 15000, labor_price: 15000 },
-                            { id: 'boq_sm_3', name: 'งานบริการติดตั้งเพิ่มเติม', unit: 'จุด', qty: 8, unit_price: 1800, amount: 14400, labor_price: 14400 },
-                            { id: 'boq_sm_4', name: 'งานบริการติดตั้งครัว', unit: 'ชุด', qty: 1, unit_price: 45000, amount: 45000, labor_price: 45000 }
-                        ];
-                    }
-
-                    if (!DB.tasks) DB.tasks = [];
-                    const sommaiTasks = DB.tasks.filter(t => t.jobId === jobSommai.id);
-                    if (sommaiTasks.length === 0) {
-                        DB.tasks.push(
-                            { id: 'T_JOB202609001_1', jobId: jobSommai.id, name: 'งานบริการทาสี', start: '2026-09-14', end: '2026-09-25', days: 12, tech: 'ทีมช่าง สมศักดิ์ (team c)', status: 'DONE', progress: 100 },
-                            { id: 'T_JOB202609001_2', jobId: jobSommai.id, name: 'งานบริการรื้อถอน', start: '2026-09-11', end: '2026-09-16', days: 6, tech: 'ทีมช่าง สมศักดิ์ (team c)', status: 'IN_PROGRESS', progress: 60 },
-                            { id: 'T_JOB202609001_3', jobId: jobSommai.id, name: 'งานบริการติดตั้งเพิ่มเติม', start: '2026-09-16', end: '2026-10-02', days: 17, tech: 'ทีมช่าง สมศักดิ์ (team c)', status: 'IN_PROGRESS', progress: 0 },
-                            { id: 'T_JOB202609001_4', jobId: jobSommai.id, name: 'งานบริการติดตั้งครัว', start: '2026-09-17', end: '2026-09-30', days: 14, tech: 'ทีมช่าง สมศักดิ์ (team c)', status: 'IN_PROGRESS', progress: 0 }
-                        );
-                    }
-
-                    if (!DB.dailyWorkLogs) DB.dailyWorkLogs = [];
-                    const sommaiLogs = DB.dailyWorkLogs.filter(l => l.jobId === jobSommai.id);
-                    if (sommaiLogs.length === 0) {
-                        DB.dailyWorkLogs.push(
-                            {
-                                id: 'LOG_SM_01',
-                                jobId: jobSommai.id,
-                                taskId: 'T_JOB202609001_1',
-                                taskName: 'งานบริการทาสี',
-                                logDate: '2026-09-14',
-                                startTime: '08:30',
-                                endTime: '17:00',
-                                workHours: '8 ชม. 30 นาที',
-                                dayNumber: 1,
-                                totalDays: 12,
-                                technician: 'ทีมช่าง สมศักดิ์ (team c)',
-                                recordedBy: 'ช่างสมศักดิ์',
-                                reporterRole: 'TECH',
-                                progressPercent: 100,
-                                workDescription: 'ดำเนินการทาสีรองพื้นและทาสีผนังครัวรอบแรกเรียบร้อย 100%',
-                                isCompleted: true,
-                                createdAt: '2026-09-14T17:00:00.000Z'
-                            },
-                            {
-                                id: 'LOG_SM_02',
-                                jobId: jobSommai.id,
-                                taskId: 'T_JOB202609001_2',
-                                taskName: 'งานบริการรื้อถอน',
-                                logDate: '2026-09-11',
-                                startTime: '08:30',
-                                endTime: '17:00',
-                                workHours: '8 ชม. 30 นาที',
-                                dayNumber: 1,
-                                totalDays: 6,
-                                technician: 'ทีมช่าง สมศักดิ์ (team c)',
-                                recordedBy: 'ช่างสมศักดิ์',
-                                reporterRole: 'TECH',
-                                progressPercent: 20,
-                                workDescription: 'รื้อถอนตู้แขวนและเคาน์เตอร์เดิม',
-                                isCompleted: false,
-                                createdAt: '2026-09-11T17:00:00.000Z'
-                            },
-                            {
-                                id: 'LOG_SM_03',
-                                jobId: jobSommai.id,
-                                taskId: 'T_JOB202609001_2',
-                                taskName: 'งานบริการรื้อถอน',
-                                logDate: '2026-09-12',
-                                startTime: '08:30',
-                                endTime: '17:00',
-                                workHours: '8 ชม. 30 นาที',
-                                dayNumber: 2,
-                                totalDays: 6,
-                                technician: 'ทีมช่าง สมศักดิ์ (team c)',
-                                recordedBy: 'ช่างสมศักดิ์',
-                                reporterRole: 'TECH',
-                                progressPercent: 40,
-                                workDescription: 'สกัดแนวกระเบื้องเดิมและเคลียร์เศษปูน',
-                                isCompleted: false,
-                                createdAt: '2026-09-12T17:00:00.000Z'
-                            },
-                            {
-                                id: 'LOG_SM_04',
-                                jobId: jobSommai.id,
-                                taskId: 'T_JOB202609001_2',
-                                taskName: 'งานบริการรื้อถอน',
-                                logDate: '2026-09-13',
-                                startTime: '08:30',
-                                endTime: '17:00',
-                                workHours: '8 ชม. 30 นาที',
-                                dayNumber: 3,
-                                totalDays: 6,
-                                technician: 'ทีมช่าง สมศักดิ์ (team c)',
-                                recordedBy: 'ช่างสมศักดิ์',
-                                reporterRole: 'TECH',
-                                progressPercent: 50,
-                                workDescription: 'ตรวจสอบท่อน้ำทิ้งและเดินแนวท่อชั่วคราว',
-                                isCompleted: false,
-                                createdAt: '2026-09-13T17:00:00.000Z'
-                            },
-                            {
-                                id: 'LOG_SM_05',
-                                jobId: jobSommai.id,
-                                taskId: 'T_JOB202609001_2',
-                                taskName: 'งานบริการรื้อถอน',
-                                logDate: '2026-09-14',
-                                startTime: '08:30',
-                                endTime: '17:00',
-                                workHours: '8 ชม. 30 นาที',
-                                dayNumber: 4,
-                                totalDays: 6,
-                                technician: 'ทีมช่าง สมศักดิ์ (team c)',
-                                recordedBy: 'ช่างสมศักดิ์',
-                                reporterRole: 'TECH',
-                                progressPercent: 60,
-                                workDescription: 'รื้อถอนท่อน้ำทิ้งและเตรียมพื้นที่ติดตั้งท่อใหม่',
-                                isCompleted: false,
-                                createdAt: '2026-09-14T17:00:00.000Z'
-                            }
-                        );
-                    }
                 }
 
                 // Rule Enforcement: แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart
