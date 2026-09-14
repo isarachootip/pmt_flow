@@ -4571,12 +4571,15 @@
                                     <h4 class="font-display font-bold text-xs text-foreground group-hover:text-purple-600 transition">ศูนย์รายงานผลการดำเนินงาน (Report)</h4>
                                     <p class="text-[11px] text-muted-foreground leading-relaxed">วิเคราะห์ผลงานและรายได้แยกประเภท Quick & Renovate, Donut & Mixed Charts, กรองเวลา 7D/30D/3M/1Y/Custom และ Export Excel</p>
                                 </div>
-                                <div class="pt-2 border-t border-border flex items-center gap-2">
-                                    <button onclick="app.navigate('report')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                <div class="pt-2 border-t border-border flex items-center gap-1.5">
+                                    <button onclick="app.navigate('report')" class="flex-1 py-1.5 px-2 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
                                     </button>
-                                    <button onclick="app.openStepAuditReportModal()" class="flex-1 py-1.5 px-2.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-[11px] font-semibold text-purple-600 flex items-center justify-center gap-1 cursor-pointer transition">
-                                        <i class="ph ph-clock-counter-clockwise"></i> Audit 6 ขั้นตอน
+                                    <button onclick="app.openStepAuditReportModal()" class="flex-1 py-1.5 px-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-[11px] font-semibold text-purple-600 flex items-center justify-center gap-1 cursor-pointer transition" title="เปิดหน้าต่างตรวจสอบ Audit ทุก Transaction">
+                                        <i class="ph ph-clock-counter-clockwise"></i> Audit ทุกงาน
+                                    </button>
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_รายงานAudit_Timestamps.md', 'โมดูล 12: รายงานบันทึกเวลาตามขั้นตอนปฏิบัติงาน Audit')" class="flex-1 py-1.5 px-2 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-[11px] font-semibold text-purple-700 flex items-center justify-center gap-1 cursor-pointer transition" title="อ่านคู่มือระบบ">
+                                        <i class="ph ph-book-open"></i> คู่มือ
                                     </button>
                                 </div>
                             </div>
@@ -8614,10 +8617,10 @@
     </div>
 
     <!-- MODAL: STEP AUDIT REPORT (TIMESTAMPS FOR REPORTING) -->
-    <div id="modal-step-audit-report" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
-        <div class="artifact-card rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-step-audit-report-content">
+    <div id="modal-step-audit-report" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-5xl max-h-[94vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-step-audit-report-content">
             <!-- Header -->
-            <div class="p-5 border-b border-border flex justify-between items-center bg-muted/20 shrink-0">
+            <div class="p-4 sm:p-5 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-3 bg-muted/20 shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-600 flex items-center justify-center text-xl shrink-0">
                         <i class="ph ph-clock-counter-clockwise"></i>
@@ -8630,13 +8633,26 @@
                         <p class="text-xs text-muted-foreground mt-0.5">บันทึกเวลาประทับ (Timestamp) ทุกขั้นตอนอย่างละเอียดสำหรับจัดทำรายงานสรุป Audit และประเมิน KPI / SLA</p>
                     </div>
                 </div>
-                <button type="button" onclick="app.hideModal('modal-step-audit-report')" class="text-muted-foreground hover:text-foreground text-lg p-1 rounded-lg hover:bg-muted transition cursor-pointer">
-                    <i class="ph ph-x"></i>
-                </button>
+                <div class="flex items-center gap-2 self-end md:self-auto">
+                    <!-- Tab Switcher -->
+                    <div class="flex items-center p-1 bg-muted/80 rounded-xl border border-border shadow-2xs" id="audit-report-tab-switch">
+                        <button type="button" onclick="app.switchAuditReportTab('all')" id="btn-audit-tab-all" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer flex items-center gap-1.5">
+                            <i class="ph ph-table text-sm"></i>
+                            <span>ทุก Transaction</span>
+                        </button>
+                        <button type="button" onclick="app.switchAuditReportTab('detail')" id="btn-audit-tab-detail" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer flex items-center gap-1.5">
+                            <i class="ph ph-clock-counter-clockwise text-sm"></i>
+                            <span>เจาะลึกรายโครงการ</span>
+                        </button>
+                    </div>
+                    <button type="button" onclick="app.hideModal('modal-step-audit-report')" class="text-muted-foreground hover:text-foreground text-lg p-1.5 rounded-lg hover:bg-muted transition cursor-pointer" title="ปิดหน้าต่าง">
+                        <i class="ph ph-x"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- Body (Scrollable) -->
-            <div class="p-6 overflow-y-auto space-y-6 flex-1 text-xs" id="step-audit-report-body">
+            <div class="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1 text-xs" id="step-audit-report-body">
                 <!-- Populated dynamically by app.openStepAuditReportModal() -->
             </div>
 
@@ -8644,13 +8660,16 @@
             <div class="p-4 border-t border-border flex flex-wrap justify-between items-center gap-3 bg-muted/20 shrink-0">
                 <div class="text-[11px] text-muted-foreground flex items-center gap-2">
                     <i class="ph ph-info text-brand-500"></i>
-                    <span>ระบบบันทึกเวลามาตรฐาน ISO 8601 สำหรับตรวจสอบย้อนหลังทุกขั้นตอน</span>
+                    <span>ระบบบันทึกเวลามาตรฐาน ISO 8601 สำหรับตรวจสอบย้อนหลังทุกขั้นตอน (ครอบคลุมทุก Transaction)</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="app.exportSingleJobAuditCSV()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10">
-                        <i class="ph ph-file-csv text-sm"></i> Export CSV
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" onclick="app.exportAllJobsAuditCSV()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer text-purple-700 bg-purple-50 hover:bg-purple-100 border-purple-300 shadow-2xs" title="ดาวน์โหลดรายงานประวัติ Audit ของทุกโครงการในระบบ">
+                        <i class="ph ph-files text-sm"></i> Export CSV ทุก Transaction
                     </button>
-                    <button type="button" onclick="window.print()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+                    <button type="button" id="btn-audit-export-single" onclick="app.exportSingleJobAuditCSV()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-300 shadow-2xs" title="ดาวน์โหลดรายงานประวัติ Audit ของโครงการที่กำลังดู">
+                        <i class="ph ph-file-csv text-sm"></i> Export CSV เฉพาะรายการนี้
+                    </button>
+                    <button type="button" onclick="window.print()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs" title="พิมพ์หน้ารายงาน">
                         <i class="ph ph-printer text-sm"></i> พิมพ์รายงาน (Print)
                     </button>
                     <button type="button" onclick="app.hideModal('modal-step-audit-report')" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-semibold cursor-pointer">

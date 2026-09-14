@@ -791,16 +791,237 @@ const app = {
                 };
             },
 
-            openStepAuditReportModal(jobId = null) {
-                const targetJobId = jobId || this.state.currentJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
+            switchAuditReportTab(tab) {
+                this.state.auditReportTab = tab;
+                const btnAll = document.getElementById('btn-audit-tab-all');
+                const btnDetail = document.getElementById('btn-audit-tab-detail');
+                const btnSingle = document.getElementById('btn-audit-export-single');
+
+                if (tab === 'all') {
+                    if (btnAll) btnAll.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white shadow-xs transition-all cursor-pointer flex items-center gap-1.5';
+                    if (btnDetail) btnDetail.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer flex items-center gap-1.5';
+                    if (btnSingle) btnSingle.classList.add('hidden');
+                    this.renderAuditReportAllTab();
+                } else {
+                    if (btnAll) btnAll.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer flex items-center gap-1.5';
+                    if (btnDetail) btnDetail.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white shadow-xs transition-all cursor-pointer flex items-center gap-1.5';
+                    if (btnSingle) btnSingle.classList.remove('hidden');
+                    this.renderAuditReportDetailTab();
+                }
+            },
+
+            navigateAuditReportJob(direction) {
+                const jobs = DB.jobs || [];
+                if (jobs.length === 0) return;
+                const currentId = this.state.auditReportTargetJobId;
+                let currentIndex = jobs.findIndex(j => j.id === currentId);
+                if (currentIndex === -1) currentIndex = 0;
+                let nextIndex = currentIndex + direction;
+                if (nextIndex < 0) nextIndex = 0;
+                if (nextIndex >= jobs.length) nextIndex = jobs.length - 1;
+                this.openStepAuditReportModal(jobs[nextIndex].id, 'detail');
+            },
+
+            filterAuditAllTable(keyword) {
+                const q = (keyword || '').toLowerCase().trim();
+                const rows = document.querySelectorAll('.audit-all-row');
+                let visibleCount = 0;
+                rows.forEach(r => {
+                    const text = r.getAttribute('data-search') || '';
+                    if (!q || text.toLowerCase().includes(q)) {
+                        r.style.display = '';
+                        visibleCount++;
+                    } else {
+                        r.style.display = 'none';
+                    }
+                });
+                const countEl = document.getElementById('audit-all-visible-count');
+                if (countEl) countEl.innerText = visibleCount;
+            },
+
+            openStepAuditReportModal(jobId = null, tab = null) {
+                if (jobId) {
+                    this.state.auditReportTargetJobId = jobId;
+                } else if (!this.state.auditReportTargetJobId) {
+                    this.state.auditReportTargetJobId = this.state.currentJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
+                }
+
+                // If tab is explicitly specified, use it. Otherwise, if jobId was passed, default to detail, else default to all
+                if (tab) {
+                    this.state.auditReportTab = tab;
+                } else if (jobId) {
+                    this.state.auditReportTab = 'detail';
+                } else if (!this.state.auditReportTab) {
+                    this.state.auditReportTab = 'all';
+                }
+
+                this.showModal('modal-step-audit-report');
+                this.switchAuditReportTab(this.state.auditReportTab);
+            },
+
+            renderAuditReportAllTab() {
+                const bodyEl = document.getElementById('step-audit-report-body');
+                if (!bodyEl) return;
+
+                const jobs = DB.jobs || [];
+                const totalJobs = jobs.length;
+
+                let completedCount = 0;
+                let inProgressCount = 0;
+                let pendingCount = 0;
+
+                jobs.forEach(j => {
+                    const r = this.getJobStepAuditReportData(j.id);
+                    const done = r ? r.completedCount : 0;
+                    if (done === 6) completedCount++;
+                    else if (done > 0) inProgressCount++;
+                    else pendingCount++;
+                });
+
+                bodyEl.innerHTML = `
+                    <!-- Quick Stats Summary Cards -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
+                            <div class="text-[10px] text-muted-foreground font-semibold uppercase">โครงการทั้งหมด</div>
+                            <div class="font-mono font-bold text-base text-foreground flex items-center gap-1.5">
+                                <i class="ph ph-folder text-brand-600"></i>
+                                <span>${totalJobs} รายการ</span>
+                            </div>
+                            <div class="text-[10px] text-muted-foreground">บันทึกอยู่ในระบบ PMT</div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-1">
+                            <div class="text-[10px] text-emerald-700 font-semibold uppercase">ครบ 6 ขั้นตอนสมบูรณ์</div>
+                            <div class="font-mono font-bold text-base text-emerald-700 flex items-center gap-1.5">
+                                <i class="ph ph-seal-check text-emerald-600"></i>
+                                <span>${completedCount} รายการ</span>
+                            </div>
+                            <div class="text-[10px] text-emerald-600 font-mono">${totalJobs > 0 ? Math.round((completedCount / totalJobs) * 100) : 0}% ของทั้งหมด</div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-blue-500/10 border border-blue-500/25 space-y-1">
+                            <div class="text-[10px] text-blue-700 font-semibold uppercase">กำลังดำเนินการ</div>
+                            <div class="font-mono font-bold text-base text-blue-700 flex items-center gap-1.5">
+                                <i class="ph ph-arrows-clockwise text-blue-600 animate-spin-slow"></i>
+                                <span>${inProgressCount} รายการ</span>
+                            </div>
+                            <div class="text-[10px] text-blue-600">อยู่ใน Workflow Steps 1 - 5</div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-1">
+                            <div class="text-[10px] text-amber-700 font-semibold uppercase">รอดำเนินการเริ่มต้น</div>
+                            <div class="font-mono font-bold text-base text-amber-700 flex items-center gap-1.5">
+                                <i class="ph ph-hourglass text-amber-600"></i>
+                                <span>${pendingCount} รายการ</span>
+                            </div>
+                            <div class="text-[10px] text-amber-600">Order ใหม่รอรับเข้าทำงาน</div>
+                        </div>
+                    </div>
+
+                    <!-- Search & Filter Controls -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-muted/25 border border-border rounded-xl">
+                        <div class="relative flex-1">
+                            <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+                            <input type="text" id="audit-all-search" oninput="app.filterAuditAllTable(this.value)" placeholder="ค้นหาด้วย Job ID, เลขที่ INT, ชื่อลูกค้า, เบอร์โทร, งานบริการ, ทีมช่าง..." class="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-2xs">
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0 justify-between sm:justify-end text-xs text-muted-foreground">
+                            <span>แสดง <span id="audit-all-visible-count" class="font-bold text-foreground font-mono">${totalJobs}</span> จาก ${totalJobs} รายการ</span>
+                        </div>
+                    </div>
+
+                    <!-- All Transactions Table -->
+                    <div class="rounded-xl border border-border overflow-x-auto shadow-xs bg-card">
+                        <table class="w-full text-left text-xs whitespace-nowrap">
+                            <thead class="bg-muted/60 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
+                                <tr>
+                                    <th class="px-3.5 py-2.5 w-10 text-center">#</th>
+                                    <th class="px-3.5 py-2.5">รหัสงาน & Ref INT</th>
+                                    <th class="px-3.5 py-2.5">ข้อมูลลูกค้า</th>
+                                    <th class="px-3.5 py-2.5">ประเภทบริการ & ทีมช่าง</th>
+                                    <th class="px-3.5 py-2.5 text-center">ความคืบหน้า 6 ขั้นตอน</th>
+                                    <th class="px-3.5 py-2.5">สถานะปัจจุบัน</th>
+                                    <th class="px-3.5 py-2.5">วัน-เวลาเริ่ม (Step 1)</th>
+                                    <th class="px-3.5 py-2.5 text-center">การตรวจสอบ (Audit)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border">
+                                ${jobs.map((j, idx) => {
+                                    const r = this.getJobStepAuditReportData(j.id);
+                                    const completed = r ? r.completedCount : 0;
+                                    const pct = Math.round((completed / 6) * 100);
+                                    const ts = j.step_timestamps || {};
+                                    const step1Ts = ts.step1_intake_at || ts.step1_order_at || j.created_at;
+                                    const step1Formatted = step1Ts ? this.formatTimestamp(step1Ts, false) : '-';
+
+                                    let badgeColor = 'bg-slate-500/15 text-slate-700 border-slate-300';
+                                    if (completed === 6) badgeColor = 'bg-emerald-500/15 text-emerald-700 border-emerald-300';
+                                    else if (completed >= 3) badgeColor = 'bg-blue-500/15 text-blue-700 border-blue-300';
+                                    else if (completed >= 1) badgeColor = 'bg-purple-500/15 text-purple-700 border-purple-300';
+
+                                    const searchData = `${j.id} ${j.external_ref_id || ''} ${j.customer || ''} ${j.phone || ''} ${j.service || ''} ${j.tech || ''} ${j.status || ''}`;
+
+                                    return `
+                                    <tr class="audit-all-row hover:bg-muted/40 transition cursor-pointer" data-search="${searchData.toLowerCase()}" onclick="app.openStepAuditReportModal('${j.id}', 'detail')">
+                                        <td class="px-3.5 py-3 text-center font-mono text-[11px] text-muted-foreground">${idx + 1}</td>
+                                        <td class="px-3.5 py-3">
+                                            <div class="font-mono font-bold text-xs text-brand-600">${j.id}</div>
+                                            <div class="text-[10px] font-mono text-muted-foreground">${j.external_ref_id || 'INT-Order'}</div>
+                                        </td>
+                                        <td class="px-3.5 py-3">
+                                            <div class="font-semibold text-foreground text-xs">${j.customer}</div>
+                                            <div class="text-[10px] text-muted-foreground flex items-center gap-1">
+                                                <i class="ph ph-phone"></i> ${j.phone || '-'}
+                                            </div>
+                                        </td>
+                                        <td class="px-3.5 py-3">
+                                            <div class="font-medium text-foreground text-xs">${j.service || 'งานบริการ'}</div>
+                                            <div class="text-[10px] text-muted-foreground flex items-center gap-1">
+                                                <i class="ph ph-user-gear"></i> ${j.tech || 'ยังไม่กำหนดช่าง'}
+                                            </div>
+                                        </td>
+                                        <td class="px-3.5 py-3 text-center">
+                                            <div class="inline-flex flex-col items-center">
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border ${badgeColor}">
+                                                    ${completed} / 6 ขั้นตอน (${pct}%)
+                                                </span>
+                                                <div class="w-20 bg-muted rounded-full h-1.5 mt-1 overflow-hidden">
+                                                    <div class="bg-brand-600 h-1.5 rounded-full" style="width: ${pct}%"></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-3.5 py-3">
+                                            <span class="status-pill text-[10px]">${j.status || 'Active'}</span>
+                                        </td>
+                                        <td class="px-3.5 py-3 font-mono text-[11px] text-muted-foreground">
+                                            ${step1Formatted}
+                                        </td>
+                                        <td class="px-3.5 py-3 text-center" onclick="event.stopPropagation()">
+                                            <button type="button" onclick="app.openStepAuditReportModal('${j.id}', 'detail')" class="px-3 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 font-semibold text-xs flex items-center gap-1.5 mx-auto transition cursor-pointer shadow-2xs" title="ดูประวัติเวลาบันทึกทั้ง 6 ขั้นตอน">
+                                                <i class="ph ph-clock-counter-clockwise"></i>
+                                                <span>เจาะลึก Audit</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            },
+
+            renderAuditReportDetailTab() {
+                const bodyEl = document.getElementById('step-audit-report-body');
+                if (!bodyEl) return;
+
+                const targetJobId = this.state.auditReportTargetJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
                 const data = this.getJobStepAuditReportData(targetJobId);
                 if (!data) return;
 
                 const job = data.job;
                 const steps = data.steps;
-                this.state.auditReportTargetJobId = targetJobId;
+                const jobs = DB.jobs || [];
+                const totalJobs = jobs.length;
+                const currentJobIndex = jobs.findIndex(j => j.id === targetJobId);
 
-                // Identify the latest active/completed step in the 5-step pipeline
+                // Identify the latest active/completed step in the 6-step pipeline
                 let latestActiveStepIdx = -1;
                 for (let i = steps.length - 1; i >= 0; i--) {
                     if (steps[i].isDone) {
@@ -810,40 +1031,73 @@ const app = {
                 }
                 if (latestActiveStepIdx === -1 && steps.length > 0) latestActiveStepIdx = 0;
 
-                const bodyEl = document.getElementById('step-audit-report-body');
-                if (!bodyEl) return;
-
                 bodyEl.innerHTML = `
+                    <!-- Transaction Selector & Switcher Bar -->
+                    <div class="p-3.5 bg-brand-50/60 border border-brand-200/80 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
+                        <div class="flex items-center gap-2 flex-1">
+                            <span class="text-xs font-bold text-brand-800 whitespace-nowrap flex items-center gap-1.5">
+                                <i class="ph ph-list-magnifying-glass text-base text-brand-600"></i>
+                                เลือก Transaction:
+                            </span>
+                            <div class="relative flex-1 min-w-[260px]">
+                                <select id="audit-report-job-select" onchange="app.openStepAuditReportModal(this.value, 'detail')" class="w-full text-xs font-medium bg-card border border-border rounded-lg px-3 py-1.5 text-foreground focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-2xs cursor-pointer">
+                                    ${jobs.map((j, idx) => {
+                                        const r = this.getJobStepAuditReportData(j.id);
+                                        const isSelected = j.id === targetJobId ? 'selected' : '';
+                                        return `<option value="${j.id}" ${isSelected}>[${idx + 1}/${totalJobs}] ${j.id} • ${j.customer} (${j.external_ref_id || 'INT-Order'}) - ${j.service || 'งานบริการ'} [${r ? r.completedCount : 0}/6 ขั้นตอน]</option>`;
+                                    }).join('')}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 shrink-0 justify-between md:justify-end">
+                            <span class="text-[11px] font-mono font-semibold text-muted-foreground">
+                                ${currentJobIndex >= 0 ? `รายการที่ ${currentJobIndex + 1} จาก ${totalJobs}` : `${totalJobs} รายการ`}
+                            </span>
+                            <div class="flex items-center gap-1">
+                                <button type="button" onclick="app.navigateAuditReportJob(-1)" ${currentJobIndex <= 0 ? 'disabled' : ''} class="px-2.5 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition shadow-2xs cursor-pointer" title="รายการก่อนหน้า">
+                                    <i class="ph ph-caret-left"></i> ก่อนหน้า
+                                </button>
+                                <button type="button" onclick="app.navigateAuditReportJob(1)" ${currentJobIndex >= totalJobs - 1 || currentJobIndex < 0 ? 'disabled' : ''} class="px-2.5 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition shadow-2xs cursor-pointer" title="รายการถัดไป">
+                                    ถัดไป <i class="ph ph-caret-right"></i>
+                                </button>
+                                <button type="button" onclick="app.switchAuditReportTab('all')" class="px-2.5 py-1.5 rounded-lg border border-brand-300 bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-semibold flex items-center gap-1 transition shadow-2xs cursor-pointer ml-1" title="สลับไปดูตารางรวมทุก Transaction">
+                                    <i class="ph ph-table"></i> ตารางรวม
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Project Info Banner -->
                     <div class="p-4 rounded-xl bg-muted/40 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div class="space-y-1">
                             <div class="flex items-center gap-2">
-                                <span class="font-mono font-bold text-sm text-brand-600 dark:text-brand-400">${job.id}</span>
+                                <span class="font-mono font-bold text-sm text-brand-600">${job.id}</span>
                                 <span class="text-muted-foreground">•</span>
                                 <span class="font-semibold text-foreground text-sm">${job.customer}</span>
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted text-foreground border border-border">${job.external_ref_id || 'INT-Order'}</span>
                             </div>
                             <div class="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
-                                <span><i class="ph ph-phone"></i> ${job.phone}</span>
+                                <span><i class="ph ph-phone"></i> ${job.phone || '-'}</span>
                                 <span>•</span>
-                                <span><i class="ph ph-wrench"></i> ${job.service}</span>
+                                <span><i class="ph ph-wrench"></i> ${job.service || '-'}</span>
                                 <span>•</span>
-                                <span><i class="ph ph-user-gear"></i> ${job.tech}</span>
+                                <span><i class="ph ph-user-gear"></i> ${job.tech || '-'}</span>
                             </div>
                         </div>
                         <div class="flex items-center gap-3 shrink-0">
                             <div class="text-right">
                                 <div class="text-[10px] text-muted-foreground">ความคืบหน้าภาพรวม</div>
-                                <div class="font-bold text-sm text-emerald-600 dark:text-emerald-400 font-mono">${data.completedCount} / 6 ขั้นตอน (${Math.round((data.completedCount / 6) * 100)}%)</div>
+                                <div class="font-bold text-sm text-emerald-600 font-mono">${data.completedCount} / 6 ขั้นตอน (${Math.round((data.completedCount / 6) * 100)}%)</div>
                             </div>
-                            <div class="w-10 h-10 rounded-full border-4 border-emerald-500 flex items-center justify-center font-mono font-bold text-xs text-foreground">
+                            <div class="w-10 h-10 rounded-full border-4 border-emerald-500 flex items-center justify-center font-mono font-bold text-xs text-foreground bg-emerald-50">
                                 ${data.completedCount}
                             </div>
                         </div>
                     </div>
 
                     <!-- 6 Steps Timeline Table -->
-                    <div class="rounded-xl border border-border overflow-hidden shadow-xs">
+                    <div class="rounded-xl border border-border overflow-hidden shadow-xs bg-card">
                         <table class="w-full text-left text-xs">
                             <thead class="bg-muted/60 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
                                 <tr>
@@ -861,8 +1115,8 @@ const app = {
                                     const isLatestActive = sIdx === latestActiveStepIdx;
                                     const tsFormatted = s.timestamp ? this.formatTimestamp(s.timestamp) : '<span class="text-muted-foreground/60 italic text-[11px]">- ยังไม่ดำเนินการ -</span>';
                                     const statusPill = isDone
-                                        ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 inline-flex items-center gap-1"><i class="ph ph-check-circle-bold"></i> บันทึกแล้ว</span>'
-                                        : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25 inline-flex items-center gap-1"><i class="ph ph-hourglass-bold"></i> รอดำเนินการ</span>';
+                                        ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25 inline-flex items-center gap-1"><i class="ph ph-check-circle-bold"></i> บันทึกแล้ว</span>'
+                                        : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 border border-amber-500/25 inline-flex items-center gap-1"><i class="ph ph-hourglass-bold"></i> รอดำเนินการ</span>';
 
                                     return `
                                     <tr class="hover:bg-muted/30 transition ${isDone ? '' : 'opacity-70'} ${isLatestActive ? 'bg-amber-500/[0.04]' : ''}">
@@ -908,18 +1162,18 @@ const app = {
                     <!-- SLA & KPI Summary Cards -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div class="p-3.5 rounded-xl bg-purple-500/5 border border-purple-500/20 space-y-1">
-                            <div class="text-[10px] text-purple-600 dark:text-purple-400 font-semibold uppercase">จุดเริ่มต้นกระบวนการ (Step 1)</div>
+                            <div class="text-[10px] text-purple-700 font-semibold uppercase">จุดเริ่มต้นกระบวนการ (Step 1)</div>
                             <div class="font-mono font-bold text-foreground text-xs">${steps[0].timestamp ? this.formatTimestamp(steps[0].timestamp, false) : '-'}</div>
                             <div class="text-[10px] text-muted-foreground">Order & BOQ Studio</div>
                         </div>
                         <div class="p-3.5 rounded-xl bg-blue-500/5 border border-blue-500/20 space-y-1">
-                            <div class="text-[10px] text-blue-600 dark:text-blue-400 font-semibold uppercase">จุดสิ้นสุดกระบวนการ (Step 6)</div>
+                            <div class="text-[10px] text-blue-700 font-semibold uppercase">จุดสิ้นสุดกระบวนการ (Step 6)</div>
                             <div class="font-mono font-bold text-foreground text-xs">${steps[5] && steps[5].timestamp ? this.formatTimestamp(steps[5].timestamp, false) : 'กำลังดำเนินการ'}</div>
                             <div class="text-[10px] text-muted-foreground">ประเมิน CSAT & ปิดงานคำสั่งซื้อ</div>
                         </div>
                         <div class="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-1">
-                            <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase">ความสมบูรณ์ของข้อมูล Audit</div>
-                            <div class="font-bold text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-1">
+                            <div class="text-[10px] text-emerald-700 font-semibold uppercase">ความสมบูรณ์ของข้อมูล Audit</div>
+                            <div class="font-bold text-emerald-700 text-xs flex items-center gap-1">
                                 <i class="ph ph-seal-check text-sm"></i>
                                 <span>${data.completedCount === 6 ? 'ครบถ้วนสมบูรณ์ 100%' : `ดำเนินการแล้ว ${Math.round((data.completedCount / 6) * 100)}%`}</span>
                             </div>
@@ -927,8 +1181,6 @@ const app = {
                         </div>
                     </div>
                 `;
-
-                this.showModal('modal-step-audit-report');
             },
 
             exportSingleJobAuditCSV(jobId = null) {
