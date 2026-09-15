@@ -6901,18 +6901,6 @@ const app = {
             renderStageWithSLA(job, stepNumber) {
                 const sla = this.calculateJobSLA(job, stepNumber);
                 const slaBadge = sla ? sla.badgeHtml : '';
-                const rep = this.getJobStepAuditReportData(job.id);
-                const progress = job.progress || (stepNumber * 16.6);
-
-                const isQuick = this.isQuickJob(job);
-                const stepLabels = {
-                    1: 'Order Intake & BOQ',
-                    2: 'Tickets & Slips',
-                    3: isQuick ? 'ข้าม (ไป QC Online)' : 'Work Preparation & Dispatch',
-                    4: isQuick ? 'ข้าม (ไป QC Online)' : 'Gantt & Daily Logs',
-                    5: 'QC Inspection',
-                    6: 'CSAT Evaluation'
-                };
 
                 const ts = job.step_timestamps || {};
                 let enterStateIso = null;
@@ -6934,32 +6922,13 @@ const app = {
                 }
                 const enterFormatted = enterStateIso ? this.formatDateTimeDMY(enterStateIso, false, true) : '-';
 
-                const stepDots = rep ? rep.steps.map(s => {
-                    const done = s.isDone;
-                    const skipped = s.isSkipped;
-                    const t = s.timestamp ? this.formatTimestamp(s.timestamp) : (skipped ? 'ข้ามขั้นตอน (Quick)' : 'ยังไม่บันทึก');
-                    const colorClass = skipped ? 'bg-amber-500 text-white' : (done ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground/50 border border-border');
-                    return `<span class="w-3.5 h-3.5 rounded-full font-mono text-[8px] flex items-center justify-center font-bold ${colorClass}" title="${s.name}: ${t}">${s.stepNumber}</span>`;
-                }).join('') : '';
-
                 return `
-                    <div class="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-                        <span class="font-semibold text-foreground">${stepLabels[stepNumber] || `Step ${stepNumber}`}</span>
-                        <span class="text-[10px] text-purple-600 dark:text-purple-400 font-mono" title="ความสมบูรณ์ 6 ขั้นตอน">${rep ? `${rep.completedCount}/6 ผ่าน` : `${progress}%`}</span>
-                    </div>
-                    <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden mb-1.5">
-                        <div class="bg-gradient-to-r from-brand-600 to-indigo-500 h-1.5 rounded-full" style="width: ${progress}%"></div>
-                    </div>
-                    <div class="flex items-center justify-between gap-1 flex-wrap mb-1">
-                        <div class="flex items-center gap-1" onclick="event.stopPropagation(); app.openStepAuditReportModal('${job.id}')" title="คลิกเพื่อดู Audit Report บันทึกเวลาทั้ง 6 ขั้นตอน">
-                            ${stepDots}
-                            <span class="text-[9px] text-brand-500 ml-1 hover:underline cursor-pointer"><i class="ph ph-clock"></i></span>
+                    <div class="space-y-1.5">
+                        <div>${slaBadge}</div>
+                        <div class="text-[10px] text-muted-foreground flex items-center gap-1 font-mono" title="วันเวลาที่เข้าสู่ State นี้ (เริ่มนับ SLA จากเวลานี้)">
+                            <i class="ph ph-clock text-brand-600 dark:text-brand-400 text-xs shrink-0"></i>
+                            <span class="truncate">เข้า State: <strong class="text-foreground font-semibold">${enterFormatted}</strong></span>
                         </div>
-                        <div class="shrink-0">${slaBadge}</div>
-                    </div>
-                    <div class="text-[10px] text-muted-foreground flex items-center gap-1 font-mono pt-0.5" title="วันเวลาที่เข้าสู่ State นี้ (เริ่มนับ SLA จากเวลานี้)">
-                        <i class="ph ph-clock text-brand-600 dark:text-brand-400 text-xs shrink-0"></i>
-                        <span class="truncate">เข้า State: <strong class="text-foreground font-semibold">${enterFormatted}</strong></span>
                     </div>
                 `;
             },

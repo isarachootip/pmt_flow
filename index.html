@@ -1377,7 +1377,7 @@
                                         <th class="px-5 py-3.5">ประเภทบริการ</th>
                                         <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
                                         <th class="px-5 py-3.5">สถานะ</th>
-                                        <th class="px-5 py-3.5 min-w-[210px]">ขั้นตอน (STAGE) / เข้า State</th>
+                                        <th class="px-5 py-3.5 min-w-[210px]">สถานะ SLA / เข้า State</th>
                                         <th class="px-5 py-3.5 text-right">การจัดการ</th>
                                     </tr>
                                 </thead>
@@ -1757,7 +1757,7 @@
                                         <th class="px-5 py-3.5">ประเภทบริการ</th>
                                         <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
                                         <th class="px-5 py-3.5">สถานะ</th>
-                                        <th class="px-5 py-3.5 min-w-[210px]">ขั้นตอน (STAGE) / เข้า State</th>
+                                        <th class="px-5 py-3.5 min-w-[210px]">สถานะ SLA / เข้า State</th>
                                         <th class="px-5 py-3.5 text-right">การจัดการ</th>
                                     </tr>
                                 </thead>
@@ -2164,7 +2164,7 @@
                                         <th class="px-5 py-3.5">ประเภทบริการ</th>
                                         <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
                                         <th class="px-5 py-3.5">สถานะ</th>
-                                        <th class="px-5 py-3.5 min-w-[210px]">ขั้นตอน (STAGE) / เข้า State</th>
+                                        <th class="px-5 py-3.5 min-w-[210px]">สถานะ SLA / เข้า State</th>
                                         <th class="px-5 py-3.5 text-right">การจัดการ</th>
                                     </tr>
                                 </thead>
@@ -2547,7 +2547,7 @@
                                         <th class="px-5 py-3.5">ประเภทบริการ</th>
                                         <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
                                         <th class="px-5 py-3.5">สถานะ</th>
-                                        <th class="px-5 py-3.5 min-w-[210px]">ขั้นตอน (STAGE) / เข้า State</th>
+                                        <th class="px-5 py-3.5 min-w-[210px]">สถานะ SLA / เข้า State</th>
                                         <th class="px-5 py-3.5 text-right">การจัดการ</th>
                                     </tr>
                                 </thead>
@@ -5248,7 +5248,7 @@
                                 <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
                                     <p><strong class="text-foreground">คำตอบ:</strong> เพื่อให้เจ้าหน้าที่ (SA / Admin / AE / Dispatcher) สามารถตรวจสอบได้อย่างแม่นยำว่าแต่ละโครงการเข้าสู่คิวงานในแต่ละขั้นตอนตั้งแต่เมื่อไหร่ และเริ่มนับเวลา SLA ถอยหลังตั้งแต่จุดใด ระบบ PMT Flow จึงแสดง <strong>"วันเวลาที่เข้า State นี้" (State Entry Timestamp)</strong> ควบคู่กับป้ายสถานะ SLA เสมอ:</p>
                                     <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
-                                        <li><strong>คอลัมน์ "ขั้นตอน (STAGE) / เข้า State":</strong> ในตารางคิวงานทุกสเต็ป (Step 1 Design/BOQ, Step 2 Tickets & Receipts, Step 3 Work Preparation/Conversion) ใต้แถบความคืบหน้าและป้าย SLA จะแสดงบรรทัด <code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[11px]">เข้า State: DD/MM/YYYY HH:mm น.</code> อย่างชัดเจน</li>
+                                        <li><strong>คอลัมน์ "สถานะ SLA / เข้า State":</strong> ในตารางคิวงานทุกสเต็ป (Design/BOQ, Tickets & Receipts, Work Preparation/Conversion) ใต้ป้าย SLA จะแสดงบรรทัด <code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[11px]">เข้า State: DD/MM/YYYY HH:mm น.</code> อย่างชัดเจน</li>
                                         <li><strong>การคำนวณและนับถอยหลัง SLA:</strong> ป้ายสถานะ SLA (เช่น <code class="bg-emerald-500/10 text-emerald-600 px-1.5 py-0.2 rounded font-bold text-[10px]">ในเกณฑ์ (เหลือ 11 ชม. 59 น.)</code> หรือ <code class="bg-rose-500/15 text-rose-600 px-1.5 py-0.2 rounded font-bold text-[10px]">เกิน SLA +X ชม.</code>) จะนำเวลาที่เข้าสู่ State นั้นจริง (<code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">step_timestamps</code>) มาเปรียบเทียบกับเวลาปัจจุบันแบบ Realtime</li>
                                         <li><strong>รูปแบบเวลามาตรฐาน:</strong> แสดงผลในรูปแบบสากล <code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[11px]">DD/MM/YYYY HH:mm น.</code> และใช้ระบบเวลา 24 ชั่วโมง (00:00 - 23:59 น.) ไม่มี AM/PM ตามข้อกำหนดมาตรฐานของระบบ 100%</li>
                                     </ul>
