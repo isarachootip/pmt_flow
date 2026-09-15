@@ -33,6 +33,9 @@ const app = {
                 ganttViewMode: (function() {
                     try { return localStorage.getItem('pmt_gantt_view_mode') || 'gantt'; } catch (e) { return 'gantt'; }
                 })(),
+                ganttTimeScale: (function() {
+                    try { return localStorage.getItem('pmt_gantt_time_scale') || 'day'; } catch (e) { return 'day'; }
+                })(),
                 maExpandedId: 'mac_1788397202685',
                 maEquipment: [
                     { id: 'si_1', name: 'เครื่องที่ 1', brand: '', btu: '', location: '' }
@@ -15223,209 +15226,512 @@ const app = {
                     return `<div class="py-10 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในแผนงาน</div>`;
                 }
 
+                const timeScale = this.state.ganttTimeScale || 'day';
                 const todayStr = this.getGanttTodayDate();
-                const todayTimestamp = new Date(todayStr).getTime();
+                const todayDateObj = new Date(todayStr);
+                const todayTimestamp = todayDateObj.getTime();
                 const oneDayMs = 1000 * 60 * 60 * 24;
 
-                // Calculate timeline bounds
-                let minTimestamp = Infinity;
-                let maxTimestamp = -Infinity;
+                // Calculate base timeline bounds from tasks
+                let rawMinTimestamp = Infinity;
+                let rawMaxTimestamp = -Infinity;
                 tasks.forEach(t => {
                     const s = new Date(t.start || '2026-09-01').getTime();
                     let e = t.end ? new Date(t.end).getTime() : s;
-                    if (s < minTimestamp) minTimestamp = s;
-                    if (e > maxTimestamp) maxTimestamp = e;
+                    if (s < rawMinTimestamp) rawMinTimestamp = s;
+                    if (e > rawMaxTimestamp) rawMaxTimestamp = e;
                 });
 
-                if (minTimestamp === Infinity) {
-                    minTimestamp = new Date('2026-09-01').getTime();
-                    maxTimestamp = new Date('2026-09-30').getTime();
-                }
-
-                // Ensure today is always visible in the chart timeline
-                if (todayTimestamp < minTimestamp) minTimestamp = todayTimestamp - (oneDayMs * 2);
-                if (todayTimestamp > maxTimestamp) maxTimestamp = todayTimestamp + (oneDayMs * 2);
-
-                const totalDays = Math.max(10, Math.round((maxTimestamp - minTimestamp) / oneDayMs) + 2);
-                const timelineDates = [];
-                const startDateObj = new Date(minTimestamp);
-                for (let i = 0; i < totalDays; i++) {
-                    const cur = new Date(startDateObj);
-                    cur.setDate(cur.getDate() + i);
-                    timelineDates.push(cur);
+                if (rawMinTimestamp === Infinity) {
+                    rawMinTimestamp = new Date('2026-09-01').getTime();
+                    rawMaxTimestamp = new Date('2026-09-30').getTime();
                 }
 
                 const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-                const todayIndex = timelineDates.findIndex(d => d.toISOString().slice(0, 10) === todayStr);
-                const colWidthPercent = 100 / totalDays;
-                const todayCenterPercent = todayIndex !== -1 ? (todayIndex * colWidthPercent) + (colWidthPercent / 2) : -1;
+                const thaiMonthFullNames = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
 
-                // Timeline Header
-                const dayHeaderHtml = timelineDates.map((d, idx) => {
-                    const dayNum = String(d.getDate()).padStart(2, '0');
-                    const monthStr = monthNames[d.getMonth()];
-                    const dStr = d.toISOString().slice(0, 10);
-                    const isToday = (idx === todayIndex);
+                let headerColumnsHtml = '';
+                let rowsHtml = '';
+                let timelineStartMs = rawMinTimestamp;
+                let timelineEndMs = rawMaxTimestamp;
+                let todayMarkerPercent = -1;
+                let dateRangeStr = '';
 
-                    if (isToday) {
-                        return `
-                        <div class="flex-1 text-center relative border-l border-rose-500/40 pb-1.5 px-0.5" title="วันนี้ (${this.formatDateDMY(dStr)})">
-                            <div class="inline-flex flex-col items-center bg-rose-500 text-white rounded-lg px-2 py-0.5 shadow-sm">
-                                <span class="text-[9px] font-bold uppercase tracking-wider leading-tight">วันนี้</span>
-                                <span class="text-[10px] font-mono font-bold leading-tight">${dayNum} ${monthStr}</span>
-                            </div>
-                        </div>`;
+                // Helper to get Monday 00:00 of a date
+                const getMonday = (d) => {
+                    const date = new Date(d);
+                    const day = date.getDay();
+                    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+                    date.setDate(diff);
+                    date.setHours(0, 0, 0, 0);
+                    return date;
+                };
+
+                // ─────────────────────────────────────────────────────────────
+                // SCALE 1: DAY VIEW (รายวัน)
+                // ─────────────────────────────────────────────────────────────
+                if (timeScale === 'day') {
+                    let minTimestamp = rawMinTimestamp;
+                    let maxTimestamp = rawMaxTimestamp;
+                    if (todayTimestamp < minTimestamp) minTimestamp = todayTimestamp - (oneDayMs * 2);
+                    if (todayTimestamp > maxTimestamp) maxTimestamp = todayTimestamp + (oneDayMs * 2);
+
+                    const totalDays = Math.max(10, Math.round((maxTimestamp - minTimestamp) / oneDayMs) + 2);
+                    const timelineDates = [];
+                    const startDateObj = new Date(minTimestamp);
+                    for (let i = 0; i < totalDays; i++) {
+                        const cur = new Date(startDateObj);
+                        cur.setDate(cur.getDate() + i);
+                        timelineDates.push(cur);
                     }
 
-                    return `<div class="flex-1 text-center text-[10px] font-mono text-muted-foreground border-l border-border pb-1.5 px-0.5 truncate" title="${this.formatDateDMY(dStr)}">${dayNum} ${monthStr}</div>`;
-                }).join('');
+                    timelineStartMs = timelineDates[0].getTime();
+                    timelineEndMs = timelineDates[timelineDates.length - 1].getTime() + oneDayMs;
+                    const todayIndex = timelineDates.findIndex(d => d.toISOString().slice(0, 10) === todayStr);
+                    const colWidthPercent = 100 / totalDays;
+                    todayMarkerPercent = todayIndex !== -1 ? (todayIndex * colWidthPercent) + (colWidthPercent / 2) : -1;
 
-                // Date Range Label in Top Bar
-                const dateRangeLabel = document.getElementById('gantt-date-range-label');
-                if (dateRangeLabel) {
-                    const firstD = timelineDates[0];
-                    const lastD = timelineDates[timelineDates.length - 1];
-                    dateRangeLabel.innerText = `ช่วงเวลา: ${this.formatDateDMY(firstD.toISOString().slice(0, 10))} - ${this.formatDateDMY(lastD.toISOString().slice(0, 10))}`;
-                }
+                    headerColumnsHtml = timelineDates.map((d, idx) => {
+                        const dayNum = String(d.getDate()).padStart(2, '0');
+                        const monthStr = monthNames[d.getMonth()];
+                        const dStr = d.toISOString().slice(0, 10);
+                        const isToday = (idx === todayIndex);
 
-                // Task Rows
-                const rowsHtml = tasks.map(t => {
-                    const tStartObj = new Date(t.start || '2026-09-01');
-                    const tEndObj = new Date(t.end || t.start || '2026-09-01');
-                    const taskDaysCount = Math.max(1, Math.round((tEndObj.getTime() - tStartObj.getTime()) / oneDayMs) + 1);
-
-                    const endDateStr = t.end || t.start;
-                    const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
-                    const rawQcDate = qcBooking ? qcBooking.qcBookingDate : this.calculateQCBookingDate(endDateStr, 5);
-                    const qcDateDisplay = this.formatDateDMY(rawQcDate);
-
-                    // Daily breakdown
-                    const dailyStatuses = [];
-                    for (let dayIdx = 0; dayIdx < taskDaysCount; dayIdx++) {
-                        const curD = new Date(tStartObj);
-                        curD.setDate(curD.getDate() + dayIdx);
-                        const curDStr = curD.toISOString().slice(0, 10);
-                        const diffDaysFromToday = Math.round((todayTimestamp - curD.getTime()) / oneDayMs);
-
-                        const dayLog = (DB.dailyWorkLogs || []).find(l => 
-                            (String(l.taskId) === String(t.id) || (String(l.jobId) === String(t.jobId) && l.taskName === t.name)) && 
-                            l.logDate === curDStr
-                        );
-                        const isLogCompleted = dayLog && (dayLog.isCompleted || (Number(dayLog.progressPercent) || 0) > 0);
-                        const isTaskDone = (t.status === 'DONE');
-
-                        let status = 'FUTURE';
-                        if (isLogCompleted || (isTaskDone && curDStr <= todayStr)) {
-                            status = 'DONE'; // Green
-                        } else if (curDStr <= todayStr) {
-                            status = 'OVERDUE'; // Red
-                        } else {
-                            status = 'FUTURE'; // Purple
-                        }
-
-                        dailyStatuses.push({
-                            dateStr: curDStr,
-                            dayIdx: dayIdx,
-                            status: status,
-                            canRetro: (diffDaysFromToday <= 3 && diffDaysFromToday >= 0),
-                            isToday: (curDStr === todayStr),
-                            dayLog: dayLog
-                        });
-                    }
-
-                    // Group contiguous segments
-                    const segments = [];
-                    let currentSeg = null;
-                    dailyStatuses.forEach((ds, idx) => {
-                        if (!currentSeg || currentSeg.status !== ds.status) {
-                            if (currentSeg) segments.push(currentSeg);
-                            currentSeg = {
-                                status: ds.status,
-                                startIndex: idx,
-                                days: 1,
-                                dates: [ds.dateStr],
-                                firstDs: ds
-                            };
-                        } else {
-                            currentSeg.days++;
-                            currentSeg.dates.push(ds.dateStr);
-                        }
-                    });
-                    if (currentSeg) segments.push(currentSeg);
-
-                    // Generate Segment HTML
-                    const segmentsHtml = segments.map(seg => {
-                        const segStart = new Date(tStartObj);
-                        segStart.setDate(segStart.getDate() + seg.startIndex);
-                        const diffFromMin = Math.round((segStart.getTime() - minTimestamp) / oneDayMs);
-                        const offsetPercent = Math.max(0, (diffFromMin / totalDays) * 100);
-                        const widthPercent = Math.max(1.5, (seg.days / totalDays) * 100);
-
-                        if (seg.status === 'DONE') {
+                        if (isToday) {
                             return `
-                            <div onclick="app.openDailyWorkLogModal('${t.id}', '${seg.dates[0]}')" class="bg-emerald-500 text-white border border-emerald-600 absolute h-8 rounded-lg text-[11px] px-2 flex items-center justify-center truncate shadow-xs transition hover:brightness-110 cursor-pointer hover:ring-2 hover:ring-emerald-400 z-10" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 60px;" title="${t.name}: งานเสร็จแล้ว (${seg.days} วัน) - คลิกเพื่อดูบันทึกงานช่าง">
-                                <span class="truncate font-medium flex items-center gap-1"><i class="ph ph-check-circle text-xs"></i> ✓ เสร็จสิ้น</span>
-                            </div>`;
-                        } else if (seg.status === 'OVERDUE') {
-                            const targetUpdateDate = seg.dates[seg.dates.length - 1];
-                            return `
-                            <div onclick="app.openDailyWorkLogModal('${t.id}', '${targetUpdateDate}')" class="bg-rose-500 text-white border border-rose-600 absolute h-8 rounded-lg text-[11px] px-2 flex items-center justify-center truncate shadow-xs transition hover:brightness-110 cursor-pointer hover:ring-2 hover:ring-rose-400 z-10" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 45px;" title="วันที่ ${seg.dates.map(d => this.formatDateDMY(d)).join(', ')}: ยังไม่อัปเดต (คลิกเพื่อบันทึกงานช่าง/QC ${seg.firstDs.canRetro ? 'ย้อนหลังได้ไม่เกิน 3 วัน' : 'เกินกำหนด 3 วัน'})">
-                                <span class="truncate font-medium flex items-center gap-1 text-[10px]"><i class="ph ph-warning-circle text-xs"></i> ยังไม่อัปเดต</span>
-                            </div>`;
-                        } else {
-                            return `
-                            <div onclick="app.openDailyWorkLogModal('${t.id}')" class="bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-300/70 dark:border-purple-800/70 absolute h-8 rounded-lg text-[11px] px-2 flex items-center justify-between truncate shadow-xs transition hover:brightness-105 cursor-pointer hover:ring-2 hover:ring-purple-400 z-10" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 55px;" title="${t.name}: ช่วงเวลาที่ยังไม่เริ่ม (${this.formatDateDMY(seg.dates[0])} ถึง ${this.formatDateDMY(seg.dates[seg.dates.length - 1])} - ${seg.days} วัน)">
-                                <span class="truncate font-medium flex items-center gap-1 text-[10px]"><i class="ph ph-user text-[11px]"></i> ${t.tech || 'ทีมช่าง'}</span>
-                                <span class="text-[10px] font-mono font-bold bg-white/80 dark:bg-purple-900/60 px-1 py-0.5 rounded shadow-xs ml-1">${taskDaysCount}d</span>
+                            <div class="flex-1 text-center relative border-l border-rose-500/40 pb-1.5 px-0.5" title="วันนี้ (${this.formatDateDMY(dStr)})">
+                                <div class="inline-flex flex-col items-center bg-rose-500 text-white rounded-lg px-2 py-0.5 shadow-sm">
+                                    <span class="text-[9px] font-bold uppercase tracking-wider leading-tight">วันนี้</span>
+                                    <span class="text-[10px] font-mono font-bold leading-tight">${dayNum} ${monthStr}</span>
+                                </div>
                             </div>`;
                         }
+                        return `<div class="flex-1 text-center text-[10px] font-mono text-muted-foreground border-l border-border pb-1.5 px-0.5 truncate" title="${this.formatDateDMY(dStr)}">${dayNum} ${monthStr}</div>`;
                     }).join('');
 
-                    const jobBadgeHtml = (!isSingleJob) ? `
-                        <button onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-600 dark:text-purple-400 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-[11px] transition cursor-pointer flex items-center gap-1 mr-1.5 inline-flex" title="คลิกเพื่อเลือก ${t.jobId}">
-                            <i class="ph ph-folder text-[10px]"></i> ${t.jobId}
-                        </button>
-                    ` : '';
+                    const firstD = timelineDates[0];
+                    const lastD = timelineDates[timelineDates.length - 1];
+                    dateRangeStr = `${this.formatDateDMY(firstD.toISOString().slice(0, 10))} - ${this.formatDateDMY(lastD.toISOString().slice(0, 10))}`;
 
-                    return `
-                    <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group">
-                        <!-- Left Info Column -->
-                        <div class="w-64 shrink-0 text-xs font-medium text-foreground truncate pr-4">
-                            <div class="flex items-center gap-1.5">
-                                ${jobBadgeHtml}
-                                <span class="truncate font-semibold text-foreground" title="${t.name}">${t.name}</span>
-                                <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-[10px] text-purple-600 dark:text-purple-400 hover:text-purple-700 bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded font-medium transition cursor-pointer flex items-center gap-0.5 shrink-0" title="เปิดดูรายละเอียดและบันทึกงานช่าง">
-                                    <i class="ph ph-magnifying-glass text-[11px]"></i> ดูงาน
-                                </button>
+                    rowsHtml = tasks.map(t => {
+                        const tStartObj = new Date(t.start || '2026-09-01');
+                        const tEndObj = new Date(t.end || t.start || '2026-09-01');
+                        const taskDaysCount = Math.max(1, Math.round((tEndObj.getTime() - tStartObj.getTime()) / oneDayMs) + 1);
+
+                        const endDateStr = t.end || t.start;
+                        const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
+                        const rawQcDate = qcBooking ? qcBooking.qcBookingDate : this.calculateQCBookingDate(endDateStr, 5);
+                        const qcDateDisplay = this.formatDateDMY(rawQcDate);
+
+                        const dailyStatuses = [];
+                        for (let dayIdx = 0; dayIdx < taskDaysCount; dayIdx++) {
+                            const curD = new Date(tStartObj);
+                            curD.setDate(curD.getDate() + dayIdx);
+                            const curDStr = curD.toISOString().slice(0, 10);
+                            const diffDaysFromToday = Math.round((todayTimestamp - curD.getTime()) / oneDayMs);
+
+                            const dayLog = (DB.dailyWorkLogs || []).find(l => 
+                                (String(l.taskId) === String(t.id) || (String(l.jobId) === String(t.jobId) && l.taskName === t.name)) && 
+                                l.logDate === curDStr
+                            );
+                            const isLogCompleted = dayLog && (dayLog.isCompleted || (Number(dayLog.progressPercent) || 0) > 0);
+                            const isTaskDone = (t.status === 'DONE');
+
+                            let status = 'FUTURE';
+                            if (isLogCompleted || (isTaskDone && curDStr <= todayStr)) {
+                                status = 'DONE';
+                            } else if (curDStr <= todayStr) {
+                                status = 'OVERDUE';
+                            } else {
+                                status = 'FUTURE';
+                            }
+
+                            dailyStatuses.push({
+                                dateStr: curDStr,
+                                dayIdx: dayIdx,
+                                status: status,
+                                canRetro: (diffDaysFromToday <= 3 && diffDaysFromToday >= 0),
+                                isToday: (curDStr === todayStr),
+                                dayLog: dayLog
+                            });
+                        }
+
+                        const segments = [];
+                        let currentSeg = null;
+                        dailyStatuses.forEach((ds, idx) => {
+                            if (!currentSeg || currentSeg.status !== ds.status) {
+                                if (currentSeg) segments.push(currentSeg);
+                                currentSeg = {
+                                    status: ds.status,
+                                    startIndex: idx,
+                                    days: 1,
+                                    dates: [ds.dateStr],
+                                    firstDs: ds
+                                };
+                            } else {
+                                currentSeg.days++;
+                                currentSeg.dates.push(ds.dateStr);
+                            }
+                        });
+                        if (currentSeg) segments.push(currentSeg);
+
+                        const segmentsHtml = segments.map(seg => {
+                            const segStart = new Date(tStartObj);
+                            segStart.setDate(segStart.getDate() + seg.startIndex);
+                            const diffFromMin = Math.round((segStart.getTime() - minTimestamp) / oneDayMs);
+                            const offsetPercent = Math.max(0, (diffFromMin / totalDays) * 100);
+                            const widthPercent = Math.max(1.5, (seg.days / totalDays) * 100);
+
+                            if (seg.status === 'DONE') {
+                                return `
+                                <div onclick="app.openDailyWorkLogModal('${t.id}', '${seg.dates[0]}')" class="bg-emerald-500 text-white border border-emerald-600 absolute h-8 rounded-lg text-[11px] px-2 flex items-center justify-center truncate shadow-xs transition hover:brightness-110 cursor-pointer hover:ring-2 hover:ring-emerald-400 z-10" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 60px;" title="${t.name}: งานเสร็จแล้ว (${seg.days} วัน) - คลิกเพื่อดูบันทึกงานช่าง">
+                                    <span class="truncate font-medium flex items-center gap-1"><i class="ph ph-check-circle text-xs"></i> ✓ เสร็จสิ้น</span>
+                                </div>`;
+                            } else if (seg.status === 'OVERDUE') {
+                                const targetUpdateDate = seg.dates[seg.dates.length - 1];
+                                return `
+                                <div onclick="app.openDailyWorkLogModal('${t.id}', '${targetUpdateDate}')" class="bg-rose-500 text-white border border-rose-600 absolute h-8 rounded-lg text-[11px] px-2 flex items-center justify-center truncate shadow-xs transition hover:brightness-110 cursor-pointer hover:ring-2 hover:ring-rose-400 z-10" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 45px;" title="วันที่ ${seg.dates.map(d => this.formatDateDMY(d)).join(', ')}: ยังไม่อัปเดต (คลิกเพื่อบันทึกงานช่าง/QC ${seg.firstDs.canRetro ? 'ย้อนหลังได้ไม่เกิน 3 วัน' : 'เกินกำหนด 3 วัน'})">
+                                    <span class="truncate font-medium flex items-center gap-1 text-[10px]"><i class="ph ph-warning-circle text-xs"></i> ยังไม่อัปเดต</span>
+                                </div>`;
+                            } else {
+                                return `
+                                <div onclick="app.openDailyWorkLogModal('${t.id}')" class="bg-purple-100 text-purple-700 border border-purple-300/70 absolute h-8 rounded-lg text-[11px] px-2 flex items-center justify-between truncate shadow-xs transition hover:brightness-105 cursor-pointer hover:ring-2 hover:ring-purple-400 z-10" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 55px;" title="${t.name}: ช่วงเวลาที่ยังไม่เริ่ม (${this.formatDateDMY(seg.dates[0])} ถึง ${this.formatDateDMY(seg.dates[seg.dates.length - 1])} - ${seg.days} วัน)">
+                                    <span class="truncate font-medium flex items-center gap-1 text-[10px]"><i class="ph ph-user text-[11px]"></i> ${t.tech || 'ทีมช่าง'}</span>
+                                    <span class="text-[10px] font-mono font-bold bg-white/80 px-1 py-0.5 rounded shadow-xs ml-1">${taskDaysCount}d</span>
+                                </div>`;
+                            }
+                        }).join('');
+
+                        const jobBadgeHtml = (!isSingleJob) ? `
+                            <button onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-600 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-[11px] transition cursor-pointer flex items-center gap-1 mr-1.5 inline-flex" title="คลิกเพื่อเลือก ${t.jobId}">
+                                <i class="ph ph-folder text-[10px]"></i> ${t.jobId}
+                            </button>
+                        ` : '';
+
+                        return `
+                        <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group">
+                            <div class="w-64 shrink-0 text-xs font-medium text-foreground truncate pr-4">
+                                <div class="flex items-center gap-1.5">
+                                    ${jobBadgeHtml}
+                                    <span class="truncate font-semibold text-foreground" title="${t.name}">${t.name}</span>
+                                    <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-[10px] text-purple-600 hover:text-purple-700 bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded font-medium transition cursor-pointer flex items-center gap-0.5 shrink-0" title="เปิดดูรายละเอียดและบันทึกงานช่าง">
+                                        <i class="ph ph-magnifying-glass text-[11px]"></i> ดูงาน
+                                    </button>
+                                </div>
+                                <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2 flex-wrap">
+                                    <span>📅 ${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} (${taskDaysCount} วัน)</span>
+                                    <span onclick="app.openQCFromTask('${t.id}')" class="text-brand-500 hover:underline cursor-pointer flex items-center gap-0.5" title="คลิกเพื่อดูการจองช่าง QC"><i class="ph ph-shield-check text-[11px]"></i> จอง QC: ${qcDateDisplay}</span>
+                                    <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-blue-500 hover:underline cursor-pointer flex items-center gap-0.5" title="เปิดบันทึกงานช่างประจำวัน"><i class="ph ph-notebook text-[11px]"></i> บันทึกช่าง</button>
+                                </div>
                             </div>
-                            <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2 flex-wrap">
-                                <span>📅 ${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} (${taskDaysCount} วัน)</span>
-                                <span onclick="app.openQCFromTask('${t.id}')" class="text-brand-500 hover:underline cursor-pointer flex items-center gap-0.5" title="คลิกเพื่อดูการจองช่าง QC"><i class="ph ph-shield-check text-[11px]"></i> จอง QC: ${qcDateDisplay}</span>
-                                <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-blue-500 hover:underline cursor-pointer flex items-center gap-0.5" title="เปิดบันทึกงานช่างประจำวัน"><i class="ph ph-notebook text-[11px]"></i> บันทึกช่าง</button>
+
+                            <div class="flex-1 relative h-full flex items-center">
+                                ${todayMarkerPercent !== -1 ? `
+                                    <div class="absolute inset-y-0 -translate-x-1/2 border-l-2 border-dashed border-rose-500/80 pointer-events-none z-0" style="left: ${todayMarkerPercent}%;"></div>
+                                    <div class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-rose-500 border-2 border-white shadow-md z-20 pointer-events-none" style="left: ${todayMarkerPercent}%;" title="ตำแหน่งวันปัจจุบัน (${this.formatDateDMY(todayStr)})"></div>
+                                ` : ''}
+                                ${segmentsHtml}
                             </div>
-                        </div>
+                        </div>`;
+                    }).join('');
 
-                        <!-- Right Timeline Bars Container -->
-                        <div class="flex-1 relative h-full flex items-center">
-                            <!-- Today Vertical Dotted Guideline across row -->
-                            ${todayCenterPercent !== -1 ? `
-                                <div class="absolute inset-y-0 -translate-x-1/2 border-l-2 border-dashed border-rose-500/80 pointer-events-none z-0" style="left: ${todayCenterPercent}%;"></div>
-                                <div class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-rose-500 border-2 border-white dark:border-card shadow-md z-20 pointer-events-none" style="left: ${todayCenterPercent}%;" title="ตำแหน่งวันปัจจุบัน (${this.formatDateDMY(todayStr)})"></div>
-                            ` : ''}
+                // ─────────────────────────────────────────────────────────────
+                // SCALE 2: WEEK VIEW (รายสัปดาห์)
+                // ─────────────────────────────────────────────────────────────
+                } else if (timeScale === 'week') {
+                    const startMonday = getMonday(Math.min(rawMinTimestamp, todayTimestamp - (oneDayMs * 7)));
+                    const endSundayDate = new Date(Math.max(rawMaxTimestamp, todayTimestamp + (oneDayMs * 7)));
+                    const endDay = endSundayDate.getDay();
+                    const diffToEndSunday = (endDay === 0 ? 0 : 7 - endDay);
+                    endSundayDate.setDate(endSundayDate.getDate() + diffToEndSunday);
+                    endSundayDate.setHours(23, 59, 59, 999);
 
-                            <!-- Segmented Daily Color Bars -->
-                            ${segmentsHtml}
-                        </div>
-                    </div>`;
-                }).join('');
+                    const weeks = [];
+                    let curW = new Date(startMonday);
+                    let weekIndex = 1;
+                    while (curW.getTime() <= endSundayDate.getTime() || weeks.length < 4) {
+                        const wStart = new Date(curW);
+                        const wEnd = new Date(curW);
+                        wEnd.setDate(wEnd.getDate() + 6);
+                        wEnd.setHours(23, 59, 59, 999);
+
+                        const isCurrentWeek = (todayTimestamp >= wStart.getTime() && todayTimestamp <= wEnd.getTime());
+                        const wStartStr = wStart.toISOString().slice(0, 10);
+                        const wEndStr = wEnd.toISOString().slice(0, 10);
+
+                        weeks.push({
+                            index: weekIndex,
+                            start: wStart,
+                            end: wEnd,
+                            startStr: wStartStr,
+                            endStr: wEndStr,
+                            isCurrentWeek: isCurrentWeek,
+                            label: `สัปดาห์ที่ ${weekIndex}`,
+                            subLabel: `${this.formatDateDMY(wStartStr).slice(0, 5)} - ${this.formatDateDMY(wEndStr).slice(0, 5)}`
+                        });
+
+                        curW.setDate(curW.getDate() + 7);
+                        weekIndex++;
+                    }
+
+                    timelineStartMs = weeks[0].start.getTime();
+                    timelineEndMs = weeks[weeks.length - 1].end.getTime();
+                    const totalDurationMs = Math.max(oneDayMs * 7, timelineEndMs - timelineStartMs);
+
+                    if (todayTimestamp >= timelineStartMs && todayTimestamp <= timelineEndMs) {
+                        todayMarkerPercent = ((todayTimestamp - timelineStartMs) / totalDurationMs) * 100;
+                    }
+
+                    headerColumnsHtml = weeks.map(w => {
+                        if (w.isCurrentWeek) {
+                            return `
+                            <div class="flex-1 text-center relative border-l border-rose-500/40 pb-1.5 px-1" title="สัปดาห์ปัจจุบัน (${w.subLabel})">
+                                <div class="inline-flex flex-col items-center bg-rose-500 text-white rounded-lg px-2.5 py-0.5 shadow-sm">
+                                    <span class="text-[9px] font-bold uppercase tracking-wider leading-tight">สัปดาห์นี้</span>
+                                    <span class="text-[10px] font-mono font-bold leading-tight">${w.label} (${w.subLabel})</span>
+                                </div>
+                            </div>`;
+                        }
+                        return `
+                        <div class="flex-1 text-center text-[10px] font-mono text-muted-foreground border-l border-border pb-1.5 px-1 truncate" title="${w.subLabel}">
+                            <div class="font-bold text-foreground text-[11px]">${w.label}</div>
+                            <div class="text-[9px] text-muted-foreground">${w.subLabel}</div>
+                        </div>`;
+                    }).join('');
+
+                    dateRangeStr = `${this.formatDateDMY(weeks[0].startStr)} - ${this.formatDateDMY(weeks[weeks.length - 1].endStr)}`;
+
+                    rowsHtml = tasks.map(t => {
+                        const tStartObj = new Date(t.start || '2026-09-01');
+                        const tEndObj = new Date(t.end || t.start || '2026-09-01');
+                        const taskDaysCount = Math.max(1, Math.round((tEndObj.getTime() - tStartObj.getTime()) / oneDayMs) + 1);
+
+                        const endDateStr = t.end || t.start;
+                        const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
+                        const rawQcDate = qcBooking ? qcBooking.qcBookingDate : this.calculateQCBookingDate(endDateStr, 5);
+                        const qcDateDisplay = this.formatDateDMY(rawQcDate);
+
+                        const offsetPercent = Math.max(0, Math.min(100, ((tStartObj.getTime() - timelineStartMs) / totalDurationMs) * 100));
+                        const widthPercent = Math.max(2.5, Math.min(100 - offsetPercent, ((tEndObj.getTime() - tStartObj.getTime() + oneDayMs) / totalDurationMs) * 100));
+
+                        const taskLogs = (DB.dailyWorkLogs || []).filter(l => 
+                            String(l.taskId) === String(t.id) || 
+                            (String(l.jobId) === String(t.jobId) && l.taskName === t.name)
+                        );
+                        const isTaskCompleted = taskLogs.some(l => l.isCompleted) || t.status === 'DONE';
+                        const isOverdue = !isTaskCompleted && (endDateStr < todayStr);
+
+                        let barClass = 'bg-purple-100 text-purple-700 border-purple-300/70 hover:ring-purple-400';
+                        let statusText = `🔨 ${t.tech || 'ทีมช่าง'} (${taskDaysCount} วัน)`;
+                        let badgeBg = 'bg-purple-500 text-white';
+
+                        if (isTaskCompleted) {
+                            barClass = 'bg-emerald-500 text-white border-emerald-600 hover:ring-emerald-400';
+                            statusText = `✓ เสร็จสิ้น (${taskDaysCount} วัน)`;
+                            badgeBg = 'bg-emerald-600 text-white';
+                        } else if (isOverdue) {
+                            barClass = 'bg-rose-500 text-white border-rose-600 hover:ring-rose-400';
+                            statusText = `⚠️ เลยกำหนด (${taskDaysCount} วัน)`;
+                            badgeBg = 'bg-rose-700 text-white';
+                        }
+
+                        const jobBadgeHtml = (!isSingleJob) ? `
+                            <button onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-600 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-[11px] transition cursor-pointer flex items-center gap-1 mr-1.5 inline-flex" title="คลิกเพื่อเลือก ${t.jobId}">
+                                <i class="ph ph-folder text-[10px]"></i> ${t.jobId}
+                            </button>
+                        ` : '';
+
+                        return `
+                        <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group">
+                            <div class="w-64 shrink-0 text-xs font-medium text-foreground truncate pr-4">
+                                <div class="flex items-center gap-1.5">
+                                    ${jobBadgeHtml}
+                                    <span class="truncate font-semibold text-foreground" title="${t.name}">${t.name}</span>
+                                    <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-[10px] text-purple-600 hover:text-purple-700 bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded font-medium transition cursor-pointer flex items-center gap-0.5 shrink-0" title="เปิดดูรายละเอียดและบันทึกงานช่าง">
+                                        <i class="ph ph-magnifying-glass text-[11px]"></i> ดูงาน
+                                    </button>
+                                </div>
+                                <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2 flex-wrap">
+                                    <span>📅 ${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} (${taskDaysCount} วัน)</span>
+                                    <span onclick="app.openQCFromTask('${t.id}')" class="text-brand-500 hover:underline cursor-pointer flex items-center gap-0.5" title="คลิกเพื่อดูการจองช่าง QC"><i class="ph ph-shield-check text-[11px]"></i> จอง QC: ${qcDateDisplay}</span>
+                                </div>
+                            </div>
+
+                            <div class="flex-1 relative h-full flex items-center">
+                                ${todayMarkerPercent !== -1 ? `
+                                    <div class="absolute inset-y-0 -translate-x-1/2 border-l-2 border-dashed border-rose-500/80 pointer-events-none z-0" style="left: ${todayMarkerPercent}%;"></div>
+                                    <div class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-rose-500 border-2 border-white shadow-md z-20 pointer-events-none" style="left: ${todayMarkerPercent}%;" title="ตำแหน่งวันปัจจุบัน (${this.formatDateDMY(todayStr)})"></div>
+                                ` : ''}
+
+                                <div onclick="app.openDailyWorkLogModal('${t.id}')" class="${barClass} border absolute h-8 rounded-lg text-[11px] px-2.5 flex items-center justify-between truncate shadow-xs transition hover:brightness-105 cursor-pointer hover:ring-2 z-10" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 65px;" title="${t.name}: ${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} (${taskDaysCount} วัน) • คลิกเพื่อบันทึกงานช่าง">
+                                    <span class="truncate font-medium flex items-center gap-1">${statusText}</span>
+                                    <span class="text-[10px] font-mono font-bold ${badgeBg} px-1.5 py-0.5 rounded shadow-xs ml-1">${taskDaysCount}d</span>
+                                </div>
+                            </div>
+                        </div>`;
+                    }).join('');
+
+                // ─────────────────────────────────────────────────────────────
+                // SCALE 3: MONTH VIEW (รายเดือน)
+                // ─────────────────────────────────────────────────────────────
+                } else if (timeScale === 'month') {
+                    const startMonthDate = new Date(Math.min(rawMinTimestamp, todayTimestamp - (oneDayMs * 30)));
+                    startMonthDate.setDate(1);
+                    startMonthDate.setHours(0, 0, 0, 0);
+
+                    const endMonthDate = new Date(Math.max(rawMaxTimestamp, todayTimestamp + (oneDayMs * 30)));
+                    endMonthDate.setMonth(endMonthDate.getMonth() + 1, 0);
+                    endMonthDate.setHours(23, 59, 59, 999);
+
+                    const months = [];
+                    let curM = new Date(startMonthDate);
+                    while (curM.getTime() <= endMonthDate.getTime() || months.length < 3) {
+                        const mYear = curM.getFullYear();
+                        const mIdx = curM.getMonth();
+                        const mStart = new Date(mYear, mIdx, 1, 0, 0, 0, 0);
+                        const mEnd = new Date(mYear, mIdx + 1, 0, 23, 59, 59, 999);
+                        const isCurrentMonth = (todayDateObj.getFullYear() === mYear && todayDateObj.getMonth() === mIdx);
+
+                        months.push({
+                            year: mYear,
+                            monthIndex: mIdx,
+                            name: `${thaiMonthFullNames[mIdx]} ${mYear + 543}`,
+                            shortName: `${monthNames[mIdx]} ${String(mYear + 543).slice(2)}`,
+                            start: mStart,
+                            end: mEnd,
+                            isCurrentMonth: isCurrentMonth
+                        });
+
+                        curM.setMonth(curM.getMonth() + 1);
+                    }
+
+                    timelineStartMs = months[0].start.getTime();
+                    timelineEndMs = months[months.length - 1].end.getTime();
+                    const totalDurationMs = Math.max(oneDayMs * 30, timelineEndMs - timelineStartMs);
+
+                    if (todayTimestamp >= timelineStartMs && todayTimestamp <= timelineEndMs) {
+                        todayMarkerPercent = ((todayTimestamp - timelineStartMs) / totalDurationMs) * 100;
+                    }
+
+                    headerColumnsHtml = months.map(m => {
+                        if (m.isCurrentMonth) {
+                            return `
+                            <div class="flex-1 text-center relative border-l border-rose-500/40 pb-1.5 px-1" title="เดือนปัจจุบัน (${m.name})">
+                                <div class="inline-flex flex-col items-center bg-rose-500 text-white rounded-lg px-2.5 py-0.5 shadow-sm">
+                                    <span class="text-[9px] font-bold uppercase tracking-wider leading-tight">เดือนนี้</span>
+                                    <span class="text-[11px] font-bold leading-tight">${m.name}</span>
+                                </div>
+                            </div>`;
+                        }
+                        return `
+                        <div class="flex-1 text-center text-muted-foreground border-l border-border pb-1.5 px-1 truncate" title="${m.name}">
+                            <div class="font-bold text-foreground text-[11px]">${m.name}</div>
+                        </div>`;
+                    }).join('');
+
+                    dateRangeStr = `${this.formatDateDMY(months[0].start.toISOString().slice(0, 10))} - ${this.formatDateDMY(months[months.length - 1].end.toISOString().slice(0, 10))}`;
+
+                    rowsHtml = tasks.map(t => {
+                        const tStartObj = new Date(t.start || '2026-09-01');
+                        const tEndObj = new Date(t.end || t.start || '2026-09-01');
+                        const taskDaysCount = Math.max(1, Math.round((tEndObj.getTime() - tStartObj.getTime()) / oneDayMs) + 1);
+
+                        const endDateStr = t.end || t.start;
+                        const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
+                        const rawQcDate = qcBooking ? qcBooking.qcBookingDate : this.calculateQCBookingDate(endDateStr, 5);
+                        const qcDateDisplay = this.formatDateDMY(rawQcDate);
+
+                        const offsetPercent = Math.max(0, Math.min(100, ((tStartObj.getTime() - timelineStartMs) / totalDurationMs) * 100));
+                        const widthPercent = Math.max(2, Math.min(100 - offsetPercent, ((tEndObj.getTime() - tStartObj.getTime() + oneDayMs) / totalDurationMs) * 100));
+
+                        const taskLogs = (DB.dailyWorkLogs || []).filter(l => 
+                            String(l.taskId) === String(t.id) || 
+                            (String(l.jobId) === String(t.jobId) && l.taskName === t.name)
+                        );
+                        const isTaskCompleted = taskLogs.some(l => l.isCompleted) || t.status === 'DONE';
+                        const isOverdue = !isTaskCompleted && (endDateStr < todayStr);
+
+                        let barClass = 'bg-purple-100 text-purple-700 border-purple-300/70 hover:ring-purple-400';
+                        let statusText = `${t.name} (${t.tech || 'ทีมช่าง'})`;
+                        let badgeBg = 'bg-purple-500 text-white';
+
+                        if (isTaskCompleted) {
+                            barClass = 'bg-emerald-500 text-white border-emerald-600 hover:ring-emerald-400';
+                            statusText = `✓ ${t.name} (เสร็จสมบูรณ์)`;
+                            badgeBg = 'bg-emerald-600 text-white';
+                        } else if (isOverdue) {
+                            barClass = 'bg-rose-500 text-white border-rose-600 hover:ring-rose-400';
+                            statusText = `⚠️ ${t.name} (เกินกำหนด)`;
+                            badgeBg = 'bg-rose-700 text-white';
+                        }
+
+                        const jobBadgeHtml = (!isSingleJob) ? `
+                            <button onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-600 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-[11px] transition cursor-pointer flex items-center gap-1 mr-1.5 inline-flex" title="คลิกเพื่อเลือก ${t.jobId}">
+                                <i class="ph ph-folder text-[10px]"></i> ${t.jobId}
+                            </button>
+                        ` : '';
+
+                        return `
+                        <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group">
+                            <div class="w-64 shrink-0 text-xs font-medium text-foreground truncate pr-4">
+                                <div class="flex items-center gap-1.5">
+                                    ${jobBadgeHtml}
+                                    <span class="truncate font-semibold text-foreground" title="${t.name}">${t.name}</span>
+                                    <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-[10px] text-purple-600 hover:text-purple-700 bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded font-medium transition cursor-pointer flex items-center gap-0.5 shrink-0" title="เปิดดูรายละเอียดและบันทึกงานช่าง">
+                                        <i class="ph ph-magnifying-glass text-[11px]"></i> ดูงาน
+                                    </button>
+                                </div>
+                                <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2 flex-wrap">
+                                    <span>📅 ${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} (${taskDaysCount} วัน)</span>
+                                    <span onclick="app.openQCFromTask('${t.id}')" class="text-brand-500 hover:underline cursor-pointer flex items-center gap-0.5" title="คลิกเพื่อดูการจองช่าง QC"><i class="ph ph-shield-check text-[11px]"></i> จอง QC: ${qcDateDisplay}</span>
+                                </div>
+                            </div>
+
+                            <div class="flex-1 relative h-full flex items-center">
+                                ${todayMarkerPercent !== -1 ? `
+                                    <div class="absolute inset-y-0 -translate-x-1/2 border-l-2 border-dashed border-rose-500/80 pointer-events-none z-0" style="left: ${todayMarkerPercent}%;"></div>
+                                    <div class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-rose-500 border-2 border-white shadow-md z-20 pointer-events-none" style="left: ${todayMarkerPercent}%;" title="ตำแหน่งวันปัจจุบัน (${this.formatDateDMY(todayStr)})"></div>
+                                ` : ''}
+
+                                <div onclick="app.openDailyWorkLogModal('${t.id}')" class="${barClass} border absolute h-8 rounded-lg text-[11px] px-2.5 flex items-center justify-between truncate shadow-xs transition hover:brightness-105 cursor-pointer hover:ring-2 z-10" style="left: ${offsetPercent}%; width: ${widthPercent}%; min-width: 65px;" title="${t.name}: ${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} (${taskDaysCount} วัน) • คลิกเพื่อบันทึกงานช่าง">
+                                    <span class="truncate font-medium flex items-center gap-1">${statusText}</span>
+                                    <span class="text-[10px] font-mono font-bold ${badgeBg} px-1.5 py-0.5 rounded shadow-xs ml-1">${taskDaysCount}d</span>
+                                </div>
+                            </div>
+                        </div>`;
+                    }).join('');
+                }
+
+                // Update Date Range Label in Top Bar
+                const dateRangeLabel = document.getElementById('gantt-date-range-label');
+                if (dateRangeLabel && dateRangeStr) {
+                    dateRangeLabel.innerText = `ช่วงเวลา: ${dateRangeStr}`;
+                }
 
                 return `
                     <!-- Gantt Visual Chart Section -->
                     <div class="space-y-2">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-muted-foreground px-1 pb-1 gap-2">
-                            <span class="font-semibold text-foreground flex items-center gap-1.5">
-                                <i class="ph ph-chart-bar text-brand-500"></i> แผนภูมิแท่งแสดงช่วงเวลา (Gantt Timeline Chart):
-                            </span>
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <span class="font-semibold text-foreground flex items-center gap-1.5">
+                                    <i class="ph ph-chart-bar text-brand-500"></i> แผนภูมิแท่งแสดงช่วงเวลา (Gantt Timeline Chart):
+                                </span>
+                                <!-- Time Scale Switcher: Day / Week / Month -->
+                                <div class="inline-flex rounded-lg border border-border bg-muted/60 p-0.5 text-xs">
+                                    <button type="button" onclick="app.setGanttTimeScale('day')" class="px-2.5 py-1 rounded-md text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer ${timeScale === 'day' ? 'bg-card text-brand-600 font-bold shadow-xs border border-border' : 'text-muted-foreground hover:text-foreground'}" title="มุมมองรายวัน (Day View)">
+                                        <i class="ph ph-calendar-blank text-xs"></i>
+                                        <span>รายวัน</span>
+                                    </button>
+                                    <button type="button" onclick="app.setGanttTimeScale('week')" class="px-2.5 py-1 rounded-md text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer ${timeScale === 'week' ? 'bg-card text-brand-600 font-bold shadow-xs border border-border' : 'text-muted-foreground hover:text-foreground'}" title="มุมมองรายสัปดาห์ (Week View)">
+                                        <i class="ph ph-calendar-check text-xs"></i>
+                                        <span>รายสัปดาห์</span>
+                                    </button>
+                                    <button type="button" onclick="app.setGanttTimeScale('month')" class="px-2.5 py-1 rounded-md text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer ${timeScale === 'month' ? 'bg-card text-brand-600 font-bold shadow-xs border border-border' : 'text-muted-foreground hover:text-foreground'}" title="มุมมองรายเดือน (Month View)">
+                                        <i class="ph ph-calendar text-xs"></i>
+                                        <span>รายเดือน</span>
+                                    </button>
+                                </div>
+                            </div>
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="text-[11px] font-medium text-foreground flex items-center gap-1">
                                     <i class="ph ph-clock text-rose-500"></i> จำลองวันนี้:
@@ -15443,7 +15749,7 @@ const app = {
                         <div class="border border-border rounded-2xl p-4 bg-card shadow-xs">
                             <div class="flex border-b border-border mb-2 pb-1">
                                 <div class="w-64 shrink-0 text-xs font-bold text-muted-foreground">รายการงาน & วันเริ่ม-สิ้นสุด</div>
-                                <div class="flex-1 flex">${dayHeaderHtml}</div>
+                                <div class="flex-1 flex">${headerColumnsHtml}</div>
                             </div>
                             ${rowsHtml}
 
@@ -15456,14 +15762,14 @@ const app = {
                                     </span>
                                     <span class="flex items-center gap-1.5 font-medium text-foreground">
                                         <span class="w-3.5 h-3.5 rounded-full bg-rose-500 inline-block shadow-xs"></span>
-                                        <span>ยังไม่อัปเดต (จนถึงวันนี้)</span>
+                                        <span>ยังไม่อัปเดต / เกินกำหนด</span>
                                     </span>
                                     <span class="flex items-center gap-1.5 font-medium text-foreground">
-                                        <span class="w-3.5 h-3.5 rounded-full bg-purple-200 dark:bg-purple-900 border border-purple-300 dark:border-purple-700 inline-block shadow-xs"></span>
-                                        <span>ช่วงเวลาที่ยังไม่เริ่ม</span>
+                                        <span class="w-3.5 h-3.5 rounded-full bg-purple-200 border border-purple-300 inline-block shadow-xs"></span>
+                                        <span>ช่วงเวลาที่ยังไม่เริ่ม / ดำเนินการ</span>
                                     </span>
                                 </div>
-                                <div class="text-[11px] flex items-center gap-1 bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2.5 py-1 rounded-lg border border-amber-500/20 font-medium">
+                                <div class="text-[11px] flex items-center gap-1 bg-amber-500/10 text-amber-700 px-2.5 py-1 rounded-lg border border-amber-500/20 font-medium">
                                     <i class="ph ph-clock-counter-clockwise font-bold text-xs"></i>
                                     <span>( สามารถอัปเดทย้อนหลังได้ไม่เกิน 3 วัน )</span>
                                 </div>
@@ -15471,6 +15777,12 @@ const app = {
                         </div>
                     </div>
                 `;
+            },
+
+            setGanttTimeScale(scale) {
+                this.state.ganttTimeScale = scale;
+                try { localStorage.setItem('pmt_gantt_time_scale', scale); } catch (e) {}
+                this.renderGantt();
             },
 
             setGanttViewMode(mode) {
