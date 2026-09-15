@@ -9856,7 +9856,7 @@ const app = {
             },
 
             saveBOQ(jobId) {
-                this.openConvertBOQToTasksModal(jobId);
+                this.saveBOQOnly(jobId);
             },
 
             openSaveBOQModal(jobId) {
@@ -10978,12 +10978,20 @@ const app = {
                 if (this.state.currentView === 'jobs') this.renderJobs();
                 if (this.state.currentView === 'dashboard') this.renderDashboard();
 
+                // If Unified Studio (Step 1) is currently open for this job, refresh its BOQ table
+                if (this.state.unifiedStudioJobId === targetJobId) {
+                    this.renderUnifiedBOQTable();
+                    this.updateUnifiedStudioIndicators();
+                }
+
                 this.showToast(`✅ นำเข้า BOQ ${newItems.length} รายการ เรียบร้อย (คงข้อมูลลูกค้า: ${customerDisplayName})`);
 
-                // Seamlessly trigger: แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart
-                setTimeout(() => {
-                    this.openConvertBOQToTasksModal(targetJobId);
-                }, 300);
+                // Only open Convert BOQ to Tasks modal if user is explicitly on Step 2 (Project Conversion) or Gantt view
+                if (this.state.currentView === 'project-conversion' || this.state.currentView === 'gantt') {
+                    setTimeout(() => {
+                        this.openConvertBOQToTasksModal(targetJobId);
+                    }, 300);
+                }
             },
 
             downloadVFixBOQTemplate() {
@@ -11288,7 +11296,7 @@ const app = {
                         confirmBtn.title = 'ยืนยันสร้าง Task & จัดเข้า Gantt Timeline';
                     } else {
                         confirmBtn.classList.add('opacity-60');
-                        confirmBtn.title = 'ต้องบันทึกจ่ายเงิน (Step 4) ก่อน จึงจะสามารถสร้าง Task ได้';
+                        confirmBtn.title = 'ต้องบันทึกจ่ายเงินและออก Ticket (Step 2) ก่อน จึงจะสามารถสร้าง Task ได้';
                     }
                 }
 
