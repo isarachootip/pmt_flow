@@ -3741,6 +3741,11 @@ const app = {
                 const elToday = document.getElementById('kpi-today');
                 if (elToday) elToday.innerText = todayList.length;
 
+                // 4. Close Lost Jobs (โครงการที่บันทึกยกเลิก / Close Lost)
+                const closeLostJobs = allJobs.filter(j => j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost);
+                const elCloseLost = document.getElementById('kpi-closelost');
+                if (elCloseLost) elCloseLost.innerText = closeLostJobs.length;
+
                 // Backward compatibility if old id exists
                 const elQc = document.getElementById('kpi-qc');
                 if (elQc) elQc.innerText = allJobs.filter(j => j.status === 'QC_PASSED' || j.status === 'AFTER_SALE' || j.status === 'CLOSED').length;
@@ -3870,24 +3875,38 @@ const app = {
                         let chartStatus = Chart.getChart("dashboardChart");
                         if (chartStatus) chartStatus.destroy();
 
-                        const draftCount = (DB.jobs || []).filter(j => j.status === 'DRAFT').length;
+                        const draftCount = (DB.jobs || []).filter(j => j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'SURVEYED').length;
                         const progressCount = (DB.jobs || []).filter(j => j.status === 'IN_PROGRESS').length;
                         const qcPendingCount = (DB.jobs || []).filter(j => j.status === 'QC_PENDING').length;
                         const qcPassedCount = (DB.jobs || []).filter(j => j.status === 'QC_PASSED').length;
                         const afterSaleCount = (DB.jobs || []).filter(j => j.status === 'AFTER_SALE' || j.status === 'CLOSED').length;
+                        const closeLostCount = (DB.jobs || []).filter(j => j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost).length;
+
+                        // Update Legend DOM elements
+                        const elLegProg = document.getElementById('legend-progress');
+                        if (elLegProg) elLegProg.innerText = progressCount;
+                        const elLegQcPending = document.getElementById('legend-qc-pending');
+                        if (elLegQcPending) elLegQcPending.innerText = qcPendingCount;
+                        const elLegQcPassed = document.getElementById('legend-qc-passed');
+                        if (elLegQcPassed) elLegQcPassed.innerText = qcPassedCount;
+                        const elLegAfterSale = document.getElementById('legend-after-sale');
+                        if (elLegAfterSale) elLegAfterSale.innerText = afterSaleCount;
+                        const elLegCloseLost = document.getElementById('legend-close-lost');
+                        if (elLegCloseLost) elLegCloseLost.innerText = closeLostCount;
 
                         new Chart(ctx.getContext('2d'), {
                             type: 'doughnut',
                             data: {
-                                labels: ['Draft', 'In Progress', 'QC Pending', 'QC Passed', 'After Sale & Closed'],
+                                labels: ['Draft & Survey', 'In Progress', 'QC Pending', 'QC Passed', 'After Sale & Closed', 'Close Lost'],
                                 datasets: [{
-                                    data: [draftCount, progressCount, qcPendingCount, qcPassedCount, afterSaleCount],
+                                    data: [draftCount, progressCount, qcPendingCount, qcPassedCount, afterSaleCount, closeLostCount],
                                     backgroundColor: [
                                         '#71717a',
                                         '#f59e0b',
                                         '#8b5cf6',
                                         '#10b981',
-                                        '#0ea5e9'
+                                        '#0ea5e9',
+                                        '#f43f5e'
                                     ],
                                     borderColor: '#ffffff',
                                     borderWidth: 3,
@@ -5938,6 +5957,11 @@ const app = {
                 const elRemaining = document.getElementById('dash-stat-remaining');
                 if (elRemaining) elRemaining.innerText = remainingCount;
 
+                // Close Lost / Cancelled
+                const closeLostCountS1 = allJobs.filter(j => j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost).length;
+                const elCloseLostS1 = document.getElementById('dash-stat-closelost');
+                if (elCloseLostS1) elCloseLostS1.innerText = closeLostCountS1;
+
                 // SLA elements
                 const elS1Overdue = document.getElementById('dash-stat-sla-overdue');
                 if (elS1Overdue) elS1Overdue.innerText = s1Overdue;
@@ -6042,6 +6066,11 @@ const app = {
                 const elComp = document.getElementById('step2-stat-completed');
                 if (elComp) elComp.innerText = completedStep2;
 
+                // Close Lost / Cancelled
+                const closeLostCountS2 = allJobs.filter(j => j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost).length;
+                const elCloseLostS2 = document.getElementById('step2-stat-closelost');
+                if (elCloseLostS2) elCloseLostS2.innerText = closeLostCountS2;
+
                 const elOverdue = document.getElementById('step2-stat-sla-overdue');
                 if (elOverdue) elOverdue.innerText = s2Overdue;
                 const elOnTime = document.getElementById('step2-stat-sla-ontime');
@@ -6137,6 +6166,11 @@ const app = {
                 if (elRem) elRem.innerText = remainingStep3;
                 const elComp = document.getElementById('step3-stat-completed');
                 if (elComp) elComp.innerText = completedBOQ;
+
+                // Close Lost / Cancelled
+                const closeLostCountS3 = allJobs.filter(j => j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost).length;
+                const elCloseLostS3 = document.getElementById('step3-stat-closelost');
+                if (elCloseLostS3) elCloseLostS3.innerText = closeLostCountS3;
 
                 const elOverdue = document.getElementById('step3-stat-sla-overdue');
                 if (elOverdue) elOverdue.innerText = s3Overdue;
@@ -6237,6 +6271,11 @@ const app = {
                 if (elRem) elRem.innerText = remainingStep4;
                 const elComp = document.getElementById('step4-stat-completed');
                 if (elComp) elComp.innerText = completedTickets;
+
+                // Close Lost / Cancelled
+                const closeLostCountS4 = allJobs.filter(j => j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost).length;
+                const elCloseLostS4 = document.getElementById('step4-stat-closelost');
+                if (elCloseLostS4) elCloseLostS4.innerText = closeLostCountS4;
 
                 const elOverdue = document.getElementById('step4-stat-sla-overdue');
                 if (elOverdue) elOverdue.innerText = s4Overdue;
@@ -6339,6 +6378,11 @@ const app = {
                 const elComp = document.getElementById('step5-stat-completed');
                 if (elComp) elComp.innerText = completedJobsInProject;
 
+                // Close Lost / Cancelled
+                const closeLostCountS5 = allJobs.filter(j => j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost).length;
+                const elCloseLostS5 = document.getElementById('step5-stat-closelost');
+                if (elCloseLostS5) elCloseLostS5.innerText = closeLostCountS5;
+
                 const elOverdue = document.getElementById('step5-stat-sla-overdue');
                 if (elOverdue) elOverdue.innerText = s5Overdue;
                 const elOnTime = document.getElementById('step5-stat-sla-ontime');
@@ -6405,6 +6449,27 @@ const app = {
                 const designedJobIds = new Set((DB.blueprints || []).map(b => b.jobId));
                 const now = new Date();
                 const todayStr = now.toLocaleDateString('en-CA');
+
+                if (type === 'CLOSE_LOST') {
+                    const closeLostList = allJobs.filter(j => j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost);
+                    if (stepNumber === 1) {
+                        const svcSel = document.getElementById('filter-service');
+                        if (svcSel) svcSel.value = 'all';
+                        this.renderJobs(closeLostList);
+                    } else if (stepNumber === 2 && this.state && this.state.currentPage === 'blueprints') {
+                        this.renderBlueprints('', 'all', closeLostList);
+                    } else if (stepNumber === 4 || (stepNumber === 2 && this.state && this.state.currentPage === 'tickets')) {
+                        this.renderTickets(closeLostList);
+                    } else if (stepNumber === 3) {
+                        this.renderBOQPage(closeLostList);
+                    } else if (stepNumber === 5) {
+                        this.renderConversionList(closeLostList);
+                    } else {
+                        this.renderJobs(closeLostList);
+                    }
+                    this.showToast(`🚫 แสดงรายการที่บันทึก Close Lost / ยกเลิกโครงการ (${closeLostList.length} รายการ)`);
+                    return;
+                }
 
                 if (stepNumber === 1) {
                     const svcSel = document.getElementById('filter-service');
@@ -7878,7 +7943,7 @@ const app = {
                             const data = new Uint8Array(e.target.result);
                             const wb = XLSX.read(data, { type: 'array' });
                             const sheets = this.analyzeBOQWorkbookSheets(wb);
-                            const targetSheet = sheets.find(s => s.isBest) || sheets.find(s => s.itemCount > 0) || sheets[0];
+                            const targetSheet = (sheets && sheets.length > 0) ? sheets[0] : null;
 
                             if (targetSheet && wb.Sheets[targetSheet.name]) {
                                 const parsed = this.parseVFixExcelSheet(wb.Sheets[targetSheet.name], targetSheet.name);
@@ -10441,33 +10506,38 @@ const app = {
                             const sheetAnalysis = this.analyzeBOQWorkbookSheets(wb);
                             this.state.availableBOQSheets = sheetAnalysis;
 
-                            // Setup sheet selector dropdown
+                            // Setup sheet selector dropdown (Default to sheet 1)
                             const sheetContainer = document.getElementById('boq-sheet-selector-container');
                             const sheetSelect = document.getElementById('boq-sheet-select');
                             const sheetBadge = document.getElementById('boq-sheet-summary-badge');
 
                             if (sheetAnalysis.length > 0 && sheetSelect && sheetContainer) {
                                 sheetContainer.classList.remove('hidden');
-                                if (sheetBadge) sheetBadge.innerText = `พบทั้งหมด ${sheetAnalysis.length} Sheet`;
-                                sheetSelect.innerHTML = sheetAnalysis.map(s => {
-                                    const countText = s.itemCount > 0 ? `(${s.itemCount} รายการ - รวม ${s.totalAmount.toLocaleString()} ฿)` : '(ไม่มีรายการ)';
+                                if (sheetBadge) sheetBadge.innerText = `พบทั้งหมด ${sheetAnalysis.length} Sheet (เลือกหน้าแรกเป็นค่าเริ่มต้น)`;
+                                sheetSelect.innerHTML = sheetAnalysis.map((s, idx) => {
+                                    const countText = s.itemCount > 0 ? `(${s.itemCount} รายการ - รวมไม่รวม VAT ${s.totalAmount.toLocaleString()} ฿)` : '(ไม่มีรายการ)';
                                     const custText = s.customer ? ` [ลูกค้า: ${s.customer}]` : '';
-                                    return `<option value="${s.name}" ${s.isBest ? 'selected' : ''}>${s.name} ${custText} ${countText}</option>`;
+                                    return `<option value="${s.name}" ${idx === 0 ? 'selected' : ''}>${s.name} ${custText} ${countText}</option>`;
                                 }).join('');
                             }
 
-                            // Pick best sheet or first valid sheet
-                            const bestSheet = sheetAnalysis.find(s => s.isBest) || sheetAnalysis.find(s => s.itemCount > 0) || sheetAnalysis[0];
+                            // Strictly default to Sheet 1 (Index 0)
+                            const defaultSheet = (sheetAnalysis && sheetAnalysis.length > 0) ? sheetAnalysis[0] : null;
 
-                            if (bestSheet && bestSheet.itemCount > 0) {
-                                const parsed = this.parseVFixExcelSheet(wb.Sheets[bestSheet.name], bestSheet.name);
+                            if (defaultSheet && defaultSheet.itemCount > 0) {
+                                const parsed = this.parseVFixExcelSheet(wb.Sheets[defaultSheet.name], defaultSheet.name);
                                 this.state.pendingBOQHeader = parsed.header || {};
                                 this.state.pendingBOQItems = parsed.items;
                                 this.renderBOQPreviewTable();
-                                if (nameEl) nameEl.innerHTML = `<span class="text-emerald-500 font-bold">✓ อ่านไฟล์สำเร็จ [Sheet: ${bestSheet.name}] (${parsed.items.length} รายการ)</span>`;
-                                this.showToast(`📊 อ่านไฟล์ Excel "${file.name}" (Sheet: ${bestSheet.name}) สำเร็จ (${parsed.items.length} รายการ)`);
-                            } else {
-                                this.showToast('⚠️ ไม่พบรายการ BOQ ที่มีข้อมูลใน Sheet เริ่มต้น กรุณาเลือก Sheet อื่นจากรายการดรอปดาวน์');
+                                if (nameEl) nameEl.innerHTML = `<span class="text-emerald-500 font-bold">✓ อ่านไฟล์สำเร็จ [Sheet หน้าแรก: ${defaultSheet.name}] (${parsed.items.length} รายการ - ราคาไม่รวม VAT)</span>`;
+                                this.showToast(`📊 อ่านไฟล์ Excel "${file.name}" (Sheet หน้าแรก: ${defaultSheet.name}) สำเร็จ (${parsed.items.length} รายการ - ราคาไม่รวม VAT)`);
+                            } else if (defaultSheet) {
+                                const parsed = this.parseVFixExcelSheet(wb.Sheets[defaultSheet.name], defaultSheet.name);
+                                this.state.pendingBOQHeader = parsed.header || {};
+                                this.state.pendingBOQItems = parsed.items || [];
+                                this.renderBOQPreviewTable();
+                                if (nameEl) nameEl.innerHTML = `<span class="text-amber-600 font-bold">⚠️ [Sheet หน้าแรก: ${defaultSheet.name}] ยังไม่มีรายการ BOQ กรุณาเลือก Sheet อื่นจากดรอปดาวน์</span>`;
+                                this.showToast('⚠️ ไม่พบรายการ BOQ ใน Sheet หน้าแรก กรุณาเลือก Sheet อื่นจากรายการดรอปดาวน์', 'warning');
                             }
                         } catch (err) {
                             console.error('Excel parse error:', err);
@@ -10480,7 +10550,7 @@ const app = {
                     reader.onload = (e) => {
                         const content = e.target.result;
                         this.parsePastedBOQ(content);
-                        this.showToast(`อ่านไฟล์ "${file.name}" สำเร็จ (${this.state.pendingBOQItems.length} รายการ)`);
+                        this.showToast(`อ่านไฟล์ "${file.name}" สำเร็จ (${this.state.pendingBOQItems.length} รายการ - ราคาไม่รวม VAT)`);
                     };
                     reader.readAsText(file);
                 }
@@ -10498,7 +10568,7 @@ const app = {
 
                 const nameEl = document.getElementById('boq-file-name');
                 if (nameEl) {
-                    nameEl.innerHTML = `<span class="text-emerald-500 font-bold">✓ เปลี่ยนเป็น Sheet: ${sheetName} (${parsed.items.length} รายการ)</span>`;
+                    nameEl.innerHTML = `<span class="text-emerald-500 font-bold">✓ เปลี่ยนเป็น Sheet: ${sheetName} (${parsed.items.length} รายการ - ราคาไม่รวม VAT)</span>`;
                 }
                 this.showToast(`🔄 สลับไปใช้ข้อมูลจาก Sheet "${sheetName}" (${parsed.items.length} รายการ)`);
             },
@@ -10507,7 +10577,8 @@ const app = {
                 if (!wb || !wb.SheetNames) return [];
                 const results = [];
 
-                for (const sName of wb.SheetNames) {
+                for (let i = 0; i < wb.SheetNames.length; i++) {
+                    const sName = wb.SheetNames[i];
                     const ws = wb.Sheets[sName];
                     if (!ws) continue;
                     const parsed = this.parseVFixExcelSheet(ws, sName);
@@ -10537,19 +10608,12 @@ const app = {
                         itemCount: (parsed.items || []).length,
                         customer: (parsed.header && parsed.header.customer) ? parsed.header.customer : '',
                         totalAmount: totalAmount,
-                        isBest: false
+                        isBest: (i === 0) // Strictly default to first sheet
                     });
                 }
 
-                // Determine best sheet
-                if (results.length > 0) {
-                    const sorted = [...results].sort((a, b) => b.score - a.score);
-                    if (sorted[0] && sorted[0].score > -100) {
-                        const target = results.find(r => r.name === sorted[0].name);
-                        if (target) target.isBest = true;
-                    } else {
-                        results[0].isBest = true;
-                    }
+                if (results.length > 0 && !results.some(r => r.isBest)) {
+                    results[0].isBest = true;
                 }
 
                 return results;
@@ -10647,22 +10711,34 @@ const app = {
 
                         if (name && (qty > 0 || laborPrice > 0 || matPrice > 0 || totalAmount > 0)) {
                             let unitPrice = 0;
-                            if (laborPrice > 0 || matPrice > 0) {
+                            let itemType = 'MATERIAL';
+
+                            if (laborPrice > 0 && matPrice > 0) {
                                 unitPrice = (matPrice || 0) + (laborPrice || 0);
+                                itemType = 'MATERIAL';
+                            } else if (laborPrice > 0) {
+                                unitPrice = laborPrice;
+                                itemType = 'LABOR';
+                            } else if (matPrice > 0) {
+                                unitPrice = matPrice;
+                                itemType = 'MATERIAL';
                             } else if (qty > 0 && totalAmount > 0) {
                                 unitPrice = totalAmount / qty;
+                                itemType = (name.includes('ค่าแรง') || name.includes('งานติดตั้ง') || name.includes('งานบริการ')) ? 'LABOR' : 'MATERIAL';
                             } else if (totalAmount > 0) {
                                 unitPrice = totalAmount;
+                                itemType = (name.includes('ค่าแรง') || name.includes('งานติดตั้ง') || name.includes('งานบริการ')) ? 'LABOR' : 'MATERIAL';
                             }
 
                             items.push({
                                 code: code || `SKU-${items.length + 1}`,
+                                type: itemType,
                                 name: name,
                                 qty: qty || 1,
                                 unit: unit || 'ชุด',
                                 mat_price: matPrice,
                                 labor_price: laborPrice,
-                                price: unitPrice,
+                                price: unitPrice, // ราคาต่อหน่วยไม่รวม VAT (Exclude VAT)
                                 remark: remark
                             });
                         }
@@ -10677,10 +10753,9 @@ const app = {
             },
 
             parseVFixExcelWorkbook(wb) {
-                const sheets = this.analyzeBOQWorkbookSheets(wb);
-                const best = sheets.find(s => s.isBest) || sheets.find(s => s.itemCount > 0) || sheets[0];
-                if (!best) return null;
-                return this.parseVFixExcelSheet(wb.Sheets[best.name], best.name);
+                if (!wb || !wb.SheetNames || wb.SheetNames.length === 0) return null;
+                const firstSheetName = wb.SheetNames[0];
+                return this.parseVFixExcelSheet(wb.Sheets[firstSheetName], firstSheetName);
             },
 
             parsePastedBOQ(text) {
@@ -10905,9 +10980,9 @@ const app = {
                 }).join('');
 
                 if (tbody) tbody.innerHTML = rowsHtml;
-                if (totalEl) totalEl.innerText = `ยอดรวม: ${subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
-                if (matTotalEl) matTotalEl.innerText = `ค่าวัสดุ: ${matSubtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
-                if (laborTotalEl) laborTotalEl.innerText = `ค่าแรง: ${laborSubtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
+                if (totalEl) totalEl.innerText = `ยอดรวม (ไม่รวม VAT): ${subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
+                if (matTotalEl) matTotalEl.innerText = `ค่าวัสดุ (ไม่รวม VAT): ${matSubtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
+                if (laborTotalEl) laborTotalEl.innerText = `ค่าแรง (ไม่รวม VAT): ${laborSubtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
             },
 
             confirmImportBOQ() {
@@ -10928,22 +11003,40 @@ const app = {
                 const modeEl = document.querySelector('input[name="boq-import-mode"]:checked');
                 const mode = modeEl ? modeEl.value : 'replace';
 
+                const formattedItems = newItems.map((it, idx) => {
+                    let itemType = it.type;
+                    if (!itemType) {
+                        if (it.labor_price > 0 && (!it.mat_price || it.mat_price === 0)) {
+                            itemType = 'LABOR';
+                        } else if (it.name && (it.name.includes('ค่าแรง') || it.name.includes('งานติดตั้ง') || it.name.includes('งานบริการ'))) {
+                            itemType = 'LABOR';
+                        } else {
+                            itemType = 'MATERIAL';
+                        }
+                    }
+                    const unitPrice = (it.price !== undefined && it.price !== null) ? Number(it.price) : ((Number(it.mat_price) || 0) + (Number(it.labor_price) || 0));
+                    return {
+                        id: idx + 1,
+                        code: it.code || `SKU-${idx + 1}`,
+                        type: itemType,
+                        name: it.name,
+                        qty: Number(it.qty) || 1,
+                        unit: it.unit || 'ชุด',
+                        price: unitPrice, // ราคาต่อหน่วยไม่รวม VAT (Exclude VAT)
+                        mat_price: Number(it.mat_price) || 0,
+                        labor_price: Number(it.labor_price) || 0,
+                        remark: it.remark || ''
+                    };
+                });
+
                 if (mode === 'replace') {
-                    job.boq_items = JSON.parse(JSON.stringify(newItems));
+                    job.boq_items = formattedItems;
                 } else {
-                    job.boq_items = [...(job.boq_items || []), ...JSON.parse(JSON.stringify(newItems))];
+                    job.boq_items = [...(job.boq_items || []), ...formattedItems];
                 }
 
-                let importSubtotal = 0;
-                (job.boq_items || []).forEach(it => {
-                    importSubtotal += (Number(it.qty) || 0) * (Number(it.price || it.unit_price) || 0);
-                });
-                job.boq_subtotal = importSubtotal;
-                const importDiscount = Math.max(0, Number(job.boq_discount) || 0);
-                job.boq_discount = importDiscount;
-                const importGrandTotal = Math.max(0, importSubtotal - importDiscount) * 1.07;
-                job.boq_grand_total = importGrandTotal;
-                job.boq_file = this.generateBOQFileObject(job, job.boq_items, importGrandTotal);
+                const calc = this.recalculateJobBOQ(job);
+                job.boq_file = this.generateBOQFileObject(job, job.boq_items, calc.grandTotal);
                 if (this.state.modalBOQJobId === targetJobId) {
                     this.state.modalBOQItems = JSON.parse(JSON.stringify(job.boq_items));
                     this.state.modalBOQFile = JSON.parse(JSON.stringify(job.boq_file));
@@ -13983,7 +14076,7 @@ const app = {
                                 const data = new Uint8Array(bufEvt.target.result);
                                 const wb = XLSX.read(data, { type: 'array' });
                                 const sheetAnalysis = this.analyzeBOQWorkbookSheets(wb);
-                                const bestSheet = sheetAnalysis.find(s => s.isBest) || sheetAnalysis.find(s => s.itemCount > 0) || sheetAnalysis[0];
+                                const bestSheet = (sheetAnalysis && sheetAnalysis.length > 0) ? sheetAnalysis[0] : null;
 
                                 if (bestSheet) {
                                     const parsed = this.parseVFixExcelSheet(wb.Sheets[bestSheet.name], bestSheet.name);
