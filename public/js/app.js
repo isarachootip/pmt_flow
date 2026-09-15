@@ -5352,36 +5352,43 @@ const app = {
                     ];
                 }
 
+                const countBadge = document.getElementById('unified-boq-count-badge');
+                if (countBadge) {
+                    countBadge.textContent = `${job.boq_items.length} รายการ`;
+                }
+
                 const html = job.boq_items.map((item, idx) => {
                     const itemTotal = (Number(item.qty) || 0) * (Number(item.price) || 0);
                     const isLabor = item.type === 'LABOR';
+                    const safeName = (item.name || '').replace(/"/g, '&quot;');
+                    const safeUnit = (item.unit || 'ชุด').replace(/"/g, '&quot;');
                     return `
-                    <tr class="hover:bg-muted/30 transition">
-                        <td class="px-3 py-2 text-center text-muted-foreground font-mono">${idx + 1}</td>
-                        <td class="px-3 py-2">
-                            <select onchange="app.updateUnifiedBOQItem(${idx}, 'type', this.value)" class="bg-card border border-border rounded px-1.5 py-1 text-[11px] font-bold ${isLabor ? 'text-purple-600 dark:text-purple-400' : 'text-blue-600 dark:text-blue-400'} focus:outline-none">
+                    <tr class="hover:bg-purple-500/[0.03] transition-colors border-b border-border">
+                        <td class="px-3.5 py-2.5 text-center text-muted-foreground font-mono text-xs font-semibold">${idx + 1}</td>
+                        <td class="px-3.5 py-2.5">
+                            <select onchange="app.updateUnifiedBOQItem(${idx}, 'type', this.value)" class="w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs font-bold ${isLabor ? 'text-purple-700 bg-purple-500/10 border-purple-300' : 'text-blue-700 bg-blue-500/10 border-blue-300'} focus:outline-none focus:border-purple-500 transition cursor-pointer">
                                 <option value="LABOR" ${isLabor ? 'selected' : ''}>LABOR (ค่าแรง)</option>
                                 <option value="MATERIAL" ${!isLabor ? 'selected' : ''}>MATERIAL (วัสดุ)</option>
                             </select>
                         </td>
-                        <td class="px-4 py-2">
-                            <input type="text" value="${item.name || ''}" oninput="app.updateUnifiedBOQItem(${idx}, 'name', this.value)" placeholder="ระบุรายการสินค้า/ค่าแรง..." class="w-full bg-card border border-border rounded px-2 py-1 text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium">
+                        <td class="px-4 py-2.5">
+                            <input type="text" value="${safeName}" title="${safeName}" oninput="app.updateUnifiedBOQItem(${idx}, 'name', this.value)" placeholder="ระบุรายการสินค้า / วัสดุอุปกรณ์ / ค่าแรงอย่างละเอียด..." class="w-full bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-purple-500 font-medium hover:border-purple-300 transition">
                         </td>
-                        <td class="px-3 py-2 text-center">
-                            <input type="number" min="1" step="1" value="${item.qty || 1}" oninput="app.updateUnifiedBOQItem(${idx}, 'qty', this.value)" class="w-16 text-center bg-card border border-border rounded px-1.5 py-1 text-xs font-mono text-foreground focus:outline-none focus:border-indigo-500">
+                        <td class="px-3 py-2.5 text-center">
+                            <input type="number" min="1" step="any" value="${item.qty || 1}" oninput="app.updateUnifiedBOQItem(${idx}, 'qty', this.value)" class="w-full text-center bg-card border border-border rounded-lg px-2 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-purple-500">
                         </td>
-                        <td class="px-3 py-2 text-center">
-                            <input type="text" value="${item.unit || 'ชุด'}" oninput="app.updateUnifiedBOQItem(${idx}, 'unit', this.value)" class="w-16 text-center bg-card border border-border rounded px-1.5 py-1 text-xs text-foreground focus:outline-none focus:border-indigo-500">
+                        <td class="px-3 py-2.5 text-center">
+                            <input type="text" value="${safeUnit}" oninput="app.updateUnifiedBOQItem(${idx}, 'unit', this.value)" placeholder="หน่วย" class="w-full text-center bg-card border border-border rounded-lg px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-purple-500">
                         </td>
-                        <td class="px-3 py-2 text-right">
-                            <input type="number" min="0" step="50" value="${item.price || 0}" oninput="app.updateUnifiedBOQItem(${idx}, 'price', this.value)" class="w-24 text-right bg-card border border-border rounded px-2 py-1 text-xs font-mono text-foreground focus:outline-none focus:border-indigo-500">
+                        <td class="px-3.5 py-2.5 text-right">
+                            <input type="number" min="0" step="any" value="${item.price || 0}" oninput="app.updateUnifiedBOQItem(${idx}, 'price', this.value)" class="w-full text-right bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-purple-500">
                         </td>
-                        <td class="px-4 py-2 text-right font-mono font-bold text-foreground">
+                        <td class="px-4 py-2.5 text-right font-mono font-bold text-xs sm:text-sm text-foreground">
                             ${itemTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
-                        <td class="px-2 py-2 text-center">
-                            <button type="button" onclick="app.removeUnifiedBOQItem(${idx})" class="p-1 text-muted-foreground hover:text-rose-500 rounded transition cursor-pointer" title="ลบรายการ">
-                                <i class="ph ph-trash text-sm"></i>
+                        <td class="px-2 py-2.5 text-center">
+                            <button type="button" onclick="app.removeUnifiedBOQItem(${idx})" class="w-8 h-8 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 flex items-center justify-center transition cursor-pointer mx-auto" title="ลบรายการนี้">
+                                <i class="ph ph-trash text-base"></i>
                             </button>
                         </td>
                     </tr>
@@ -5406,6 +5413,13 @@ const app = {
                 });
                 this.renderUnifiedBOQTable();
                 this.calculateUnifiedBOQSummary();
+                // Auto scroll to bottom
+                setTimeout(() => {
+                    const container = document.getElementById('unified-boq-table-container');
+                    if (container) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                }, 60);
             },
 
             updateUnifiedBOQItem(idx, field, val) {

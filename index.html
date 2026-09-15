@@ -7093,9 +7093,12 @@
                         <div class="flex items-center gap-2.5">
                             <span class="w-7 h-7 rounded-xl bg-purple-500 text-white font-bold text-xs flex items-center justify-center shadow-xs">3</span>
                             <div>
-                                <h4 class="font-display font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
-                                    ประมาณการราคา BOQ & คำนวณต้นทุนสด (Live Costing & Pricing Studio)
-                                </h4>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h4 class="font-display font-bold text-sm sm:text-base text-foreground">
+                                        ประมาณการราคา BOQ & คำนวณต้นทุนสด (Live Costing & Pricing Studio)
+                                    </h4>
+                                    <span id="unified-boq-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-purple-500/15 text-purple-700 border border-purple-500/20">0 รายการ</span>
+                                </div>
                                 <p class="text-xs text-muted-foreground">ถอดรายการวัสดุ-ค่าแรง, นำเข้าไฟล์ Excel / vFIX, และคำนวณภาษีมูลค่าเพิ่ม (VAT 7%) อัตโนมัติ</p>
                             </div>
                         </div>
@@ -7108,7 +7111,7 @@
                                 <i class="ph ph-download-simple text-sm"></i>
                                 <span>Template</span>
                             </button>
-                            <button type="button" onclick="app.addUnifiedBOQItem()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/10 cursor-pointer flex items-center gap-1">
+                            <button type="button" onclick="app.addUnifiedBOQItem()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-600 border-purple-500/30 hover:bg-purple-500/10 cursor-pointer flex items-center gap-1">
                                 <i class="ph ph-plus-circle text-sm"></i>
                                 <span>+ เพิ่มรายการ</span>
                             </button>
@@ -7119,21 +7122,19 @@
                         </div>
                     </div>
 
-
-
-                    <!-- BOQ Items Table (Full-Width Responsive Table) -->
-                    <div class="overflow-x-auto rounded-xl border border-border shadow-2xs">
-                        <table class="w-full text-xs text-left">
-                            <thead class="bg-muted/60 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
+                    <!-- BOQ Items Table (Spacious Scrollable Table with Sticky Header & Scrollbar) -->
+                    <div id="unified-boq-table-container" class="overflow-y-auto overflow-x-auto max-h-[460px] sm:max-h-[520px] rounded-xl border border-border bg-card shadow-xs custom-scrollbar relative">
+                        <table class="w-full text-xs text-left min-w-[840px] border-collapse">
+                            <thead class="bg-slate-100/95 backdrop-blur sticky top-0 z-10 border-b border-border text-muted-foreground font-semibold uppercase text-[11px] shadow-2xs">
                                 <tr>
-                                    <th class="px-3.5 py-3 w-12 text-center">#</th>
-                                    <th class="px-3.5 py-3 w-32">ประเภท</th>
-                                    <th class="px-4 py-3">รายการวัสดุ / งานบริการ</th>
-                                    <th class="px-3.5 py-3 w-24 text-center">จำนวน</th>
-                                    <th class="px-3.5 py-3 w-20 text-center">หน่วย</th>
-                                    <th class="px-3.5 py-3 w-32 text-right">ราคา/หน่วย (฿)</th>
-                                    <th class="px-4 py-3 w-36 text-right">รวมเงิน (฿)</th>
-                                    <th class="px-2 py-3 w-10 text-center">ลบ</th>
+                                    <th class="px-3.5 py-3 w-12 text-center bg-slate-100/95 backdrop-blur">#</th>
+                                    <th class="px-3.5 py-3 w-36 bg-slate-100/95 backdrop-blur">ประเภท</th>
+                                    <th class="px-4 py-3 min-w-[320px] bg-slate-100/95 backdrop-blur">รายการวัสดุ / งานบริการ (รายละเอียด)</th>
+                                    <th class="px-3 py-3 w-24 text-center bg-slate-100/95 backdrop-blur">จำนวน</th>
+                                    <th class="px-3 py-3 w-24 text-center bg-slate-100/95 backdrop-blur">หน่วย</th>
+                                    <th class="px-3.5 py-3 w-32 text-right bg-slate-100/95 backdrop-blur">ราคา/หน่วย (฿)</th>
+                                    <th class="px-4 py-3 w-36 text-right bg-slate-100/95 backdrop-blur">รวมเงิน (฿)</th>
+                                    <th class="px-2 py-3 w-12 text-center bg-slate-100/95 backdrop-blur">ลบ</th>
                                 </tr>
                             </thead>
                             <tbody id="unified-boq-tbody" class="divide-y divide-border bg-card">
@@ -7837,18 +7838,18 @@
                             <span class="font-bold text-emerald-600" id="boq-preview-total">ยอดรวม: 0.00 ฿</span>
                         </div>
                     </div>
-                    <div class="border border-border rounded-xl overflow-hidden max-h-56 overflow-y-auto">
-                        <table class="w-full text-left text-xs">
-                            <thead class="bg-muted/50 border-b border-border text-[11px] text-muted-foreground sticky top-0">
+                    <div class="border border-border rounded-xl overflow-y-auto overflow-x-auto max-h-72 custom-scrollbar">
+                        <table class="w-full text-left text-xs min-w-[680px]">
+                            <thead class="bg-muted/90 backdrop-blur border-b border-border text-[11px] text-muted-foreground sticky top-0 z-10">
                                 <tr>
-                                    <th class="py-2 px-2.5 w-10 text-center">#</th>
-                                    <th class="py-2 px-2.5 w-20">รหัส</th>
-                                    <th class="py-2 px-2.5">รายการวัสดุ / งานบริการ</th>
-                                    <th class="py-2 px-2.5 w-14 text-center">จำนวน</th>
-                                    <th class="py-2 px-2.5 w-14 text-center">หน่วย</th>
-                                    <th class="py-2 px-2.5 w-20 text-right">ค่าวัสดุ</th>
-                                    <th class="py-2 px-2.5 w-20 text-right">ค่าแรง</th>
-                                    <th class="py-2 px-2.5 w-24 text-right">รวมเงิน (฿)</th>
+                                    <th class="py-2.5 px-3 w-10 text-center">#</th>
+                                    <th class="py-2.5 px-3 w-24">รหัส</th>
+                                    <th class="py-2.5 px-3 min-w-[200px]">รายการวัสดุ / งานบริการ</th>
+                                    <th class="py-2.5 px-3 w-16 text-center">จำนวน</th>
+                                    <th class="py-2.5 px-3 w-16 text-center">หน่วย</th>
+                                    <th class="py-2.5 px-3 w-24 text-right">ค่าวัสดุ</th>
+                                    <th class="py-2.5 px-3 w-24 text-right">ค่าแรง</th>
+                                    <th class="py-2.5 px-3 w-28 text-right">รวมเงิน (฿)</th>
                                 </tr>
                             </thead>
                             <tbody id="boq-preview-tbody" class="divide-y divide-border bg-card">
