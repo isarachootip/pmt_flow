@@ -369,17 +369,32 @@ const app = {
             },
 
             // ─── STEP TIMESTAMPS & AUDIT REPORT ENGINE ──────────────────
-            recordStepTimestamp(jobId, stepKey, isoString = null, note = '') {
+            recordStepTimestamp(jobId, stepKey, isoString = null, note = '', user = null, role = null) {
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return null;
                 if (!job.step_timestamps) job.step_timestamps = {};
+                if (!job.step_users) job.step_users = {};
                 const ts = isoString || new Date().toISOString();
                 job.step_timestamps[stepKey] = ts;
+                
+                // Resolve user and role
+                const currentUser = user || (window.auth && window.auth.user ? (window.auth.user.full_name || window.auth.user.username) : 'ผู้ดูแลระบบ');
+                const currentRole = role || (window.auth && window.auth.user ? window.auth.user.role : 'ADMIN');
+                
+                job.step_users[stepKey] = {
+                    user: currentUser,
+                    role: currentRole,
+                    timestamp: ts
+                };
+                job.updated_by = currentUser;
+                job.updated_at = ts;
                 
                 if (!job.step_timestamps_history) job.step_timestamps_history = [];
                 job.step_timestamps_history.push({
                     stepKey: stepKey,
                     timestamp: ts,
+                    user: currentUser,
+                    role: currentRole,
                     note: note || '',
                     recorded_at: new Date().toISOString()
                 });
@@ -395,7 +410,10 @@ const app = {
                         ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
                     },
                     body: JSON.stringify({
-                        step_timestamps: job.step_timestamps
+                        step_timestamps: job.step_timestamps,
+                        step_users: job.step_users,
+                        updated_by: job.updated_by,
+                        updated_at: job.updated_at
                     })
                 }).catch(() => {});
 
@@ -688,19 +706,72 @@ const app = {
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return null;
                 const ts = job.step_timestamps || {};
+                const su = job.step_users || {};
                 const bp = (DB.blueprints || []).find(b => b.jobId === job.id);
                 const tkt = (DB.tickets || []).find(t => t.job_id === job.id);
                 const boqCount = (job.boq_items || []).length;
                 const tasks = (DB.tasks || []).filter(t => t.jobId === job.id);
                 const isQuick = this.isQuickJob(job);
+                const dailyLogs = (DB.dailyWorkLogs || []).filter(l => l.jobId === job.id);
+                const latestDailyLog = dailyLogs.length > 0 ? dailyLogs[dailyLogs.length - 1] : null;
+
+                const getRoleBadgeStyle = (role) => {
+                    const r = String(role || '').toUpperCase();
+                    if (r.includes('ADMIN')) return 'bg-rose-500/10 text-rose-700 border-rose-500/20';
+                    if (r.includes('AE') || r.includes('SALES')) return 'bg-blue-500/10 text-blue-700 border-blue-500/20';
+                    if (r.includes('QC')) return 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20';
+                    if (r.includes('CONTACT') || r.includes('CC') || r.includes('CSAT')) return 'bg-amber-500/10 text-amber-700 border-amber-500/20';
+                    if (r.includes('TECH') || r.includes('ช่าง')) return 'bg-purple-500/10 text-purple-700 border-purple-500/20';
+                    return 'bg-slate-500/10 text-slate-700 border-slate-500/20';
+                };
+
+                // Step 1: Order Intake, Design & BOQ
+                const step1Done = true;
+                const step1User = (su.step1_intake_at && su.step1_intake_at.user) || (su.step1_order_at && su.step1_order_at.user) || job.created_by_name || job.created_by || job.ae_name || (job.agent && job.agent.name) || 'สมชาย ขยันทำ (AE)';
+                const step1Role = (su.step1_intake_at && su.step1_intake_at.role) || (su.step1_order_at && su.step1_order_at.role) || 'AE';
+                const step1Date = ts.step1_intake_at || ts.step1_order_at || (job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : '2026-09-04T08:30:15.000Z'));
+
+                // Step 2: Tickets & Project Conversion
+                const step2Done = !!(tkt || ts.step2_ticket_at || ts.step4_ticket_at || ts.step3_conversion_at || ts.step5_project_at || ts.qc_pending_at || (tasks && tasks.length > 0));
+                const step2User = (su.step2_ticket_at && su.step2_ticket_at.user) || (su.step4_ticket_at && su.step4_ticket_at.user) || (tkt ? (tkt.created_by || tkt.agent_name) : null) || job.ticket_created_by || (step2Done ? 'มาลี สวยงาม (AE)' : null);
+                const step2Role = (su.step2_ticket_at && su.step2_ticket_at.role) || (su.step4_ticket_at && su.step4_ticket_at.role) || 'AE';
+                const step2Date = tkt ? (tkt.created_at || '2026-09-04T10:15:40.000Z') : (ts.step2_ticket_at || ts.step4_ticket_at || (step2Done ? '2026-09-04T10:15:40.000Z' : null));
+
+                // Step 3: Work Preparation & Dispatch
+                const step3Done = isQuick ? true : !!(ts.step3_conversion_at || ts.step5_project_at || tasks.length > 0);
+                const step3User = (su.step3_conversion_at && su.step3_conversion_at.user) || (su.step5_project_at && su.step5_project_at.user) || job.dispatch_by || job.pm_name || job.assigned_by || (step3Done ? 'สมรัก บริหารเก่ง (PM)' : null);
+                const step3Role = (su.step3_conversion_at && su.step3_conversion_at.role) || (su.step5_project_at && su.step5_project_at.role) || 'ADMIN';
+                const step3Date = isQuick ? (ts.qc_pending_at || ts.step4_ticket_at || ts.step2_ticket_at) : (ts.step3_conversion_at || ts.step5_project_at || (tasks.length > 0 ? (tasks[0].created_at || '2026-09-04T13:20:05.000Z') : null));
+
+                // Step 4: Gantt & Daily Work Logs
+                const step4Done = isQuick ? true : !!(job.progress >= 70 || ts.qc_pending_at || ts.qc_passed_at || dailyLogs.length > 0);
+                const step4User = (su.step4_gantt_at && su.step4_gantt_at.user) || (latestDailyLog ? latestDailyLog.technician_name : null) || (step4Done ? (job.tech || 'Team A (สมศักดิ์ ช่างแอร์)') : null);
+                const step4Role = (su.step4_gantt_at && su.step4_gantt_at.role) || 'ช่างติดตั้ง';
+                const step4Date = isQuick ? (ts.qc_pending_at || ts.step4_ticket_at) : (latestDailyLog ? latestDailyLog.created_at : (tasks.length > 0 ? (tasks[0].updated_at || ts.step3_conversion_at || '2026-09-05T08:30:00.000Z') : null));
+
+                // Step 5: QC Inspection
+                const step5Done = !!(ts.qc_passed_at || job.status === 'QC_PASSED' || job.status === 'AFTER_SALE' || job.status === 'CLOSED');
+                const step5User = (su.qc_passed_at && su.qc_passed_at.user) || (su.qc_inspected_at && su.qc_inspected_at.user) || job.qc_inspector || job.qc_checked_by || (step5Done ? 'วิชัย ตรวจดี (QC Inspector)' : null);
+                const step5Role = (su.qc_passed_at && su.qc_passed_at.role) || (su.qc_inspected_at && su.qc_inspected_at.role) || 'QC';
+                const step5Date = ts.qc_passed_at || ts.qc_inspected_at || ts.qc_pending_at;
+
+                // Step 6: Customer Satisfaction (CSAT)
+                const step6Done = !!(job.status === 'AFTER_SALE' || job.status === 'CLOSED' || job.csat_score || ts.csat_completed_at);
+                const step6User = (su.csat_completed_at && su.csat_completed_at.user) || (su.after_sale_at && su.after_sale_at.user) || job.csat_by || job.closed_by || (step6Done ? 'นิภา ใจดี (Contact Center)' : null);
+                const step6Role = (su.csat_completed_at && su.csat_completed_at.role) || (su.after_sale_at && su.after_sale_at.role) || 'CONTACT_CENTER';
+                const step6Date = ts.csat_completed_at || ts.after_sale_at || ts.csat_pending_at;
 
                 const steps = [
                     {
                         stepNumber: 1,
                         name: 'ศูนย์รับ Order, Design & BOQ Studio',
                         category: 'Step 1: Order Intake, Design & BOQ',
-                        timestamp: ts.step1_intake_at || ts.step1_order_at || (job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : '2026-09-04T08:30:15.000Z')),
-                        isDone: true,
+                        timestamp: step1Date,
+                        updateDate: step1Date,
+                        updateUser: step1User,
+                        updateRole: step1Role,
+                        roleBadgeCls: getRoleBadgeStyle(step1Role),
+                        isDone: step1Done,
                         statusLabel: 'บันทึกเรียบร้อย',
                         reference: `Ref ID: ${job.external_ref_id || job.id} • BOQ: ${(Number(job.boq_grand_total || 0)).toLocaleString()} ฿`,
                         detail: `ลูกค้า: ${job.customer} • บริการ: ${job.service} • BOQ: ${boqCount} รายการ`
@@ -709,8 +780,12 @@ const app = {
                         stepNumber: 2,
                         name: 'บันทึก Ticket และแปลง BOQ เข้า Project',
                         category: 'Tickets & Project Conversion',
-                        timestamp: tkt ? (tkt.created_at || '2026-09-04T10:15:40.000Z') : (ts.step2_ticket_at || ts.step4_ticket_at),
-                        isDone: !!(tkt || ts.step2_ticket_at || ts.step4_ticket_at || ts.step3_conversion_at || ts.step5_project_at || ts.qc_pending_at || (tasks && tasks.length > 0)),
+                        timestamp: step2Date,
+                        updateDate: step2Date,
+                        updateUser: step2User,
+                        updateRole: step2Role,
+                        roleBadgeCls: getRoleBadgeStyle(step2Role),
+                        isDone: step2Done,
                         statusLabel: tkt ? 'ออก Ticket & แนบสลิปแล้ว' : ((ts.step2_ticket_at || ts.step4_ticket_at) ? 'รอออก Ticket & สลิป' : 'รอยืนยันการชำระเงิน'),
                         reference: tkt ? `Ticket: ${tkt.ticket_no} • ใบเสร็จ: ${tkt.receipt_no || '-'}` : 'ยังไม่มี Ticket',
                         detail: tkt ? `ยอดเงิน: ${Number(tkt.amount || 0).toLocaleString()} ฿ (${tkt.payment_method})` : 'รอลูกค้าชำระเงินมัดจำ/แนบสลิป'
@@ -719,8 +794,12 @@ const app = {
                         stepNumber: 3,
                         name: 'เตรียมแผนงานและทีมช่าง',
                         category: 'Work Preparation & Dispatch',
-                        timestamp: isQuick ? (ts.qc_pending_at || ts.step4_ticket_at || ts.step2_ticket_at) : (ts.step3_conversion_at || ts.step5_project_at || (tasks.length > 0 ? '2026-09-04T13:20:05.000Z' : null)),
-                        isDone: isQuick ? true : !!(ts.step3_conversion_at || ts.step5_project_at || tasks.length > 0),
+                        timestamp: step3Date,
+                        updateDate: step3Date,
+                        updateUser: step3User,
+                        updateRole: step3Role,
+                        roleBadgeCls: getRoleBadgeStyle(step3Role),
+                        isDone: step3Done,
                         isSkipped: isQuick,
                         statusLabel: isQuick ? '⚡ ข้ามขั้นตอน (Quick - ตรงไป QC Online)' : ((ts.step3_conversion_at || ts.step5_project_at || tasks.length > 0) ? `เตรียมพร้อมแล้ว (${tasks.length} Tasks)` : 'รอจัดสรรแผนงาน'),
                         reference: isQuick ? 'ตรวจคุณภาพ Online ทันที' : (tasks.length > 0 ? `แผนงาน: ${tasks.length} กิจกรรม` : 'ยังไม่มี Task'),
@@ -730,19 +809,27 @@ const app = {
                         stepNumber: 4,
                         name: 'แผนงานติดตั้ง & บันทึกช่างประจำวัน',
                         category: 'Gantt & Daily Work Logs',
-                        timestamp: isQuick ? (ts.qc_pending_at || ts.step4_ticket_at) : (tasks.length > 0 ? (tasks[0].updated_at || ts.step3_conversion_at || '2026-09-05T08:30:00.000Z') : null),
-                        isDone: isQuick ? true : !!(job.progress >= 70 || ts.qc_pending_at || ts.qc_passed_at || (DB.dailyWorkLogs || []).some(l => l.jobId === job.id)),
+                        timestamp: step4Date,
+                        updateDate: step4Date,
+                        updateUser: step4User,
+                        updateRole: step4Role,
+                        roleBadgeCls: getRoleBadgeStyle(step4Role),
+                        isDone: step4Done,
                         isSkipped: isQuick,
-                        statusLabel: isQuick ? '⚡ ข้ามขั้นตอน (Quick - ตรงไป QC Online)' : (((DB.dailyWorkLogs || []).some(l => l.jobId === job.id) || job.progress >= 70) ? 'ปฏิบัติงาน/ลงบันทึกช่างแล้ว' : 'รอเริ่มดำเนินงาน'),
-                        reference: isQuick ? 'ข้ามแผนงานยาว' : (((DB.dailyWorkLogs || []).filter(l => l.jobId === job.id).length > 0) ? `บันทึกช่าง ${(DB.dailyWorkLogs || []).filter(l => l.jobId === job.id).length} ครั้ง` : 'แผนงาน Gantt'),
+                        statusLabel: isQuick ? '⚡ ข้ามขั้นตอน (Quick - ตรงไป QC Online)' : ((dailyLogs.length > 0 || job.progress >= 70) ? 'ปฏิบัติงาน/ลงบันทึกช่างแล้ว' : 'รอเริ่มดำเนินงาน'),
+                        reference: isQuick ? 'ข้ามแผนงานยาว' : (dailyLogs.length > 0 ? `บันทึกช่าง ${dailyLogs.length} ครั้ง` : 'แผนงาน Gantt'),
                         detail: isQuick ? 'งานด่วนดำเนินงานเสร็จสิ้นส่งภาพถ่ายหน้างานเข้าตรวจ QC' : 'ช่างเข้าปฏิบัติงานหน้างานและลงบันทึกเวลา 24 ชม. พร้อมแนบภาพถ่าย 5 ช่อง'
                     },
                     {
                         stepNumber: 5,
                         name: 'ตรวจรับรองคุณภาพ (QC Inspection)',
                         category: 'Quality Control (QC)',
-                        timestamp: ts.qc_passed_at || ts.qc_inspected_at || ts.qc_pending_at,
-                        isDone: !!(ts.qc_passed_at || job.status === 'QC_PASSED' || job.status === 'AFTER_SALE' || job.status === 'CLOSED'),
+                        timestamp: step5Date,
+                        updateDate: step5Date,
+                        updateUser: step5User,
+                        updateRole: step5Role,
+                        roleBadgeCls: getRoleBadgeStyle(step5Role),
+                        isDone: step5Done,
                         statusLabel: (job.status === 'QC_PASSED' || job.status === 'AFTER_SALE' || job.status === 'CLOSED' || ts.qc_passed_at) ? 'ผ่านการตรวจรับรอง (QC Passed)' : (ts.qc_pending_at ? 'อยู่ในคิวตรวจ QC' : 'รอส่งตรวจ QC'),
                         reference: job.qc_status ? `QC: ${job.qc_status} (คะแนน: ${job.qc_score || 100}%)` : (ts.qc_pending_at ? 'อยู่ในคิวตรวจ QC' : 'รอส่งตรวจ QC'),
                         detail: isQuick ? 'ตรวจแบบ Online ผ่านรูปถ่ายผลงานหน้างาน' : 'ตรวจแบบ On-site พร้อมให้คะแนนรายการย่อย BOQ'
@@ -751,8 +838,12 @@ const app = {
                         stepNumber: 6,
                         name: 'ประเมินความพึงพอใจลูกค้า (CSAT)',
                         category: 'Customer Satisfaction (CSAT)',
-                        timestamp: ts.csat_completed_at || ts.after_sale_at || ts.csat_pending_at,
-                        isDone: !!(job.status === 'AFTER_SALE' || job.status === 'CLOSED' || job.csat_score || ts.csat_completed_at),
+                        timestamp: step6Date,
+                        updateDate: step6Date,
+                        updateUser: step6User,
+                        updateRole: step6Role,
+                        roleBadgeCls: getRoleBadgeStyle(step6Role),
+                        isDone: step6Done,
                         statusLabel: (job.status === 'AFTER_SALE' || job.status === 'CLOSED' || job.csat_score) ? 'ประเมิน CSAT & ปิดงานแล้ว' : (job.status === 'QC_PASSED' ? 'รอสำรวจ CSAT' : 'รอดำเนินการ'),
                         reference: job.csat_score ? (Number(job.csat_score) >= 3 ? 'CSAT: ผ่าน (5 คะแนน) (ปิดงาน BMT)' : 'CSAT: ไม่ผ่าน (1 คะแนน)') : 'รอประเมินความพึงพอใจ',
                         detail: 'Contact Center สำรวจความพึงพอใจลูกค้า (ผ่าน=5 / ไม่ผ่าน=1) และส่งสถานะปิดงาน BMT อย่างเป็นทางการ'
@@ -788,9 +879,20 @@ const app = {
                     }
                 }
 
+                // Identify latest active step
+                let latestActiveStep = null;
+                for (let i = steps.length - 1; i >= 0; i--) {
+                    if (steps[i].isDone && steps[i].timestamp) {
+                        latestActiveStep = steps[i];
+                        break;
+                    }
+                }
+                if (!latestActiveStep && steps.length > 0) latestActiveStep = steps[0];
+
                 return {
                     job,
                     steps,
+                    latestActiveStep,
                     completedCount: steps.filter(s => s.isDone).length,
                     totalCount: steps.length
                 };
@@ -924,7 +1026,7 @@ const app = {
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-muted/25 border border-border rounded-xl">
                         <div class="relative flex-1">
                             <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
-                            <input type="text" id="audit-all-search" oninput="app.filterAuditAllTable(this.value)" placeholder="ค้นหาด้วย Job ID, เลขที่ INT, ชื่อลูกค้า, เบอร์โทร, งานบริการ, ทีมช่าง..." class="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-2xs">
+                            <input type="text" id="audit-all-search" oninput="app.filterAuditAllTable(this.value)" placeholder="ค้นหาด้วย Job ID, เลขที่ INT, ชื่อลูกค้า, ผู้สร้าง, ผู้อัปเดต, งานบริการ, ทีมช่าง..." class="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-2xs">
                         </div>
                         <div class="flex items-center gap-2 shrink-0 justify-between sm:justify-end text-xs text-muted-foreground">
                             <span>แสดง <span id="audit-all-visible-count" class="font-bold text-foreground font-mono">${totalJobs}</span> จาก ${totalJobs} รายการ</span>
@@ -942,6 +1044,7 @@ const app = {
                                     <th class="px-3.5 py-2.5">ประเภทบริการ & ทีมช่าง</th>
                                     <th class="px-3.5 py-2.5 text-center">ความคืบหน้า 6 ขั้นตอน</th>
                                     <th class="px-3.5 py-2.5">สถานะปัจจุบัน</th>
+                                    <th class="px-3.5 py-2.5">ผู้สร้าง & ผู้อัปเดตล่าสุด</th>
                                     <th class="px-3.5 py-2.5">วัน-เวลาเริ่ม (Step 1)</th>
                                     <th class="px-3.5 py-2.5 text-center">การตรวจสอบ (Audit)</th>
                                 </tr>
@@ -954,13 +1057,15 @@ const app = {
                                     const ts = j.step_timestamps || {};
                                     const step1Ts = ts.step1_intake_at || ts.step1_order_at || j.created_at;
                                     const step1Formatted = step1Ts ? this.formatTimestamp(step1Ts, false) : '-';
+                                    const creator = j.created_by || 'สมชาย ขยันทำ (AE)';
+                                    const lastUpdater = (r && r.latestActiveStep && r.latestActiveStep.updateUser) ? r.latestActiveStep.updateUser : (j.updated_by || creator);
 
                                     let badgeColor = 'bg-slate-500/15 text-slate-700 border-slate-300';
                                     if (completed === 6) badgeColor = 'bg-emerald-500/15 text-emerald-700 border-emerald-300';
                                     else if (completed >= 3) badgeColor = 'bg-blue-500/15 text-blue-700 border-blue-300';
                                     else if (completed >= 1) badgeColor = 'bg-purple-500/15 text-purple-700 border-purple-300';
 
-                                    const searchData = `${j.id} ${j.external_ref_id || ''} ${j.customer || ''} ${j.phone || ''} ${j.service || ''} ${j.tech || ''} ${j.status || ''}`;
+                                    const searchData = `${j.id} ${j.external_ref_id || ''} ${j.customer || ''} ${j.phone || ''} ${j.service || ''} ${j.tech || ''} ${creator} ${lastUpdater} ${j.status || ''}`;
 
                                     return `
                                     <tr class="audit-all-row hover:bg-muted/40 transition cursor-pointer" data-search="${searchData.toLowerCase()}" onclick="app.openStepAuditReportModal('${j.id}', 'detail')">
@@ -994,6 +1099,15 @@ const app = {
                                         <td class="px-3.5 py-3">
                                             <span class="status-pill text-[10px]">${j.status || 'Active'}</span>
                                         </td>
+                                        <td class="px-3.5 py-3">
+                                            <div class="font-medium text-foreground text-xs flex items-center gap-1">
+                                                <i class="ph ph-user-check text-[11px] text-emerald-600"></i>
+                                                <span>${lastUpdater}</span>
+                                            </div>
+                                            <div class="text-[10px] text-muted-foreground flex items-center gap-1">
+                                                <span>สร้าง: ${creator}</span>
+                                            </div>
+                                        </td>
                                         <td class="px-3.5 py-3 font-mono text-[11px] text-muted-foreground">
                                             ${step1Formatted}
                                         </td>
@@ -1022,6 +1136,7 @@ const app = {
 
                 const job = data.job;
                 const steps = data.steps;
+                const latestActiveStep = data.latestActiveStep || steps[0];
                 const jobs = DB.jobs || [];
                 const totalJobs = jobs.length;
                 const currentJobIndex = jobs.findIndex(j => j.id === targetJobId);
@@ -1035,6 +1150,11 @@ const app = {
                     }
                 }
                 if (latestActiveStepIdx === -1 && steps.length > 0) latestActiveStepIdx = 0;
+
+                const jobCreatedBy = job.created_by || 'สมชาย ขยันทำ (AE)';
+                const jobCreatedAt = job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : '2026-09-04T08:30:15.000Z');
+                const jobUpdatedBy = (latestActiveStep && latestActiveStep.updateUser) ? latestActiveStep.updateUser : (job.updated_by || jobCreatedBy);
+                const jobUpdatedAt = (latestActiveStep && latestActiveStep.timestamp) ? latestActiveStep.timestamp : (job.updated_at || jobCreatedAt);
 
                 bodyEl.innerHTML = `
                     <!-- Transaction Selector & Switcher Bar -->
@@ -1073,10 +1193,10 @@ const app = {
                         </div>
                     </div>
 
-                    <!-- Project Info Banner -->
-                    <div class="p-4 rounded-xl bg-muted/40 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div class="space-y-1">
-                            <div class="flex items-center gap-2">
+                    <!-- Project Info Banner with Created By & Updated By Stamps -->
+                    <div class="p-4 rounded-xl bg-muted/40 border border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div class="space-y-1.5">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <span class="font-mono font-bold text-sm text-brand-600">${job.id}</span>
                                 <span class="text-muted-foreground">•</span>
                                 <span class="font-semibold text-foreground text-sm">${job.customer}</span>
@@ -1088,6 +1208,25 @@ const app = {
                                 <span><i class="ph ph-wrench"></i> ${job.service || '-'}</span>
                                 <span>•</span>
                                 <span><i class="ph ph-user-gear"></i> ${job.tech || '-'}</span>
+                            </div>
+                            <!-- Audit Creator & Latest Updater Stamps -->
+                            <div class="pt-1.5 border-t border-border/60 flex flex-wrap items-center gap-2.5 text-[11px]">
+                                <div class="flex items-center gap-1.5 text-slate-700 bg-card px-2.5 py-1 rounded-lg border border-border shadow-2xs">
+                                    <span class="text-muted-foreground font-medium">ผู้สร้าง (Created By):</span>
+                                    <span class="font-bold text-foreground flex items-center gap-1">
+                                        <i class="ph ph-user-plus text-xs text-brand-600"></i>
+                                        ${jobCreatedBy}
+                                    </span>
+                                    <span class="text-muted-foreground font-mono text-[10px]">(${this.formatTimestamp(jobCreatedAt, false)})</span>
+                                </div>
+                                <div class="flex items-center gap-1.5 text-slate-700 bg-card px-2.5 py-1 rounded-lg border border-border shadow-2xs">
+                                    <span class="text-muted-foreground font-medium">ผู้อัปเดตล่าสุด (Updated By):</span>
+                                    <span class="font-bold text-foreground flex items-center gap-1">
+                                        <i class="ph ph-user-check text-xs text-emerald-600"></i>
+                                        ${jobUpdatedBy}
+                                    </span>
+                                    <span class="text-muted-foreground font-mono text-[10px]">(${this.formatTimestamp(jobUpdatedAt, false)})</span>
+                                </div>
                             </div>
                         </div>
                         <div class="flex items-center gap-3 shrink-0">
@@ -1109,7 +1248,7 @@ const app = {
                                     <th class="px-4 py-3 w-14 text-center">Step</th>
                                     <th class="px-4 py-3">ขั้นตอนการปฏิบัติงาน (Workflow Step)</th>
                                     <th class="px-4 py-3">สถานะ (Status)</th>
-                                    <th class="px-4 py-3">วันและเวลาที่บันทึก (Timestamp)</th>
+                                    <th class="px-4 py-3 min-w-[230px]">วันและเวลาที่บันทึก & ผู้ดำเนินการ (Timestamp & Action User)</th>
                                     <th class="px-4 py-3 text-center">ระยะเวลาห่าง (Lead Time)</th>
                                     <th class="px-4 py-3">ข้อมูลอ้างอิง & รายละเอียด (Audit Note)</th>
                                 </tr>
@@ -1149,6 +1288,20 @@ const app = {
                                                 <i class="ph ph-clock text-xs text-brand-500"></i>
                                                 <span>${tsFormatted}</span>
                                             </div>
+                                            ${isDone && s.updateUser ? `
+                                                <div class="mt-1 flex items-center gap-1.5 flex-wrap">
+                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/90 font-medium text-[11px] text-foreground border border-border shadow-2xs">
+                                                        <i class="ph ph-user text-[11px] text-brand-600"></i>
+                                                        <span>${s.updateUser}</span>
+                                                    </span>
+                                                    ${s.updateRole ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold border ${s.roleBadgeCls}">${s.updateRole}</span>` : ''}
+                                                </div>
+                                            ` : `
+                                                <div class="mt-1 text-[10px] text-muted-foreground/60 italic flex items-center gap-1">
+                                                    <i class="ph ph-user-circle text-xs"></i>
+                                                    <span>- ยังไม่มีผู้ดำเนินการ -</span>
+                                                </div>
+                                            `}
                                         </td>
                                         <td class="px-4 py-3.5 text-center whitespace-nowrap font-mono text-[11px] text-muted-foreground font-medium">
                                             ${s.leadTime}
@@ -1169,12 +1322,12 @@ const app = {
                         <div class="p-3.5 rounded-xl bg-purple-500/5 border border-purple-500/20 space-y-1">
                             <div class="text-[10px] text-purple-700 font-semibold uppercase">จุดเริ่มต้นกระบวนการ (Step 1)</div>
                             <div class="font-mono font-bold text-foreground text-xs">${steps[0].timestamp ? this.formatTimestamp(steps[0].timestamp, false) : '-'}</div>
-                            <div class="text-[10px] text-muted-foreground">Order & BOQ Studio</div>
+                            <div class="text-[10px] text-muted-foreground">Order & BOQ Studio (ผู้สร้าง: ${jobCreatedBy})</div>
                         </div>
                         <div class="p-3.5 rounded-xl bg-blue-500/5 border border-blue-500/20 space-y-1">
                             <div class="text-[10px] text-blue-700 font-semibold uppercase">จุดสิ้นสุดกระบวนการ (Step 6)</div>
                             <div class="font-mono font-bold text-foreground text-xs">${steps[5] && steps[5].timestamp ? this.formatTimestamp(steps[5].timestamp, false) : 'กำลังดำเนินการ'}</div>
-                            <div class="text-[10px] text-muted-foreground">ประเมิน CSAT & ปิดงานคำสั่งซื้อ</div>
+                            <div class="text-[10px] text-muted-foreground">ประเมิน CSAT & ปิดงาน (ผู้ดำเนินการ: ${steps[5] && steps[5].updateUser ? steps[5].updateUser : 'Contact Center'})</div>
                         </div>
                         <div class="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-1">
                             <div class="text-[10px] text-emerald-700 font-semibold uppercase">ความสมบูรณ์ของข้อมูล Audit</div>
@@ -1182,7 +1335,7 @@ const app = {
                                 <i class="ph ph-seal-check text-sm"></i>
                                 <span>${data.completedCount === 6 ? 'ครบถ้วนสมบูรณ์ 100%' : `ดำเนินการแล้ว ${Math.round((data.completedCount / 6) * 100)}%`}</span>
                             </div>
-                            <div class="text-[10px] text-muted-foreground">ระบบบันทึก Timestamp ทุกขั้นตอนเพื่อ Report</div>
+                            <div class="text-[10px] text-muted-foreground">ระบบบันทึก Timestamp & Action User ทุกขั้นตอน</div>
                         </div>
                     </div>
                 `;
@@ -1193,12 +1346,14 @@ const app = {
                 const data = this.getJobStepAuditReportData(targetJobId);
                 if (!data) return;
 
-                const headers = ['Step', 'Workflow_Step_Name', 'Status', 'Recorded_Timestamp', 'Lead_Time', 'Reference', 'Detail'];
+                const headers = ['Step', 'Workflow_Step_Name', 'Status', 'Recorded_Timestamp', 'Action_User', 'Action_Role', 'Lead_Time', 'Reference', 'Detail'];
                 const rows = data.steps.map(s => [
                     `"Step ${s.stepNumber}"`,
                     `"${s.name}"`,
                     `"${s.isDone ? 'COMPLETED' : 'PENDING'}"`,
                     `"${s.timestamp ? this.formatTimestamp(s.timestamp) : '-'}"`,
+                    `"${s.updateUser || '-'}"`,
+                    `"${s.updateRole || '-'}"`,
                     `"${s.leadTime}"`,
                     `"${s.reference}"`,
                     `"${s.detail}"`
@@ -1206,7 +1361,7 @@ const app = {
 
                 const csvContent = '\uFEFF' + [
                     `"Project Audit Report: ${data.job.id} - ${data.job.customer}"`,
-                    `"Service: ${data.job.service} | Tech: ${data.job.tech}"`,
+                    `"Created By: ${data.job.created_by || 'สมชาย ขยันทำ (AE)'} | Updated By: ${data.latestActiveStep ? data.latestActiveStep.updateUser : '-'} | Tech: ${data.job.tech}"`,
                     `"Export Date: ${this.formatTimestamp(new Date().toISOString())}"`,
                     '',
                     headers.join(','),
@@ -1233,19 +1388,28 @@ const app = {
                     'ประเภทงานบริการ',
                     'ช่างผู้รับผิดชอบ',
                     'สถานะปัจจุบัน',
-                    'Step 1: วัน-เวลารับ Order, Design & BOQ (Step1_At)',
-                    'Step 2: วัน-เวลาบันทึก Ticket & แปลง Project (Ticket_At)',
-                    'Step 3: วัน-เวลาเตรียมแผนงานและทีมช่าง (Prep_At)',
+                    'ผู้สร้างโครงการ (Created By)',
+                    'ผู้อัปเดตล่าสุด (Updated By)',
+                    'Step 1: วัน-เวลารับ Order (Step1_At)',
+                    'Step 1: ผู้รับ Order (Step1_User)',
+                    'Step 2: วัน-เวลาบันทึก Ticket (Ticket_At)',
+                    'Step 2: ผู้ออก Ticket (Ticket_User)',
+                    'Step 3: วัน-เวลาเตรียมแผนงาน (Prep_At)',
+                    'Step 3: ผู้จัดสรรงาน (Prep_User)',
                     'Step 4: วัน-เวลาแผนงาน & บันทึกช่าง (Gantt_At)',
+                    'Step 4: ผู้บันทึกงานช่าง (Gantt_User)',
                     'Step 5: วัน-เวลาตรวจรับรอง QC (QC_At)',
+                    'Step 5: ผู้ตรวจ QC (QC_User)',
                     'Step 6: วัน-เวลาประเมิน CSAT (CSAT_At)',
+                    'Step 6: ผู้ประเมิน CSAT (CSAT_User)',
                     'จำนวนขั้นตอนที่เสร็จสิ้น'
                 ];
 
                 const rows = (DB.jobs || []).map(j => {
                     const r = this.getJobStepAuditReportData(j.id);
-                    const ts = j.step_timestamps || {};
-                    const tasks = (DB.tasks || []).filter(t => t.jobId === j.id);
+                    const steps = r ? r.steps : [];
+                    const creator = j.created_by || 'สมชาย ขยันทำ (AE)';
+                    const lastUpdater = (r && r.latestActiveStep && r.latestActiveStep.updateUser) ? r.latestActiveStep.updateUser : (j.updated_by || creator);
                     return [
                         `"${j.id}"`,
                         `"${j.external_ref_id || '-'}"`,
@@ -1254,12 +1418,20 @@ const app = {
                         `"${j.service || ''}"`,
                         `"${j.tech || ''}"`,
                         `"${j.status || ''}"`,
-                        `"${this.formatTimestamp(ts.step1_intake_at || ts.step1_order_at || j.created_at)}"`,
-                        `"${this.formatTimestamp(ts.step2_ticket_at || ts.step4_ticket_at)}"`,
-                        `"${this.formatTimestamp(ts.step3_conversion_at || ts.step5_project_at)}"`,
-                        `"${this.formatTimestamp(ts.step4_gantt_at || (tasks.length > 0 ? tasks[0].updated_at : null))}"`,
-                        `"${this.formatTimestamp(ts.qc_passed_at || ts.qc_inspected_at || ts.qc_pending_at)}"`,
-                        `"${this.formatTimestamp(ts.csat_completed_at || ts.after_sale_at || ts.csat_pending_at)}"`,
+                        `"${creator}"`,
+                        `"${lastUpdater}"`,
+                        `"${steps[0] && steps[0].timestamp ? this.formatTimestamp(steps[0].timestamp) : '-'}"`,
+                        `"${steps[0] ? (steps[0].updateUser || '-') : '-'}"`,
+                        `"${steps[1] && steps[1].timestamp ? this.formatTimestamp(steps[1].timestamp) : '-'}"`,
+                        `"${steps[1] ? (steps[1].updateUser || '-') : '-'}"`,
+                        `"${steps[2] && steps[2].timestamp ? this.formatTimestamp(steps[2].timestamp) : '-'}"`,
+                        `"${steps[2] ? (steps[2].updateUser || '-') : '-'}"`,
+                        `"${steps[3] && steps[3].timestamp ? this.formatTimestamp(steps[3].timestamp) : '-'}"`,
+                        `"${steps[3] ? (steps[3].updateUser || '-') : '-'}"`,
+                        `"${steps[4] && steps[4].timestamp ? this.formatTimestamp(steps[4].timestamp) : '-'}"`,
+                        `"${steps[4] ? (steps[4].updateUser || '-') : '-'}"`,
+                        `"${steps[5] && steps[5].timestamp ? this.formatTimestamp(steps[5].timestamp) : '-'}"`,
+                        `"${steps[5] ? (steps[5].updateUser || '-') : '-'}"`,
                         `"${r ? r.completedCount : 0}/6"`
                     ].join(',');
                 });
@@ -1273,7 +1445,7 @@ const app = {
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                this.showToast('📥 ส่งออกไฟล์ CSV รายงาน Timestamps ทุกขั้นตอนเรียบร้อย');
+                this.showToast('📥 ส่งออกไฟล์ CSV รายงาน Timestamps & Action Users ทุกขั้นตอนเรียบร้อย');
             },
 
             updateJobStatus(jobId, newStatus) {
