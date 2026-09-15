@@ -2533,7 +2533,8 @@ const app = {
                             'modal-upload-blueprint',
                             'modal-import-boq',
                             'modal-confirm-proceed-boq',
-                            'modal-save-boq-schedule'
+                            'modal-save-boq-schedule',
+                            'modal-close-lost'
                         ];
                         for (const smId of submodals) {
                             const sm = document.getElementById(smId);
@@ -3659,15 +3660,21 @@ const app = {
 
             getStatusHtml(status, isNew = false) {
                 const raw = (status || 'DRAFT').toUpperCase();
-                const s = (raw === 'NEW' ? 'draft' : raw.toLowerCase().replace('_', '-'));
+                const s = (raw === 'NEW' ? 'draft' : raw.toLowerCase().replace(/_/g, '-'));
                 const labelMap = {
                     'NEW': 'Draft',
                     'DRAFT': 'Draft',
+                    'SURVEYED': 'Surveyed',
+                    'DESIGNED': 'Designed',
+                    'BOQ_READY': 'BOQ Ready',
+                    'PAID': 'Paid',
                     'IN_PROGRESS': 'In Progress',
                     'QC_PENDING': 'QC Pending',
                     'QC_PASSED': 'QC Passed',
                     'AFTER_SALE': 'After Sale',
-                    'CLOSED': 'Closed'
+                    'CLOSED': 'Closed',
+                    'CANCELLED': 'Cancelled (Close Lost)',
+                    'CLOSED_LOST': 'Closed Lost'
                 };
                 return `<span class="status-pill status-${s}">${labelMap[raw] || raw}</span>`;
             },
@@ -11169,11 +11176,28 @@ const app = {
                 }
             },
 
+            isJobPaymentRecorded(job) {
+                if (!job) return false;
+                if (job.status === 'PAID' || job.payment_status === 'PAID' || job.is_paid === true) return true;
+                if (job.receipt_no && typeof job.receipt_no === 'string' && job.receipt_no.trim() !== '' && job.receipt_no !== '-') return true;
+                if (job.ticket_id && String(job.ticket_id).trim() !== '') return true;
+                if (job.step_timestamps && (job.step_timestamps.step4_ticket_at || job.step_timestamps.step2_ticket_at)) return true;
+                const hasTicket = (DB.tickets || []).some(t => (t.job_id === job.id || t.jobId === job.id) && t.receipt_no && t.receipt_no !== '-');
+                if (hasTicket) return true;
+                return false;
+            },
+
             openConvertBOQToTasksModal(jobId) {
                 const targetJobId = jobId || this.state.currentJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
                 const job = DB.jobs.find(j => j.id === targetJobId);
                 if (!job) {
                     this.showToast('⚠️ ไม่พบข้อมูล Job');
+                    return;
+                }
+
+                // Rule Enforcement: ถ้าโครงการถูกยกเลิก (Close Lost / CANCELLED) ให้บล็อคไม่ให้ไปต่อ
+                if (job.status === 'CANCELLED' || job.status === 'CLOSED_LOST' || job.is_closed_lost) {
+                    this.showToast('🚫 โครงการนี้ถูกบันทึก Close Lost / ยกเลิกงานแล้ว (สถานะ CANCELLED) ยุติการดำเนินงาน ไม่ไปต่อ');
                     return;
                 }
 
@@ -11191,9 +11215,45 @@ const app = {
                 }
 
                 this.state.convertJobId = targetJobId;
-                document.getElementById('convert-job-id').innerText = job.id;
-                document.getElementById('convert-job-customer').innerText = `ลูกค้า: ${this.getCustomerName(job)}`;
-                document.getElementById('convert-job-service').innerText = `บริการ: ${job.service}`;
+                const elId = document.getElementById('convert-job-id');
+                const elCust = document.getElementById('convert-job-customer');
+                const elServ = document.getElementById('convert-job-service');
+                if (elId) elId.innerText = job.id;
+                if (elCust) elCust.innerText = `ลูกค้า: ${this.getCustomerName(job)}`;
+                if (elServ) elServ.innerText = `บริการ: ${job.service}`;
+
+                const isPaid = this.isJobPaymentRecorded(job);
+                const payBadge = document.getElementById('convert-job-payment-badge');
+                const unpaidBanner = document.getElementById('convert-unpaid-warning-banner');
+                const confirmBtn = document.getElementById('btn-confirm-convert-tasks');
+
+                if (payBadge) {
+                    if (isPaid) {
+                        payBadge.className = 'px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 flex items-center gap-1';
+                        payBadge.innerHTML = `<i class="ph ph-check-circle"></i> บันทึกชำระเงินแล้ว (${job.receipt_no || 'มีใบเสร็จ'})`;
+                    } else {
+                        payBadge.className = 'px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-700 border border-rose-500/30 flex items-center gap-1 animate-pulse';
+                        payBadge.innerHTML = `<i class="ph ph-warning-circle"></i> ยังไม่ได้บันทึกชำระเงิน (Unpaid)`;
+                    }
+                }
+
+                if (unpaidBanner) {
+                    if (isPaid) {
+                        unpaidBanner.classList.add('hidden');
+                    } else {
+                        unpaidBanner.classList.remove('hidden');
+                    }
+                }
+
+                if (confirmBtn) {
+                    if (isPaid) {
+                        confirmBtn.classList.remove('opacity-60');
+                        confirmBtn.title = 'ยืนยันสร้าง Task & จัดเข้า Gantt Timeline';
+                    } else {
+                        confirmBtn.classList.add('opacity-60');
+                        confirmBtn.title = 'ต้องบันทึกจ่ายเงิน (Step 4) ก่อน จึงจะสามารถสร้าง Task ได้';
+                    }
+                }
 
                 this.resetConvertTasksFromBOQ();
                 this.showModal('modal-convert-boq-tasks');
@@ -11521,6 +11581,24 @@ const app = {
                     return;
                 }
 
+                // Rule Enforcement: ถ้าโครงการถูกยกเลิก (Close Lost / CANCELLED) ให้บล็อค
+                if (job.status === 'CANCELLED' || job.status === 'CLOSED_LOST' || job.is_closed_lost) {
+                    this.showToast('🚫 โครงการนี้ถูกบันทึก Close Lost / ยกเลิกงานแล้ว (สถานะ CANCELLED) ยุติการดำเนินงาน ไม่ไปต่อ');
+                    return;
+                }
+
+                // Strict Payment Rule: ต้องเกิดเมื่อบันทึกจ่ายเงินแล้วเท่านั้น
+                if (!this.isJobPaymentRecorded(job)) {
+                    const goPayment = confirm(`⚠️ ไม่สามารถสร้าง Task และจัดเข้า Gantt Timeline ได้\n\nโครงการ: ${job.id} (${this.getCustomerName(job)})\n\n📌 กฎเกณฑ์ระบบ:\n"แผนงานจะเกิดได้ก็ต่อเมื่อ มีการบันทึกชำระเงินและออก Ticket (Step 4: Ticket & ใบเสร็จ) เรียบร้อยแล้ว"\n\nโครงการนี้ยังไม่ได้รับการบันทึกการชำระเงิน\n\nคุณต้องการไปที่หน้า "บันทึก Ticket & ใบเสร็จชำระเงิน" เดี๋ยวนี้เลยหรือไม่?`);
+                    if (goPayment) {
+                        this.hideModal('modal-convert-boq-tasks');
+                        this.openCreateTicketModal(job.id);
+                    } else {
+                        this.showToast('⚠️ กรุณาบันทึกการชำระเงิน (Step 4) ก่อน จึงจะสามารถสร้าง Task ได้');
+                    }
+                    return;
+                }
+
                 const selectedTasks = (this.state.convertTasks || []).filter(t => t.selected);
                 if (selectedTasks.length === 0) {
                     this.showToast('⚠️ กรุณาเลือกอย่างน้อย 1 Task เพื่อแปลงเป็นแผนงาน');
@@ -11595,6 +11673,97 @@ const app = {
                         }
                     }
                 }, 350);
+            },
+
+            openCloseLostModal(jobId) {
+                const targetJobId = jobId || this.state.convertJobId || this.state.currentJobId || this.state.unifiedStudioJobId || (DB.jobs[0] ? DB.jobs[0].id : '');
+                const job = (DB.jobs || []).find(j => j.id === targetJobId);
+                if (!job) {
+                    this.showToast('⚠️ ไม่พบข้อมูลโครงการที่ต้องการบันทึก Close Lost');
+                    return;
+                }
+                this.state.closeLostJobId = targetJobId;
+                const elId = document.getElementById('close-lost-job-id');
+                const elCust = document.getElementById('close-lost-job-customer');
+                const elServ = document.getElementById('close-lost-job-service');
+                const reasonSelect = document.getElementById('close-lost-reason-select');
+                const notesInput = document.getElementById('close-lost-notes');
+
+                if (elId) elId.innerText = job.id;
+                if (elCust) elCust.innerText = `ลูกค้า: ${this.getCustomerName(job)}`;
+                if (elServ) elServ.innerText = `บริการ: ${job.service || '-'}`;
+                if (reasonSelect) reasonSelect.selectedIndex = 0;
+                if (notesInput) notesInput.value = '';
+
+                this.showModal('modal-close-lost');
+            },
+
+            async submitCloseLostJob(event) {
+                if (event) event.preventDefault();
+                const jobId = this.state.closeLostJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) {
+                    this.showToast('⚠️ ไม่พบข้อมูลโครงการ');
+                    return;
+                }
+
+                const reason = document.getElementById('close-lost-reason-select')?.value || 'ลูกค้าปฏิเสธใบเสนอราคา (Customer Rejected Quotation)';
+                const notes = document.getElementById('close-lost-notes')?.value.trim() || '';
+                const timestamp = new Date().toISOString();
+
+                job.status = 'CANCELLED';
+                job.is_closed_lost = true;
+                job.cancel_reason = reason;
+                job.cancel_notes = notes;
+                job.cancelled_at = timestamp;
+                job.closed_lost_at = timestamp;
+                job.progress = 0;
+                job.overall_progress = 0;
+
+                if (!job.step_timestamps) job.step_timestamps = {};
+                job.step_timestamps.cancelled_at = timestamp;
+                job.step_timestamps.closed_lost_at = timestamp;
+
+                this.recordStepTimestamp(jobId, 'closed_lost_at', timestamp, `บันทึก Close Lost: ${reason} (${notes || 'ไม่มีหมายเหตุ'})`);
+                this.recordStepTimestamp(jobId, 'cancelled_at', timestamp, `ยกเลิกโครงการ (สถานะ CANCELLED): ${reason}`);
+                this.addJobActivityLog(jobId, 1, '🚫 Close Lost & ยกเลิกโครงการ', `บันทึกสถานะเป็น CANCELLED เหตุผล: ${reason} ${notes ? `(${notes})` : ''} — ยุติการดำเนินงาน ไม่ไปต่อ`);
+
+                this.persistJobs();
+
+                // Backend sync
+                try {
+                    const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                    await fetch(`/api/v1/jobs/${jobId}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        },
+                        body: JSON.stringify({
+                            status: 'CANCELLED',
+                            overall_progress: 0,
+                            step_timestamps: job.step_timestamps,
+                            additional_notes: `[Close Lost / Cancelled]: ${reason} - ${notes}`
+                        })
+                    });
+                } catch (e) {
+                    console.log('Backend sync Close Lost notice:', e.message);
+                }
+
+                this.hideModal('modal-close-lost');
+                this.hideModal('modal-convert-boq-tasks');
+                this.hideModal('modal-unified-order-studio');
+                this.hideModal('modal-save-boq-schedule');
+
+                this.showToast(`🚫 บันทึก Close Lost โครงการ [${jobId}] เรียบร้อย สถานะเป็น CANCELLED (ไม่ดำเนินงานต่อ)`);
+
+                this.updateStepBadges();
+                this.updateQCBadges();
+                if (this.state.currentView === 'jobs') this.renderJobs();
+                if (this.state.currentView === 'boq') this.renderBOQPage();
+                if (this.state.currentView === 'project-conversion') this.renderProjectConversion();
+                if (this.state.currentView === 'tickets') this.renderTicketsPage();
+                if (this.state.currentView === 'dashboard') this.renderDashboard();
             },
 
             openJobDetailBOQ(jobId) {

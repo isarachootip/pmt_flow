@@ -7186,6 +7186,10 @@
                     <span id="unified-modal-validation-msg" class="font-medium">ข้อมูลพร้อมสำหรับการจัดเตรียมข้อเสนอ แบบแปลน และการส่งต่อ</span>
                 </div>
                 <div class="flex items-center gap-2.5 w-full sm:w-auto">
+                    <button type="button" onclick="app.openCloseLostModal(app.state.unifiedStudioJobId)" class="btn-artifact-secondary text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition shadow-2xs" title="บันทึกปิดงานไม่สำเร็จ / ลูกค้ายกเลิก (Close Lost & Cancel Job)">
+                        <i class="ph ph-x-circle text-rose-500 text-sm"></i>
+                        <span>🚫 Close Lost (ยกเลิกงาน)</span>
+                    </button>
                     <button type="button" onclick="app.saveUnifiedOrderStudio()" class="flex-1 sm:flex-none btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold border border-border hover:bg-muted text-foreground cursor-pointer transition shadow-2xs">
                         <i class="ph ph-floppy-disk mr-1 text-sm"></i> บันทึกข้อมูล (Save)
                     </button>
@@ -7908,10 +7912,30 @@
                         <span class="text-muted-foreground">•</span>
                         <span class="text-muted-foreground" id="convert-job-service">บริการ: Renovate ครัว</span>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span id="convert-job-payment-badge" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-700 border border-rose-500/30 flex items-center gap-1">
+                            <i class="ph ph-warning-circle"></i> ยังไม่ได้บันทึกชำระเงิน
+                        </span>
                         <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 border border-emerald-500/20 flex items-center gap-1">
                             <i class="ph ph-check-circle"></i> จัดเรียงตามวันเริ่มต้น
                         </span>
+                    </div>
+                </div>
+
+                <!-- Unpaid Warning Alert Banner -->
+                <div id="convert-unpaid-warning-banner" class="hidden p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-rose-800">
+                    <div class="flex items-start gap-2.5">
+                        <i class="ph ph-shield-warning text-xl text-rose-600 shrink-0 mt-0.5"></i>
+                        <div>
+                            <span class="font-bold text-rose-900 block text-xs">⚠️ โครงการนี้ยังไม่ได้รับการบันทึกจ่ายเงิน (Payment Required)</span>
+                            <span class="text-rose-700 text-[11px] leading-relaxed">ตามกฎระบบ งานจะสามารถสร้าง Project Tasks และจัดเข้า Gantt Timeline ได้เมื่อบันทึกการชำระเงินและออก Ticket (Step 4) เรียบร้อยแล้วเท่านั้น</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button type="button" onclick="app.hideModal('modal-convert-boq-tasks'); app.openCreateTicketModal(app.state.convertJobId)" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs flex items-center gap-1">
+                            <i class="ph ph-receipt"></i>
+                            <span>💳 ไปบันทึกจ่ายเงิน (Step 4) ➔</span>
+                        </button>
                     </div>
                 </div>
 
@@ -7985,9 +8009,15 @@
             </div>
 
             <!-- Modal Footer -->
-            <div class="p-4 border-t border-border flex justify-between items-center bg-muted/30">
-                <button type="button" onclick="app.hideModal('modal-convert-boq-tasks')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs cursor-pointer">ยกเลิก</button>
-                <div class="flex items-center gap-2">
+            <div class="p-4 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-3 bg-muted/30">
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+                    <button type="button" onclick="app.hideModal('modal-convert-boq-tasks')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs cursor-pointer">ปิดหน้าต่าง</button>
+                    <button type="button" onclick="app.openCloseLostModal(app.state.convertJobId)" class="btn-artifact-secondary text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer" title="บันทึกปิดงานไม่สำเร็จ / ลูกค้ายกเลิก (Close Lost & Cancel Job)">
+                        <i class="ph ph-x-circle text-rose-500 text-sm"></i>
+                        <span>🚫 บันทึก Close Lost (ยกเลิกงาน)</span>
+                    </button>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
                     <button type="button" onclick="app.sortConvertTasksByStartDate(true)" class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer">
                         <i class="ph ph-arrows-down-up"></i> จัดเรียงตามวันเริ่มต้น
                     </button>
@@ -7996,6 +8026,83 @@
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CLOSE LOST & CANCEL JOB -->
+    <div id="modal-close-lost" onclick="if(event.target === this) app.hideModal('modal-close-lost')" class="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4" style="z-index: 120 !important;">
+        <div class="artifact-card rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-close-lost-content">
+            <div class="p-5 border-b border-border flex justify-between items-center bg-rose-500/10">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-rose-500/20 text-rose-600 flex items-center justify-center font-bold text-xl">
+                        <i class="ph ph-x-circle"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-sm sm:text-base text-foreground">🚫 บันทึก Close Lost & ยกเลิกโครงการ (Cancel Job)</h3>
+                        <p class="text-[10px] text-muted-foreground">บันทึกเหตุผลการยกเลิก/ปิดการขายไม่สำเร็จ และยุติการดำเนินงานโครงการทันที (ไม่ไปต่อ)</p>
+                    </div>
+                </div>
+                <button onclick="app.hideModal('modal-close-lost')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition cursor-pointer">
+                    <i class="ph ph-x text-base"></i>
+                </button>
+            </div>
+
+            <form onsubmit="app.submitCloseLostJob(event)" class="p-5 space-y-4">
+                <!-- Job Preview Card -->
+                <div class="p-3.5 rounded-xl bg-muted/40 border border-border space-y-1 text-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="font-mono font-bold text-foreground" id="close-lost-job-id">JOB-XXXX</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/15 text-rose-700">สถานะจะเปลี่ยนเป็น CANCELLED</span>
+                    </div>
+                    <div class="text-muted-foreground font-medium" id="close-lost-job-customer">ลูกค้า: -</div>
+                    <div class="text-muted-foreground" id="close-lost-job-service">บริการ: -</div>
+                </div>
+
+                <!-- Reason Dropdown -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-foreground">
+                        เหตุผลการ Close Lost / ยกเลิกงาน <span class="text-rose-500">*</span>
+                    </label>
+                    <select id="close-lost-reason-select" required class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-rose-500 font-medium">
+                        <option value="ลูกค้าปฏิเสธใบเสนอราคา (Customer Rejected Quotation)">❌ ลูกค้าปฏิเสธใบเสนอราคา (Customer Rejected Quotation)</option>
+                        <option value="ลูกค้ายกเลิกความต้องการ / ไม่ทำแล้ว (Customer Cancelled)">🛑 ลูกค้ายกเลิกความต้องการ / ไม่ทำแล้ว (Customer Cancelled)</option>
+                        <option value="งบประมาณไม่ตรงกับความต้องการ / ราคาเกินงบ (Budget Mismatch)">💰 งบประมาณไม่ตรงกับความต้องการ / ราคาเกินงบ (Budget Mismatch)</option>
+                        <option value="เปลี่ยนใจ / ชะลอโครงการไม่มีกำหนด (Postponed/Changed Mind)">⏳ เปลี่ยนใจ / ชะลอโครงการไม่มีกำหนด (Postponed/Changed Mind)</option>
+                        <option value="เลือกใช้บริการเจ้าอื่น / คู่แข่ง (Selected Competitor)">🏢 เลือกใช้บริการเจ้าอื่น / คู่แข่ง (Selected Competitor)</option>
+                        <option value="ติดต่อลูกค้าไม่ได้ / ไม่ตอบรับ (Cannot Contact Customer)">📞 ติดต่อลูกค้าไม่ได้ / ไม่ตอบรับ (Cannot Contact Customer)</option>
+                        <option value="อื่นๆ (ระบุในหมายเหตุ)">📝 อื่นๆ (ระบุในหมายเหตุ)</option>
+                    </select>
+                </div>
+
+                <!-- Additional Notes -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-foreground">
+                        รายละเอียดเพิ่มเติม / บันทึกเหตุผล (Internal Notes)
+                    </label>
+                    <textarea id="close-lost-notes" rows="3" placeholder="ระบุรายละเอียดเหตุผลการยกเลิก หรือข้อเสนอแนะเพิ่มเติม..." class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-rose-500"></textarea>
+                </div>
+
+                <!-- Confirmation Notice -->
+                <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-[11px] text-rose-800 space-y-1">
+                    <div class="font-bold flex items-center gap-1">
+                        <i class="ph ph-warning"></i> ผลลัพธ์เมื่อกดยืนยัน:
+                    </div>
+                    <ul class="list-disc pl-4 space-y-0.5 text-[10px] text-rose-700">
+                        <li>สถานะของ Job จะถูกเปลี่ยนเป็น <strong>CANCELLED (ยกเลิกงาน)</strong></li>
+                        <li>ระบบจะบันทึก Timestamp การ Close Lost และเหตุผลลงใน Audit Log</li>
+                        <li>งานนี้จะ<strong>ยุติการทำงานทันที (ไม่ไปต่อ)</strong> และไม่อนุญาตให้สร้าง Task หรือส่งต่อขั้นตอนถัดไป</li>
+                    </ul>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="pt-2 border-t border-border flex justify-end gap-2.5">
+                    <button type="button" onclick="app.hideModal('modal-close-lost')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs cursor-pointer">ยกเลิก</button>
+                    <button type="submit" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white cursor-pointer shadow-sm flex items-center gap-1.5">
+                        <i class="ph ph-x-circle text-sm"></i>
+                        <span>ยืนยัน Close Lost & ยกเลิกงาน</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
     <!-- Modal: Save BOQ, Schedule & Assign Technicians -->

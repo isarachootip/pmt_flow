@@ -207,6 +207,13 @@
 
         .status-closed { background: rgba(16, 185, 129, 0.15); color: #047857; border-color: rgba(16, 185, 129, 0.3); }
         .status-closed::before { background: #10b981; }
+        .status-cancelled,
+        .status-closed-lost {
+            background-color: rgba(239, 68, 68, 0.12) !important;
+            color: #dc2626 !important;
+            border: 1px solid rgba(239, 68, 68, 0.3) !important;
+        }
+
         .dark .status-closed { color: #6ee7b7; }
 
         .hidden-view { display: none !important; }
@@ -232,6 +239,7 @@
         #modal-import-boq,
         #modal-confirm-proceed-boq,
         #modal-save-boq-schedule,
+        #modal-close-lost,
         #modal-convert-boq-tasks {
             z-index: 100 !important;
         }
