@@ -298,14 +298,14 @@
                 <div>
                     <div class="px-3 mb-2">
                         <div class="text-[11px] font-bold text-foreground">ขั้นตอนการดำเนินงาน</div>
-                        <div class="text-[11px] font-bold text-foreground">(2 STEPS)</div>
+                        <div class="text-[11px] font-bold text-foreground">(ขั้นตอนหลัก)</div>
                     </div>
                     <nav class="space-y-1">
                         <!-- Step 1: บันทึกงาน / รับ Order -->
                         <a href="#" onclick="app.navigate('jobs')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-jobs">
                             <div class="flex items-center gap-2.5">
                                 <span class="w-5 h-5 rounded-md bg-zinc-500/15 text-zinc-600 text-[10px] font-mono font-bold flex items-center justify-center border border-zinc-500/30 shrink-0">1</span>
-                                <span class="truncate font-semibold">Step 1: บันทึกงาน / รับ Order</span>
+                                <span class="truncate font-semibold">บันทึกงาน / รับ Order</span>
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono shrink-0" id="sidebar-job-count">0</span>
                         </a>
@@ -314,7 +314,7 @@
                             <a href="#" onclick="app.navigate('tickets')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-tickets">
                                 <div class="flex items-center gap-2.5">
                                     <span class="w-5 h-5 rounded-md bg-emerald-500/15 text-emerald-600 text-[10px] font-mono font-bold flex items-center justify-center border border-emerald-500/30 shrink-0">2</span>
-                                    <span class="truncate font-semibold">Step 2: Ticket & Convert Project</span>
+                                    <span class="truncate font-semibold">Ticket & Convert Project</span>
                                 </div>
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-mono font-medium shrink-0" id="sidebar-ticket-count">0</span>
@@ -765,7 +765,7 @@
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">Step 1: Unified Studio</span>
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">Unified Studio</span>
                                 <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">ศูนย์รับคำสั่งซื้อ • Design แบบแปลน • BOQ (Order & Proposal Studio)</h2>
                             </div>
                             <p class="text-xs text-muted-foreground mt-0.5">คิวงานคำสั่งซื้อใหม่ พร้อมระบบจัดการแบบแปลน CAD/3D และประมาณการราคา BOQ แบบ One-Stop Shop ครบจบในหน้าจอเดียว</p>
@@ -789,7 +789,7 @@
                             <div class="flex items-center gap-2 shrink-0">
                                 <button onclick="app.showStep1TrainingGuide()" class="btn-artifact-secondary text-brand-600 dark:text-brand-400 hover:bg-brand-500/10 border-brand-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 1 (Training Screen Guide)">
                                     <i class="ph ph-graduation-cap text-brand-500 text-sm"></i>
-                                    <span>คู่มือ Training Step 1</span>
+                                    <span>คู่มือ Order Studio</span>
                                 </button>
                                 <button onclick="app.exportAllJobsAuditCSV()" class="btn-artifact-secondary text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="ดาวน์โหลดรายงานสรุปเวลา Timestamp ทุก Step ของทุกโครงการเพื่อนำไปทำ Report">
                                     <i class="ph ph-file-csv text-emerald-500 text-sm"></i>
@@ -900,7 +900,7 @@
                                     </div>
                                 </div>
                                 <div class="flex flex-col items-end gap-2 shrink-0">
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">คิว Step 1</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">คิวงานใหม่</span>
                                     <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-amber-500 group-hover:translate-x-0.5 transition text-base"></i>
                                 </div>
                             </div>
@@ -928,7 +928,7 @@
                                     </div>
                                 </div>
                                 <div class="flex flex-col items-end gap-2 shrink-0">
-                                    <span onclick="event.stopPropagation(); app.openSLAConfigModal('step1');" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer" title="คลิกเพื่อตั้งค่า SLA Step 1">⚙️ Config</span>
+                                    <span onclick="event.stopPropagation(); app.openSLAConfigModal('step1');" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer" title="คลิกเพื่อตั้งค่า SLA Order Intake">⚙️ Config</span>
                                     <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-rose-500 group-hover:translate-x-0.5 transition text-base"></i>
                                 </div>
                             </div>
@@ -1046,7 +1046,7 @@
                         <div class="flex items-center gap-2.5">
                             <span class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 flex items-center justify-center font-bold text-sm shrink-0">✨</span>
                             <div>
-                                <span class="font-bold">ศูนย์รวมงาน Step 1 (Order Intake, Design & BOQ Studio):</span>
+                                <span class="font-bold">ศูนย์รวมงาน Order Intake, Design & BOQ Studio:</span>
                                 <span class="text-muted-foreground ml-1">จัดการข้อมูลคำสั่งซื้อ, แนบแบบแปลน CAD/3D, และคิดราคา BOQ ครบจบในที่เดียว พร้อมกดอนุมัติส่งมอบงานไปยังฝ่ายปฏิบัติการและแผนงาน Gantt ได้ทันที</span>
                             </div>
                         </div>
@@ -1165,7 +1165,7 @@
                                 </div>
                                 <div class="text-muted-foreground/40 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition flex flex-col items-end gap-2 shrink-0">
                                     <i class="ph ph-arrow-right text-lg"></i>
-                                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Step 2 Total</span>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Total</span>
                                 </div>
                             </div>
 
@@ -1469,7 +1469,7 @@
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">Step 2</span>
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">Tickets & Conversion</span>
                                 <span class="text-2xl">🧾</span>
                                 <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">บันทึก Ticket ใบเสร็จ & แปลง BOQ เข้า Project (Tickets & Conversion)</h2>
                             </div>
@@ -1484,7 +1484,7 @@
                                 <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
                             </select>
                             <select id="filter-tickets-status" onchange="app.renderTickets()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-emerald-500">
-                                <option value="STEP4_QUEUE" selected>🧾 คิวงาน Step 2 (รอออก Ticket & สลิป)</option>
+                                <option value="STEP4_QUEUE" selected>🧾 คิวงานรอออก Ticket & สลิป</option>
                                 <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
                                 <option value="NO_TICKET">ยังไม่ออก Ticket (No Ticket)</option>
                                 <option value="HAS_TICKET">ออก Ticket แล้ว (Has Ticket)</option>
@@ -1492,7 +1492,7 @@
                             </select>
                             <button onclick="app.showStep2TrainingGuide()" class="btn-artifact-secondary text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 2 (Tickets & Receipts)">
                                 <i class="ph ph-graduation-cap text-emerald-500 text-sm"></i>
-                                <span>คู่มือ Training Step 2</span>
+                                <span>คู่มือ Tickets & Receipts</span>
                             </button>
                             <button onclick="app.openCreateTicketModal()" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
                                 <i class="ph ph-plus-circle text-sm"></i>
@@ -1549,7 +1549,7 @@
                                 </div>
                                 <div class="text-muted-foreground/40 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition flex flex-col items-end gap-2 shrink-0">
                                     <i class="ph ph-arrow-right text-lg"></i>
-                                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Step 2 Total</span>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Total</span>
                                 </div>
                             </div>
 
@@ -6288,7 +6288,7 @@
                     </button>
                     <button type="button" id="btn-qc-approve-csat" onclick="app.approveCurrentJobToCSAT()" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                         <i class="ph ph-check-circle text-base"></i>
-                        <span id="btn-qc-approve-csat-label">✓ อนุมัติผ่านเกณฑ์ QC & ส่งต่อ CSAT (Step 6)</span>
+                        <span id="btn-qc-approve-csat-label">✓ อนุมัติผ่านเกณฑ์ QC & ส่งต่อ CSAT</span>
                     </button>
                 </div>
             </div>
@@ -6949,7 +6949,7 @@
                     </div>
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">Step 1: All-in-One Studio</span>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">All-in-One Studio</span>
                             <span id="unified-modal-status-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30">
                                 <i class="ph ph-compass-tool mr-0.5"></i> SURVEYED (สำรวจแล้ว)
                             </span>
@@ -7042,7 +7042,7 @@
                             </span>
                             <button type="button" onclick="app.saveUnifiedStep(1)" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="บันทึกข้อมูลและผลสำรวจหน้างาน (Step 1)">
                                 <i class="ph ph-floppy-disk text-sm"></i>
-                                <span>บันทึก Step 1</span>
+                                <span>บันทึกข้อมูลสำรวจ</span>
                             </button>
                         </div>
                     </div>
@@ -7202,7 +7202,7 @@
                             <span id="unified-design-count-pill" class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300">0 ไฟล์</span>
                             <button type="button" onclick="app.saveUnifiedStep(2)" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold border border-indigo-500/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/10 cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="บันทึกข้อมูลแบบแปลน (Step 2)">
                                 <i class="ph ph-floppy-disk text-sm"></i>
-                                <span>บันทึก Step 2</span>
+                                <span>บันทึกแบบแปลน</span>
                             </button>
                         </div>
                     </div>
@@ -7283,7 +7283,7 @@
                             </button>
                             <button type="button" onclick="app.saveUnifiedStep(3)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs flex items-center gap-1 transition" title="บันทึกราคาและรายการ BOQ (Step 3)">
                                 <i class="ph ph-floppy-disk text-sm"></i>
-                                <span>บันทึก Step 3 (BOQ)</span>
+                                <span>บันทึกรายการ BOQ</span>
                             </button>
                         </div>
                     </div>
@@ -7563,7 +7563,7 @@
                         <i class="ph ph-check-circle"></i>
                     </div>
                     <div>
-                        <h3 class="font-display font-bold text-sm text-foreground">ยืนยันจบขั้นตอน Design & ย้ายไป Step 3</h3>
+                        <h3 class="font-display font-bold text-sm text-foreground">ยืนยันจบขั้นตอน Design & ย้ายไปทำ BOQ</h3>
                         <p class="text-[10px] text-muted-foreground">ส่งต่องานเข้าสู่ขั้นตอนจัดทำ BOQ และประมาณการราคา</p>
                     </div>
                 </div>
@@ -7631,7 +7631,7 @@
             <div class="p-4 border-t border-border bg-card/95 backdrop-blur-sm shrink-0 flex items-center justify-between gap-3">
                 <button type="button" onclick="app.hideModal('modal-confirm-proceed-boq')" class="btn-artifact-secondary px-4 py-2.5 rounded-xl text-xs font-semibold cursor-pointer text-muted-foreground hover:text-foreground flex items-center gap-1.5">
                     <i class="ph ph-arrow-counter-clockwise text-sm"></i>
-                    <span>ยังไม่จบ (เพิ่มแบบต่อใน Step 2)</span>
+                    <span>ยังไม่จบ (เพิ่มแบบต่อ)</span>
                 </button>
                 <button type="button" id="confirm-proceed-boq-btn" onclick="app.executeProceedToBOQ()" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition hover:scale-[1.02]">
                     <i class="ph ph-check-circle text-sm"></i>
@@ -8100,7 +8100,7 @@
                     <div class="flex items-center gap-2 shrink-0">
                         <button type="button" onclick="app.hideModal('modal-convert-boq-tasks'); app.openCreateTicketModal(app.state.convertJobId)" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs flex items-center gap-1">
                             <i class="ph ph-receipt"></i>
-                            <span>💳 ไปบันทึกจ่ายเงิน (Step 2) ➔</span>
+                            <span>💳 ไปบันทึกจ่ายเงิน ➔</span>
                         </button>
                     </div>
                 </div>
