@@ -2552,12 +2552,31 @@
                                 </button>
                             </div>
 
-                            <div class="flex items-center gap-2 bg-card border border-border rounded-xl px-3 py-1.5 text-xs shadow-xs">
-                                <i class="ph ph-folders text-brand-500 text-sm"></i>
-                                <label for="gantt-filter-job" class="text-muted-foreground font-medium">โครงการ:</label>
-                                <select id="gantt-filter-job" onchange="app.selectGanttJob(this.value)" class="bg-transparent text-foreground font-semibold focus:outline-none cursor-pointer">
-                                    <option value="all">ทุกโครงการ (All Jobs)</option>
-                                </select>
+                            <!-- Enhanced Searchable Project Selector with Instant Name Search -->
+                            <div class="relative flex items-center" id="gantt-search-container">
+                                <div class="flex items-center gap-2 bg-card border border-border rounded-xl px-3 py-1.5 text-xs shadow-xs focus-within:ring-1 focus-within:ring-brand-500 focus-within:border-brand-500 transition-all">
+                                    <i class="ph ph-magnifying-glass text-brand-500 text-sm"></i>
+                                    <input type="text" 
+                                           id="gantt-header-search" 
+                                           placeholder="🔍 พิมพ์ค้นหาชื่อลูกค้า, รหัส Job..." 
+                                           oninput="app.handleGanttHeaderSearch(this.value)"
+                                           onfocus="app.showGanttSearchDropdown(true)"
+                                           onkeydown="app.handleGanttSearchKeydown(event)"
+                                           class="bg-transparent text-foreground placeholder-muted-foreground text-xs font-medium focus:outline-none w-44 sm:w-56" 
+                                           autocomplete="off" />
+                                    <button type="button" id="btn-clear-gantt-search" onclick="app.clearGanttHeaderSearch()" class="text-muted-foreground hover:text-foreground hidden text-xs cursor-pointer" title="ล้างการค้นหา">
+                                        <i class="ph ph-x-circle-fill"></i>
+                                    </button>
+                                    <span class="text-muted-foreground/40 hidden sm:inline">|</span>
+                                    <label for="gantt-filter-job" class="text-muted-foreground font-medium hidden sm:inline">โครงการ:</label>
+                                    <select id="gantt-filter-job" onchange="app.selectGanttJob(this.value)" class="bg-transparent text-foreground font-semibold focus:outline-none cursor-pointer text-xs max-w-[180px] truncate">
+                                        <option value="all">ทุกโครงการ (All Jobs)</option>
+                                    </select>
+                                </div>
+                                <!-- Live Autocomplete Dropdown Menu -->
+                                <div id="gantt-search-dropdown" class="hidden absolute top-full left-0 mt-1.5 w-full min-w-[320px] max-w-md bg-card border border-border rounded-xl shadow-xl z-50 max-h-80 overflow-y-auto divide-y divide-border/60 p-1">
+                                    <!-- Dynamic search results populated by JS -->
+                                </div>
                             </div>
 
                             <button type="button" onclick="app.navigate('daily-logs', document.getElementById('gantt-filter-job')?.value)" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 cursor-pointer shadow-xs" title="เปิดหน้าจอบันทึกงานช่างประจำวันเต็มรูปแบบ">

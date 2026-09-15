@@ -2558,6 +2558,15 @@ const app = {
                 // Initialize all Flatpickr datepickers across static DOM
                 this.initAllDatePickers();
 
+                // Close Gantt search dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    const container = document.getElementById('gantt-search-container');
+                    if (container && !container.contains(e.target)) {
+                        const dropdown = document.getElementById('gantt-search-dropdown');
+                        if (dropdown) dropdown.classList.add('hidden');
+                    }
+                });
+
                 if (window.auth && window.auth.user) {
                     const urlParams = new URLSearchParams(window.location.search);
                     const targetView = urlParams.get('view') || (window.location.hash ? window.location.hash.replace('#', '') : null);
@@ -14716,20 +14725,24 @@ const app = {
 
             renderGanttFilterOptions(selectedVal = 'all') {
                 const sel = document.getElementById('gantt-filter-job');
+                const inp = document.getElementById('gantt-header-search');
+                const clearBtn = document.getElementById('btn-clear-gantt-search');
                 if (!sel) return;
                 const boqJobs = (DB.jobs || []).filter(j => Array.isArray(j.boq_items) && j.boq_items.length > 0);
                 if (boqJobs.length === 0) {
                     sel.innerHTML = '<option value="">ไม่มีโครงการที่มี BOQ พร้อมวางแผนงาน</option>';
                     sel.value = '';
+                    if (inp) inp.value = '';
+                    if (clearBtn) clearBtn.classList.add('hidden');
                     return;
                 }
-                let html = `<option value="all">ทุกโครงการที่มี BOQ (All Jobs - ${boqJobs.length} โครงการ)</option>`;
+                let html = `<option value="all">🌟 ทุกโครงการที่มี BOQ (All Jobs - ${boqJobs.length} โครงการ)</option>`;
                 boqJobs.forEach(j => {
                     const cust = j.customer || `${j.firstName || ''} ${j.lastName || ''}`.trim() || 'ลูกค้า';
                     const boqCount = (j.boq_items || []).length;
                     const taskCount = (DB.tasks || []).filter(t => t.jobId === j.id).length;
                     const taskTag = taskCount > 0 ? `[${taskCount} Tasks]` : '[รอกำหนดวัน/ช่าง]';
-                    html += `<option value="${j.id}" ${selectedVal === j.id ? 'selected' : ''}>${j.id} - คุณ${cust} (${j.service || 'บริการ'}) [BOQ: ${boqCount} รายการ | ${taskTag}]</option>`;
+                    html += `<option value="${j.id}" ${selectedVal === j.id ? 'selected' : ''}>คุณ${cust} — ${j.id} (${j.service || 'บริการ'}) [BOQ: ${boqCount} รายการ | ${taskTag}]</option>`;
                 });
                 sel.innerHTML = html;
                 const isSelectedValid = selectedVal === 'all' || boqJobs.some(j => j.id === selectedVal);
@@ -14737,6 +14750,132 @@ const app = {
                 if (!isSelectedValid) {
                     this.state.selectedGanttJobId = 'all';
                 }
+
+                // Sync header search box with current selection
+                if (inp) {
+                    if (selectedVal && selectedVal !== 'all') {
+                        const curJob = boqJobs.find(j => j.id === selectedVal);
+                        if (curJob) {
+                            const cust = curJob.customer || `${curJob.firstName || ''} ${curJob.lastName || ''}`.trim() || curJob.id;
+                            inp.value = `คุณ${cust} (${curJob.id})`;
+                            if (clearBtn) clearBtn.classList.remove('hidden');
+                        }
+                    } else {
+                        inp.value = '';
+                        if (clearBtn) clearBtn.classList.add('hidden');
+                    }
+                }
+            },
+
+            handleGanttHeaderSearch(val) {
+                const clearBtn = document.getElementById('btn-clear-gantt-search');
+                if (clearBtn) clearBtn.classList.toggle('hidden', !val);
+                this.showGanttSearchDropdown(true);
+            },
+
+            handleGanttSearchKeydown(event) {
+                if (event.key === 'Enter') {
+                    const firstItem = document.querySelector('#gantt-search-dropdown [data-job-id]');
+                    if (firstItem) {
+                        const jobId = firstItem.getAttribute('data-job-id');
+                        this.selectGanttJob(jobId);
+                        this.showGanttSearchDropdown(false);
+                    }
+                } else if (event.key === 'Escape') {
+                    this.showGanttSearchDropdown(false);
+                }
+            },
+
+            clearGanttHeaderSearch() {
+                const inp = document.getElementById('gantt-header-search');
+                if (inp) inp.value = '';
+                const clearBtn = document.getElementById('btn-clear-gantt-search');
+                if (clearBtn) clearBtn.classList.add('hidden');
+                this.selectGanttJob('all');
+                this.showGanttSearchDropdown(false);
+            },
+
+            showGanttSearchDropdown(show = true) {
+                const dropdown = document.getElementById('gantt-search-dropdown');
+                if (!dropdown) return;
+                if (show) {
+                    const inp = document.getElementById('gantt-header-search');
+                    this.renderGanttSearchResults(inp ? inp.value : '');
+                    dropdown.classList.remove('hidden');
+                } else {
+                    dropdown.classList.add('hidden');
+                }
+            },
+
+            renderGanttSearchResults(query = '') {
+                const dropdown = document.getElementById('gantt-search-dropdown');
+                if (!dropdown) return;
+                const rawQ = (query || '').trim();
+                const q = rawQ.toLowerCase();
+                const boqJobs = (DB.jobs || []).filter(j => Array.isArray(j.boq_items) && j.boq_items.length > 0);
+                
+                let matched = boqJobs;
+                if (q && !q.startsWith('คุณ')) {
+                    matched = boqJobs.filter(j => {
+                        const cust = (j.customer || `${j.firstName || ''} ${j.lastName || ''}`).toLowerCase();
+                        const id = (j.id || '').toLowerCase();
+                        const phone = (j.phone || '').toLowerCase();
+                        const srv = (j.service || '').toLowerCase();
+                        return cust.includes(q) || id.includes(q) || phone.includes(q) || srv.includes(q);
+                    });
+                }
+
+                let html = `
+                    <div onclick="app.selectGanttJob('all'); app.showGanttSearchDropdown(false);" 
+                         class="p-2.5 rounded-lg hover:bg-brand-500/10 cursor-pointer flex items-center justify-between text-xs transition border-b border-border/40">
+                        <div class="flex items-center gap-2 font-medium text-foreground">
+                            <i class="ph ph-folders text-brand-500 text-sm"></i>
+                            <span>🌟 แสดงทุกโครงการ (All Jobs - ${boqJobs.length} โครงการ)</span>
+                        </div>
+                        <span class="text-[10px] text-muted-foreground font-mono">ทั้งหมด</span>
+                    </div>
+                `;
+
+                if (matched.length === 0) {
+                    html += `
+                        <div class="p-4 text-center text-xs text-muted-foreground">
+                            <i class="ph ph-magnifying-glass text-lg mb-1 block opacity-60"></i>
+                            ไม่พบโครงการหรือชื่อลูกค้าที่ตรงกับ "<span class="text-foreground font-semibold">${rawQ}</span>"
+                        </div>
+                    `;
+                } else {
+                    matched.forEach(j => {
+                        const cust = j.customer || `${j.firstName || ''} ${j.lastName || ''}`.trim() || 'ลูกค้า';
+                        const boqCount = (j.boq_items || []).length;
+                        const taskCount = (DB.tasks || []).filter(t => t.jobId === j.id).length;
+                        const isSelected = this.state.selectedGanttJobId === j.id;
+
+                        html += `
+                            <div data-job-id="${j.id}" 
+                                 onclick="app.selectGanttJob('${j.id}'); app.showGanttSearchDropdown(false);" 
+                                 class="p-2.5 rounded-lg hover:bg-brand-500/10 cursor-pointer flex items-center justify-between text-xs transition ${isSelected ? 'bg-brand-500/15 font-semibold' : ''}">
+                                <div class="space-y-0.5">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="font-bold text-foreground hover:text-brand-500 text-xs">คุณ${cust}</span>
+                                        <span class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">${j.id}</span>
+                                    </div>
+                                    <div class="text-[10px] text-muted-foreground flex items-center gap-2">
+                                        <span><i class="ph ph-phone text-[9px]"></i> ${j.phone || '-'}</span>
+                                        <span>•</span>
+                                        <span class="truncate max-w-[140px]">${j.service || '-'}</span>
+                                    </div>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded-full ${taskCount > 0 ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold' : 'bg-amber-500/10 text-amber-600 font-semibold'}">
+                                        ${taskCount > 0 ? `${taskCount} Tasks` : 'รอกำหนดช่าง'}
+                                    </span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                dropdown.innerHTML = html;
             },
 
             setProjectViewMode(mode) {
@@ -14782,6 +14921,11 @@ const app = {
                 rows.forEach(row => {
                     const text = row.innerText.toLowerCase();
                     row.style.display = (!q || text.includes(q)) ? '' : 'none';
+                });
+                const cards = document.querySelectorAll('.gantt-project-card');
+                cards.forEach(card => {
+                    const text = card.innerText.toLowerCase();
+                    card.style.display = (!q || text.includes(q)) ? '' : 'none';
                 });
             },
 
@@ -15140,8 +15284,10 @@ const app = {
                     return;
                 }
 
-                // Default: Card View (Sorted descending with latest status on top)
-                stripEl.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3';
+                // Card View (with search bar & responsive cards)
+                const scheduledCountCard = sortedJobs.filter(j => (DB.tasks || []).some(t => t.jobId === j.id)).length;
+                const pendingScheduleCountCard = sortedJobs.length - scheduledCountCard;
+
                 const cardsHtml = sortedJobs.map((job, idx) => {
                     const isTopNew = idx < 3;
                     const isSelected = selectedFilter === job.id;
@@ -15150,10 +15296,11 @@ const app = {
                     const boqSum = (job.boq_items || []).reduce((acc, it) => acc + ((it.qty || 0) * (it.price || 0)), 0);
                     const discount = job.boq_discount !== undefined ? job.boq_discount : 500;
                     const grandTotal = Math.max(0, boqSum - discount) * 1.07;
+                    const custName = job.customer || `${job.firstName || ''} ${job.lastName || ''}`.trim() || 'ลูกค้า';
                     
                     return `
                     <div onclick="app.selectGanttJob('${job.id}')" 
-                         class="artifact-card p-3 rounded-xl border transition-all cursor-pointer group hover:scale-[1.02] hover:shadow-md ${isSelected ? 'border-brand-500 bg-brand-500/10 ring-2 ring-brand-500/30' : (isTopNew ? 'border-rose-500/40 bg-rose-500/[0.02]' : 'border-border hover:border-brand-500/50 bg-card')}"
+                         class="gantt-project-card artifact-card p-3 rounded-xl border transition-all cursor-pointer group hover:scale-[1.02] hover:shadow-md ${isSelected ? 'border-brand-500 bg-brand-500/10 ring-2 ring-brand-500/30' : (isTopNew ? 'border-rose-500/40 bg-rose-500/[0.02]' : 'border-border hover:border-brand-500/50 bg-card')}"
                          title="คลิกเพื่อเลือกโครงการ ${job.id} และกำหนดตารางงาน (Gantt Schedule)">
                         <div class="flex items-center justify-between gap-1 mb-1.5">
                             <span class="font-mono text-xs font-bold text-brand-500 flex items-center gap-1 group-hover:text-purple-600 transition flex-wrap">
@@ -15162,8 +15309,8 @@ const app = {
                             </span>
                             <span class="text-[9px] px-1.5 py-0.5 rounded font-medium bg-muted text-muted-foreground">${job.service}</span>
                         </div>
-                        <div class="text-xs font-semibold text-foreground group-hover:text-brand-500 transition truncate flex items-center gap-1" title="${job.customer}">
-                            <span>${job.customer}</span>
+                        <div class="text-xs font-semibold text-foreground group-hover:text-brand-500 transition truncate flex items-center gap-1" title="${custName}">
+                            <span>${custName}</span>
                             ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="สถานะล่าสุด"></span>` : ''}
                         </div>
                         <div class="mt-2 pt-2 border-t border-border flex items-center justify-between text-[10px]">
@@ -15199,7 +15346,29 @@ const app = {
                     `;
                 }).join('');
 
-                stripEl.innerHTML = cardsHtml;
+                stripEl.className = 'w-full space-y-3';
+                stripEl.innerHTML = `
+                <div class="p-2.5 bg-muted/30 border border-border rounded-xl flex flex-wrap items-center justify-between gap-2.5 text-xs shadow-xs">
+                    <div class="relative flex-1 min-w-[220px] max-w-sm">
+                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
+                        <input type="text" 
+                               id="gantt-project-card-search" 
+                               oninput="app.filterGanttProjectTable(this.value)" 
+                               placeholder="ค้นหาตามรหัส Job, ชื่อลูกค้า, หรือบริการ..." 
+                               class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-card border border-border text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 text-foreground" />
+                    </div>
+                    <div class="flex items-center gap-3 text-muted-foreground text-[11px]">
+                        <span>โครงการพร้อมวางแผนงาน (มี BOQ): <b class="text-foreground">${sortedJobs.length}</b></span>
+                        <span>•</span>
+                        <span class="text-purple-600 dark:text-purple-400 font-medium">วางแผนงานแล้ว: <b>${scheduledCountCard}</b></span>
+                        <span>•</span>
+                        <span class="text-amber-600 dark:text-amber-400 font-medium">รอกำหนดวัน/ช่าง: <b>${pendingScheduleCountCard}</b></span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                    ${cardsHtml}
+                </div>
+                `;
             },
 
             getGanttTodayDate() {
@@ -15817,6 +15986,8 @@ const app = {
             },
 
             selectGanttJob(jobId) {
+                const inp = document.getElementById('gantt-header-search');
+                const clearBtn = document.getElementById('btn-clear-gantt-search');
                 if (jobId && jobId !== 'all') {
                     const job = (DB.jobs || []).find(j => j.id === jobId);
                     if (!job || !Array.isArray(job.boq_items) || job.boq_items.length === 0) {
@@ -15824,6 +15995,8 @@ const app = {
                         this.state.selectedGanttJobId = 'all';
                         const sel = document.getElementById('gantt-filter-job');
                         if (sel) sel.value = 'all';
+                        if (inp) inp.value = '';
+                        if (clearBtn) clearBtn.classList.add('hidden');
                         this.renderGantt();
                         return;
                     }
@@ -15831,6 +16004,20 @@ const app = {
                 this.state.selectedGanttJobId = jobId;
                 const sel = document.getElementById('gantt-filter-job');
                 if (sel && sel.value !== jobId) sel.value = jobId;
+
+                if (inp) {
+                    if (jobId && jobId !== 'all') {
+                        const job = (DB.jobs || []).find(j => j.id === jobId);
+                        if (job) {
+                            const cust = job.customer || `${job.firstName || ''} ${job.lastName || ''}`.trim() || job.id;
+                            inp.value = `คุณ${cust} (${job.id})`;
+                            if (clearBtn) clearBtn.classList.remove('hidden');
+                        }
+                    } else {
+                        inp.value = '';
+                        if (clearBtn) clearBtn.classList.add('hidden');
+                    }
+                }
                 
                 if (jobId && jobId !== 'all') {
                     const job = (DB.jobs || []).find(j => j.id === jobId);
