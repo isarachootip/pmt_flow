@@ -59,7 +59,9 @@ const app = {
                 completedJobsPageSize: 10,
                 completedJobsSearch: '',
                 completedJobsScoreFilter: 'all',
-                completedJobsServiceFilter: 'all'
+                completedJobsServiceFilter: 'all',
+                completedJobsTimeFilter: 'all',
+                jobCloseModalTab: 'overview'
             },
 
             logout() {
@@ -22643,56 +22645,58 @@ const app = {
             // COMPLETED JOBS (JOB CLOSE & QC/CSAT EVALUATION REPORT) METHODS
             // =========================================================================
             getCompletedJobsMockSeed() {
+                const samplePhotos = [
+                    { id: 'p1', num: 1, title: '1. สภาพพื้นที่ก่อนติดตั้ง', desc: 'มุมมองกว้างบริเวณผนังและตำแหน่งติดตั้ง', tag: 'ก่อนติดตั้ง (Before)', url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80' },
+                    { id: 'p2', num: 2, title: '2. การวัดระดับและยึด Plate', desc: 'วัดระดับน้ำตรง แข็งแรงแน่นหนาตามสเปก', tag: 'โครงสร้าง (Mounting)', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80' },
+                    { id: 'p3', num: 3, title: '3. แนวท่อน้ำยาและรางครอบ', desc: 'เดินท่อเรียบร้อย ขันแฟร์นัทแน่น ไร้รอยรั่ว', tag: 'งานท่อ & ราง (Piping)', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80' },
+                    { id: 'p4', num: 4, title: '4. ระบบไฟฟ้าและสายดิน', desc: 'เบรกเกอร์แยกเฉพาะและทดสอบค่ากราวด์ผ่าน', tag: 'ระบบไฟ & กราวด์ (Electrical)', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80' },
+                    { id: 'p5', num: 5, title: '5. หลังติดตั้งและเก็บกวาด', desc: 'ส่งมอบพื้นที่สะอาด ทดสอบความเย็นสมบูรณ์', tag: 'ส่งมอบงาน (After Handover)', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80' },
+                    { id: 'p6', num: 6, title: 'แบบแปลนและตำแหน่งติดตั้ง', desc: 'แบบแปลนติดตั้งมาตรฐานที่ได้รับอนุมัติ', tag: 'แบบแปลน (Blueprint)', url: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1000&auto=format&fit=crop&q=80' }
+                ];
+
                 return [
-                    { id: 'JOB202609002', customer: 'นาย ไทย', phone: '0897777777', service: 'ติดตั้งเครื่องทำน้ำอุ่น', qc_passed_at: '2026-09-14T10:30:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ช่างมาตรงเวลา งานติดตั้งเครื่องทำน้ำอุ่นเรียบร้อย สายดินและเบรกเกอร์ ELCB ได้มาตรฐานดีมาก' },
-                    { id: 'JOB202609003', customer: 'คุณ สมชาย', phone: '0812345678', service: 'ติดตั้งแอร์ Wall Type', qc_passed_at: '2026-09-13T14:15:00.000Z', qc_score: 4.8, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'แอร์เย็นเร็วมาก ช่างเก็บงานท่อน้ำยาเนียนตา แนะนำการใช้งานรีโมทและฟังก์ชัน Inverter ละเอียด' },
-                    { id: 'JOB202609004', customer: 'คุณ พัชราภา', phone: '0923456789', service: 'ซ่อมแซมระบบไฟฟ้า', qc_passed_at: '2026-09-12T11:00:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'Contact Center Officer', feedback: 'แก้ไขจุดไฟรั่วได้รวดเร็ว ปลอดภัย มีการตรวจเช็คค่าความต้านทานดินครบถ้วน' },
-                    { id: 'JOB202609005', customer: 'บริษัท เอ พี ซี จำกัด', phone: '026543210', service: 'ติดตั้งกล้องวงจรปิด', qc_passed_at: '2026-09-11T16:45:00.000Z', qc_score: 4.5, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'กล้องชัดมากทั้งกลางวันกลางคืน เซ็ตระบบดูออนไลน์บนมือถือให้เจ้าหน้าที่เรียบร้อย' },
-                    { id: 'JOB202609006', customer: 'คุณ วรชัย', phone: '0801122334', service: 'ติดตั้งแอร์ Cassette Type', qc_passed_at: '2026-09-10T13:20:00.000Z', qc_score: 4.8, csat_score: 4.5, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'งานเจาะฝ้า 4 ทิศทางประณีต ไม่มีฝุ่นเลอะเทอะ เครื่องทำงานเงียบสนิท' },
-                    { id: 'JOB202609007', customer: 'คุณ กนกวรรณ', phone: '0945566778', service: 'เดินสาย LAN และอุปกรณ์', qc_passed_at: '2026-09-09T15:30:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'เทสต์สัญญาณเน็ตทุกจุดผ่าน ฉลากสายชัดเจนในตู้ Rack แนะนำดีมาก' },
-                    { id: 'JOB202609008', customer: 'คุณ อภิชาติ', phone: '0823344556', service: 'ติดตั้งเครื่องทำน้ำอุ่น', qc_passed_at: '2026-09-08T09:40:00.000Z', qc_score: 4.5, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ติดตั้งเร็ว น้ำแรง ปรับอุณหภูมินิ่ง ช่างสุภาพมาก แนะนำบริการดี' },
-                    { id: 'JOB202609009', customer: 'คุณ สุรีย์', phone: '0987654321', service: 'ซ่อมแซมแอร์', qc_passed_at: '2026-09-07T12:10:00.000Z', qc_score: 4.8, csat_score: 4.5, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ล้างคอยล์เย็นเติมน้ำยาแอร์เรียบร้อย อาการน้ำหยดหายสนิท ช่างทำความสะอาดพื้นที่ดี' },
-                    { id: 'JOB202609010', customer: 'บริษัท ที อี เอฟ จำกัด', phone: '02-7788990', service: 'ติดตั้ง Solar Rooftop', qc_passed_at: '2026-09-06T17:00:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'อินเวอร์เตอร์เชื่อมต่อ Cloud มอนิเตอร์ผลิตไฟได้ทันที โครงสร้างแผงแข็งแรงมาก' },
-                    { id: 'JOB202609011', customer: 'คุณ นิธิ', phone: '0912233445', service: 'เปลี่ยนตู้ไฟและอุปกรณ์', qc_passed_at: '2026-09-05T14:50:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'แยกเซอร์กิตวงจรไฟชัดเจน ติดสติ๊กเกอร์ระบุห้องเข้าใจง่าย ปลอดภัยขึ้นเยอะ' },
-                    { id: 'JOB202609012', customer: 'คุณ ธนพล เจริญศิลป์', phone: '0815544332', service: 'ติดตั้งแอร์ Wall Type 18000 BTU', qc_passed_at: '2026-09-04T11:20:00.000Z', qc_score: 5.0, csat_score: 4.9, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'Contact Center Officer', feedback: 'ช่างเก็บสายไฟเรียบร้อย แอร์เย็นเงียบ ประทับใจมาก' },
-                    { id: 'JOB202609013', customer: 'คุณ วนิดา สุขสมบูรณ์', phone: '0834455667', service: 'ติดตั้งเครื่องกรองน้ำ RO', qc_passed_at: '2026-09-03T10:00:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'น้ำสะอาด วัดค่า TDS ผ่านเกณฑ์มาตรฐาน ช่างอธิบายวิธีเปลี่ยนไส้กรองชัดเจน' },
-                    { id: 'JOB202609014', customer: 'คุณ ชัยรัตน์ พงษ์ศิริ', phone: '0867788990', service: 'ติดตั้งเครื่องระบายอากาศ Fresh Air', qc_passed_at: '2026-09-02T13:40:00.000Z', qc_score: 5.0, csat_score: 4.7, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ระบบระบายอากาศทำงานดีมาก กลิ่นอับหายสนิท หัว Coring เจาะผนังเรียบร้อย' },
-                    { id: 'JOB202609015', customer: 'คุณ รัตนา ปัญญาดี', phone: '0891122334', service: 'เปลี่ยนโคมไฟ LED ทั้งบ้าน', qc_passed_at: '2026-09-01T15:10:00.000Z', qc_score: 4.8, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'แสงสว่างทั่วถึง ประหยัดพลังงาน ช่างเก็บเศษสายไฟและกล่องเรียบร้อย' },
-                    { id: 'JOB202609016', customer: 'คุณ นพดล ศรีสุวรรณ', phone: '0823344559', service: 'ติดตั้งปั๊มน้ำและถังเก็บน้ำ', qc_passed_at: '2026-08-31T09:30:00.000Z', qc_score: 4.5, csat_score: 4.6, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'แรงดันน้ำสม่ำเสมอทุกจุด มีบายพาสน้ำปลอดภัย' },
-                    { id: 'JOB202609017', customer: 'คุณ มณฑา แสงทอง', phone: '0845566778', service: 'ติดตั้งเครื่องดูดควันห้องครัว', qc_passed_at: '2026-08-30T14:15:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'แรงดูดดี ท่อลมต่อระบายออกภายนอกแน่นหนา ไร้กลิ่นย้อน' },
-                    { id: 'JOB202609018', customer: 'บริษัท เมโทร ซิสเต็มส์ จำกัด', phone: '028899001', service: 'เดินระบบไฟฟ้าตู้ Server', qc_passed_at: '2026-08-29T16:00:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ระบบไฟ UPS นิ่ง ไม่มีสะดุด สายไฟร้อยท่อ EMT ปลอดภัยสูง' },
-                    { id: 'JOB202609019', customer: 'คุณ ธวัลพร มงคลชัย', phone: '0856677889', service: 'ติดตั้งแอร์ Inverter 24000 BTU', qc_passed_at: '2026-08-28T11:45:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'แอร์เย็นฉ่ำเร็ว เสียงเงียบ ช่างทดสอบระบบน้ำทิ้งไม่รั่วซึม' },
-                    { id: 'JOB202609020', customer: 'คุณ สันติสุข วงศ์ไทย', phone: '0871122334', service: 'ติดตั้งเครื่องทำน้ำร้อน 6000W', qc_passed_at: '2026-08-27T10:20:00.000Z', qc_score: 4.8, csat_score: 4.7, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'น้ำร้อนเร็ว แรงดันน้ำไหลสม่ำเสมอ เก็บงานท่อทองแดงสวยงาม' },
-                    { id: 'JOB202609021', customer: 'คุณ พิชัย เลิศวิจิตร', phone: '0898877665', service: 'ติดตั้งกล้องวงจรปิด IP Camera 4 ตัว', qc_passed_at: '2026-08-26T15:30:00.000Z', qc_score: 5.0, csat_score: 4.9, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'มุมกล้องครอบคลุมจุดอับสายตา บันทึกภาพย้อนหลังทำงานปกติ' },
-                    { id: 'JOB202609022', customer: 'คุณ นฤมล เกียรติคุณ', phone: '0831122445', service: 'ซ่อมแซมระบบน้ำรั่วซึมห้องน้ำ', qc_passed_at: '2026-08-25T13:00:00.000Z', qc_score: 4.5, csat_score: 4.5, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'หาจุดรั่วใต้พื้นได้แม่นยำ เปลี่ยนข้อต่อและยาแนวใหม่เรียบร้อย' },
-                    { id: 'JOB202609023', customer: 'คุณ ธีรวัฒน์ ชนะภัย', phone: '0864455667', service: 'ติดตั้งระบบไฟส่องสว่างโซลาร์เซลล์รอบรั้ว', qc_passed_at: '2026-08-24T17:15:00.000Z', qc_score: 4.8, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ไฟติดสว่างอัตโนมัติตอนพลบค่ำ เซ็นเซอร์ตรวจจับความเคลื่อนไหวดีเยี่ยม' },
-                    { id: 'JOB202609024', customer: 'บริษัท นครหลวงคอนกรีต จำกัด', phone: '023344556', service: 'ติดตั้งระบบมอเตอร์ประตูรีโมท', qc_passed_at: '2026-08-23T14:30:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'ประตูเลื่อนนุ่มนวล รีโมทใช้งานได้ระยะไกล ปลอดภัยด้วยโฟโต้เซ็นเซอร์' },
-                    { id: 'JOB202609025', customer: 'คุณ อารีย์ ชูแสง', phone: '0887766554', service: 'ล้างทำความสะอาดแอร์ 3 เครื่อง', qc_passed_at: '2026-08-22T10:45:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ช่างปูผ้ายางกันน้ำกระเด็น ล้างสะอาดเอี่ยม กลิ่นสะอาดสดชื่น' },
-                    { id: 'JOB202609026', customer: 'คุณ ประจักษ์ อมรเวช', phone: '0813322114', service: 'ติดตั้งระบบระบายอากาศห้องใต้หลังคา', qc_passed_at: '2026-08-21T16:10:00.000Z', qc_score: 5.0, csat_score: 4.7, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ลดความร้อนในบ้านได้ชัดเจน พัดลมพลังงานแสงอาทิตย์ทำงานเงียบ' },
-                    { id: 'JOB202609027', customer: 'คุณ ศศิธร วิริยะสกุล', phone: '0842233445', service: 'ติดตั้งเครื่องฟอกอากาศฝังฝ้า', qc_passed_at: '2026-08-20T11:15:00.000Z', qc_score: 4.8, csat_score: 4.9, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'แผ่นกรอง HEPA ทำงานดี ค่าฝุ่น PM2.5 ในห้องลดลงรวดเร็ว' },
-                    { id: 'JOB202609028', customer: 'คุณ วรพล ภูมินทร์', phone: '0876655443', service: 'ซ่อมแซมแผงสวิตช์และปลั๊กไฟชำรุด', qc_passed_at: '2026-08-19T09:50:00.000Z', qc_score: 4.5, csat_score: 4.6, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'เปลี่ยนเต้ารับกราวด์คู่มาตรฐาน ขันสกรูแน่นหนา ปลอดภัย' },
-                    { id: 'JOB202609029', customer: 'คุณ ดวงใจ เกษมราษฎร์', phone: '0894455667', service: 'ติดตั้งเครื่องกรองน้ำใช้ทั้งหลัง', qc_passed_at: '2026-08-18T13:30:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'น้ำใสสะอาด ไร้คราบตะกอน สุขภัณฑ์ในบ้านไม่เหลือง' },
-                    { id: 'JOB202609030', customer: 'คุณ สุชาติ มั่งคั่ง', phone: '0825566778', service: 'ติดตั้งแอร์แขวนใต้ฝ้า 36000 BTU', qc_passed_at: '2026-08-17T15:40:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'เหมาะกับห้องโถงกว้าง เย็นสม่ำเสมอ แขวนโครงสร้างมั่นคงแข็งแรง' },
-                    { id: 'JOB202609031', customer: 'คุณ เบญจวรรณ พัฒนพงศ์', phone: '0851122334', service: 'ติดตั้งเครื่องทำน้ำอุ่น 4500W', qc_passed_at: '2026-08-16T10:10:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ฝักบัวสายน้ำนุ่ม อาบสบาย ระบบตัดไฟอัตโนมัติทำงานแม่นยำ' },
-                    { id: 'JOB202609032', customer: 'คุณ ภานุมาศ ชื่นชม', phone: '0883344556', service: 'ติดตั้งระบบกลอนประตูดิจิทัล Smart Lock', qc_passed_at: '2026-08-15T14:20:00.000Z', qc_score: 4.8, csat_score: 4.9, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'สแกนนิ้วมือไวมาก แอพพลิเคชั่นปลดล็อกจากทางไกลสะดวก ช่างสอนตั้งรหัสชัดเจน' },
-                    { id: 'JOB202609033', customer: 'คุณ วรรณวิภา ศรีสุข', phone: '0817788990', service: 'ติดตั้งระบบไฟฉุกเฉิน Emergency Light', qc_passed_at: '2026-08-14T11:30:00.000Z', qc_score: 5.0, csat_score: 4.7, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ไฟฉุกเฉินติดสว่างตามเวลาที่กำหนด ทดสอบการจำลองไฟดับผ่านฉลุย' },
-                    { id: 'JOB202609034', customer: 'คุณ กิตติศักดิ์ เจริญดี', phone: '0846677889', service: 'ติดตั้งแอร์ Wall Type ห้องนอนใหญ่', qc_passed_at: '2026-08-13T16:15:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ตำแหน่งติดตั้งลงตัว ลมไม่ตกกระทบตัวตรงๆ นอนหลับสบาย' },
-                    { id: 'JOB202609035', customer: 'คุณ เพ็ญศรี อนันตชัย', phone: '0872233445', service: 'เปลี่ยนระบบท่อน้ำดี PVC เป็น PPR', qc_passed_at: '2026-08-12T13:50:00.000Z', qc_score: 4.5, csat_score: 4.5, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'เชื่อมท่อด้วยความร้อนแน่นหนา ทดสอบแรงดันน้ำ 8 บาร์ ไม่รั่วซึม' },
-                    { id: 'JOB202609036', customer: 'คุณ ชนินทร์ วรวัฒน์', phone: '0895566778', service: 'ติดตั้งระบบเซ็นเซอร์กันขโมยบ้าน', qc_passed_at: '2026-08-11T10:30:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'แจ้งเตือนเข้าสมาร์ทโฟนรวดเร็ว ไร้การแจ้งเตือนหลอก ประทับใจมาก' },
-                    { id: 'JOB202609037', customer: 'บริษัท สยามโลจิสติกส์ จำกัด', phone: '025566778', service: 'ซ่อมแซมระบบปรับอากาศห้องทำงานรวม', qc_passed_at: '2026-08-10T15:00:00.000Z', qc_score: 4.8, csat_score: 4.6, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'เปลี่ยนมอเตอร์พัดลมคอยล์ร้อน อุณหภูมิกลับมาเย็นสบายตามปกติ' },
-                    { id: 'JOB202609038', customer: 'คุณ อัญชลี รัตนโชติ', phone: '0837788991', service: 'ติดตั้งเครื่องทำน้ำอุ่นพร้อม Rain Shower', qc_passed_at: '2026-08-09T11:40:00.000Z', qc_score: 5.0, csat_score: 4.9, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'น้ำอุ่นแรงสม่ำเสมอ หัว Rain Shower สวยงามเข้ากับสีกระเบื้องห้องน้ำ' },
-                    { id: 'JOB202609039', customer: 'คุณ ประพันธ์ มีโชค', phone: '0861122334', service: 'เดินสายไฟเครื่องชาร์จรถยนต์ EV Charger', qc_passed_at: '2026-08-08T14:10:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ช่างใช้สายไฟขนาด 16 sq.mm. เบรกเกอร์ Type B ปลอดภัยตามมาตรฐานการไฟฟ้า' },
-                    { id: 'JOB202609040', customer: 'คุณ มาลี ทรัพย์สมบูรณ์', phone: '0884455667', service: 'ล้างแอร์ระบบล้างฆ่าเชื้อโฟมพรีเมียม', qc_passed_at: '2026-08-07T09:20:00.000Z', qc_score: 4.8, csat_score: 4.7, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'โฟมฆ่าเชื้อสะอาดดี ไร้กลิ่นอับ ช่างเช็ดคราบน้ำรอบเครื่องหมดจด' },
-                    { id: 'JOB202609041', customer: 'คุณ เกรียงไกร มั่นคง', phone: '0819988776', service: 'ติดตั้งระบบไฟสวน Garden Lighting', qc_passed_at: '2026-08-06T16:30:00.000Z', qc_score: 4.5, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'โคมไฟกันน้ำ IP65 ฝังดินอย่างดี เดินท่อร้อยสายใต้ดินเรียบร้อย' },
-                    { id: 'JOB202609042', customer: 'คุณ นฤพล เด่นนภา', phone: '0843344556', service: 'เปลี่ยนระบบเบรกเกอร์กันดูด RCD ทั้งบ้าน', qc_passed_at: '2026-08-05T13:15:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ทดสอบกดปุ่ม Test ตัดวงจรทันที มั่นใจในความปลอดภัยของคนในครอบครัว' }
+                    { id: 'JOB202609002', customer: 'นาย ไทย วงศ์สว่าง', phone: '089-777-7777', branch: 'พัทยาใต้', address: '88/12 ม.5 ต.หนองปรือ อ.บางละมุง จ.ชลบุรี', service: 'ติดตั้งเครื่องทำน้ำอุ่น 4500W', technician: 'ทีมช่างสมศักดิ์ (Team A)', total_amount: 3500, ticket_no: 'TCK-202609002', qc_passed_at: '2026-09-14T10:30:00.000Z', created_at: '2026-09-08T08:30:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ช่างมาตรงเวลา งานติดตั้งเครื่องทำน้ำอุ่นเรียบร้อย สายดินและเบรกเกอร์ ELCB ได้มาตรฐานดีมาก', photos: samplePhotos },
+                    { id: 'JOB202609003', customer: 'คุณ สมชาย มุ่งเจริญ', phone: '081-234-5678', branch: 'บางนา', address: '123/45 ซ.สุขุมวิท 101/1 แขวงบางจาก เขตพระโขนง กทม.', service: 'ติดตั้งแอร์ Wall Type 18000 BTU', technician: 'ทีมช่างวิชัย (Team B)', total_amount: 18500, ticket_no: 'TCK-202609003', qc_passed_at: '2026-09-13T14:15:00.000Z', created_at: '2026-09-07T09:00:00.000Z', qc_score: 4.8, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'แอร์เย็นเร็วมาก ช่างเก็บงานท่อน้ำยาเนียนตา แนะนำการใช้งานรีโมทและฟังก์ชัน Inverter ละเอียด', photos: samplePhotos },
+                    { id: 'JOB202609004', customer: 'คุณ พัชราภา เลิศวานิช', phone: '092-345-6789', branch: 'พระราม 9', address: '456/78 ถ.พระราม 9 แขวงห้วยขวาง เขตห้วยขวาง กทม.', service: 'ซ่อมแซมระบบไฟฟ้าและตู้ไฟ', technician: 'ทีมช่างมนัส (Team C)', total_amount: 6200, ticket_no: 'TCK-202609004', qc_passed_at: '2026-09-12T11:00:00.000Z', created_at: '2026-09-06T10:30:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'Contact Center Officer', feedback: 'แก้ไขจุดไฟรั่วได้รวดเร็ว ปลอดภัย มีการตรวจเช็คค่าความต้านทานดินครบถ้วน', photos: samplePhotos },
+                    { id: 'JOB202609005', customer: 'บริษัท เอ พี ซี ซิสเต็มส์ จำกัด', phone: '02-654-3210', branch: 'รังสิต', address: '99/1 อาคารไอทีพลาซ่า ถ.พหลโยธิน อ.คลองหลวง จ.ปทุมธานี', service: 'ติดตั้งกล้องวงจรปิด CCTV 8 ตัว', technician: 'ทีมช่างปรีชา (Team D)', total_amount: 32000, ticket_no: 'TCK-202609005', qc_passed_at: '2026-09-11T16:45:00.000Z', created_at: '2026-09-04T13:00:00.000Z', qc_score: 4.5, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'กล้องชัดมากทั้งกลางวันกลางคืน เซ็ตระบบดูออนไลน์บนมือถือให้เจ้าหน้าที่เรียบร้อย', photos: samplePhotos },
+                    { id: 'JOB202609006', customer: 'คุณ วรชัย พัฒนกุล', phone: '080-112-2334', branch: 'เชียงใหม่', address: '77/3 ถ.นิมมานเหมินท์ ต.สุเทพ อ.เมือง จ.เชียงใหม่', service: 'ติดตั้งแอร์ Cassette Type 36000 BTU', technician: 'ทีมช่างสมศักดิ์ (Team A)', total_amount: 42000, ticket_no: 'TCK-202609006', qc_passed_at: '2026-09-10T13:20:00.000Z', created_at: '2026-09-03T11:00:00.000Z', qc_score: 4.8, csat_score: 4.5, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'งานเจาะฝ้า 4 ทิศทางประณีต ไม่มีฝุ่นเลอะเทอะ เครื่องทำงานเงียบสนิท', photos: samplePhotos },
+                    { id: 'JOB202609007', customer: 'คุณ กนกวรรณ รุ่งเรือง', phone: '094-556-6778', branch: 'ภูเก็ต', address: '12/88 ถ.เจ้าฟ้าตะวันตก ต.ฉลอง อ.เมือง จ.ภูเก็ต', service: 'เดินสาย LAN และอุปกรณ์ Switch Hub', technician: 'ทีมช่างวิชัย (Team B)', total_amount: 14500, ticket_no: 'TCK-202609007', qc_passed_at: '2026-09-09T15:30:00.000Z', created_at: '2026-09-02T14:30:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'เทสต์สัญญาณเน็ตทุกจุดผ่าน ฉลากสายชัดเจนในตู้ Rack แนะนำดีมาก', photos: samplePhotos },
+                    { id: 'JOB202609008', customer: 'คุณ อภิชาติ ชาญยุทธ', phone: '082-334-4556', branch: 'พัทยาใต้', address: '55/9 ม.10 ถ.พัทยากลาง ต.หนองปรือ อ.บางละมุง จ.ชลบุรี', service: 'ติดตั้งเครื่องทำน้ำอุ่น 3500W', technician: 'ทีมช่างมนัส (Team C)', total_amount: 3200, ticket_no: 'TCK-202609008', qc_passed_at: '2026-09-08T09:40:00.000Z', created_at: '2026-09-01T08:30:00.000Z', qc_score: 4.5, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ติดตั้งเร็ว น้ำแรง ปรับอุณหภูมินิ่ง ช่างสุภาพมาก แนะนำบริการดี', photos: samplePhotos },
+                    { id: 'JOB202609009', customer: 'คุณ สุรีย์ จันทรากุล', phone: '098-765-4321', branch: 'บางนา', address: '300/12 ถ.ศรีนครินทร์ แขวงหนองบอน เขตประเวศ กทม.', service: 'ซ่อมแซมแอร์และล้างระบบใหญ่', technician: 'ทีมช่างปรีชา (Team D)', total_amount: 2800, ticket_no: 'TCK-202609009', qc_passed_at: '2026-09-07T12:10:00.000Z', created_at: '2026-08-30T10:00:00.000Z', qc_score: 4.8, csat_score: 4.5, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ล้างคอยล์เย็นเติมน้ำยาแอร์เรียบร้อย อาการน้ำหยดหายสนิท ช่างทำความสะอาดพื้นที่ดี', photos: samplePhotos },
+                    { id: 'JOB202609010', customer: 'บริษัท ที อี เอฟ โฮลดิ้งส์ จำกัด', phone: '02-778-8990', branch: 'พระราม 9', address: '11/2 ถ.รัชดาภิเษก แขวงดินแดง เขตดินแดง กทม.', service: 'ติดตั้ง Solar Rooftop 10 kWp', technician: 'ทีมช่างสมศักดิ์ (Team A)', total_amount: 280000, ticket_no: 'TCK-202609010', qc_passed_at: '2026-09-06T17:00:00.000Z', created_at: '2026-08-25T09:00:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'อินเวอร์เตอร์เชื่อมต่อ Cloud มอนิเตอร์ผลิตไฟได้ทันที โครงสร้างแผงแข็งแรงมาก', photos: samplePhotos },
+                    { id: 'JOB202609011', customer: 'คุณ นิธิ เจริญทรัพย์', phone: '091-223-3445', branch: 'รังสิต', address: '45/88 คลองสาม อ.คลองหลวง จ.ปทุมธานี', service: 'เปลี่ยนตู้ไฟและอุปกรณ์ Main Breaker', technician: 'ทีมช่างวิชัย (Team B)', total_amount: 7500, ticket_no: 'TCK-202609011', qc_passed_at: '2026-09-05T14:50:00.000Z', created_at: '2026-08-28T13:30:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'แยกเซอร์กิตวงจรไฟชัดเจน ติดสติ๊กเกอร์ระบุห้องเข้าใจง่าย ปลอดภัยขึ้นเยอะ', photos: samplePhotos },
+                    { id: 'JOB202609012', customer: 'คุณ ธนพล เจริญศิลป์', phone: '081-554-4332', branch: 'เชียงใหม่', address: '89/12 ต.ช้างเผือก อ.เมือง จ.เชียงใหม่', service: 'ติดตั้งแอร์ Wall Type 18000 BTU', technician: 'ทีมช่างมนัส (Team C)', total_amount: 19200, ticket_no: 'TCK-202609012', qc_passed_at: '2026-09-04T11:20:00.000Z', created_at: '2026-08-28T09:30:00.000Z', qc_score: 5.0, csat_score: 4.9, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'Contact Center Officer', feedback: 'ช่างเก็บสายไฟเรียบร้อย แอร์เย็นเงียบ ประทับใจมาก', photos: samplePhotos },
+                    { id: 'JOB202609013', customer: 'คุณ วนิดา สุขสมบูรณ์', phone: '083-445-5667', branch: 'ภูเก็ต', address: '22/4 ถ.เทพกระษัตรี ต.เกาะแก้ว อ.เมือง จ.ภูเก็ต', service: 'ติดตั้งเครื่องกรองน้ำ RO', technician: 'ทีมช่างปรีชา (Team D)', total_amount: 8900, ticket_no: 'TCK-202609013', qc_passed_at: '2026-09-03T10:00:00.000Z', created_at: '2026-08-27T10:00:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'น้ำสะอาด วัดค่า TDS ผ่านเกณฑ์มาตรฐาน ช่างอธิบายวิธีเปลี่ยนไส้กรองชัดเจน', photos: samplePhotos },
+                    { id: 'JOB202609014', customer: 'คุณ ชัยรัตน์ พงษ์ศิริ', phone: '086-778-8990', branch: 'พัทยาใต้', address: '108/5 ถ.เทพประสิทธิ์ ต.หนองปรือ อ.บางละมุง จ.ชลบุรี', service: 'ติดตั้งเครื่องระบายอากาศ Fresh Air', technician: 'ทีมช่างสมศักดิ์ (Team A)', total_amount: 15600, ticket_no: 'TCK-202609014', qc_passed_at: '2026-09-02T13:40:00.000Z', created_at: '2026-08-26T14:00:00.000Z', qc_score: 5.0, csat_score: 4.7, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ระบบระบายอากาศทำงานดีมาก กลิ่นอับหายสนิท หัว Coring เจาะผนังเรียบร้อย', photos: samplePhotos },
+                    { id: 'JOB202609015', customer: 'คุณ รัตนา ปัญญาดี', phone: '089-112-2334', branch: 'บางนา', address: '64/3 ซ.ลาซาล ถ.สุขุมวิท 105 แขวงบางนา กทม.', service: 'เปลี่ยนโคมไฟ LED ทั้งบ้าน 18 จุด', technician: 'ทีมช่างวิชัย (Team B)', total_amount: 11200, ticket_no: 'TCK-202609015', qc_passed_at: '2026-09-01T15:10:00.000Z', created_at: '2026-08-25T11:00:00.000Z', qc_score: 4.8, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'แสงสว่างทั่วถึง ประหยัดพลังงาน ช่างเก็บเศษสายไฟและกล่องเรียบร้อย', photos: samplePhotos },
+                    { id: 'JOB202608016', customer: 'คุณ นพดล ศรีสุวรรณ', phone: '082-334-4559', branch: 'พระราม 9', address: '19/55 ซ.ศูนย์วิจัย ถ.เพชรบุรีตัดใหม่ กทม.', service: 'ติดตั้งปั๊มน้ำและถังเก็บน้ำ 1000L', technician: 'ทีมช่างมนัส (Team C)', total_amount: 16800, ticket_no: 'TCK-202608016', qc_passed_at: '2026-08-25T09:30:00.000Z', created_at: '2026-08-18T09:30:00.000Z', qc_score: 4.5, csat_score: 4.6, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'แรงดันน้ำสม่ำเสมอทุกจุด มีบายพาสน้ำปลอดภัย', photos: samplePhotos },
+                    { id: 'JOB202608017', customer: 'คุณ มณฑา แสงทอง', phone: '084-556-6778', branch: 'รังสิต', address: '55/12 ต.หลักหก อ.เมือง จ.ปทุมธานี', service: 'ติดตั้งเครื่องดูดควันห้องครัว', technician: 'ทีมช่างปรีชา (Team D)', total_amount: 9500, ticket_no: 'TCK-202608017', qc_passed_at: '2026-08-20T14:15:00.000Z', created_at: '2026-08-13T10:00:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'แรงดูดดี ท่อลมต่อระบายออกภายนอกแน่นหนา ไร้กลิ่นย้อน', photos: samplePhotos },
+                    { id: 'JOB202608018', customer: 'บริษัท เมโทร ซิสเต็มส์ จำกัด', phone: '02-889-9001', branch: 'บางนา', address: '400 ถ.บางนา-ตราด กม.4 แขวงบางนา กทม.', service: 'เดินระบบไฟฟ้าตู้ Server และ UPS', technician: 'ทีมช่างสมศักดิ์ (Team A)', total_amount: 45000, ticket_no: 'TCK-202608018', qc_passed_at: '2026-08-15T16:00:00.000Z', created_at: '2026-08-08T09:00:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ระบบไฟ UPS นิ่ง ไม่มีสะดุด สายไฟร้อยท่อ EMT ปลอดภัยสูง', photos: samplePhotos },
+                    { id: 'JOB202608019', customer: 'คุณ ธวัลพร มงคลชัย', phone: '085-667-7889', branch: 'พัทยาใต้', address: '12/44 ต.นาเกลือ อ.บางละมุง จ.ชลบุรี', service: 'ติดตั้งแอร์ Inverter 24000 BTU', technician: 'ทีมช่างวิชัย (Team B)', total_amount: 24500, ticket_no: 'TCK-202608019', qc_passed_at: '2026-08-10T11:45:00.000Z', created_at: '2026-08-03T11:00:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'แอร์เย็นฉ่ำเร็ว เสียงเงียบ ช่างทดสอบระบบน้ำทิ้งไม่รั่วซึม', photos: samplePhotos },
+                    { id: 'JOB202608020', customer: 'คุณ สันติสุข วงศ์ไทย', phone: '087-112-2334', branch: 'เชียงใหม่', address: '202/1 ถ.มหิดล ต.ป่าแดด อ.เมือง จ.เชียงใหม่', service: 'ติดตั้งเครื่องทำน้ำร้อน 6000W', technician: 'ทีมช่างมนัส (Team C)', total_amount: 6800, ticket_no: 'TCK-202608020', qc_passed_at: '2026-08-05T10:20:00.000Z', created_at: '2026-07-29T13:00:00.000Z', qc_score: 4.8, csat_score: 4.7, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'น้ำร้อนเร็ว แรงดันน้ำไหลสม่ำเสมอ เก็บงานท่อทองแดงสวยงาม', photos: samplePhotos },
+                    { id: 'JOB202607021', customer: 'คุณ พิชัย เลิศวิจิตร', phone: '089-887-7665', branch: 'พระราม 9', address: '78/9 ซ.อโศก-ดินแดง กทม.', service: 'ติดตั้งกล้องวงจรปิด IP Camera 4 ตัว', technician: 'ทีมช่างปรีชา (Team D)', total_amount: 18500, ticket_no: 'TCK-202607021', qc_passed_at: '2026-07-28T15:30:00.000Z', created_at: '2026-07-20T10:30:00.000Z', qc_score: 5.0, csat_score: 4.9, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'มุมกล้องครอบคลุมจุดอับสายตา บันทึกภาพย้อนหลังทำงานปกติ', photos: samplePhotos },
+                    { id: 'JOB202607022', customer: 'คุณ นฤมล เกียรติคุณ', phone: '083-112-2445', branch: 'รังสิต', address: '33/9 ถ.รังสิต-นครนายก คลองสอง ปทุมธานี', service: 'ซ่อมแซมระบบน้ำรั่วซึมห้องน้ำ', technician: 'ทีมช่างสมศักดิ์ (Team A)', total_amount: 4800, ticket_no: 'TCK-202607022', qc_passed_at: '2026-07-22T13:00:00.000Z', created_at: '2026-07-15T09:00:00.000Z', qc_score: 4.5, csat_score: 4.5, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'หาจุดรั่วใต้พื้นได้แม่นยำ เปลี่ยนข้อต่อและยาแนวใหม่เรียบร้อย', photos: samplePhotos },
+                    { id: 'JOB202607023', customer: 'คุณ ธีรวัฒน์ ชนะภัย', phone: '086-445-5667', branch: 'ภูเก็ต', address: '50/2 ถ.ปฏัก ต.กะรน อ.เมือง จ.ภูเก็ต', service: 'ติดตั้งระบบไฟส่องสว่างโซลาร์เซลล์รอบรั้ว', technician: 'ทีมช่างวิชัย (Team B)', total_amount: 13500, ticket_no: 'TCK-202607023', qc_passed_at: '2026-07-18T17:15:00.000Z', created_at: '2026-07-11T14:00:00.000Z', qc_score: 4.8, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ไฟติดสว่างอัตโนมัติตอนพลบค่ำ เซ็นเซอร์ตรวจจับความเคลื่อนไหวดีเยี่ยม', photos: samplePhotos },
+                    { id: 'JOB202607024', customer: 'บริษัท นครหลวงคอนกรีต จำกัด', phone: '02-334-4556', branch: 'บางนา', address: '12/99 ถ.กิ่งแก้ว ต.ราชาเทวะ อ.บางพลี จ.สมุทรปราการ', service: 'ติดตั้งระบบมอเตอร์ประตูรีโมท', technician: 'ทีมช่างมนัส (Team C)', total_amount: 28500, ticket_no: 'TCK-202607024', qc_passed_at: '2026-07-10T14:30:00.000Z', created_at: '2026-07-02T10:00:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'ประตูเลื่อนนุ่มนวล รีโมทใช้งานได้ระยะไกล ปลอดภัยด้วยโฟโต้เซ็นเซอร์', photos: samplePhotos },
+                    { id: 'JOB202606025', customer: 'คุณ อารีย์ ชูแสง', phone: '088-776-6554', branch: 'พัทยาใต้', address: '44/8 ต.ห้วยใหญ่ อ.บางละมุง จ.ชลบุรี', service: 'ล้างทำความสะอาดแอร์ 3 เครื่อง', technician: 'ทีมช่างปรีชา (Team D)', total_amount: 2100, ticket_no: 'TCK-202606025', qc_passed_at: '2026-06-28T10:45:00.000Z', created_at: '2026-06-22T08:30:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ช่างปูผ้ายางกันน้ำกระเด็น ล้างสะอาดเอี่ยม กลิ่นสะอาดสดชื่น', photos: samplePhotos },
+                    { id: 'JOB202606026', customer: 'คุณ ประจักษ์ อมรเวช', phone: '081-332-2114', branch: 'เชียงใหม่', address: '11/5 ถ.แก้วนวรัฐ ต.วัดเกต อ.เมือง จ.เชียงใหม่', service: 'ติดตั้งระบบระบายอากาศห้องใต้หลังคา', technician: 'ทีมช่างสมศักดิ์ (Team A)', total_amount: 12500, ticket_no: 'TCK-202606026', qc_passed_at: '2026-06-20T16:10:00.000Z', created_at: '2026-06-12T13:00:00.000Z', qc_score: 5.0, csat_score: 4.7, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ลดความร้อนในบ้านได้ชัดเจน พัดลมพลังงานแสงอาทิตย์ทำงานเงียบ', photos: samplePhotos },
+                    { id: 'JOB202606027', customer: 'คุณ ศศิธร วิริยะสกุล', phone: '084-223-3445', branch: 'พระราม 9', address: '90/1 ถ.ประชาอุทิศ แขวงห้วยขวาง กทม.', service: 'ติดตั้งเครื่องฟอกอากาศฝังฝ้า', technician: 'ทีมช่างวิชัย (Team B)', total_amount: 21000, ticket_no: 'TCK-202606027', qc_passed_at: '2026-06-15T11:15:00.000Z', created_at: '2026-06-08T09:30:00.000Z', qc_score: 4.8, csat_score: 4.9, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'แผ่นกรอง HEPA ทำงานดี ค่าฝุ่น PM2.5 ในห้องลดลงรวดเร็ว', photos: samplePhotos },
+                    { id: 'JOB202605028', customer: 'คุณ วรพล ภูมินทร์', phone: '087-665-5443', branch: 'รังสิต', address: '10/88 คลองสี่ อ.ธัญบุรี จ.ปทุมธานี', service: 'ซ่อมแซมแผงสวิตช์และปลั๊กไฟชำรุด', technician: 'ทีมช่างมนัส (Team C)', total_amount: 3800, ticket_no: 'TCK-202605028', qc_passed_at: '2026-05-28T09:50:00.000Z', created_at: '2026-05-20T11:00:00.000Z', qc_score: 4.5, csat_score: 4.6, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'เปลี่ยนเต้ารับกราวด์คู่มาตรฐาน ขันสกรูแน่นหนา ปลอดภัย', photos: samplePhotos },
+                    { id: 'JOB202605029', customer: 'คุณ ดวงใจ เกษมราษฎร์', phone: '089-445-5667', branch: 'ภูเก็ต', address: '88/1 ถ.วิชิตสงคราม ต.กะทู้ อ.กะทู้ จ.ภูเก็ต', service: 'ติดตั้งเครื่องกรองน้ำใช้ทั้งหลัง', technician: 'ทีมช่างปรีชา (Team D)', total_amount: 26000, ticket_no: 'TCK-202605029', qc_passed_at: '2026-05-20T13:30:00.000Z', created_at: '2026-05-12T09:00:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'น้ำใสสะอาด ไร้คราบตะกอน สุขภัณฑ์ในบ้านไม่เหลือง', photos: samplePhotos },
+                    { id: 'JOB202605030', customer: 'คุณ สุชาติ มั่งคั่ง', phone: '082-556-6778', branch: 'บางนา', address: '144/2 ซ.แบริ่ง ถ.สุขุมวิท 107 ต.สำโรงเหนือ จ.สมุทรปราการ', service: 'ติดตั้งแอร์แขวนใต้ฝ้า 36000 BTU', technician: 'ทีมช่างสมศักดิ์ (Team A)', total_amount: 38000, ticket_no: 'TCK-202605030', qc_passed_at: '2026-05-12T15:40:00.000Z', created_at: '2026-05-04T14:30:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'เหมาะกับห้องโถงกว้าง เย็นสม่ำเสมอ แขวนโครงสร้างมั่นคงแข็งแรง', photos: samplePhotos },
+                    { id: 'JOB202604031', customer: 'คุณ เบญจวรรณ พัฒนพงศ์', phone: '085-112-2334', branch: 'พัทยาใต้', address: '66/12 ต.หนองปรือ อ.บางละมุง จ.ชลบุรี', service: 'ติดตั้งเครื่องทำน้ำอุ่น 4500W', technician: 'ทีมช่างวิชัย (Team B)', total_amount: 3500, ticket_no: 'TCK-202604031', qc_passed_at: '2026-04-26T10:10:00.000Z', created_at: '2026-04-18T10:00:00.000Z', qc_score: 5.0, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ฝักบัวสายน้ำนุ่ม อาบสบาย ระบบตัดไฟอัตโนมัติทำงานแม่นยำ', photos: samplePhotos },
+                    { id: 'JOB202604032', customer: 'คุณ ภานุมาศ ชื่นชม', phone: '088-334-4556', branch: 'พระราม 9', address: '555 ถ.พระราม 9 แขวงสวนหลวง เขตสวนหลวง กทม.', service: 'ติดตั้งระบบกลอนประตูดิจิทัล Smart Lock', technician: 'ทีมช่างมนัส (Team C)', total_amount: 14200, ticket_no: 'TCK-202604032', qc_passed_at: '2026-04-18T14:20:00.000Z', created_at: '2026-04-10T13:30:00.000Z', qc_score: 4.8, csat_score: 4.9, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'สแกนนิ้วมือไวมาก แอพพลิเคชั่นปลดล็อกจากทางไกลสะดวก ช่างสอนตั้งรหัสชัดเจน', photos: samplePhotos },
+                    { id: 'JOB202604033', customer: 'คุณ วรรณวิภา ศรีสุข', phone: '081-778-8990', branch: 'เชียงใหม่', address: '44/9 ถ.ช้างคลาน ต.ช้างคลาน อ.เมือง จ.เชียงใหม่', service: 'ติดตั้งระบบไฟฉุกเฉิน Emergency Light', technician: 'ทีมช่างปรีชา (Team D)', total_amount: 8800, ticket_no: 'TCK-202604033', qc_passed_at: '2026-04-10T11:30:00.000Z', created_at: '2026-04-02T09:00:00.000Z', qc_score: 5.0, csat_score: 4.7, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ไฟฉุกเฉินติดสว่างตามเวลาที่กำหนด ทดสอบการจำลองไฟดับผ่านฉลุย', photos: samplePhotos },
+                    { id: 'JOB202603034', customer: 'คุณ กิตติศักดิ์ เจริญดี', phone: '084-667-7889', branch: 'รังสิต', address: '12/34 ถ.ลำลูกกา คลองเจ็ด จ.ปทุมธานี', service: 'ติดตั้งแอร์ Wall Type ห้องนอนใหญ่', technician: 'ทีมช่างสมศักดิ์ (Team A)', total_amount: 17900, ticket_no: 'TCK-202603034', qc_passed_at: '2026-03-29T16:15:00.000Z', created_at: '2026-03-20T10:00:00.000Z', qc_score: 4.8, csat_score: 4.8, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'สมศักดิ์ น้อมบริการ (CC)', feedback: 'ตำแหน่งติดตั้งลงตัว ลมไม่ตกกระทบตัวตรงๆ นอนหลับสบาย', photos: samplePhotos },
+                    { id: 'JOB202603035', customer: 'คุณ เพ็ญศรี อนันตชัย', phone: '087-223-3445', branch: 'บางนา', address: '89/5 ซ.อุดมสุข 42 แขวงบางนา กทม.', service: 'เปลี่ยนระบบท่อน้ำดี PVC เป็น PPR', technician: 'ทีมช่างวิชัย (Team B)', total_amount: 16500, ticket_no: 'TCK-202603035', qc_passed_at: '2026-03-22T13:50:00.000Z', created_at: '2026-03-14T08:30:00.000Z', qc_score: 4.5, csat_score: 4.5, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'เชื่อมท่อด้วยความร้อนแน่นหนา ทดสอบแรงดันน้ำ 8 บาร์ ไม่รั่วซึม', photos: samplePhotos },
+                    { id: 'JOB202603036', customer: 'คุณ ชนินทร์ วรวัฒน์', phone: '089-556-6778', branch: 'ภูเก็ต', address: '77/1 ถ.เฉลิมพระเกียรติ ร.9 ต.รัษฎา อ.เมือง จ.ภูเก็ต', service: 'ติดตั้งระบบเซ็นเซอร์กันขโมยบ้าน', technician: 'ทีมช่างมนัส (Team C)', total_amount: 22000, ticket_no: 'TCK-202603036', qc_passed_at: '2026-03-15T10:30:00.000Z', created_at: '2026-03-08T11:00:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ปรีชา ประเสริฐผล', surveyor: 'วรรณา มุ่งบริการ (CC)', feedback: 'แจ้งเตือนเข้าสมาร์ทโฟนรวดเร็ว ไร้การแจ้งเตือนหลอก ประทับใจมาก', photos: samplePhotos }
                 ];
             },
 
             getCompletedJobsList() {
-                // 1. Get mock seed items
                 const seedList = this.getCompletedJobsMockSeed();
+                const defaultPhotos = seedList[0].photos;
 
-                // 2. Combine with completed/closed jobs from DB.jobs
                 const dbCompleted = (DB.jobs || []).filter(j => {
                     return j.status === 'CLOSED' || 
                            j.status === 'AFTER_SALE' || 
@@ -22701,34 +22705,40 @@ const app = {
                 }).map(j => {
                     const qcScore = (j.qc_score !== undefined && j.qc_score !== null) ? Number(j.qc_score) : 5.0;
                     const csatScore = (j.csat_score !== undefined && j.csat_score !== null) ? Number(j.csat_score) : 5.0;
+                    const amount = Number(j.total_amount || j.boq_total || j.grand_total || 4500);
+
                     return {
                         id: j.id,
-                        customer: j.customer || j.customer_name || 'ลูกค้าโครงการ',
-                        phone: j.phone || j.customer_phone || '-',
-                        service: j.service || (Array.isArray(j.services) ? j.services[0] : null) || 'บริการมาตรฐาน PMT',
+                        customer: j.customer || j.customer_name || 'ลูกค้าโครงการ PMT',
+                        phone: j.phone || j.customer_phone || '08x-xxx-xxxx',
+                        branch: j.branch || 'พัทยาใต้',
+                        address: j.address || j.location || '123/45 ถนนสุขุมวิท ตำบลหนองปรือ อำเภอบางละมุง ชลบุรี',
+                        service: j.service || (Array.isArray(j.services) ? j.services[0] : null) || 'บริการติดตั้งและบำรุงรักษามาตรฐาน',
+                        technician: j.technician || j.assignee || 'ทีมช่างสมศักดิ์ (Team A)',
+                        total_amount: amount,
+                        ticket_no: j.ticket_no || `TCK-${j.id.replace('JOB', '')}`,
                         qc_passed_at: j.qc_passed_at || (j.step_timestamps && j.step_timestamps.qc_passed_at) || j.date || new Date().toISOString(),
+                        created_at: j.created_at || (j.step_timestamps && j.step_timestamps.step1_intake_at) || j.date || new Date().toISOString(),
                         qc_score: qcScore,
                         csat_score: csatScore,
                         status: j.status || 'CLOSED',
-                        bmt_ref: j.bmt_ref || null,
+                        bmt_ref: j.bmt_ref || `BMT-SYNC-${j.id.replace('JOB', '')}`,
                         inspector: j.qc_inspector || 'วิศวกร ธนกร ชำนาญการ',
                         surveyor: j.csat_surveyor || 'Contact Center Officer',
-                        feedback: j.csat_remarks || j.additional_notes || 'ลูกค้ามีความพึงพอใจในคุณภาพงานและการให้บริการ'
+                        feedback: j.csat_remarks || j.additional_notes || 'ลูกค้ามีความพึงพอใจในคุณภาพงานและการให้บริการ ช่างปฏิบัติงานเรียบร้อยตรงต่อเวลา',
+                        photos: (j.photos && j.photos.length > 0) ? j.photos : defaultPhotos
                     };
                 });
 
-                // Merge dbCompleted on top of seedList, deduplicating by ID
                 const seenIds = new Set();
                 const merged = [];
 
-                // Put DB jobs first
                 for (const item of dbCompleted) {
                     if (!seenIds.has(item.id)) {
                         seenIds.add(item.id);
                         merged.push(item);
                     }
                 }
-                // Then seed items
                 for (const item of seedList) {
                     if (!seenIds.has(item.id)) {
                         seenIds.add(item.id);
@@ -22736,7 +22746,6 @@ const app = {
                     }
                 }
 
-                // Calculate combined total score for all jobs
                 return merged.map(job => {
                     const qc = Number(job.qc_score) || 5.0;
                     const csat = Number(job.csat_score) || 5.0;
@@ -22761,11 +22770,26 @@ const app = {
                         (j.id && j.id.toLowerCase().includes(query)) ||
                         (j.customer && j.customer.toLowerCase().includes(query)) ||
                         (j.phone && j.phone.toLowerCase().includes(query)) ||
-                        (j.service && j.service.toLowerCase().includes(query))
+                        (j.service && j.service.toLowerCase().includes(query)) ||
+                        (j.branch && j.branch.toLowerCase().includes(query)) ||
+                        (j.technician && j.technician.toLowerCase().includes(query))
                     );
                 }
 
-                // 2. Filter by Score Range
+                // 2. Filter by Timeframe (6-month retention tracking)
+                const timeFilter = this.state.completedJobsTimeFilter || 'all';
+                if (timeFilter !== 'all') {
+                    const daysLimit = Number(timeFilter) || 180;
+                    const refDate = new Date('2026-09-15T23:59:59.000Z');
+                    const cutoffDate = new Date(refDate.getTime() - (daysLimit * 24 * 60 * 60 * 1000));
+
+                    filtered = filtered.filter(j => {
+                        const jobDate = new Date(j.qc_passed_at || j.created_at || '2026-09-14');
+                        return !isNaN(jobDate.getTime()) && jobDate >= cutoffDate;
+                    });
+                }
+
+                // 3. Filter by Score Range
                 const scoreFilter = this.state.completedJobsScoreFilter || 'all';
                 if (scoreFilter === '5') {
                     filtered = filtered.filter(j => j.total_score >= 5.0);
@@ -22777,13 +22801,13 @@ const app = {
                     filtered = filtered.filter(j => j.total_score < 4.5);
                 }
 
-                // 3. Filter by Service Type
+                // 4. Filter by Service Type
                 const serviceFilter = this.state.completedJobsServiceFilter || 'all';
                 if (serviceFilter !== 'all') {
                     filtered = filtered.filter(j => j.service && j.service.includes(serviceFilter));
                 }
 
-                // 4. Update Summary Counters
+                // 5. Update Summary Counters
                 const filterCountEl = document.getElementById('completed-jobs-filter-count');
                 if (filterCountEl) {
                     filterCountEl.innerText = `แสดง ${filtered.length} จาก ${allJobs.length} รายการ`;
@@ -22798,7 +22822,7 @@ const app = {
                     sidebarBadge.style.display = allJobs.length > 0 ? '' : 'none';
                 }
 
-                // 5. Pagination Calculation
+                // 6. Pagination Calculation
                 const pageSize = Number(this.state.completedJobsPageSize) || 10;
                 const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
                 if (this.state.completedJobsPage > totalPages) {
@@ -22808,7 +22832,7 @@ const app = {
                 const startIndex = (currentPage - 1) * pageSize;
                 const pageItems = filtered.slice(startIndex, startIndex + pageSize);
 
-                // 6. Render Table Rows (Strict Light Theme List View)
+                // 7. Render Table Rows (Strict Light Theme List View)
                 const tbody = document.getElementById('completed-jobs-table-body');
                 if (!tbody) return;
 
@@ -22836,13 +22860,17 @@ const app = {
                         return `
                             <tr class="hover:bg-muted/40 transition-colors group">
                                 <td class="py-3.5 px-5 font-mono font-bold">
-                                    <a href="#" onclick="app.openJobCloseDetailModal('${job.id}'); return false;" class="text-indigo-600 dark:text-indigo-400 hover:underline hover:text-indigo-700 flex items-center gap-1">
+                                    <a href="#" onclick="app.openJobCloseDetailModal('${job.id}'); return false;" class="text-indigo-600 hover:underline hover:text-indigo-700 flex items-center gap-1">
                                         <span>${job.id}</span>
                                     </a>
                                 </td>
                                 <td class="py-3.5 px-5">
                                     <div class="font-medium text-foreground text-xs">${job.customer}</div>
-                                    <div class="text-[11px] text-muted-foreground font-mono mt-0.5">${job.phone || '-'}</div>
+                                    <div class="text-[11px] text-muted-foreground font-mono mt-0.5 flex items-center gap-1.5">
+                                        <span>${job.phone || '-'}</span>
+                                        <span class="text-muted-foreground/40">•</span>
+                                        <span class="text-brand-600 font-sans">${job.branch || 'พัทยาใต้'}</span>
+                                    </div>
                                 </td>
                                 <td class="py-3.5 px-5">
                                     <span class="text-foreground text-xs font-medium">${job.service}</span>
@@ -22869,7 +22897,7 @@ const app = {
                                     </span>
                                 </td>
                                 <td class="py-3.5 px-4 text-center">
-                                    <button type="button" onclick="app.openJobCloseDetailModal('${job.id}')" class="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted hover:border-brand-500/40 transition cursor-pointer shadow-2xs group-hover:border-border/80" title="ดูสรุปผลการประเมิน">
+                                    <button type="button" onclick="app.openJobCloseDetailModal('${job.id}')" class="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted hover:border-brand-500/40 transition cursor-pointer shadow-2xs group-hover:border-border/80" title="ดูสรุปผลการประเมิน, ภาพงาน และประวัติย้อนหลัง">
                                         <i class="ph ph-caret-right text-sm"></i>
                                     </button>
                                 </td>
@@ -22878,7 +22906,7 @@ const app = {
                     }).join('');
                 }
 
-                // 7. Render Pagination Controls
+                // 8. Render Pagination Controls
                 this.renderCompletedJobsPagination(totalPages, currentPage);
             },
 
@@ -22902,8 +22930,6 @@ const app = {
                 }
 
                 let html = '';
-
-                // Prev Button
                 const prevDisabled = currentPage <= 1;
                 html += `
                     <button type="button" onclick="app.setCompletedJobsPage(${currentPage - 1})" ${prevDisabled ? 'disabled' : ''} class="w-8 h-8 rounded-lg border border-border text-foreground flex items-center justify-center text-xs hover:bg-muted transition cursor-pointer ${prevDisabled ? 'opacity-40 cursor-not-allowed' : ''}">
@@ -22911,7 +22937,6 @@ const app = {
                     </button>
                 `;
 
-                // Page Number Buttons (Show 1..5)
                 const startPage = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
                 const endPage = Math.min(totalPages, Math.max(startPage + 4, 5));
 
@@ -22934,7 +22959,6 @@ const app = {
                     }
                 }
 
-                // Next Button
                 const nextDisabled = currentPage >= totalPages;
                 html += `
                     <button type="button" onclick="app.setCompletedJobsPage(${currentPage + 1})" ${nextDisabled ? 'disabled' : ''} class="w-8 h-8 rounded-lg border border-border text-foreground flex items-center justify-center text-xs hover:bg-muted transition cursor-pointer ${nextDisabled ? 'opacity-40 cursor-not-allowed' : ''}">
@@ -22958,10 +22982,12 @@ const app = {
 
             filterCompletedJobs() {
                 const searchEl = document.getElementById('completed-jobs-search-input');
+                const timeEl = document.getElementById('completed-jobs-time-filter');
                 const scoreEl = document.getElementById('completed-jobs-score-filter');
                 const serviceEl = document.getElementById('completed-jobs-service-filter');
 
                 this.state.completedJobsSearch = searchEl ? searchEl.value : '';
+                this.state.completedJobsTimeFilter = timeEl ? timeEl.value : 'all';
                 this.state.completedJobsScoreFilter = scoreEl ? scoreEl.value : 'all';
                 this.state.completedJobsServiceFilter = serviceEl ? serviceEl.value : 'all';
                 this.state.completedJobsPage = 1;
@@ -22971,12 +22997,15 @@ const app = {
 
             resetCompletedJobsFilter() {
                 this.state.completedJobsSearch = '';
+                this.state.completedJobsTimeFilter = 'all';
                 this.state.completedJobsScoreFilter = 'all';
                 this.state.completedJobsServiceFilter = 'all';
                 this.state.completedJobsPage = 1;
 
                 const searchEl = document.getElementById('completed-jobs-search-input');
                 if (searchEl) searchEl.value = '';
+                const timeEl = document.getElementById('completed-jobs-time-filter');
+                if (timeEl) timeEl.value = 'all';
                 const scoreEl = document.getElementById('completed-jobs-score-filter');
                 if (scoreEl) scoreEl.value = 'all';
                 const serviceEl = document.getElementById('completed-jobs-service-filter');
@@ -22985,9 +23014,27 @@ const app = {
                 this.renderCompletedJobs();
             },
 
-            showAllCompletedJobs() {
-                this.resetCompletedJobsFilter();
-                this.showToast('📋 แสดงรายการงานที่สำเร็จแล้วทั้งหมด 42 รายการ');
+            switchJobCloseModalTab(tab) {
+                this.state.jobCloseModalTab = tab;
+                const tabs = ['overview', 'photos', 'timeline'];
+                tabs.forEach(t => {
+                    const pane = document.getElementById(`jcd-tab-pane-${t}`);
+                    const btn = document.getElementById(`jcd-tab-btn-${t}`);
+                    if (pane) {
+                        if (t === tab) {
+                            pane.classList.remove('hidden-view');
+                        } else {
+                            pane.classList.add('hidden-view');
+                        }
+                    }
+                    if (btn) {
+                        if (t === tab) {
+                            btn.className = 'px-4 py-2.5 text-xs font-bold border-b-2 border-brand-500 text-brand-600 flex items-center gap-1.5 transition cursor-pointer';
+                        } else {
+                            btn.className = 'px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition cursor-pointer';
+                        }
+                    }
+                });
             },
 
             openJobCloseDetailModal(jobId) {
@@ -22998,24 +23045,33 @@ const app = {
                     return;
                 }
 
-                // Header & Summary
+                // Reset Tab to Overview
+                this.switchJobCloseModalTab('overview');
+
                 const setText = (id, txt) => {
                     const el = document.getElementById(id);
                     if (el) el.innerText = txt || '-';
                 };
 
+                // 1. Top Banner Information
                 setText('jcd-job-id', job.id);
                 setText('jcd-customer', job.customer);
                 setText('jcd-phone', job.phone || '-');
+                setText('jcd-branch', `สาขา${job.branch || 'พัทยาใต้'}`);
                 setText('jcd-service', job.service);
+                setText('jcd-technician', job.technician || 'ทีมช่างสมศักดิ์ (Team A)');
+                setText('jcd-address', job.address || '-');
+                setText('jcd-amount', `฿${Number(job.total_amount || 0).toLocaleString('th-TH')}`);
                 setText('jcd-bmt-ref', job.bmt_ref || `BMT-SYNC-${job.id.replace('JOB', '')}`);
                 setText('jcd-qc-date', this.formatDateDMY(job.qc_passed_at));
+
+                // 2. Tab 1 - Scores & KPI
                 setText('jcd-qc-score', job.qc_score.toFixed(1));
                 setText('jcd-inspector', job.inspector || 'วิศวกร ธนกร ชำนาญการ');
                 setText('jcd-csat-score', job.csat_score.toFixed(1));
                 setText('jcd-surveyor', job.surveyor || 'Contact Center Officer');
                 setText('jcd-total-score', job.total_score.toFixed(1));
-                setText('jcd-customer-feedback', job.feedback || 'ลูกค้ามีความพึงพอใจในคุณภาพงานและการให้บริการ');
+                setText('jcd-customer-feedback', job.feedback || 'ลูกค้ามีความพึงพอใจในคุณภาพงานและการให้บริการ ช่างปฏิบัติงานเรียบร้อย');
                 setText('jcd-csat-date', this.formatDateDMY(job.qc_passed_at));
 
                 // 5 QC Standard Subtasks Breakdown (Yes=5, No=1)
@@ -23052,7 +23108,97 @@ const app = {
                     `).join('');
                 }
 
-                // View Job Detail button handler
+                // 3. Tab 2 - Work Photos & Blueprints Gallery
+                const photosGrid = document.getElementById('jcd-photos-grid');
+                const photosCountBadge = document.getElementById('jcd-photos-count');
+                const photos = (job.photos && job.photos.length > 0) ? job.photos : this.getCompletedJobsMockSeed()[0].photos;
+                if (photosCountBadge) photosCountBadge.innerText = photos.length;
+
+                if (photosGrid) {
+                    photosGrid.innerHTML = photos.map(p => {
+                        const imgUrl = p.url || p.preview || 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800';
+                        const title = p.title || `รูปถ่ายหน้างาน #${p.num || 1}`;
+                        const tag = p.tag || 'ภาพผลงานหน้างาน';
+                        const desc = p.desc || 'รูปถ่ายตรวจสอบความเรียบร้อยหน้างาน';
+                        const timeStr = this.formatDateDMY(job.qc_passed_at);
+
+                        return `
+                            <div class="rounded-2xl border border-border bg-card overflow-hidden shadow-2xs hover:shadow-md transition group flex flex-col cursor-pointer" onclick="app.showLightbox('${imgUrl}', '${title}', '${tag}', '${desc}', '${timeStr}')">
+                                <div class="relative aspect-4/3 bg-muted/40 overflow-hidden">
+                                    <img src="${imgUrl}" alt="${title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <span class="w-10 h-10 rounded-full bg-white/90 text-foreground flex items-center justify-center shadow-lg transform translate-y-2 group-hover:translate-y-0 transition">
+                                            <i class="ph ph-magnifying-glass-plus text-lg"></i>
+                                        </span>
+                                    </div>
+                                    <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-black/60 text-white backdrop-blur-xs font-mono">
+                                        ${tag}
+                                    </span>
+                                </div>
+                                <div class="p-3 flex flex-col justify-between flex-1">
+                                    <div class="font-semibold text-foreground text-xs line-clamp-1">${title}</div>
+                                    <div class="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">${desc}</div>
+                                    <div class="text-[10px] text-brand-600 font-mono flex items-center justify-between pt-2 border-t border-border/40 mt-2">
+                                        <span><i class="ph ph-calendar mr-1"></i>${timeStr}</span>
+                                        <span class="hover:underline flex items-center gap-0.5">ขยายภาพ <i class="ph ph-caret-right"></i></span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                // 4. Tab 3 - Order History & Audit Timeline (6 Steps)
+                const timelineContainer = document.getElementById('jcd-timeline-container');
+                if (timelineContainer) {
+                    const qcPassDate = new Date(job.qc_passed_at || '2026-09-14T10:30:00.000Z');
+                    const d1 = new Date(qcPassDate.getTime() - (6 * 24 * 3600 * 1000));
+                    const d2 = new Date(qcPassDate.getTime() - (5 * 24 * 3600 * 1000));
+                    const d3 = new Date(qcPassDate.getTime() - (4 * 24 * 3600 * 1000));
+                    const d4 = new Date(qcPassDate.getTime() - (3 * 24 * 3600 * 1000));
+                    const d5 = new Date(qcPassDate.getTime() - (1 * 24 * 3600 * 1000));
+                    const d6 = qcPassDate;
+                    const d7 = new Date(qcPassDate.getTime() + (2 * 3600 * 1000));
+                    const d8 = new Date(qcPassDate.getTime() + (3 * 3600 * 1000));
+
+                    const milestones = [
+                        { step: 1, name: 'รับคำสั่งซื้อ & ออกใบเสนอราคา (Order Intake & BOQ)', time: this.formatDateTimeDMY(d1.toISOString(), false, true), actor: 'เจ้าหน้าที่ AE / Customer Service', status: 'COMPLETED', note: `รับคำสั่งซื้อบริการ ${job.service} มูลค่า ฿${Number(job.total_amount).toLocaleString('th-TH')}` },
+                        { step: 2, name: 'แบบแปลนติดตั้ง & จัดทำรายการวัสดุ (Design & BOQ Approved)', time: this.formatDateTimeDMY(d2.toISOString(), false, true), actor: 'วิศวกรออกแบบระบบ', status: 'COMPLETED', note: 'ตรวจสอบผังหน้างานและอนุมัติแบบแปลนการติดตั้งเรียบร้อย' },
+                        { step: 3, name: 'เปิด Ticket & บันทึกหลักฐานการเงิน (Tickets & Receipts)', time: this.formatDateTimeDMY(d3.toISOString(), false, true), actor: 'เจ้าหน้าที่ SA / Finance Officer', status: 'COMPLETED', note: `ออกเลขที่ Ticket ${job.ticket_no} และแนบสลิป/สัญญาจ้างสมบูรณ์` },
+                        { step: 4, name: 'จัดเตรียมอุปกรณ์ & จ่ายงานช่าง (Work Prep & Dispatch)', time: this.formatDateTimeDMY(d4.toISOString(), false, true), actor: 'หัวหน้างานจ่ายงาน (Dispatcher)', status: 'COMPLETED', note: `มอบหมายงานให้ ${job.technician || 'ทีมช่างสมศักดิ์'} เข้าปฏิบัติงานตามนัดหมาย` },
+                        { step: 5, name: 'ดำเนินการติดตั้ง & บันทึกงานประจำวัน (Gantt & Daily Logs)', time: this.formatDateTimeDMY(d5.toISOString(), false, true), actor: job.technician || 'ทีมช่างสมศักดิ์', status: 'COMPLETED', note: 'บันทึกเวลาเข้า-ออกหน้างาน แนบภาพถ่าย 5 ขั้นตอนมาตรฐานครบถ้วน' },
+                        { step: 6, name: 'ตรวจรับรองคุณภาพมาตรฐาน (QC Inspection Approved)', time: this.formatDateTimeDMY(d6.toISOString(), false, true), actor: job.inspector || 'วิศวกร ธนกร ชำนาญการ', status: 'PASSED', note: `ตรวจผ่านเกณฑ์มาตรฐาน 5/5 ข้อ ได้รับคะแนน QC ${job.qc_score.toFixed(1)} คะแนน` },
+                        { step: 7, name: 'โทรสำรวจความพึงพอใจลูกค้า (CSAT Evaluation Completed)', time: this.formatDateTimeDMY(d7.toISOString(), false, true), actor: job.surveyor || 'Contact Center Officer', status: 'SURVEYED', note: `ประเมินความพึงพอใจได้ ${job.csat_score.toFixed(1)} คะแนน ลูกค้ายืนยันส่งมอบเรียบร้อย` },
+                        { step: 8, name: 'ปิดงานคำสั่งซื้อ & ส่งออกระบบ BMT (Job Closed & BMT Sync)', time: this.formatDateTimeDMY(d8.toISOString(), false, true), actor: 'ระบบอัตโนมัติ PMT Flow Cloud', status: 'CLOSED', note: `สถานะ ${job.bmt_ref || 'BMT-SYNC'} เรียบร้อย สามารถเรียกดูประวัติย้อนหลังได้ 6 เดือน` }
+                    ];
+
+                    timelineContainer.innerHTML = milestones.map((m, idx) => `
+                        <div class="relative pl-6 group">
+                            <!-- Dot Indicator -->
+                            <div class="absolute -left-[9px] top-0.5 w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center ring-4 ring-card text-[9px] font-bold shadow-xs">
+                                <i class="ph ph-check"></i>
+                            </div>
+                            <div class="p-3.5 rounded-2xl bg-card border border-border shadow-2xs hover:border-brand-500/40 transition">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                                    <div class="font-bold text-foreground text-xs flex items-center gap-1.5">
+                                        <span class="w-5 h-5 rounded-md bg-brand-500/10 text-brand-600 font-mono text-[10px] flex items-center justify-center font-bold">${m.step}</span>
+                                        <span>${m.name}</span>
+                                    </div>
+                                    <span class="text-[10px] font-mono text-brand-600 font-semibold bg-brand-500/5 px-2 py-0.5 rounded-md border border-brand-500/10">
+                                        <i class="ph ph-clock mr-1"></i>${m.time}
+                                    </span>
+                                </div>
+                                <div class="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">${m.note}</div>
+                                <div class="text-[10px] text-muted-foreground font-mono mt-2 pt-2 border-t border-border/40 flex items-center justify-between">
+                                    <span>ผู้ปฏิบัติงาน: <strong class="text-foreground">${m.actor}</strong></span>
+                                    <span class="text-emerald-700 font-bold">สถานะ: ${m.status}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                // 5. Action Buttons Handlers
                 const viewBtn = document.getElementById('jcd-view-job-btn');
                 if (viewBtn) {
                     viewBtn.onclick = () => {
@@ -23061,7 +23207,182 @@ const app = {
                     };
                 }
 
+                const singleExportBtn = document.getElementById('jcd-export-single-excel-btn');
+                if (singleExportBtn) {
+                    singleExportBtn.onclick = () => {
+                        this.exportSingleJobCloseExcel(job.id);
+                    };
+                }
+
                 this.showModal('modal-job-close-detail');
+            },
+
+            exportCompletedJobsExcel() {
+                const allJobs = this.getCompletedJobsList();
+                if (!allJobs || allJobs.length === 0) {
+                    this.showToast('⚠️ ไม่มีข้อมูลสำหรับส่งออก Excel');
+                    return;
+                }
+
+                if (typeof XLSX === 'undefined') {
+                    this.showToast('⚠️ กำลังส่งออกในรูปแบบ CSV เนื่องจากไม่พบเอนจิน XLSX');
+                    this.exportCompletedJobsCSV();
+                    return;
+                }
+
+                try {
+                    const wb = XLSX.utils.book_new();
+
+                    // Sheet 1: Summary Rows
+                    const summaryHeaders = [
+                        'รหัสงาน (Job ID)',
+                        'ชื่อลูกค้า',
+                        'เบอร์ติดต่อ',
+                        'สาขา',
+                        'ที่อยู่ติดตั้ง',
+                        'ประเภทบริการ',
+                        'ทีมช่างผู้รับผิดชอบ',
+                        'มูลค่างาน (บาท)',
+                        'เลขที่ Ticket',
+                        'วันที่ส่งมอบ / QC ผ่าน',
+                        'คะแนน QC (เต็ม 5.0)',
+                        'คะแนน CSAT (เต็ม 5.0)',
+                        'คะแนนรวมเฉลี่ย',
+                        'ผู้ตรวจ QC',
+                        'ผู้โทรประเมิน CSAT',
+                        'ความคิดเห็นลูกค้า (Feedback)',
+                        'สถานะโครงการ',
+                        'รหัสอ้างอิง BMT'
+                    ];
+
+                    const summaryRows = [summaryHeaders];
+                    allJobs.forEach(j => {
+                        summaryRows.push([
+                            j.id,
+                            j.customer,
+                            j.phone || '-',
+                            j.branch || 'พัทยาใต้',
+                            j.address || '-',
+                            j.service,
+                            j.technician || '-',
+                            Number(j.total_amount || 0),
+                            j.ticket_no || '-',
+                            this.formatDateDMY(j.qc_passed_at),
+                            Number(j.qc_score.toFixed(1)),
+                            Number(j.csat_score.toFixed(1)),
+                            Number(j.total_score.toFixed(1)),
+                            j.inspector || '-',
+                            j.surveyor || '-',
+                            j.feedback || '-',
+                            j.status,
+                            j.bmt_ref || `BMT-SYNC-${j.id.replace('JOB', '')}`
+                        ]);
+                    });
+
+                    const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+                    wsSummary['!cols'] = [
+                        { wch: 16 }, { wch: 22 }, { wch: 15 }, { wch: 14 },
+                        { wch: 35 }, { wch: 30 }, { wch: 24 }, { wch: 16 },
+                        { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 18 },
+                        { wch: 16 }, { wch: 22 }, { wch: 22 }, { wch: 45 },
+                        { wch: 14 }, { wch: 20 }
+                    ];
+                    XLSX.utils.book_append_sheet(wb, wsSummary, 'Job_Close_Summary');
+
+                    // Sheet 2: KPI & Statistics Analysis
+                    const totalCount = allJobs.length;
+                    const avgQC = (allJobs.reduce((sum, j) => sum + j.qc_score, 0) / (totalCount || 1)).toFixed(2);
+                    const avgCSAT = (allJobs.reduce((sum, j) => sum + j.csat_score, 0) / (totalCount || 1)).toFixed(2);
+                    const avgTotal = (allJobs.reduce((sum, j) => sum + j.total_score, 0) / (totalCount || 1)).toFixed(2);
+                    const count5 = allJobs.filter(j => j.total_score >= 5.0).length;
+                    const countHigh = allJobs.filter(j => j.total_score >= 4.8 && j.total_score < 5.0).length;
+                    const countStandard = allJobs.filter(j => j.total_score >= 4.5 && j.total_score < 4.8).length;
+                    const totalRevenue = allJobs.reduce((sum, j) => sum + (Number(j.total_amount) || 0), 0);
+
+                    const kpiRows = [
+                        ['รายงานสถิติผลการดำเนินงาน & ความพึงพอใจลูกค้า (PMT Flow 6-Month Retention KPI Report)'],
+                        ['วันที่สร้างรายงาน:', this.formatDateTimeDMY(new Date().toISOString(), false, true)],
+                        [''],
+                        ['ดัชนีชี้วัด (KPI Parameter)', 'ค่าสถิติ (Value)', 'หน่วย'],
+                        ['จำนวนโครงการที่ปิดงานสำเร็จทั้งหมด (Total Closed Jobs)', totalCount, 'โครงการ'],
+                        ['มูลค่างานรวมทั้งหมด (Total Revenue)', totalRevenue, 'บาท'],
+                        ['คะแนนเฉลี่ยการตรวจรับรองคุณภาพ QC (Average QC Score)', Number(avgQC), 'คะแนน (เต็ม 5.0)'],
+                        ['คะแนนเฉลี่ยความพึงพอใจลูกค้า CSAT (Average CSAT Score)', Number(avgCSAT), 'คะแนน (เต็ม 5.0)'],
+                        ['คะแนนรวมเฉลี่ยทั้งระบบ (Overall Score Index)', Number(avgTotal), 'คะแนน (เต็ม 5.0)'],
+                        ['โครงการที่ได้คะแนน 5.0 เต็ม (Perfect 5.0 Score)', count5, 'โครงการ'],
+                        ['โครงการที่ได้คะแนน 4.8 - 4.9 (Excellent Score)', countHigh, 'โครงการ'],
+                        ['โครงการที่ได้คะแนน 4.5 - 4.7 (Standard Score)', countStandard, 'โครงการ'],
+                        ['อัตราความพึงพอใจระดับดีเยี่ยมขึ้นไป (>= 4.8)', `${((count5 + countHigh) / (totalCount || 1) * 100).toFixed(1)}%`, 'เปอร์เซ็นต์']
+                    ];
+
+                    const wsKPI = XLSX.utils.aoa_to_sheet(kpiRows);
+                    wsKPI['!cols'] = [{ wch: 45 }, { wch: 20 }, { wch: 20 }];
+                    XLSX.utils.book_append_sheet(wb, wsKPI, 'QC_CSAT_KPI_Analysis');
+
+                    // Export file
+                    const fileName = `PMT_Flow_Job_Close_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                    XLSX.writeFile(wb, fileName);
+                    this.showToast(`📥 ส่งออกไฟล์ Excel (${fileName}) สำเร็จเรียบร้อย`);
+                } catch (e) {
+                    console.error('Error exporting Excel:', e);
+                    this.showToast('⚠️ เกิดข้อผิดพลาดในการส่งออก Excel กรุณาลองใหม่');
+                }
+            },
+
+            exportSingleJobCloseExcel(jobId) {
+                const allJobs = this.getCompletedJobsList();
+                const job = allJobs.find(j => j.id === jobId);
+                if (!job) {
+                    this.showToast('⚠️ ไม่พบข้อมูลโครงการ ' + jobId);
+                    return;
+                }
+
+                if (typeof XLSX === 'undefined') {
+                    this.showToast('⚠️ ไม่พบคลัง XLSX');
+                    return;
+                }
+
+                try {
+                    const wb = XLSX.utils.book_new();
+                    const rows = [
+                        ['เอกสารสรุปผลการปิดโครงการ & ส่งมอบงาน (Job Closeout Summary Report)'],
+                        ['ระบบบริหารจัดการงานช่างและโครงการ PMT Flow'],
+                        [''],
+                        ['ข้อมูลโครงการ (Project Information)', ''],
+                        ['รหัสงาน (Job ID):', job.id],
+                        ['ชื่อลูกค้า:', job.customer],
+                        ['เบอร์ติดต่อ:', job.phone || '-'],
+                        ['สาขาผู้รับผิดชอบ:', job.branch || 'พัทยาใต้'],
+                        ['สถานที่ติดตั้ง:', job.address || '-'],
+                        ['ประเภทงานบริการ:', job.service],
+                        ['ทีมช่างผู้ดำเนินงาน:', job.technician || '-'],
+                        ['มูลค่างานรวม:', `฿${Number(job.total_amount || 0).toLocaleString('th-TH')}`],
+                        ['เลขที่ Ticket:', job.ticket_no || '-'],
+                        ['วันที่ส่งมอบ / QC ผ่าน:', this.formatDateDMY(job.qc_passed_at)],
+                        ['รหัสอ้างอิงระบบ BMT:', job.bmt_ref || `BMT-SYNC-${job.id.replace('JOB', '')}`],
+                        [''],
+                        ['ผลการประเมินมาตรฐานและคุณภาพ (Evaluation KPI)', ''],
+                        ['1. คะแนนตรวจรับรองคุณภาพ QC:', `${job.qc_score.toFixed(1)} / 5.0 คะแนน`],
+                        ['   ผู้ตรวจ QC:', job.inspector || 'วิศวกร ธนกร ชำนาญการ'],
+                        ['2. คะแนนความพึงพอใจลูกค้า CSAT:', `${job.csat_score.toFixed(1)} / 5.0 คะแนน`],
+                        ['   ผู้โทรสำรวจ CSAT:', job.surveyor || 'Contact Center Officer'],
+                        ['3. คะแนนรวมเฉลี่ยทั้งโครงการ:', `${job.total_score.toFixed(1)} / 5.0 คะแนน`],
+                        ['ความคิดเห็นและคำติชมของลูกค้า:', job.feedback || '-'],
+                        ['สถานะโครงการ:', 'ส่งมอบสำเร็จ (CLOSED & BILLED)'],
+                        ['วันที่ออกรายงาน:', this.formatDateTimeDMY(new Date().toISOString(), false, true)]
+                    ];
+
+                    const ws = XLSX.utils.aoa_to_sheet(rows);
+                    ws['!cols'] = [{ wch: 35 }, { wch: 45 }];
+                    XLSX.utils.book_append_sheet(wb, ws, `Job_${job.id}`);
+
+                    const fileName = `PMT_Flow_${job.id}_Close_Report.xlsx`;
+                    XLSX.writeFile(wb, fileName);
+                    this.showToast(`📥 ส่งออกไฟล์ Excel โครงการ ${job.id} เรียบร้อย`);
+                } catch (e) {
+                    console.error('Error exporting single job Excel:', e);
+                    this.showToast('⚠️ ไม่สามารถส่งออกไฟล์ได้');
+                }
             },
 
             exportCompletedJobsCSV() {
@@ -23072,18 +23393,24 @@ const app = {
                 }
 
                 let csv = '\uFEFF'; // BOM UTF-8 for Excel in Thai
-                csv += 'รหัสงาน,ลูกค้า,เบอร์โทร,บริการ,วันที่ QC ผ่าน,คะแนน QC,คะแนน CSAT,คะแนน รวม,สถานะ\n';
+                csv += 'รหัสงาน,ลูกค้า,เบอร์โทร,สาขา,บริการ,ทีมช่าง,มูลค่างาน,วันที่ QC ผ่าน,คะแนน QC,คะแนน CSAT,คะแนน รวม,ผู้ตรวจ QC,ผู้โทร CSAT,ความคิดเห็นลูกค้า,สถานะ\n';
 
                 allJobs.forEach(j => {
                     const row = [
                         `"${j.id}"`,
                         `"${j.customer.replace(/"/g, '""')}"`,
                         `"${(j.phone || '').replace(/"/g, '""')}"`,
+                        `"${(j.branch || 'พัทยาใต้').replace(/"/g, '""')}"`,
                         `"${j.service.replace(/"/g, '""')}"`,
+                        `"${(j.technician || '').replace(/"/g, '""')}"`,
+                        j.total_amount || 0,
                         `"${this.formatDateDMY(j.qc_passed_at)}"`,
                         j.qc_score.toFixed(1),
                         j.csat_score.toFixed(1),
                         j.total_score.toFixed(1),
+                        `"${(j.inspector || '').replace(/"/g, '""')}"`,
+                        `"${(j.surveyor || '').replace(/"/g, '""')}"`,
+                        `"${(j.feedback || '').replace(/"/g, '""')}"`,
                         `"${j.status}"`
                     ];
                     csv += row.join(',') + '\n';
@@ -23099,7 +23426,7 @@ const app = {
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
 
-                this.showToast('📥 ส่งออกไฟล์ CSV รายงานที่สำเร็จแล้วเรียบร้อย');
+                this.showToast('📥 ส่งออกไฟล์ CSV เรียบร้อย');
             },
 
             formatDateTime(isoStr) {

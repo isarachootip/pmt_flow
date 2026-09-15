@@ -3671,13 +3671,21 @@
                             <p class="text-xs text-muted-foreground mt-0.5">สรุปผลการประเมินคุณภาพงาน (QC Score) และความพึงพอใจลูกค้า (CSAT Score) ประจำโครงการที่ส่งมอบสำเร็จและปิดงานแล้ว</p>
                         </div>
                         <div class="flex items-center gap-2.5 flex-wrap">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 shadow-2xs">
+                                <i class="ph ph-clock-counter-clockwise text-sm"></i>
+                                <span>เก็บประวัติย้อนหลัง 6 เดือน</span>
+                            </span>
                             <button type="button" onclick="app.resetCompletedJobsFilter()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-brand-600 hover:bg-brand-500/10 border-brand-500/30 cursor-pointer shadow-xs transition" title="แสดงรายการทั้งหมด">
                                 <span>ดูทั้งหมด</span>
                                 <i class="ph ph-arrow-right text-sm"></i>
                             </button>
+                            <button type="button" onclick="app.exportCompletedJobsExcel()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-emerald-700 hover:bg-emerald-50 border-emerald-500/30 cursor-pointer shadow-xs transition" title="ส่งออกข้อมูลเป็นไฟล์ Excel (.xlsx)">
+                                <i class="ph ph-file-xls text-base text-emerald-600"></i>
+                                <span>Export Excel</span>
+                            </button>
                             <button type="button" onclick="app.exportCompletedJobsCSV()" class="btn-artifact-secondary px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer shadow-xs" title="ส่งออกข้อมูลเป็นไฟล์ CSV">
                                 <i class="ph ph-download-simple text-sm"></i>
-                                <span>Export CSV</span>
+                                <span>CSV</span>
                             </button>
                         </div>
                     </div>
@@ -3689,6 +3697,13 @@
                                 <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
                                 <input type="text" id="completed-jobs-search-input" oninput="app.filterCompletedJobs()" placeholder="ค้นหารหัสงาน, ลูกค้า, หรือบริการ..." class="w-full pl-9 pr-3.5 py-1.5 rounded-xl text-xs bg-card border border-border text-foreground focus:outline-none focus:border-brand-500 shadow-2xs">
                             </div>
+                            <select id="completed-jobs-time-filter" onchange="app.filterCompletedJobs()" class="px-3 py-1.5 rounded-xl text-xs bg-card border border-border text-foreground font-medium focus:outline-none focus:border-brand-500 shadow-2xs cursor-pointer">
+                                <option value="all">ย้อนหลัง 6 เดือน (ทั้งหมด)</option>
+                                <option value="30">30 วันล่าสุด (1 เดือน)</option>
+                                <option value="60">60 วันล่าสุด (2 เดือน)</option>
+                                <option value="90">90 วันล่าสุด (3 เดือน)</option>
+                                <option value="180">180 วันล่าสุด (6 เดือน)</option>
+                            </select>
                             <select id="completed-jobs-score-filter" onchange="app.filterCompletedJobs()" class="px-3 py-1.5 rounded-xl text-xs bg-card border border-border text-foreground font-medium focus:outline-none focus:border-brand-500 shadow-2xs cursor-pointer">
                                 <option value="all">คะแนนรวมทั้งหมด (All Scores)</option>
                                 <option value="5">คะแนนรวม 5.0 (ผ่านสมบูรณ์)</option>
@@ -5202,16 +5217,18 @@
                                 <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
                                     <span class="flex items-center gap-2">
                                         <span class="text-brand-500 font-bold">Q14:</span>
-                                        <span>หน้าจอ "รายงานที่สำเร็จแล้ว (Job Close)" และสูตรคำนวณคะแนนรวม QC & CSAT ทำงานอย่างไร?</span>
+                                        <span>หน้าจอ "รายงานที่สำเร็จแล้ว (Job Close)" และระบบสืบค้นประวัติย้อนหลัง 6 เดือน (Order History Tracking & Work Photos) ทำงานอย่างไร?</span>
                                     </span>
                                     <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
                                 </summary>
                                 <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
-                                    <p><strong class="text-foreground">คำตอบ:</strong> หน้าจอ <strong>"รายงานที่สำเร็จแล้ว (Job Close)"</strong> รวบรวมโครงการที่ส่งมอบสำเร็จ ผ่านการตรวจรับรองคุณภาพ QC และผ่านการโทรประเมินความพึงพอใจลูกค้า CSAT เรียบร้อยแล้ว เพื่อให้ผู้บริหารและทีมงานสแกนผลการดำเนินงานได้อย่างรวดเร็วในแบบตารางรายการ (List View) โดยมีสูตรการคำนวณคะแนนดังนี้:</p>
+                                    <p><strong class="text-foreground">คำตอบ:</strong> หน้าจอ <strong>"รายงานที่สำเร็จแล้ว (Job Close)"</strong> รวบรวมประวัติโครงการที่ส่งมอบสำเร็จและปิดงานแล้ว <strong>เก็บประวัติย้อนหลังได้ 6 เดือนเต็ม</strong> เพื่อให้ผู้บริหารและทีมงานสแกนผลการดำเนินงาน สืบค้นประวัติ และเรียกดูหลักฐานหน้างานได้อย่างครบถ้วน 100%:</p>
                                     <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
-                                        <li><strong>คะแนน QC (1.0 - 5.0 ดาว):</strong> คำนวณจากค่าเฉลี่ยของ 5 ข้อคำถามมาตรฐาน โดยเกณฑ์ข้อย่อยคือ <code class="bg-muted px-1.5 py-0.2 rounded text-emerald-600 font-bold">ผ่าน (Yes) = 5 คะแนน</code> และ <code class="bg-muted px-1.5 py-0.2 rounded text-rose-600 font-bold">ไม่ผ่าน (No) = 1 คะแนน</code></li>
-                                        <li><strong>คะแนน CSAT (1.0 - 5.0 ดาว):</strong> คะแนนความพึงพอใจที่ลูกค้าประเมินผ่านโทรศัพท์กับทีม Contact Center</li>
-                                        <li><strong>คะแนน รวม (Combined Total Score):</strong> คำนวณจากสูตร <code class="bg-muted px-1.5 py-0.2 rounded text-emerald-700 font-bold">(คะแนน QC + คะแนน CSAT) ÷ 2</code> (ปัดเศษทศนิยม 1 ตำแหน่ง)</li>
+                                        <li><strong>การเก็บข้อมูลประวัติย้อนหลัง 6 เดือน:</strong> มีตัวกรองช่วงเวลาให้เลือกดู 30 วัน, 60 วัน, 90 วัน, 180 วัน (6 เดือน) หรือดูทั้งหมด</li>
+                                        <li><strong>แกลเลอรี่ภาพงานจริง 5 ขั้นตอน (Work Photos Gallery):</strong> โมดอลสรุปผลแสดงภาพถ่ายจริงก่อน-หลังปฏิบัติงาน, แนวท่อ/สายไฟ, ระบบไฟฟ้า/สายดิน และแบบแปลน พร้อม Lightbox ขยายดูภาพระดับ HD</li>
+                                        <li><strong>ประวัติและไทม์ไลน์งาน 6 สเต็ป (Order History & Milestones):</strong> บันทึกประวัติและวันเวลาทุก Milestone (Intake ➔ BOQ ➔ Ticket ➔ Work Prep ➔ Daily Log ➔ QC ➔ CSAT ➔ BMT Sync) พร้อมระบุชื่อผู้ปฏิบัติงาน</li>
+                                        <li><strong>การส่งออกไฟล์ Excel (.xlsx):</strong> รองรับการ Export รายงานฉบับสมบูรณ์เป็นไฟล์ Excel (.xlsx) แยก 2 Sheets (ตารางสรุปโครงการ และสรุปดัชนีชี้วัด KPI สถิติคะแนน)</li>
+                                        <li><strong>สูตรคำนวณคะแนนรวม:</strong> <code class="bg-muted px-1.5 py-0.2 rounded text-emerald-700 font-bold">(คะแนน QC + คะแนน CSAT) ÷ 2</code> (ปัดเศษทศนิยม 1 ตำแหน่ง)</li>
                                     </ul>
                                 </div>
                             </details>
@@ -6554,7 +6571,7 @@
     <!-- MODAL: JOB CLOSE & QC/CSAT EVALUATION SUMMARY (สรุปผลการประเมินโครงการ)       -->
     <!-- ============================================================================= -->
     <div id="modal-job-close-detail" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
-        <div class="artifact-card rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border flex flex-col max-h-[90vh]">
+        <div class="artifact-card rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border flex flex-col max-h-[92vh]">
             <!-- Header -->
             <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
                 <div class="flex items-center gap-3">
@@ -6563,10 +6580,10 @@
                     </div>
                     <div>
                         <div class="flex items-center gap-2">
-                            <h3 class="font-display font-bold text-base text-foreground">สรุปผลการประเมินโครงการ (Job Close Summary)</h3>
+                            <h3 class="font-display font-bold text-base text-foreground">สรุปผลการประเมินโครงการ & ประวัติงาน (Job Close & History Track)</h3>
                             <span class="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-brand-500/10 text-brand-600 border border-brand-500/20" id="jcd-job-id">JOB...</span>
                         </div>
-                        <p class="text-xs text-muted-foreground mt-0.5">รายงานผลการตรวจมาตรฐาน QC ร่วมกับผลประเมินความพึงพอใจลูกค้า CSAT ฉบับสมบูรณ์</p>
+                        <p class="text-xs text-muted-foreground mt-0.5">รายงานผลตรวจรับรองมาตรฐาน QC, ความพึงพอใจลูกค้า CSAT, ภาพงาน และประวัติไทม์ไลน์ย้อนหลัง</p>
                     </div>
                 </div>
                 <button type="button" onclick="app.hideModal('modal-job-close-detail')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-xl hover:bg-muted transition cursor-pointer">
@@ -6574,114 +6591,182 @@
                 </button>
             </div>
 
+            <!-- Modal Nav Tabs -->
+            <div class="flex items-center gap-2 px-6 pt-3 border-b border-border bg-muted/15 shrink-0">
+                <button type="button" onclick="app.switchJobCloseModalTab('overview')" id="jcd-tab-btn-overview" class="px-4 py-2.5 text-xs font-bold border-b-2 border-brand-500 text-brand-600 flex items-center gap-1.5 transition cursor-pointer">
+                    <i class="ph ph-chart-donut text-sm"></i>
+                    <span>สรุปผลประเมิน QC & CSAT</span>
+                </button>
+                <button type="button" onclick="app.switchJobCloseModalTab('photos')" id="jcd-tab-btn-photos" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition cursor-pointer">
+                    <i class="ph ph-images text-sm"></i>
+                    <span>ภาพถ่ายหน้างาน & แบบแปลน</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-brand-500/10 text-brand-600 font-mono" id="jcd-photos-count">6</span>
+                </button>
+                <button type="button" onclick="app.switchJobCloseModalTab('timeline')" id="jcd-tab-btn-timeline" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition cursor-pointer">
+                    <i class="ph ph-clock-counter-clockwise text-sm"></i>
+                    <span>ประวัติ & ไทม์ไลน์งาน (History)</span>
+                </button>
+            </div>
+
             <!-- Scrollable Body -->
-            <div class="p-6 overflow-y-auto space-y-6 text-xs" id="jcd-modal-body">
-                <!-- Top Job Information Banner -->
+            <div class="p-6 overflow-y-auto space-y-6 text-xs flex-1" id="jcd-modal-body">
+                <!-- Top Job Information Banner (Always Visible) -->
                 <div class="p-4 rounded-2xl bg-muted/40 border border-border space-y-3">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div>
                             <span class="text-[11px] text-muted-foreground">ลูกค้า:</span>
                             <span class="text-sm font-bold text-foreground ml-1" id="jcd-customer">-</span>
                             <span class="ml-2 font-mono text-xs text-muted-foreground" id="jcd-phone">08x-xxx-xxxx</span>
+                            <span class="ml-2 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-muted text-muted-foreground border border-border" id="jcd-branch">สาขาพัทยาใต้</span>
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">ส่งมอบสำเร็จ (Closed)</span>
                             <span class="font-mono text-[11px] text-muted-foreground" id="jcd-bmt-ref">BMT-REF: -</span>
                         </div>
                     </div>
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-muted-foreground border-t border-border/50 pt-2">
-                        <div><span class="font-medium text-foreground">งานบริการ:</span> <span id="jcd-service">-</span></div>
-                        <div class="flex items-center gap-1.5 font-mono"><i class="ph ph-calendar"></i> วันที่ตรวจผ่าน: <span id="jcd-qc-date" class="font-semibold text-foreground">-</span></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-muted-foreground border-t border-border/50 pt-2.5">
+                        <div><span class="font-medium text-foreground">งานบริการ:</span> <span id="jcd-service" class="font-semibold text-foreground">-</span></div>
+                        <div><span class="font-medium text-foreground">ทีมช่าง:</span> <span id="jcd-technician" class="text-foreground">-</span></div>
+                        <div class="flex items-center gap-1.5 font-mono"><i class="ph ph-calendar text-brand-500"></i> วันที่ปิดงาน: <span id="jcd-qc-date" class="font-semibold text-foreground">-</span></div>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-muted-foreground border-t border-border/40 pt-2 font-mono">
+                        <div><i class="ph ph-map-pin text-rose-500 mr-1"></i>ที่อยู่: <span id="jcd-address" class="text-foreground font-sans">-</span></div>
+                        <div><span class="text-muted-foreground">มูลค่างาน:</span> <strong class="text-emerald-700 font-bold ml-1" id="jcd-amount">฿0</strong></div>
                     </div>
                 </div>
 
-                <!-- 3 Score KPI Summary Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                    <!-- QC Card -->
-                    <div class="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 flex flex-col justify-between">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-semibold text-amber-700">1. คะแนน QC</span>
-                            <span class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-600 flex items-center justify-center text-xs"><i class="ph ph-shield-check"></i></span>
+                <!-- TAB 1: OVERVIEW & SCORES -->
+                <div id="jcd-tab-pane-overview" class="space-y-6">
+                    <!-- 3 Score KPI Summary Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                        <!-- QC Card -->
+                        <div class="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 flex flex-col justify-between">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-amber-700">1. คะแนน QC</span>
+                                <span class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-600 flex items-center justify-center text-xs"><i class="ph ph-shield-check"></i></span>
+                            </div>
+                            <div class="my-2 text-center">
+                                <span class="text-3xl font-display font-extrabold text-amber-600" id="jcd-qc-score">5.0</span>
+                                <span class="text-xs text-muted-foreground ml-1 font-mono">คะแนน</span>
+                            </div>
+                            <div class="text-[11px] text-muted-foreground text-center">
+                                ผู้ตรวจ: <span class="font-medium text-foreground" id="jcd-inspector">-</span>
+                            </div>
                         </div>
-                        <div class="my-2 text-center">
-                            <span class="text-3xl font-display font-extrabold text-amber-600" id="jcd-qc-score">5.0</span>
-                            <span class="text-xs text-muted-foreground ml-1 font-mono">คะแนน</span>
+
+                        <!-- CSAT Card -->
+                        <div class="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20 flex flex-col justify-between">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-blue-700">2. คะแนน CSAT</span>
+                                <span class="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-600 flex items-center justify-center text-xs"><i class="ph ph-heart"></i></span>
+                            </div>
+                            <div class="my-2 text-center">
+                                <span class="text-3xl font-display font-extrabold text-blue-600" id="jcd-csat-score">5.0</span>
+                                <span class="text-xs text-muted-foreground ml-1 font-mono">คะแนน</span>
+                            </div>
+                            <div class="text-[11px] text-muted-foreground text-center">
+                                ผู้โทร: <span class="font-medium text-foreground" id="jcd-surveyor">Contact Center</span>
+                            </div>
                         </div>
-                        <div class="text-[11px] text-muted-foreground text-center">
-                            ผู้ตรวจ: <span class="font-medium text-foreground" id="jcd-inspector">-</span>
+
+                        <!-- Combined Score Card -->
+                        <div class="p-4 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/30 flex flex-col justify-between shadow-xs">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-emerald-700">3. คะแนน รวม</span>
+                                <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-600 flex items-center justify-center text-xs"><i class="ph ph-check-circle"></i></span>
+                            </div>
+                            <div class="my-2 text-center">
+                                <span class="text-3xl font-display font-extrabold text-emerald-600" id="jcd-total-score">5.0</span>
+                                <span class="text-xs text-emerald-700 ml-1 font-mono">คะแนนเฉลี่ย</span>
+                            </div>
+                            <div class="text-[10px] text-emerald-700 font-mono text-center">
+                                (คะแนน QC + CSAT) ÷ 2
+                            </div>
                         </div>
                     </div>
 
-                    <!-- CSAT Card -->
-                    <div class="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20 flex flex-col justify-between">
+                    <!-- Section: QC Subtasks Breakdown (Yes=5, No=1) -->
+                    <div class="space-y-3">
                         <div class="flex items-center justify-between">
-                            <span class="text-xs font-semibold text-blue-700">2. คะแนน CSAT</span>
-                            <span class="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-600 flex items-center justify-center text-xs"><i class="ph ph-heart"></i></span>
+                            <h4 class="font-bold text-foreground text-xs flex items-center gap-1.5">
+                                <i class="ph ph-list-checks text-amber-500 text-base"></i>
+                                <span>รายละเอียดผลการประเมิน 5 ข้อคำถาม QC (ผ่าน = 5 คะแนน, ไม่ผ่าน = 1 คะแนน)</span>
+                            </h4>
+                            <span class="text-[10px] text-muted-foreground font-mono" id="jcd-subtask-summary">5 จาก 5 ข้อผ่านเกณฑ์</span>
                         </div>
-                        <div class="my-2 text-center">
-                            <span class="text-3xl font-display font-extrabold text-blue-600" id="jcd-csat-score">5.0</span>
-                            <span class="text-xs text-muted-foreground ml-1 font-mono">คะแนน</span>
-                        </div>
-                        <div class="text-[11px] text-muted-foreground text-center">
-                            ผู้โทร: <span class="font-medium text-foreground" id="jcd-surveyor">Contact Center</span>
+                        <div class="border border-border rounded-xl overflow-hidden divide-y divide-border/60 bg-card" id="jcd-qc-subtasks-list">
+                            <!-- Populated by JS -->
                         </div>
                     </div>
 
-                    <!-- Combined Score Card -->
-                    <div class="p-4 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/30 flex flex-col justify-between shadow-xs">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-emerald-700">3. คะแนน รวม</span>
-                            <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-600 flex items-center justify-center text-xs"><i class="ph ph-check-circle"></i></span>
-                        </div>
-                        <div class="my-2 text-center">
-                            <span class="text-3xl font-display font-extrabold text-emerald-600" id="jcd-total-score">5.0</span>
-                            <span class="text-xs text-emerald-700 ml-1 font-mono">คะแนนเฉลี่ย</span>
-                        </div>
-                        <div class="text-[10px] text-emerald-700 font-mono text-center">
-                            (คะแนน QC + CSAT) ÷ 2
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section: QC Subtasks Breakdown (Yes=5, No=1) -->
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between">
+                    <!-- Section: CSAT Feedback & Remarks -->
+                    <div class="space-y-3">
                         <h4 class="font-bold text-foreground text-xs flex items-center gap-1.5">
-                            <i class="ph ph-list-checks text-amber-500 text-base"></i>
-                            <span>รายละเอียดผลการประเมิน 5 ข้อคำถาม QC (ผ่าน = 5 คะแนน, ไม่ผ่าน = 1 คะแนน)</span>
+                            <i class="ph ph-chat-circle-dots text-blue-500 text-base"></i>
+                            <span>ความคิดเห็นและคำติชมของลูกค้า (CSAT Customer Feedback)</span>
                         </h4>
-                        <span class="text-[10px] text-muted-foreground font-mono" id="jcd-subtask-summary">5 จาก 5 ข้อผ่านเกณฑ์</span>
-                    </div>
-                    <div class="border border-border rounded-xl overflow-hidden divide-y divide-border/60 bg-card" id="jcd-qc-subtasks-list">
-                        <!-- Populated by JS -->
+                        <div class="p-3.5 rounded-xl bg-muted/40 border border-border space-y-2">
+                            <div class="italic text-foreground text-xs flex items-start gap-2">
+                                <span class="text-blue-500 text-base">“</span>
+                                <span id="jcd-customer-feedback">ลูกค้ามีความพึงพอใจสูงมาก การติดตั้งเรียบร้อย ช่างตรงเวลาและเก็บกวาดสะอาดเรียบร้อย</span>
+                                <span class="text-blue-500 text-base">”</span>
+                            </div>
+                            <div class="text-[11px] text-muted-foreground pt-1 border-t border-border/40 flex items-center justify-between">
+                                <span>วันที่โทรสำรวจ: <span id="jcd-csat-date" class="font-mono text-foreground">-</span></span>
+                                <span>สถานะ BMT: <span class="text-emerald-600 font-bold font-mono">EXPORTED & BILLED</span></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Section: CSAT Feedback & Remarks -->
-                <div class="space-y-3">
-                    <h4 class="font-bold text-foreground text-xs flex items-center gap-1.5">
-                        <i class="ph ph-chat-circle-dots text-blue-500 text-base"></i>
-                        <span>ความคิดเห็นและคำติชมของลูกค้า (CSAT Customer Feedback)</span>
-                    </h4>
-                    <div class="p-3.5 rounded-xl bg-muted/40 border border-border space-y-2">
-                        <div class="italic text-foreground text-xs flex items-start gap-2">
-                            <span class="text-blue-500 text-base">“</span>
-                            <span id="jcd-customer-feedback">ลูกค้ามีความพึงพอใจสูงมาก การติดตั้งเรียบร้อย ช่างตรงเวลาและเก็บกวาดสะอาดเรียบร้อย</span>
-                            <span class="text-blue-500 text-base">”</span>
+                <!-- TAB 2: WORK PHOTOS & BLUEPRINTS GALLERY -->
+                <div id="jcd-tab-pane-photos" class="space-y-4 hidden-view">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="font-bold text-foreground text-xs flex items-center gap-1.5">
+                                <i class="ph ph-images text-indigo-500 text-base"></i>
+                                <span>ภาพถ่ายผลงานหน้างานจริง 5 ขั้นตอนมาตรฐาน & แบบแปลนการติดตั้ง</span>
+                            </h4>
+                            <p class="text-[11px] text-muted-foreground mt-0.5">คลิกที่รูปภาพเพื่อเปิดดูภาพขนาดใหญ่ คมชัดระดับ HD พร้อมคำอธิบายและบันทึกเวลา</p>
                         </div>
-                        <div class="text-[11px] text-muted-foreground pt-1 border-t border-border/40 flex items-center justify-between">
-                            <span>วันที่โทรสำรวจ: <span id="jcd-csat-date" class="font-mono text-foreground">-</span></span>
-                            <span>สถานะ BMT: <span class="text-emerald-600 font-bold font-mono">EXPORTED & BILLED</span></span>
+                    </div>
+
+                    <!-- Grid of Photos -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5" id="jcd-photos-grid">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+                </div>
+
+                <!-- TAB 3: ORDER HISTORY & AUDIT TIMELINE -->
+                <div id="jcd-tab-pane-timeline" class="space-y-4 hidden-view">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="font-bold text-foreground text-xs flex items-center gap-1.5">
+                                <i class="ph ph-clock-counter-clockwise text-brand-600 text-base"></i>
+                                <span>ประวัติเส้นทางการดำเนินงานคำสั่งซื้อ (Order History & Milestone Audit Trail)</span>
+                            </h4>
+                            <p class="text-[11px] text-muted-foreground mt-0.5">บันทึกประวัติการผ่านแต่ละขั้นตอนอย่างละเอียด ย้อนหลังสูงสุด 6 เดือน พร้อมระบุผู้ปฏิบัติงานและเวลา</p>
                         </div>
+                    </div>
+
+                    <!-- Timeline Flow -->
+                    <div class="relative border-l-2 border-brand-500/20 ml-4 space-y-6 py-2" id="jcd-timeline-container">
+                        <!-- Populated dynamically by JS -->
                     </div>
                 </div>
             </div>
 
             <!-- Footer Actions -->
-            <div class="p-4 border-t border-border flex items-center justify-between bg-muted/20 shrink-0">
-                <button type="button" onclick="app.hideModal('modal-job-close-detail')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs cursor-pointer">
-                    ปิดหน้าต่าง
-                </button>
+            <div class="p-4 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-muted/20 shrink-0">
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="app.hideModal('modal-job-close-detail')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs cursor-pointer">
+                        ปิดหน้าต่าง
+                    </button>
+                    <button type="button" id="jcd-export-single-excel-btn" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-emerald-700 hover:bg-emerald-50 border-emerald-500/30 cursor-pointer shadow-xs transition">
+                        <i class="ph ph-file-xls text-sm text-emerald-600"></i>
+                        <span>Export Excel งานนี้</span>
+                    </button>
+                </div>
                 <div class="flex items-center gap-2">
                     <button type="button" id="jcd-view-job-btn" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
                         <i class="ph ph-arrow-square-out text-sm"></i>
