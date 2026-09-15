@@ -309,14 +309,35 @@
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono shrink-0" id="sidebar-job-count">0</span>
                         </a>
-                        <!-- Step 2: บันทึก Ticket & ใบเสร็จ -->
-                        <a href="#" onclick="app.navigate('tickets')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-tickets">
-                            <div class="flex items-center gap-2.5">
-                                <span class="w-5 h-5 rounded-md bg-emerald-500/15 text-emerald-600 text-[10px] font-mono font-bold flex items-center justify-center border border-emerald-500/30 shrink-0">2</span>
-                                <span class="truncate font-semibold">Step 2: บันทึก Ticket & ใบเสร็จ</span>
+                        <!-- Step 2: บันทึก Ticket & Convert เข้า Project -->
+                        <div class="space-y-1">
+                            <a href="#" onclick="app.navigate('tickets')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-tickets">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-5 h-5 rounded-md bg-emerald-500/15 text-emerald-600 text-[10px] font-mono font-bold flex items-center justify-center border border-emerald-500/30 shrink-0">2</span>
+                                    <span class="truncate font-semibold">Step 2: Ticket & Convert Project</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-mono font-medium shrink-0" id="sidebar-ticket-count">0</span>
+                                </div>
+                            </a>
+                            <!-- Sub-tasks in Menu 2 -->
+                            <div id="step2-submenu-links" class="mt-1 ml-4 pl-3 border-l-2 border-emerald-500/30 space-y-1">
+                                <a href="#" onclick="app.navigate('tickets'); app.switchTicketTab('pending');" class="step2-sub-link flex items-center justify-between px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer" id="subnav-ticket-manage">
+                                    <div class="flex items-center gap-2">
+                                        <i class="ph ph-receipt text-xs text-emerald-500"></i>
+                                        <span>บันทึก Ticket & ใบเสร็จ</span>
+                                    </div>
+                                    <span class="text-[9px] px-1 py-0.2 rounded bg-muted text-muted-foreground font-mono" id="subnav-ticket-count">0</span>
+                                </a>
+                                <a href="#" onclick="app.navigate('project-conversion')" class="step2-sub-link flex items-center justify-between px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer" id="subnav-ticket-convert">
+                                    <div class="flex items-center gap-2">
+                                        <i class="ph ph-lightning text-xs text-amber-500"></i>
+                                        <span>Convert เข้า Project</span>
+                                    </div>
+                                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 font-mono font-bold" id="subnav-convert-count">0</span>
+                                </a>
                             </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-mono font-medium shrink-0" id="sidebar-ticket-count">0</span>
-                        </a>
+                        </div>
                     </nav>
                 </div>
 
@@ -1657,7 +1678,7 @@
                         </div>
                     </div>
 
-                    <!-- Tab Switcher: Pending Ticket Jobs vs Uploaded / Issued Tickets Library -->
+                    <!-- Tab Switcher: Pending Ticket Jobs vs Uploaded / Issued Tickets Library vs Convert to Project -->
                     <div class="flex border-b border-border gap-6">
                         <button type="button" id="tab-ticket-pending" onclick="app.switchTicketTab('pending')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-emerald-600 text-foreground cursor-pointer">
                             <i class="ph ph-hourglass-high text-amber-500 text-sm"></i>
@@ -1668,6 +1689,11 @@
                             <i class="ph ph-receipt text-emerald-500 text-sm"></i>
                             <span>คลัง Ticket, สลิปโอนเงิน และสัญญาจ้าง</span>
                             <span id="tab-ticket-library-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono font-bold">0</span>
+                        </button>
+                        <button type="button" id="tab-ticket-conversion" onclick="app.navigate('project-conversion')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer" title="Task ย่อย: แปลงรายการค่าแรง BOQ เป็น Task ใน Gantt Timeline">
+                            <i class="ph ph-lightning text-amber-500 text-sm"></i>
+                            <span>⚡ Task ย่อย: Convert เข้า Project (Labor-to-Task)</span>
+                            <span id="tab-ticket-conversion-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold">0</span>
                         </button>
                     </div>
 
@@ -2117,13 +2143,17 @@
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">Step 3</span>
-                                <span class="text-2xl">🚀</span>
-                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">เตรียมแผนงานและทีมช่าง (Work Preparation & Dispatch Studio)</h2>
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">Step 2 (Task ย่อย)</span>
+                                <span class="text-2xl">⚡</span>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">Convert เข้า Project & จัดการทีมช่าง (Labor-to-Task Studio)</h2>
                             </div>
-                            <p class="text-xs text-muted-foreground mt-1">ตรวจสอบความพร้อมของวัสดุ คัดแยกแปลงรายการค่าแรง BOQ เข้าสู่แผนงาน (Labor-to-Task Rule) และจัดสรรทีมช่างผู้รับผิดชอบก่อนเริ่มงาน</p>
+                            <p class="text-xs text-muted-foreground mt-1">Task ย่อยในขั้นตอนที่ 2: ตรวจสอบการชำระเงิน คัดแยกแปลงรายการค่าแรง BOQ เข้าสู่แผนงานโครงการ (Labor-to-Task Rule) และจัดสรรทีมช่างผู้รับผิดชอบก่อนส่งต่อเข้า Gantt Timeline</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2.5">
+                            <button onclick="app.navigate('tickets')" class="btn-artifact-secondary text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="กลับไปหน้าบันทึก Ticket & ใบเสร็จ">
+                                <i class="ph ph-arrow-left text-xs"></i>
+                                <span>🧾 บันทึก Ticket & ใบเสร็จ</span>
+                            </button>
                             <select id="filter-conversion-service" onchange="app.renderProjectConversion()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-amber-500">
                                 <option value="all">ทุกประเภทบริการ</option>
                                 <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
@@ -2132,14 +2162,14 @@
                                 <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
                             </select>
                             <select id="filter-conversion-status" onchange="app.renderProjectConversion()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-amber-500">
-                                <option value="STEP5_QUEUE" selected>⚡ คิวงาน Step 3 (รอแปลงเข้า Project)</option>
+                                <option value="STEP5_QUEUE" selected>⚡ คิวงานรอแปลงเข้า Project (Pending)</option>
                                 <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
                                 <option value="NOT_CONVERTED">รอแปลงเข้า Project (Not Converted)</option>
                                 <option value="CONVERTED">แปลงเป็น Task แล้ว (Converted)</option>
                             </select>
-                            <button onclick="app.showStep3TrainingGuide()" class="btn-artifact-secondary text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 3 (BOQ to Project & Gantt)">
+                            <button onclick="app.showStep3TrainingGuide()" class="btn-artifact-secondary text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการแปลง BOQ เข้า Project">
                                 <i class="ph ph-graduation-cap text-amber-500 text-sm"></i>
-                                <span>คู่มือ Training Step 3</span>
+                                <span>คู่มือ Training</span>
                             </button>
                             <button onclick="app.openConvertBOQToTasksModal(app.state.selectedConversionJobId || app.state.selectedGanttJobId)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white cursor-pointer">
                                 <i class="ph ph-lightning text-sm"></i>

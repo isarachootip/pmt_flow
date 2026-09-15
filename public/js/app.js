@@ -2740,8 +2740,8 @@ const app = {
                     'dashboard': 'Dashboard (ภาพรวมระบบ)',
                     'jobs': 'Step 1: รับ Order, Design & BOQ Studio',
                     'job-detail': `รายละเอียดงาน ${param || ''}`,
-                    'tickets': 'Step 2: บันทึก Ticket & แปลง BOQ เข้า Project',
-                    'project-conversion': 'Step 3: เตรียมแผนงานและทีมช่าง (Work Preparation & Dispatch)',
+                    'tickets': 'Step 2: บันทึก Ticket, ใบเสร็จ & Convert เข้า Project',
+                    'project-conversion': 'Step 2 (Task ย่อย): Convert เข้า Project & จัดการทีมช่าง (Labor-to-Task)',
                     'gantt': 'Step 4: แผนงาน & บันทึกช่างประจำวัน (Gantt Timeline)',
                     'daily-logs': 'บันทึกงานช่างประจำวัน (Daily Technician Work Log)',
                     'qc': 'Step 5: การตรวจรับรองคุณภาพ (Quality Control - Step 5)',
@@ -2757,6 +2757,25 @@ const app = {
                     'report': 'Report (ภาพรวมผลการดำเนินงาน)'
                 };
                 document.getElementById('topbar-breadcrumb').innerText = breadcrumbMap[view] || view;
+
+                // Step 2 Submenu active states
+                const subTicketManage = document.getElementById('subnav-ticket-manage');
+                const subTicketConvert = document.getElementById('subnav-ticket-convert');
+                const navTickets = document.getElementById('nav-tickets');
+                if (subTicketManage && subTicketConvert) {
+                    if (view === 'tickets') {
+                        subTicketManage.className = "step2-sub-link flex items-center justify-between px-2.5 py-1 rounded-lg text-xs font-semibold text-emerald-600 bg-emerald-500/10 transition-all cursor-pointer";
+                        subTicketConvert.className = "step2-sub-link flex items-center justify-between px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer";
+                        if (navTickets) navTickets.classList.add('nav-item-active');
+                    } else if (view === 'project-conversion') {
+                        subTicketManage.className = "step2-sub-link flex items-center justify-between px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer";
+                        subTicketConvert.className = "step2-sub-link flex items-center justify-between px-2.5 py-1 rounded-lg text-xs font-semibold text-amber-600 bg-amber-500/10 transition-all cursor-pointer";
+                        if (navTickets) navTickets.classList.add('nav-item-active');
+                    } else {
+                        subTicketManage.className = "step2-sub-link flex items-center justify-between px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer";
+                        subTicketConvert.className = "step2-sub-link flex items-center justify-between px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer";
+                    }
+                }
 
                 // Submenu active state in Report
                 const subReportOverview = document.getElementById('subnav-report-overview');
@@ -5745,24 +5764,42 @@ const app = {
                 const sidebarJob = document.getElementById('sidebar-job-count');
                 if (sidebarJob) sidebarJob.innerText = step1Count;
 
-                // Step 2: Tickets (Queue of jobs waiting for Ticket or issued tickets)
+                // Step 2: Tickets & Project Conversion (Menu 2)
                 const sidebarTicket = document.getElementById('sidebar-ticket-count');
+                const subnavTicketCount = document.getElementById('subnav-ticket-count');
+                const subnavConvertCount = document.getElementById('subnav-convert-count');
+                const tabConversionBadge = document.getElementById('tab-ticket-conversion-badge');
+
+                const ticketJobIds = new Set((DB.tickets || []).map(t => t.job_id || t.jobId));
+                const step2QueueCount = allJobs.filter(j => 
+                    !ticketJobIds.has(j.id) &&
+                    (
+                        (this.isQuickJob(j) && (j.pmt_accepted || (j.step_timestamps && (j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at)))) ||
+                        (j.boq_items && j.boq_items.length > 0) ||
+                        (j.step_timestamps && (j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at))
+                    )
+                ).length;
+
+                const convertedJobIds = new Set((DB.tasks || []).map(t => t.jobId));
+                const conversionPendingCount = allJobs.filter(j => 
+                    !this.isQuickJob(j) &&
+                    j.boq_items && j.boq_items.length > 0 &&
+                    !convertedJobIds.has(j.id) &&
+                    j.status !== 'CANCELLED'
+                ).length;
+
                 if (sidebarTicket) {
-                    const ticketJobIds = new Set((DB.tickets || []).map(t => t.job_id || t.jobId));
-                    const step2QueueCount = allJobs.filter(j => 
-                        !ticketJobIds.has(j.id) &&
-                        (
-                            (this.isQuickJob(j) && (j.pmt_accepted || (j.step_timestamps && (j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at)))) ||
-                            (j.boq_items && j.boq_items.length > 0) ||
-                            (j.step_timestamps && (j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at))
-                        )
-                    ).length;
                     sidebarTicket.innerText = step2QueueCount > 0 ? step2QueueCount : (DB.tickets || []).length;
                 }
-
-                // Step 3: Tasks & Conversion (Work Preparation & Dispatch)
-                const sidebarTask = document.getElementById('sidebar-task-count');
-                if (sidebarTask) sidebarTask.innerText = (DB.tasks || []).length;
+                if (subnavTicketCount) {
+                    subnavTicketCount.innerText = step2QueueCount > 0 ? step2QueueCount : (DB.tickets || []).length;
+                }
+                if (subnavConvertCount) {
+                    subnavConvertCount.innerText = conversionPendingCount;
+                }
+                if (tabConversionBadge) {
+                    tabConversionBadge.innerText = conversionPendingCount;
+                }
 
                 // Step 4: Gantt Timeline & Daily Work Logs
                 const sidebarGantt = document.getElementById('sidebar-gantt-count');
@@ -11843,9 +11880,14 @@ const app = {
 
             // ─── STEP 4: TICKETS & RECEIPTS METHODS ─────────────────────
             switchTicketTab(tab) {
+                if (tab === 'conversion') {
+                    this.navigate('project-conversion');
+                    return;
+                }
                 this.state.ticketTab = tab;
                 const tabPending = document.getElementById('tab-ticket-pending');
                 const tabLibrary = document.getElementById('tab-ticket-library');
+                const tabConversion = document.getElementById('tab-ticket-conversion');
                 const secPending = document.getElementById('tickets-pending-container');
                 const secLibrary = document.getElementById('tickets-library-container');
 
@@ -11856,6 +11898,9 @@ const app = {
                     if (tabLibrary) {
                         tabLibrary.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-emerald-600 text-foreground cursor-pointer";
                     }
+                    if (tabConversion) {
+                        tabConversion.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer";
+                    }
                     if (secPending) secPending.classList.add('hidden-view');
                     if (secLibrary) secLibrary.classList.remove('hidden-view');
                 } else {
@@ -11864,6 +11909,9 @@ const app = {
                     }
                     if (tabLibrary) {
                         tabLibrary.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer";
+                    }
+                    if (tabConversion) {
+                        tabConversion.className = "pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer";
                     }
                     if (secPending) secPending.classList.remove('hidden-view');
                     if (secLibrary) secLibrary.classList.add('hidden-view');
@@ -11976,12 +12024,14 @@ const app = {
                                         <span>ไปตรวจ QC Online ➔</span>
                                     </button>
                                     ` : (isSentToStep3 ? `
-                                    <button onclick="event.stopPropagation(); app.navigate('project-conversion', '${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 inline-flex items-center gap-1 cursor-pointer" title="งานนี้ส่งเข้า Step 3 เรียบร้อยแล้ว (คลิกเพื่อเปิดดูใน Step 3)">
-                                        <span>อยู่ในคิว Step 3</span>
+                                    <button onclick="event.stopPropagation(); app.navigate('project-conversion', '${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 inline-flex items-center gap-1 cursor-pointer" title="งานนี้ส่งเข้า Convert เข้า Project แล้ว (คลิกเพื่อเปิดดู)">
+                                        <i class="ph ph-lightning text-xs"></i>
+                                        <span>คิว Convert Project</span>
                                     </button>
                                     ` : `
-                                    <button onclick="event.stopPropagation(); app.proceedJobToConversion('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ส่งต่อไปยัง Step 3 เตรียมแผนงานและทีมช่าง">
-                                        <span>เตรียมทีมช่าง (ไป Step 3)</span>
+                                    <button onclick="event.stopPropagation(); app.proceedJobToConversion('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="Convert รายการค่าแรง BOQ เข้าสู่แผนงานโครงการ">
+                                        <i class="ph ph-lightning text-xs"></i>
+                                        <span>Convert เข้า Project ➔</span>
                                     </button>
                                     `)}
                                 </div>
@@ -12206,9 +12256,9 @@ const app = {
                                                             <span>ไปตรวจ QC Online ➔</span>
                                                         </button>
                                                         ` : `
-                                                        <button type="button" onclick="app.proceedJobToConversion('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ไป Step 3 เตรียมแผนงานและทีมช่าง">
+                                                        <button type="button" onclick="app.proceedJobToConversion('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs transition hover:scale-105" title="Convert เข้า Project (Labor-to-Task)">
                                                             <i class="ph ph-lightning"></i>
-                                                            <span>ไป Step 3 ➔</span>
+                                                            <span>Convert เข้า Project ➔</span>
                                                         </button>
                                                         `) : ''}
                                                         <button type="button" onclick="app.openCreateTicketModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="บันทึก Ticket & แนบสลิป">
@@ -12286,9 +12336,9 @@ const app = {
                                         <span>ไปตรวจ QC Online ➔</span>
                                     </button>
                                     ` : `
-                                    <button type="button" onclick="app.proceedJobToConversion('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs transition hover:scale-102" title="ไป Step 3 เตรียมแผนงานและทีมช่าง">
+                                    <button type="button" onclick="app.proceedJobToConversion('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs transition hover:scale-102" title="Convert เข้า Project (Labor-to-Task)">
                                         <i class="ph ph-lightning"></i>
-                                        <span>ไป Step 3 ➔</span>
+                                        <span>Convert เข้า Project ➔</span>
                                     </button>
                                     `) : ''}
                                     <button type="button" onclick="app.openCreateTicketModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition hover:scale-102" title="บันทึก Ticket & แนบสลิป">
@@ -12395,8 +12445,8 @@ const app = {
                                                             <i class="ph ph-globe"></i> <span>ไป QC (Step 5) ➔</span>
                                                         </button>
                                                         ` : `
-                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition hover:scale-105" onclick="app.proceedJobToConversion('${t.job_id}')" title="ส่งต่อเตรียมแผนงานและทีมช่าง (Step 3)">
-                                                            <i class="ph ph-lightning"></i> <span>Step 3 ➔</span>
+                                                        <button class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 font-semibold cursor-pointer bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition hover:scale-105" onclick="app.proceedJobToConversion('${t.job_id}')" title="Convert เข้า Project (Labor-to-Task)">
+                                                            <i class="ph ph-lightning"></i> <span>Convert เข้า Project ➔</span>
                                                         </button>
                                                         `}
                                                         <button class="btn-artifact-secondary p-1.5 rounded-lg text-xs cursor-pointer text-rose-500 hover:bg-rose-500/10 transition" title="ลบ Ticket" onclick="app.deleteTicket('${t.id}')">
