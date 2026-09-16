@@ -4207,13 +4207,16 @@ app.patch(['/api/ma-rounds/:id', '/api/v1/ma-rounds/:id'], requireAuth, async (r
 
 export async function hydrateFromDatabase() {
   try {
-    const dbJobs = await dbLoadJobs();
+    let dbJobs = await dbLoadJobs();
     coreJobStore.length = 0;
+    if (!dbJobs || dbJobs.length === 0) {
+      console.log('[DB HYDRATE] core_jobs table is empty (0 jobs). Auto-seeding core_jobs into PostgreSQL...');
+      await dbSeedMockJobs();
+      dbJobs = await dbLoadJobs();
+    }
     if (dbJobs && dbJobs.length > 0) {
       coreJobStore.push(...dbJobs);
       console.log(`[DB HYDRATE] Loaded ${coreJobStore.length} jobs from PostgreSQL.`);
-    } else {
-      console.log('[DB HYDRATE] core_jobs table is empty (0 jobs).');
     }
 
     const dbLogs = await dbLoadDailyWorkLogs();

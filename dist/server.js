@@ -3545,14 +3545,16 @@ app.patch(['/api/ma-rounds/:id', '/api/v1/ma-rounds/:id'], requireAuth, async (r
 });
 async function hydrateFromDatabase() {
     try {
-        const dbJobs = await (0, database_1.dbLoadJobs)();
+        let dbJobs = await (0, database_1.dbLoadJobs)();
         exports.coreJobStore.length = 0;
+        if (!dbJobs || dbJobs.length === 0) {
+            console.log('[DB HYDRATE] core_jobs table is empty (0 jobs). Auto-seeding core_jobs into PostgreSQL...');
+            await (0, database_1.dbSeedMockJobs)();
+            dbJobs = await (0, database_1.dbLoadJobs)();
+        }
         if (dbJobs && dbJobs.length > 0) {
             exports.coreJobStore.push(...dbJobs);
             console.log(`[DB HYDRATE] Loaded ${exports.coreJobStore.length} jobs from PostgreSQL.`);
-        }
-        else {
-            console.log('[DB HYDRATE] core_jobs table is empty (0 jobs).');
         }
         const dbLogs = await (0, database_1.dbLoadDailyWorkLogs)();
         exports.coreDailyWorkLogStore.length = 0;
