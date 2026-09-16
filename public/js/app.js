@@ -10730,11 +10730,26 @@ const app = {
 
                 const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.xlsm') || (file.type && (file.type.includes('spreadsheet') || file.type.includes('excel')));
 
+                // เก็บ metadata ไฟล์ต้นฉบับใน state เพื่อบันทึกเมื่อ confirmImport
+                this.state.pendingBOQOriginalFileMeta = {
+                    name: file.name,
+                    size: file.size,
+                    size_formatted: `${(file.size / 1024).toFixed(1)} KB`,
+                    type: file.type || (isExcel ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv'),
+                    uploaded_at: new Date().toISOString(),
+                    source: 'user_upload'
+                };
+
                 if (isExcel && typeof XLSX !== 'undefined') {
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         try {
-                            const data = new Uint8Array(e.target.result);
+                            // เก็บ base64 ของไฟล์ต้นฉบับ
+                            const rawBytes = e.target.result;
+                            const b64 = btoa(String.fromCharCode(...new Uint8Array(rawBytes)));
+                            this.state.pendingBOQOriginalFileMeta.dataUrl = `data:${this.state.pendingBOQOriginalFileMeta.type};base64,${b64}`;
+
+                            const data = new Uint8Array(rawBytes);
                             const wb = XLSX.read(data, { type: 'array' });
                             this.state.currentBOQWorkbook = wb;
 
@@ -10785,6 +10800,9 @@ const app = {
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         const content = e.target.result;
+                        // เก็บ base64 ของ CSV ต้นฉบับ
+                        const b64 = btoa(unescape(encodeURIComponent(content)));
+                        this.state.pendingBOQOriginalFileMeta.dataUrl = `data:text/csv;base64,${b64}`;
                         this.parsePastedBOQ(content);
                         this.showToast(`อ่านไฟล์ "${file.name}" สำเร็จ (${this.state.pendingBOQItems.length} รายการ - ราคาไม่รวม VAT)`);
                     };
@@ -11288,6 +11306,10 @@ const app = {
 
                 const calc = this.recalculateJobBOQ(job);
                 job.boq_file = this.generateBOQFileObject(job, job.boq_items, calc.grandTotal);
+                // บันทึกไฟล์ต้นฉบับที่ user upload ไว้ใน boq_original_file
+                if (this.state.pendingBOQOriginalFileMeta && this.state.pendingBOQOriginalFileMeta.dataUrl) {
+                    job.boq_original_file = JSON.parse(JSON.stringify(this.state.pendingBOQOriginalFileMeta));
+                }
                 if (this.state.modalBOQJobId === targetJobId) {
                     this.state.modalBOQItems = JSON.parse(JSON.stringify(job.boq_items));
                     this.state.modalBOQFile = JSON.parse(JSON.stringify(job.boq_file));
@@ -13459,6 +13481,9 @@ const app = {
                             const isSentToTicket = !!(j.step_timestamps && (j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at));
                             const actionButtons = hasBOQ ? `
                                 <div class="flex items-center justify-end gap-1.5">
+                                    <button onclick="event.stopPropagation(); app.openBOQPreviewModal('${j.id}')" class="p-1.5 rounded-lg border border-purple-500/30 hover:bg-purple-500/10 text-purple-600 dark:text-purple-400 cursor-pointer transition" title="ดู Preview ตาราง BOQ (${items.length} รายการ)">
+                                        <i class="ph ph-eye text-sm font-bold"></i>
+                                    </button>
                                     ${j.boq_file ? `
                                     <button onclick="event.stopPropagation(); app.downloadJobBOQFile('${j.id}')" class="p-1.5 rounded-lg border border-purple-500/30 hover:bg-purple-500/10 text-purple-600 dark:text-purple-400 cursor-pointer transition" title="ดาวน์โหลดไฟล์ BOQ แนบ (${j.boq_file.name})">
                                         <i class="ph ph-download-simple text-sm font-bold"></i>
@@ -14412,6 +14437,135 @@ const app = {
                 this.downloadModalBOQFile(jobId);
             },
 
+            downloadBOQOriginalFile(jobId) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const file = job ? job.boq_original_file : null;
+                if (!file || !file.dataUrl) {
+                    this.showToast('⚠️ ยังไม่มีไฟล์ต้นฉบับที่ upload ไว้ (มีเฉพาะ BOQ ที่ generate จากระบบ)');
+                    return;
+                }
+                const a = document.createElement('a');
+                a.href = file.dataUrl;
+                a.download = file.name || `BOQ_Original_${jobId}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                this.showToast(`📥 กำลังดาวน์โหลดไฟล์ต้นฉบับ "${file.name}"...`);
+            },
+
+            openBOQPreviewModal(jobId) {
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (!job) { this.showToast('⚠️ ไม่พบข้อมูล Job'); return; }
+                const items = job.boq_items || [];
+                const originalFile = job.boq_original_file;
+                const generatedFile = job.boq_file;
+                const calc = this.recalculateJobBOQ ? this.recalculateJobBOQ(job) : { subtotal: 0, vat: 0, grandTotal: 0 };
+
+                const formatNum = n => Number(n || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                const rowsHtml = items.length === 0
+                    ? `<tr><td colspan="7" class="px-4 py-8 text-center text-muted-foreground text-sm">ไม่มีรายการ BOQ</td></tr>`
+                    : items.map((it, i) => {
+                        const qty = Number(it.qty || 1);
+                        const price = Number(it.price || 0);
+                        const total = qty * price;
+                        const isLabor = it.type === 'LABOR' || (it.name && (it.name.includes('ค่าแรง') || it.name.includes('งานบริการ')));
+                        return `<tr class="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                            <td class="px-3 py-2 text-center text-xs text-muted-foreground">${i + 1}</td>
+                            <td class="px-3 py-2 text-xs font-mono text-muted-foreground">${it.code || '-'}</td>
+                            <td class="px-3 py-2 text-xs">
+                                <div class="font-medium text-foreground">${it.name || '-'}</div>
+                                ${it.remark ? `<div class="text-[10px] text-muted-foreground mt-0.5">${it.remark}</div>` : ''}
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold ${isLabor ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' : 'bg-blue-500/10 text-blue-600 border border-blue-500/20'}">${isLabor ? 'ค่าแรง' : 'วัสดุ'}</span>
+                            </td>
+                            <td class="px-3 py-2 text-center text-xs">${formatNum(qty)} ${it.unit || 'ชุด'}</td>
+                            <td class="px-3 py-2 text-right text-xs font-mono">${formatNum(price)}</td>
+                            <td class="px-3 py-2 text-right text-xs font-mono font-semibold text-foreground">${formatNum(total)}</td>
+                        </tr>`;
+                    }).join('');
+
+                const origFileHtml = originalFile && originalFile.dataUrl
+                    ? `<button onclick="app.downloadBOQOriginalFile('${job.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer text-purple-600 border-purple-500/30 hover:bg-purple-500/10">
+                            <i class="ph ph-file-xls text-sm"></i>
+                            <span>ดาวน์โหลดไฟล์ต้นฉบับ (${originalFile.name})</span>
+                        </button>`
+                    : `<span class="text-xs text-muted-foreground italic">ไม่มีไฟล์ต้นฉบับ (import ก่อนระบบอัปเดต)</span>`;
+
+                const genFileHtml = generatedFile && generatedFile.dataUrl
+                    ? `<button onclick="app.downloadJobBOQFile('${job.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10">
+                            <i class="ph ph-download-simple text-sm"></i>
+                            <span>ดาวน์โหลด BOQ (จากระบบ)</span>
+                        </button>`
+                    : '';
+
+                const modalHtml = `
+                    <div id="modal-boq-preview-overlay" onclick="if(event.target===this)app.closeBOQPreviewModal()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1200] flex items-center justify-center p-4">
+                        <div class="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+                            <!-- Header -->
+                            <div class="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 border border-purple-500/20 flex items-center justify-center text-lg">
+                                        <i class="ph ph-table"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-display font-bold text-sm text-foreground">Preview BOQ — ${job.id}</h3>
+                                        <p class="text-[11px] text-muted-foreground">ลูกค้า: ${this.getCustomerName(job)} | บริการ: ${job.service || '-'} | รายการ: ${items.length} รายการ</p>
+                                    </div>
+                                </div>
+                                <button onclick="app.closeBOQPreviewModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer">
+                                    <i class="ph ph-x text-sm"></i>
+                                </button>
+                            </div>
+                            <!-- File info bar -->
+                            <div class="px-5 py-3 bg-muted/40 border-b border-border flex flex-wrap items-center gap-2 shrink-0">
+                                ${origFileHtml}
+                                ${genFileHtml}
+                                ${originalFile ? `<span class="text-[10px] text-muted-foreground ml-auto">อัปโหลดเมื่อ: ${this.formatDateTimeDMY ? this.formatDateTimeDMY(originalFile.uploaded_at) : (originalFile.uploaded_at || '-')} | ขนาด: ${originalFile.size_formatted || '-'}</span>` : ''}
+                            </div>
+                            <!-- Table -->
+                            <div class="overflow-auto flex-1 px-5 py-3">
+                                <table class="w-full text-xs border-collapse">
+                                    <thead>
+                                        <tr class="bg-muted/60 border-b border-border">
+                                            <th class="px-3 py-2.5 text-center text-muted-foreground font-semibold w-8">#</th>
+                                            <th class="px-3 py-2.5 text-left text-muted-foreground font-semibold">รหัส</th>
+                                            <th class="px-3 py-2.5 text-left text-muted-foreground font-semibold">รายการวัสดุ / งานบริการ</th>
+                                            <th class="px-3 py-2.5 text-center text-muted-foreground font-semibold">ประเภท</th>
+                                            <th class="px-3 py-2.5 text-center text-muted-foreground font-semibold">จำนวน</th>
+                                            <th class="px-3 py-2.5 text-right text-muted-foreground font-semibold">ราคา/หน่วย (฿)</th>
+                                            <th class="px-3 py-2.5 text-right text-muted-foreground font-semibold">รวม (฿)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${rowsHtml}</tbody>
+                                </table>
+                            </div>
+                            <!-- Footer summary -->
+                            <div class="px-5 py-3 border-t border-border bg-muted/30 shrink-0">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs text-muted-foreground">${items.length} รายการ</span>
+                                    <div class="flex items-center gap-4 text-xs">
+                                        <span class="text-muted-foreground">ราคารวม (ไม่รวม VAT): <span class="font-mono font-semibold text-foreground">${formatNum(calc.subtotal || 0)} ฿</span></span>
+                                        <span class="text-muted-foreground">VAT 7%: <span class="font-mono text-foreground">${formatNum(calc.vat || 0)} ฿</span></span>
+                                        <span class="text-base font-bold text-amber-600">ยอดสุทธิ: ${formatNum(calc.grandTotal || 0)} ฿</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+
+                // Remove old overlay if exists
+                const old = document.getElementById('modal-boq-preview-overlay');
+                if (old) old.remove();
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+            },
+
+            closeBOQPreviewModal() {
+                const el = document.getElementById('modal-boq-preview-overlay');
+                if (el) el.remove();
+            },
+
             generateBOQFileObject(job, items, grandTotal) {
                 const customerName = this.getCustomerName(job);
                 const safeName = customerName ? customerName.replace(/[\s\/\\:*?"<>|]/g, '_') : 'Doc';
@@ -14778,6 +14932,9 @@ const app = {
 
                             const actionButtons = hasTasks ? `
                                 <div class="flex items-center justify-end gap-1.5">
+                                    <button onclick="event.stopPropagation(); app.openBOQPreviewModal('${j.id}')" class="p-1.5 rounded-lg border border-purple-500/30 hover:bg-purple-500/10 text-purple-600 dark:text-purple-400 cursor-pointer transition" title="ดู Preview ตาราง BOQ">
+                                        <i class="ph ph-eye text-sm font-bold"></i>
+                                    </button>
                                     <button onclick="event.stopPropagation(); app.openConvertBOQToTasksModal('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted text-foreground inline-flex items-center gap-1 cursor-pointer" title="ปรับแต่ง Tasks">
                                         <i class="ph ph-pencil-simple"></i>
                                         <span>ปรับแต่ง Tasks (${jobTasks.length})</span>
@@ -14788,10 +14945,15 @@ const app = {
                                     </button>
                                 </div>
                             ` : `
-                                <button onclick="event.stopPropagation(); app.openConvertBOQToTasksModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="แปลง BOQ เข้า Project">
-                                    <i class="ph ph-lightning text-xs"></i>
-                                    <span>บันทึก BOQ เข้า Project</span>
-                                </button>
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <button onclick="event.stopPropagation(); app.openBOQPreviewModal('${j.id}')" class="p-1.5 rounded-lg border border-purple-500/30 hover:bg-purple-500/10 text-purple-600 dark:text-purple-400 cursor-pointer transition" title="ดู Preview ตาราง BOQ">
+                                        <i class="ph ph-eye text-sm font-bold"></i>
+                                    </button>
+                                    <button onclick="event.stopPropagation(); app.openConvertBOQToTasksModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="แปลง BOQ เข้า Project">
+                                        <i class="ph ph-lightning text-xs"></i>
+                                        <span>บันทึก BOQ เข้า Project</span>
+                                    </button>
+                                </div>
                             `;
 
                             return `
