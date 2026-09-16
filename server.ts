@@ -2719,50 +2719,11 @@ app.post('/api/v1/staging/seed', requireAuth, async (req: Request, res: Response
 app.get('/api/v1/jobs', requireAuth, async (req: Request, res: Response) => {
   const { status, service, search } = req.query;
   try {
-    let results = await dbLoadJobs({
+    const results = await dbLoadJobs({
       status: typeof status === 'string' ? status : undefined,
       service: typeof service === 'string' ? service : undefined,
       search: typeof search === 'string' ? search : undefined
     });
-
-    if (!results || results.length === 0) {
-      results = coreJobStore.map(job => {
-        const cust = coreCustomerStore.find(c => c.id === job.customer_id) || (job as any).customer || (job as any).customer_data;
-        let customerFullName = 'ไม่ระบุชื่อ';
-        if (cust) {
-          if (cust.name) customerFullName = cust.name;
-          else if (cust.first_name || cust.last_name) customerFullName = `คุณ${cust.first_name || ''} ${cust.last_name || ''}`.trim();
-        }
-        const primaryService = (job.services && job.services[0]) || job.project_sub_type || 'งานติดตั้ง';
-        return {
-          id: job.job_no || `JOB-${job.id}`,
-          jobId: job.id,
-          job_no: job.job_no,
-          external_ref_id: job.external_ref_id,
-          customer: customerFullName,
-          firstName: cust?.first_name || '',
-          lastName: cust?.last_name || '',
-          phone: cust?.phone || '',
-          address: cust?.address || '',
-          lat: cust?.lat || 13.7563,
-          lng: cust?.lng || 100.5018,
-          service: primaryService,
-          services: job.services || [primaryService],
-          status: job.status,
-          date: job.plan_date || (job.created_at ? job.created_at.split('T')[0] : '2026-09-08'),
-          progress: job.overall_progress || 0,
-          tech: job.assigned_tech || 'Team A (สมศักดิ์)',
-          special_instructions: job.special_instructions || '',
-          additional_notes: job.additional_notes || '',
-          photos: job.photos || [],
-          pmt_accepted: (job as any).pmt_accepted !== undefined && (job as any).pmt_accepted !== null ? Boolean((job as any).pmt_accepted) : (job.status !== JobStatus.DRAFT && job.status !== JobStatus.NEW && job.status !== JobStatus.SURVEYED),
-          pmt_accepted_at: (job as any).pmt_accepted_at || null,
-          job_type: (job as any).job_type || 'quick',
-          step_timestamps: (job as any).step_timestamps || null,
-          created_at: job.created_at
-        };
-      });
-    }
 
     // Helper to extract maximum timestamp across all workflow steps and status changes
     const getJobLatestTime = (job: any): number => {
@@ -2811,15 +2772,10 @@ app.get('/api/v1/jobs', requireAuth, async (req: Request, res: Response) => {
 
 app.get('/api/v1/jobs/:id', requireAuth, async (req: Request, res: Response) => {
   const param = req.params.id;
-  let job = await dbGetJob(param);
+  const job = await dbGetJob(param);
 
   if (!job) {
-    const numId = Number(param);
-    job = coreJobStore.find(j => j.id === numId || j.job_no === param);
-  }
-
-  if (!job) {
-    return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
+    return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found in database' } });
   }
 
   return res.json({
@@ -2833,22 +2789,14 @@ app.patch('/api/v1/jobs/:id', requireAuth, async (req: Request, res: Response) =
   const param = req.params.id;
   const updatedJob = await dbUpdateJob(param, req.body);
 
-  // Also sync in-memory store if present
-  const numId = Number(param);
-  const memJob = coreJobStore.find(j => j.id === numId || j.job_no === param);
-  if (memJob) {
-    Object.assign(memJob, req.body);
+  if (!updatedJob) {
+    return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found in database or update failed' } });
   }
 
-  if (!updatedJob && !memJob) {
-    return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
-  }
-
-  const resultData = updatedJob || memJob;
   return res.json({
     success: true,
-    data: resultData,
-    message: 'บันทึกข้อมูลงานเรียบร้อยแล้ว'
+    data: updatedJob,
+    message: 'บันทึกข้อมูลงานลงฐานข้อมูล PostgreSQL เรียบร้อยแล้ว'
   });
 });
 

@@ -2823,33 +2823,7 @@ const app = {
                             }
                             const remoteJobs = json.data;
                             if (remoteJobs.length > 0) {
-                                const localOnly = (DB.jobs || []).filter(lj => !remoteJobs.some(rj => String(rj.id) === String(lj.id) || String(rj.job_no) === String(lj.job_no)));
-                                const mergedRemote = remoteJobs.map(rj => {
-                                    const localMatch = (DB.jobs || []).find(lj => String(lj.id) === String(rj.id) || String(lj.job_no) === String(rj.job_no));
-                                    let finalStatus = (localMatch && localMatch.status) || rj.status || 'DRAFT';
-                                    if (finalStatus === 'NEW') finalStatus = 'DRAFT';
-                                    if (!localMatch) return { ...rj, status: finalStatus };
-                                    const combinedPhotos = (localMatch.photos && localMatch.photos.length > 0) ? localMatch.photos : (rj.photos || []);
-                                    const mergedTimestamps = Object.assign({}, rj.step_timestamps || {}, localMatch.step_timestamps || {});
-                                    const createdAt = rj.created_at || localMatch.created_at || new Date().toISOString();
-                                    return { 
-                                        ...rj, 
-                                        ...localMatch, 
-                                        created_at: createdAt,
-                                        step_timestamps: mergedTimestamps,
-                                        customer: rj.customer || localMatch.customer,
-                                        phone: rj.phone || localMatch.phone,
-                                        address: rj.address || localMatch.address,
-                                        service: rj.service || localMatch.service,
-                                        job_type: rj.job_type || localMatch.job_type,
-                                        status: finalStatus,
-                                        progress: (finalStatus === 'DRAFT') && !localMatch.step_timestamps?.step2_design_at ? 0 : (localMatch.progress ?? rj.progress ?? 0),
-                                        special_instructions: localMatch.special_instructions !== undefined ? localMatch.special_instructions : (rj.special_instructions || ''),
-                                        additional_notes: localMatch.additional_notes !== undefined ? localMatch.additional_notes : (rj.additional_notes || ''),
-                                        photos: combinedPhotos
-                                    };
-                                });
-                                DB.jobs = this.sortJobsDescending([...localOnly, ...mergedRemote]);
+                                DB.jobs = this.sortJobsDescending(remoteJobs);
                                 this.persistJobs();
                                 if (this.state.currentView === 'jobs') this.renderJobs();
                                 if (this.state.currentView === 'dashboard') this.renderDashboard();
