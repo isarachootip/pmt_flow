@@ -276,4 +276,19 @@
 - ทุกฟังก์ชันสลับมุมมอง เช่น `updateBlueprintViewModeButtons()`, `updateBOQViewModeButtons()`, `updateTicketViewModeButtons()`, `updateConversionViewModeButtons()`, `updateProjectViewModeButtons()` ต้องใช้ Fallback Value เป็น `'list'` เสมอ
 - ใน `index.html` แท็กปุ่ม List View ต้องได้รับสไตล์ Active (`bg-white shadow-sm text-indigo-600 font-semibold`) และปุ่ม Card View ต้องเป็น Inactive (`text-slate-500 hover:text-slate-700`)
 
+---
+
+## 🗄️ 10. สถาปัตยกรรมฐานข้อมูลและการจัดเก็บรูปภาพ (Database & Media Storage Specification)
+
+### 10.1 ฐานข้อมูล PostgreSQL Persistent Storage 100%
+- ทั้งสภาพแวดล้อม **Production (`prod.vibepmt.online`)** และ **Dev/UAT (`vibepmt.online`)** ทำงานบนฐานข้อมูล PostgreSQL แยก Instance กันโดยสมบูรณ์ ไม่มีการรันบนหน่วยความจำ In-Memory เพียงอย่างเดียว
+- การเขียนข้อมูล (Create, Update, Delete) จะทำการบันทึกลงตาราง PostgreSQL (`core_jobs`, `core_daily_work_logs`, `core_qc_bookings`, `ma_contracts`, `ma_rounds`, `sys_users`, `sys_user_sessions`, `sys_login_log`, `sys_api_logs`, `core_staging_reports`) ทันที
+- มีกลไก In-Memory Cache ช่วยให้อ่านข้อมูลได้รวดเร็วระดับ 0ms และทำหน้าที่เป็น Fallback เมื่อระบบเน็ตเวิร์กมี Latency
+
+### 10.2 การจัดเก็บรูปภาพ (Image & Photo Storage)
+- **การบีบอัดภาพหน้าบ้าน**: ฝั่ง Frontend บีบอัดรูปภาพด้วยฟังก์ชัน `compressImage(file, maxDim = 1200, quality = 0.8)` ให้อยู่ในรูป Base64 Data URI หรือ URL
+- **การบันทึกลง Database**: จัดเก็บรูปภาพลงในคอลัมน์ `JSONB` และ `TEXT` ของตาราง PostgreSQL โดยตรง (`core_daily_work_logs.photos`, `core_jobs.photos`, `core_qc_bookings.photos`, `core_jobs.csat_photos`, `core_jobs.file_int_image`)
+- **ความคงทนของข้อมูล**: ข้อมูลรูปภาพจะไม่สูญหายเมื่อมีการ Deploy หรือ Restart คอนเทนเนอร์ และสามารถสำรองข้อมูล (Backup) ร่วมกับฐานข้อมูลได้ในจุดเดียว
+
+
 
