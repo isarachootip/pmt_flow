@@ -4790,14 +4790,25 @@ const app = {
             // =========================================================================
             // UNIFIED ORDER, DESIGN & BOQ STUDIO (STEP 1 INTEGRATION)
             // =========================================================================
+            getUnifiedStudioJob() {
+                const jobId = this.state.unifiedStudioJobId;
+                if (!jobId) return null;
+                return (DB.jobs || []).find(j => 
+                    j.id === jobId || 
+                    String(j.id) === String(jobId) || 
+                    j.job_no === String(jobId) || 
+                    j.booking_no === String(jobId) ||
+                    (j.id == jobId)
+                );
+            },
+
             openUnifiedOrderStudio(jobId, initialTab = 'intake') {
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                this.state.unifiedStudioJobId = jobId;
+                const job = this.getUnifiedStudioJob();
                 if (!job) {
                     this.showToast('ไม่พบข้อมูลคำสั่งซื้อ');
                     return;
                 }
-
-                this.state.unifiedStudioJobId = jobId;
 
                 // Header info
                 const titleEl = document.getElementById('unified-modal-job-id');
@@ -5243,8 +5254,7 @@ const app = {
             },
 
             addQuickBOQPreset(name, type, qty, unit, price) {
-                const jobId = this.state.unifiedStudioJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getUnifiedStudioJob();
                 if (!job) return;
                 if (!job.boq_items) job.boq_items = [];
                 job.boq_items.push({
@@ -5531,8 +5541,7 @@ const app = {
             },
 
             renderUnifiedBOQTable() {
-                const jobId = this.state.unifiedStudioJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getUnifiedStudioJob();
                 const tbody = document.getElementById('unified-boq-tbody');
                 if (!tbody || !job) return;
 
@@ -5551,15 +5560,17 @@ const app = {
                 }
 
                 const html = job.boq_items.map((item, idx) => {
-                    const itemTotal = (Number(item.qty) || 0) * (Number(item.price) || 0);
-                    const isLabor = item.type === 'LABOR';
+                    const itemQty = Number(item.qty) || 0;
+                    const itemPrice = Number(item.price ?? item.unit_price ?? ((item.mat_price || 0) + (item.labor_price || 0))) || 0;
+                    const itemTotal = itemQty * itemPrice;
+                    const isLabor = String(item.type || item.category || '').toUpperCase().includes('LABOR') || String(item.type || '').includes('ค่าแรง');
                     const safeName = (item.name || '').replace(/"/g, '&quot;');
                     const safeUnit = (item.unit || 'ชุด').replace(/"/g, '&quot;');
                     return `
-                    <tr class="hover:bg-purple-500/[0.03] transition-colors border-b border-border">
+                    <tr class="hover:bg-purple-500/[0.03] transition-colors border-b border-border" id="unified-boq-row-${idx}">
                         <td class="px-3.5 py-2.5 text-center text-muted-foreground font-mono text-xs font-semibold">${idx + 1}</td>
                         <td class="px-3.5 py-2.5">
-                            <select onchange="app.updateUnifiedBOQItem(${idx}, 'type', this.value)" class="w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs font-bold ${isLabor ? 'text-purple-700 bg-purple-500/10 border-purple-300' : 'text-blue-700 bg-blue-500/10 border-blue-300'} focus:outline-none focus:border-purple-500 transition cursor-pointer">
+                            <select id="unified-boq-select-type-${idx}" onchange="app.updateUnifiedBOQItem(${idx}, 'type', this.value)" class="w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs font-bold ${isLabor ? 'text-purple-700 bg-purple-500/10 border-purple-300' : 'text-blue-700 bg-blue-500/10 border-blue-300'} focus:outline-none focus:border-purple-500 transition cursor-pointer">
                                 <option value="LABOR" ${isLabor ? 'selected' : ''}>LABOR (ค่าแรง)</option>
                                 <option value="MATERIAL" ${!isLabor ? 'selected' : ''}>MATERIAL (วัสดุ)</option>
                             </select>
@@ -5574,9 +5585,9 @@ const app = {
                             <input type="text" value="${safeUnit}" oninput="app.updateUnifiedBOQItem(${idx}, 'unit', this.value)" placeholder="หน่วย" class="w-full text-center bg-card border border-border rounded-lg px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-purple-500">
                         </td>
                         <td class="px-3.5 py-2.5 text-right">
-                            <input type="number" min="0" step="any" value="${item.price || 0}" oninput="app.updateUnifiedBOQItem(${idx}, 'price', this.value)" class="w-full text-right bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-purple-500">
+                            <input type="number" min="0" step="any" value="${itemPrice}" oninput="app.updateUnifiedBOQItem(${idx}, 'price', this.value)" class="w-full text-right bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-purple-500">
                         </td>
-                        <td class="px-4 py-2.5 text-right font-mono font-bold text-xs sm:text-sm text-foreground">
+                        <td class="px-4 py-2.5 text-right font-mono font-bold text-xs sm:text-sm text-foreground" id="unified-boq-row-total-${idx}">
                             ${itemTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                         <td class="px-2 py-2.5 text-center">
@@ -5592,8 +5603,7 @@ const app = {
             },
 
             addUnifiedBOQItem() {
-                const jobId = this.state.unifiedStudioJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getUnifiedStudioJob();
                 if (!job) return;
                 if (!job.boq_items) job.boq_items = [];
                 job.boq_items.push({
@@ -5616,20 +5626,37 @@ const app = {
             },
 
             updateUnifiedBOQItem(idx, field, val) {
-                const jobId = this.state.unifiedStudioJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getUnifiedStudioJob();
                 if (!job || !job.boq_items || !job.boq_items[idx]) return;
                 if (field === 'qty' || field === 'price') {
                     job.boq_items[idx][field] = Number(val) || 0;
                 } else {
                     job.boq_items[idx][field] = val;
                 }
+
+                // Update row total cell in DOM without rebuilding table (preserves input focus)
+                const item = job.boq_items[idx];
+                const itemQty = Number(item.qty) || 0;
+                const itemPrice = Number(item.price ?? item.unit_price ?? ((item.mat_price || 0) + (item.labor_price || 0))) || 0;
+                const rowTotal = itemQty * itemPrice;
+                const rowTotalEl = document.getElementById(`unified-boq-row-total-${idx}`);
+                if (rowTotalEl) {
+                    rowTotalEl.innerText = rowTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+
+                if (field === 'type') {
+                    const isLabor = String(val).toUpperCase().includes('LABOR') || String(val).includes('ค่าแรง');
+                    const sel = document.getElementById(`unified-boq-select-type-${idx}`);
+                    if (sel) {
+                        sel.className = `w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs font-bold ${isLabor ? 'text-purple-700 bg-purple-500/10 border-purple-300' : 'text-blue-700 bg-blue-500/10 border-blue-300'} focus:outline-none focus:border-purple-500 transition cursor-pointer`;
+                    }
+                }
+
                 this.calculateUnifiedBOQSummary();
             },
 
             removeUnifiedBOQItem(idx) {
-                const jobId = this.state.unifiedStudioJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getUnifiedStudioJob();
                 if (!job || !job.boq_items) return;
                 job.boq_items.splice(idx, 1);
                 this.renderUnifiedBOQTable();
@@ -5637,8 +5664,7 @@ const app = {
             },
 
             calculateUnifiedBOQSummary() {
-                const jobId = this.state.unifiedStudioJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getUnifiedStudioJob();
                 if (!job) return;
 
                 const items = job.boq_items || [];
@@ -5646,8 +5672,11 @@ const app = {
                 let matSubtotal = 0;
 
                 items.forEach(item => {
-                    const total = (Number(item.qty) || 0) * (Number(item.price) || 0);
-                    if (item.type === 'LABOR') {
+                    const qty = Number(item.qty) || 0;
+                    const price = Number(item.price ?? item.unit_price ?? ((item.mat_price || 0) + (item.labor_price || 0))) || 0;
+                    const total = qty * price;
+                    const itemType = String(item.type || item.category || '').toUpperCase();
+                    if (itemType.includes('LABOR') || itemType.includes('ค่าแรง') || !!item.isLabor) {
                         laborSubtotal += total;
                     } else {
                         matSubtotal += total;
@@ -5658,7 +5687,6 @@ const app = {
                 const discInp = document.getElementById('unified-boq-discount-input');
                 const discount = discInp ? (Number(discInp.value) || 0) : (job.boq_discount || 0);
                 const grandTotal = Math.max(0, subtotal - discount);
-                const vat = 0;
 
                 job.boq_subtotal = subtotal;
                 job.boq_labor_total = laborSubtotal;
@@ -5680,15 +5708,20 @@ const app = {
                 const metricBoq = document.getElementById('unified-metric-boq');
                 if (metricBoq) metricBoq.innerText = `${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
 
+                const countBadge = document.getElementById('unified-boq-count-badge');
+                if (countBadge) {
+                    countBadge.textContent = `${items.length} รายการ`;
+                }
+
                 this.updateUnifiedStudioIndicators();
             },
 
             updateUnifiedStudioIndicators() {
-                const jobId = this.state.unifiedStudioJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getUnifiedStudioJob();
                 if (!job) return;
 
-                const bps = (DB.blueprints || []).filter(b => b.jobId === jobId);
+                const jobId = job.id;
+                const bps = (DB.blueprints || []).filter(b => b.jobId === jobId || String(b.jobId) === String(jobId));
                 const boqItems = job.boq_items || [];
                 const grandTotal = job.boq_grand_total || 0;
                 const hasBOQ = boqItems.length > 0;
@@ -5821,9 +5854,12 @@ const app = {
             },
 
             saveUnifiedOrderStudio() {
-                const jobId = this.state.unifiedStudioJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getUnifiedStudioJob();
                 if (!job) return;
+                const jobId = job.id;
+
+                // Make sure latest BOQ summary is computed and stored
+                this.calculateUnifiedBOQSummary();
 
                 // Read Tab 1 fields
                 const nameInp = document.getElementById('unified-intake-customer');
@@ -5863,7 +5899,7 @@ const app = {
                 job.step1_passed = true;
                 if (!job.step_timestamps.step1_intake_at) job.step_timestamps.step1_intake_at = now.toISOString();
 
-                const bps = (DB.blueprints || []).filter(b => b.jobId === jobId);
+                const bps = (DB.blueprints || []).filter(b => b.jobId === jobId || String(b.jobId) === String(jobId));
                 if (bps.length > 0 || this.isQuickJob(job)) {
                     job.step2_passed = true;
                     if (!job.step_timestamps.step2_design_at) job.step_timestamps.step2_design_at = now.toISOString();
@@ -5882,9 +5918,9 @@ const app = {
             },
 
             proceedUnifiedOrderToNextStage() {
-                const jobId = this.state.unifiedStudioJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getUnifiedStudioJob();
                 if (!job) return;
+                const jobId = job.id;
 
                 const isQuick = this.isQuickJob(job);
                 const boqItems = job.boq_items || [];
