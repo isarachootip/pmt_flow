@@ -8086,7 +8086,7 @@ const app = {
                             const data = new Uint8Array(e.target.result);
                             const wb = XLSX.read(data, { type: 'array' });
                             const sheets = this.analyzeBOQWorkbookSheets(wb);
-                            const targetSheet = (sheets && sheets.length > 0) ? sheets[0] : null;
+                            const targetSheet = (sheets && sheets.length > 0) ? (sheets.find(s => s.isBest) || sheets[0]) : null;
 
                             if (targetSheet && wb.Sheets[targetSheet.name]) {
                                 const parsed = this.parseVFixExcelSheet(wb.Sheets[targetSheet.name], targetSheet.name);
@@ -10910,8 +10910,10 @@ const app = {
 
             parseVFixExcelWorkbook(wb) {
                 if (!wb || !wb.SheetNames || wb.SheetNames.length === 0) return null;
-                const firstSheetName = wb.SheetNames[0];
-                return this.parseVFixExcelSheet(wb.Sheets[firstSheetName], firstSheetName);
+                const analysis = this.analyzeBOQWorkbookSheets(wb);
+                const bestSheet = analysis.find(s => s.isBest) || analysis[0];
+                const targetName = bestSheet ? bestSheet.name : wb.SheetNames[0];
+                return this.parseVFixExcelSheet(wb.Sheets[targetName], targetName);
             },
 
             parsePastedBOQ(text) {
