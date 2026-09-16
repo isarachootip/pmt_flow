@@ -23240,11 +23240,11 @@ const app = {
                 if (subtaskList) {
                     const isPerfectQC = job.qc_score >= 5.0;
                     const questions = [
-                        { num: 1, title: 'ช่างทำงานตาม BOQ และมาตรฐานการติดตั้งที่กำหนด', pass: true, score: 5 },
-                        { num: 2, title: 'ความเรียบร้อยของงานติดตั้งและเก็บงานหน้างาน', pass: isPerfectQC, score: isPerfectQC ? 5 : (job.qc_score >= 4.8 ? 4 : 3) },
+                        { num: 1, title: 'ช่างทำงานตาม BOQ/มาตรฐานการติดตั้งที่กำหนด', pass: true, score: 5 },
+                        { num: 2, title: 'ความเรียบร้อยของงานติดตั้ง', pass: isPerfectQC, score: isPerfectQC ? 5 : (job.qc_score >= 4.8 ? 4 : 3) },
                         { num: 3, title: 'ช่างเข้าปฏิบัติงานตรงตามเวลาที่นัดหมายกับลูกค้า', pass: true, score: 5 },
-                        { num: 4, title: 'ส่งมอบงานได้ตามกำหนดเวลาที่วางแผนไว้', pass: true, score: 5 },
-                        { num: 5, title: 'ช่างป้องกันพื้นที่ติดตั้งและส่งมอบพื้นที่คืนเรียบร้อย ไร้ความเสียหาย', pass: true, score: 5 }
+                        { num: 4, title: 'ส่งมอบงานได้ตามกำหนดเวลา', pass: true, score: 5 },
+                        { num: 5, title: 'ช่างป้องกันพื้นที่ติดตั้งและส่งมอบพื้นที่คืนโดยไม่เกิดความเสียหาย', pass: true, score: 5 }
                     ];
 
                     setText('jcd-subtask-summary', isPerfectQC ? '5 จาก 5 ข้อ ผ่านเกณฑ์สมบูรณ์ (Yes=5 ทุกข้อ)' : 'ผ่านเกณฑ์มาตรฐาน พร้อมส่งมอบเรียบร้อย');
