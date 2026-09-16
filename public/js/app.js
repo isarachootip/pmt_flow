@@ -618,13 +618,13 @@ const app = {
                     return sum + (qty * price);
                 }, 0);
                 const discount = Math.max(0, Number(job.boq_discount) || 0);
-                const taxable = Math.max(0, subtotal - discount);
-                const vat = taxable * 0.07;
-                const grandTotal = taxable + vat;
+                const grandTotal = Math.max(0, subtotal - discount);
+                const vat = 0;
                 job.boq_subtotal = subtotal;
                 job.boq_discount = discount;
+                job.boq_vat = 0;
                 job.boq_grand_total = grandTotal;
-                return { subtotal, discount, taxable, vat, grandTotal };
+                return { subtotal, discount, taxable: grandTotal, vat: 0, grandTotal };
             },
 
             initDatePicker(target, options = {}) {
@@ -4651,7 +4651,7 @@ const app = {
                     // BOQ status & calculation
                     const boqItems = j.boq_items || [];
                     const itemsCount = boqItems.length;
-                    const grandTotal = j.boq_grand_total || (boqItems.reduce((acc, item) => acc + ((Number(item.qty) || 0) * (Number(item.price) || 0)), 0) * 1.07);
+                    const grandTotal = j.boq_grand_total || (boqItems.reduce((acc, item) => acc + ((Number(item.qty) || 0) * (Number(item.price) || 0)), 0));
                     const hasBOQ = itemsCount > 0;
 
                     const isRecentlyCreated = j.created_at && (Date.now() - new Date(j.created_at).getTime() < 24 * 60 * 60 * 1000);
@@ -5657,15 +5657,14 @@ const app = {
                 const subtotal = laborSubtotal + matSubtotal;
                 const discInp = document.getElementById('unified-boq-discount-input');
                 const discount = discInp ? (Number(discInp.value) || 0) : (job.boq_discount || 0);
-                const taxable = Math.max(0, subtotal - discount);
-                const vat = taxable * 0.07;
-                const grandTotal = taxable + vat;
+                const grandTotal = Math.max(0, subtotal - discount);
+                const vat = 0;
 
                 job.boq_subtotal = subtotal;
                 job.boq_labor_total = laborSubtotal;
                 job.boq_material_total = matSubtotal;
                 job.boq_discount = discount;
-                job.boq_vat = vat;
+                job.boq_vat = 0;
                 job.boq_grand_total = grandTotal;
 
                 const laborEl = document.getElementById('unified-boq-labor-total');
@@ -5673,7 +5672,7 @@ const app = {
                 const matEl = document.getElementById('unified-boq-mat-total');
                 if (matEl) matEl.innerText = `${matSubtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
                 const vatEl = document.getElementById('unified-boq-vat');
-                if (vatEl) vatEl.innerText = `${vat.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
+                if (vatEl) vatEl.innerText = `0.00 ฿`;
                 const grandEl = document.getElementById('unified-boq-grand-total');
                 if (grandEl) grandEl.innerText = `${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
                 const badgeEl = document.getElementById('tab-unified-boq-badge');
@@ -8820,7 +8819,7 @@ const app = {
                                     <!-- Summary Calculation -->
                                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-3 border-t border-border gap-3">
                                         <div class="text-xs text-muted-foreground">
-                                            <span>ระบบคำนวณภาษีมูลค่าเพิ่ม VAT 7% ตามข้อกำหนดอัตโนมัติ</span>
+                                            <span>ระบบคำนวณราคาสุทธิ (No VAT) อัตโนมัติ</span>
                                         </div>
                                         <div class="w-full sm:w-72 space-y-1.5 text-xs bg-muted/30 p-3.5 rounded-2xl border border-border">
                                             <div class="flex justify-between text-muted-foreground">
@@ -8834,10 +8833,6 @@ const app = {
                                                     <input type="number" min="0" step="50" value="${discount}" oninput="app.updateBOQDiscount('${job.id}', this.value)" class="w-20 text-right bg-card border border-emerald-500/30 rounded px-1.5 py-0.5 text-xs text-emerald-700 font-mono transition focus:outline-none focus:border-emerald-600">
                                                     <span>฿</span>
                                                 </div>
-                                            </div>
-                                            <div class="flex justify-between text-muted-foreground">
-                                                <span>ภาษีมูลค่าเพิ่ม (VAT 7%):</span>
-                                                <span class="font-mono font-medium text-foreground" id="boq-vat-val">${vat.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿</span>
                                             </div>
                                             <div class="flex justify-between text-sm font-bold text-foreground pt-1.5 border-t border-border">
                                                 <span>ยอดสุทธิ (Grand Total):</span>
@@ -10199,9 +10194,8 @@ const app = {
                 }
 
                 const discount = data.discount || 0;
-                const taxable = Math.max(0, subtotal - discount);
-                const vat = taxable * 0.07;
-                const grandTotal = taxable + vat;
+                const grandTotal = Math.max(0, subtotal - discount);
+                const vat = 0;
 
                 const subtotalEl = document.getElementById('save-boq-subtotal-val');
                 const discountEl = document.getElementById('save-boq-discount-val');
@@ -10209,7 +10203,7 @@ const app = {
                 const grandTotalEl = document.getElementById('save-boq-grandtotal-val');
                 if (subtotalEl) subtotalEl.innerText = `${subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
                 if (discountEl) discountEl.innerText = `-${discount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
-                if (vatEl) vatEl.innerText = `${vat.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
+                if (vatEl) vatEl.innerText = `0.00 ฿`;
                 if (grandTotalEl) grandTotalEl.innerText = `${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
 
                 // 4. Render Tasks breakdown preview
@@ -13636,7 +13630,7 @@ const app = {
                                             const matCount = items.length - laborCount;
                                             const sub = items.reduce((s, it) => s + ((Number(it.qty) || 0) * (Number(it.price || it.unit_price) || 0)), 0);
                                             const disc = Number(j.boq_discount) || 0;
-                                            const gt = Math.max(0, sub - disc) * 1.07;
+                                            const gt = Math.max(0, sub - disc);
                                             return `
                                             <tr class="hover:bg-muted/30 transition">
                                                 <td class="py-3 px-4 font-mono font-bold text-purple-600 dark:text-purple-400">
@@ -13694,7 +13688,7 @@ const app = {
                             const matCount = items.length - laborCount;
                             const sub = items.reduce((s, it) => s + ((Number(it.qty) || 0) * (Number(it.price || it.unit_price) || 0)), 0);
                             const disc = Number(j.boq_discount) || 0;
-                            const gt = Math.max(0, sub - disc) * 1.07;
+                            const gt = Math.max(0, sub - disc);
                             const topItems = items.slice(0, 3);
 
                             return `
@@ -13969,8 +13963,8 @@ const app = {
 
                 const discount = Math.max(0, Number(this.state.modalBOQDiscount) || 0);
                 const afterDiscount = Math.max(0, subtotal - discount);
-                const vat = afterDiscount * 0.07;
-                const grandTotal = afterDiscount + vat;
+                const grandTotal = afterDiscount;
+                const vat = 0;
 
                 // Update summary elements
                 const elLabor = document.getElementById('modal-boq-labor-count');
@@ -13982,7 +13976,7 @@ const app = {
                 const elDisc = document.getElementById('modal-boq-discount-val');
                 if (elDisc) elDisc.innerText = `-${discount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
                 const elVat = document.getElementById('modal-boq-vat-val');
-                if (elVat) elVat.innerText = vat.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
+                if (elVat) elVat.innerText = '0.00 ฿';
                 const elGt = document.getElementById('modal-boq-grandtotal-val');
                 if (elGt) elGt.innerText = grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
 
@@ -14137,8 +14131,8 @@ const app = {
 
                 const discount = Math.max(0, Number(this.state.modalBOQDiscount) || 0);
                 const afterDiscount = Math.max(0, subtotal - discount);
-                const vat = afterDiscount * 0.07;
-                const grandTotal = afterDiscount + vat;
+                const grandTotal = afterDiscount;
+                const vat = 0;
 
                 const elLabor = document.getElementById('modal-boq-labor-count');
                 if (elLabor) elLabor.innerText = laborCount;
@@ -14149,7 +14143,7 @@ const app = {
                 const elDisc = document.getElementById('modal-boq-discount-val');
                 if (elDisc) elDisc.innerText = `-${discount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
                 const elVat = document.getElementById('modal-boq-vat-val');
-                if (elVat) elVat.innerText = vat.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
+                if (elVat) elVat.innerText = '0.00 ฿';
                 const elGt = document.getElementById('modal-boq-grandtotal-val');
                 if (elGt) elGt.innerText = grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
             },
@@ -14390,14 +14384,13 @@ const app = {
                 });
 
                 const discount = Math.max(0, Number(this.state.modalBOQDiscount) || 0);
-                const afterDiscount = Math.max(0, subtotal - discount);
-                const vat = afterDiscount * 0.07;
-                const grandTotal = afterDiscount + vat;
+                const grandTotal = Math.max(0, subtotal - discount);
 
                 wsData.push([]);
                 wsData.push(['', '', '', '', '', 'ราคารวม (Subtotal):', subtotal]);
-                wsData.push(['', '', '', '', '', 'ส่วนลดพิเศษ:', discount]);
-                wsData.push(['', '', '', '', '', 'ภาษีมูลค่าเพิ่ม (VAT 7%):', vat]);
+                if (discount > 0) {
+                    wsData.push(['', '', '', '', '', 'ส่วนลดพิเศษ:', discount]);
+                }
                 wsData.push(['', '', '', '', '', 'ยอดสุทธิ (Grand Total):', grandTotal]);
 
                 const wb = XLSX.utils.book_new();
@@ -14423,7 +14416,7 @@ const app = {
                     subtotal += (qty * price);
                 });
                 const discount = Math.max(0, Number(this.state.modalBOQDiscount) || 0);
-                const grandTotal = Math.max(0, subtotal - discount) * 1.07;
+                const grandTotal = Math.max(0, subtotal - discount);
 
                 job.boq_items = items.map(it => ({
                     ...it,
@@ -15624,7 +15617,7 @@ const app = {
                         const taskCount = (DB.tasks || []).filter(t => t.jobId === job.id).length;
                         const boqSum = (job.boq_items || []).reduce((acc, it) => acc + ((it.qty || 0) * (it.price || 0)), 0);
                         const discount = job.boq_discount !== undefined ? job.boq_discount : 500;
-                        const grandTotal = Math.max(0, boqSum - discount) * 1.07;
+                        const grandTotal = Math.max(0, boqSum - discount);
                         const custName = job.customer || `${job.firstName || ''} ${job.lastName || ''}`.trim() || 'ลูกค้าทั่วไป';
 
                         return `
@@ -15761,7 +15754,7 @@ const app = {
                     const taskCount = (DB.tasks || []).filter(t => t.jobId === job.id).length;
                     const boqSum = (job.boq_items || []).reduce((acc, it) => acc + ((it.qty || 0) * (it.price || 0)), 0);
                     const discount = job.boq_discount !== undefined ? job.boq_discount : 500;
-                    const grandTotal = Math.max(0, boqSum - discount) * 1.07;
+                    const grandTotal = Math.max(0, boqSum - discount);
                     const custName = job.customer || `${job.firstName || ''} ${job.lastName || ''}`.trim() || 'ลูกค้า';
                     
                     return `

@@ -3110,10 +3110,10 @@ app.post('/api/v1/jobs/:id/boq', requireAuth, async (req: Request, res: Response
   const jobId = isNaN(Number(param)) ? param : Number(param);
   const { items, discount_amount = 0 } = req.body;
 
-  // Calculate BOQ (Req #6)
+  // Calculate BOQ (No VAT standard)
   const subtotal = items.reduce((sum: number, item: any) => sum + (item.qty * item.unit_price), 0);
-  const vat = (subtotal - discount_amount) * 0.07;
-  const grandTotal = (subtotal - discount_amount) + vat;
+  const vat = 0;
+  const grandTotal = Math.max(0, subtotal - discount_amount);
 
   const boq = {
     id: Date.now(),
@@ -3121,7 +3121,7 @@ app.post('/api/v1/jobs/:id/boq', requireAuth, async (req: Request, res: Response
     version_no: 1,
     subtotal,
     discount: discount_amount,
-    vat_amount: vat,
+    vat_amount: 0,
     grand_total: grandTotal,
     items,
     created_at: new Date().toISOString()

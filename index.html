@@ -5026,7 +5026,7 @@
                                     <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
                                 </summary>
                                 <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed">
-                                    <strong class="text-foreground">คำตอบ:</strong> ระบบเชื่อมต่อเอนจิน SheetJS ในการถอดรหัสไฟล์ Binary Excel (.xlsx/.xls) โดยจะ **เปิดอ่านข้อมูลจาก Sheet หน้าแรกสุด (Sheet Index 0) เสมอเป็นค่าเริ่มต้น** พร้อมตัวเลือก Dropdown ให้ผู้ใช้สลับไปดู Sheet อื่นได้ และข้อมูลราคาต่อหน่วย (ค่าวัสดุและค่าแรง) ที่นำเข้าจะถือเป็น **"ราคาไม่รวมภาษีมูลค่าเพิ่ม (Exclude VAT)"** เพื่อนำไปคำนวณภาษี VAT 7% ในขั้นตอนสรุปท้ายบิลอย่างถูกต้อง 100%
+                                    <strong class="text-foreground">คำตอบ:</strong> ระบบเชื่อมต่อเอนจิน SheetJS ในการถอดรหัสไฟล์ Binary Excel (.xlsx/.xls) โดยจะ **เปิดอ่านข้อมูลจาก Sheet หน้าแรกสุด (Sheet Index 0) เสมอเป็นค่าเริ่มต้น** พร้อมตัวเลือก Dropdown ให้ผู้ใช้สลับไปดู Sheet อื่นได้ และข้อมูลราคาต่อหน่วย (ค่าวัสดุและค่าแรง) ที่นำเข้าจะนำไปคำนวณราคารวม (Subtotal), หักส่วนลดโครงการ (Discount) และหายอดสุทธิ (Grand Total / No VAT) อัตโนมัติ 100%
                                 </div>
                             </details>
 
@@ -5163,7 +5163,7 @@
                                         <li><strong>Ultra-Wide Executive Workspace:</strong> หน้าต่าง Modal ขนาดใหญ่พิเศษ (<code class="bg-muted px-1.5 py-0.5 rounded text-[11px]">w-[96vw] max-w-7xl h-[96vh]</code>) ออกแบบเฉพาะสำหรับ Project Manager (PM) และ Solutions Architect (SA) เลื่อนดูข้อมูลแบบต่อเนื่อง (Continuous Vertical Scrolling) ครบ 3 ส่วนในหน้าเดียว</li>
                                         <li><strong>คลังรูปถ่ายสำรวจหน้างาน (Section 1):</strong> แสดงภาพถ่ายสำรวจหน้างานจริง พร้อมปุ่ม <code class="bg-muted px-1.5 py-0.5 rounded text-[11px] font-bold text-teal-600">+ 📷 เพิ่มรูปถ่ายหน้างาน</code> ให้อัปโหลดภาพเพิ่มเติมได้ทันทีก่อนเริ่มงาน พร้อม Lightbox ซูมดูรูปใหญ่และปุ่มลบภาพ</li>
                                         <li><strong>แบบแปลนติดตั้ง CAD/PDF (Section 2):</strong> คลังจัดเก็บแบบแปลนแยกตามโซนห้อง พร้อม Drag & Drop Uploader และพรีวิวไฟล์แบบแปลน</li>
-                                        <li><strong>ประมาณการราคา BOQ (Section 3):</strong> ตารางคิดราคาพร้อมปุ่ม <strong>Quick Service Preset Chips</strong> (+ค่าแรงติดตั้ง, +ท่อน้ำยา, +รางครอบท่อ ฯลฯ) ช่วยให้เพิ่มรายการได้ในคลิกเดียว พร้อมคำนวณ VAT 7% และ Grand Total อัตโนมัติ</li>
+                                        <li><strong>ประมาณการราคา BOQ (Section 3):</strong> ตารางคิดราคาพร้อมปุ่ม <strong>Quick Service Preset Chips</strong> (+ค่าแรงติดตั้ง, +ท่อน้ำยา, +รางครอบท่อ ฯลฯ) ช่วยให้เพิ่มรายการได้ในคลิกเดียว พร้อมคำนวณราคาสุทธิ (Grand Total / No VAT) อัตโนมัติ</li>
                                         <li><strong>Live Metrics & Sticky Quick Jump:</strong> แถบ Header แสดงจำนวนรูปถ่าย แบบแปลน และยอดรวม BOQ สด และมีปุ่มทางลัดช่วยเลื่อนสกรอลล์ไปยังแต่ละส่วนได้อย่างรวดเร็ว</li>
                                     </ul>
                                 </div>
@@ -7350,7 +7350,7 @@
                                     </h4>
                                     <span id="unified-boq-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-purple-500/15 text-purple-700 border border-purple-500/20">0 รายการ</span>
                                 </div>
-                                <p class="text-xs text-muted-foreground">ถอดรายการวัสดุ-ค่าแรง, นำเข้าไฟล์ Excel / vFIX, และคำนวณภาษีมูลค่าเพิ่ม (VAT 7%) อัตโนมัติ</p>
+                                <p class="text-xs text-muted-foreground">ถอดรายการวัสดุ-ค่าแรง, นำเข้าไฟล์ Excel / vFIX, และคำนวณราคาสุทธิอัตโนมัติ (No VAT)</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
@@ -7414,16 +7414,13 @@
                             </div>
                         </div>
                         <div class="flex flex-col justify-between items-end border-t md:border-t-0 md:border-l border-border pt-3 md:pt-0 md:pl-6 space-y-2">
-                            <div class="w-full flex justify-between text-xs text-muted-foreground">
-                                <span>ภาษีมูลค่าเพิ่ม (VAT 7%):</span>
-                                <span class="font-mono font-medium text-foreground" id="unified-boq-vat">0.00 ฿</span>
-                            </div>
-                            <div class="w-full flex justify-between items-baseline pt-2.5 border-t border-border mt-1">
+                            <span id="unified-boq-vat" class="hidden">0.00 ฿</span>
+                            <div class="w-full flex justify-between items-baseline pt-2.5">
                                 <span class="text-xs text-muted-foreground font-bold uppercase tracking-wider">ยอดรวมทั้งสิ้น (Grand Total):</span>
                                 <span class="text-2xl sm:text-3xl font-black font-mono text-purple-600 dark:text-purple-400" id="unified-boq-grand-total">0.00 ฿</span>
                             </div>
                             <span class="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
-                                <i class="ph ph-check-circle-fill"></i> รวมภาษีมูลค่าเพิ่ม 7% ถูกต้องตามระเบียบ
+                                <i class="ph ph-check-circle-fill"></i> ยอดสุทธิ (ไม่มี VAT / Net Total)
                             </span>
                         </div>
                     </div>
@@ -7854,10 +7851,7 @@
                             <span>ส่วนลดพิเศษโครงการ:</span>
                             <span class="font-mono font-medium" id="modal-boq-discount-val">-0.00 ฿</span>
                         </div>
-                        <div class="flex justify-between text-muted-foreground">
-                            <span>ภาษีมูลค่าเพิ่ม (VAT 7%):</span>
-                            <span class="font-mono font-medium text-foreground" id="modal-boq-vat-val">0.00 ฿</span>
-                        </div>
+                        <span id="modal-boq-vat-val" class="hidden">0.00 ฿</span>
                         <div class="flex justify-between text-sm font-bold text-foreground pt-1.5 border-t border-border">
                             <span>ยอดสุทธิ (Grand Total):</span>
                             <span class="font-mono text-purple-600 text-base font-bold" id="modal-boq-grandtotal-val">0.00 ฿</span>
@@ -8090,7 +8084,7 @@
                             <span class="text-muted-foreground">•</span>
                             <span class="text-muted-foreground" id="boq-preview-labor-total">ค่าแรง: 0.00 ฿</span>
                             <span class="text-muted-foreground">•</span>
-                            <span class="font-bold text-emerald-600" id="boq-preview-total">ยอดรวม (ไม่รวม VAT): 0.00 ฿</span>
+                            <span class="font-bold text-emerald-600" id="boq-preview-total">ยอดรวม: 0.00 ฿</span>
                         </div>
                     </div>
                     <div class="border border-border rounded-xl overflow-y-auto overflow-x-auto max-h-72 custom-scrollbar">
@@ -8102,9 +8096,9 @@
                                     <th class="py-2.5 px-3 min-w-[200px]">รายการวัสดุ / งานบริการ</th>
                                     <th class="py-2.5 px-3 w-16 text-center">จำนวน</th>
                                     <th class="py-2.5 px-3 w-16 text-center">หน่วย</th>
-                                    <th class="py-2.5 px-3 w-24 text-right" title="ราคาต่อหน่วยไม่รวม VAT">ค่าวัสดุ</th>
-                                    <th class="py-2.5 px-3 w-24 text-right" title="ราคาต่อหน่วยไม่รวม VAT">ค่าแรง</th>
-                                    <th class="py-2.5 px-3 w-32 text-right">รวมเงินไม่รวม VAT (฿)</th>
+                                    <th class="py-2.5 px-3 w-24 text-right">ค่าวัสดุ (฿)</th>
+                                    <th class="py-2.5 px-3 w-24 text-right">ค่าแรง (฿)</th>
+                                    <th class="py-2.5 px-3 w-32 text-right">รวมเงิน (฿)</th>
                                 </tr>
                             </thead>
                             <tbody id="boq-preview-tbody" class="divide-y divide-border bg-card">
@@ -8502,12 +8496,12 @@
                                 <span>ส่วนลดพิเศษโครงการ:</span>
                                 <span class="font-mono font-medium" id="save-boq-discount-val">-0.00 ฿</span>
                             </div>
-                            <div class="flex justify-between text-muted-foreground">
-                                <span>ภาษีมูลค่าเพิ่ม (VAT 7%):</span>
+                            <div class="flex justify-between text-muted-foreground hidden" style="display: none;">
+                                <span>ภาษีมูลค่าเพิ่ม (No VAT):</span>
                                 <span class="font-mono font-medium text-foreground" id="save-boq-vat-val">0.00 ฿</span>
                             </div>
                             <div class="flex justify-between text-sm font-bold text-foreground pt-1.5 border-t border-border">
-                                <span>ยอดสุทธิ (Grand Total):</span>
+                                <span>ยอดสุทธิ (Grand Total / No VAT):</span>
                                 <span class="font-mono text-brand-500 text-base font-bold" id="save-boq-grandtotal-val">0.00 ฿</span>
                             </div>
                         </div>

@@ -185,19 +185,16 @@ async function runBOQTest() {
   });
   const subtotal = totalMat + totalLabor;
   const discount = 500;
-  const taxable = Math.max(0, subtotal - discount);
-  const vat = taxable * 0.07;
-  const grandTotal = taxable + vat;
+  const grandTotal = Math.max(0, subtotal - discount);
 
   console.log(`   📊 Summary:`);
   console.log(`      - รวมค่าวัสดุ (Material Total) : ฿${totalMat.toLocaleString()}`);
   console.log(`      - รวมค่าแรง  (Labor Total)    : ฿${totalLabor.toLocaleString()}`);
   console.log(`      - ยอดรวม Subtotal              : ฿${subtotal.toLocaleString()}`);
   console.log(`      - ส่วนลด Discount               : -฿${discount.toLocaleString()}`);
-  console.log(`      - ภาษีมูลค่าเพิ่ม VAT 7%        : ฿${vat.toFixed(2)}`);
-  console.log(`      - ยอดสุทธิ Grand Total          : ฿${grandTotal.toFixed(2)}\n`);
+  console.log(`      - ยอดสุทธิ Grand Total (No VAT) : ฿${grandTotal.toFixed(2)}\n`);
 
-  if (totalLabor !== 2500 || totalMat !== 3900 || subtotal !== 6400) {
+  if (totalLabor !== 2500 || totalMat !== 3900 || subtotal !== 6400 || grandTotal !== 5900) {
     throw new Error('❌ Test 2 Failed: Calculation mismatch');
   }
 

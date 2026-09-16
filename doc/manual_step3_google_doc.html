@@ -133,14 +133,14 @@
 <p>หน้าจอ <strong>Step 3: นำ BOQ เข้าระบบ & ประมาณการราคา (Bill of Quantities)</strong> คือ <strong>"หัวใจด้านต้นทุนและงบประมาณ (Cost & Budgeting Center)"</strong> ของระบบ PMT Flow ทำหน้าที่รับช่วงต่องานที่ผ่านการจัดทำแบบแปลนติดตั้งจาก <strong>Step 2</strong> เพื่อให้เจ้าหน้าที่ถอดแบบและฝ่ายประเมินราคาทำการ:</p>
 <li>นำเข้ารายการวัสดุและค่าแรงจากไฟล์ใบเสนอราคา (vFIX / Excel / CSV) หรือเลือกชุดแม่แบบสำเร็จรูป (Templates)</li>
 <li>บันทึกและปรับปรุงรายการวัสดุ-อุปกรณ์และค่าบริการติดตั้งแบบ Real-time บนระบบ PMT</li>
-<li>ตรวจสอบการคำนวณยอดเงินรวม (Subtotal), ส่วนลดโครงการ, ภาษีมูลค่าเพิ่ม VAT 7% และยอดสุทธิ (Grand Total)</li>
+<li>ตรวจสอบการคำนวณยอดเงินรวม (Subtotal), ส่วนลดโครงการ และยอดสุทธิ (Grand Total / No VAT)</li>
 <li>แยกแยะหมวดหมู่ระหว่าง <strong>"ค่าวัสดุ (Materials)"</strong> และ <strong>"ค่าแรง/บริการ (Labor)"</strong> เพื่อเตรียมความพร้อมสำหรับการแปลงเป็น Task ใน <strong>Step 5</strong></li>
 <li>ส่งต่องานไปยัง <strong>Step 4 (บันทึก Ticket & ใบเสร็จ)</strong> เพื่อให้ฝ่ายประสานงานเปิดใบสั่งงานและรับชำระเงินจากลูกค้า</li>
 <h3>🎯 วัตถุประสงค์การเรียนรู้สำหรับผู้เข้าอบรม (Learning Objectives):</h3>
 <li><strong>เข้าใจโครงสร้างคิวงาน 2 มิติ (Dual-Tab Architecture):</strong> แยกความแตกต่างระหว่างแท็บ "คิวรอจัดทำ BOQ (Pending)" และแท็บ "คลัง BOQ ที่บันทึกแล้ว (Library)"</li>
 <li><strong>เชี่ยวชาญการนำเข้าข้อมูล BOQ ทั้ง 3 รูปแบบ:</strong> การอัปโหลดไฟล์ Excel (.xlsx/.csv), การเลือก Template สำเร็จรูป 4 กลุ่มงาน และการ Paste ตารางตรงจากคลิปบอร์ด</li>
 <li><strong>จัดหมวดหมู่และจัดการตาราง BOQ ได้อย่างแม่นยำ:</strong> เพิ่ม/ลบ/แก้ไขรายการวัสดุ หน่วยนับ ราคาต่อหน่วย และการระบุประเภทค่าแรง</li>
-<li><strong>ตรวจสอบความถูกต้องทางบัญชีและภาษี 100%:</strong> เข้าใจสูตรการคำนวณ ส่วนลดโครงการ, ฐานภาษี และ VAT 7% ป้องกันความผิดพลาดก่อนเปิดใบเสร็จ</li>
+<li><strong>ตรวจสอบความถูกต้องทางบัญชีและราคา 100%:</strong> เข้าใจสูตรการคำนวณ ส่วนลดโครงการ และยอดสุทธิ (Grand Total = Subtotal - Discount) ป้องกันความผิดพลาดก่อนเปิดใบเสร็จ</li>
 <li><strong>ควบคุมการไหลของงาน (Workflow Transition):</strong> ส่งงานต่อไปยัง Step 4 หรือใช้ทางลัดแปลงเข้า Project ใน Step 5 ตามประเภทโครงการได้อย่างถูกต้อง</li>
 <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
 <h2>🧭 กายวิภาคของหน้าจอ Step 3 (Screen Anatomy Breakdown)</h2>
@@ -200,11 +200,9 @@
 <li><strong>หน่วย (Unit):</strong> เช่น เครื่อง, จุด, เมตร, ชุด, เหมา</li>
 <li><strong>ราคาต่อหน่วย (Unit Price):</strong> ราคาขายตามใบเสนอราคา</li>
 <li>ตรวจสอบสรุปการเงินด้านล่างตาราง:</li>
-<li>ยอดรวมก่อนภาษี (Subtotal)</li>
-<li>ส่วนลด (Discount)</li>
-<li>ยอดฐานภาษี (Taxable Amount) = Subtotal - Discount</li>
-<li>ภาษีมูลค่าเพิ่ม VAT 7% = Taxable Amount * 0.07</li>
-<li>ยอดรวมสุทธิ (Grand Total) = Taxable Amount + VAT 7%</li>
+<li>ยอดรวม Subtotal</li>
+<li>ส่วนลดโครงการ (Discount)</li>
+<li>ยอดสุทธิ (Grand Total / No VAT) = Subtotal - Discount</li>
 <li>คลิกปุ่ม <strong><code>💾 บันทึกข้อมูล BOQ</code></strong> เพื่อบันทึกข้อมูลเข้าสู่ฐานข้อมูลโครงการ</li>
 <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
 <h3>การส่งต่องานไปยังขั้นตอนถัดไป (Moving to Step 4 / Step 5)</h3>
@@ -221,7 +219,7 @@
 <li><strong>โจทย์ข้อที่ 1:</strong> ใช้ฟังก์ชัน Template สำเร็จรูป เลือกชุด "Renovate ห้องครัวมาตรฐาน" เข้าสู่ระบบ</li>
 <li><strong>โจทย์ข้อที่ 2:</strong> เพิ่มรายการพิเศษด้วยตนเอง: "ค่าติดตั้งเครื่องดูดควันสแตนเลส (ค่าแรง)" จำนวน 1 จุด ราคา 1,500 บาท</li>
 <li><strong>โจทย์ข้อที่ 3:</strong> ระบุส่วนลดพิเศษให้ลูกค้าจำนวน 2,000 บาท</li>
-<li><strong>โจทย์ข้อที่ 4:</strong> ตรวจสอบว่ายอด VAT 7% คำนวณหลังหักส่วนลดถูกต้องหรือไม่ แล้วกดบันทึก</li>
+<li><strong>โจทย์ข้อที่ 4:</strong> ตรวจสอบว่ายอดสุทธิคำนวณหลังหักส่วนลด (Grand Total = Subtotal - Discount) ถูกต้องหรือไม่ แล้วกดบันทึก</li>
 <li><strong>โจทย์ข้อที่ 5:</strong> กดย้ายงานเข้าสู่ Step 4 และตรวจเช็กว่าในหน้า Step 4 มีชื่องานนี้ปรากฏในคิวหรือไม่</li>
 <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
 <h2>❓ คำถามที่พบบ่อยและข้อควรระวัง (FAQ & Best Practices)</h2>
