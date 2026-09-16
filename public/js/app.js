@@ -10649,38 +10649,38 @@ const app = {
                             const sheetAnalysis = this.analyzeBOQWorkbookSheets(wb);
                             this.state.availableBOQSheets = sheetAnalysis;
 
-                            // Setup sheet selector dropdown (Default to sheet 1)
+                            // Setup sheet selector dropdown (Intelligently select best sheet with items)
                             const sheetContainer = document.getElementById('boq-sheet-selector-container');
                             const sheetSelect = document.getElementById('boq-sheet-select');
                             const sheetBadge = document.getElementById('boq-sheet-summary-badge');
+                            const bestSheet = sheetAnalysis.find(s => s.isBest) || sheetAnalysis[0];
 
                             if (sheetAnalysis.length > 0 && sheetSelect && sheetContainer) {
                                 sheetContainer.classList.remove('hidden');
-                                if (sheetBadge) sheetBadge.innerText = `พบทั้งหมด ${sheetAnalysis.length} Sheet (เลือกหน้าแรกเป็นค่าเริ่มต้น)`;
-                                sheetSelect.innerHTML = sheetAnalysis.map((s, idx) => {
+                                if (sheetBadge) sheetBadge.innerText = `พบทั้งหมด ${sheetAnalysis.length} Sheet (เลือก "${bestSheet?.name || ''}" อัตโนมัติ)`;
+                                sheetSelect.innerHTML = sheetAnalysis.map((s) => {
                                     const countText = s.itemCount > 0 ? `(${s.itemCount} รายการ - รวมไม่รวม VAT ${s.totalAmount.toLocaleString()} ฿)` : '(ไม่มีรายการ)';
                                     const custText = s.customer ? ` [ลูกค้า: ${s.customer}]` : '';
-                                    return `<option value="${s.name}" ${idx === 0 ? 'selected' : ''}>${s.name} ${custText} ${countText}</option>`;
+                                    const isSelected = (s.name === bestSheet?.name) ? 'selected' : '';
+                                    return `<option value="${s.name}" ${isSelected}>${s.name} ${custText} ${countText}</option>`;
                                 }).join('');
+                                if (bestSheet) sheetSelect.value = bestSheet.name;
                             }
 
-                            // Strictly default to Sheet 1 (Index 0)
-                            const defaultSheet = (sheetAnalysis && sheetAnalysis.length > 0) ? sheetAnalysis[0] : null;
-
-                            if (defaultSheet && defaultSheet.itemCount > 0) {
-                                const parsed = this.parseVFixExcelSheet(wb.Sheets[defaultSheet.name], defaultSheet.name);
+                            if (bestSheet && bestSheet.itemCount > 0) {
+                                const parsed = this.parseVFixExcelSheet(wb.Sheets[bestSheet.name], bestSheet.name);
                                 this.state.pendingBOQHeader = parsed.header || {};
                                 this.state.pendingBOQItems = parsed.items;
                                 this.renderBOQPreviewTable();
-                                if (nameEl) nameEl.innerHTML = `<span class="text-emerald-500 font-bold">✓ อ่านไฟล์สำเร็จ [Sheet หน้าแรก: ${defaultSheet.name}] (${parsed.items.length} รายการ - ราคาไม่รวม VAT)</span>`;
-                                this.showToast(`📊 อ่านไฟล์ Excel "${file.name}" (Sheet หน้าแรก: ${defaultSheet.name}) สำเร็จ (${parsed.items.length} รายการ - ราคาไม่รวม VAT)`);
-                            } else if (defaultSheet) {
-                                const parsed = this.parseVFixExcelSheet(wb.Sheets[defaultSheet.name], defaultSheet.name);
+                                if (nameEl) nameEl.innerHTML = `<span class="text-emerald-500 font-bold">✓ อ่านไฟล์สำเร็จ [Sheet: ${bestSheet.name}] (${parsed.items.length} รายการ - ราคาไม่รวม VAT)</span>`;
+                                this.showToast(`📊 อ่านไฟล์ Excel "${file.name}" (Sheet: ${bestSheet.name}) สำเร็จ (${parsed.items.length} รายการ - ราคาไม่รวม VAT)`);
+                            } else if (bestSheet) {
+                                const parsed = this.parseVFixExcelSheet(wb.Sheets[bestSheet.name], bestSheet.name);
                                 this.state.pendingBOQHeader = parsed.header || {};
                                 this.state.pendingBOQItems = parsed.items || [];
                                 this.renderBOQPreviewTable();
-                                if (nameEl) nameEl.innerHTML = `<span class="text-amber-600 font-bold">⚠️ [Sheet หน้าแรก: ${defaultSheet.name}] ยังไม่มีรายการ BOQ กรุณาเลือก Sheet อื่นจากดรอปดาวน์</span>`;
-                                this.showToast('⚠️ ไม่พบรายการ BOQ ใน Sheet หน้าแรก กรุณาเลือก Sheet อื่นจากรายการดรอปดาวน์', 'warning');
+                                if (nameEl) nameEl.innerHTML = `<span class="text-amber-600 font-bold">⚠️ [Sheet: ${bestSheet.name}] ยังไม่มีรายการ BOQ กรุณาเลือก Sheet อื่นจากดรอปดาวน์</span>`;
+                                this.showToast('⚠️ ไม่พบรายการ BOQ ใน Sheet นี้ กรุณาเลือก Sheet อื่นจากรายการดรอปดาวน์', 'warning');
                             }
                         } catch (err) {
                             console.error('Excel parse error:', err);
@@ -10751,13 +10751,26 @@ const app = {
                         itemCount: (parsed.items || []).length,
                         customer: (parsed.header && parsed.header.customer) ? parsed.header.customer : '',
                         totalAmount: totalAmount,
-                        isBest: (i === 0) // Strictly default to first sheet
+                        index: i
                     });
                 }
 
-                if (results.length > 0 && !results.some(r => r.isBest)) {
-                    results[0].isBest = true;
+                // Intelligently select best sheet:
+                // 1. Prefer sheet with highest score among sheets having items > 0
+                // 2. If no sheet has items, pick highest score sheet or sheet 0
+                let bestSheetName = results[0]?.name;
+                const sheetsWithItems = results.filter(r => r.itemCount > 0);
+                if (sheetsWithItems.length > 0) {
+                    sheetsWithItems.sort((a, b) => b.score - a.score);
+                    bestSheetName = sheetsWithItems[0].name;
+                } else if (results.length > 0) {
+                    const sortedByScore = [...results].sort((a, b) => b.score - a.score);
+                    bestSheetName = sortedByScore[0].name;
                 }
+
+                results.forEach(r => {
+                    r.isBest = (r.name === bestSheetName);
+                });
 
                 return results;
             },
@@ -14219,7 +14232,7 @@ const app = {
                                 const data = new Uint8Array(bufEvt.target.result);
                                 const wb = XLSX.read(data, { type: 'array' });
                                 const sheetAnalysis = this.analyzeBOQWorkbookSheets(wb);
-                                const bestSheet = (sheetAnalysis && sheetAnalysis.length > 0) ? sheetAnalysis[0] : null;
+                                const bestSheet = sheetAnalysis.find(s => s.isBest) || ((sheetAnalysis && sheetAnalysis.length > 0) ? sheetAnalysis[0] : null);
 
                                 if (bestSheet) {
                                     const parsed = this.parseVFixExcelSheet(wb.Sheets[bestSheet.name], bestSheet.name);
