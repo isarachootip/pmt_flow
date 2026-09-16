@@ -2969,7 +2969,23 @@ const app = {
                 if(view === 'blueprints') this.renderBlueprints();
                 if(view === 'tickets') this.renderTickets();
                 if(view === 'boq') this.renderBOQPage(param);
-                if(view === 'project-conversion') this.renderProjectConversion(param);
+                if(view === 'project-conversion') {
+                    // BOQ Guard: ห้ามเข้าหน้านี้โดยไม่มี BOQ
+                    if (param) {
+                        const _guardJob = (DB.jobs || []).find(j => j.id === param);
+                        if (_guardJob && (!_guardJob.boq_items || _guardJob.boq_items.length === 0)) {
+                            // redirect กลับไปหน้า BOQ พร้อม toast แจ้งเตือน
+                            this.state.currentView = 'boq';
+                            document.querySelectorAll('.page-view').forEach(el => el.classList.add('hidden-view'));
+                            const boqPageEl = document.getElementById('page-boq');
+                            if (boqPageEl) boqPageEl.classList.remove('hidden-view');
+                            this.renderBOQPage(param);
+                            this.showToast(`🚫 ไม่สามารถเข้า Step 3 ได้: โครงการ ${param} ยังไม่มีรายการ BOQ — กรุณาบันทึก BOQ ใน Step 1 ก่อน`, 'error');
+                            return;
+                        }
+                    }
+                    this.renderProjectConversion(param);
+                }
                 if(view === 'dashboard') {
                     this.renderDashboard();
                     setTimeout(() => this.updateCharts(), 50);
@@ -14715,6 +14731,8 @@ const app = {
                     if (convServiceFilter !== 'all') {
                         tableJobs = tableJobs.filter(j => j.service === convServiceFilter);
                     }
+                    // BOQ Guard: กรองเฉพาะ job ที่มี BOQ แล้วเท่านั้น
+                    tableJobs = tableJobs.filter(j => j.boq_items && j.boq_items.length > 0);
                     if (convStatusFilter === 'STEP5_QUEUE') {
                         tableJobs = tableJobs.filter(j => 
                             !this.isQuickJob(j) &&
@@ -14725,7 +14743,7 @@ const app = {
                             !convertedJobIds.has(j.id)
                         );
                         if (tableJobs.length === 0) {
-                            tableJobs = allJobs.filter(j => !this.isQuickJob(j) && !convertedJobIds.has(j.id));
+                            tableJobs = allJobs.filter(j => !this.isQuickJob(j) && !convertedJobIds.has(j.id) && j.boq_items && j.boq_items.length > 0);
                         }
                     } else if (convStatusFilter === 'NOT_CONVERTED') {
                         tableJobs = tableJobs.filter(j => !this.isQuickJob(j) && !convertedJobIds.has(j.id));
