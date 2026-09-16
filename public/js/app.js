@@ -609,12 +609,32 @@ const app = {
                 return String(job.customer || 'คุณลูกค้า');
             },
 
+            getItemUnitPrice(item) {
+                if (!item) return 0;
+                if (item.price !== undefined && item.price !== null && !isNaN(Number(item.price)) && Number(item.price) > 0) {
+                    return Number(item.price);
+                }
+                const matLabSum = (Number(item.mat_price) || 0) + (Number(item.labor_price) || 0);
+                if (matLabSum > 0) return matLabSum;
+                if (item.unit_price !== undefined && item.unit_price !== null && !isNaN(Number(item.unit_price)) && Number(item.unit_price) > 0) {
+                    return Number(item.unit_price);
+                }
+                if (item.unitPrice !== undefined && item.unitPrice !== null && !isNaN(Number(item.unitPrice)) && Number(item.unitPrice) > 0) {
+                    return Number(item.unitPrice);
+                }
+                if (item.total !== undefined && item.total !== null && !isNaN(Number(item.total)) && Number(item.total) > 0) {
+                    const q = Number(item.qty || item.quantity) || 1;
+                    return Number(item.total) / q;
+                }
+                return Number(item.price) || 0;
+            },
+
             recalculateJobBOQ(job) {
                 if (!job) return { subtotal: 0, discount: 0, taxable: 0, vat: 0, grandTotal: 0 };
                 const items = job.boq_items || [];
                 const subtotal = items.reduce((sum, item) => {
                     const qty = Number(item.qty) || 0;
-                    const price = (item.price !== undefined && item.price !== null) ? Number(item.price) : Number(item.unit_price || 0);
+                    const price = this.getItemUnitPrice(item);
                     return sum + (qty * price);
                 }, 0);
                 const discount = Math.max(0, Number(job.boq_discount) || 0);
@@ -5568,14 +5588,16 @@ const app = {
                         </td>
                     </tr>
                     `;
+                    this.calculateUnifiedBOQSummary();
                     return;
                 }
 
                 const html = job.boq_items.map((item, idx) => {
                     const itemQty = Number(item.qty) || 0;
-                    const itemPrice = Number(item.price ?? item.unit_price ?? ((item.mat_price || 0) + (item.labor_price || 0))) || 0;
+                    const itemPrice = this.getItemUnitPrice(item);
                     const itemTotal = itemQty * itemPrice;
-                    const isLabor = String(item.type || item.category || '').toUpperCase().includes('LABOR') || String(item.type || '').includes('ค่าแรง');
+                    const itemTypeStr = String(item.type || item.category || '').toUpperCase();
+                    const isLabor = itemTypeStr.includes('LABOR') || itemTypeStr.includes('ค่าแรง') || !!item.isLabor || (item.name && (item.name.includes('ค่าแรง') || item.name.includes('งานติดตั้ง') || item.name.includes('งานบริการ')));
                     const safeName = (item.name || '').replace(/"/g, '&quot;');
                     const safeUnit = (item.unit || 'ชุด').replace(/"/g, '&quot;');
                     return `
@@ -5591,7 +5613,7 @@ const app = {
                             <input type="text" value="${safeName}" title="${safeName}" oninput="app.updateUnifiedBOQItem(${idx}, 'name', this.value)" placeholder="ระบุรายการสินค้า / วัสดุอุปกรณ์ / ค่าแรงอย่างละเอียด..." class="w-full bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-purple-500 font-medium hover:border-purple-300 transition">
                         </td>
                         <td class="px-3 py-2.5 text-center">
-                            <input type="number" min="1" step="any" value="${item.qty || 1}" oninput="app.updateUnifiedBOQItem(${idx}, 'qty', this.value)" class="w-full text-center bg-card border border-border rounded-lg px-2 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-purple-500">
+                            <input type="number" min="0" step="any" value="${item.qty !== undefined && item.qty !== null ? item.qty : 1}" oninput="app.updateUnifiedBOQItem(${idx}, 'qty', this.value)" class="w-full text-center bg-card border border-border rounded-lg px-2 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-purple-500">
                         </td>
                         <td class="px-3 py-2.5 text-center">
                             <input type="text" value="${safeUnit}" oninput="app.updateUnifiedBOQItem(${idx}, 'unit', this.value)" placeholder="หน่วย" class="w-full text-center bg-card border border-border rounded-lg px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-purple-500">
@@ -5612,6 +5634,7 @@ const app = {
                 }).join('');
 
                 tbody.innerHTML = html;
+                this.calculateUnifiedBOQSummary();
             },
 
             addUnifiedBOQItem() {
@@ -5642,6 +5665,9 @@ const app = {
                 if (!job || !job.boq_items || !job.boq_items[idx]) return;
                 if (field === 'qty' || field === 'price') {
                     job.boq_items[idx][field] = Number(val) || 0;
+                    if (field === 'price') {
+                        job.boq_items[idx].unit_price = Number(val) || 0;
+                    }
                 } else {
                     job.boq_items[idx][field] = val;
                 }
@@ -5649,7 +5675,7 @@ const app = {
                 // Update row total cell in DOM without rebuilding table (preserves input focus)
                 const item = job.boq_items[idx];
                 const itemQty = Number(item.qty) || 0;
-                const itemPrice = Number(item.price ?? item.unit_price ?? ((item.mat_price || 0) + (item.labor_price || 0))) || 0;
+                const itemPrice = this.getItemUnitPrice(item);
                 const rowTotal = itemQty * itemPrice;
                 const rowTotalEl = document.getElementById(`unified-boq-row-total-${idx}`);
                 if (rowTotalEl) {
@@ -5679,16 +5705,51 @@ const app = {
                 const job = this.getUnifiedStudioJob();
                 if (!job) return;
 
-                const items = job.boq_items || [];
+                if (!job.boq_items) job.boq_items = [];
+
+                // Synchronize live DOM values if table is rendered in DOM
+                const tbody = document.getElementById('unified-boq-tbody');
+                if (tbody) {
+                    const rows = tbody.querySelectorAll('tr[id^="unified-boq-row-"]');
+                    if (rows.length > 0) {
+                        rows.forEach((row, idx) => {
+                            const typeSelect = row.querySelector('select');
+                            const textInputs = row.querySelectorAll('input[type="text"]');
+                            const numInputs = row.querySelectorAll('input[type="number"]');
+
+                            if (job.boq_items[idx]) {
+                                if (typeSelect) job.boq_items[idx].type = typeSelect.value;
+                                if (textInputs.length >= 1 && textInputs[0].value !== undefined) job.boq_items[idx].name = textInputs[0].value;
+                                if (numInputs.length >= 1 && numInputs[0].value !== '') job.boq_items[idx].qty = Number(numInputs[0].value) || 0;
+                                if (textInputs.length >= 2 && textInputs[1].value !== undefined) job.boq_items[idx].unit = textInputs[1].value;
+                                if (numInputs.length >= 2 && numInputs[1].value !== '') {
+                                    job.boq_items[idx].price = Number(numInputs[1].value) || 0;
+                                    job.boq_items[idx].unit_price = Number(numInputs[1].value) || 0;
+                                }
+
+                                const rowQty = Number(job.boq_items[idx].qty) || 0;
+                                const rowPrice = this.getItemUnitPrice(job.boq_items[idx]);
+                                const rowTotal = rowQty * rowPrice;
+                                const rowTotalEl = document.getElementById(`unified-boq-row-total-${idx}`);
+                                if (rowTotalEl) {
+                                    rowTotalEl.innerText = rowTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                }
+                            }
+                        });
+                    }
+                }
+
+                const items = job.boq_items;
                 let laborSubtotal = 0;
                 let matSubtotal = 0;
 
                 items.forEach(item => {
                     const qty = Number(item.qty) || 0;
-                    const price = Number(item.price ?? item.unit_price ?? ((item.mat_price || 0) + (item.labor_price || 0))) || 0;
+                    const price = this.getItemUnitPrice(item);
                     const total = qty * price;
                     const itemType = String(item.type || item.category || '').toUpperCase();
-                    if (itemType.includes('LABOR') || itemType.includes('ค่าแรง') || !!item.isLabor) {
+                    const isLabor = itemType.includes('LABOR') || itemType.includes('ค่าแรง') || !!item.isLabor || (item.name && (item.name.includes('ค่าแรง') || item.name.includes('งานติดตั้ง') || item.name.includes('งานบริการ')));
+                    if (isLabor) {
                         laborSubtotal += total;
                     } else {
                         matSubtotal += total;
@@ -11248,6 +11309,7 @@ const app = {
                 // If Unified Studio (Step 1) is currently open for this job, refresh its BOQ table
                 if (this.state.unifiedStudioJobId === targetJobId) {
                     this.renderUnifiedBOQTable();
+                    this.calculateUnifiedBOQSummary();
                     this.updateUnifiedStudioIndicators();
                 }
 
