@@ -5547,16 +5547,28 @@ const app = {
 
                 if (!job.boq_items) job.boq_items = [];
 
-                if (job.boq_items.length === 0) {
-                    job.boq_items = [
-                        { id: 1, type: 'LABOR', name: 'งานติดตั้งและเดินระบบมาตรฐาน', qty: 1, unit: 'งาน', price: 2500 },
-                        { id: 2, type: 'MATERIAL', name: 'ชุดอุปกรณ์และวัสดุต่อเชื่อม มอก.', qty: 1, unit: 'ชุด', price: 1800 }
-                    ];
-                }
-
                 const countBadge = document.getElementById('unified-boq-count-badge');
                 if (countBadge) {
                     countBadge.textContent = `${job.boq_items.length} รายการ`;
+                }
+
+                if (job.boq_items.length === 0) {
+                    tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="py-10 px-4 text-center bg-card">
+                            <div class="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                                <div class="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center text-2xl mb-1 border border-purple-500/20 shadow-2xs">
+                                    <i class="ph ph-calculator"></i>
+                                </div>
+                                <span class="text-xs font-bold text-foreground">ยังไม่มีรายการประมาณการราคา BOQ</span>
+                                <p class="text-[11px] text-muted-foreground max-w-md">
+                                    เริ่มต้นจัดทำ BOQ โดยกดปุ่ม <strong class="text-purple-600 font-semibold">+ เพิ่มรายการ</strong>, เลือก <strong class="text-purple-600 font-semibold">Template</strong> หรือกด <strong class="text-purple-600 font-semibold">นำเข้า Excel / vFIX</strong> ด้านบน
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                    `;
+                    return;
                 }
 
                 const html = job.boq_items.map((item, idx) => {
