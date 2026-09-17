@@ -1973,13 +1973,17 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
     const jobDetails = Array.isArray(payload.job_details) ? payload.job_details : [];
     let servicesList: string[] = [];
     if (jobDetails.length > 0) {
-      servicesList = jobDetails.map((item: any) => item.installation_detail || item.job_type);
+      servicesList = jobDetails.map((item: any) => typeof item === 'string' ? item : (item.installation_detail || item.job_type || item.service_name || 'งานบริการ'));
     } else if (Array.isArray(payload.services)) {
       servicesList = payload.services;
     } else if (payload.job_info?.project_sub_type) {
       servicesList = [payload.job_info.project_sub_type];
     } else {
       servicesList = ['งานบริการ'];
+    }
+    servicesList = servicesList.filter(Boolean);
+    if (servicesList.length === 0 && payload.job_info?.project_sub_type) {
+      servicesList = [payload.job_info.project_sub_type];
     }
 
     const serviceName = servicesList[0] || 'งานติดตั้ง';

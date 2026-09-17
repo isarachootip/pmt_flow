@@ -783,6 +783,10 @@
                             <p class="text-xs text-muted-foreground mt-0.5">คิวงานคำสั่งซื้อใหม่ พร้อมระบบจัดการแบบแปลน CAD/3D และประมาณการราคา BOQ แบบ One-Stop Shop ครบจบในหน้าจอเดียว</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2.5">
+                            <div class="relative w-64">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
+                                <input type="text" id="jobs-table-search" oninput="app.filterJobsTable()" placeholder="ค้นหาเลขที่งาน, VFIX, Ticket, ลูกค้า..." class="w-full bg-card border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-brand-500 shadow-2xs">
+                            </div>
                             <select id="filter-service" onchange="app.renderJobs()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-brand-500">
                                 <option value="all">ทุกประเภทบริการ</option>
                                 <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>

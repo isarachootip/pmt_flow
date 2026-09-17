@@ -1485,7 +1485,7 @@ app.post('/api/v1/integration/orders', async (req, res) => {
         const jobDetails = Array.isArray(payload.job_details) ? payload.job_details : [];
         let servicesList = [];
         if (jobDetails.length > 0) {
-            servicesList = jobDetails.map((item) => item.installation_detail || item.job_type);
+            servicesList = jobDetails.map((item) => typeof item === 'string' ? item : (item.installation_detail || item.job_type || item.service_name || 'งานบริการ'));
         }
         else if (Array.isArray(payload.services)) {
             servicesList = payload.services;
@@ -1495,6 +1495,10 @@ app.post('/api/v1/integration/orders', async (req, res) => {
         }
         else {
             servicesList = ['งานบริการ'];
+        }
+        servicesList = servicesList.filter(Boolean);
+        if (servicesList.length === 0 && payload.job_info?.project_sub_type) {
+            servicesList = [payload.job_info.project_sub_type];
         }
         const serviceName = servicesList[0] || 'งานติดตั้ง';
         const isQuick = /ติดตั้ง|ซ่อม|ล้าง|แอร์|เครื่องปรับอากาศ|เครื่องทำน้ำอุ่น|ปั้ม|กรองน้ำ|กล้อง/i.test(serviceName) && !/รีโนเวท|ต่อเติม|renovate/i.test(serviceName);

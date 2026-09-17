@@ -4618,8 +4618,43 @@ const app = {
                 }
             },
 
+            filterJobsTable() {
+                const searchInput = document.getElementById('jobs-table-search');
+                const query = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : '';
+                const serviceFilter = document.getElementById('filter-service') ? document.getElementById('filter-service').value : 'all';
+
+                let list = DB.jobs || [];
+                if (serviceFilter !== 'all') {
+                    list = list.filter(j => j.service === serviceFilter);
+                }
+
+                if (query) {
+                    list = list.filter(j => {
+                        const idMatch = String(j.id || '').toLowerCase().includes(query);
+                        const noMatch = String(j.job_no || '').toLowerCase().includes(query);
+                        const refMatch = String(j.external_ref_id || '').toLowerCase().includes(query);
+                        const tktMatch = String(j.ticket_no || j.ticketNo || '').toLowerCase().includes(query);
+                        const bkgMatch = String(j.booking_no || j.bookingNo || '').toLowerCase().includes(query);
+                        const custMatch = String(j.customer || '').toLowerCase().includes(query);
+                        const phoneMatch = String(j.phone || '').toLowerCase().includes(query);
+                        const srvMatch = String(j.service || '').toLowerCase().includes(query);
+                        const techMatch = String(j.tech || '').toLowerCase().includes(query);
+                        return idMatch || noMatch || refMatch || tktMatch || bkgMatch || custMatch || phoneMatch || srvMatch || techMatch;
+                    });
+                    this.renderJobs(list);
+                } else {
+                    this.renderJobs();
+                }
+            },
+
             handleGlobalSearch(event) {
                 const query = (event && event.target && event.target.value) ? event.target.value.trim().toLowerCase() : '';
+                // Sync to jobs-table-search input if it exists
+                const tblSearch = document.getElementById('jobs-table-search');
+                if (tblSearch && tblSearch.value !== query) {
+                    tblSearch.value = query;
+                }
+
                 if (!query) {
                     if (this.state.currentView === 'jobs') this.renderJobs();
                     else if (this.state.currentView === 'dashboard') this.renderDashboard();
@@ -4631,11 +4666,13 @@ const app = {
                     const idMatch = String(j.id || '').toLowerCase().includes(query);
                     const noMatch = String(j.job_no || '').toLowerCase().includes(query);
                     const refMatch = String(j.external_ref_id || '').toLowerCase().includes(query);
+                    const tktMatch = String(j.ticket_no || j.ticketNo || '').toLowerCase().includes(query);
+                    const bkgMatch = String(j.booking_no || j.bookingNo || '').toLowerCase().includes(query);
                     const custMatch = String(j.customer || '').toLowerCase().includes(query);
                     const phoneMatch = String(j.phone || '').toLowerCase().includes(query);
                     const srvMatch = String(j.service || '').toLowerCase().includes(query);
                     const techMatch = String(j.tech || '').toLowerCase().includes(query);
-                    return idMatch || noMatch || refMatch || custMatch || phoneMatch || srvMatch || techMatch;
+                    return idMatch || noMatch || refMatch || tktMatch || bkgMatch || custMatch || phoneMatch || srvMatch || techMatch;
                 });
 
                 if (this.state.currentView === 'jobs') {

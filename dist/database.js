@@ -535,10 +535,14 @@ async function dbLoadJobs(filters) {
             }
             if (filters.search) {
                 const q = String(filters.search).toLowerCase();
-                list = list.filter(j => (j.id && j.id.toLowerCase().includes(q)) ||
-                    (j.customer && j.customer.toLowerCase().includes(q)) ||
-                    (j.phone && j.phone.includes(q)) ||
-                    (j.service && j.service.toLowerCase().includes(q)));
+                list = list.filter(j => (j.id && String(j.id).toLowerCase().includes(q)) ||
+                    (j.job_no && String(j.job_no).toLowerCase().includes(q)) ||
+                    (j.external_ref_id && String(j.external_ref_id).toLowerCase().includes(q)) ||
+                    (j.booking_no && String(j.booking_no).toLowerCase().includes(q)) ||
+                    (j.ticket_no && String(j.ticket_no).toLowerCase().includes(q)) ||
+                    (j.customer && String(j.customer).toLowerCase().includes(q)) ||
+                    (j.phone && String(j.phone).includes(q)) ||
+                    (j.service && String(j.service).toLowerCase().includes(q)));
             }
         }
         return list;
@@ -553,7 +557,7 @@ async function dbGetJob(jobNoOrId) {
         return null;
     try {
         const target = String(jobNoOrId);
-        const res = await exports.pool.query('SELECT * FROM core_jobs WHERE job_no = $1 OR (id::text = $1) LIMIT 1', [target]);
+        const res = await exports.pool.query('SELECT * FROM core_jobs WHERE job_no = $1 OR (id::text = $1) OR external_ref_id = $1 OR booking_no = $1 OR ticket_no = $1 LIMIT 1', [target]);
         if (res.rows.length === 0)
             return null;
         return mapDbJobRow(res.rows[0]);
