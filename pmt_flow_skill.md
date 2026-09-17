@@ -189,7 +189,7 @@
 
 ระบบ PMT Flow ควบคุมกระบวนการตั้งแต่ต้นน้ำถึงปลายน้ำ โดยแบ่งประเภทงานออกเป็น 2 สายหลัก:
 - **Renovate Projects (งานปรับปรุง/ต่อเติม)**: ดำเนินงานครบ 6 ขั้นตอน (Step 1 ➔ Step 2 ➔ Step 3 ➔ Step 4 ➔ Step 5 [On-site QC & Advance Booking] ➔ Step 6)
-- **Quick Services (งานบริการติดตั้งด่วน)**: ดำเนินงานแบบ Fast-track (Step 1 ➔ Step 2 ➔ ข้าม Step 3-4 ตรงเข้า Step 5 [QC Online จากภาพถ่าย Visit Plan] ➔ Step 6)
+- **Quick Services (งานบริการติดตั้งด่วน)**: ดำเนินงานแบบ Fast-track (Step 1 ➔ ข้าม Step 2, 3, 4 ตรงเข้า Step 5 [QC Online จากภาพถ่าย Visit Plan] ➔ Step 6) ในหน้าจอ One-Stop Studio จะ Disable Step 2 (Design) และ Step 3 (BOQ) อัตโนมัติ ข้อมูลช่างจะถูก STAMP มาจาก INT โดยตรง และไม่ต้องไปหน้า Ticket เมื่อกด Save (บันทึกข้อมูล) จะวิ่งตรงเข้าคิวตรวจ QC Online ทันทีเพื่อปิดงาน
 
 รายละเอียดขั้นตอนหลัก 6 ขั้นตอน:
 1. **Step 1: รับเรื่อง & เปิดใบงาน (Survey / Order Intake)** - รับงานจากภายนอก/INT หรือสร้าง Order ภายใน พร้อมระบบนัดหมายสำรวจหน้างาน

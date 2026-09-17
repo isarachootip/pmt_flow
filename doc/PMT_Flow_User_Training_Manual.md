@@ -61,9 +61,9 @@ flowchart LR
 graph TD
     S1["Step 1: ศูนย์รับ Order, Design & BOQ Studio<br/>(Intake + CAD Blueprints + BOQ Pricing)"]
     
-    S1 --> S2["Step 2: บันทึก Ticket & แนบสลิปใบเสร็จ<br/>(Tickets & Receipts)"]
+    S1 -->|Quick Services (Fast-track to QC)| S5["Step 5: ตรวจรับงาน QC<br/>(QC Online ผ่านรูปถ่ายหน้างาน)"]
+    S1 -->|Renovate Projects| S2["Step 2: บันทึก Ticket & แนบสลิปใบเสร็จ<br/>(Tickets & Receipts)"]
     
-    S2 -->|Quick Services (Fast-track)| S5["Step 5: ตรวจรับงาน QC<br/>(QC Online ผ่านรูปถ่ายหน้างาน)"]
     S2 -->|Renovate Projects| S3["Step 3: เตรียมแผนงานและทีมช่าง<br/>(Labor-to-Task Conversion & Assign Tech)"]
     
     S3 --> S4["Step 4: ติดตั้ง & แผนงาน Gantt<br/>(Gantt Projects Timeline & Daily Work Logs 24h)"]
@@ -87,19 +87,17 @@ graph TD
    - **แท็บ 2 (แบบแปลน & CAD Studio):** เลือกโซนงาน (เช่น ครัว, ห้องน้ำ) และแนบไฟล์แปลนติดตั้ง CAD/PDF
    - **แท็บ 3 (รายการถอดราคา BOQ):** บันทึกรายการวัสดุและค่าแรง คำนวณยอดเงิน Subtotal, ส่วนลด และ Grand Total (No VAT) แบบ Real-time
 3. **การส่งต่องาน:**
-   - ตรวจสอบความพร้อมของข้อมูลทั้ง 3 แท็บ
-   - คลิกปุ่ม **`🚀 ยืนยันข้อมูล & ส่งต่อไปขั้นตอนถัดไป`** เพื่อส่งต่องานเข้าสู่ Step 2 (บันทึก Ticket & แปลง Project) ทันที
+   - **งานบริการด่วน (Quick Services):** ระบบจะ **Disable Step 2 (Design) และ Step 3 (BOQ)** โดยอัตโนมัติ ข้อมูลช่างถูก **STAMP ตรงมาจากระบบ INT** และไม่ต้องไปหน้า Ticket เมื่อกดปุ่ม **Save (บันทึกข้อมูล)** หรือ **🚀 บันทึก & วิ่งไปหน้า QC ทันที** ระบบจะส่งตรงเข้าคิวตรวจ **Step 5: ตรวจรับงาน QC (QC Online)** ทันทีเพื่อปิดงาน
+   - **งานโครงการปรับปรุง (Renovate Projects):** ตรวจสอบความพร้อมของข้อมูลทั้ง 3 แท็บ (ผ่านเกณฑ์ BOQ) แล้วคลิกปุ่ม **`🚀 อนุมัติ & ส่งต่อไปเปิด Ticket`** เพื่อส่งต่องานเข้าสู่ Step 2 (บันทึก Ticket & แปลง Project)
 
 ---
 
-### Step 2: บันทึก Ticket & แปลง Project (Tickets & Receipts / Slips)
+### Step 2: บันทึก Ticket & แปลง Project (Tickets & Receipts / Slips - เฉพาะงาน Renovate)
 *(สำหรับคู่มือฝึกอบรมฉบับสมบูรณ์ โปรดดูที่: [คู่มือการใช้งาน_Step4_บันทึกTicketและใบเสร็จ.md](คู่มือการใช้งาน_Step4_บันทึกTicketและใบเสร็จ.md))*
 
-1. เปิดใบสั่งงาน (Work Ticket) สำหรับมอบหมายให้ทีมช่างเข้าปฏิบัติงาน
+1. เปิดใบสั่งงาน (Work Ticket) สำหรับมอบหมายให้ทีมช่างเข้าปฏิบัติงานโครงการ Renovate
 2. บันทึกและแนบหลักฐานสลิปการชำระเงิน หรือใบเสร็จรับเงินจากลูกค้า
-3. เมื่อตรวจสอบความถูกต้องเรียบร้อย:
-   - งาน Quick Services: ส่งลัดไปยัง **Step 5: ตรวจรับงาน QC (QC Online)**
-   - งาน Renovate: ส่งต่อไปยัง **Step 3: เตรียมแผนงานและทีมช่าง (Project Conversion)**
+3. เมื่อตรวจสอบความถูกต้องเรียบร้อย ส่งต่อไปยัง **Step 3: เตรียมแผนงานและทีมช่าง (Project Conversion)**
 
 ---
 

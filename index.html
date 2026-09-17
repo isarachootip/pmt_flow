@@ -1741,7 +1741,7 @@
                             <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0">🧾</span>
                             <div>
                                 <span class="font-bold">คิวงาน Step 2 (Tickets & Receipts Queue):</span>
-                                <span class="text-muted-foreground ml-1">แสดงเฉพาะงานที่รอออก Ticket ชำระเงินหรือรอแนบสลิปใบเสร็จ เมื่อบันทึกการชำระเงินเรียบร้อย สำหรับงานประเภท Quick Service จะส่งไปรอตรวจที่คิว QC Online ทันที (ตรวจรูปถ่ายจาก Visit Plan) ส่วนงาน Renovate สามารถกดส่งต่อไปเตรียมแผนงานและทีมช่าง (Step 3)</span>
+                                <span class="text-muted-foreground ml-1">แสดงเฉพาะงานโครงการปรับปรุง (Renovate) ที่รอออก Ticket ชำระเงินหรือรอแนบสลิปใบเสร็จ (สำหรับงานบริการด่วน Quick Services ระบบจะ Fast-track ข้าม Step 2-3 และ Ticket ตรงไปยังฝ่าย QC Online ทันที) ส่วนงาน Renovate เมื่อบันทึกแล้วสามารถกดส่งต่อไปเตรียมแผนงานและทีมช่าง (Step 3)</span>
                             </div>
                         </div>
                         <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold shrink-0">Single State Queue</span>
@@ -5330,6 +5330,25 @@
                                     </ul>
                                 </div>
                             </details>
+
+                            <!-- Q16: Quick Services Fast-track Workflow & Direct QC Transition -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q16:</span>
+                                        <span>กระบวนการ Fast-track สำหรับงานบริการด่วน (Quick Services) ทำงานอย่างไร มีขั้นตอนใดบ้าง และเหตุใดจึงปิด Step 2-3 และไม่ต้องไป Ticket?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> งานบริการด่วน (Quick Services เช่น ติดตั้งเครื่องปรับอากาศ, เครื่องทำน้ำอุ่น, ปั๊มแท็งก์น้ำ, โซลาร์เซลล์, กล้องวงจรปิด) เป็นงานที่มีแบบและราคามาตรฐานชัดเจน ระบบจึงออกแบบให้ทำงานแบบ <strong>Fast-track 1-Click to QC</strong> โดยสมบูรณ์:</p>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
+                                        <li><strong>ปิด Step 2 (Design) & Step 3 (BOQ) อัตโนมัติ:</strong> เมื่อเปิดหน้าต่าง One-Stop Studio สำหรับงาน Quick ระบบจะ Disable แท็บแบบแปลนและ BOQ พร้อมซ่อนเนื้อหาส่วนที่ 2 และ 3 เพื่อให้เจ้าหน้าที่ไม่ต้องเสียเวลากรอกข้อมูลที่ไม่จำเป็น</li>
+                                        <li><strong>STAMP ข้อมูลช่าง มาจาก INT โดยอัตโนมัติ:</strong> ระบบจะดึงข้อมูลทีมช่างและช่างสำรวจที่ส่งมาจากระบบภายนอก (INT) มาใส่ในช่องช่างสำรวจ/ผู้รับผิดชอบทันที พร้อมติดป้ายกำกับ <code class="bg-blue-500/15 text-blue-700 font-bold px-1.5 py-0.2 rounded text-[10px]">STAMP ข้อมูลช่าง มาจาก INT</code></li>
+                                        <li><strong>วิ่งตรงสู่หน้าตรวจรับรอง QC ทันที (Bypass Ticket):</strong> เมื่อกดปุ่ม <strong>"บันทึกข้อมูล (Save)"</strong> หรือ <strong>"🚀 บันทึก & วิ่งไปหน้า QC ทันที"</strong> ระบบจะบันทึกข้อมูลและนำทางไปยังหน้าจอ <strong>ตรวจรับรองคุณภาพ QC (Step 5)</strong> พร้อมเปิดแบบฟอร์ม QC Online ให้ตรวจสอบภาพถ่ายและปิดงานได้ทันที โดยไม่ต้องผ่านหน้า Ticket หรือแปลงเข้า Gantt อีกต่อไป</li>
+                                    </ul>
+                                </div>
+                            </details>
                         </div>
                     </div>
                 </div>
@@ -7234,7 +7253,7 @@
                 </div>
 
                 <div class="hidden sm:flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-muted font-medium">
+                    <span id="unified-studio-scroll-hint" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-muted font-medium">
                         <i class="ph ph-arrows-down-up text-xs"></i> สามารถเลื่อน Scroll ดูต่อเนื่องได้ทั้ง 3 ส่วน
                     </span>
                 </div>
@@ -7263,6 +7282,28 @@
                                 <i class="ph ph-floppy-disk text-sm"></i>
                                 <span>บันทึกข้อมูลสำรวจ</span>
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- Quick Service Fast-track to QC Banner -->
+                    <div id="unified-quick-skip-banner" class="hidden p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-200 shadow-xs">
+                        <div class="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
+                                    <i class="ph ph-lightning-fill"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <h5 class="font-bold text-xs sm:text-sm text-amber-900 dark:text-amber-200">
+                                            ⚡ งานบริการด่วน (Quick Services) — ปิด Step 2 แบบแปลน & Step 3 BOQ อัตโนมัติ
+                                        </h5>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/25 text-amber-900 dark:text-amber-200 border border-amber-500/40">Fast-track to QC</span>
+                                    </div>
+                                    <p class="text-[11px] text-amber-800 dark:text-amber-300 mt-1 leading-relaxed">
+                                        ข้อมูลช่างถูก <strong>STAMP ตรงมาจากระบบ INT</strong> เรียบร้อย และไม่ต้องไปหน้าออก Ticket — เมื่อกด <strong>บันทึก (Save)</strong> ระบบจะวิ่งตรงเข้าสู่ฝ่ายตรวจสอบคุณภาพ (QC Online) ทันทีเพื่อปิดงาน
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -7317,17 +7358,17 @@
                                     <label class="block text-xs font-semibold text-foreground mb-1">รูปแบบโครงการ (Job Pipeline Type)</label>
                                     <div class="grid grid-cols-2 gap-2">
                                         <label class="flex items-center gap-2 p-2.5 rounded-xl border border-border bg-card cursor-pointer hover:border-indigo-500 transition">
-                                            <input type="radio" name="unified-job-type" id="unified-type-quick" value="quick" class="text-indigo-600">
+                                            <input type="radio" name="unified-job-type" id="unified-type-quick" value="quick" class="text-indigo-600" onchange="app.onUnifiedJobTypeChange('quick')">
                                             <div>
                                                 <span class="text-xs font-bold text-foreground block">⚡ Quick Service</span>
-                                                <span class="text-[10px] text-muted-foreground">งานบริการด่วน ส่งเข้า Step 2 Ticket</span>
+                                                <span class="text-[10px] text-muted-foreground">บริการด่วน ข้าม Step 2-3 ตรงไป QC</span>
                                             </div>
                                         </label>
                                         <label class="flex items-center gap-2 p-2.5 rounded-xl border border-border bg-card cursor-pointer hover:border-indigo-500 transition">
-                                            <input type="radio" name="unified-job-type" id="unified-type-renovate" value="renovate" class="text-indigo-600">
+                                            <input type="radio" name="unified-job-type" id="unified-type-renovate" value="renovate" class="text-indigo-600" onchange="app.onUnifiedJobTypeChange('renovate')">
                                             <div>
                                                 <span class="text-xs font-bold text-foreground block">🏗️ Renovate Project</span>
-                                                <span class="text-[10px] text-muted-foreground">ปรับปรุงโครงการ แปลงเข้า Step 3 เตรียมแผนงาน</span>
+                                                <span class="text-[10px] text-muted-foreground">ปรับปรุงโครงการ มี Design & BOQ</span>
                                             </div>
                                         </label>
                                     </div>
@@ -7356,7 +7397,12 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-semibold text-foreground mb-1">ช่างสำรวจ / ผู้รับผิดชอบ (Surveyor / Technician)</label>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-xs font-semibold text-foreground">ช่างสำรวจ / ผู้รับผิดชอบ (Surveyor / Technician)</label>
+                                        <span id="unified-tech-stamp-badge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 inline-flex items-center gap-1 shadow-2xs">
+                                            <i class="ph ph-stamp text-xs"></i> STAMP ข้อมูลช่าง มาจาก INT
+                                        </span>
+                                    </div>
                                     <input type="text" id="unified-intake-tech" placeholder="ระบุชื่อช่างหรือทีมสำรวจ..." class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500">
                                 </div>
 
@@ -7572,8 +7618,8 @@
                         <i class="ph ph-x-circle text-rose-500 text-sm"></i>
                         <span>🚫 Close Lost (ยกเลิกงาน)</span>
                     </button>
-                    <button type="button" onclick="app.saveUnifiedOrderStudio()" class="flex-1 sm:flex-none btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold border border-border hover:bg-muted text-foreground cursor-pointer transition shadow-2xs">
-                        <i class="ph ph-floppy-disk mr-1 text-sm"></i> บันทึกข้อมูล (Save)
+                    <button type="button" id="unified-modal-save-btn" onclick="app.saveUnifiedOrderStudio()" class="flex-1 sm:flex-none btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold border border-border hover:bg-muted text-foreground cursor-pointer transition shadow-2xs">
+                        <i class="ph ph-floppy-disk mr-1 text-sm"></i> <span id="unified-modal-save-btn-text">บันทึกข้อมูล (Save)</span>
                     </button>
                     <button type="button" id="unified-modal-proceed-btn" onclick="app.proceedUnifiedOrderToNextStage()" class="flex-1 sm:flex-none btn-artifact-primary px-6 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white cursor-pointer shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
                         <i class="ph ph-paper-plane-tilt text-sm font-bold"></i>

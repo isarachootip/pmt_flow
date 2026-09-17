@@ -4761,7 +4761,11 @@ const app = {
                             })()}
                         </td>
                         <td class="px-5 py-4">
-                            ${hasBps ? `
+                            ${isQuick ? `
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-muted/80 text-muted-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอนแบบแปลน">
+                                    <i class="ph ph-minus text-[10px]"></i> ข้าม (Quick)
+                                </span>
+                            ` : hasBps ? `
                                 <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'design')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1.5 hover:bg-indigo-500/25 transition cursor-pointer shadow-2xs" title="ดู/แก้ไขแบบแปลน ${bpCount} รายการ">
                                     <i class="ph ph-blueprint text-indigo-600 dark:text-indigo-400"></i>
                                     <span>${bpCount} แบบ (CAD/PDF)</span>
@@ -4774,7 +4778,11 @@ const app = {
                             `}
                         </td>
                         <td class="px-5 py-4">
-                            ${hasBOQ ? `
+                            ${isQuick ? `
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-muted/80 text-muted-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอน BOQ">
+                                    <i class="ph ph-minus text-[10px]"></i> ข้าม (Quick)
+                                </span>
+                            ` : hasBOQ ? `
                                 <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'boq')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 inline-flex items-center gap-1.5 hover:bg-purple-500/25 transition cursor-pointer shadow-2xs" title="ดู/แก้ไข BOQ (${itemsCount} รายการ)">
                                     <i class="ph ph-calculator text-purple-600 dark:text-purple-400"></i>
                                     <span>฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${itemsCount})</span>
@@ -4934,8 +4942,14 @@ const app = {
                     if (!matched) timePreset.value = 'custom';
                 }
 
+                // STAMP ข้อมูลช่าง มาจาก INT
                 const techInp = document.getElementById('unified-intake-tech');
-                if (techInp) techInp.value = job.tech || job.surveyor || '';
+                const stampedTech = job.tech || job.assigned_tech || job.contractor || job.surveyor || (job.raw_payload && (job.raw_payload.contractor || job.raw_payload.tech || job.raw_payload.assigned_tech)) || 'ทีมช่างเทคนิคจาก INT';
+                if (!job.tech || job.tech === 'รอระบุช่าง' || job.tech === '-') {
+                    job.tech = stampedTech;
+                }
+                if (techInp) techInp.value = job.tech;
+
                 const notesInp = document.getElementById('unified-intake-notes');
                 if (notesInp) notesInp.value = job.internal_notes || '';
 
@@ -4950,15 +4964,129 @@ const app = {
                 this.renderUnifiedBOQTable();
                 this.calculateUnifiedBOQSummary();
 
+                // Apply Job Type UI: Disable Step 2 & 3, hide sections, show Fast-track banner
+                this.applyUnifiedJobTypeUI(isQuick);
+
                 // Update Indicators & Metrics
                 this.updateUnifiedStudioIndicators();
 
-                // Show modal & scroll/switch to target section
+                // Show modal & scroll/switch to target section (Quick is strictly locked to intake)
                 this.showModal('modal-unified-order-studio');
-                this.scrollUnifiedStudioTo(initialTab);
+                this.scrollUnifiedStudioTo(isQuick ? 'intake' : initialTab);
+            },
+
+            applyUnifiedJobTypeUI(isQuick) {
+                const tabDesign = document.getElementById('tab-btn-unified-design');
+                const tabBoq = document.getElementById('tab-btn-unified-boq');
+                const secDesign = document.getElementById('unified-sec-design');
+                const secBoq = document.getElementById('unified-sec-boq');
+                const bannerQuick = document.getElementById('unified-quick-skip-banner');
+                const badgeStamp = document.getElementById('unified-tech-stamp-badge');
+                const scrollHint = document.getElementById('unified-studio-scroll-hint');
+                const proceedBtnText = document.getElementById('unified-modal-proceed-btn-text');
+                const saveBtnText = document.getElementById('unified-modal-save-btn-text');
+
+                if (isQuick) {
+                    // 1. Disable Tab 2 (Design) and Tab 3 (BOQ)
+                    if (tabDesign) {
+                        tabDesign.disabled = true;
+                        tabDesign.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-muted/40 text-muted-foreground/50 border border-dashed border-border/80 flex items-center gap-1.5 cursor-not-allowed opacity-40 pointer-events-none transition shadow-none';
+                        const badge = document.getElementById('tab-unified-design-badge');
+                        if (badge) {
+                            badge.innerText = 'ข้าม';
+                            badge.className = 'px-1.5 py-0.2 rounded-full text-[10px] bg-muted text-muted-foreground font-mono font-bold';
+                        }
+                    }
+                    if (tabBoq) {
+                        tabBoq.disabled = true;
+                        tabBoq.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-muted/40 text-muted-foreground/50 border border-dashed border-border/80 flex items-center gap-1.5 cursor-not-allowed opacity-40 pointer-events-none transition shadow-none';
+                        const badge = document.getElementById('tab-unified-boq-badge');
+                        if (badge) {
+                            badge.innerText = 'ข้าม';
+                            badge.className = 'px-1.5 py-0.2 rounded-full text-[10px] bg-muted text-muted-foreground font-mono font-bold';
+                        }
+                    }
+
+                    // 2. Hide Sections 2 and 3 in modal body
+                    if (secDesign) secDesign.classList.add('hidden');
+                    if (secBoq) secBoq.classList.add('hidden');
+
+                    // 3. Show Fast-track banner & STAMP badge
+                    if (bannerQuick) bannerQuick.classList.remove('hidden');
+                    if (badgeStamp) badgeStamp.classList.remove('hidden');
+                    if (scrollHint) {
+                        scrollHint.innerHTML = '<i class="ph ph-lightning text-amber-500 text-xs"></i> โหมด Quick Services: แสดงเฉพาะส่วนที่ 1 และวิ่งตรงไป QC';
+                    }
+
+                    // 4. Update action buttons
+                    if (proceedBtnText) {
+                        proceedBtnText.innerHTML = '<i class="ph ph-lightning-fill mr-1"></i> บันทึก & วิ่งไปหน้า QC ทันที (ปิดงาน)';
+                    }
+                    if (saveBtnText) {
+                        saveBtnText.innerText = 'บันทึก & วิ่งไป QC';
+                    }
+                } else {
+                    // Enable Tabs & Sections for Renovate
+                    if (tabDesign) {
+                        tabDesign.disabled = false;
+                        tabDesign.classList.remove('opacity-40', 'cursor-not-allowed', 'pointer-events-none', 'border-dashed');
+                        const badge = document.getElementById('tab-unified-design-badge');
+                        const bps = (DB.blueprints || []).filter(b => b.jobId === this.state.unifiedStudioJobId);
+                        if (badge) {
+                            badge.innerText = bps.length;
+                            badge.className = 'px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-mono font-bold';
+                        }
+                    }
+                    if (tabBoq) {
+                        tabBoq.disabled = false;
+                        tabBoq.classList.remove('opacity-40', 'cursor-not-allowed', 'pointer-events-none', 'border-dashed');
+                        const badge = document.getElementById('tab-unified-boq-badge');
+                        const job = this.getUnifiedStudioJob();
+                        const bTotal = (job && job.boq_grand_total) || 0;
+                        if (badge) {
+                            badge.innerText = `${bTotal > 0 ? (bTotal.toLocaleString('th-TH') + ' ฿') : '0 ฿'}`;
+                            badge.className = 'px-1.5 py-0.2 rounded-full text-[10px] bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono font-bold';
+                        }
+                    }
+                    if (secDesign) secDesign.classList.remove('hidden');
+                    if (secBoq) secBoq.classList.remove('hidden');
+                    if (bannerQuick) bannerQuick.classList.add('hidden');
+                    if (badgeStamp) badgeStamp.classList.add('hidden');
+                    if (scrollHint) {
+                        scrollHint.innerHTML = '<i class="ph ph-arrows-down-up text-xs"></i> สามารถเลื่อน Scroll ดูต่อเนื่องได้ทั้ง 3 ส่วน';
+                    }
+                    if (proceedBtnText) {
+                        proceedBtnText.innerHTML = '🚀 อนุมัติ & ส่งเข้าสู่แผนงาน';
+                    }
+                    if (saveBtnText) {
+                        saveBtnText.innerText = 'บันทึกข้อมูล (Save)';
+                    }
+                }
+            },
+
+            onUnifiedJobTypeChange(type) {
+                const job = this.getUnifiedStudioJob();
+                if (!job) return;
+                const isQuick = (type === 'quick');
+                job.job_type = type;
+                if (isQuick) {
+                    const stampedTech = job.tech || job.assigned_tech || job.contractor || job.surveyor || (job.raw_payload && (job.raw_payload.contractor || job.raw_payload.tech || job.raw_payload.assigned_tech)) || 'ทีมช่างเทคนิคจาก INT';
+                    if (!job.tech || job.tech === 'รอระบุช่าง' || job.tech === '-') job.tech = stampedTech;
+                    const techInp = document.getElementById('unified-intake-tech');
+                    if (techInp) techInp.value = job.tech;
+                    this.scrollUnifiedStudioTo('intake');
+                }
+                this.applyUnifiedJobTypeUI(isQuick);
+                this.updateUnifiedStudioTabs();
+                this.updateUnifiedStudioIndicators();
             },
 
             scrollUnifiedStudioTo(sec) {
+                const job = this.getUnifiedStudioJob();
+                if (job && this.isQuickJob(job) && (sec === 'design' || sec === 'boq')) {
+                    this.showToast('⚡ งาน Quick Service ข้ามขั้นตอน Design และ BOQ โดยตรง — วิ่งไปหน้า QC เลย');
+                    return;
+                }
                 const secEl = document.getElementById(`unified-sec-${sec}`);
                 const scrollBody = document.getElementById('unified-studio-scroll-body');
                 if (secEl && scrollBody) {
@@ -5020,6 +5148,15 @@ const app = {
                     const icon = document.getElementById(sc.iconId);
                     const badge = document.getElementById(sc.badgeId);
                     const isActive = (activeSec === sc.key);
+
+                    if (isQuick && (sc.key === 'design' || sc.key === 'boq')) {
+                        if (btn) {
+                            btn.disabled = true;
+                            btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-muted/40 text-muted-foreground/50 border border-dashed border-border/80 flex items-center gap-1.5 cursor-not-allowed opacity-40 pointer-events-none transition shadow-none';
+                        }
+                        if (badge) badge.className = 'hidden';
+                        return;
+                    }
 
                     // 1. Icon color & style (Turns Vibrant Green when Passed!)
                     if (icon) {
@@ -5899,18 +6036,20 @@ const app = {
                 const proceedBtnText = document.getElementById('unified-modal-proceed-btn-text');
 
                 if (isQuick) {
-                    // Quick Services: Proceed directly to Step 2 (Tickets)
+                    // Quick Services: Fast-track directly to QC Online (Bypass Step 2-3 & Ticket)
                     if (proceedBtn) {
                         proceedBtn.disabled = false;
-                        proceedBtn.className = 'flex-1 sm:flex-none btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white cursor-pointer shadow-md transition flex items-center justify-center gap-1.5';
-                        proceedBtn.title = 'อนุมัติคำสั่งซื้อและส่งต่อไปออก Ticket ด่วน (Step 2)';
+                        proceedBtn.className = 'flex-1 sm:flex-none btn-artifact-primary px-6 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white cursor-pointer shadow-md transition flex items-center justify-center gap-1.5';
+                        proceedBtn.title = 'บันทึกข้อมูลและส่งตรงไปยังหน้า QC เพื่อตรวจรับรองและปิดงานทันที (ข้าม Step 2-3 และ Ticket)';
                     }
                     if (proceedBtnText) {
-                        proceedBtnText.innerText = '🚀 อนุมัติ & ออก Ticket ด่วน';
+                        proceedBtnText.innerHTML = '<i class="ph ph-lightning-fill text-sm"></i> บันทึก & วิ่งไปหน้า QC ทันที (ปิดงาน)';
                     }
+                    const saveBtnText = document.getElementById('unified-modal-save-btn-text');
+                    if (saveBtnText) saveBtnText.innerText = 'บันทึก & วิ่งไป QC';
                     if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
                     if (validationMsg) {
-                        validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ งาน Quick Service พร้อมส่งต่อเปิด Ticket & แนบสลิป (Step 2)</span>';
+                        validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5"><i class="ph ph-check-circle-fill text-base"></i> งาน Quick Service ข้ามขั้นตอน Step 2-3 และไม่ต้องไป Ticket พร้อมส่งตรงเข้า QC เพื่อปิดงาน</span>';
                     }
                 } else {
                     // Renovate Projects: MANDATORY BOQ BEFORE STEP 2 (CONVERSION)
@@ -5955,6 +6094,7 @@ const app = {
                 const job = this.getUnifiedStudioJob();
                 if (!job) return;
                 const jobId = job.id;
+                const isQuick = this.isQuickJob(job);
 
                 // Make sure latest BOQ summary is computed and stored
                 this.calculateUnifiedBOQSummary();
@@ -5997,6 +6137,42 @@ const app = {
                 job.step1_passed = true;
                 if (!job.step_timestamps.step1_intake_at) job.step_timestamps.step1_intake_at = now.toISOString();
 
+                // If Quick Service: Save and jump straight to QC Online!
+                if (isQuick) {
+                    job.pmt_accepted = true;
+                    job.status = 'QC_PENDING';
+                    job.qc_inspection_type = 'ONLINE';
+                    job.qc_type = 'ONLINE';
+                    job.progress = Math.max(job.progress || 0, 85);
+                    const nowIso = now.toISOString();
+                    job.step_timestamps.step1_accepted_at = nowIso;
+                    job.step_timestamps.qc_pending_at = nowIso;
+                    job.step_timestamps.step5_skipped_at = nowIso;
+                    if (!job.photos || job.photos.length === 0) {
+                        job.photos = this.getSampleVisitPlanPhotos(job);
+                    }
+                    this.persistJobs();
+                    this.renderJobs();
+                    this.updateStepBadges();
+                    this.hideModal('modal-unified-order-studio');
+                    this.showToast(`💾 บันทึกข้อมูลงาน Quick [${jobId}] เรียบร้อย! วิ่งตรงไปหน้า QC Online เพื่อปิดงานทันที...`, 'success');
+                    fetch(`/api/v1/jobs/${jobId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            status: job.status,
+                            overall_progress: job.progress,
+                            assigned_tech: job.tech,
+                            qc_inspection_type: job.qc_inspection_type,
+                            step_timestamps: job.step_timestamps
+                        })
+                    }).catch(() => {});
+                    setTimeout(() => {
+                        this.goToQC(jobId);
+                    }, 350);
+                    return;
+                }
+
                 const bps = (DB.blueprints || []).filter(b => b.jobId === jobId || String(b.jobId) === String(jobId));
                 if (bps.length > 0 || this.isQuickJob(job)) {
                     job.step2_passed = true;
@@ -6021,6 +6197,12 @@ const app = {
                 const jobId = job.id;
 
                 const isQuick = this.isQuickJob(job);
+                // For Quick Service: Save and immediately fast-track to QC!
+                if (isQuick) {
+                    this.saveUnifiedOrderStudio();
+                    return;
+                }
+
                 const boqItems = job.boq_items || [];
 
                 // STRICT GATEKEEPER: Renovate MUST pass BOQ before moving forward!
@@ -6034,7 +6216,7 @@ const app = {
                 this.saveUnifiedOrderStudio();
                 job.pmt_accepted = true;
                 job.status = 'IN_PROGRESS';
-                job.progress = Math.max(job.progress || 0, isQuick ? 60 : 45);
+                job.progress = Math.max(job.progress || 0, 45);
 
                 const now = new Date();
                 if (!job.step_timestamps) job.step_timestamps = {};
@@ -6072,9 +6254,9 @@ const app = {
 
                 const ticketJobIds = new Set((DB.tickets || []).map(t => t.job_id || t.jobId));
                 const step2QueueCount = allJobs.filter(j => 
+                    !this.isQuickJob(j) &&
                     !ticketJobIds.has(j.id) &&
                     (
-                        (this.isQuickJob(j) && (j.pmt_accepted || (j.step_timestamps && (j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at)))) ||
                         (j.boq_items && j.boq_items.length > 0) ||
                         (j.step_timestamps && (j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at))
                     )
@@ -12752,9 +12934,10 @@ const app = {
                     }
                     if (tktStatusFilter === 'STEP4_QUEUE') {
                         tableJobs = tableJobs.filter(j => {
-                            const isEligible = (j.boq_items && j.boq_items.length > 0) || 
-                                              (j.step_timestamps && j.step_timestamps.step4_ticket_at) ||
-                                              (this.isQuickJob(j) && j.pmt_accepted);
+                            const isEligible = !this.isQuickJob(j) && (
+                                (j.boq_items && j.boq_items.length > 0) || 
+                                (j.step_timestamps && (j.step_timestamps.step4_ticket_at || j.step_timestamps.step2_ticket_at))
+                            );
                             const hasNoTicket = !(ticketsByJob[j.id] && ticketsByJob[j.id].length > 0);
                             return isEligible && hasNoTicket;
                         });
