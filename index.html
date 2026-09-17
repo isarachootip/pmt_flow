@@ -409,6 +409,17 @@
                             </a>
                         </div>
                     </div>
+
+                    <!-- เมนูราคาโครงการ (งานที่ปิดแล้ว รอใส่ราคา) -->
+                    <div class="pt-1">
+                        <a href="#" onclick="app.navigate('project-pricing')" class="nav-link flex items-center justify-between px-3 py-2 rounded-xl text-foreground hover:bg-muted transition-all cursor-pointer" id="nav-project-pricing">
+                            <div class="flex items-center gap-2.5">
+                                <i class="ph ph-currency-circle-dollar text-xl text-purple-600 shrink-0"></i>
+                                <span class="font-bold text-sm text-foreground">ราคาโครงการ</span>
+                            </div>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-700 font-mono font-bold shrink-0" id="sidebar-pricing-count">0</span>
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Group: การจัดการระบบ -->
@@ -3831,6 +3842,155 @@
                     </div>
                 </div>
 
+                <!-- ============================================================================= -->
+                <!-- 8.5. PROJECT PRICING (งานที่ปิดแล้ว รอใส่ราคา - แยกราคาทุนและราคาขาย NO VAT)    -->
+                <!-- ============================================================================= -->
+                <div id="page-project-pricing" class="page-view hidden-view space-y-6">
+                    <!-- Page Header -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-600 flex items-center justify-center border border-purple-500/30 shadow-2xs text-xl shrink-0">
+                                    <i class="ph ph-currency-circle-dollar"></i>
+                                </span>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">ราคาโครงการ (งานที่ปิดแล้ว รอใส่ราคา)</h2>
+                            </div>
+                            <p class="text-xs text-muted-foreground mt-1">คัดกรองงานโครงการที่ปิดงาน/จบงานแล้ว สำหรับตรวจสอบและบันทึกราคาทุน-ราคาขาย (คำนวณราคาสุทธิ ไม่คิด VAT 7%)</p>
+                        </div>
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            <button type="button" onclick="app.exportProjectPricingExcel()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-emerald-700 hover:bg-emerald-50 border-emerald-500/30 cursor-pointer shadow-xs transition" title="ส่งออกตารางราคาโครงการเป็นไฟล์ Excel (.xlsx)">
+                                <i class="ph ph-file-xls text-base text-emerald-600"></i>
+                                <span>Export Excel</span>
+                            </button>
+                            <button type="button" onclick="app.exportProjectPricingCSV()" class="btn-artifact-secondary px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer shadow-xs" title="ส่งออกตารางราคาเป็นไฟล์ CSV">
+                                <i class="ph ph-download-simple text-sm"></i>
+                                <span>CSV</span>
+                            </button>
+                            <button type="button" onclick="app.openStepAuditReportModal()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-purple-700 bg-purple-50 hover:bg-purple-100 border-purple-300 shadow-xs cursor-pointer transition" title="เปิดหน้าต่างตรวจสอบ Audit ทุก Transaction">
+                                <i class="ph ph-clock-counter-clockwise text-sm"></i>
+                                <span>Audit Trail</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 3 KPI Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div onclick="app.filterProjectPricingByStatus('all')" class="p-4 rounded-2xl bg-card border border-border hover:border-purple-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-11 h-11 rounded-xl bg-purple-500/10 text-purple-600 border border-purple-500/20 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                                    <i class="ph ph-folder"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold text-muted-foreground uppercase">งานปิดแล้วทั้งหมด</p>
+                                    <div class="flex items-baseline gap-1.5 mt-0.5">
+                                        <span id="kpi-pricing-total" class="text-2xl font-black font-display text-foreground font-mono">0</span>
+                                        <span class="text-xs text-muted-foreground">รายการ</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono font-semibold">ทั้งหมด</span>
+                        </div>
+
+                        <div onclick="app.filterProjectPricingByStatus('pending')" class="p-4 rounded-2xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                                    <i class="ph ph-hourglass-high"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold text-muted-foreground uppercase">รอใส่ราคา</p>
+                                    <div class="flex items-baseline gap-1.5 mt-0.5">
+                                        <span id="kpi-pricing-pending" class="text-2xl font-black font-display text-amber-600 font-mono">0</span>
+                                        <span class="text-xs text-muted-foreground">รายการ</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 font-mono font-semibold">Pending</span>
+                        </div>
+
+                        <div onclick="app.filterProjectPricingByStatus('completed')" class="p-4 rounded-2xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                                    <i class="ph ph-check-circle"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold text-muted-foreground uppercase">บันทึกราคาเรียบร้อย</p>
+                                    <div class="flex items-baseline gap-1.5 mt-0.5">
+                                        <span id="kpi-pricing-completed" class="text-2xl font-black font-display text-emerald-600 font-mono">0</span>
+                                        <span class="text-xs text-muted-foreground">รายการ</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 font-mono font-semibold">Completed</span>
+                        </div>
+                    </div>
+
+                    <!-- Search & Filter Controls Bar -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/30 p-3.5 rounded-2xl border border-border">
+                        <div class="flex flex-wrap items-center gap-2.5 flex-1">
+                            <div class="relative flex-1 sm:max-w-md">
+                                <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
+                                <input type="text" id="project-pricing-search-input" oninput="app.filterProjectPricing()" placeholder="ค้นหาด้วย Job ID, เลขที่ INT, ชื่อลูกค้า, ผู้สร้าง, งานบริการ, ทีมช่าง..." class="w-full pl-9 pr-3.5 py-2 rounded-xl text-xs bg-card border border-border text-foreground focus:outline-none focus:border-purple-500 shadow-2xs">
+                            </div>
+                            <div class="flex items-center p-1 bg-card rounded-xl border border-border shadow-2xs text-xs font-medium">
+                                <button type="button" onclick="app.filterProjectPricingByStatus('all')" id="btn-pricing-tab-all" class="px-3 py-1.5 rounded-lg font-semibold text-foreground bg-muted transition cursor-pointer">
+                                    ทั้งหมด
+                                </button>
+                                <button type="button" onclick="app.filterProjectPricingByStatus('pending')" id="btn-pricing-tab-pending" class="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground transition cursor-pointer">
+                                    ⏳ รอใส่ราคา
+                                </button>
+                                <button type="button" onclick="app.filterProjectPricingByStatus('completed')" id="btn-pricing-tab-completed" class="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground transition cursor-pointer">
+                                    ✅ ใส่ราคาแล้ว
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs text-muted-foreground whitespace-nowrap self-end sm:self-center">
+                            <span>แสดง <span id="project-pricing-visible-count" class="font-bold text-foreground font-mono">0</span> จาก <span id="project-pricing-total-count" class="font-bold text-foreground font-mono">0</span> รายการ</span>
+                        </div>
+                    </div>
+
+                    <!-- Project Pricing Table (Strict List View) -->
+                    <div class="artifact-card overflow-hidden shadow-xs border border-border bg-card rounded-2xl">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="border-b border-border bg-muted/40 text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">
+                                        <th class="py-3.5 px-4 w-12 text-center">#</th>
+                                        <th class="py-3.5 px-4">รหัสงาน & REF INT</th>
+                                        <th class="py-3.5 px-4">ข้อมูลลูกค้า</th>
+                                        <th class="py-3.5 px-4">ประเภทบริการ & ทีมช่าง</th>
+                                        <th class="py-3.5 px-4 text-center">สถานะราคา</th>
+                                        <th class="py-3.5 px-4 text-right bg-blue-500/5 text-blue-900 font-bold">ราคาทุนรวม (ทุน)</th>
+                                        <th class="py-3.5 px-4 text-right bg-purple-500/5 text-purple-900 font-bold">ราคาขายรวม (Grand Total)</th>
+                                        <th class="py-3.5 px-4 text-center w-28">การจัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border/60" id="project-pricing-table-body">
+                                    <!-- Populated dynamically by app.renderProjectPricingTable() -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination Footer -->
+                        <div class="p-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground bg-muted/15">
+                            <div class="flex items-center gap-2">
+                                <span>แสดง</span>
+                                <select id="project-pricing-page-size" onchange="app.changeProjectPricingPageSize(this.value)" class="bg-card border border-border rounded-lg px-2.5 py-1 text-xs text-foreground font-medium focus:outline-none focus:border-purple-500 shadow-2xs cursor-pointer">
+                                    <option value="10" selected>10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                </select>
+                                <span>รายการ ต่อหน้า</span>
+                            </div>
+                            <div class="flex items-center gap-1" id="project-pricing-pagination-controls">
+                                <!-- Pagination buttons -->
+                            </div>
+                            <div class="font-medium text-foreground text-xs" id="project-pricing-total-label">
+                                ทั้งหมด 0 รายการ
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 9. REPORT (ภาพรวมผลการดำเนินงาน แยกตามประเภทงาน และรายได้) VIEW -->
                 <div id="page-report" class="page-view hidden-view space-y-6">
                     <!-- Page Header & Filters Bar -->
@@ -4842,6 +5002,26 @@
                                     </button>
                                 </div>
                             </div>
+
+                            <!-- Module 13: Project Pricing (งานที่ปิดแล้ว รอใส่ราคา) -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-purple-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded bg-purple-500/15 text-purple-700 font-mono text-[10px] font-bold border border-purple-500/20">TRN-PMT-PRC01</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">การเงิน & ราคา</span>
+                                    </div>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-purple-600 transition">ราคาโครงการ (งานที่ปิดแล้ว รอใส่ราคา)</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">บันทึกราคาโครงการสำหรับงานที่ปิดแล้ว แยกคอลัมน์ "ทุน" และ "ราคาขาย" ชัดเจน คำนวณยอดขายสุทธิอัตโนมัติ ไม่คิด VAT 7% (No VAT) และแสดงราคาทุนอ้างอิง</p>
+                                </div>
+                                <div class="pt-2 border-t border-border flex items-center gap-2">
+                                    <button onclick="app.navigate('project-pricing')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
+                                    </button>
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_บันทึกราคาโครงการ_แยกทุนและราคาขาย.md', 'โมดูล 13: บันทึกราคาโครงการ (แยกราคาทุน vs ราคาขาย No VAT)')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-[11px] font-semibold text-purple-700 flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -5346,6 +5526,27 @@
                                         <li><strong>ปิด Step 2 (Design) & Step 3 (BOQ) อัตโนมัติ:</strong> เมื่อเปิดหน้าต่าง One-Stop Studio สำหรับงาน Quick ระบบจะ Disable แท็บแบบแปลนและ BOQ พร้อมซ่อนเนื้อหาส่วนที่ 2 และ 3 เพื่อให้เจ้าหน้าที่ไม่ต้องเสียเวลากรอกข้อมูลที่ไม่จำเป็น</li>
                                         <li><strong>STAMP ข้อมูลช่าง มาจาก INT โดยอัตโนมัติ:</strong> ระบบจะดึงข้อมูลทีมช่างและช่างสำรวจที่ส่งมาจากระบบภายนอก (INT) มาใส่ในช่องช่างสำรวจ/ผู้รับผิดชอบทันที พร้อมติดป้ายกำกับ <code class="bg-blue-500/15 text-blue-700 font-bold px-1.5 py-0.2 rounded text-[10px]">STAMP ข้อมูลช่าง มาจาก INT</code></li>
                                         <li><strong>วิ่งตรงสู่หน้าตรวจรับรอง QC ทันที (Bypass Ticket):</strong> เมื่อกดปุ่ม <strong>"บันทึกข้อมูล (Save)"</strong> หรือ <strong>"🚀 บันทึก & วิ่งไปหน้า QC ทันที"</strong> ระบบจะบันทึกข้อมูลและนำทางไปยังหน้าจอ <strong>ตรวจรับรองคุณภาพ QC (Step 5)</strong> พร้อมเปิดแบบฟอร์ม QC Online ให้ตรวจสอบภาพถ่ายและปิดงานได้ทันที โดยไม่ต้องผ่านหน้า Ticket หรือแปลงเข้า Gantt อีกต่อไป</li>
+                                    </ul>
+                                </div>
+                            </details>
+
+                            <!-- Q17: Project Pricing (แยกราคาทุน vs ราคาขาย No VAT) -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q17:</span>
+                                        <span>เมนูใหม่ "ราคาโครงการ" (Project Pricing) และระบบบันทึกราคางานที่ปิดแล้ว มีหลักการทำงานอย่างไร เหตุใดจึงแยกราคาทุน vs ราคาขาย และไม่คิด VAT 7%?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> หน้าจอ <strong>"ราคาโครงการ" (`nav-project-pricing`)</strong> ออกแบบมาเพื่อคัดกรองเฉพาะงานที่ปิดงาน/จบงานแล้ว (Closed / Completed Jobs) เพื่อให้เจ้าหน้าที่ฝ่ายราคา ฝ่ายขาย และบริหาร ตรวจสอบและบันทึกราคางานโครงการได้อย่างแม่นยำ:</p>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
+                                        <li><strong>แยกคอลัมน์ "ทุน" และ "ราคาขาย" ชัดเจน:</strong> ตารางราคาในหน้าต่างบันทึกราคาโครงการจะแบ่งคอลัมน์สีฟ้า <code class="bg-blue-500/10 text-blue-900 font-bold px-1.5 py-0.2 rounded text-[10px]">ทุน (฿)</code> และสีม่วง <code class="bg-purple-500/10 text-purple-900 font-bold px-1.5 py-0.2 rounded text-[10px]">ราคาขาย (฿)</code> ไว้อย่างชัดเจน</li>
+                                        <li><strong>สูตรการคำนวณแถวรายการ:</strong> ยอดรวมต่อแถวคำนวณจาก <code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">จำนวน x ราคาขาย</code> เสมอ</li>
+                                        <li><strong>บรรทัดหลังซัมเฉพาะราคาขาย (No VAT 7%):</strong> ยอดรวมทั้งสิ้น (Grand Total) จะรวมเฉพาะยอดราคาขายของหมวดค่าแรงและหมวดค่าวัสดุหลังหักส่วนลด โดย <strong>ไม่ต้องใส่หรือคิด VAT 7%</strong> ตามมาตรฐานงานโครงการ</li>
+                                        <li><strong>ราคาทุนมีไว้สำหรับดูเป็นข้อมูลอ้างอิง:</strong> แสดงกล่อง "ราคาทุนรวม (Total Cost)" สีฟ้าเพื่อเปรียบเทียบต้นทุนจริงหน้างาน โดยไม่นำราคาทุนไปบวกเพิ่มหรือคิดภาษีปนกับราคาขาย</li>
+                                        <li><strong>เครื่องมือช่วยการทำงาน:</strong> รองรับการกดปุ่ม <code class="bg-muted px-1.5 py-0.2 rounded text-[10px] font-bold">ดึงข้อมูลจาก BOQ</code> เพื่อคัดลอกรายการเดิมมาลงราคาได้ทันที และส่งออกเป็น Excel / CSV ได้ในคลิกเดียว</li>
                                     </ul>
                                 </div>
                             </details>
@@ -7563,7 +7764,8 @@
                                     <th class="px-4 py-3 min-w-[320px] bg-slate-100/95 backdrop-blur">รายการวัสดุ / งานบริการ (รายละเอียด)</th>
                                     <th class="px-3 py-3 w-24 text-center bg-slate-100/95 backdrop-blur">จำนวน</th>
                                     <th class="px-3 py-3 w-24 text-center bg-slate-100/95 backdrop-blur">หน่วย</th>
-                                    <th class="px-3.5 py-3 w-32 text-right bg-slate-100/95 backdrop-blur">ราคา/หน่วย (฿)</th>
+                                    <th class="px-3.5 py-3 w-28 text-right bg-blue-50/95 text-blue-900 font-bold backdrop-blur">ทุน (฿)</th>
+                                    <th class="px-3.5 py-3 w-28 text-right bg-purple-50/95 text-purple-900 font-bold backdrop-blur">ราคาขาย (฿)</th>
                                     <th class="px-4 py-3 w-36 text-right bg-slate-100/95 backdrop-blur">รวมเงิน (฿)</th>
                                     <th class="px-2 py-3 w-12 text-center bg-slate-100/95 backdrop-blur">ลบ</th>
                                 </tr>
@@ -7577,6 +7779,10 @@
                     <!-- Financial Summary (Executive Costing Box) -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5 bg-muted/20 p-5 rounded-2xl border border-border">
                         <div class="space-y-2.5 text-xs">
+                            <div class="flex justify-between py-1 border-b border-border/50 text-slate-700 bg-blue-500/5 px-2 rounded">
+                                <span class="font-bold text-blue-900">ราคาทุนรวม (Total Cost):</span>
+                                <span class="font-mono font-bold text-blue-900" id="unified-boq-cost-total">0.00 ฿</span>
+                            </div>
                             <div class="flex justify-between py-1 border-b border-border/50">
                                 <span class="text-muted-foreground">หมวดค่าแรง (Labor Subtotal):</span>
                                 <span class="font-mono font-bold text-foreground" id="unified-boq-labor-total">0.00 ฿</span>
@@ -7998,8 +8204,9 @@
                                     <th class="py-2.5 px-3 w-32 text-center">ประเภท</th>
                                     <th class="py-2.5 px-3 w-20 text-center">จำนวน</th>
                                     <th class="py-2.5 px-3 w-20 text-center">หน่วย</th>
-                                    <th class="py-2.5 px-3 w-28 text-right">ราคา/หน่วย (฿)</th>
-                                    <th class="py-2.5 px-3 w-32 text-right">รวมเป็นเงิน (฿)</th>
+                                    <th class="py-2.5 px-3 w-28 text-right bg-blue-500/10 text-blue-900 font-bold">ทุน (฿)</th>
+                                    <th class="py-2.5 px-3 w-28 text-right bg-purple-500/10 text-purple-900 font-bold">ราคาขาย (฿)</th>
+                                    <th class="py-2.5 px-3 w-32 text-right font-bold">รวมเงิน (฿)</th>
                                     <th class="py-2.5 px-3 w-10 text-center">ลบ</th>
                                 </tr>
                             </thead>
@@ -8023,6 +8230,10 @@
                         </div>
                     </div>
                     <div class="w-full sm:w-80 space-y-1.5 text-xs bg-card p-3.5 rounded-xl border border-border/80">
+                        <div class="flex justify-between text-slate-700 bg-blue-500/5 px-2 py-1 rounded border border-blue-500/20 text-[11px]">
+                            <span>ราคาทุนรวม (ทุน):</span>
+                            <span class="font-mono font-bold text-blue-900" id="modal-boq-cost-val">0.00 ฿</span>
+                        </div>
                         <div class="flex justify-between text-muted-foreground">
                             <span>ราคารวม (Subtotal):</span>
                             <span class="font-mono font-medium text-foreground" id="modal-boq-subtotal-val">0.00 ฿</span>
@@ -9368,6 +9579,184 @@
             <!-- Modal Body Container (Dynamic Content) -->
             <div id="modal-daily-work-log-body" class="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6">
                 <!-- Injected via app.renderDailyWorkLogs(taskId) -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================================= -->
+    <!-- MODAL: PROJECT PRICING (บันทึกราคาโครงการ - แยกราคาทุนและราคาขาย NO VAT)      -->
+    <!-- ============================================================================= -->
+    <div id="modal-project-pricing" onclick="if(event.target === this) app.hideModal('modal-project-pricing')" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-5xl max-h-[94vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-project-pricing-content">
+            <!-- Modal Header -->
+            <div class="p-4 sm:p-5 border-b border-border flex items-center justify-between gap-4 bg-muted/20 shrink-0">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-600 flex items-center justify-center text-xl shrink-0 border border-purple-500/30">
+                        <i class="ph ph-currency-circle-dollar"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="font-display font-bold text-base text-foreground">บันทึกราคาโครงการ (งานที่ปิดแล้ว)</h3>
+                            <span class="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-purple-500/15 text-purple-700 border border-purple-500/30" id="modal-pricing-job-id">JOB-</span>
+                            <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 font-medium">งานปิดแล้ว</span>
+                        </div>
+                        <p class="text-xs text-muted-foreground mt-0.5">บันทึกแยกราคาทุนและราคาขาย • คำนวณราคาสุทธิอัตโนมัติ (No VAT ตามมาตรฐานโครงการ)</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" onclick="app.hideModal('modal-project-pricing')" class="w-8 h-8 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center transition cursor-pointer" title="ปิดหน้าต่าง (Esc)">
+                        <i class="ph ph-x text-base font-bold"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5">
+                <!-- Job Summary Strip -->
+                <div class="p-3.5 rounded-xl bg-muted/30 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-muted-foreground">ลูกค้า:</span>
+                            <strong class="text-foreground text-sm font-semibold" id="modal-pricing-customer">-</strong>
+                            <span class="text-muted-foreground">• โทร:</span>
+                            <span class="font-mono text-foreground" id="modal-pricing-phone">-</span>
+                        </div>
+                        <div class="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground">
+                            <span>บริการ: <strong class="text-foreground" id="modal-pricing-service">-</strong></span>
+                            <span>•</span>
+                            <span>ทีมช่าง: <strong class="text-foreground" id="modal-pricing-tech">-</strong></span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button type="button" onclick="app.pullPricingFromBOQ()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 text-purple-700 hover:bg-purple-500/10 border-purple-300 cursor-pointer shadow-2xs" title="ดึงข้อมูลรายการจาก BOQ เดิม">
+                            <i class="ph ph-arrows-clockwise text-sm"></i>
+                            <span>ดึงข้อมูลจาก BOQ</span>
+                        </button>
+                        <button type="button" onclick="app.loadSampleProjectPricing()" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer shadow-2xs">
+                            <i class="ph ph-sparkle text-amber-500"></i>
+                            <span>โหลดตัวอย่าง</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Action Toolbar for Items -->
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <div class="flex items-center gap-2">
+                        <h4 class="text-xs font-bold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                            <i class="ph ph-list-numbers text-purple-600"></i>
+                            <span>ตารางรายการราคาและต้นทุน</span>
+                        </h4>
+                        <span id="modal-pricing-items-count" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/15 text-purple-700">0 รายการ</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="app.addProjectPricingRow()" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs">
+                            <i class="ph ph-plus-circle text-sm font-bold"></i>
+                            <span>+ เพิ่มรายการ</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pricing Table -->
+                <div class="border border-border rounded-xl overflow-hidden shadow-xs bg-card">
+                    <div class="overflow-x-auto max-h-[380px] sm:max-h-[440px]">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead class="bg-muted/60 border-b border-border text-muted-foreground sticky top-0 bg-card z-10 text-[11px] uppercase tracking-wide">
+                                <tr>
+                                    <th class="py-2.5 px-3 w-10 text-center">#</th>
+                                    <th class="py-2.5 px-3 w-32">ประเภท</th>
+                                    <th class="py-2.5 px-3 min-w-[280px]">รายการงาน / รายละเอียด (Description)</th>
+                                    <th class="py-2.5 px-2 w-20 text-center">จำนวน</th>
+                                    <th class="py-2.5 px-2 w-20 text-center">หน่วย</th>
+                                    <th class="py-2.5 px-3 w-28 text-right bg-blue-500/10 text-blue-900 font-bold border-l border-r border-blue-500/20">
+                                        <div class="flex items-center justify-end gap-1">
+                                            <i class="ph ph-tag text-xs text-blue-600"></i>
+                                            <span>ทุน (฿)</span>
+                                        </div>
+                                    </th>
+                                    <th class="py-2.5 px-3 w-32 text-right bg-purple-500/10 text-purple-900 font-bold border-r border-purple-500/20">
+                                        <div class="flex items-center justify-end gap-1">
+                                            <i class="ph ph-shopping-bag text-xs text-purple-600"></i>
+                                            <span>ราคาขาย (฿)</span>
+                                        </div>
+                                    </th>
+                                    <th class="py-2.5 px-3 w-32 text-right font-bold">รวมเงิน (฿)</th>
+                                    <th class="py-2.5 px-2 w-10 text-center">ลบ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modal-pricing-table-tbody" class="divide-y divide-border bg-card">
+                                <!-- Populated dynamically by app.renderProjectPricingModal() -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Financial Summary Box (ซัมเฉพาะราคาขาย / ราคาทุนมีไว้ให้เห็นพอ / ไม่คิด VAT) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/20 p-4 sm:p-5 rounded-2xl border border-border">
+                    <!-- Left: Subtotals & Discount -->
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between py-1 border-b border-border/60">
+                            <span class="text-muted-foreground flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                                <span>หมวดค่าแรง (Labor Subtotal):</span>
+                            </span>
+                            <span class="font-mono font-bold text-foreground" id="modal-pricing-labor-subtotal">0.00 ฿</span>
+                        </div>
+                        <div class="flex justify-between py-1 border-b border-border/60">
+                            <span class="text-muted-foreground flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                                <span>หมวดค่าวัสดุ (Material Subtotal):</span>
+                            </span>
+                            <span class="font-mono font-bold text-foreground" id="modal-pricing-material-subtotal">0.00 ฿</span>
+                        </div>
+                        <div class="flex justify-between items-center py-1 border-b border-border/60">
+                            <span class="text-muted-foreground">ส่วนลดพิเศษ / โปรโมชั่น (Discount):</span>
+                            <div class="flex items-center gap-1">
+                                <span class="text-rose-500 font-bold">-</span>
+                                <input type="number" min="0" value="0" id="modal-pricing-discount-input" oninput="app.calculateProjectPricingSummary()" class="w-28 bg-card border border-border rounded-lg px-2 py-1 text-right text-xs font-mono font-bold text-rose-600 focus:outline-none focus:border-purple-500">
+                                <span class="text-muted-foreground font-mono">฿</span>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center py-1 text-slate-700 bg-blue-500/5 px-2.5 py-1.5 rounded-lg border border-blue-500/20">
+                            <div>
+                                <span class="font-bold text-blue-900 flex items-center gap-1">
+                                    <i class="ph ph-info"></i> ราคาทุนรวม (Total Cost):
+                                </span>
+                                <span class="text-[10px] text-muted-foreground block">มีไว้ให้เห็นเพื่อตรวจสอบต้นทุนหน้างาน</span>
+                            </div>
+                            <span class="font-mono font-bold text-sm text-blue-900" id="modal-pricing-cost-total">0.00 ฿</span>
+                        </div>
+                    </div>
+
+                    <!-- Right: Grand Total (ซัมเฉพาะราคาขายสุทธิ - ไม่มี VAT) -->
+                    <div class="flex flex-col justify-between items-end border-t md:border-t-0 md:border-l border-border pt-3 md:pt-0 md:pl-6 space-y-3">
+                        <div class="w-full flex justify-between items-baseline pt-1">
+                            <div>
+                                <span class="text-xs text-muted-foreground font-bold uppercase tracking-wider block">ยอดรวมทั้งสิ้น (Grand Total):</span>
+                                <span class="text-[11px] text-muted-foreground">คำนวณจากราคาขายสุทธิหลังหักส่วนลด</span>
+                            </div>
+                            <span class="text-2xl sm:text-3xl font-black font-mono text-purple-600" id="modal-pricing-grand-total">0.00 ฿</span>
+                        </div>
+                        <div class="flex items-center gap-2 self-end">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
+                                <i class="ph ph-check-circle-fill"></i> ยอดสุทธิ (ไม่มี VAT / Net Selling Total)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-border bg-card flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+                <button type="button" onclick="app.hideModal('modal-project-pricing')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer text-muted-foreground hover:text-foreground flex items-center justify-center gap-1.5">
+                    <i class="ph ph-x text-sm"></i>
+                    <span>ยกเลิก / ปิด</span>
+                </button>
+                <div class="flex items-center gap-2 justify-end">
+                    <button type="button" onclick="app.saveProjectPricingModal()" class="btn-artifact-primary px-6 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm bg-purple-600 hover:bg-purple-700 text-white cursor-pointer transition hover:scale-[1.02]">
+                        <i class="ph ph-floppy-disk text-base"></i>
+                        <span>บันทึกราคาโครงการ</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

@@ -2928,7 +2928,8 @@ const app = {
                     'api-logs': 'ประวัติการยิง API ขาเข้า (Inbound API Request Logs)',
                     'faq': 'คลังความรู้ & คู่มือระบบ (KM Portal & System Guide)',
                     'users': 'จัดการผู้ใช้งาน',
-                    'report': 'Report (ภาพรวมผลการดำเนินงาน)'
+                    'report': 'Report (ภาพรวมผลการดำเนินงาน)',
+                    'project-pricing': 'ราคาโครงการ (งานที่ปิดแล้ว รอใส่ราคา)'
                 };
                 document.getElementById('topbar-breadcrumb').innerText = breadcrumbMap[view] || view;
 
@@ -3023,6 +3024,7 @@ const app = {
                 if(view === 'csat' || view === 'completed-jobs') this.renderCompletedJobsSTK();
                 if(view === 'ma-contracts') this.renderMAContracts();
                 if(view === 'report') this.renderReportPage();
+                if(view === 'project-pricing') this.renderProjectPricingTable();
                 if(view === 'users') {
                     if (typeof userMgmt !== 'undefined') userMgmt.load();
                 }
@@ -6338,6 +6340,14 @@ const app = {
                 const sidebarApiLogs = document.getElementById('sidebar-api-logs-count');
                 if (sidebarApiLogs && this.state && this.state.apiLogs) {
                     sidebarApiLogs.innerText = this.state.apiLogs.length;
+                }
+
+                // Project Pricing (งานที่ปิดแล้ว รอใส่ราคา)
+                const sidebarPricing = document.getElementById('sidebar-pricing-count');
+                if (sidebarPricing) {
+                    const pricingJobs = this.getClosedJobsForPricing ? this.getClosedJobsForPricing() : [];
+                    const pendingPricing = pricingJobs.filter(j => !j.has_pricing).length;
+                    sidebarPricing.innerText = pendingPricing > 0 ? pendingPricing : pricingJobs.length;
                 }
 
                 // Update All Step Dashboards
@@ -14696,11 +14706,14 @@ const app = {
                 let laborCount = 0;
                 let matCount = 0;
                 let subtotal = 0;
+                let totalCost = 0;
 
                 items.forEach(it => {
                     const qty = Math.max(0, Number(it.qty) || 0);
-                    const price = Math.max(0, Number(it.price || it.unit_price) || 0);
+                    const price = Math.max(0, Number(it.price || it.unit_price || it.selling_price) || 0);
+                    const costPrice = Math.max(0, Number(it.cost_price !== undefined ? it.cost_price : (it.cost !== undefined ? it.cost : Math.round(price * 0.7))));
                     subtotal += (qty * price);
+                    totalCost += (qty * costPrice);
                     const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
                     if (isLabor) laborCount++; else matCount++;
                 });
@@ -14715,6 +14728,8 @@ const app = {
                 if (elLabor) elLabor.innerText = laborCount;
                 const elMat = document.getElementById('modal-boq-mat-count');
                 if (elMat) elMat.innerText = matCount;
+                const elCost = document.getElementById('modal-boq-cost-val');
+                if (elCost) elCost.innerText = totalCost.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
                 const elSub = document.getElementById('modal-boq-subtotal-val');
                 if (elSub) elSub.innerText = subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
                 const elDisc = document.getElementById('modal-boq-discount-val');
@@ -14730,7 +14745,7 @@ const app = {
                     if (items.length === 0) {
                         tbody.innerHTML = `
                             <tr>
-                                <td colspan="8" class="py-10 text-center text-muted-foreground">
+                                <td colspan="9" class="py-10 text-center text-muted-foreground">
                                     <div class="flex flex-col items-center justify-center gap-2">
                                         <i class="ph ph-receipt text-3xl text-purple-500/40"></i>
                                         <p class="text-xs font-semibold text-foreground">ยังไม่มีรายการสินค้าและบริการสำหรับโครงการนี้</p>
@@ -14743,7 +14758,8 @@ const app = {
                         tbody.innerHTML = items.map((it, idx) => {
                             const isLabor = (it.is_labor !== undefined) ? it.is_labor : this.isLaborItem(it.name);
                             const qty = Math.max(0, Number(it.qty) || 0);
-                            const price = Math.max(0, Number(it.price || it.unit_price) || 0);
+                            const price = Math.max(0, Number(it.price || it.unit_price || it.selling_price) || 0);
+                            const costPrice = Math.max(0, Number(it.cost_price !== undefined ? it.cost_price : (it.cost !== undefined ? it.cost : Math.round(price * 0.7))));
                             const itemTotal = qty * price;
 
                             return `
@@ -14763,8 +14779,11 @@ const app = {
                                 <td class="py-2.5 px-3 text-center">
                                     <input type="text" value="${it.unit || 'ชุด'}" oninput="app.updateModalBOQItem(${idx}, 'unit', this.value)" class="w-16 text-center bg-muted/30 border border-border focus:border-purple-500 rounded px-1.5 py-1 text-xs text-foreground transition focus:outline-none">
                                 </td>
-                                <td class="py-2.5 px-3 text-right">
-                                    <input type="number" min="0" step="50" value="${price}" oninput="app.updateModalBOQItem(${idx}, 'price', this.value)" class="w-24 text-right bg-muted/30 border border-border focus:border-purple-500 rounded px-2 py-1 text-xs text-foreground font-mono transition focus:outline-none">
+                                <td class="py-2.5 px-3 text-right bg-blue-500/[0.04]">
+                                    <input type="number" min="0" step="50" value="${costPrice}" oninput="app.updateModalBOQItem(${idx}, 'cost_price', this.value)" placeholder="ทุน" class="w-20 text-right bg-card border border-blue-300 focus:border-blue-600 rounded px-2 py-1 text-xs text-blue-900 font-mono font-bold transition focus:outline-none shadow-2xs">
+                                </td>
+                                <td class="py-2.5 px-3 text-right bg-purple-500/[0.04]">
+                                    <input type="number" min="0" step="50" value="${price}" oninput="app.updateModalBOQItem(${idx}, 'price', this.value)" placeholder="ขาย" class="w-20 text-right bg-card border border-purple-300 focus:border-purple-600 rounded px-2 py-1 text-xs text-purple-900 font-mono font-bold transition focus:outline-none shadow-2xs">
                                 </td>
                                 <td class="py-2.5 px-3 text-right font-mono font-bold text-foreground">
                                     ${itemTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -25691,6 +25710,851 @@ const app = {
                 } catch (e) {
                     return isoStr;
                 }
+            },
+
+            // =========================================================================
+            // 8.5. PROJECT PRICING ENGINE (งานที่ปิดแล้ว รอใส่ราคา - แยกราคาทุน vs ขาย NO VAT)
+            // =========================================================================
+            getProjectPricingStore() {
+                try {
+                    const raw = localStorage.getItem('pmt_flow_project_pricing_store');
+                    return raw ? JSON.parse(raw) : {};
+                } catch (e) {
+                    return {};
+                }
+            },
+
+            saveProjectPricingStore(store) {
+                try {
+                    localStorage.setItem('pmt_flow_project_pricing_store', JSON.stringify(store));
+                } catch (e) {
+                    console.error('Failed to save project pricing store:', e);
+                }
+            },
+
+            getClosedJobsForPricing() {
+                const pricingStore = this.getProjectPricingStore();
+                const completedList = (typeof this.getCompletedJobsList === 'function') ? this.getCompletedJobsList() : [];
+
+                // Also check DB.jobs for any closed/after_sale or completed jobs
+                const dbClosed = (DB.jobs || []).filter(j => {
+                    return j.status === 'CLOSED' ||
+                           j.status === 'AFTER_SALE' ||
+                           j.step === 7 ||
+                           j.stk_ref ||
+                           (j.step_timestamps && j.step_timestamps.closed_at) ||
+                           (j.qc_score && j.csat_score);
+                }).map(j => {
+                    return {
+                        id: j.id,
+                        customer: j.customer || j.customer_name || 'ลูกค้าโครงการ PMT',
+                        phone: j.phone || j.customer_phone || '-',
+                        branch: j.branch || 'สำนักงานใหญ่',
+                        service: j.service || (Array.isArray(j.services) ? j.services[0] : null) || 'บริการมาตรฐาน',
+                        job_type: j.job_type || 'quick',
+                        technician: j.technician || j.assignee || 'ทีมช่าง PMT',
+                        total_amount: Number(j.total_amount || j.boq_total || j.grand_total || 0),
+                        ticket_no: j.ticket_no || `TCK-${String(j.id).replace('JOB', '')}`,
+                        stk_ref: j.stk_ref || j.bmt_ref || `STK-${String(j.id).replace('JOB', '')}`,
+                        closed_at: (j.step_timestamps && j.step_timestamps.closed_at) || j.stk_synced_at || j.qc_passed_at || j.date || new Date().toISOString(),
+                        created_at: j.created_at || (j.step_timestamps && j.step_timestamps.step1_intake_at) || j.date || new Date().toISOString(),
+                        boq_items: j.boq_items || [],
+                        project_pricing: j.project_pricing || null
+                    };
+                });
+
+                const seenIds = new Set();
+                const merged = [];
+
+                // Push dbClosed first
+                for (const item of dbClosed) {
+                    if (!seenIds.has(item.id)) {
+                        seenIds.add(item.id);
+                        merged.push(item);
+                    }
+                }
+
+                // Push completedList
+                for (const item of completedList) {
+                    if (!seenIds.has(item.id)) {
+                        seenIds.add(item.id);
+                        merged.push({
+                            id: item.id,
+                            customer: item.customer || 'ลูกค้าโครงการ',
+                            phone: item.phone || '-',
+                            branch: item.branch || 'พัทยาใต้',
+                            service: item.service || 'บริการติดตั้งและบำรุงรักษามาตรฐาน',
+                            job_type: item.job_type || 'quick',
+                            technician: item.technician || 'ทีมช่าง PMT',
+                            total_amount: Number(item.total_amount || 0),
+                            ticket_no: item.ticket_no || `TCK-${String(item.id).replace('JOB', '')}`,
+                            stk_ref: item.stk_ref || `STK-${String(item.id).replace('JOB', '')}`,
+                            closed_at: item.stk_synced_at || item.qc_passed_at || item.created_at || new Date().toISOString(),
+                            created_at: item.created_at || new Date().toISOString(),
+                            boq_items: item.boq_items || [],
+                            project_pricing: item.project_pricing || null
+                        });
+                    }
+                }
+
+                // Map with pricingStore
+                return merged.map(j => {
+                    const pricing = pricingStore[j.id] || j.project_pricing || null;
+                    const hasPricing = !!(pricing && pricing.has_pricing);
+                    const totalCost = pricing ? Number(pricing.total_cost || 0) : 0;
+                    const grandTotal = pricing ? Number(pricing.grand_total || 0) : (hasPricing ? Number(j.total_amount || 0) : 0);
+                    return {
+                        ...j,
+                        project_pricing: pricing,
+                        has_pricing: hasPricing,
+                        total_cost: totalCost,
+                        grand_total: grandTotal
+                    };
+                });
+            },
+
+            renderProjectPricingTable() {
+                if (!this.state) this.state = {};
+                this.state.projectPricingStatusFilter = this.state.projectPricingStatusFilter || 'all';
+                this.state.projectPricingPage = this.state.projectPricingPage || 1;
+                this.state.projectPricingPageSize = Number(this.state.projectPricingPageSize) || 10;
+                this.state.projectPricingSearch = this.state.projectPricingSearch || '';
+
+                const allJobs = this.getClosedJobsForPricing();
+
+                // 1. Calculate and update KPI cards
+                const totalCount = allJobs.length;
+                const pendingCount = allJobs.filter(j => !j.has_pricing).length;
+                const completedCount = allJobs.filter(j => j.has_pricing).length;
+
+                const elTotal = document.getElementById('kpi-pricing-total');
+                if (elTotal) elTotal.innerText = totalCount;
+                const elPending = document.getElementById('kpi-pricing-pending');
+                if (elPending) elPending.innerText = pendingCount;
+                const elCompleted = document.getElementById('kpi-pricing-completed');
+                if (elCompleted) elCompleted.innerText = completedCount;
+
+                // Update sidebar badge
+                const sidebarBadge = document.getElementById('sidebar-pricing-count');
+                if (sidebarBadge) {
+                    sidebarBadge.innerText = pendingCount > 0 ? pendingCount : totalCount;
+                }
+
+                // 2. Update Status Filter Tabs UI
+                const currentStatus = this.state.projectPricingStatusFilter;
+                const tabAll = document.getElementById('btn-pricing-tab-all');
+                const tabPending = document.getElementById('btn-pricing-tab-pending');
+                const tabCompleted = document.getElementById('btn-pricing-tab-completed');
+
+                [tabAll, tabPending, tabCompleted].forEach(tab => {
+                    if (tab) {
+                        tab.className = 'px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground transition cursor-pointer';
+                    }
+                });
+
+                if (currentStatus === 'pending' && tabPending) {
+                    tabPending.className = 'px-3 py-1.5 rounded-lg font-semibold text-amber-700 bg-amber-500/15 border border-amber-500/30 transition cursor-pointer';
+                } else if (currentStatus === 'completed' && tabCompleted) {
+                    tabCompleted.className = 'px-3 py-1.5 rounded-lg font-semibold text-emerald-700 bg-emerald-500/15 border border-emerald-500/30 transition cursor-pointer';
+                } else if (tabAll) {
+                    tabAll.className = 'px-3 py-1.5 rounded-lg font-semibold text-foreground bg-muted transition cursor-pointer';
+                }
+
+                // 3. Filter by Status
+                let filtered = allJobs;
+                if (currentStatus === 'pending') {
+                    filtered = filtered.filter(j => !j.has_pricing);
+                } else if (currentStatus === 'completed') {
+                    filtered = filtered.filter(j => j.has_pricing);
+                }
+
+                // 4. Filter by Search Query
+                const query = (this.state.projectPricingSearch || '').trim().toLowerCase();
+                if (query) {
+                    filtered = filtered.filter(j => {
+                        return (j.id && j.id.toLowerCase().includes(query)) ||
+                               (j.ticket_no && j.ticket_no.toLowerCase().includes(query)) ||
+                               (j.stk_ref && j.stk_ref.toLowerCase().includes(query)) ||
+                               (j.customer && j.customer.toLowerCase().includes(query)) ||
+                               (j.phone && j.phone.toLowerCase().includes(query)) ||
+                               (j.branch && j.branch.toLowerCase().includes(query)) ||
+                               (j.service && j.service.toLowerCase().includes(query)) ||
+                               (j.technician && j.technician.toLowerCase().includes(query));
+                    });
+                }
+
+                // 5. Update Visible Counts
+                const visibleCountEl = document.getElementById('project-pricing-visible-count');
+                if (visibleCountEl) visibleCountEl.innerText = filtered.length;
+                const totalCountEl = document.getElementById('project-pricing-total-count');
+                if (totalCountEl) totalCountEl.innerText = totalCount;
+
+                // 6. Pagination
+                const pageSize = Number(this.state.projectPricingPageSize) || 10;
+                const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+                if (this.state.projectPricingPage > totalPages) {
+                    this.state.projectPricingPage = totalPages;
+                }
+                const currentPage = Math.max(1, this.state.projectPricingPage || 1);
+                const startIndex = (currentPage - 1) * pageSize;
+                const pageItems = filtered.slice(startIndex, startIndex + pageSize);
+
+                // 7. Render Table Rows (Strict Light Theme List View)
+                const tbody = document.getElementById('project-pricing-table-body');
+                if (!tbody) return;
+
+                if (pageItems.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="text-center py-12 text-muted-foreground">
+                                <div class="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center mx-auto mb-3 text-2xl">
+                                    <i class="ph ph-currency-circle-dollar"></i>
+                                </div>
+                                <span class="font-semibold text-xs text-foreground block">ไม่พบรายการงานโครงการที่ตรงกับเงื่อนไข</span>
+                                <span class="text-[11px] text-muted-foreground mt-0.5 block">ลองปรับคำค้นหา หรือสลับแท็บสถานะเพื่อดูรายการอื่น</span>
+                                <div class="mt-3">
+                                    <button type="button" onclick="app.filterProjectPricingByStatus('all'); const si = document.getElementById('project-pricing-search-input'); if(si) { si.value = ''; app.filterProjectPricing(); }" class="btn-artifact-secondary px-3.5 py-1.5 text-xs text-purple-700 border-purple-300 rounded-xl cursor-pointer hover:bg-purple-50">
+                                        <i class="ph ph-arrows-counter-clockwise mr-1"></i> ล้างตัวกรองและแสดงทั้งหมด
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = pageItems.map((job, idx) => {
+                        const rowNum = startIndex + idx + 1;
+                        const dateClosed = this.formatDateDMY(job.closed_at);
+                        const hasPricing = job.has_pricing;
+
+                        let serviceBadge = '<span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-700 font-bold border border-purple-500/20 shrink-0">งานโครงการ</span>';
+                        if (job.job_type === 'quick') {
+                            serviceBadge = '<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 font-bold border border-amber-500/20 shrink-0">Quick</span>';
+                        } else if (job.job_type === 'renovate') {
+                            serviceBadge = '<span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-700 font-bold border border-indigo-500/20 shrink-0">Renovate</span>';
+                        }
+
+                        const statusBadge = hasPricing
+                            ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 whitespace-nowrap">
+                                <i class="ph-fill ph-check-circle text-emerald-600"></i>
+                                <span>บันทึกราคาแล้ว</span>
+                               </span>`
+                            : `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 border border-amber-500/30 whitespace-nowrap">
+                                <i class="ph ph-hourglass-high text-amber-600 animate-pulse"></i>
+                                <span>รอใส่ราคา</span>
+                               </span>`;
+
+                        const costFormatted = hasPricing && job.total_cost > 0
+                            ? `฿${Number(job.total_cost).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : `<span class="text-muted-foreground/60">-</span>`;
+
+                        const grandFormatted = hasPricing && job.grand_total > 0
+                            ? `฿${Number(job.grand_total).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : (job.total_amount > 0 ? `฿${Number(job.total_amount).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `<span class="text-amber-600 font-medium">รอระบุ</span>`);
+
+                        return `
+                            <tr class="hover:bg-muted/40 transition-colors group">
+                                <!-- Col 1: # Row Number -->
+                                <td class="py-3 px-4 text-center font-mono text-xs text-muted-foreground">${rowNum}</td>
+
+                                <!-- Col 2: รหัสงาน & REF INT -->
+                                <td class="py-3 px-4 whitespace-nowrap">
+                                    <a href="#" onclick="app.openProjectPricingModal('${job.id}'); return false;" class="text-purple-600 hover:text-purple-700 hover:underline font-mono font-bold text-xs flex items-center gap-1">
+                                        <i class="ph ph-receipt text-xs"></i>
+                                        <span>${job.id}</span>
+                                    </a>
+                                    <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-1">
+                                        <i class="ph ph-calendar text-[10px]"></i>
+                                        <span>ปิดงาน: ${dateClosed}</span>
+                                    </div>
+                                    ${job.ticket_no ? `<div class="text-[10px] text-indigo-600 font-mono flex items-center gap-1"><i class="ph ph-ticket text-[10px]"></i><span>${job.ticket_no}</span></div>` : ''}
+                                </td>
+
+                                <!-- Col 3: ข้อมูลลูกค้า -->
+                                <td class="py-3 px-4">
+                                    <div class="font-semibold text-foreground text-xs line-clamp-1">${job.customer}</div>
+                                    <div class="text-[11px] text-muted-foreground font-mono mt-0.5 flex items-center gap-1.5 whitespace-nowrap">
+                                        <span><i class="ph ph-phone text-[10px] mr-0.5"></i>${job.phone}</span>
+                                        <span class="text-muted-foreground/40">•</span>
+                                        <span class="text-brand-600 font-sans font-medium">${job.branch}</span>
+                                    </div>
+                                </td>
+
+                                <!-- Col 4: ประเภทบริการ & ทีมช่าง -->
+                                <td class="py-3 px-4">
+                                    <div class="flex items-center gap-1.5">
+                                        ${serviceBadge}
+                                        <span class="text-foreground text-xs font-medium line-clamp-1">${job.service}</span>
+                                    </div>
+                                    <div class="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                                        <i class="ph ph-wrench text-muted-foreground text-[10px] shrink-0"></i>
+                                        <span class="line-clamp-1">${job.technician}</span>
+                                    </div>
+                                </td>
+
+                                <!-- Col 5: สถานะราคา -->
+                                <td class="py-3 px-4 text-center whitespace-nowrap">
+                                    ${statusBadge}
+                                </td>
+
+                                <!-- Col 6: ราคาทุนรวม (ทุน) -->
+                                <td class="py-3 px-4 text-right whitespace-nowrap bg-blue-500/5">
+                                    <div class="font-mono font-bold text-blue-900 text-xs">
+                                        ${costFormatted}
+                                    </div>
+                                    <div class="text-[10px] text-muted-foreground">ราคาทุนอ้างอิง</div>
+                                </td>
+
+                                <!-- Col 7: ราคาขายรวม (Grand Total) -->
+                                <td class="py-3 px-4 text-right whitespace-nowrap bg-purple-500/5">
+                                    <div class="font-mono font-black text-purple-700 text-sm">
+                                        ${grandFormatted}
+                                    </div>
+                                    <div class="text-[10px] text-emerald-600 font-semibold">สุทธิ (No VAT)</div>
+                                </td>
+
+                                <!-- Col 8: การจัดการ -->
+                                <td class="py-3 px-4 text-center whitespace-nowrap">
+                                    <button type="button" onclick="app.openProjectPricingModal('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1 shadow-2xs cursor-pointer transition hover:scale-105 ${hasPricing ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-amber-600 hover:bg-amber-700 text-white'}" title="${hasPricing ? 'แก้ไขข้อมูลราคาโครงการ' : 'บันทึกราคาโครงการ'}">
+                                        <i class="ph ph-${hasPricing ? 'pencil-simple' : 'plus-circle'} text-xs"></i>
+                                        <span>${hasPricing ? 'แก้ไขราคา' : 'ใส่ราคา'}</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                // 8. Render Pagination Controls & Total Label
+                this.renderProjectPricingPagination(totalPages, currentPage);
+                const totalLabelEl = document.getElementById('project-pricing-total-label');
+                if (totalLabelEl) {
+                    totalLabelEl.innerText = `ทั้งหมด ${filtered.length} รายการ (หน้า ${currentPage}/${totalPages})`;
+                }
+            },
+
+            filterProjectPricingByStatus(status) {
+                if (!this.state) this.state = {};
+                this.state.projectPricingStatusFilter = status;
+                this.state.projectPricingPage = 1;
+                this.renderProjectPricingTable();
+            },
+
+            filterProjectPricing() {
+                if (!this.state) this.state = {};
+                const input = document.getElementById('project-pricing-search-input');
+                this.state.projectPricingSearch = input ? input.value : '';
+                this.state.projectPricingPage = 1;
+                this.renderProjectPricingTable();
+            },
+
+            changeProjectPricingPageSize(size) {
+                if (!this.state) this.state = {};
+                this.state.projectPricingPageSize = Number(size) || 10;
+                this.state.projectPricingPage = 1;
+                this.renderProjectPricingTable();
+            },
+
+            setProjectPricingPage(p) {
+                if (!this.state) this.state = {};
+                this.state.projectPricingPage = Number(p) || 1;
+                this.renderProjectPricingTable();
+            },
+
+            renderProjectPricingPagination(totalPages, currentPage) {
+                const container = document.getElementById('project-pricing-pagination-controls');
+                if (!container) return;
+
+                if (totalPages <= 1) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                let html = '';
+                // First & Prev
+                html += `
+                    <button type="button" onclick="app.setProjectPricingPage(1)" ${currentPage === 1 ? 'disabled class="px-2 py-1 rounded text-xs text-muted-foreground/40 cursor-not-allowed"' : 'class="px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"'} title="หน้าแรก">
+                        <i class="ph ph-caret-double-left text-xs"></i>
+                    </button>
+                    <button type="button" onclick="app.setProjectPricingPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled class="px-2 py-1 rounded text-xs text-muted-foreground/40 cursor-not-allowed"' : 'class="px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"'} title="หน้าก่อนหน้า">
+                        <i class="ph ph-caret-left text-xs"></i>
+                    </button>
+                `;
+
+                // Page numbers
+                const startP = Math.max(1, currentPage - 2);
+                const endP = Math.min(totalPages, startP + 4);
+                for (let p = startP; p <= endP; p++) {
+                    if (p === currentPage) {
+                        html += `<button type="button" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-600 text-white cursor-default">${p}</button>`;
+                    } else {
+                        html += `<button type="button" onclick="app.setProjectPricingPage(${p})" class="px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer">${p}</button>`;
+                    }
+                }
+
+                // Next & Last
+                html += `
+                    <button type="button" onclick="app.setProjectPricingPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled class="px-2 py-1 rounded text-xs text-muted-foreground/40 cursor-not-allowed"' : 'class="px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"'} title="หน้าถัดไป">
+                        <i class="ph ph-caret-right text-xs"></i>
+                    </button>
+                    <button type="button" onclick="app.setProjectPricingPage(${totalPages})" ${currentPage === totalPages ? 'disabled class="px-2 py-1 rounded text-xs text-muted-foreground/40 cursor-not-allowed"' : 'class="px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"'} title="หน้าสุดท้าย">
+                        <i class="ph ph-caret-double-right text-xs"></i>
+                    </button>
+                `;
+
+                container.innerHTML = html;
+            },
+
+            openProjectPricingModal(jobId) {
+                if (!this.state) this.state = {};
+                this.state.currentPricingJobId = jobId;
+
+                const allJobs = this.getClosedJobsForPricing();
+                const job = allJobs.find(j => String(j.id) === String(jobId));
+                if (!job) {
+                    this.showToast('⚠️ ไม่พบข้อมูลงานโครงการที่เลือก');
+                    return;
+                }
+
+                // Set Header details
+                const setTxt = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerText = val;
+                };
+                setTxt('modal-pricing-job-id', job.id);
+                setTxt('modal-pricing-customer', job.customer || 'ลูกค้าโครงการ');
+                setTxt('modal-pricing-phone', job.phone || '-');
+                setTxt('modal-pricing-service', job.service || 'บริการมาตรฐาน');
+                setTxt('modal-pricing-tech', job.technician || 'ทีมช่าง PMT');
+
+                // Initialize Items & Discount
+                if (job.project_pricing && Array.isArray(job.project_pricing.items) && job.project_pricing.items.length > 0) {
+                    this.state.currentPricingItems = JSON.parse(JSON.stringify(job.project_pricing.items));
+                    const discountInput = document.getElementById('modal-pricing-discount-input');
+                    if (discountInput) discountInput.value = job.project_pricing.discount || 0;
+                } else if (Array.isArray(job.boq_items) && job.boq_items.length > 0) {
+                    this.state.currentPricingItems = job.boq_items.map((it, idx) => ({
+                        id: it.id || (Date.now() + idx),
+                        type: it.type === 'MATERIAL' ? 'MATERIAL' : 'LABOR',
+                        name: it.name || it.item_name || '',
+                        qty: Number(it.qty) || 1,
+                        unit: it.unit || 'งาน',
+                        cost_price: Number(it.cost_price) || Math.round((Number(it.price || it.unit_price) || 0) * 0.65),
+                        selling_price: Number(it.price || it.unit_price || it.selling_price) || 0
+                    }));
+                    const discountInput = document.getElementById('modal-pricing-discount-input');
+                    if (discountInput) discountInput.value = 0;
+                } else {
+                    // Default starting rows with realistic pricing
+                    this.state.currentPricingItems = [
+                        { id: Date.now(), type: 'LABOR', name: `ค่าแรงดำเนินงานบริการ ${job.service}`, qty: 1, unit: 'งาน', cost_price: 1500, selling_price: 2800 },
+                        { id: Date.now() + 1, type: 'MATERIAL', name: 'ชุดอุปกรณ์และวัสดุประกอบงานติดตั้งมาตรฐาน', qty: 1, unit: 'ชุด', cost_price: 950, selling_price: 1600 }
+                    ];
+                    const discountInput = document.getElementById('modal-pricing-discount-input');
+                    if (discountInput) discountInput.value = 0;
+                }
+
+                this.renderProjectPricingModalItems();
+                this.calculateProjectPricingSummary();
+                this.showModal('modal-project-pricing');
+            },
+
+            renderProjectPricingModalItems() {
+                const tbody = document.getElementById('modal-pricing-table-tbody');
+                const countBadge = document.getElementById('modal-pricing-items-count');
+                const items = this.state.currentPricingItems || [];
+
+                if (countBadge) countBadge.innerText = `${items.length} รายการ`;
+                if (!tbody) return;
+
+                if (items.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="9" class="text-center py-8 text-muted-foreground">
+                                <i class="ph ph-clipboard-text text-2xl mb-1 text-muted-foreground/60 block"></i>
+                                <span class="text-xs">ยังไม่มีรายการราคาในตาราง</span>
+                                <div class="mt-2 flex items-center justify-center gap-2">
+                                    <button type="button" onclick="app.addProjectPricingRow()" class="btn-artifact-primary px-3 py-1 text-xs rounded-lg bg-purple-600 text-white cursor-pointer">
+                                        + เพิ่มรายการใหม่
+                                    </button>
+                                    <button type="button" onclick="app.loadSampleProjectPricing()" class="btn-artifact-secondary px-3 py-1 text-xs rounded-lg cursor-pointer">
+                                        โหลดตัวอย่าง
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                tbody.innerHTML = items.map((it, idx) => {
+                    const rowNum = idx + 1;
+                    const rowTotal = (Number(it.qty) || 0) * (Number(it.selling_price) || 0);
+
+                    return `
+                        <tr class="hover:bg-muted/30 transition-colors">
+                            <!-- # -->
+                            <td class="py-2.5 px-3 text-center font-mono text-xs text-muted-foreground">${rowNum}</td>
+
+                            <!-- Type -->
+                            <td class="py-2.5 px-3">
+                                <select onchange="app.updateProjectPricingItem(${idx}, 'type', this.value)" class="w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs text-foreground font-medium focus:outline-none focus:border-purple-500 cursor-pointer shadow-2xs">
+                                    <option value="LABOR" ${it.type === 'LABOR' ? 'selected' : ''}>ค่าแรง (Labor)</option>
+                                    <option value="MATERIAL" ${it.type === 'MATERIAL' ? 'selected' : ''}>ค่าวัสดุ (Material)</option>
+                                </select>
+                            </td>
+
+                            <!-- Description -->
+                            <td class="py-2.5 px-3">
+                                <input type="text" value="${(it.name || '').replace(/"/g, '&quot;')}" placeholder="ระบุรายการงานหรืออุปกรณ์..." oninput="app.updateProjectPricingItem(${idx}, 'name', this.value)" class="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-purple-500 shadow-2xs">
+                            </td>
+
+                            <!-- Qty -->
+                            <td class="py-2.5 px-2 text-center">
+                                <input type="number" step="any" min="0" value="${it.qty !== undefined ? it.qty : 1}" oninput="app.updateProjectPricingItem(${idx}, 'qty', this.value)" class="w-16 bg-card border border-border rounded-lg px-1.5 py-1.5 text-xs text-center font-mono font-bold text-foreground focus:outline-none focus:border-purple-500 shadow-2xs">
+                            </td>
+
+                            <!-- Unit -->
+                            <td class="py-2.5 px-2 text-center">
+                                <input type="text" value="${(it.unit || 'งาน').replace(/"/g, '&quot;')}" placeholder="หน่วย" oninput="app.updateProjectPricingItem(${idx}, 'unit', this.value)" class="w-16 bg-card border border-border rounded-lg px-1.5 py-1.5 text-xs text-center text-foreground focus:outline-none focus:border-purple-500 shadow-2xs">
+                            </td>
+
+                            <!-- Cost Price (ทุน) - Blue Highlight -->
+                            <td class="py-2.5 px-3 text-right bg-blue-500/5 border-l border-r border-blue-500/20">
+                                <input type="number" step="any" min="0" value="${it.cost_price !== undefined ? it.cost_price : 0}" placeholder="0.00" oninput="app.updateProjectPricingItem(${idx}, 'cost_price', this.value)" class="w-24 bg-card border border-blue-300/80 rounded-lg px-2 py-1.5 text-xs text-right font-mono font-bold text-blue-900 focus:outline-none focus:border-blue-500 shadow-2xs" title="ราคาทุนต่อหน่วย มีไว้สำหรับดูต้นทุนอ้างอิง">
+                            </td>
+
+                            <!-- Selling Price (ราคาขาย) - Purple Highlight -->
+                            <td class="py-2.5 px-3 text-right bg-purple-500/5 border-r border-purple-500/20">
+                                <input type="number" step="any" min="0" value="${it.selling_price !== undefined ? it.selling_price : 0}" placeholder="0.00" oninput="app.updateProjectPricingItem(${idx}, 'selling_price', this.value)" class="w-24 bg-card border border-purple-400 rounded-lg px-2 py-1.5 text-xs text-right font-mono font-black text-purple-900 focus:outline-none focus:border-purple-500 shadow-2xs" title="ราคาขายจริงต่อหน่วยที่จะนำไปคำนวณยอดรวม">
+                            </td>
+
+                            <!-- Row Total (Qty * Selling Price) -->
+                            <td class="py-2.5 px-3 text-right whitespace-nowrap">
+                                <div class="font-mono font-bold text-foreground text-xs" id="modal-pricing-row-total-${idx}">
+                                    ฿${rowTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </div>
+                            </td>
+
+                            <!-- Delete -->
+                            <td class="py-2.5 px-2 text-center">
+                                <button type="button" onclick="app.removeProjectPricingRow(${idx})" class="w-7 h-7 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 flex items-center justify-center transition cursor-pointer" title="ลบรายการนี้">
+                                    <i class="ph ph-trash text-sm"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            },
+
+            addProjectPricingRow() {
+                if (!this.state) this.state = {};
+                if (!Array.isArray(this.state.currentPricingItems)) {
+                    this.state.currentPricingItems = [];
+                }
+                this.state.currentPricingItems.push({
+                    id: Date.now(),
+                    type: 'LABOR',
+                    name: '',
+                    qty: 1,
+                    unit: 'งาน',
+                    cost_price: 0,
+                    selling_price: 0
+                });
+                this.renderProjectPricingModalItems();
+                this.calculateProjectPricingSummary();
+            },
+
+            removeProjectPricingRow(idx) {
+                if (!this.state || !Array.isArray(this.state.currentPricingItems)) return;
+                this.state.currentPricingItems.splice(idx, 1);
+                this.renderProjectPricingModalItems();
+                this.calculateProjectPricingSummary();
+            },
+
+            updateProjectPricingItem(idx, field, val) {
+                if (!this.state || !Array.isArray(this.state.currentPricingItems)) return;
+                const item = this.state.currentPricingItems[idx];
+                if (!item) return;
+
+                if (field === 'qty' || field === 'cost_price' || field === 'selling_price') {
+                    item[field] = parseFloat(val) || 0;
+                } else {
+                    item[field] = val;
+                }
+
+                // Update Row Total directly in DOM to preserve input focus
+                const rowTotalEl = document.getElementById(`modal-pricing-row-total-${idx}`);
+                if (rowTotalEl) {
+                    const rowTotal = (Number(item.qty) || 0) * (Number(item.selling_price) || 0);
+                    rowTotalEl.innerText = `฿${rowTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                }
+
+                this.calculateProjectPricingSummary();
+            },
+
+            calculateProjectPricingSummary() {
+                const items = this.state.currentPricingItems || [];
+                let laborSubtotal = 0;
+                let materialSubtotal = 0;
+                let totalCost = 0;
+
+                items.forEach(it => {
+                    const qty = Number(it.qty) || 0;
+                    const selling = Number(it.selling_price) || 0;
+                    const cost = Number(it.cost_price) || 0;
+
+                    totalCost += (qty * cost);
+
+                    if (it.type === 'LABOR') {
+                        laborSubtotal += (qty * selling);
+                    } else {
+                        materialSubtotal += (qty * selling);
+                    }
+                });
+
+                const discountInput = document.getElementById('modal-pricing-discount-input');
+                const discount = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
+
+                const sellingSubtotal = laborSubtotal + materialSubtotal;
+                // STRICT RULE: NO VAT! Bottom summary sums selling prices minus discount only. Cost is reference only.
+                const grandTotal = Math.max(0, sellingSubtotal - discount);
+
+                const setTxt = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerText = val;
+                };
+
+                setTxt('modal-pricing-labor-subtotal', `฿${laborSubtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+                setTxt('modal-pricing-material-subtotal', `฿${materialSubtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+                setTxt('modal-pricing-cost-total', `฿${totalCost.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+                setTxt('modal-pricing-grand-total', `฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+
+                return {
+                    laborSubtotal,
+                    materialSubtotal,
+                    totalCost,
+                    discount,
+                    grandTotal
+                };
+            },
+
+            pullPricingFromBOQ() {
+                const jobId = this.state.currentPricingJobId;
+                if (!jobId) return;
+
+                const allJobs = this.getClosedJobsForPricing();
+                const job = allJobs.find(j => String(j.id) === String(jobId));
+
+                if (job && Array.isArray(job.boq_items) && job.boq_items.length > 0) {
+                    this.state.currentPricingItems = job.boq_items.map((it, idx) => ({
+                        id: it.id || (Date.now() + idx),
+                        type: it.type === 'MATERIAL' ? 'MATERIAL' : 'LABOR',
+                        name: it.name || it.item_name || '',
+                        qty: Number(it.qty) || 1,
+                        unit: it.unit || 'งาน',
+                        cost_price: Number(it.cost_price) || Math.round((Number(it.price || it.unit_price) || 0) * 0.65),
+                        selling_price: Number(it.price || it.unit_price || it.selling_price) || 0
+                    }));
+                    this.renderProjectPricingModalItems();
+                    this.calculateProjectPricingSummary();
+                    this.showToast(`🔄 ดึงรายการ BOQ เดิม (${this.state.currentPricingItems.length} รายการ) เรียบร้อยแล้ว`);
+                } else {
+                    this.showToast('ℹ️ ไม่พบรายการ BOQ เดิมในระบบ ดำเนินการเพิ่มรายการด้วยตนเองหรือใช้ตัวอย่าง');
+                }
+            },
+
+            loadSampleProjectPricing() {
+                const jobId = this.state.currentPricingJobId || 'JOB';
+                this.state.currentPricingItems = [
+                    { id: Date.now(), type: 'LABOR', name: 'ค่าแรงติดตั้งระบบและเดินท่อร้อยสายมาตรฐานโครงการ', qty: 1, unit: 'งาน', cost_price: 1800, selling_price: 3500 },
+                    { id: Date.now() + 1, type: 'MATERIAL', name: 'ชุดอุปกรณ์เชื่อมต่อ, เบรกเกอร์ และท่อร้อยสายไฟมาตรฐาน มอก.', qty: 1, unit: 'ชุด', cost_price: 1200, selling_price: 2200 },
+                    { id: Date.now() + 2, type: 'LABOR', name: 'ค่าบริการทดสอบระบบตรวจวัดแรงดันและส่งมอบงาน', qty: 1, unit: 'จุด', cost_price: 500, selling_price: 1200 }
+                ];
+                const discountInput = document.getElementById('modal-pricing-discount-input');
+                if (discountInput) discountInput.value = 200;
+
+                this.renderProjectPricingModalItems();
+                this.calculateProjectPricingSummary();
+                this.showToast('✨ โหลดชุดข้อมูลราคาตัวอย่างสำหรับโครงการเรียบร้อย');
+            },
+
+            saveProjectPricingModal() {
+                const jobId = this.state.currentPricingJobId;
+                if (!jobId) {
+                    this.showToast('⚠️ ไม่พบรหัสงานโครงการ');
+                    return;
+                }
+
+                const items = this.state.currentPricingItems || [];
+                if (items.length === 0) {
+                    this.showToast('⚠️ กรุณาเพิ่มรายการราคาและต้นทุนอย่างน้อย 1 รายการ');
+                    return;
+                }
+
+                const summary = this.calculateProjectPricingSummary();
+                const currentUserName = (this.currentUser && (this.currentUser.name || this.currentUser.username)) || 'เจ้าหน้าที่โครงการ';
+
+                const pricingData = {
+                    job_id: jobId,
+                    items: items,
+                    labor_subtotal: summary.laborSubtotal,
+                    material_subtotal: summary.materialSubtotal,
+                    total_cost: summary.totalCost,
+                    discount: summary.discount,
+                    grand_total: summary.grandTotal,
+                    has_pricing: true,
+                    updated_at: new Date().toISOString(),
+                    updated_by: currentUserName
+                };
+
+                // 1. Save to Persistent Store (localStorage)
+                const pricingStore = this.getProjectPricingStore();
+                pricingStore[jobId] = pricingData;
+                this.saveProjectPricingStore(pricingStore);
+
+                // 2. Update DB.jobs if present
+                if (Array.isArray(DB.jobs)) {
+                    const job = DB.jobs.find(j => String(j.id) === String(jobId));
+                    if (job) {
+                        job.project_pricing = pricingData;
+                        job.pricing_recorded = true;
+                        job.boq_grand_total = summary.grandTotal;
+                        job.boq_items = items.map(it => ({
+                            id: it.id,
+                            type: it.type,
+                            name: it.name,
+                            qty: it.qty,
+                            unit: it.unit,
+                            cost_price: it.cost_price,
+                            price: it.selling_price,
+                            total: it.qty * it.selling_price
+                        }));
+                        if (typeof DB.save === 'function') {
+                            DB.save();
+                        }
+                    }
+                }
+
+                // 3. UI Updates
+                this.hideModal('modal-project-pricing');
+                this.renderProjectPricingTable();
+                if (typeof this.updateStepBadges === 'function') {
+                    this.updateStepBadges();
+                }
+
+                this.showToast(`✅ บันทึกราคาโครงการสำหรับ ${jobId} สำเร็จ (ยอดขายสุทธิ ฿${summary.grandTotal.toLocaleString('th-TH')})`);
+            },
+
+            exportProjectPricingExcel() {
+                if (typeof XLSX === 'undefined') {
+                    this.showToast('⚠️ ไม่พบไลบรารี SheetJS (XLSX) ในระบบ');
+                    return;
+                }
+
+                const allJobs = this.getClosedJobsForPricing();
+                const wb = XLSX.utils.book_new();
+
+                const rows = [
+                    ['รายงานราคาโครงการ (งานที่ปิดแล้ว บันทึกราคาทุน-ราคาขาย ไม่คิด VAT 7%)'],
+                    ['วันที่สร้างรายงาน:', this.formatDateTimeDMY(new Date().toISOString(), false, true)],
+                    [''],
+                    [
+                        '#',
+                        'รหัสงาน (Job ID)',
+                        'เลขที่ Ticket',
+                        'รหัสอ้างอิง STK',
+                        'วันที่ปิดงาน (DD/MM/YYYY)',
+                        'ลูกค้า',
+                        'เบอร์โทรศัพท์',
+                        'สาขา',
+                        'งานบริการ',
+                        'ทีมช่าง',
+                        'สถานะราคา',
+                        'ราคาทุนรวม (Total Cost ฿)',
+                        'ยอดขายรวมสุทธิ (Grand Total ฿ - No VAT)'
+                    ]
+                ];
+
+                allJobs.forEach((j, idx) => {
+                    rows.push([
+                        idx + 1,
+                        j.id,
+                        j.ticket_no || '-',
+                        j.stk_ref || '-',
+                        this.formatDateDMY(j.closed_at),
+                        j.customer || '-',
+                        j.phone || '-',
+                        j.branch || '-',
+                        j.service || '-',
+                        j.technician || '-',
+                        j.has_pricing ? 'บันทึกราคาแล้ว' : 'รอใส่ราคา',
+                        j.has_pricing ? Number(j.total_cost || 0) : 0,
+                        j.has_pricing ? Number(j.grand_total || 0) : Number(j.total_amount || 0)
+                    ]);
+                });
+
+                const ws = XLSX.utils.aoa_to_sheet(rows);
+                ws['!cols'] = [
+                    { wch: 6 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 18 },
+                    { wch: 26 }, { wch: 16 }, { wch: 16 }, { wch: 30 }, { wch: 20 },
+                    { wch: 16 }, { wch: 22 }, { wch: 25 }
+                ];
+                XLSX.utils.book_append_sheet(wb, ws, 'Project_Pricing');
+
+                const fileName = `PMT_Flow_Project_Pricing_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                this.showToast(`📥 ส่งออกไฟล์ Excel (${fileName}) เรียบร้อยแล้ว`);
+            },
+
+            exportProjectPricingCSV() {
+                const allJobs = this.getClosedJobsForPricing();
+                const headers = [
+                    '#',
+                    'Job ID',
+                    'Ticket No',
+                    'STK Ref',
+                    'Date Closed',
+                    'Customer',
+                    'Phone',
+                    'Branch',
+                    'Service',
+                    'Technician',
+                    'Status',
+                    'Total Cost (THB)',
+                    'Grand Total Selling (THB - No VAT)'
+                ];
+
+                const csvRows = [headers.join(',')];
+
+                allJobs.forEach((j, idx) => {
+                    const row = [
+                        idx + 1,
+                        `"${j.id}"`,
+                        `"${j.ticket_no || '-'}"`,
+                        `"${j.stk_ref || '-'}"`,
+                        `"${this.formatDateDMY(j.closed_at)}"`,
+                        `"${(j.customer || '').replace(/"/g, '""')}"`,
+                        `"${j.phone || '-'}"`,
+                        `"${j.branch || '-'}"`,
+                        `"${(j.service || '').replace(/"/g, '""')}"`,
+                        `"${(j.technician || '').replace(/"/g, '""')}"`,
+                        `"${j.has_pricing ? 'COMPLETED' : 'PENDING'}"`,
+                        j.has_pricing ? Number(j.total_cost || 0).toFixed(2) : '0.00',
+                        j.has_pricing ? Number(j.grand_total || 0).toFixed(2) : Number(j.total_amount || 0).toFixed(2)
+                    ];
+                    csvRows.push(row.join(','));
+                });
+
+                const csvContent = '\uFEFF' + csvRows.join('\r\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `PMT_Flow_Project_Pricing_${new Date().toISOString().slice(0, 10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                this.showToast('📥 ส่งออกไฟล์ CSV เรียบร้อยแล้ว');
             }
         };
 
