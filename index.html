@@ -366,12 +366,13 @@
                             </div>
                             <span class="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-500 font-mono font-medium shrink-0" id="sidebar-qc-count">0</span>
                         </a>
-                        <!-- ความพึงพอใจลูกค้า (CSAT) -->
+                        <!-- สรุปงานที่สำเร็จแล้ว (ส่ง API ระบบ STK) -->
                         <a href="#" onclick="app.navigate('csat')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-csat">
                             <div class="flex items-center gap-2.5">
-                                <i class="ph ph-star text-base text-amber-500"></i>
-                                <span>ความพึงพอใจลูกค้า (CSAT)</span>
+                                <i class="ph-fill ph-check-circle text-base text-emerald-600"></i>
+                                <span>สรุปงานที่สำเร็จแล้ว (ส่ง API ระบบ STK)</span>
                             </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 font-mono font-bold" id="sidebar-csat-count">0</span>
                         </a>
                         <!-- บริการหลังการขาย -->
                         <a href="#" onclick="app.navigate('ma-contracts')" class="nav-link flex items-center justify-between px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all" id="nav-ma-contracts">
@@ -3409,153 +3410,156 @@
                     </div>
                 </div>
 
-                <!-- 7. CSAT SURVEY VIEW (Step 6: ประเมินความพึงพอใจลูกค้า CSAT) -->
+                <!-- 7. COMPLETED JOBS & STK API SYNC VIEW (สรุปงานที่สำเร็จแล้ว - ส่ง API ระบบ STK) -->
                 <div id="page-csat" class="page-view hidden-view space-y-6">
+                    <!-- Page Header -->
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-blue-500/20 text-blue-700 border border-blue-500/30">Step 6</span>
-                                <i class="ph ph-hand-heart text-2xl text-blue-600"></i>
-                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">ประเมินความพึงพอใจลูกค้า (Customer Satisfaction - CSAT Step 6)</h2>
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">ส่ง API ระบบ STK</span>
+                                <i class="ph-fill ph-check-circle text-2xl text-emerald-600"></i>
+                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">สรุปงานที่สำเร็จแล้ว (Completed Jobs Summary - ส่ง API ระบบ STK)</h2>
                             </div>
-                            <p class="text-xs text-muted-foreground mt-1">Contact Center โทรสอบถามประเมินผลความพึงพอใจลูกค้า (เกณฑ์ผ่าน=5, ไม่ผ่าน=1) เพื่อปิดงานคำสั่งซื้อ (Job Close) อย่างเป็นทางการ</p>
+                            <p class="text-xs text-muted-foreground mt-1">รวบรวมงานคำสั่งซื้อที่ดำเนินการสำเร็จครบถ้วนทุกขั้นตอน และส่งถ่ายข้อมูลปิดงานผ่าน REST API เข้าสู่ระบบ STK (Stock Integration) เรียบร้อยแล้ว (สืบค้นได้ครบทุกรายละเอียด)</p>
                         </div>
                         <div class="flex items-center gap-2.5 flex-wrap">
-                            <button onclick="app.showStep6TrainingGuide()" class="btn-artifact-secondary text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border-blue-500/30 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 6 (CSAT)">
-                                <i class="ph ph-graduation-cap text-blue-500 text-sm"></i>
-                                <span>คู่มือ Training Step 6</span>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 shadow-2xs">
+                                <i class="ph ph-clock-counter-clockwise text-sm"></i>
+                                <span>เก็บประวัติย้อนหลัง 6 เดือน</span>
+                            </span>
+                            <button type="button" onclick="app.resetCompletedJobsSTKFilter()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-brand-600 hover:bg-brand-500/10 border-brand-500/30 cursor-pointer shadow-xs transition" title="ล้างตัวกรองและแสดงงานที่สำเร็จทั้งหมด">
+                                <i class="ph ph-arrows-counter-clockwise text-sm"></i>
+                                <span>ล้างตัวกรอง</span>
                             </button>
-                            <button onclick="app.seedCSATDemoJobs()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 shadow-xs cursor-pointer" title="จำลองข้อมูลงานผ่าน QC เข้าสู่ CSAT เพื่อทดสอบระบบ">
-                                <i class="ph ph-sparkle-fill text-amber-500"></i>
-                                <span>⚡ จำลองงานเข้า CSAT (Demo)</span>
+                            <button type="button" onclick="app.exportCompletedJobsSTKExcel()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-emerald-700 hover:bg-emerald-50 border-emerald-500/30 cursor-pointer shadow-xs transition" title="ส่งออกข้อมูลงานสำเร็จทั้งหมดเป็นไฟล์ Excel (.xlsx)">
+                                <i class="ph ph-file-xls text-base text-emerald-600"></i>
+                                <span>Export Excel</span>
                             </button>
-                            <button onclick="app.navigate('completed-jobs')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 cursor-pointer" title="ไปยังรายงานโครงการที่สำเร็จแล้ว">
-                                <i class="ph ph-check-circle text-emerald-500"></i>
-                                <span>ดูรายงานที่สำเร็จ ➔</span>
+                            <button type="button" onclick="app.exportCompletedJobsSTKCSV()" class="btn-artifact-secondary px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer shadow-xs" title="ส่งออกข้อมูลเป็นไฟล์ CSV ภาษาไทย (UTF-8 BOM)">
+                                <i class="ph ph-download-simple text-sm"></i>
+                                <span>CSV</span>
                             </button>
                         </div>
                     </div>
 
-                    <!-- CSAT 4 KPI Cards (Style of Step 1 & Image 2) -->
+                    <!-- 4 Summary KPI Cards -->
                     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <!-- Card 1: ยอดงานเข้า ทั้งหมด -->
-                        <div onclick="app.setCSATFilter('all')" class="p-4.5 rounded-xl bg-card border border-border hover:border-brand-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อดูงานทั้งหมดใน CSAT">
+                        <!-- Card 1: ยอดงานสำเร็จส่ง STK ทั้งหมด -->
+                        <div onclick="app.setCompletedJobsSTKTimeFilter('all')" class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="แสดงงานที่ส่ง API ระบบ STK ทั้งหมด">
                             <div class="flex items-center gap-3.5">
-                                <div class="w-12 h-12 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
-                                    <i class="ph ph-folders"></i>
+                                <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                    <i class="ph-fill ph-check-circle"></i>
                                 </div>
                                 <div>
-                                    <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดงานเข้า ทั้งหมด</p>
+                                    <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">สำเร็จส่ง STK ทั้งหมด</p>
                                     <div class="flex items-baseline gap-1.5 mt-0.5">
-                                        <span id="csat-stat-total" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-brand-600 dark:text-brand-400">0</span>
+                                        <span id="csat-stat-total" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-emerald-600">0</span>
                                         <span class="text-xs text-muted-foreground font-medium">รายการ</span>
                                     </div>
-                                    <p class="text-[11px] text-muted-foreground/80 mt-0.5 flex items-center gap-1">
-                                        <i class="ph ph-check-square-offset"></i> งานผ่าน QC ในระบบ
+                                    <p class="text-[11px] text-emerald-700/80 mt-0.5 flex items-center gap-1">
+                                        <i class="ph ph-arrow-circle-up-right"></i> ยิง API เข้า STK สำเร็จ 100%
                                     </p>
                                 </div>
                             </div>
                             <div class="flex flex-col items-end gap-2 shrink-0">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">All CSAT</span>
-                                <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-brand-500 group-hover:translate-x-0.5 transition text-base"></i>
-                            </div>
-                        </div>
-
-                        <!-- Card 2: ยอดเข้าวันนี้ -->
-                        <div onclick="app.setCSATFilter('today')" class="p-4.5 rounded-xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อกรองงานที่ผ่าน QC เข้ามาวันนี้">
-                            <div class="flex items-center gap-3.5">
-                                <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
-                                    <i class="ph ph-calendar-plus"></i>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดเข้าวันนี้</p>
-                                    <div class="flex items-baseline gap-1.5 mt-0.5">
-                                        <span id="csat-stat-today" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-emerald-600 dark:text-emerald-400">0</span>
-                                        <span class="text-xs text-muted-foreground font-medium">รายการ</span>
-                                    </div>
-                                    <p class="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5 flex items-center gap-1">
-                                        <i class="ph ph-check-circle"></i> ผ่าน QC วันนี้
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="flex flex-col items-end gap-2 shrink-0">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">วันนี้</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">All STK Synced</span>
                                 <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition text-base"></i>
                             </div>
                         </div>
 
-                        <!-- Card 3: ยอดที่ยังคงเหลือ -->
-                        <div onclick="app.setCSATFilter('pending')" class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อแสดงงานที่รอโทรประเมิน">
+                        <!-- Card 2: ส่ง STK สำเร็จวันนี้ -->
+                        <div onclick="app.setCompletedJobsSTKTimeFilter('today')" class="p-4.5 rounded-xl bg-card border border-border hover:border-brand-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="แสดงงานที่ส่ง API ระบบ STK วันนี้">
                             <div class="flex items-center gap-3.5">
-                                <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
-                                    <i class="ph ph-hourglass-high"></i>
+                                <div class="w-12 h-12 rounded-xl bg-brand-500/10 text-brand-600 border border-brand-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                    <i class="ph ph-calendar-check"></i>
                                 </div>
                                 <div>
-                                    <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ยอดที่ยังคงเหลือ</p>
+                                    <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ส่ง STK สำเร็จวันนี้</p>
                                     <div class="flex items-baseline gap-1.5 mt-0.5">
-                                        <span id="csat-stat-pending" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-amber-600 dark:text-amber-400">0</span>
+                                        <span id="csat-stat-today" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-brand-600">0</span>
                                         <span class="text-xs text-muted-foreground font-medium">รายการ</span>
                                     </div>
-                                    <p class="text-[11px] text-amber-600/80 dark:text-amber-400/80 mt-0.5 flex items-center gap-1">
-                                        <i class="ph ph-phone-call animate-pulse"></i> รอโทรประเมิน
+                                    <p class="text-[11px] text-brand-600/80 mt-0.5 flex items-center gap-1">
+                                        <i class="ph ph-clock"></i> ปิดงาน & ตัดสต็อกวันนี้
                                     </p>
                                 </div>
                             </div>
                             <div class="flex flex-col items-end gap-2 shrink-0">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">รอประเมิน</span>
-                                <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-amber-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-brand-500/10 text-brand-600 border border-brand-500/20">วันนี้</span>
+                                <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-brand-500 group-hover:translate-x-0.5 transition text-base"></i>
                             </div>
                         </div>
 
-                        <!-- Card 4: คะแนนเฉลี่ย CSAT (/ 5.0) -->
-                        <div onclick="app.setCSATFilter('completed')" class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between gap-3 relative overflow-hidden" title="คลิกเพื่อดูงานที่ประเมินแล้ว">
+                        <!-- Card 3: มูลค่างานรวมส่ง STK แล้ว -->
+                        <div class="p-4.5 rounded-xl bg-card border border-border hover:border-indigo-500/40 hover:shadow-md transition-all flex items-center justify-between gap-3 relative overflow-hidden">
                             <div class="flex items-center gap-3.5">
-                                <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 flex items-center justify-center text-2xl shrink-0">
+                                    <i class="ph ph-currency-circle-dollar"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">มูลค่างานรวมส่ง STK แล้ว</p>
+                                    <div class="flex items-baseline gap-1 mt-0.5">
+                                        <span class="text-xs text-indigo-600 font-bold">฿</span>
+                                        <span id="csat-stat-total-amount" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-indigo-600">0</span>
+                                    </div>
+                                    <p class="text-[11px] text-muted-foreground/80 mt-0.5 flex items-center gap-1">
+                                        <i class="ph ph-receipt"></i> ยอดสุทธิเข้าบัญชี & คลัง STK
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end gap-2 shrink-0">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/10 text-indigo-600 border border-indigo-500/20">มูลค่ารวม</span>
+                            </div>
+                        </div>
+
+                        <!-- Card 4: คะแนนเฉลี่ยความสำเร็จ (QC & CSAT) -->
+                        <div class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all flex items-center justify-between gap-3 relative overflow-hidden">
+                            <div class="flex items-center gap-3.5">
+                                <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0">
                                     <i class="ph ph-star-fill"></i>
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-1.5">
-                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">คะแนนเฉลี่ย CSAT</p>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">คะแนนคุณภาพเฉลี่ย</p>
                                         <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground">/ 5.0</span>
                                     </div>
                                     <div class="flex items-baseline gap-1.5 mt-0.5">
-                                        <span id="csat-stat-avg" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-amber-500">0.0</span>
+                                        <span id="csat-stat-avg" class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-amber-500">5.0</span>
                                         <span class="text-xs text-amber-500 font-medium">★</span>
                                     </div>
                                     <p class="text-[11px] text-muted-foreground/80 mt-0.5 flex items-center gap-1.5">
-                                        <span class="text-emerald-600 dark:text-emerald-400 font-medium">ประเมินแล้ว: <b id="csat-stat-completed">0</b></span>
+                                        <span class="text-emerald-600 font-medium">QC: <b id="csat-stat-qc-avg">5.0</b></span>
                                         <span>•</span>
-                                        <span class="text-indigo-600 dark:text-indigo-400 font-medium">ตอบกลับ: <b id="csat-stat-response-rate">100%</b></span>
+                                        <span class="text-blue-600 font-medium">CSAT: <b id="csat-stat-csat-avg">5.0</b></span>
                                     </p>
                                 </div>
                             </div>
                             <div class="flex flex-col items-end gap-2 shrink-0">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">ประเมินแล้ว</span>
-                                <i class="ph ph-arrow-right text-muted-foreground/40 group-hover:text-amber-500 group-hover:translate-x-0.5 transition text-base"></i>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">QC & CSAT</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Segment Distribution Summary for CSAT -->
+                    <!-- Segment Distribution Summary -->
                     <div class="pt-1">
                         <div class="flex items-center justify-between mb-2.5">
                             <div class="flex items-center gap-2">
-                                <span class="text-xs font-bold text-foreground font-display">สัดส่วนประเภทงาน (Segment Distribution Summary)</span>
+                                <span class="text-xs font-bold text-foreground font-display">สัดส่วนประเภทงานที่สำเร็จและส่ง STK (Segment Distribution Summary)</span>
                                 <span class="text-[10px] text-muted-foreground">คลิกการ์ดเพื่อกรองตามประเภท</span>
                             </div>
-                            <div class="text-[11px] font-mono text-muted-foreground" id="csat-dist-ratio-label">100% สัดส่วนงาน</div>
+                            <div class="text-[11px] font-mono text-muted-foreground" id="csat-dist-ratio-label">100% ส่ง STK สำเร็จ</div>
                         </div>
 
-                        <!-- 4 Category Cards with Left Colored Border -->
+                        <!-- 4 Category Cards -->
                         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
                             <!-- Quick Services -->
-                            <div onclick="app.setCSATServiceFilter('quick')" id="csat-dist-card-quick" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500 hover:bg-muted/60 transition cursor-pointer group">
+                            <div onclick="app.setCompletedJobsSTKServiceFilter('quick')" id="csat-dist-card-quick" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-amber-500 hover:bg-muted/60 transition cursor-pointer group">
                                 <div class="flex items-center justify-between mb-1">
-                                    <span class="text-xs font-medium text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 flex items-center gap-1.5">
+                                    <span class="text-xs font-medium text-foreground group-hover:text-amber-600 flex items-center gap-1.5">
                                         <span class="w-2 h-2 rounded-full bg-amber-500"></span>
                                         Quick Services
                                     </span>
-                                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold" id="csat-dist-quick-pct">0%</span>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 font-bold" id="csat-dist-quick-pct">0%</span>
                                 </div>
                                 <div class="flex items-baseline justify-between mt-1">
                                     <span class="text-lg font-bold font-display text-foreground" id="csat-dist-quick-count">0</span>
@@ -3564,13 +3568,13 @@
                             </div>
 
                             <!-- Renovate Projects -->
-                            <div onclick="app.setCSATServiceFilter('renovate')" id="csat-dist-card-renovate" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500 hover:bg-muted/60 transition cursor-pointer group">
+                            <div onclick="app.setCompletedJobsSTKServiceFilter('renovate')" id="csat-dist-card-renovate" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-indigo-500 hover:bg-muted/60 transition cursor-pointer group">
                                 <div class="flex items-center justify-between mb-1">
-                                    <span class="text-xs font-medium text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 flex items-center gap-1.5">
+                                    <span class="text-xs font-medium text-foreground group-hover:text-indigo-600 flex items-center gap-1.5">
                                         <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-                                        Renovate
+                                        Renovate Projects
                                     </span>
-                                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold" id="csat-dist-renovate-pct">0%</span>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-600 font-bold" id="csat-dist-renovate-pct">0%</span>
                                 </div>
                                 <div class="flex items-baseline justify-between mt-1">
                                     <span class="text-lg font-bold font-display text-foreground" id="csat-dist-renovate-count">0</span>
@@ -3579,13 +3583,13 @@
                             </div>
 
                             <!-- MA & Maintenance -->
-                            <div onclick="app.setCSATServiceFilter('ma')" id="csat-dist-card-ma" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-purple-500 hover:bg-muted/60 transition cursor-pointer group">
+                            <div onclick="app.setCompletedJobsSTKServiceFilter('ma')" id="csat-dist-card-ma" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-purple-500 hover:bg-muted/60 transition cursor-pointer group">
                                 <div class="flex items-center justify-between mb-1">
-                                    <span class="text-xs font-medium text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 flex items-center gap-1.5">
+                                    <span class="text-xs font-medium text-foreground group-hover:text-purple-600 flex items-center gap-1.5">
                                         <span class="w-2 h-2 rounded-full bg-purple-500"></span>
                                         MA & Maintenance
                                     </span>
-                                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold" id="csat-dist-ma-pct">0%</span>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 font-bold" id="csat-dist-ma-pct">0%</span>
                                 </div>
                                 <div class="flex items-baseline justify-between mt-1">
                                     <span class="text-lg font-bold font-display text-foreground" id="csat-dist-ma-count">0</span>
@@ -3593,67 +3597,122 @@
                                 </div>
                             </div>
 
-                            <!-- Evaluated CSAT -->
-                            <div onclick="app.setCSATFilter('completed')" id="csat-dist-card-done" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500 hover:bg-muted/60 transition cursor-pointer group">
+                            <!-- Total Synced -->
+                            <div onclick="app.setCompletedJobsSTKServiceFilter('all')" id="csat-dist-card-done" class="p-3 rounded-xl bg-muted/30 border border-border border-l-4 border-l-emerald-500 hover:bg-muted/60 transition cursor-pointer group">
                                 <div class="flex items-center justify-between mb-1">
-                                    <span class="text-xs font-medium text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 flex items-center gap-1.5">
+                                    <span class="text-xs font-medium text-foreground group-hover:text-emerald-600 flex items-center gap-1.5">
                                         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                        ประเมินแล้ว
+                                        ส่ง STK สำเร็จแล้ว
                                     </span>
-                                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold" id="csat-dist-done-pct">0%</span>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 font-bold" id="csat-dist-done-pct">100%</span>
                                 </div>
                                 <div class="flex items-baseline justify-between mt-1">
                                     <span class="text-lg font-bold font-display text-foreground" id="csat-dist-done-count">0</span>
-                                    <span class="text-[10px] text-muted-foreground">ผลประเมินเสร็จ</span>
+                                    <span class="text-[10px] text-muted-foreground">สถานะ 200 OK</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Filter Tabs & Controls -->
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <select id="csat-service-filter" onchange="app.setCSATServiceFilter(this.value)" class="px-3 py-1.5 rounded-xl text-xs bg-card border border-border text-foreground font-medium focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer">
+                    <!-- Omnichannel Search & Multi-Filters Bar -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-muted/40 p-3.5 rounded-2xl border border-border">
+                        <div class="flex flex-wrap items-center gap-2.5 flex-1">
+                            <!-- Instant Search Input -->
+                            <div class="relative flex-1 min-w-[220px] max-w-sm">
+                                <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
+                                <input type="text" id="csat-search-input" oninput="app.filterCompletedJobsSTK()" placeholder="ค้นหารหัสงาน, STK Ref, เลข Ticket, ลูกค้า, เบอร์โทร, ช่าง, ที่อยู่..." class="w-full pl-9 pr-3.5 py-1.5 rounded-xl text-xs bg-card border border-border text-foreground focus:outline-none focus:border-emerald-500 shadow-2xs">
+                            </div>
+
+                            <!-- Time Filter -->
+                            <select id="csat-time-filter" onchange="app.filterCompletedJobsSTK()" class="px-3 py-1.5 rounded-xl text-xs bg-card border border-border text-foreground font-medium focus:outline-none focus:border-emerald-500 shadow-2xs cursor-pointer">
+                                <option value="all">ย้อนหลัง 6 เดือน (ทั้งหมด)</option>
+                                <option value="today">ปิดงานและส่ง STK วันนี้</option>
+                                <option value="7">7 วันล่าสุด</option>
+                                <option value="30">30 วันล่าสุด (1 เดือน)</option>
+                                <option value="60">60 วันล่าสุด (2 เดือน)</option>
+                                <option value="90">90 วันล่าสุด (3 เดือน)</option>
+                                <option value="180">180 วันล่าสุด (6 เดือน)</option>
+                            </select>
+
+                            <!-- Service Filter -->
+                            <select id="csat-service-filter" onchange="app.filterCompletedJobsSTK()" class="px-3 py-1.5 rounded-xl text-xs bg-card border border-border text-foreground font-medium focus:outline-none focus:border-emerald-500 shadow-2xs cursor-pointer">
                                 <option value="all">ทุกประเภทบริการ (All Services)</option>
                                 <option value="quick">⚡ Quick Services (งานติดตั้งด่วน)</option>
-                                <option value="renovate">🔨 Renovate (งานปรับปรุง)</option>
+                                <option value="renovate">🔨 Renovate Projects (งานปรับปรุง)</option>
                                 <option value="ma">🛡️ MA & Maintenance (บำรุงรักษา)</option>
                             </select>
 
-                            <div class="flex items-center gap-1 bg-muted p-1 rounded-xl border border-border/60">
-                                <button type="button" id="csat-tab-all" onclick="app.setCSATFilter('all')" class="px-3 py-1 rounded-lg text-xs font-medium bg-card text-foreground shadow-xs transition">ทั้งหมด</button>
-                                <button type="button" id="csat-tab-today" onclick="app.setCSATFilter('today')" class="px-3 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground transition">เข้าวันนี้</button>
-                                <button type="button" id="csat-tab-pending" onclick="app.setCSATFilter('pending')" class="px-3 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground transition">รอโทรประเมิน</button>
-                                <button type="button" id="csat-tab-completed" onclick="app.setCSATFilter('completed')" class="px-3 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground transition">ประเมินแล้ว</button>
-                            </div>
+                            <!-- Branch Filter -->
+                            <select id="csat-branch-filter" onchange="app.filterCompletedJobsSTK()" class="px-3 py-1.5 rounded-xl text-xs bg-card border border-border text-foreground font-medium focus:outline-none focus:border-emerald-500 shadow-2xs cursor-pointer">
+                                <option value="all">ทุกสาขา (All Branches)</option>
+                                <option value="พัทยาใต้">สาขาพัทยาใต้</option>
+                                <option value="บางนา">สาขาบางนา</option>
+                                <option value="พระราม 9">สาขาพระราม 9</option>
+                                <option value="เชียงใหม่">สาขาเชียงใหม่</option>
+                                <option value="ภูเก็ต">สาขาภูเก็ต</option>
+                                <option value="รังสิต">สาขารังสิต</option>
+                            </select>
+
+                            <!-- Score Filter -->
+                            <select id="csat-score-filter" onchange="app.filterCompletedJobsSTK()" class="px-3 py-1.5 rounded-xl text-xs bg-card border border-border text-foreground font-medium focus:outline-none focus:border-emerald-500 shadow-2xs cursor-pointer">
+                                <option value="all">ทุกระดับคะแนน</option>
+                                <option value="5">คะแนนเต็ม 5.0 (สมบูรณ์แบบ)</option>
+                                <option value="4.8">คะแนน 4.8 - 4.9 ดาว (ดีเยี่ยม)</option>
+                                <option value="4.5">คะแนน 4.5 - 4.7 ดาว (มาตรฐาน)</option>
+                                <option value="below4.5">คะแนนต่ำกว่า 4.5</option>
+                            </select>
                         </div>
 
-                        <div class="flex items-center gap-2.5">
-                            <div class="relative">
-                                <i class="ph ph-magnifying-glass absolute left-3 top-2.5 text-muted-foreground text-xs"></i>
-                                <input type="text" id="csat-search-input" placeholder="ค้นหาเลขงาน, ลูกค้า, เบอร์โทร..." oninput="app.renderCSAT()" class="pl-8 pr-3 py-1.5 rounded-xl text-xs bg-card border border-border text-foreground w-44 sm:w-56 focus:outline-none focus:border-amber-500 shadow-xs">
-                            </div>
-                            <span class="text-xs text-muted-foreground whitespace-nowrap font-mono" id="csat-count-summary">แสดง 0 รายการ</span>
+                        <!-- Live Match Count Summary -->
+                        <div class="flex items-center gap-3 text-xs text-muted-foreground whitespace-nowrap self-end md:self-center">
+                            <span id="csat-count-summary" class="font-mono bg-emerald-500/10 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-500/20 font-bold">แสดง 0 รายการ</span>
                         </div>
                     </div>
 
-                    <!-- CSAT Table Card -->
-                    <div class="artifact-card overflow-hidden shadow-sm">
-                        <table class="w-full text-left text-xs">
-                            <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
-                                <tr>
-                                    <th class="px-5 py-3.5">เลขที่งาน</th>
-                                    <th class="px-5 py-3.5">ลูกค้า & เบอร์ติดต่อ</th>
-                                    <th class="px-5 py-3.5">ประเภทบริการ & ข้อมูลงาน</th>
-                                    <th class="px-5 py-3.5">วันที่ QC ผ่าน</th>
-                                    <th class="px-5 py-3.5">คะแนน CSAT (0-5 ดาว)</th>
-                                    <th class="px-5 py-3.5 text-right">การดำเนินการ</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-border" id="csat-table-body">
-                                <!-- Populated by JS -->
-                            </tbody>
-                        </table>
+                    <!-- Completed Jobs Table Card (Strict Light Theme List View) -->
+                    <div class="artifact-card overflow-hidden shadow-xs border border-border bg-card rounded-2xl">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="border-b border-border bg-muted/40 text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">
+                                        <th class="py-3.5 px-4">รหัสงาน & วันที่รับ</th>
+                                        <th class="py-3.5 px-4">รหัสอ้างอิง API ระบบ STK</th>
+                                        <th class="py-3.5 px-4">ลูกค้า & เบอร์ติดต่อ & สาขา</th>
+                                        <th class="py-3.5 px-4">งานบริการ & เลข Ticket</th>
+                                        <th class="py-3.5 px-4">ทีมช่าง & ผู้ตรวจ QC</th>
+                                        <th class="py-3.5 px-4 text-right">ยอดเงินรวม</th>
+                                        <th class="py-3.5 px-4 text-center">QC / CSAT</th>
+                                        <th class="py-3.5 px-4 text-center">สถานะส่ง STK</th>
+                                        <th class="py-3.5 px-4 text-center w-36">การดำเนินการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border/60" id="csat-table-body">
+                                    <!-- Populated dynamically by app.renderCompletedJobsSTK() -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination Footer -->
+                        <div class="p-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground bg-muted/15">
+                            <div class="flex items-center gap-2">
+                                <span>แสดง</span>
+                                <select id="csat-page-size" onchange="app.changeCompletedJobsSTKPageSize(this.value)" class="bg-card border border-border rounded-lg px-2.5 py-1 text-xs text-foreground font-medium focus:outline-none focus:border-emerald-500 shadow-2xs cursor-pointer">
+                                    <option value="10" selected>10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                </select>
+                                <span>รายการ ต่อหน้า</span>
+                            </div>
+
+                            <!-- Page Selector Buttons -->
+                            <div class="flex items-center gap-1" id="csat-pagination-controls">
+                                <!-- Rendered dynamically by app.renderCompletedJobsSTKPagination() -->
+                            </div>
+
+                            <div class="font-medium text-foreground text-xs" id="csat-total-label">
+                                ทั้งหมด 0 รายการ
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -4638,21 +4697,21 @@
                                 </div>
                             </div>
 
-                            <!-- Module 6: Step 6 (CSAT & Close Job) -->
-                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-blue-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                            <!-- Module 6: Step 6 (Completed Jobs & STK Sync) -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-emerald-500/40 transition-all space-y-3 flex flex-col justify-between group">
                                 <div class="space-y-2">
                                     <div class="flex items-center justify-between">
-                                        <span class="px-2 py-0.5 rounded bg-blue-500/15 text-blue-600 font-mono text-[10px] font-bold border border-blue-500/20">TRN-PMT-STEP06</span>
-                                        <span class="text-[10px] text-muted-foreground font-mono">Step 6 (CSAT)</span>
+                                        <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700 font-mono text-[10px] font-bold border border-emerald-500/20">TRN-PMT-STK01</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">ส่ง API ระบบ STK</span>
                                     </div>
-                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-blue-600 transition">Step 6: ประเมินความพึงพอใจลูกค้า (CSAT)</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">สำรวจความพึงพอใจลูกค้า (ผ่าน=5 / ไม่ผ่าน=1), ปิดงานคำสั่งซื้อ (Close Job) ซิงค์ระบบ BMT สมบูรณ์แบบ (แยกจากสัญญา MA)</p>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-emerald-600 transition">สรุปงานที่สำเร็จแล้ว (ส่ง API ระบบ STK)</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">รวบรวมเฉพาะงานที่สำเร็จและส่ง API ไปยังระบบตัดสต็อก STK เรียบร้อย 100% (สืบค้นได้ทุกมิติ, ดูโครงสร้าง STK Payload JSON, พิมพ์ใบปิดงาน STK และส่งออก Excel/CSV)</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
                                     <button onclick="app.navigate('csat')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
                                     </button>
-                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step7_CSATและบริการหลังการขาย.md', 'โมดูล 6: Step 6 — ประเมินความพึงพอใจลูกค้า CSAT และปิดงานคำสั่งซื้อ')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-[11px] font-semibold text-blue-600 flex items-center justify-center gap-1 cursor-pointer transition">
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_Step7_CSATและบริการหลังการขาย.md', 'โมดูล 6: สรุปงานที่สำเร็จแล้ว & ส่ง API ระบบ STK (Completed Jobs Summary)')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] font-semibold text-emerald-600 flex items-center justify-center gap-1 cursor-pointer transition">
                                         <i class="ph ph-book-open"></i> อ่านคู่มือ
                                     </button>
                                 </div>
@@ -6592,19 +6651,23 @@
             </div>
 
             <!-- Modal Nav Tabs -->
-            <div class="flex items-center gap-2 px-6 pt-3 border-b border-border bg-muted/15 shrink-0">
-                <button type="button" onclick="app.switchJobCloseModalTab('overview')" id="jcd-tab-btn-overview" class="px-4 py-2.5 text-xs font-bold border-b-2 border-brand-500 text-brand-600 flex items-center gap-1.5 transition cursor-pointer">
+            <div class="flex items-center gap-2 px-6 pt-3 border-b border-border bg-muted/15 shrink-0 overflow-x-auto">
+                <button type="button" onclick="app.switchJobCloseModalTab('overview')" id="jcd-tab-btn-overview" class="px-4 py-2.5 text-xs font-bold border-b-2 border-brand-500 text-brand-600 flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap">
                     <i class="ph ph-chart-donut text-sm"></i>
                     <span>สรุปผลประเมิน QC & CSAT</span>
                 </button>
-                <button type="button" onclick="app.switchJobCloseModalTab('photos')" id="jcd-tab-btn-photos" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition cursor-pointer">
+                <button type="button" onclick="app.switchJobCloseModalTab('photos')" id="jcd-tab-btn-photos" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap">
                     <i class="ph ph-images text-sm"></i>
                     <span>ภาพถ่ายหน้างาน & แบบแปลน</span>
                     <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-brand-500/10 text-brand-600 font-mono" id="jcd-photos-count">6</span>
                 </button>
-                <button type="button" onclick="app.switchJobCloseModalTab('timeline')" id="jcd-tab-btn-timeline" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition cursor-pointer">
+                <button type="button" onclick="app.switchJobCloseModalTab('timeline')" id="jcd-tab-btn-timeline" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap">
                     <i class="ph ph-clock-counter-clockwise text-sm"></i>
                     <span>ประวัติ & ไทม์ไลน์งาน (History)</span>
+                </button>
+                <button type="button" onclick="app.switchJobCloseModalTab('stk')" id="jcd-tab-btn-stk" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap">
+                    <i class="ph ph-cpu text-sm text-emerald-600"></i>
+                    <span>ข้อมูลส่ง API ระบบ STK (Payload)</span>
                 </button>
             </div>
 
@@ -6754,17 +6817,70 @@
                         <!-- Populated dynamically by JS -->
                     </div>
                 </div>
+
+                <!-- TAB 4: STK REST API OUTBOUND INTEGRATION & PAYLOAD -->
+                <div id="jcd-tab-pane-stk" class="space-y-4 hidden-view">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="font-bold text-foreground text-xs flex items-center gap-1.5">
+                                <i class="ph ph-cloud-arrow-up text-emerald-600 text-base"></i>
+                                <span>ข้อมูลการเชื่อมต่อ REST API ขาออกไปยังระบบ STK (STK Outbound Integration)</span>
+                            </h4>
+                            <p class="text-[11px] text-muted-foreground mt-0.5">สถานะการส่งถ่ายข้อมูลปิดงาน คำสั่งซื้อ และตัดบัญชีพัสดุ/สต็อกไปยังระบบ STK กลาง</p>
+                        </div>
+                        <button type="button" onclick="app.copyCurrentJobSTKJson()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 flex items-center gap-1 cursor-pointer">
+                            <i class="ph ph-copy"></i> คัดลอก STK Payload JSON
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="p-3.5 rounded-xl bg-card border border-border space-y-2">
+                            <div class="text-[11px] text-muted-foreground">REST API Endpoint:</div>
+                            <div class="font-mono text-xs font-bold text-emerald-600 bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/20 truncate" id="jcd-stk-endpoint">
+                                POST /api/v1/jobs/{id}/close-and-export-bmt
+                            </div>
+                            <div class="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
+                                <span>สถานะ HTTP:</span>
+                                <span class="px-2 py-0.5 rounded font-bold font-mono bg-emerald-500/15 text-emerald-700">200 OK (Synchronized)</span>
+                            </div>
+                        </div>
+
+                        <div class="p-3.5 rounded-xl bg-card border border-border space-y-2">
+                            <div class="text-[11px] text-muted-foreground">รหัสอ้างอิงตอบกลับระบบ STK (STK Ref):</div>
+                            <div class="font-mono text-xs font-bold text-foreground bg-muted/60 px-2.5 py-1.5 rounded-lg border border-border flex items-center justify-between">
+                                <span id="jcd-stk-ref-badge">STK-REF-2026-XXXXXX</span>
+                                <i class="ph ph-check-circle-fill text-emerald-600"></i>
+                            </div>
+                            <div class="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
+                                <span>เวลาที่ส่งสำเร็จ:</span>
+                                <span class="font-mono text-foreground font-semibold" id="jcd-stk-timestamp">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold text-foreground">โครงสร้างข้อมูล STK Integration Payload (JSON):</span>
+                            <span class="text-[10px] text-muted-foreground font-mono">UTF-8 Encoded</span>
+                        </div>
+                        <pre class="overflow-x-auto p-3.5 rounded-xl bg-muted/50 border border-border font-mono text-[11px] leading-relaxed text-foreground max-h-64 whitespace-pre-wrap selection:bg-emerald-500/20"><code id="jcd-stk-payload-code"></code></pre>
+                    </div>
+                </div>
             </div>
 
             <!-- Footer Actions -->
             <div class="p-4 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-muted/20 shrink-0">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
                     <button type="button" onclick="app.hideModal('modal-job-close-detail')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs cursor-pointer">
                         ปิดหน้าต่าง
                     </button>
                     <button type="button" id="jcd-export-single-excel-btn" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-emerald-700 hover:bg-emerald-50 border-emerald-500/30 cursor-pointer shadow-xs transition">
                         <i class="ph ph-file-xls text-sm text-emerald-600"></i>
                         <span>Export Excel งานนี้</span>
+                    </button>
+                    <button type="button" id="jcd-print-stk-cert-btn" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-brand-600 hover:bg-brand-50 border-brand-500/30 cursor-pointer shadow-xs transition" title="พิมพ์ใบปิดงานและรับรองส่งมอบระบบ STK">
+                        <i class="ph ph-printer text-sm text-brand-600"></i>
+                        <span>พิมพ์ใบปิดงาน STK</span>
                     </button>
                 </div>
                 <div class="flex items-center gap-2">

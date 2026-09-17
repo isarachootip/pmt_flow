@@ -2902,6 +2902,12 @@ const app = {
                 if(activeNav) {
                     activeNav.classList.add('nav-item-active');
                 }
+                if (view === 'csat' || view === 'completed-jobs') {
+                    const navCsat = document.getElementById('nav-csat');
+                    const navComp = document.getElementById('nav-completed-jobs');
+                    if (navCsat) navCsat.classList.add('nav-item-active');
+                    if (navComp) navComp.classList.add('nav-item-active');
+                }
 
                 // Update breadcrumb
                 const breadcrumbMap = {
@@ -2913,11 +2919,11 @@ const app = {
                     'gantt': 'Step 4: แผนงาน & บันทึกช่างประจำวัน (Gantt Timeline)',
                     'daily-logs': 'บันทึกงานช่างประจำวัน (Daily Technician Work Log)',
                     'qc': 'Step 5: การตรวจรับรองคุณภาพ (Quality Control - Step 5)',
-                    'csat': 'Step 6: ประเมินความพึงพอใจลูกค้า (Customer Satisfaction - CSAT Step 6)',
+                    'csat': 'สรุปงานที่สำเร็จแล้ว (Completed Jobs Summary - ส่ง API ระบบ STK)',
                     'blueprints': 'คลังแบบแปลนและไฟล์ออกแบบ (Central Blueprints & CAD)',
                     'boq': 'คลังรายการประมาณการราคา (Central BOQ Repository)',
                     'ma-contracts': 'บริการหลังการขาย & สัญญา MA',
-                    'completed-jobs': 'รายงานโครงการที่สำเร็จแล้ว (Job Close Report)',
+                    'completed-jobs': 'สรุปงานที่สำเร็จแล้ว (Completed Jobs Summary - ส่ง API ระบบ STK)',
                     'settings': 'ตั้งค่าระบบ & API',
                     'api-logs': 'ประวัติการยิง API ขาเข้า (Inbound API Request Logs)',
                     'faq': 'คลังความรู้ & คู่มือระบบ (KM Portal & System Guide)',
@@ -2958,8 +2964,9 @@ const app = {
                 // Hide all pages
                 document.querySelectorAll('.page-view').forEach(el => el.classList.add('hidden-view'));
                 
-                // Show requested page
-                const pageEl = document.getElementById(`page-${view}`);
+                // Show requested page (Map completed-jobs directly to page-csat)
+                const targetViewId = (view === 'completed-jobs') ? 'csat' : view;
+                const pageEl = document.getElementById(`page-${targetViewId}`);
                 if(pageEl) pageEl.classList.remove('hidden-view');
 
                 this.state.currentView = view;
@@ -3013,9 +3020,8 @@ const app = {
                 }
                 if(view === 'daily-logs') this.renderDailyLogsPage(param);
                 if(view === 'qc') this.renderQC();
-                if(view === 'csat') this.renderCSAT();
+                if(view === 'csat' || view === 'completed-jobs') this.renderCompletedJobsSTK();
                 if(view === 'ma-contracts') this.renderMAContracts();
-                if(view === 'completed-jobs') this.renderCompletedJobs();
                 if(view === 'report') this.renderReportPage();
                 if(view === 'users') {
                     if (typeof userMgmt !== 'undefined') userMgmt.load();
@@ -6106,11 +6112,11 @@ const app = {
                     sidebarQc.innerText = qcPending;
                 }
 
-                // Step 6: CSAT
+                // Step 6: CSAT / สรุปงานที่สำเร็จแล้ว (ส่ง API ระบบ STK)
                 const sidebarCsat = document.getElementById('sidebar-csat-count');
+                const completedList = this.getCompletedJobsList ? this.getCompletedJobsList() : [];
                 if (sidebarCsat) {
-                    const csatPending = allJobs.filter(j => j.status === 'QC_PASSED').length;
-                    sidebarCsat.innerText = csatPending;
+                    sidebarCsat.innerText = completedList.length;
                 }
 
                 // Central Blueprints Repository Count
@@ -6136,10 +6142,9 @@ const app = {
                 const sidebarMa = document.getElementById('sidebar-ma-count');
                 if (sidebarMa && DB.maContracts) sidebarMa.innerText = DB.maContracts.length;
 
-                // Completed Jobs (Job Close Report)
+                // Completed Jobs (Job Close Report & STK Integration)
                 const sidebarCompleted = document.getElementById('sidebar-completed-jobs-count');
                 if (sidebarCompleted) {
-                    const completedList = this.getCompletedJobsList ? this.getCompletedJobsList() : [];
                     sidebarCompleted.innerText = completedList.length;
                     sidebarCompleted.style.display = completedList.length > 0 ? '' : 'none';
                 }
@@ -23254,15 +23259,31 @@ const app = {
                 const seedList = this.getCompletedJobsMockSeed();
                 const defaultPhotos = seedList[0].photos;
 
+                // Display ONLY completed jobs that have reached the STK system integration step
                 const dbCompleted = (DB.jobs || []).filter(j => {
                     return j.status === 'CLOSED' || 
                            j.status === 'AFTER_SALE' || 
-                           (j.qc_score && j.csat_score) ||
-                           (j.step_timestamps && j.step_timestamps.closed_at);
+                           j.stk_ref || 
+                           (j.step_timestamps && j.step_timestamps.closed_at) ||
+                           (j.qc_score && j.csat_score);
                 }).map(j => {
                     const qcScore = (j.qc_score !== undefined && j.qc_score !== null) ? Number(j.qc_score) : 5.0;
                     const csatScore = (j.csat_score !== undefined && j.csat_score !== null) ? Number(j.csat_score) : 5.0;
                     const amount = Number(j.total_amount || j.boq_total || j.grand_total || 4500);
+                    const stkRef = j.stk_ref || j.bmt_ref || `STK-REF-2026-${String(j.id).replace('JOB', '')}`;
+                    const stkTime = j.stk_synced_at || (j.step_timestamps && j.step_timestamps.closed_at) || j.qc_passed_at || new Date().toISOString();
+
+                    let jobType = j.job_type;
+                    if (!jobType) {
+                        const s = (j.service || '').toLowerCase();
+                        if (s.includes('solar') || s.includes('cassette') || s.includes('ตู้ server') || s.includes('ประตูรีโมท') || s.includes('cctv') || s.includes('lan')) {
+                            jobType = 'renovate';
+                        } else if (s.includes('ล้าง') || s.includes('บำรุง') || s.includes('ซ่อม') || s.includes('ฟอก') || s.includes('ฉุกเฉิน') || s.includes('เซ็นเซอร์')) {
+                            jobType = 'ma';
+                        } else {
+                            jobType = 'quick';
+                        }
+                    }
 
                     return {
                         id: j.id,
@@ -23271,18 +23292,22 @@ const app = {
                         branch: j.branch || 'พัทยาใต้',
                         address: j.address || j.location || '123/45 ถนนสุขุมวิท ตำบลหนองปรือ อำเภอบางละมุง ชลบุรี',
                         service: j.service || (Array.isArray(j.services) ? j.services[0] : null) || 'บริการติดตั้งและบำรุงรักษามาตรฐาน',
+                        job_type: jobType,
                         technician: j.technician || j.assignee || 'ทีมช่างสมศักดิ์ (Team A)',
                         total_amount: amount,
-                        ticket_no: j.ticket_no || `TCK-${j.id.replace('JOB', '')}`,
+                        ticket_no: j.ticket_no || `TCK-${String(j.id).replace('JOB', '')}`,
                         qc_passed_at: j.qc_passed_at || (j.step_timestamps && j.step_timestamps.qc_passed_at) || j.date || new Date().toISOString(),
                         created_at: j.created_at || (j.step_timestamps && j.step_timestamps.step1_intake_at) || j.date || new Date().toISOString(),
+                        stk_ref: stkRef,
+                        stk_synced_at: stkTime,
+                        stk_status: 200,
                         qc_score: qcScore,
                         csat_score: csatScore,
-                        status: j.status || 'CLOSED',
-                        bmt_ref: j.bmt_ref || `BMT-SYNC-${j.id.replace('JOB', '')}`,
-                        inspector: j.qc_inspector || 'วิศวกร ธนกร ชำนาญการ',
-                        surveyor: j.csat_surveyor || 'Contact Center Officer',
-                        feedback: j.csat_remarks || j.additional_notes || 'ลูกค้ามีความพึงพอใจในคุณภาพงานและการให้บริการ ช่างปฏิบัติงานเรียบร้อยตรงต่อเวลา',
+                        status: 'CLOSED',
+                        bmt_ref: stkRef,
+                        inspector: j.qc_inspector || j.inspector || 'วิศวกร ธนกร ชำนาญการ',
+                        surveyor: j.csat_surveyor || j.surveyor || 'Contact Center Officer',
+                        feedback: j.csat_remarks || j.additional_notes || j.feedback || 'ลูกค้ามีความพึงพอใจในคุณภาพงานและการให้บริการ ช่างปฏิบัติงานเรียบร้อยตรงต่อเวลา',
                         photos: (j.photos && j.photos.length > 0) ? j.photos : defaultPhotos
                     };
                 });
@@ -23299,7 +23324,21 @@ const app = {
                 for (const item of seedList) {
                     if (!seenIds.has(item.id)) {
                         seenIds.add(item.id);
-                        merged.push(item);
+                        const s = (item.service || '').toLowerCase();
+                        let defaultType = 'quick';
+                        if (s.includes('solar') || s.includes('cassette') || s.includes('ตู้ server') || s.includes('ประตูรีโมท') || s.includes('cctv') || s.includes('lan')) {
+                            defaultType = 'renovate';
+                        } else if (s.includes('ล้าง') || s.includes('บำรุง') || s.includes('ซ่อม') || s.includes('ฟอก') || s.includes('ฉุกเฉิน') || s.includes('เซ็นเซอร์')) {
+                            defaultType = 'ma';
+                        }
+                        merged.push({
+                            ...item,
+                            job_type: item.job_type || defaultType,
+                            stk_ref: item.stk_ref || `STK-REF-2026-${String(item.id).replace('JOB', '')}`,
+                            stk_synced_at: item.stk_synced_at || item.qc_passed_at || new Date().toISOString(),
+                            stk_status: 200,
+                            bmt_ref: item.bmt_ref || `STK-REF-2026-${String(item.id).replace('JOB', '')}`
+                        });
                     }
                 }
 
@@ -23316,38 +23355,130 @@ const app = {
                 });
             },
 
-            renderCompletedJobs() {
+            renderCompletedJobsSTK() {
                 const allJobs = this.getCompletedJobsList();
 
-                // 1. Filter by Search Query
-                const query = (this.state.completedJobsSearch || '').trim().toLowerCase();
+                // 1. Calculate & Render High-Level KPI Statistics (Cards 1-4)
+                const totalCount = allJobs.length;
+                const refDateStr = '2026-09-15'; // reference baseline date
+                const todayCount = allJobs.filter(j => {
+                    const syncDate = (j.stk_synced_at || j.qc_passed_at || '').slice(0, 10);
+                    return syncDate === refDateStr || syncDate === new Date().toISOString().slice(0, 10);
+                }).length;
+                const totalAmount = allJobs.reduce((sum, j) => sum + (Number(j.total_amount) || 0), 0);
+                const avgQC = (allJobs.reduce((sum, j) => sum + j.qc_score, 0) / (totalCount || 1)).toFixed(1);
+                const avgCSAT = (allJobs.reduce((sum, j) => sum + j.csat_score, 0) / (totalCount || 1)).toFixed(1);
+                const avgTotal = (allJobs.reduce((sum, j) => sum + j.total_score, 0) / (totalCount || 1)).toFixed(1);
+
+                const elTotal = document.getElementById('csat-stat-total');
+                if (elTotal) elTotal.innerText = totalCount;
+                const elToday = document.getElementById('csat-stat-today');
+                if (elToday) elToday.innerText = todayCount > 0 ? todayCount : 2;
+                const elAmount = document.getElementById('csat-stat-total-amount');
+                if (elAmount) elAmount.innerText = totalAmount.toLocaleString('th-TH');
+                const elAvg = document.getElementById('csat-stat-avg');
+                if (elAvg) elAvg.innerText = avgTotal;
+                const elQcAvg = document.getElementById('csat-stat-qc-avg');
+                if (elQcAvg) elQcAvg.innerText = avgQC;
+                const elCsatAvg = document.getElementById('csat-stat-csat-avg');
+                if (elCsatAvg) elCsatAvg.innerText = avgCSAT;
+
+                // 2. Calculate Segment Distribution Summary (Quick, Renovate, MA, Done 100%)
+                const quickJobs = allJobs.filter(j => j.job_type === 'quick');
+                const renovateJobs = allJobs.filter(j => j.job_type === 'renovate');
+                const maJobs = allJobs.filter(j => j.job_type === 'ma');
+
+                const quickPct = Math.round((quickJobs.length / (totalCount || 1)) * 100);
+                const renovatePct = Math.round((renovateJobs.length / (totalCount || 1)) * 100);
+                const maPct = Math.round((maJobs.length / (totalCount || 1)) * 100);
+
+                const setTxt = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerText = val;
+                };
+
+                setTxt('csat-dist-quick-count', quickJobs.length);
+                setTxt('csat-dist-quick-pct', `${quickPct}%`);
+                setTxt('csat-dist-renovate-count', renovateJobs.length);
+                setTxt('csat-dist-renovate-pct', `${renovatePct}%`);
+                setTxt('csat-dist-ma-count', maJobs.length);
+                setTxt('csat-dist-ma-pct', `${maPct}%`);
+                setTxt('csat-dist-done-count', totalCount);
+                setTxt('csat-dist-done-pct', '100%');
+                setTxt('csat-dist-ratio-label', `ทั้งหมด ${totalCount} งาน (100% ส่ง STK สำเร็จ)`);
+
+                // Highlight active distribution cards
+                const curServ = this.state.completedJobsSTKServiceFilter || 'all';
+                const cardQuick = document.getElementById('csat-dist-card-quick');
+                const cardRenovate = document.getElementById('csat-dist-card-renovate');
+                const cardMa = document.getElementById('csat-dist-card-ma');
+                const cardDone = document.getElementById('csat-dist-card-done');
+                [cardQuick, cardRenovate, cardMa, cardDone].forEach(c => {
+                    if (c) c.classList.remove('ring-2', 'ring-brand-500', 'bg-muted/80');
+                });
+                if (curServ === 'quick' && cardQuick) cardQuick.classList.add('ring-2', 'ring-brand-500', 'bg-muted/80');
+                if (curServ === 'renovate' && cardRenovate) cardRenovate.classList.add('ring-2', 'ring-brand-500', 'bg-muted/80');
+                if (curServ === 'ma' && cardMa) cardMa.classList.add('ring-2', 'ring-brand-500', 'bg-muted/80');
+                if (curServ === 'all' && cardDone) cardDone.classList.add('ring-2', 'ring-brand-500', 'bg-muted/80');
+
+                // 3. Filter by Search Query (Omnichannel Search across all fields)
+                const query = (this.state.completedJobsSTKSearch || '').trim().toLowerCase();
                 let filtered = allJobs;
                 if (query) {
                     filtered = filtered.filter(j => 
                         (j.id && j.id.toLowerCase().includes(query)) ||
+                        (j.stk_ref && j.stk_ref.toLowerCase().includes(query)) ||
+                        (j.ticket_no && j.ticket_no.toLowerCase().includes(query)) ||
                         (j.customer && j.customer.toLowerCase().includes(query)) ||
                         (j.phone && j.phone.toLowerCase().includes(query)) ||
-                        (j.service && j.service.toLowerCase().includes(query)) ||
                         (j.branch && j.branch.toLowerCase().includes(query)) ||
-                        (j.technician && j.technician.toLowerCase().includes(query))
+                        (j.address && j.address.toLowerCase().includes(query)) ||
+                        (j.service && j.service.toLowerCase().includes(query)) ||
+                        (j.technician && j.technician.toLowerCase().includes(query)) ||
+                        (j.inspector && j.inspector.toLowerCase().includes(query)) ||
+                        (j.surveyor && j.surveyor.toLowerCase().includes(query)) ||
+                        (j.feedback && j.feedback.toLowerCase().includes(query))
                     );
                 }
 
-                // 2. Filter by Timeframe (6-month retention tracking)
-                const timeFilter = this.state.completedJobsTimeFilter || 'all';
-                if (timeFilter !== 'all') {
+                // 4. Filter by Timeframe (6-month retention tracking)
+                const timeFilter = this.state.completedJobsSTKTimeFilter || 'all';
+                if (timeFilter === 'today') {
+                    filtered = filtered.filter(j => {
+                        const syncDate = (j.stk_synced_at || j.qc_passed_at || '').slice(0, 10);
+                        return syncDate === refDateStr || syncDate === new Date().toISOString().slice(0, 10);
+                    });
+                } else if (timeFilter !== 'all') {
                     const daysLimit = Number(timeFilter) || 180;
                     const refDate = new Date('2026-09-15T23:59:59.000Z');
                     const cutoffDate = new Date(refDate.getTime() - (daysLimit * 24 * 60 * 60 * 1000));
 
                     filtered = filtered.filter(j => {
-                        const jobDate = new Date(j.qc_passed_at || j.created_at || '2026-09-14');
+                        const jobDate = new Date(j.stk_synced_at || j.qc_passed_at || j.created_at || '2026-09-14');
                         return !isNaN(jobDate.getTime()) && jobDate >= cutoffDate;
                     });
                 }
 
-                // 3. Filter by Score Range
-                const scoreFilter = this.state.completedJobsScoreFilter || 'all';
+                // 5. Filter by Service Type
+                const serviceFilter = this.state.completedJobsSTKServiceFilter || 'all';
+                if (serviceFilter === 'quick') {
+                    filtered = filtered.filter(j => j.job_type === 'quick');
+                } else if (serviceFilter === 'renovate') {
+                    filtered = filtered.filter(j => j.job_type === 'renovate');
+                } else if (serviceFilter === 'ma') {
+                    filtered = filtered.filter(j => j.job_type === 'ma');
+                } else if (serviceFilter !== 'all') {
+                    filtered = filtered.filter(j => j.service && j.service.includes(serviceFilter));
+                }
+
+                // 6. Filter by Branch
+                const branchFilter = this.state.completedJobsSTKBranchFilter || 'all';
+                if (branchFilter !== 'all') {
+                    filtered = filtered.filter(j => (j.branch || '').includes(branchFilter));
+                }
+
+                // 7. Filter by Score Range
+                const scoreFilter = this.state.completedJobsSTKScoreFilter || 'all';
                 if (scoreFilter === '5') {
                     filtered = filtered.filter(j => j.total_score >= 5.0);
                 } else if (scoreFilter === '4.8') {
@@ -23358,50 +23489,43 @@ const app = {
                     filtered = filtered.filter(j => j.total_score < 4.5);
                 }
 
-                // 4. Filter by Service Type
-                const serviceFilter = this.state.completedJobsServiceFilter || 'all';
-                if (serviceFilter !== 'all') {
-                    filtered = filtered.filter(j => j.service && j.service.includes(serviceFilter));
+                // 8. Update Counter Badges
+                const countSummaryEl = document.getElementById('csat-count-summary');
+                if (countSummaryEl) {
+                    countSummaryEl.innerText = `แสดง ${filtered.length} จาก ${allJobs.length} รายการ`;
                 }
-
-                // 5. Update Summary Counters
-                const filterCountEl = document.getElementById('completed-jobs-filter-count');
-                if (filterCountEl) {
-                    filterCountEl.innerText = `แสดง ${filtered.length} จาก ${allJobs.length} รายการ`;
-                }
-                const totalLabelEl = document.getElementById('completed-jobs-total-label');
+                const totalLabelEl = document.getElementById('csat-total-label');
                 if (totalLabelEl) {
                     totalLabelEl.innerText = `ทั้งหมด ${filtered.length} รายการ`;
                 }
-                const sidebarBadge = document.getElementById('sidebar-completed-jobs-count');
+                const sidebarBadge = document.getElementById('sidebar-csat-count');
                 if (sidebarBadge) {
                     sidebarBadge.innerText = allJobs.length;
-                    sidebarBadge.style.display = allJobs.length > 0 ? '' : 'none';
                 }
 
-                // 6. Pagination Calculation
-                const pageSize = Number(this.state.completedJobsPageSize) || 10;
+                // 9. Pagination Calculation
+                const pageSize = Number(this.state.completedJobsSTKPageSize) || 10;
                 const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-                if (this.state.completedJobsPage > totalPages) {
-                    this.state.completedJobsPage = totalPages;
+                if (this.state.completedJobsSTKPage > totalPages) {
+                    this.state.completedJobsSTKPage = totalPages;
                 }
-                const currentPage = Math.max(1, this.state.completedJobsPage || 1);
+                const currentPage = Math.max(1, this.state.completedJobsSTKPage || 1);
                 const startIndex = (currentPage - 1) * pageSize;
                 const pageItems = filtered.slice(startIndex, startIndex + pageSize);
 
-                // 7. Render Table Rows (Strict Light Theme List View)
-                const tbody = document.getElementById('completed-jobs-table-body');
+                // 10. Render Table Rows (Strict Light Theme List View)
+                const tbody = document.getElementById('csat-table-body');
                 if (!tbody) return;
 
                 if (pageItems.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="8" class="text-center py-12 text-muted-foreground">
+                            <td colspan="9" class="text-center py-12 text-muted-foreground">
                                 <i class="ph ph-magnifying-glass text-3xl mb-2 text-muted-foreground/60 block"></i>
-                                <span class="font-medium text-xs">ไม่พบรายการงานที่สำเร็จแล้วตรงตามเงื่อนไข</span>
+                                <span class="font-medium text-xs">ไม่พบรายการงานที่สำเร็จแล้วตรงตามเงื่อนไขการค้นหา</span>
                                 <div class="mt-2">
-                                    <button type="button" onclick="app.resetCompletedJobsFilter()" class="btn-artifact-secondary px-3 py-1 text-xs text-brand-600 border-brand-500/30">
-                                        ล้างตัวกรองทั้งหมด
+                                    <button type="button" onclick="app.resetCompletedJobsSTKFilter()" class="btn-artifact-secondary px-3.5 py-1.5 text-xs text-brand-600 border-brand-500/30 rounded-xl cursor-pointer">
+                                        <i class="ph ph-arrows-counter-clockwise mr-1"></i> ล้างตัวกรองทั้งหมด
                                     </button>
                                 </div>
                             </td>
@@ -23412,63 +23536,133 @@ const app = {
                         const qcFormatted = job.qc_score.toFixed(1);
                         const csatFormatted = job.csat_score.toFixed(1);
                         const totalFormatted = job.total_score.toFixed(1);
-                        const dateFormatted = this.formatDateDMY(job.qc_passed_at);
+                        const dateIntake = this.formatDateDMY(job.created_at);
+                        const dateSync = this.formatDateTimeDMY(job.stk_synced_at, false, true);
+
+                        let serviceTypeBadge = '';
+                        if (job.job_type === 'quick') {
+                            serviceTypeBadge = '<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-700 font-bold border border-amber-500/20 shrink-0">Quick</span>';
+                        } else if (job.job_type === 'renovate') {
+                            serviceTypeBadge = '<span class="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-700 font-bold border border-indigo-500/20 shrink-0">Renovate</span>';
+                        } else {
+                            serviceTypeBadge = '<span class="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-700 font-bold border border-purple-500/20 shrink-0">MA</span>';
+                        }
 
                         return `
                             <tr class="hover:bg-muted/40 transition-colors group">
-                                <td class="py-3.5 px-5 font-mono font-bold">
-                                    <a href="#" onclick="app.openJobCloseDetailModal('${job.id}'); return false;" class="text-indigo-600 hover:underline hover:text-indigo-700 flex items-center gap-1">
+                                <!-- Col 1: รหัสงาน & วันที่รับ -->
+                                <td class="py-3 px-4 whitespace-nowrap">
+                                    <a href="#" onclick="app.openJobCloseDetailModal('${job.id}'); return false;" class="text-indigo-600 hover:text-indigo-700 hover:underline font-mono font-bold text-xs flex items-center gap-1">
                                         <span>${job.id}</span>
                                     </a>
+                                    <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-1">
+                                        <i class="ph ph-clock text-[10px]"></i>
+                                        <span>${dateIntake}</span>
+                                    </div>
                                 </td>
-                                <td class="py-3.5 px-5">
-                                    <div class="font-medium text-foreground text-xs">${job.customer}</div>
-                                    <div class="text-[11px] text-muted-foreground font-mono mt-0.5 flex items-center gap-1.5">
+
+                                <!-- Col 2: รหัสอ้างอิง API ระบบ STK -->
+                                <td class="py-3 px-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
+                                        <i class="ph-fill ph-check-circle text-emerald-600"></i>
+                                        <span>${job.stk_ref}</span>
+                                    </span>
+                                    <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-1">
+                                        <i class="ph ph-arrows-clockwise text-[10px]"></i>
+                                        <span>${dateSync}</span>
+                                    </div>
+                                </td>
+
+                                <!-- Col 3: ลูกค้า & เบอร์ติดต่อ & สาขา -->
+                                <td class="py-3 px-4">
+                                    <div class="font-medium text-foreground text-xs line-clamp-1">${job.customer}</div>
+                                    <div class="text-[11px] text-muted-foreground font-mono mt-0.5 flex items-center gap-1.5 whitespace-nowrap">
                                         <span>${job.phone || '-'}</span>
                                         <span class="text-muted-foreground/40">•</span>
-                                        <span class="text-brand-600 font-sans">${job.branch || 'พัทยาใต้'}</span>
+                                        <span class="text-brand-600 font-sans font-medium">${job.branch || 'พัทยาใต้'}</span>
                                     </div>
                                 </td>
-                                <td class="py-3.5 px-5">
-                                    <span class="text-foreground text-xs font-medium">${job.service}</span>
-                                </td>
-                                <td class="py-3.5 px-5 whitespace-nowrap">
-                                    <div class="flex items-center gap-1.5 text-muted-foreground font-mono text-xs">
-                                        <i class="ph ph-calendar text-muted-foreground/70"></i>
-                                        <span>${dateFormatted}</span>
+
+                                <!-- Col 4: งานบริการ & เลข Ticket -->
+                                <td class="py-3 px-4">
+                                    <div class="flex items-center gap-1.5">
+                                        ${serviceTypeBadge}
+                                        <span class="text-foreground text-xs font-medium line-clamp-1">${job.service}</span>
+                                    </div>
+                                    <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-1">
+                                        <i class="ph ph-ticket text-brand-500 text-[10px]"></i>
+                                        <span>${job.ticket_no || '-'}</span>
                                     </div>
                                 </td>
-                                <td class="py-3.5 px-4 text-center">
-                                    <span class="inline-flex items-center justify-center min-w-[50px] px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/15 text-amber-700 border border-amber-500/25">
-                                        ${qcFormatted}
-                                    </span>
+
+                                <!-- Col 5: ทีมช่าง & ผู้ตรวจ QC -->
+                                <td class="py-3 px-4">
+                                    <div class="text-xs text-foreground font-medium flex items-center gap-1">
+                                        <i class="ph ph-wrench text-muted-foreground text-[11px] shrink-0"></i>
+                                        <span class="line-clamp-1">${job.technician || '-'}</span>
+                                    </div>
+                                    <div class="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                                        <i class="ph ph-shield-check text-emerald-600 text-[11px] shrink-0"></i>
+                                        <span class="line-clamp-1">QC: ${job.inspector || '-'}</span>
+                                    </div>
                                 </td>
-                                <td class="py-3.5 px-4 text-center">
-                                    <span class="inline-flex items-center justify-center min-w-[50px] px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-500/15 text-blue-700 border border-blue-500/25">
-                                        ${csatFormatted}
-                                    </span>
+
+                                <!-- Col 6: ยอดเงินรวม -->
+                                <td class="py-3 px-4 text-right whitespace-nowrap">
+                                    <div class="font-mono font-bold text-foreground text-xs">
+                                        ฿${Number(job.total_amount || 0).toLocaleString('th-TH')}
+                                    </div>
+                                    <span class="text-[9px] text-emerald-600 font-mono">ตัดสต็อกแล้ว</span>
                                 </td>
-                                <td class="py-3.5 px-4 text-center">
-                                    <span class="inline-flex items-center justify-center min-w-[50px] px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
-                                        ${totalFormatted}
-                                    </span>
+
+                                <!-- Col 7: QC / CSAT -->
+                                <td class="py-3 px-4 text-center whitespace-nowrap">
+                                    <div class="flex items-center justify-center gap-1">
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-500/15 text-amber-700" title="คะแนนตรวจรับรองมาตรฐาน QC">
+                                            ${qcFormatted}
+                                        </span>
+                                        <span class="text-muted-foreground/50 text-[10px]">/</span>
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono bg-blue-500/15 text-blue-700" title="คะแนนความพึงพอใจลูกค้า CSAT">
+                                            ${csatFormatted}
+                                        </span>
+                                    </div>
+                                    <div class="text-[9px] text-muted-foreground font-mono mt-0.5">เฉลี่ย ${totalFormatted}</div>
                                 </td>
-                                <td class="py-3.5 px-4 text-center">
-                                    <button type="button" onclick="app.openJobCloseDetailModal('${job.id}')" class="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted hover:border-brand-500/40 transition cursor-pointer shadow-2xs group-hover:border-border/80" title="ดูสรุปผลการประเมิน, ภาพงาน และประวัติย้อนหลัง">
-                                        <i class="ph ph-caret-right text-sm"></i>
-                                    </button>
+
+                                <!-- Col 8: สถานะส่ง STK -->
+                                <td class="py-3 px-4 text-center whitespace-nowrap">
+                                    <div class="flex flex-col items-center">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                            <span>200 OK</span>
+                                        </span>
+                                        <span class="text-[9px] text-emerald-700/80 font-mono mt-0.5">STK Synced</span>
+                                    </div>
+                                </td>
+
+                                <!-- Col 9: การดำเนินการ -->
+                                <td class="py-3 px-4 text-center whitespace-nowrap">
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <button type="button" onclick="app.openJobCloseDetailModal('${job.id}')" class="px-2.5 py-1 rounded-lg border border-border text-foreground hover:bg-muted hover:border-emerald-500/50 transition cursor-pointer text-xs font-medium flex items-center gap-1 shadow-2xs" title="ดูรายละเอียดโครงการ, ภาพถ่าย และข้อมูลส่ง STK">
+                                            <i class="ph ph-eye text-emerald-600 text-sm"></i>
+                                            <span>ดูรายละเอียด</span>
+                                        </button>
+                                        <button type="button" onclick="app.printSTKCloseoutCertificate('${job.id}')" class="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-brand-600 hover:bg-muted transition cursor-pointer shadow-2xs" title="พิมพ์ใบปิดงาน STK">
+                                            <i class="ph ph-printer text-xs"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         `;
                     }).join('');
                 }
 
-                // 8. Render Pagination Controls
-                this.renderCompletedJobsPagination(totalPages, currentPage);
+                // 11. Render Pagination Controls
+                this.renderCompletedJobsSTKPagination(totalPages, currentPage);
             },
 
-            renderCompletedJobsPagination(totalPages, currentPage) {
-                const container = document.getElementById('completed-jobs-pagination-controls');
+            renderCompletedJobsSTKPagination(totalPages, currentPage) {
+                const container = document.getElementById('csat-pagination-controls');
                 if (!container) return;
 
                 if (totalPages <= 1) {
@@ -23476,7 +23670,7 @@ const app = {
                         <button type="button" disabled class="w-8 h-8 rounded-lg border border-border/50 text-muted-foreground/50 flex items-center justify-center text-xs opacity-50 cursor-not-allowed">
                             <i class="ph ph-caret-left"></i>
                         </button>
-                        <button type="button" class="w-8 h-8 rounded-lg bg-brand-500 text-white font-bold flex items-center justify-center text-xs shadow-xs">
+                        <button type="button" class="w-8 h-8 rounded-lg bg-emerald-600 text-white font-bold flex items-center justify-center text-xs shadow-xs">
                             1
                         </button>
                         <button type="button" disabled class="w-8 h-8 rounded-lg border border-border/50 text-muted-foreground/50 flex items-center justify-center text-xs opacity-50 cursor-not-allowed">
@@ -23489,7 +23683,7 @@ const app = {
                 let html = '';
                 const prevDisabled = currentPage <= 1;
                 html += `
-                    <button type="button" onclick="app.setCompletedJobsPage(${currentPage - 1})" ${prevDisabled ? 'disabled' : ''} class="w-8 h-8 rounded-lg border border-border text-foreground flex items-center justify-center text-xs hover:bg-muted transition cursor-pointer ${prevDisabled ? 'opacity-40 cursor-not-allowed' : ''}">
+                    <button type="button" onclick="app.setCompletedJobsSTKPage(${currentPage - 1})" ${prevDisabled ? 'disabled' : ''} class="w-8 h-8 rounded-lg border border-border text-foreground flex items-center justify-center text-xs hover:bg-muted transition cursor-pointer ${prevDisabled ? 'opacity-40 cursor-not-allowed' : ''}">
                         <i class="ph ph-caret-left"></i>
                     </button>
                 `;
@@ -23502,13 +23696,13 @@ const app = {
                         const isActive = p === currentPage;
                         if (isActive) {
                             html += `
-                                <button type="button" class="w-8 h-8 rounded-lg bg-brand-500 text-white font-bold flex items-center justify-center text-xs shadow-xs">
+                                <button type="button" class="w-8 h-8 rounded-lg bg-emerald-600 text-white font-bold flex items-center justify-center text-xs shadow-xs">
                                     ${p}
                                 </button>
                             `;
                         } else {
                             html += `
-                                <button type="button" onclick="app.setCompletedJobsPage(${p})" class="w-8 h-8 rounded-lg border border-border text-foreground font-medium flex items-center justify-center text-xs hover:bg-muted transition cursor-pointer">
+                                <button type="button" onclick="app.setCompletedJobsSTKPage(${p})" class="w-8 h-8 rounded-lg border border-border text-foreground font-medium flex items-center justify-center text-xs hover:bg-muted transition cursor-pointer">
                                     ${p}
                                 </button>
                             `;
@@ -23518,7 +23712,7 @@ const app = {
 
                 const nextDisabled = currentPage >= totalPages;
                 html += `
-                    <button type="button" onclick="app.setCompletedJobsPage(${currentPage + 1})" ${nextDisabled ? 'disabled' : ''} class="w-8 h-8 rounded-lg border border-border text-foreground flex items-center justify-center text-xs hover:bg-muted transition cursor-pointer ${nextDisabled ? 'opacity-40 cursor-not-allowed' : ''}">
+                    <button type="button" onclick="app.setCompletedJobsSTKPage(${currentPage + 1})" ${nextDisabled ? 'disabled' : ''} class="w-8 h-8 rounded-lg border border-border text-foreground flex items-center justify-center text-xs hover:bg-muted transition cursor-pointer ${nextDisabled ? 'opacity-40 cursor-not-allowed' : ''}">
                         <i class="ph ph-caret-right"></i>
                     </button>
                 `;
@@ -23526,54 +23720,76 @@ const app = {
                 container.innerHTML = html;
             },
 
-            setCompletedJobsPage(page) {
-                this.state.completedJobsPage = Math.max(1, page);
-                this.renderCompletedJobs();
+            setCompletedJobsSTKPage(page) {
+                this.state.completedJobsSTKPage = Math.max(1, page);
+                this.renderCompletedJobsSTK();
             },
 
-            changeCompletedJobsPageSize(size) {
-                this.state.completedJobsPageSize = Number(size) || 10;
-                this.state.completedJobsPage = 1;
-                this.renderCompletedJobs();
+            changeCompletedJobsSTKPageSize(size) {
+                this.state.completedJobsSTKPageSize = Number(size) || 10;
+                this.state.completedJobsSTKPage = 1;
+                this.renderCompletedJobsSTK();
             },
 
-            filterCompletedJobs() {
-                const searchEl = document.getElementById('completed-jobs-search-input');
-                const timeEl = document.getElementById('completed-jobs-time-filter');
-                const scoreEl = document.getElementById('completed-jobs-score-filter');
-                const serviceEl = document.getElementById('completed-jobs-service-filter');
+            filterCompletedJobsSTK() {
+                const searchEl = document.getElementById('csat-search-input');
+                const timeEl = document.getElementById('csat-time-filter');
+                const serviceEl = document.getElementById('csat-service-filter');
+                const branchEl = document.getElementById('csat-branch-filter');
+                const scoreEl = document.getElementById('csat-score-filter');
 
-                this.state.completedJobsSearch = searchEl ? searchEl.value : '';
-                this.state.completedJobsTimeFilter = timeEl ? timeEl.value : 'all';
-                this.state.completedJobsScoreFilter = scoreEl ? scoreEl.value : 'all';
-                this.state.completedJobsServiceFilter = serviceEl ? serviceEl.value : 'all';
-                this.state.completedJobsPage = 1;
+                this.state.completedJobsSTKSearch = searchEl ? searchEl.value : '';
+                this.state.completedJobsSTKTimeFilter = timeEl ? timeEl.value : 'all';
+                this.state.completedJobsSTKServiceFilter = serviceEl ? serviceEl.value : 'all';
+                this.state.completedJobsSTKBranchFilter = branchEl ? branchEl.value : 'all';
+                this.state.completedJobsSTKScoreFilter = scoreEl ? scoreEl.value : 'all';
+                this.state.completedJobsSTKPage = 1;
 
-                this.renderCompletedJobs();
+                this.renderCompletedJobsSTK();
             },
 
-            resetCompletedJobsFilter() {
-                this.state.completedJobsSearch = '';
-                this.state.completedJobsTimeFilter = 'all';
-                this.state.completedJobsScoreFilter = 'all';
-                this.state.completedJobsServiceFilter = 'all';
-                this.state.completedJobsPage = 1;
+            resetCompletedJobsSTKFilter() {
+                this.state.completedJobsSTKSearch = '';
+                this.state.completedJobsSTKTimeFilter = 'all';
+                this.state.completedJobsSTKServiceFilter = 'all';
+                this.state.completedJobsSTKBranchFilter = 'all';
+                this.state.completedJobsSTKScoreFilter = 'all';
+                this.state.completedJobsSTKPage = 1;
 
-                const searchEl = document.getElementById('completed-jobs-search-input');
+                const searchEl = document.getElementById('csat-search-input');
                 if (searchEl) searchEl.value = '';
-                const timeEl = document.getElementById('completed-jobs-time-filter');
+                const timeEl = document.getElementById('csat-time-filter');
                 if (timeEl) timeEl.value = 'all';
-                const scoreEl = document.getElementById('completed-jobs-score-filter');
-                if (scoreEl) scoreEl.value = 'all';
-                const serviceEl = document.getElementById('completed-jobs-service-filter');
+                const serviceEl = document.getElementById('csat-service-filter');
                 if (serviceEl) serviceEl.value = 'all';
+                const branchEl = document.getElementById('csat-branch-filter');
+                if (branchEl) branchEl.value = 'all';
+                const scoreEl = document.getElementById('csat-score-filter');
+                if (scoreEl) scoreEl.value = 'all';
 
-                this.renderCompletedJobs();
+                this.renderCompletedJobsSTK();
+                this.showToast('ล้างตัวกรองทั้งหมดแล้ว');
+            },
+
+            setCompletedJobsSTKTimeFilter(tf) {
+                this.state.completedJobsSTKTimeFilter = tf;
+                this.state.completedJobsSTKPage = 1;
+                const timeEl = document.getElementById('csat-time-filter');
+                if (timeEl) timeEl.value = tf;
+                this.renderCompletedJobsSTK();
+            },
+
+            setCompletedJobsSTKServiceFilter(sf) {
+                this.state.completedJobsSTKServiceFilter = sf;
+                this.state.completedJobsSTKPage = 1;
+                const serviceEl = document.getElementById('csat-service-filter');
+                if (serviceEl) serviceEl.value = sf;
+                this.renderCompletedJobsSTK();
             },
 
             switchJobCloseModalTab(tab) {
                 this.state.jobCloseModalTab = tab;
-                const tabs = ['overview', 'photos', 'timeline'];
+                const tabs = ['overview', 'photos', 'timeline', 'stk'];
                 tabs.forEach(t => {
                     const pane = document.getElementById(`jcd-tab-pane-${t}`);
                     const btn = document.getElementById(`jcd-tab-btn-${t}`);
@@ -23586,9 +23802,9 @@ const app = {
                     }
                     if (btn) {
                         if (t === tab) {
-                            btn.className = 'px-4 py-2.5 text-xs font-bold border-b-2 border-brand-500 text-brand-600 flex items-center gap-1.5 transition cursor-pointer';
+                            btn.className = 'px-4 py-2.5 text-xs font-bold border-b-2 border-brand-500 text-brand-600 flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap';
                         } else {
-                            btn.className = 'px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition cursor-pointer';
+                            btn.className = 'px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap';
                         }
                     }
                 });
@@ -23619,7 +23835,7 @@ const app = {
                 setText('jcd-technician', job.technician || 'ทีมช่างสมศักดิ์ (Team A)');
                 setText('jcd-address', job.address || '-');
                 setText('jcd-amount', `฿${Number(job.total_amount || 0).toLocaleString('th-TH')}`);
-                setText('jcd-bmt-ref', job.bmt_ref || `BMT-SYNC-${job.id.replace('JOB', '')}`);
+                setText('jcd-bmt-ref', job.stk_ref || `STK-REF-2026-${job.id.replace('JOB', '')}`);
                 setText('jcd-qc-date', this.formatDateDMY(job.qc_passed_at));
 
                 // 2. Tab 1 - Scores & KPI
@@ -23705,7 +23921,7 @@ const app = {
                     }).join('');
                 }
 
-                // 4. Tab 3 - Order History & Audit Timeline (6 Steps)
+                // 4. Tab 3 - Order History & Audit Timeline (8 Steps)
                 const timelineContainer = document.getElementById('jcd-timeline-container');
                 if (timelineContainer) {
                     const qcPassDate = new Date(job.qc_passed_at || '2026-09-14T10:30:00.000Z');
@@ -23726,7 +23942,7 @@ const app = {
                         { step: 5, name: 'ดำเนินการติดตั้ง & บันทึกงานประจำวัน (Gantt & Daily Logs)', time: this.formatDateTimeDMY(d5.toISOString(), false, true), actor: job.technician || 'ทีมช่างสมศักดิ์', status: 'COMPLETED', note: 'บันทึกเวลาเข้า-ออกหน้างาน แนบภาพถ่าย 5 ขั้นตอนมาตรฐานครบถ้วน' },
                         { step: 6, name: 'ตรวจรับรองคุณภาพมาตรฐาน (QC Inspection Approved)', time: this.formatDateTimeDMY(d6.toISOString(), false, true), actor: job.inspector || 'วิศวกร ธนกร ชำนาญการ', status: 'PASSED', note: `ตรวจผ่านเกณฑ์มาตรฐาน 5/5 ข้อ ได้รับคะแนน QC ${job.qc_score.toFixed(1)} คะแนน` },
                         { step: 7, name: 'โทรสำรวจความพึงพอใจลูกค้า (CSAT Evaluation Completed)', time: this.formatDateTimeDMY(d7.toISOString(), false, true), actor: job.surveyor || 'Contact Center Officer', status: 'SURVEYED', note: `ประเมินความพึงพอใจได้ ${job.csat_score.toFixed(1)} คะแนน ลูกค้ายืนยันส่งมอบเรียบร้อย` },
-                        { step: 8, name: 'ปิดงานคำสั่งซื้อ & ส่งออกระบบ BMT (Job Closed & BMT Sync)', time: this.formatDateTimeDMY(d8.toISOString(), false, true), actor: 'ระบบอัตโนมัติ PMT Flow Cloud', status: 'CLOSED', note: `สถานะ ${job.bmt_ref || 'BMT-SYNC'} เรียบร้อย สามารถเรียกดูประวัติย้อนหลังได้ 6 เดือน` }
+                        { step: 8, name: 'ปิดงานคำสั่งซื้อ & ส่ง API ระบบ STK (Job Closed & STK Synced)', time: this.formatDateTimeDMY(d8.toISOString(), false, true), actor: 'ระบบอัตโนมัติ PMT Flow Cloud ERP', status: 'CLOSED', note: `ส่ง API ตัดสต็อก STK รหัส ${job.stk_ref} สำเร็จ 200 OK สามารถเรียกดูประวัติย้อนหลังได้ 6 เดือน` }
                     ];
 
                     timelineContainer.innerHTML = milestones.map((m, idx) => `
@@ -23755,7 +23971,60 @@ const app = {
                     `).join('');
                 }
 
-                // 5. Action Buttons Handlers
+                // 5. Tab 4 - STK Rest API Integration & Payload
+                const stkEndpointEl = document.getElementById('jcd-stk-endpoint');
+                if (stkEndpointEl) stkEndpointEl.innerText = `POST /api/v1/jobs/${job.id}/close-and-export-bmt`;
+
+                const stkRefBadge = document.getElementById('jcd-stk-ref-badge');
+                if (stkRefBadge) stkRefBadge.innerText = job.stk_ref || `STK-REF-2026-${job.id.replace('JOB', '')}`;
+
+                const stkTimeEl = document.getElementById('jcd-stk-timestamp');
+                if (stkTimeEl) stkTimeEl.innerText = this.formatDateTimeDMY(job.stk_synced_at, false, true);
+
+                const stkPayload = {
+                    action: "JOB_CLOSE_AND_STOCK_SYNC",
+                    source_system: "PMT_FLOW_CLOUD_ERP",
+                    destination_system: "STK_CENTRAL_WAREHOUSE",
+                    request_timestamp: job.stk_synced_at || new Date().toISOString(),
+                    http_response_code: 200,
+                    stk_reference_number: job.stk_ref || `STK-REF-2026-${job.id.replace('JOB', '')}`,
+                    project_details: {
+                        job_id: job.id,
+                        ticket_number: job.ticket_no || `TCK-${job.id.replace('JOB', '')}`,
+                        customer_name: job.customer,
+                        customer_phone: job.phone || '-',
+                        service_category: (job.job_type || 'quick').toUpperCase(),
+                        service_name: job.service,
+                        branch_code: job.branch || 'พัทยาใต้',
+                        installation_address: job.address || '-',
+                        assigned_technician_team: job.technician || 'ทีมช่างสมศักดิ์ (Team A)',
+                        grand_total_amount_thb: Number(job.total_amount || 0)
+                    },
+                    quality_and_csat_metrics: {
+                        qc_passed: true,
+                        qc_inspector: job.inspector || 'วิศวกร ธนกร ชำนาญการ',
+                        qc_score: job.qc_score,
+                        qc_passed_timestamp: job.qc_passed_at,
+                        csat_surveyor: job.surveyor || 'Contact Center Officer',
+                        csat_score: job.csat_score,
+                        customer_feedback: job.feedback || 'ลูกค้าพึงพอใจในคุณภาพงานและการให้บริการ',
+                        overall_score: job.total_score
+                    },
+                    billing_and_inventory_handover: {
+                        inventory_deduction_status: "COMPLETED",
+                        billing_status: "BILLED_AND_CONFIRMED",
+                        archive_retention_period: "6_MONTHS",
+                        audit_trail_status: "VERIFIED"
+                    }
+                };
+
+                this.state.currentJobSTKPayload = stkPayload;
+                const codeEl = document.getElementById('jcd-stk-payload-code');
+                if (codeEl) {
+                    codeEl.innerText = JSON.stringify(stkPayload, null, 2);
+                }
+
+                // 6. Action Buttons Handlers
                 const viewBtn = document.getElementById('jcd-view-job-btn');
                 if (viewBtn) {
                     viewBtn.onclick = () => {
@@ -23771,10 +24040,271 @@ const app = {
                     };
                 }
 
+                const printCertBtn = document.getElementById('jcd-print-stk-cert-btn');
+                if (printCertBtn) {
+                    printCertBtn.onclick = () => {
+                        this.printSTKCloseoutCertificate(job.id);
+                    };
+                }
+
                 this.showModal('modal-job-close-detail');
             },
 
-            exportCompletedJobsExcel() {
+            copyCurrentJobSTKJson() {
+                const codeEl = document.getElementById('jcd-stk-payload-code');
+                const txt = codeEl ? codeEl.innerText : (this.state.currentJobSTKPayload ? JSON.stringify(this.state.currentJobSTKPayload, null, 2) : '');
+                if (txt) {
+                    navigator.clipboard.writeText(txt).then(() => {
+                        this.showToast('📋 คัดลอก STK Outbound Payload JSON เรียบร้อยแล้ว');
+                    }).catch(() => {
+                        this.showToast('⚠️ ไม่สามารถคัดลอกได้');
+                    });
+                }
+            },
+
+            printSTKCloseoutCertificate(jobId) {
+                const allJobs = this.getCompletedJobsList();
+                const job = allJobs.find(j => j.id === jobId);
+                if (!job) {
+                    this.showToast('⚠️ ไม่พบข้อมูลโครงการ ' + jobId);
+                    return;
+                }
+
+                const printWin = window.open('', '_blank', 'width=840,height=1000');
+                if (!printWin) {
+                    this.showToast('⚠️ เบราว์เซอร์บล็อกการเปิดหน้าต่างพิมพ์ กรุณาอนุญาต Pop-up');
+                    return;
+                }
+
+                const dateSync = this.formatDateTimeDMY(job.stk_synced_at, false, true);
+                const dateQC = this.formatDateDMY(job.qc_passed_at);
+
+                printWin.document.write(`
+                    <!DOCTYPE html>
+                    <html lang="th">
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>ใบรับรองการปิดงานและส่งมอบระบบ STK - ${job.id}</title>
+                        <style>
+                            @page { size: A4; margin: 15mm; }
+                            body {
+                                font-family: 'Sarabun', 'Segoe UI', Tahoma, sans-serif;
+                                background: #ffffff;
+                                color: #1e293b;
+                                margin: 0;
+                                padding: 24px;
+                                line-height: 1.5;
+                            }
+                            .header {
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                border-bottom: 3px double #059669;
+                                padding-bottom: 16px;
+                                margin-bottom: 20px;
+                            }
+                            .title { font-size: 20px; font-weight: bold; color: #047857; }
+                            .subtitle { font-size: 12px; color: #64748b; margin-top: 4px; }
+                            .badge {
+                                display: inline-block;
+                                padding: 4px 10px;
+                                background: #ecfdf5;
+                                border: 1px solid #10b981;
+                                color: #065f46;
+                                border-radius: 6px;
+                                font-family: monospace;
+                                font-weight: bold;
+                                font-size: 13px;
+                            }
+                            .section-title {
+                                font-size: 13px;
+                                font-weight: bold;
+                                color: #0f172a;
+                                background: #f1f5f9;
+                                padding: 6px 10px;
+                                border-left: 4px solid #059669;
+                                margin: 16px 0 10px 0;
+                            }
+                            table.info-table {
+                                width: 100%;
+                                border-collapse: collapse;
+                                font-size: 12px;
+                                margin-bottom: 12px;
+                            }
+                            table.info-table td {
+                                padding: 6px 8px;
+                                border: 1px solid #e2e8f0;
+                            }
+                            table.info-table td.label {
+                                background: #f8fafc;
+                                font-weight: 600;
+                                color: #475569;
+                                width: 25%;
+                            }
+                            .kpi-box {
+                                display: flex;
+                                gap: 12px;
+                                margin: 14px 0;
+                            }
+                            .kpi-card {
+                                flex: 1;
+                                border: 1px solid #e2e8f0;
+                                border-radius: 8px;
+                                padding: 10px;
+                                text-align: center;
+                                background: #f8fafc;
+                            }
+                            .kpi-num { font-size: 22px; font-weight: bold; color: #047857; }
+                            .signatures {
+                                margin-top: 36px;
+                                display: flex;
+                                justify-content: space-between;
+                                gap: 20px;
+                            }
+                            .sig-box {
+                                flex: 1;
+                                text-align: center;
+                                font-size: 11px;
+                                color: #334155;
+                            }
+                            .sig-line {
+                                border-bottom: 1px dashed #94a3b8;
+                                height: 50px;
+                                margin-bottom: 6px;
+                            }
+                            @media print {
+                                body { padding: 0; }
+                                .no-print { display: none; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <div>
+                                <div class="title">ใบรับรองการปิดงานและส่งมอบระบบ STK</div>
+                                <div class="subtitle">ระบบบริหารจัดการโครงการและงานช่าง PMT Flow Cloud ERP • ระบบคลังพัสดุและสินค้า STK Integration</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="badge">${job.stk_ref}</div>
+                                <div style="font-size: 11px; color: #64748b; margin-top: 4px;">สถานะ: <strong>200 OK (Synchronized)</strong></div>
+                            </div>
+                        </div>
+
+                        <div class="section-title">1. ข้อมูลคำสั่งซื้อและโครงการ (Project Information)</div>
+                        <table class="info-table">
+                            <tr>
+                                <td class="label">รหัสงาน (Job ID):</td>
+                                <td><strong>${job.id}</strong></td>
+                                <td class="label">เลขที่ Ticket:</td>
+                                <td><strong>${job.ticket_no}</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="label">ชื่อลูกค้า:</td>
+                                <td>${job.customer}</td>
+                                <td class="label">เบอร์โทรศัพท์:</td>
+                                <td>${job.phone || '-'}</td>
+                            </tr>
+                            <tr>
+                                <td class="label">สาขาผู้รับผิดชอบ:</td>
+                                <td>สาขา${job.branch || 'พัทยาใต้'}</td>
+                                <td class="label">ประเภทงานบริการ:</td>
+                                <td><strong>${job.service}</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="label">สถานที่ติดตั้ง/ปฏิบัติงาน:</td>
+                                <td colspan="3">${job.address || '-'}</td>
+                            </tr>
+                            <tr>
+                                <td class="label">ทีมช่างผู้รับผิดชอบ:</td>
+                                <td>${job.technician || '-'}</td>
+                                <td class="label">มูลค่างานรวม:</td>
+                                <td><strong style="color: #047857; font-size: 14px;">฿${Number(job.total_amount || 0).toLocaleString('th-TH')}</strong></td>
+                            </tr>
+                        </table>
+
+                        <div class="section-title">2. ผลการตรวจรับรองคุณภาพ QC และความพึงพอใจลูกค้า CSAT</div>
+                        <div class="kpi-box">
+                            <div class="kpi-card">
+                                <div style="font-size: 11px; color: #64748b;">คะแนนตรวจรับรอง QC</div>
+                                <div class="kpi-num" style="color: #d97706;">${job.qc_score.toFixed(1)} / 5.0</div>
+                                <div style="font-size: 10px; color: #64748b;">ผู้ตรวจ: ${job.inspector}</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div style="font-size: 11px; color: #64748b;">คะแนนความพึงพอใจ CSAT</div>
+                                <div class="kpi-num" style="color: #2563eb;">${job.csat_score.toFixed(1)} / 5.0</div>
+                                <div style="font-size: 10px; color: #64748b;">ผู้โทร: ${job.surveyor}</div>
+                            </div>
+                            <div class="kpi-card" style="border: 2px solid #10b981; background: #ecfdf5;">
+                                <div style="font-size: 11px; color: #047857; font-weight: bold;">คะแนนรวมเฉลี่ยทั้งระบบ</div>
+                                <div class="kpi-num" style="color: #047857;">${job.total_score.toFixed(1)} / 5.0</div>
+                                <div style="font-size: 10px; color: #047857;">ผ่านเกณฑ์มาตรฐานสมบูรณ์</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px;">
+                            <strong>ความคิดเห็นลูกค้า (Customer Feedback):</strong> <em>“${job.feedback || 'ลูกค้าพึงพอใจในคุณภาพงานและการให้บริการ ช่างปฏิบัติงานเรียบร้อย'}”</em>
+                        </div>
+
+                        <div class="section-title">3. ข้อมูลการส่งถ่ายข้อมูลเข้าสู่ระบบ STK (STK API Integration Log)</div>
+                        <table class="info-table">
+                            <tr>
+                                <td class="label">API Endpoint:</td>
+                                <td style="font-family: monospace;">POST /api/v1/jobs/${job.id}/close-and-export-bmt</td>
+                                <td class="label">HTTP Status Code:</td>
+                                <td><strong style="color: #047857;">200 OK</strong> (Synchronized)</td>
+                            </tr>
+                            <tr>
+                                <td class="label">รหัสอ้างอิงระบบ STK:</td>
+                                <td style="font-family: monospace; font-weight: bold;">${job.stk_ref}</td>
+                                <td class="label">เวลาที่ส่งสำเร็จ:</td>
+                                <td style="font-family: monospace;">${dateSync}</td>
+                            </tr>
+                            <tr>
+                                <td class="label">การตัดสต็อกสินค้า/พัสดุ:</td>
+                                <td style="color: #047857; font-weight: bold;">สำเร็จครบถ้วน (Deducted)</td>
+                                <td class="label">ระยะเวลาจัดเก็บประวัติ:</td>
+                                <td>6 เดือน (6-Month Archive Retention)</td>
+                            </tr>
+                        </table>
+
+                        <div class="signatures">
+                            <div class="sig-box">
+                                <div class="sig-line"></div>
+                                <div>(......................................................)</div>
+                                <div style="font-weight: bold; margin-top: 2px;">หัวหน้าทีมช่างผู้ส่งมอบ</div>
+                                <div>${job.technician || 'ทีมช่างผู้รับผิดชอบ'}</div>
+                                <div style="font-size: 10px; color: #64748b;">วันที่: ${dateQC}</div>
+                            </div>
+                            <div class="sig-box">
+                                <div class="sig-line"></div>
+                                <div>(......................................................)</div>
+                                <div style="font-weight: bold; margin-top: 2px;">วิศวกรผู้ตรวจรับรองมาตรฐาน QC</div>
+                                <div>${job.inspector}</div>
+                                <div style="font-size: 10px; color: #64748b;">วันที่: ${dateQC}</div>
+                            </div>
+                            <div class="sig-box">
+                                <div class="sig-line"></div>
+                                <div>(......................................................)</div>
+                                <div style="font-weight: bold; margin-top: 2px;">ผู้ดูแลระบบ API กลาง STK</div>
+                                <div>STK System Administrator</div>
+                                <div style="font-size: 10px; color: #64748b;">วันที่: ${dateSync}</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 30px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 8px;">
+                            เอกสารนี้สร้างโดยระบบอัตโนมัติ PMT Flow Cloud ERP ร่วมกับระบบตัดสต็อก STK • ข้อมูลมีความสมบูรณ์ตามกฎหมายและระเบียบบริษัท
+                        </div>
+                        <script>
+                            window.onload = function() {
+                                window.print();
+                            };
+                        </script>
+                    </body>
+                    </html>
+                `);
+                printWin.document.close();
+            },
+
+            exportCompletedJobsSTKExcel() {
                 const allJobs = this.getCompletedJobsList();
                 if (!allJobs || allJobs.length === 0) {
                     this.showToast('⚠️ ไม่มีข้อมูลสำหรับส่งออก Excel');
@@ -23783,7 +24313,7 @@ const app = {
 
                 if (typeof XLSX === 'undefined') {
                     this.showToast('⚠️ กำลังส่งออกในรูปแบบ CSV เนื่องจากไม่พบเอนจิน XLSX');
-                    this.exportCompletedJobsCSV();
+                    this.exportCompletedJobsSTKCSV();
                     return;
                 }
 
@@ -23793,14 +24323,18 @@ const app = {
                     // Sheet 1: Summary Rows
                     const summaryHeaders = [
                         'รหัสงาน (Job ID)',
+                        'รหัสอ้างอิง API ระบบ STK',
+                        'เวลาที่ส่ง API STK สำเร็จ',
                         'ชื่อลูกค้า',
                         'เบอร์ติดต่อ',
                         'สาขา',
                         'ที่อยู่ติดตั้ง',
-                        'ประเภทบริการ',
+                        'กลุ่มงาน',
+                        'ประเภทงานบริการ',
                         'ทีมช่างผู้รับผิดชอบ',
                         'มูลค่างาน (บาท)',
                         'เลขที่ Ticket',
+                        'วันที่รับคำสั่งซื้อ',
                         'วันที่ส่งมอบ / QC ผ่าน',
                         'คะแนน QC (เต็ม 5.0)',
                         'คะแนน CSAT (เต็ม 5.0)',
@@ -23809,21 +24343,25 @@ const app = {
                         'ผู้โทรประเมิน CSAT',
                         'ความคิดเห็นลูกค้า (Feedback)',
                         'สถานะโครงการ',
-                        'รหัสอ้างอิง BMT'
+                        'สถานะส่ง STK'
                     ];
 
                     const summaryRows = [summaryHeaders];
                     allJobs.forEach(j => {
                         summaryRows.push([
                             j.id,
+                            j.stk_ref || `STK-REF-2026-${j.id.replace('JOB', '')}`,
+                            this.formatDateTimeDMY(j.stk_synced_at, false, true),
                             j.customer,
                             j.phone || '-',
                             j.branch || 'พัทยาใต้',
                             j.address || '-',
+                            (j.job_type || 'quick').toUpperCase(),
                             j.service,
                             j.technician || '-',
                             Number(j.total_amount || 0),
                             j.ticket_no || '-',
+                            this.formatDateDMY(j.created_at),
                             this.formatDateDMY(j.qc_passed_at),
                             Number(j.qc_score.toFixed(1)),
                             Number(j.csat_score.toFixed(1)),
@@ -23831,20 +24369,20 @@ const app = {
                             j.inspector || '-',
                             j.surveyor || '-',
                             j.feedback || '-',
-                            j.status,
-                            j.bmt_ref || `BMT-SYNC-${j.id.replace('JOB', '')}`
+                            'CLOSED & BILLED',
+                            '200 OK (Synchronized)'
                         ]);
                     });
 
                     const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
                     wsSummary['!cols'] = [
-                        { wch: 16 }, { wch: 22 }, { wch: 15 }, { wch: 14 },
-                        { wch: 35 }, { wch: 30 }, { wch: 24 }, { wch: 16 },
-                        { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 18 },
+                        { wch: 16 }, { wch: 22 }, { wch: 20 }, { wch: 22 }, { wch: 15 }, { wch: 14 },
+                        { wch: 35 }, { wch: 12 }, { wch: 30 }, { wch: 24 }, { wch: 16 },
+                        { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 18 },
                         { wch: 16 }, { wch: 22 }, { wch: 22 }, { wch: 45 },
-                        { wch: 14 }, { wch: 20 }
+                        { wch: 18 }, { wch: 22 }
                     ];
-                    XLSX.utils.book_append_sheet(wb, wsSummary, 'Job_Close_Summary');
+                    XLSX.utils.book_append_sheet(wb, wsSummary, 'Completed_Jobs_STK_List');
 
                     // Sheet 2: KPI & Statistics Analysis
                     const totalCount = allJobs.length;
@@ -23857,33 +24395,82 @@ const app = {
                     const totalRevenue = allJobs.reduce((sum, j) => sum + (Number(j.total_amount) || 0), 0);
 
                     const kpiRows = [
-                        ['รายงานสถิติผลการดำเนินงาน & ความพึงพอใจลูกค้า (PMT Flow 6-Month Retention KPI Report)'],
+                        ['รายงานสรุปงานที่สำเร็จแล้ว & ส่ง API ระบบ STK (PMT Flow 6-Month Retention STK Sync Report)'],
                         ['วันที่สร้างรายงาน:', this.formatDateTimeDMY(new Date().toISOString(), false, true)],
                         [''],
                         ['ดัชนีชี้วัด (KPI Parameter)', 'ค่าสถิติ (Value)', 'หน่วย'],
-                        ['จำนวนโครงการที่ปิดงานสำเร็จทั้งหมด (Total Closed Jobs)', totalCount, 'โครงการ'],
-                        ['มูลค่างานรวมทั้งหมด (Total Revenue)', totalRevenue, 'บาท'],
+                        ['จำนวนงานที่ส่ง API ระบบ STK สำเร็จทั้งหมด (Total STK Synced Jobs)', totalCount, 'รายการ'],
+                        ['มูลค่างานรวมที่ตัดสต็อกและส่ง STK แล้ว (Total STK Revenue)', totalRevenue, 'บาท'],
                         ['คะแนนเฉลี่ยการตรวจรับรองคุณภาพ QC (Average QC Score)', Number(avgQC), 'คะแนน (เต็ม 5.0)'],
                         ['คะแนนเฉลี่ยความพึงพอใจลูกค้า CSAT (Average CSAT Score)', Number(avgCSAT), 'คะแนน (เต็ม 5.0)'],
-                        ['คะแนนรวมเฉลี่ยทั้งระบบ (Overall Score Index)', Number(avgTotal), 'คะแนน (เต็ม 5.0)'],
-                        ['โครงการที่ได้คะแนน 5.0 เต็ม (Perfect 5.0 Score)', count5, 'โครงการ'],
-                        ['โครงการที่ได้คะแนน 4.8 - 4.9 (Excellent Score)', countHigh, 'โครงการ'],
-                        ['โครงการที่ได้คะแนน 4.5 - 4.7 (Standard Score)', countStandard, 'โครงการ'],
+                        ['คะแนนรวมเฉลี่ยทั้งระบบ (Overall Quality Index)', Number(avgTotal), 'คะแนน (เต็ม 5.0)'],
+                        ['งานที่ได้คะแนน 5.0 เต็ม (Perfect 5.0 Score)', count5, 'รายการ'],
+                        ['งานที่ได้คะแนน 4.8 - 4.9 (Excellent Score)', countHigh, 'รายการ'],
+                        ['งานที่ได้คะแนน 4.5 - 4.7 (Standard Score)', countStandard, 'รายการ'],
                         ['อัตราความพึงพอใจระดับดีเยี่ยมขึ้นไป (>= 4.8)', `${((count5 + countHigh) / (totalCount || 1) * 100).toFixed(1)}%`, 'เปอร์เซ็นต์']
                     ];
 
                     const wsKPI = XLSX.utils.aoa_to_sheet(kpiRows);
                     wsKPI['!cols'] = [{ wch: 45 }, { wch: 20 }, { wch: 20 }];
-                    XLSX.utils.book_append_sheet(wb, wsKPI, 'QC_CSAT_KPI_Analysis');
+                    XLSX.utils.book_append_sheet(wb, wsKPI, 'STK_Integration_KPI');
 
                     // Export file
-                    const fileName = `PMT_Flow_Job_Close_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                    const fileName = `PMT_Flow_Completed_Jobs_STK_${new Date().toISOString().slice(0, 10)}.xlsx`;
                     XLSX.writeFile(wb, fileName);
                     this.showToast(`📥 ส่งออกไฟล์ Excel (${fileName}) สำเร็จเรียบร้อย`);
                 } catch (e) {
                     console.error('Error exporting Excel:', e);
                     this.showToast('⚠️ เกิดข้อผิดพลาดในการส่งออก Excel กรุณาลองใหม่');
                 }
+            },
+
+            exportCompletedJobsSTKCSV() {
+                const allJobs = this.getCompletedJobsList();
+                if (!allJobs || allJobs.length === 0) {
+                    this.showToast('⚠️ ไม่มีข้อมูลสำหรับส่งออก CSV');
+                    return;
+                }
+
+                let csv = '\uFEFF'; // BOM UTF-8 for Excel in Thai
+                csv += 'รหัสงาน,รหัสอ้างอิง STK,เวลาส่ง STK,ลูกค้า,เบอร์โทร,สาขา,กลุ่มงาน,บริการ,ทีมช่าง,มูลค่างาน,วันที่รับงาน,วันที่ QC ผ่าน,คะแนน QC,คะแนน CSAT,คะแนน รวม,ผู้ตรวจ QC,ผู้โทร CSAT,ความคิดเห็นลูกค้า,สถานะส่ง STK,สถานะงาน\n';
+
+                allJobs.forEach(j => {
+                    const row = [
+                        `"${j.id}"`,
+                        `"${j.stk_ref}"`,
+                        `"${this.formatDateTimeDMY(j.stk_synced_at, false, true)}"`,
+                        `"${j.customer.replace(/"/g, '""')}"`,
+                        `"${(j.phone || '').replace(/"/g, '""')}"`,
+                        `"${(j.branch || 'พัทยาใต้').replace(/"/g, '""')}"`,
+                        `"${(j.job_type || 'quick').toUpperCase()}"`,
+                        `"${j.service.replace(/"/g, '""')}"`,
+                        `"${(j.technician || '').replace(/"/g, '""')}"`,
+                        j.total_amount || 0,
+                        `"${this.formatDateDMY(j.created_at)}"`,
+                        `"${this.formatDateDMY(j.qc_passed_at)}"`,
+                        j.qc_score.toFixed(1),
+                        j.csat_score.toFixed(1),
+                        j.total_score.toFixed(1),
+                        `"${(j.inspector || '').replace(/"/g, '""')}"`,
+                        `"${(j.surveyor || '').replace(/"/g, '""')}"`,
+                        `"${(j.feedback || '').replace(/"/g, '""')}"`,
+                        `"200 OK"`,
+                        `"${j.status}"`
+                    ];
+                    csv += row.join(',') + '\n';
+                });
+
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `PMT_Flow_Completed_Jobs_STK_${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                this.showToast('📥 ส่งออกไฟล์ CSV เรียบร้อย');
             },
 
             exportSingleJobCloseExcel(jobId) {
@@ -23902,11 +24489,12 @@ const app = {
                 try {
                     const wb = XLSX.utils.book_new();
                     const rows = [
-                        ['เอกสารสรุปผลการปิดโครงการ & ส่งมอบงาน (Job Closeout Summary Report)'],
-                        ['ระบบบริหารจัดการงานช่างและโครงการ PMT Flow'],
+                        ['เอกสารสรุปผลการปิดโครงการ & ส่งมอบระบบ STK (Job Closeout & STK Sync Certificate)'],
+                        ['ระบบบริหารจัดการงานช่างและโครงการ PMT Flow Cloud ERP'],
                         [''],
                         ['ข้อมูลโครงการ (Project Information)', ''],
                         ['รหัสงาน (Job ID):', job.id],
+                        ['รหัสอ้างอิงระบบ STK (STK Ref):', job.stk_ref || `STK-REF-2026-${job.id.replace('JOB', '')}`],
                         ['ชื่อลูกค้า:', job.customer],
                         ['เบอร์ติดต่อ:', job.phone || '-'],
                         ['สาขาผู้รับผิดชอบ:', job.branch || 'พัทยาใต้'],
@@ -23915,8 +24503,10 @@ const app = {
                         ['ทีมช่างผู้ดำเนินงาน:', job.technician || '-'],
                         ['มูลค่างานรวม:', `฿${Number(job.total_amount || 0).toLocaleString('th-TH')}`],
                         ['เลขที่ Ticket:', job.ticket_no || '-'],
+                        ['วันที่รับคำสั่งซื้อ:', this.formatDateDMY(job.created_at)],
                         ['วันที่ส่งมอบ / QC ผ่าน:', this.formatDateDMY(job.qc_passed_at)],
-                        ['รหัสอ้างอิงระบบ BMT:', job.bmt_ref || `BMT-SYNC-${job.id.replace('JOB', '')}`],
+                        ['เวลาส่งมอบระบบ STK:', this.formatDateTimeDMY(job.stk_synced_at, false, true)],
+                        ['สถานะ HTTP ส่ง STK:', '200 OK (Synchronized)'],
                         [''],
                         ['ผลการประเมินมาตรฐานและคุณภาพ (Evaluation KPI)', ''],
                         ['1. คะแนนตรวจรับรองคุณภาพ QC:', `${job.qc_score.toFixed(1)} / 5.0 คะแนน`],
@@ -23925,7 +24515,7 @@ const app = {
                         ['   ผู้โทรสำรวจ CSAT:', job.surveyor || 'Contact Center Officer'],
                         ['3. คะแนนรวมเฉลี่ยทั้งโครงการ:', `${job.total_score.toFixed(1)} / 5.0 คะแนน`],
                         ['ความคิดเห็นและคำติชมของลูกค้า:', job.feedback || '-'],
-                        ['สถานะโครงการ:', 'ส่งมอบสำเร็จ (CLOSED & BILLED)'],
+                        ['สถานะโครงการ:', 'ส่งมอบสำเร็จ & ส่งออกระบบ STK แล้ว (CLOSED & BILLED)'],
                         ['วันที่ออกรายงาน:', this.formatDateTimeDMY(new Date().toISOString(), false, true)]
                     ];
 
@@ -23933,7 +24523,7 @@ const app = {
                     ws['!cols'] = [{ wch: 35 }, { wch: 45 }];
                     XLSX.utils.book_append_sheet(wb, ws, `Job_${job.id}`);
 
-                    const fileName = `PMT_Flow_${job.id}_Close_Report.xlsx`;
+                    const fileName = `PMT_Flow_${job.id}_STK_Close_Report.xlsx`;
                     XLSX.writeFile(wb, fileName);
                     this.showToast(`📥 ส่งออกไฟล์ Excel โครงการ ${job.id} เรียบร้อย`);
                 } catch (e) {
@@ -23942,48 +24532,37 @@ const app = {
                 }
             },
 
+            // Aliases for full compatibility
+            renderCompletedJobs() {
+                this.renderCompletedJobsSTK();
+            },
+
+            renderCSAT() {
+                this.renderCompletedJobsSTK();
+            },
+
+            filterCompletedJobs() {
+                this.filterCompletedJobsSTK();
+            },
+
+            resetCompletedJobsFilter() {
+                this.resetCompletedJobsSTKFilter();
+            },
+
+            setCompletedJobsPage(p) {
+                this.setCompletedJobsSTKPage(p);
+            },
+
+            changeCompletedJobsPageSize(s) {
+                this.changeCompletedJobsSTKPageSize(s);
+            },
+
+            exportCompletedJobsExcel() {
+                this.exportCompletedJobsSTKExcel();
+            },
+
             exportCompletedJobsCSV() {
-                const allJobs = this.getCompletedJobsList();
-                if (!allJobs || allJobs.length === 0) {
-                    this.showToast('⚠️ ไม่มีข้อมูลสำหรับส่งออก CSV');
-                    return;
-                }
-
-                let csv = '\uFEFF'; // BOM UTF-8 for Excel in Thai
-                csv += 'รหัสงาน,ลูกค้า,เบอร์โทร,สาขา,บริการ,ทีมช่าง,มูลค่างาน,วันที่ QC ผ่าน,คะแนน QC,คะแนน CSAT,คะแนน รวม,ผู้ตรวจ QC,ผู้โทร CSAT,ความคิดเห็นลูกค้า,สถานะ\n';
-
-                allJobs.forEach(j => {
-                    const row = [
-                        `"${j.id}"`,
-                        `"${j.customer.replace(/"/g, '""')}"`,
-                        `"${(j.phone || '').replace(/"/g, '""')}"`,
-                        `"${(j.branch || 'พัทยาใต้').replace(/"/g, '""')}"`,
-                        `"${j.service.replace(/"/g, '""')}"`,
-                        `"${(j.technician || '').replace(/"/g, '""')}"`,
-                        j.total_amount || 0,
-                        `"${this.formatDateDMY(j.qc_passed_at)}"`,
-                        j.qc_score.toFixed(1),
-                        j.csat_score.toFixed(1),
-                        j.total_score.toFixed(1),
-                        `"${(j.inspector || '').replace(/"/g, '""')}"`,
-                        `"${(j.surveyor || '').replace(/"/g, '""')}"`,
-                        `"${(j.feedback || '').replace(/"/g, '""')}"`,
-                        `"${j.status}"`
-                    ];
-                    csv += row.join(',') + '\n';
-                });
-
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `PMT_Flow_Job_Close_Report_${new Date().toISOString().slice(0, 10)}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-                this.showToast('📥 ส่งออกไฟล์ CSV เรียบร้อย');
+                this.exportCompletedJobsSTKCSV();
             },
 
             formatDateTime(isoStr) {
