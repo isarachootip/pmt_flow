@@ -3765,6 +3765,10 @@ app.get('/api/v1/jobs/:id/daily-logs', requireAuth, async (req: Request, res: Re
 // Helper to create and process daily work log
 async function handleCreateDailyLog(payload: any, jobIdParam?: string): Promise<CoreDailyWorkLog> {
   const id = jobIdParam || payload.job_id || payload.jobId || 'JOB26090900002';
+  const isFinalDay = (Number(payload.day_number || payload.dayNumber) || 1) >= (Number(payload.total_days || payload.totalDays) || 1);
+  const isEarlyCompleted = Boolean(payload.is_early_completed || payload.isEarlyCompleted);
+  const isOverallComplete = Boolean((payload.is_completed || payload.isCompleted) && (isFinalDay || isEarlyCompleted));
+
   const newLog: CoreDailyWorkLog = {
     id: payload.id || `LOG_${Date.now()}`,
     job_id: id,
@@ -3794,8 +3798,8 @@ async function handleCreateDailyLog(payload: any, jobIdParam?: string): Promise<
   await dbSaveDailyWorkLog(newLog);
   coreDailyWorkLogStore.push(newLog);
 
-  // If completed, update task and job status to QC_PENDING in DB
-  if (newLog.is_completed) {
+  // If completed (overall complete: reached final day or confirmed early finish), update task and job status to QC_PENDING in DB
+  if (isOverallComplete) {
     const job = await dbGetJob(id);
     if (job) {
       const tasks = Array.isArray(job.tasks) ? [...job.tasks] : [];
@@ -3828,6 +3832,24 @@ async function handleCreateDailyLog(payload: any, jobIdParam?: string): Promise<
       booking.status = 'CONFIRMED';
       booking.confirmed_at = new Date().toISOString();
       booking.confirmed_by = newLog.recorded_by;
+    }
+  } else {
+    // Progressive daily update: update task progress without prematurely marking DONE
+    const dayProgress = Math.min(95, Math.round((newLog.day_number / Math.max(1, newLog.total_days)) * 100));
+    const job = await dbGetJob(id);
+    if (job) {
+      const tasks = Array.isArray(job.tasks) ? [...job.tasks] : [];
+      const task = tasks.find((t: any) => String(t.id) === String(newLog.task_id));
+      if (task) {
+        task.status = 'IN_PROGRESS';
+        task.progress_percent = Math.max(Number(task.progress_percent) || 0, dayProgress);
+      }
+      await dbUpdateJob(id, { tasks });
+    }
+    const memTask = coreTaskStore.find(t => String(t.id) === String(newLog.task_id));
+    if (memTask) {
+      memTask.status = 'IN_PROGRESS';
+      memTask.progress_percent = Math.max(Number(memTask.progress_percent) || 0, dayProgress);
     }
   }
 

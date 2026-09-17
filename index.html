@@ -4625,7 +4625,7 @@
                                         <span class="text-[10px] text-muted-foreground font-mono">Step 2 (Tickets)</span>
                                     </div>
                                     <h4 class="font-display font-bold text-xs text-foreground group-hover:text-emerald-600 transition">Step 2: บันทึก Ticket & ใบเสร็จ</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">เปิด Work Ticket, ซิงค์จองช่าง INT, แนบสลิปเงินโอน (งาน Quick ข้ามเข้า QC Online ทันที / Renovate เข้า Step 3)</p>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">เปิด Work Ticket, ซิงค์จองช่าง INT, แนบสลิปเงินโอน, พร้อม Task Quick View Pop up คลิกดูข้อมูลงานที่เคยบันทึกไว้ได้ทันที (งาน Quick ข้ามเข้า QC Online / Renovate เข้า Step 3)</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
                                     <button onclick="app.navigate('tickets')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
@@ -6121,6 +6121,14 @@
             </form>
         </div>
     </div>
+
+    <!-- MODAL: TASK / JOB DETAILS QUICK PREVIEW (POP UP ข้อมูลที่เคยใส่ไปแล้ว) -->
+    <div id="modal-job-preview-detail" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-5 overflow-y-auto" onclick="if(event.target === this) app.hideModal('modal-job-preview-detail')">
+        <div class="artifact-card rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border my-auto" id="modal-job-preview-detail-content">
+            <!-- Populated dynamically by app.openJobDetailModal(jobId) -->
+        </div>
+    </div>
+
     <!-- MODAL: QC JOB DETAIL & SUB-TASK EVALUATION WITH SCORING AND PHOTOS -->
     <div id="modal-qc-job-detail" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-5 overflow-y-auto" onclick="if(event.target === this) app.hideModal('modal-qc-job-detail')">
         <div class="artifact-card rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border my-auto" id="modal-qc-job-detail-content">

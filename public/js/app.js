@@ -4703,7 +4703,10 @@ const app = {
                     <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSurvey ? 'bg-teal-500/[0.03] border-l-2 border-l-teal-500' : shouldShowNewBadge ? 'bg-indigo-500/[0.02]' : ''}" onclick="app.openUnifiedOrderStudio('${j.id}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${j.id})">
                         <td class="px-5 py-4 font-mono font-semibold text-brand-500">
                             <div class="flex items-center gap-1.5 flex-wrap">
-                                <span>${j.id}</span>
+                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-brand-600 dark:text-brand-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
+                                    <span>${j.id}</span>
+                                    <i class="ph ph-arrow-square-out text-[11px] opacity-70"></i>
+                                </button>
                                 ${shouldShowNewBadge ? `
                                     <span class="badge-new-item" title="รายการคำสั่งซื้อใหม่ล่าสุด (NEW!)">
                                         <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
@@ -4789,8 +4792,8 @@ const app = {
                                     <i class="ph ph-squares-four text-sm font-bold"></i>
                                     <span>Studio</span>
                                 </button>
-                                <button type="button" onclick="event.stopPropagation(); app.navigate('job-detail', '${j.id}')" class="btn-artifact-secondary p-1.5 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer" title="ดูรายละเอียดโครงการ">
-                                    <i class="ph ph-caret-right text-base"></i>
+                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="btn-artifact-secondary p-1.5 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer" title="ดูข้อมูลงาน (Pop up)">
+                                    <i class="ph ph-eye text-base"></i>
                                 </button>
                             </div>
                         </td>
@@ -7163,16 +7166,355 @@ const app = {
             },
 
             openJobTicketsDetail(jobId) {
-                this.switchTicketTab('library');
-                const searchInput = document.getElementById('ticket-search');
-                if (searchInput) {
-                    searchInput.value = jobId;
-                    this.renderTickets();
+                this.openJobDetailModal(jobId);
+            },
+
+            openJobDetailModal(jobId) {
+                const job = (DB.jobs || []).find(j => j.id === jobId || j.job_no === jobId);
+                if (!job) {
+                    this.showToast('⚠️ ไม่พบข้อมูลงาน ' + jobId);
+                    return;
                 }
-                const ticketsTable = document.getElementById('tickets-library-container') || document.getElementById('tickets-jobs-table-body');
-                if (ticketsTable) {
-                    ticketsTable.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                const modalContent = document.getElementById('modal-job-preview-detail-content');
+                if (!modalContent) return;
+
+                const isQuick = this.isQuickJob(job);
+                const isRenovate = job.job_type === 'renovate' || (!isQuick && job.job_type !== 'ma');
+                const tickets = (DB.tickets || []).filter(t => (t.job_id || t.jobId) === job.id);
+                const hasTicket = tickets.length > 0;
+                const boqItems = job.boq_items || [];
+                const grandTotal = job.boq_grand_total || (boqItems.reduce((acc, item) => acc + ((Number(item.qty) || 1) * (Number(item.price) || 0)), 0));
+                const blueprints = (DB.blueprints || []).filter(b => b.jobId === job.id);
+                const tasks = (DB.tasks || []).filter(t => t.jobId === job.id);
+
+                // Calculate SLA
+                const s2Sla = this.calculateJobSLA(job, 2);
+                const jts = job.step_timestamps || {};
+                const s2Iso = jts.step2_ticket_at || jts.step4_ticket_at || jts.step1_accepted_at || jts.step1_order_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
+                const s2Formatted = s2Iso ? this.formatDateTimeDMY(s2Iso, false, true) : '-';
+
+                // Photos - get or provide realistic site survey photos based on service type
+                let photos = job.photos || [];
+                if (!photos || photos.length === 0) {
+                    if (job.service && job.service.includes('แอร์')) {
+                        photos = [
+                            { url: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80', caption: 'จุดติดตั้งเครื่องปรับอากาศเดิม', type: 'สำรวจหน้างาน' },
+                            { url: 'https://images.unsplash.com/photo-1581094288338-2314dddb7ece?w=600&q=80', caption: 'ตำแหน่งเบรกเกอร์และสายไฟเมน', type: 'ระบบไฟฟ้า' }
+                        ];
+                    } else if (job.service && (job.service.includes('กระเบื้อง') || job.service.includes('พื้น'))) {
+                        photos = [
+                            { url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&q=80', caption: 'สภาพพื้นผิวก่อนรื้อและระดับ Slope', type: 'สำรวจหน้างาน' },
+                            { url: 'https://images.unsplash.com/photo-1502005229762-ee1b2b81ec65?w=600&q=80', caption: 'จุดเชื่อมต่อท่อระบายน้ำทิ้ง Floor Drain', type: 'จุดสำคัญ' }
+                        ];
+                    } else if (job.service && (job.service.includes('ปั้ม') || job.service.includes('แท็งก์') || job.service.includes('น้ำ'))) {
+                        photos = [
+                            { url: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=600&q=80', caption: 'ฐานปูนวางถังเก็บน้ำและจุดต่อท่อประปา', type: 'สำรวจหน้างาน' },
+                            { url: 'https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?w=600&q=80', caption: 'จุดปลั๊กไฟกันน้ำภายนอกอาคาร', type: 'ระบบไฟฟ้า' }
+                        ];
+                    } else {
+                        photos = [
+                            { url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&q=80', caption: 'สภาพหน้างานและพื้นที่โดยรอบ', type: 'สำรวจหน้างาน' },
+                            { url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&q=80', caption: 'จุดเตรียมต่อระบบและระยะหน้างาน', type: 'จุดสำคัญ' }
+                        ];
+                    }
                 }
+
+                modalContent.innerHTML = `
+                    <!-- Modal Header -->
+                    <div class="p-5 border-b border-border flex justify-between items-start bg-muted/30 shrink-0">
+                        <div class="space-y-1.5">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-brand-500/10 text-brand-600 border border-brand-500/20 inline-flex items-center gap-1.5">
+                                    <i class="ph ph-hash"></i> ${job.id}
+                                    <button type="button" onclick="event.stopPropagation(); navigator.clipboard.writeText('${job.id}'); app.showToast('คัดลอกรหัสงานเรียบร้อย');" class="text-muted-foreground hover:text-foreground cursor-pointer" title="คัดลอกรหัสงาน">
+                                        <i class="ph ph-copy text-xs"></i>
+                                    </button>
+                                </span>
+                                <span class="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase ${isQuick ? 'bg-amber-500/10 text-amber-700 border border-amber-500/20' : (isRenovate ? 'bg-indigo-500/10 text-indigo-700 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20')}">
+                                    ${job.job_type || (isQuick ? 'QUICK SERVICE' : 'RENOVATE')}
+                                </span>
+                                ${this.getStatusHtml(job.status)}
+                                ${job.booking_no ? `
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/10 text-purple-700 border border-purple-500/20" title="Ref: Booking / External Order">
+                                        Booking: ${job.booking_no}
+                                    </span>
+                                ` : ''}
+                            </div>
+                            <h3 class="font-display font-bold text-lg text-foreground flex items-center gap-2">
+                                <span>${job.service || 'ไม่ระบุประเภทงาน'}</span>
+                            </h3>
+                            <div class="text-xs text-muted-foreground flex items-center gap-2.5 flex-wrap">
+                                <span class="inline-flex items-center gap-1">
+                                    <i class="ph ph-user text-brand-600"></i> ลูกค้า: <strong class="text-foreground font-semibold">${job.customer || '-'}</strong>
+                                </span>
+                                <span>•</span>
+                                <span class="inline-flex items-center gap-1 font-mono">
+                                    <i class="ph ph-phone text-emerald-600"></i> ${job.phone || '-'}
+                                    ${job.phone ? `
+                                        <a href="tel:${job.phone}" onclick="event.stopPropagation();" class="text-emerald-600 hover:underline inline-flex items-center gap-0.5 ml-1" title="โทรออก">
+                                            <i class="ph ph-phone-call text-xs"></i>
+                                        </a>
+                                    ` : ''}
+                                </span>
+                                <span>•</span>
+                                <span class="inline-flex items-center gap-1">
+                                    <i class="ph ph-user-gear text-amber-600"></i> ช่าง: <strong class="text-foreground font-semibold">${job.tech || 'รอระบุช่าง'}</strong>
+                                </span>
+                            </div>
+                        </div>
+                        <button type="button" onclick="app.hideModal('modal-job-preview-detail')" class="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition cursor-pointer" title="ปิดหน้าต่าง (Esc)">
+                            <i class="ph ph-x text-lg"></i>
+                        </button>
+                    </div>
+
+                    <!-- Modal Body (Scrollable) -->
+                    <div class="p-6 overflow-y-auto space-y-5 flex-1 text-xs bg-card">
+                        <!-- Key Summary Cards Grid -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
+                                <div class="text-[10px] text-muted-foreground font-medium uppercase">สถานะ SLA (Step 2)</div>
+                                <div class="text-xs font-bold text-foreground">${s2Sla ? s2Sla.badgeHtml : '<span class="text-emerald-600 font-semibold">ตามกำหนด</span>'}</div>
+                                <div class="text-[10px] text-muted-foreground font-mono truncate">เข้า State: ${s2Formatted}</div>
+                            </div>
+                            <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
+                                <div class="text-[10px] text-muted-foreground font-medium uppercase">ยอดเงิน BOQ / สัญญา</div>
+                                <div class="text-sm font-bold font-mono text-emerald-600">${grandTotal > 0 ? (grandTotal.toLocaleString('th-TH') + ' ฿') : 'รอระบุยอด'}</div>
+                                <div class="text-[10px] text-muted-foreground">${boqItems.length > 0 ? (boqItems.length + ' รายการย่อย') : 'ราคาประมาณการ'}</div>
+                            </div>
+                            <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
+                                <div class="text-[10px] text-muted-foreground font-medium uppercase">สถานะ Ticket / สลิป</div>
+                                <div class="text-xs font-bold">${hasTicket ? `<span class="text-emerald-600 inline-flex items-center gap-1"><i class="ph ph-check-circle-fill"></i> ออกแล้ว (${tickets.length})</span>` : `<span class="text-amber-600 inline-flex items-center gap-1"><i class="ph ph-hourglass-high"></i> รอออก Ticket</span>`}</div>
+                                <div class="text-[10px] text-muted-foreground truncate">${hasTicket ? (tickets[0].ticket_no || tickets[0].ticketNo || 'มีสลิปแนบแล้ว') : 'ยังไม่มีสลิปการเงิน'}</div>
+                            </div>
+                            <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
+                                <div class="text-[10px] text-muted-foreground font-medium uppercase">วันเวลานัดหมาย</div>
+                                <div class="text-xs font-bold font-mono text-foreground">${job.date ? this.formatDateDMY(job.date) : '-'}</div>
+                                <div class="text-[10px] text-muted-foreground">${job.property_type || 'บ้านเดี่ยว'}</div>
+                            </div>
+                        </div>
+
+                        <!-- Section 1: Customer & Site Details -->
+                        <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
+                            <div class="flex items-center gap-2 font-bold text-foreground text-xs border-b border-border/60 pb-2">
+                                <i class="ph ph-map-pin text-rose-500 text-sm"></i>
+                                <span>ข้อมูลลูกค้าและสถานที่หน้างาน (Customer & Site Details)</span>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1.5">
+                                    <div class="flex items-start gap-2">
+                                        <span class="text-muted-foreground w-24 shrink-0">ชื่อลูกค้า:</span>
+                                        <strong class="text-foreground font-semibold">${job.customer || '-'}</strong>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-muted-foreground w-24 shrink-0">เบอร์โทรศัพท์:</span>
+                                        <span class="font-mono font-medium text-foreground">${job.phone || '-'}</span>
+                                        ${job.phone ? `
+                                            <button type="button" onclick="navigator.clipboard.writeText('${job.phone}'); app.showToast('คัดลอกเบอร์โทรแล้ว');" class="text-muted-foreground hover:text-foreground text-[10px] px-1.5 py-0.5 rounded border border-border bg-card cursor-pointer">
+                                                <i class="ph ph-copy"></i> คัดลอก
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <span class="text-muted-foreground w-24 shrink-0">ประเภทที่พัก:</span>
+                                        <span class="text-foreground">${job.property_type || 'บ้านเดี่ยว'}</span>
+                                    </div>
+                                </div>
+                                <div class="space-y-1.5">
+                                    <div class="flex items-start gap-2">
+                                        <span class="text-muted-foreground w-24 shrink-0">สถานที่ติดตั้ง:</span>
+                                        <span class="text-foreground font-medium leading-relaxed">${job.address || 'ไม่ระบุที่อยู่หน้างาน'}</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <span class="text-muted-foreground w-24 shrink-0">สาขาที่รับงาน:</span>
+                                        <span class="text-foreground">${job.branch || 'โฮมโปร (ระบบศูนย์กลาง)'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 2: Service Scope, Special Instructions & Notes -->
+                        <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
+                            <div class="flex items-center gap-2 font-bold text-foreground text-xs border-b border-border/60 pb-2">
+                                <i class="ph ph-wrench text-brand-600 text-sm"></i>
+                                <span>สโคปงานและบันทึกข้อกำหนดพิเศษ (Scope & Special Instructions)</span>
+                            </div>
+                            <div class="space-y-2.5">
+                                <div>
+                                    <span class="text-muted-foreground block text-[11px] mb-0.5">รายการบริการ / งานติดตั้ง:</span>
+                                    <div class="p-2.5 rounded-lg bg-card border border-border text-foreground font-medium">
+                                        ${(job.services && job.services.length > 0) ? job.services.join(' • ') : (job.service || '-')}
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                        <span class="text-muted-foreground block text-[11px] mb-0.5">ข้อกำหนดพิเศษ (Special Instructions):</span>
+                                        <div class="p-2.5 rounded-lg bg-card border border-border text-foreground text-[11px] leading-relaxed">
+                                            ${job.special_instructions || 'ไม่มีข้อกำหนดพิเศษ'}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="text-muted-foreground block text-[11px] mb-0.5">บันทึกเพิ่มเติม (Additional Notes):</span>
+                                        <div class="p-2.5 rounded-lg bg-card border border-border text-foreground text-[11px] leading-relaxed">
+                                            ${job.additional_notes || 'ไม่มีบันทึกเพิ่มเติม'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 3: Attached Photos & Visit Plan Survey -->
+                        <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
+                            <div class="flex items-center justify-between border-b border-border/60 pb-2">
+                                <div class="flex items-center gap-2 font-bold text-foreground text-xs">
+                                    <i class="ph ph-camera text-indigo-600 text-sm"></i>
+                                    <span>รูปภาพสำรวจหน้างานที่เคยบันทึกไว้ (Survey Photos / Visit Plan)</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/15 text-indigo-700 font-mono font-bold">${photos.length} รูป</span>
+                                </div>
+                                <span class="text-[11px] text-muted-foreground">คลิกรูปเพื่อเปิดดูแบบขยายใหญ่ (Lightbox)</span>
+                            </div>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                ${photos.map((p, pIdx) => `
+                                    <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.showPhotoLightbox('${p.url}', '${p.caption || 'รูปภาพหน้างาน'}', '${p.type || 'สำรวจหน้างาน'}', 'โครงการ ${job.id} - ${job.customer}', '${s2Formatted}')">
+                                        <img src="${p.url}" alt="${p.caption || 'รูปถ่ายหน้างาน'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
+                                            <span class="text-[9px] font-bold text-white bg-black/50 px-1.5 py-0.5 rounded backdrop-blur-xs w-fit">${p.type || 'ภาพถ่าย'}</span>
+                                            <div class="flex items-center justify-between text-white">
+                                                <span class="text-[10px] truncate max-w-[120px] font-medium">${p.caption || 'ดูรูปขนาดใหญ่'}</span>
+                                                <i class="ph ph-arrows-out-simple text-xs"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Section 4: Tickets & Slips Summary -->
+                        <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
+                            <div class="flex items-center justify-between border-b border-border/60 pb-2">
+                                <div class="flex items-center gap-2 font-bold text-foreground text-xs">
+                                    <i class="ph ph-receipt text-emerald-600 text-sm"></i>
+                                    <span>ข้อมูล Ticket & สลิปการชำระเงิน (Step 2 Tickets & Receipts)</span>
+                                </div>
+                                ${hasTicket ? `
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-700 font-bold">บันทึกเรียบร้อย</span>
+                                ` : `
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-700 font-bold">ยังไม่บันทึก</span>
+                                `}
+                            </div>
+                            ${hasTicket ? `
+                                <div class="space-y-2">
+                                    ${tickets.map(t => `
+                                        <div class="p-3 rounded-xl bg-card border border-emerald-500/30 flex items-center justify-between gap-3">
+                                            <div class="space-y-0.5">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="font-mono font-bold text-emerald-700">${t.ticket_no || t.ticketNo || 'TKT-PENDING'}</span>
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-700">${t.status || 'ISSUED'}</span>
+                                                </div>
+                                                <div class="text-[11px] text-muted-foreground">
+                                                    ใบเสร็จ: <strong class="text-foreground">${t.receipt_no || t.receiptNo || '-'}</strong> • สัญญา: <strong class="text-foreground">${t.contract_no || t.contractNo || '-'}</strong>
+                                                </div>
+                                            </div>
+                                            <div class="text-right shrink-0">
+                                                <div class="font-mono font-bold text-foreground">${(Number(t.amount) || grandTotal).toLocaleString('th-TH')} ฿</div>
+                                                <div class="text-[10px] text-muted-foreground">${t.payment_method || 'โอนเงิน'}</div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `
+                                <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-center justify-between gap-3">
+                                    <div class="flex items-center gap-2.5">
+                                        <i class="ph ph-warning-circle text-amber-600 text-xl shrink-0"></i>
+                                        <div>
+                                            <div class="font-bold text-amber-900 text-xs">งานนี้ยังไม่ได้ออก Ticket หรือแนบสลิปใบเสร็จ</div>
+                                            <div class="text-[11px] text-amber-700/90">เมื่อบันทึกสลิปและสัญญาเรียบร้อย งานจะส่งไปยังขั้นตอนถัดไปอัตโนมัติ</div>
+                                        </div>
+                                    </div>
+                                    <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.openCreateTicketModal('${job.id}');" class="btn-artifact-primary px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 flex items-center gap-1.5 shadow-xs cursor-pointer">
+                                        <i class="ph ph-plus-circle font-bold"></i>
+                                        <span>+ บันทึก Ticket & สลิป</span>
+                                    </button>
+                                </div>
+                            `}
+                        </div>
+
+                        <!-- Section 5: Pipeline Progression History -->
+                        <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
+                            <div class="flex items-center gap-2 font-bold text-foreground text-xs border-b border-border/60 pb-2">
+                                <i class="ph ph-clock-counter-clockwise text-blue-600 text-sm"></i>
+                                <span>ไทม์ไลน์และประวัติการดำเนินงาน (Pipeline Progress History)</span>
+                            </div>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                                <div class="p-2.5 rounded-lg bg-card border border-border space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-bold text-foreground">Step 1: Intake</span>
+                                        <i class="ph ph-check-circle-fill text-emerald-500"></i>
+                                    </div>
+                                    <div class="text-[10px] text-muted-foreground font-mono">${jts.step1_order_at ? this.formatDateTimeDMY(jts.step1_order_at, false, true) : (job.date ? `${this.formatDateDMY(job.date)} 08:30` : '-')}</div>
+                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-emerald-500/10 text-emerald-700">รับ Order แล้ว</span>
+                                </div>
+                                <div class="p-2.5 rounded-lg bg-card border border-border space-y-1 ${hasTicket ? 'border-emerald-500/40 bg-emerald-500/[0.02]' : 'border-amber-500/40 bg-amber-500/[0.02]'}">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-bold text-foreground">Step 2: Ticket & Slip</span>
+                                        ${hasTicket ? '<i class="ph ph-check-circle-fill text-emerald-500"></i>' : '<i class="ph ph-hourglass-high text-amber-500"></i>'}
+                                    </div>
+                                    <div class="text-[10px] text-muted-foreground font-mono">${s2Formatted}</div>
+                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-semibold ${hasTicket ? 'bg-emerald-500/10 text-emerald-700' : 'bg-amber-500/10 text-amber-700'}">${hasTicket ? 'ออก Ticket แล้ว' : 'กำลังดำเนินการ'}</span>
+                                </div>
+                                <div class="p-2.5 rounded-lg bg-card border border-border space-y-1 opacity-70">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-bold text-foreground">${isQuick ? 'QC Online' : 'Step 3: BOQ / Gantt'}</span>
+                                        <i class="ph ph-circle text-muted-foreground"></i>
+                                    </div>
+                                    <div class="text-[10px] text-muted-foreground font-mono">-</div>
+                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-muted text-muted-foreground">รอดำเนินการ</span>
+                                </div>
+                                <div class="p-2.5 rounded-lg bg-card border border-border space-y-1 opacity-70">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-bold text-foreground">Step 6: CSAT</span>
+                                        <i class="ph ph-circle text-muted-foreground"></i>
+                                    </div>
+                                    <div class="text-[10px] text-muted-foreground font-mono">-</div>
+                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-muted text-muted-foreground">รอดำเนินการ</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="p-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2.5 bg-muted/30 shrink-0">
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <button type="button" onclick="app.hideModal('modal-job-preview-detail')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold w-full sm:w-auto cursor-pointer">
+                                ปิดหน้าต่าง
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                            <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.navigate('job-detail', '${job.id}');" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold border border-border hover:bg-muted text-foreground flex items-center justify-center gap-1.5 w-full sm:w-auto cursor-pointer" title="เปิดหน้าจัดการเต็มของโครงการนี้">
+                                <i class="ph ph-arrow-square-out"></i>
+                                <span>เปิดหน้ารายละเอียดเต็ม</span>
+                            </button>
+                            ${!hasTicket ? `
+                                <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.openCreateTicketModal('${job.id}');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
+                                    <i class="ph ph-plus-circle font-bold"></i>
+                                    <span>+ บันทึก Ticket & สลิป ➔</span>
+                                </button>
+                            ` : (isQuick ? `
+                                <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.goToQC('${job.id}');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold bg-cyan-600 hover:bg-cyan-700 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
+                                    <i class="ph ph-globe"></i>
+                                    <span>ไปตรวจ QC Online ➔</span>
+                                </button>
+                            ` : `
+                                <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.proceedJobToConversion('${job.id}');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
+                                    <i class="ph ph-lightning"></i>
+                                    <span>Convert เข้า Project ➔</span>
+                                </button>
+                            `)}
+                        </div>
+                    </div>
+                `;
+
+                this.showModal('modal-job-preview-detail');
             },
 
             renderStageWithSLA(job, stepNumber) {
@@ -9184,10 +9526,13 @@ const app = {
                             `;
 
                             return `
-                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTopNew ? 'bg-rose-500/[0.02]' : ''}" onclick="app.navigate('job-detail', '${j.id}')">
+                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTopNew ? 'bg-rose-500/[0.02]' : ''}" onclick="app.openJobDetailModal('${j.id}')" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
                                     <td class="px-5 py-4 font-mono font-semibold text-indigo-600 dark:text-indigo-400">
                                         <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span>${j.id}</span>
+                                            <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
+                                                <span>${j.id}</span>
+                                                <i class="ph ph-arrow-square-out text-[11px] opacity-70"></i>
+                                            </button>
                                             ${isTopNew ? `
                                                 <span class="badge-new-item" title="สถานะล่าสุด (NEW!)">
                                                     <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
@@ -12477,10 +12822,13 @@ const app = {
                             `;
 
                             return `
-                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTopNew ? 'bg-rose-500/[0.02]' : ''}" onclick="app.openJobTicketsDetail('${j.id}')">
+                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTopNew ? 'bg-rose-500/[0.02]' : ''}" onclick="app.openJobDetailModal('${j.id}')" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
                                     <td class="px-5 py-4 font-mono font-semibold text-emerald-600 dark:text-emerald-400">
                                         <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span>${j.id}</span>
+                                            <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
+                                                <span>${j.id}</span>
+                                                <i class="ph ph-arrow-square-out text-[11px] opacity-70"></i>
+                                            </button>
                                             ${isTopNew ? `
                                                 <span class="badge-new-item" title="สถานะล่าสุด (NEW!)">
                                                     <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
@@ -12637,10 +12985,10 @@ const app = {
                                             const s2Iso = jts.step2_ticket_at || jts.step4_ticket_at || jts.step1_accepted_at || jts.step1_order_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
                                             const s2Formatted = s2Iso ? this.formatDateTimeDMY(s2Iso, false, true) : '-';
                                             return `
-                                            <tr class="hover:bg-muted/30 transition-colors ${isTopNew ? 'bg-rose-500/[0.02]' : ''}">
+                                            <tr class="hover:bg-muted/30 transition-colors cursor-pointer ${isTopNew ? 'bg-rose-500/[0.02]' : ''}" onclick="app.openJobDetailModal('${job.id}')" title="คลิกเพื่อดูข้อมูลงาน ${job.id}">
                                                 <td class="py-3 px-4 font-mono font-bold text-foreground">
                                                     <div class="flex items-center gap-1.5 flex-wrap">
-                                                        <button type="button" onclick="app.openCreateTicketModal('${job.id}')" class="bg-muted hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-600 hover:border-emerald-500 px-2 py-0.5 rounded border border-border cursor-pointer transition font-mono font-bold text-xs" title="คลิกเพื่อออก Ticket">
+                                                        <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${job.id}')" class="bg-muted hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-600 hover:border-emerald-500 px-2 py-0.5 rounded border border-border cursor-pointer transition font-mono font-bold text-xs" title="คลิกเพื่อดูข้อมูลงาน ${job.id}">
                                                             ${job.id}
                                                         </button>
                                                         ${isTopNew ? `
@@ -12685,17 +13033,17 @@ const app = {
                                                 <td class="py-3 px-4 text-center whitespace-nowrap">
                                                     <div class="flex items-center justify-center gap-2">
                                                         ${hasTkt ? (this.isQuickJob(job) ? `
-                                                         <button type="button" onclick="app.goToQC('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-cyan-600 hover:bg-cyan-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ไปตรวจคุณภาพ QC Online">
+                                                         <button type="button" onclick="event.stopPropagation(); app.goToQC('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-cyan-600 hover:bg-cyan-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="ไปตรวจคุณภาพ QC Online">
                                                             <i class="ph ph-globe"></i>
                                                             <span>ไปตรวจ QC Online ➔</span>
                                                         </button>
                                                         ` : `
-                                                        <button type="button" onclick="app.proceedJobToConversion('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs transition hover:scale-105" title="Convert เข้า Project (Labor-to-Task)">
+                                                        <button type="button" onclick="event.stopPropagation(); app.proceedJobToConversion('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs transition hover:scale-105" title="Convert เข้า Project (Labor-to-Task)">
                                                             <i class="ph ph-lightning"></i>
                                                             <span>Convert เข้า Project ➔</span>
                                                         </button>
                                                         `) : ''}
-                                                        <button type="button" onclick="app.openCreateTicketModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="บันทึก Ticket & แนบสลิป">
+                                                        <button type="button" onclick="event.stopPropagation(); app.openCreateTicketModal('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="บันทึก Ticket & แนบสลิป">
                                                             <i class="ph ph-plus-circle font-bold text-sm"></i>
                                                             <span>${hasTkt ? '+ ออก Ticket เพิ่ม' : '+ บันทึก Ticket & สลิป'}</span>
                                                         </button>
@@ -12715,7 +13063,7 @@ const app = {
                             const hasTkt = jobTkts.length > 0;
                             const grandTotal = job.boq_grand_total || (job.boq_items ? job.boq_items.reduce((s, it) => s + ((Number(it.qty) || 1) * (Number(it.price) || 0)), 0) : 25000);
                             return `
-                            <div class="artifact-card p-5 rounded-2xl border ${hasTkt ? 'border-emerald-500/30 bg-card' : (isTopNew ? 'border-amber-500/40 bg-amber-500/[0.02]' : 'border-border bg-card')} hover:border-emerald-500/60 transition duration-200 space-y-3.5 group shadow-xs">
+                            <div class="artifact-card p-5 rounded-2xl border ${hasTkt ? 'border-emerald-500/30 bg-card' : (isTopNew ? 'border-amber-500/40 bg-amber-500/[0.02]' : 'border-border bg-card')} hover:border-emerald-500/60 transition duration-200 space-y-3.5 group shadow-xs cursor-pointer" onclick="app.openJobDetailModal('${job.id}')" title="คลิกเพื่อดูข้อมูลงาน ${job.id}">
                                 <div class="flex items-start justify-between gap-2">
                                     <div class="flex items-start gap-3 min-w-0">
                                         <div class="w-10 h-10 rounded-xl ${hasTkt ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'} flex items-center justify-center shrink-0">
@@ -12723,7 +13071,7 @@ const app = {
                                         </div>
                                         <div class="min-w-0">
                                             <div class="flex items-center gap-2 flex-wrap">
-                                                <button type="button" onclick="app.openCreateTicketModal('${job.id}')" class="font-mono font-bold text-xs text-foreground group-hover:text-emerald-600 transition">
+                                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${job.id}')" class="font-mono font-bold text-xs text-foreground group-hover:text-emerald-600 transition" title="คลิกเพื่อดูข้อมูลงาน ${job.id}">
                                                     ${job.id}
                                                 </button>
                                                 ${isTopNew ? `
@@ -13581,7 +13929,10 @@ const app = {
                                 <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSelected ? 'bg-purple-500/5' : (isTopNew ? 'bg-rose-500/[0.02]' : '')}" onclick="app.openManageBOQModal('${j.id}')">
                                     <td class="px-5 py-4 font-mono font-semibold text-purple-600 dark:text-purple-400">
                                         <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span>${j.id}</span>
+                                            <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-purple-600 dark:text-purple-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
+                                                <span>${j.id}</span>
+                                                <i class="ph ph-arrow-square-out text-[11px] opacity-70"></i>
+                                            </button>
                                             ${isTopNew ? `
                                                 <span class="badge-new-item" title="สถานะล่าสุด (NEW!)">
                                                     <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
@@ -15019,7 +15370,10 @@ const app = {
                                 <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSelected ? 'bg-amber-500/5' : (isTopNew ? 'bg-rose-500/[0.02]' : '')}" onclick="app.renderProjectConversion('${j.id}')">
                                     <td class="px-5 py-4 font-mono font-semibold text-amber-600 dark:text-amber-400">
                                         <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span>${j.id}</span>
+                                            <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-amber-600 dark:text-amber-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
+                                                <span>${j.id}</span>
+                                                <i class="ph ph-arrow-square-out text-[11px] opacity-70"></i>
+                                            </button>
                                             ${isTopNew ? `
                                                 <span class="badge-new-item" title="สถานะล่าสุด (NEW!)">
                                                     <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
@@ -16379,18 +16733,57 @@ const app = {
                             }
                         }).join('');
 
-                        const jobBadgeHtml = (!isSingleJob) ? `
-                            <button onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-600 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-[11px] transition cursor-pointer flex items-center gap-1 mr-1.5 inline-flex" title="คลิกเพื่อเลือก ${t.jobId}">
-                                <i class="ph ph-folder text-[10px]"></i> ${t.jobId}
-                            </button>
-                        ` : '';
+                        const subtasks = this.ensureTaskSubtasks(t);
+                        const isExpanded = Boolean(this.state.expandedGanttTaskIds && this.state.expandedGanttTaskIds[t.id]);
 
-                        return `
-                        <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group">
+                        const subtasksGanttHtml = (isExpanded && subtasks.length > 0) ? subtasks.map(sub => {
+                            const subStartObj = new Date(sub.start || t.start || '2026-09-01');
+                            const subEndObj = new Date(sub.end || sub.start || t.end || '2026-09-01');
+                            const subDaysCount = Math.max(1, Math.round((subEndObj.getTime() - subStartObj.getTime()) / oneDayMs) + 1);
+                            const subDiffFromMin = Math.round((subStartObj.getTime() - minTimestamp) / oneDayMs);
+                            const subOffsetPercent = Math.max(0, (subDiffFromMin / totalDays) * 100);
+                            const subWidthPercent = Math.max(1.5, (subDaysCount / totalDays) * 100);
+
+                            let subBarBg = 'bg-brand-500/20 text-brand-700 border-brand-500/40';
+                            let subIcon = 'ph-clock';
+                            let subStatusText = sub.status === 'DONE' ? 'เสร็จสิ้น' : (sub.status === 'IN_PROGRESS' ? 'กำลังทำ' : 'รอดำเนินการ');
+                            if (sub.status === 'DONE') {
+                                subBarBg = 'bg-emerald-500 text-white border-emerald-600';
+                                subIcon = 'ph-check-circle';
+                            } else if (sub.status === 'IN_PROGRESS') {
+                                subBarBg = 'bg-amber-500 text-white border-amber-600';
+                                subIcon = 'ph-wrench';
+                            }
+
+                            return `
+                            <div class="flex items-center border-t border-dashed border-border/70 py-1.5 relative h-10 bg-brand-500/[0.02] hover:bg-brand-500/[0.06] transition group">
+                                <div class="w-64 shrink-0 text-[11px] font-medium text-foreground truncate pr-4 pl-6 flex items-center gap-1.5">
+                                    <i class="ph ph-arrow-elbow-down-right text-brand-500 text-xs shrink-0"></i>
+                                    <span class="truncate text-foreground/90 font-medium" title="${sub.name}">${sub.name}</span>
+                                    <span class="text-[9px] font-mono text-muted-foreground shrink-0">(${subDaysCount}d)</span>
+                                </div>
+                                <div class="flex-1 relative h-full flex items-center">
+                                    ${todayMarkerPercent !== -1 ? `
+                                        <div class="absolute inset-y-0 -translate-x-1/2 border-l border-dashed border-rose-500/40 pointer-events-none z-0" style="left: ${todayMarkerPercent}%;"></div>
+                                    ` : ''}
+                                    <div onclick="app.openDailyWorkLogModal('${t.id}', '${sub.start || t.start}', '${sub.id}')" class="${subBarBg} border absolute h-6 rounded-md text-[10px] px-2 flex items-center justify-between truncate shadow-xs transition hover:brightness-110 cursor-pointer z-10" style="left: ${subOffsetPercent}%; width: ${subWidthPercent}%; min-width: 50px;" title="${sub.name} (${subStatusText}): ${this.formatDateDMY(sub.start || t.start)} ถึง ${this.formatDateDMY(sub.end || sub.start || t.end)} • ช่าง: ${sub.tech || t.tech || 'ช่าง'}">
+                                        <span class="truncate font-medium flex items-center gap-1"><i class="ph ${subIcon} text-[10px]"></i> ${sub.name}</span>
+                                        <span class="text-[9px] font-mono font-bold bg-white/70 text-foreground px-1 rounded ml-1 shrink-0">${subDaysCount}d</span>
+                                    </div>
+                                </div>
+                            </div>`;
+                        }).join('') : '';
+
+                        const mainRowHtml = `
+                        <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group ${isExpanded ? 'bg-brand-500/[0.02]' : ''}">
                             <div class="w-64 shrink-0 text-xs font-medium text-foreground truncate pr-4">
                                 <div class="flex items-center gap-1.5">
                                     ${jobBadgeHtml}
+                                    <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="p-0.5 rounded text-brand-600 hover:bg-brand-500/10 cursor-pointer shrink-0 transition" title="${isExpanded ? 'ย่อซ่อนแถบงานย่อย' : 'คลิกดูแถบงานย่อย (Subtasks)'}">
+                                        <i class="ph ${isExpanded ? 'ph-caret-down-bold' : 'ph-caret-right-bold'} text-xs"></i>
+                                    </button>
                                     <span class="truncate font-semibold text-foreground" title="${t.name}">${t.name}</span>
+                                    ${subtasks.length > 0 ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-brand-500/10 text-brand-600 shrink-0">${subtasks.length}</span>` : ''}
                                     <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-[10px] text-purple-600 hover:text-purple-700 bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded font-medium transition cursor-pointer flex items-center gap-0.5 shrink-0" title="เปิดดูรายละเอียดและบันทึกงานช่าง">
                                         <i class="ph ph-magnifying-glass text-[11px]"></i> ดูงาน
                                     </button>
@@ -16410,6 +16803,8 @@ const app = {
                                 ${segmentsHtml}
                             </div>
                         </div>`;
+
+                        return mainRowHtml + subtasksGanttHtml;
                     }).join('');
 
                 // ─────────────────────────────────────────────────────────────
@@ -16512,18 +16907,56 @@ const app = {
                             badgeBg = 'bg-rose-700 text-white';
                         }
 
-                        const jobBadgeHtml = (!isSingleJob) ? `
-                            <button onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-600 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-[11px] transition cursor-pointer flex items-center gap-1 mr-1.5 inline-flex" title="คลิกเพื่อเลือก ${t.jobId}">
-                                <i class="ph ph-folder text-[10px]"></i> ${t.jobId}
-                            </button>
-                        ` : '';
+                        const subtasks = this.ensureTaskSubtasks(t);
+                        const isExpanded = Boolean(this.state.expandedGanttTaskIds && this.state.expandedGanttTaskIds[t.id]);
 
-                        return `
-                        <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group">
+                        const subtasksGanttHtml = (isExpanded && subtasks.length > 0) ? subtasks.map(sub => {
+                            const subStartObj = new Date(sub.start || t.start || '2026-09-01');
+                            const subEndObj = new Date(sub.end || sub.start || t.end || '2026-09-01');
+                            const subDaysCount = Math.max(1, Math.round((subEndObj.getTime() - subStartObj.getTime()) / oneDayMs) + 1);
+                            const subOffsetPercent = Math.max(0, Math.min(100, ((subStartObj.getTime() - timelineStartMs) / totalDurationMs) * 100));
+                            const subWidthPercent = Math.max(2.5, Math.min(100 - subOffsetPercent, ((subEndObj.getTime() - subStartObj.getTime() + oneDayMs) / totalDurationMs) * 100));
+
+                            let subBarBg = 'bg-brand-500/20 text-brand-700 border-brand-500/40';
+                            let subIcon = 'ph-clock';
+                            let subStatusText = sub.status === 'DONE' ? 'เสร็จสิ้น' : (sub.status === 'IN_PROGRESS' ? 'กำลังทำ' : 'รอดำเนินการ');
+                            if (sub.status === 'DONE') {
+                                subBarBg = 'bg-emerald-500 text-white border-emerald-600';
+                                subIcon = 'ph-check-circle';
+                            } else if (sub.status === 'IN_PROGRESS') {
+                                subBarBg = 'bg-amber-500 text-white border-amber-600';
+                                subIcon = 'ph-wrench';
+                            }
+
+                            return `
+                            <div class="flex items-center border-t border-dashed border-border/70 py-1.5 relative h-10 bg-brand-500/[0.02] hover:bg-brand-500/[0.06] transition group">
+                                <div class="w-64 shrink-0 text-[11px] font-medium text-foreground truncate pr-4 pl-6 flex items-center gap-1.5">
+                                    <i class="ph ph-arrow-elbow-down-right text-brand-500 text-xs shrink-0"></i>
+                                    <span class="truncate text-foreground/90 font-medium" title="${sub.name}">${sub.name}</span>
+                                    <span class="text-[9px] font-mono text-muted-foreground shrink-0">(${subDaysCount}d)</span>
+                                </div>
+                                <div class="flex-1 relative h-full flex items-center">
+                                    ${todayMarkerPercent !== -1 ? `
+                                        <div class="absolute inset-y-0 -translate-x-1/2 border-l border-dashed border-rose-500/40 pointer-events-none z-0" style="left: ${todayMarkerPercent}%;"></div>
+                                    ` : ''}
+                                    <div onclick="app.openDailyWorkLogModal('${t.id}', '${sub.start || t.start}', '${sub.id}')" class="${subBarBg} border absolute h-6 rounded-md text-[10px] px-2 flex items-center justify-between truncate shadow-xs transition hover:brightness-110 cursor-pointer z-10" style="left: ${subOffsetPercent}%; width: ${subWidthPercent}%; min-width: 50px;" title="${sub.name} (${subStatusText}): ${this.formatDateDMY(sub.start || t.start)} ถึง ${this.formatDateDMY(sub.end || sub.start || t.end)} • ช่าง: ${sub.tech || t.tech || 'ช่าง'}">
+                                        <span class="truncate font-medium flex items-center gap-1"><i class="ph ${subIcon} text-[10px]"></i> ${sub.name}</span>
+                                        <span class="text-[9px] font-mono font-bold bg-white/70 text-foreground px-1 rounded ml-1 shrink-0">${subDaysCount}d</span>
+                                    </div>
+                                </div>
+                            </div>`;
+                        }).join('') : '';
+
+                        const mainRowHtml = `
+                        <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group ${isExpanded ? 'bg-brand-500/[0.02]' : ''}">
                             <div class="w-64 shrink-0 text-xs font-medium text-foreground truncate pr-4">
                                 <div class="flex items-center gap-1.5">
                                     ${jobBadgeHtml}
+                                    <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="p-0.5 rounded text-brand-600 hover:bg-brand-500/10 cursor-pointer shrink-0 transition" title="${isExpanded ? 'ย่อซ่อนแถบงานย่อย' : 'คลิกดูแถบงานย่อย (Subtasks)'}">
+                                        <i class="ph ${isExpanded ? 'ph-caret-down-bold' : 'ph-caret-right-bold'} text-xs"></i>
+                                    </button>
                                     <span class="truncate font-semibold text-foreground" title="${t.name}">${t.name}</span>
+                                    ${subtasks.length > 0 ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-brand-500/10 text-brand-600 shrink-0">${subtasks.length}</span>` : ''}
                                     <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-[10px] text-purple-600 hover:text-purple-700 bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded font-medium transition cursor-pointer flex items-center gap-0.5 shrink-0" title="เปิดดูรายละเอียดและบันทึกงานช่าง">
                                         <i class="ph ph-magnifying-glass text-[11px]"></i> ดูงาน
                                     </button>
@@ -16546,6 +16979,8 @@ const app = {
                                 </div>
                             </div>
                         </div>`;
+
+                        return mainRowHtml + subtasksGanttHtml;
                     }).join('');
 
                 // ─────────────────────────────────────────────────────────────
@@ -16642,18 +17077,56 @@ const app = {
                             badgeBg = 'bg-rose-700 text-white';
                         }
 
-                        const jobBadgeHtml = (!isSingleJob) ? `
-                            <button onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-600 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-[11px] transition cursor-pointer flex items-center gap-1 mr-1.5 inline-flex" title="คลิกเพื่อเลือก ${t.jobId}">
-                                <i class="ph ph-folder text-[10px]"></i> ${t.jobId}
-                            </button>
-                        ` : '';
+                        const subtasks = this.ensureTaskSubtasks(t);
+                        const isExpanded = Boolean(this.state.expandedGanttTaskIds && this.state.expandedGanttTaskIds[t.id]);
 
-                        return `
-                        <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group">
+                        const subtasksGanttHtml = (isExpanded && subtasks.length > 0) ? subtasks.map(sub => {
+                            const subStartObj = new Date(sub.start || t.start || '2026-09-01');
+                            const subEndObj = new Date(sub.end || sub.start || t.end || '2026-09-01');
+                            const subDaysCount = Math.max(1, Math.round((subEndObj.getTime() - subStartObj.getTime()) / oneDayMs) + 1);
+                            const subOffsetPercent = Math.max(0, Math.min(100, ((subStartObj.getTime() - timelineStartMs) / totalDurationMs) * 100));
+                            const subWidthPercent = Math.max(2, Math.min(100 - subOffsetPercent, ((subEndObj.getTime() - subStartObj.getTime() + oneDayMs) / totalDurationMs) * 100));
+
+                            let subBarBg = 'bg-brand-500/20 text-brand-700 border-brand-500/40';
+                            let subIcon = 'ph-clock';
+                            let subStatusText = sub.status === 'DONE' ? 'เสร็จสิ้น' : (sub.status === 'IN_PROGRESS' ? 'กำลังทำ' : 'รอดำเนินการ');
+                            if (sub.status === 'DONE') {
+                                subBarBg = 'bg-emerald-500 text-white border-emerald-600';
+                                subIcon = 'ph-check-circle';
+                            } else if (sub.status === 'IN_PROGRESS') {
+                                subBarBg = 'bg-amber-500 text-white border-amber-600';
+                                subIcon = 'ph-wrench';
+                            }
+
+                            return `
+                            <div class="flex items-center border-t border-dashed border-border/70 py-1.5 relative h-10 bg-brand-500/[0.02] hover:bg-brand-500/[0.06] transition group">
+                                <div class="w-64 shrink-0 text-[11px] font-medium text-foreground truncate pr-4 pl-6 flex items-center gap-1.5">
+                                    <i class="ph ph-arrow-elbow-down-right text-brand-500 text-xs shrink-0"></i>
+                                    <span class="truncate text-foreground/90 font-medium" title="${sub.name}">${sub.name}</span>
+                                    <span class="text-[9px] font-mono text-muted-foreground shrink-0">(${subDaysCount}d)</span>
+                                </div>
+                                <div class="flex-1 relative h-full flex items-center">
+                                    ${todayMarkerPercent !== -1 ? `
+                                        <div class="absolute inset-y-0 -translate-x-1/2 border-l border-dashed border-rose-500/40 pointer-events-none z-0" style="left: ${todayMarkerPercent}%;"></div>
+                                    ` : ''}
+                                    <div onclick="app.openDailyWorkLogModal('${t.id}', '${sub.start || t.start}', '${sub.id}')" class="${subBarBg} border absolute h-6 rounded-md text-[10px] px-2 flex items-center justify-between truncate shadow-xs transition hover:brightness-110 cursor-pointer z-10" style="left: ${subOffsetPercent}%; width: ${subWidthPercent}%; min-width: 50px;" title="${sub.name} (${subStatusText}): ${this.formatDateDMY(sub.start || t.start)} ถึง ${this.formatDateDMY(sub.end || sub.start || t.end)} • ช่าง: ${sub.tech || t.tech || 'ช่าง'}">
+                                        <span class="truncate font-medium flex items-center gap-1"><i class="ph ${subIcon} text-[10px]"></i> ${sub.name}</span>
+                                        <span class="text-[9px] font-mono font-bold bg-white/70 text-foreground px-1 rounded ml-1 shrink-0">${subDaysCount}d</span>
+                                    </div>
+                                </div>
+                            </div>`;
+                        }).join('') : '';
+
+                        const mainRowHtml = `
+                        <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group ${isExpanded ? 'bg-brand-500/[0.02]' : ''}">
                             <div class="w-64 shrink-0 text-xs font-medium text-foreground truncate pr-4">
                                 <div class="flex items-center gap-1.5">
                                     ${jobBadgeHtml}
+                                    <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="p-0.5 rounded text-brand-600 hover:bg-brand-500/10 cursor-pointer shrink-0 transition" title="${isExpanded ? 'ย่อซ่อนแถบงานย่อย' : 'คลิกดูแถบงานย่อย (Subtasks)'}">
+                                        <i class="ph ${isExpanded ? 'ph-caret-down-bold' : 'ph-caret-right-bold'} text-xs"></i>
+                                    </button>
                                     <span class="truncate font-semibold text-foreground" title="${t.name}">${t.name}</span>
+                                    ${subtasks.length > 0 ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-brand-500/10 text-brand-600 shrink-0">${subtasks.length}</span>` : ''}
                                     <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-[10px] text-purple-600 hover:text-purple-700 bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded font-medium transition cursor-pointer flex items-center gap-0.5 shrink-0" title="เปิดดูรายละเอียดและบันทึกงานช่าง">
                                         <i class="ph ph-magnifying-glass text-[11px]"></i> ดูงาน
                                     </button>
@@ -16676,6 +17149,8 @@ const app = {
                                 </div>
                             </div>
                         </div>`;
+
+                        return mainRowHtml + subtasksGanttHtml;
                     }).join('');
                 }
 
@@ -17040,6 +17515,165 @@ const app = {
                 this.renderGantt();
             },
 
+            // ─── GANTT SUBTASKS MANAGEMENT ────────────────────────────────────────
+            toggleGanttSubtaskExpand(taskId) {
+                if (!this.state.expandedGanttTaskIds) this.state.expandedGanttTaskIds = {};
+                this.state.expandedGanttTaskIds[taskId] = !this.state.expandedGanttTaskIds[taskId];
+                this.renderGantt();
+            },
+
+            ensureTaskSubtasks(task) {
+                if (!task) return [];
+                if (!Array.isArray(task.subtasks)) task.subtasks = [];
+                // Automatically seed default subtasks for multi-day tasks (e.g. งานต่อเติม 10+ days) if empty
+                if (task.subtasks.length === 0 && (task.name.includes('ต่อเติม') || (task.days || 1) >= 7)) {
+                    const s = new Date(task.start || '2026-09-11');
+                    const d1 = new Date(s);
+                    const d2 = new Date(s); d2.setDate(d2.getDate() + 2);
+                    const d3 = new Date(s); d3.setDate(d3.getDate() + 3);
+                    const d4 = new Date(s); d4.setDate(d4.getDate() + 6);
+                    const d5 = new Date(s); d5.setDate(d5.getDate() + 7);
+                    const d6 = new Date(s); d6.setDate(d6.getDate() + 10);
+                    const d7 = new Date(s); d7.setDate(d7.getDate() + 11);
+                    const d8 = new Date(task.end || '2026-09-24');
+
+                    task.subtasks = [
+                        {
+                            id: `SUB_${task.id}_1`,
+                            taskId: task.id,
+                            name: 'งานรื้อถอนและปรับระดับพื้นฐานราก',
+                            start: d1.toISOString().slice(0, 10),
+                            end: d2.toISOString().slice(0, 10),
+                            days: 3,
+                            tech: task.tech || 'Team D (ประเสริฐ)',
+                            status: 'DONE',
+                            progress: 100
+                        },
+                        {
+                            id: `SUB_${task.id}_2`,
+                            taskId: task.id,
+                            name: 'งานโครงสร้างเหล็กและเสาหลัก Glasshouse',
+                            start: d3.toISOString().slice(0, 10),
+                            end: d4.toISOString().slice(0, 10),
+                            days: 4,
+                            tech: task.tech || 'Team D (ประเสริฐ)',
+                            status: 'IN_PROGRESS',
+                            progress: 50
+                        },
+                        {
+                            id: `SUB_${task.id}_3`,
+                            taskId: task.id,
+                            name: 'งานมุงหลังคาและก่อผนังกระจก Low-E',
+                            start: d5.toISOString().slice(0, 10),
+                            end: d6.toISOString().slice(0, 10),
+                            days: 4,
+                            tech: 'Team A (สมศักดิ์)',
+                            status: 'TODO',
+                            progress: 0
+                        },
+                        {
+                            id: `SUB_${task.id}_4`,
+                            taskId: task.id,
+                            name: 'งานติดตั้งระบบไฟ ระบายอากาศ และเก็บสีส่งมอบ',
+                            start: d7.toISOString().slice(0, 10),
+                            end: d8.toISOString().slice(0, 10),
+                            days: 3,
+                            tech: 'Team A (สมศักดิ์)',
+                            status: 'TODO',
+                            progress: 0
+                        }
+                    ];
+                }
+                return task.subtasks;
+            },
+
+            addGanttSubtask(taskId) {
+                const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
+                if (!task) return;
+                if (!Array.isArray(task.subtasks)) task.subtasks = [];
+                
+                let subStart = task.start || '2026-09-11';
+                let subEnd = task.end || task.start || '2026-09-11';
+                if (task.subtasks.length > 0) {
+                    const last = task.subtasks[task.subtasks.length - 1];
+                    if (last && last.end) {
+                        const d = new Date(last.end);
+                        d.setDate(d.getDate() + 1);
+                        subStart = d.toISOString().slice(0, 10);
+                        if (new Date(subStart) > new Date(task.end)) subStart = task.end;
+                        subEnd = subStart;
+                    }
+                }
+
+                const newSubtask = {
+                    id: `SUB_${task.id}_${Date.now()}`,
+                    taskId: task.id,
+                    name: `งานย่อย ${task.subtasks.length + 1} (${task.name})`,
+                    start: subStart,
+                    end: subEnd,
+                    days: 1,
+                    tech: task.tech || 'Team A (สมศักดิ์)',
+                    status: 'TODO',
+                    progress: 0
+                };
+
+                task.subtasks.push(newSubtask);
+                if (!this.state.expandedGanttTaskIds) this.state.expandedGanttTaskIds = {};
+                this.state.expandedGanttTaskIds[taskId] = true;
+                this.persistJobs();
+                this.showToast(`➕ เพิ่ม Subtask ย่อย "${newSubtask.name}" เรียบร้อย`);
+                this.renderGantt();
+            },
+
+            updateGanttSubtaskField(taskId, subtaskId, field, value) {
+                const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
+                if (!task || !Array.isArray(task.subtasks)) return;
+                const sub = task.subtasks.find(s => String(s.id) === String(subtaskId));
+                if (!sub) return;
+
+                if (field === 'name') {
+                    sub.name = value;
+                } else if (field === 'start') {
+                    const iso = this.formatDateISO(value) || value;
+                    sub.start = iso;
+                    if (sub.start && sub.end) {
+                        if (new Date(sub.end) < new Date(sub.start)) sub.end = sub.start;
+                        const s = new Date(sub.start);
+                        const e = new Date(sub.end);
+                        sub.days = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1);
+                    }
+                } else if (field === 'end') {
+                    const iso = this.formatDateISO(value) || value;
+                    sub.end = iso;
+                    if (sub.start && sub.end) {
+                        if (new Date(sub.end) < new Date(sub.start)) sub.start = sub.end;
+                        const s = new Date(sub.start);
+                        const e = new Date(sub.end);
+                        sub.days = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1);
+                    }
+                } else if (field === 'tech') {
+                    sub.tech = value;
+                } else if (field === 'status') {
+                    sub.status = value;
+                    if (value === 'DONE') sub.progress = 100;
+                    else if (value === 'TODO') sub.progress = 0;
+                    else if (value === 'IN_PROGRESS' && (!sub.progress || sub.progress === 0)) sub.progress = 50;
+                }
+
+                this.persistJobs();
+                this.renderGantt();
+            },
+
+            deleteGanttSubtask(taskId, subtaskId) {
+                if (!confirm('คุณต้องการลบ Subtask ย่อยนี้ใช่หรือไม่?')) return;
+                const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
+                if (!task || !Array.isArray(task.subtasks)) return;
+                task.subtasks = task.subtasks.filter(s => String(s.id) !== String(subtaskId));
+                this.persistJobs();
+                this.showToast('🗑️ ลบ Subtask เรียบร้อย');
+                this.renderGantt();
+            },
+
             renderGantt() {
                 const jobFilterEl = document.getElementById('gantt-filter-job');
                 let selectedJobFilter = this.state.selectedGanttJobId || (jobFilterEl ? jobFilterEl.value : 'all');
@@ -17161,6 +17795,8 @@ const app = {
 
                     // Build Task Rows for Table
                     const taskRowsHtml = jobTasks.map((t, idx) => {
+                        const subtasks = this.ensureTaskSubtasks(t);
+                        const isExpanded = Boolean(this.state.expandedGanttTaskIds && this.state.expandedGanttTaskIds[t.id]);
                         const s = new Date(t.start || '2026-09-01');
                         const e = new Date(t.end || t.start || '2026-09-01');
                         const taskDays = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
@@ -17213,11 +17849,37 @@ const app = {
                                   </button>`
                             );
 
-                        return `
-                        <tr class="hover:bg-muted/20 transition gantt-list-row">
-                            <td class="py-2.5 px-3 text-center font-mono text-muted-foreground font-semibold text-xs">${idx + 1}</td>
+                        const mainRowHtml = `
+                        <tr class="hover:bg-muted/20 transition gantt-list-row ${isExpanded ? 'bg-brand-500/[0.02]' : ''}">
+                            <td class="py-2.5 px-3 text-center font-mono text-muted-foreground font-semibold text-xs">
+                                <div class="flex items-center justify-center gap-1">
+                                    <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="p-1 rounded-md hover:bg-brand-500/15 text-brand-600 dark:text-brand-400 cursor-pointer transition shrink-0" title="${isExpanded ? 'ย่อซ่อน Subtasks' : 'คลิกดู Subtasks ย่อย'}">
+                                        <i class="ph ${isExpanded ? 'ph-caret-down-bold' : 'ph-caret-right-bold'} text-xs"></i>
+                                    </button>
+                                    <span>${idx + 1}</span>
+                                </div>
+                            </td>
                             <td class="py-2.5 px-3">
-                                <input type="text" value="${cleanName}" onchange="app.updateGanttTaskField('${t.id}', 'name', this.value)" class="w-full bg-card/60 hover:bg-card focus:bg-card border border-border/60 focus:border-brand-500 rounded-lg px-2.5 py-1.5 text-xs font-medium text-foreground transition focus:outline-none" placeholder="ชื่องานบริการ / Task">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-1.5">
+                                        <input type="text" value="${cleanName}" onchange="app.updateGanttTaskField('${t.id}', 'name', this.value)" class="w-full bg-card/60 hover:bg-card focus:bg-card border border-border/60 focus:border-brand-500 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-foreground transition focus:outline-none" placeholder="ชื่องานบริการ / Task">
+                                        <button type="button" onclick="app.addGanttSubtask('${t.id}')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500/20 border border-brand-500/20 transition cursor-pointer shrink-0 flex items-center gap-1" title="เพิ่มงานย่อย (Subtask)">
+                                            <i class="ph ph-plus-circle text-xs"></i>
+                                            <span>+ Subtask</span>
+                                        </button>
+                                    </div>
+                                    ${subtasks.length > 0 ? `
+                                        <div class="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                                            <span class="px-1.5 py-0.2 rounded bg-brand-500/10 text-brand-600 dark:text-brand-400 font-mono font-bold">${subtasks.length} Subtasks</span>
+                                            <span>•</span>
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">เสร็จแล้ว ${subtasks.filter(s => s.status === 'DONE').length}</span>
+                                            <span>•</span>
+                                            <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="text-brand-500 hover:underline cursor-pointer">
+                                                ${isExpanded ? '▼ ซ่อนงานย่อย' : '▶ ดูแถบงานย่อย'}
+                                            </button>
+                                        </div>
+                                    ` : ''}
+                                </div>
                             </td>
                             <td class="py-2.5 px-3">
                                 <div class="relative">
@@ -17261,6 +17923,73 @@ const app = {
                             </td>
                         </tr>
                         `;
+
+                        const subtasksHtml = isExpanded ? subtasks.map((sub, sIdx) => {
+                            const subDays = sub.days || 1;
+                            const subTech = sub.tech || curTech;
+                            let subTechOpts = availableTechs.map(tc => `<option value="${tc}" ${tc === subTech ? 'selected' : ''}>${tc}</option>`).join('');
+                            if (!availableTechs.includes(subTech)) {
+                                subTechOpts += `<option value="${subTech}" selected>${subTech}</option>`;
+                            }
+                            return `
+                            <tr class="bg-brand-500/[0.03] hover:bg-brand-500/[0.07] border-l-2 border-l-brand-500/70 transition gantt-list-row">
+                                <td class="py-2 px-3 text-right font-mono text-[11px] text-muted-foreground font-semibold">
+                                    <span class="text-brand-500">└─</span> ${idx + 1}.${sIdx + 1}
+                                </td>
+                                <td class="py-2 px-3 pl-6">
+                                    <div class="flex items-center gap-2">
+                                        <i class="ph ph-arrow-elbow-down-right text-brand-500 text-xs shrink-0"></i>
+                                        <input type="text" value="${(sub.name || '').replace(/"/g, '&quot;')}" onchange="app.updateGanttSubtaskField('${t.id}', '${sub.id}', 'name', this.value)" class="w-full bg-card border border-border/80 focus:border-brand-500 rounded-lg px-2.5 py-1 text-xs text-foreground focus:outline-none" placeholder="ชื่องานย่อย (Subtask)">
+                                    </div>
+                                </td>
+                                <td class="py-2 px-3">
+                                    <div class="relative">
+                                        <input type="text" value="${this.formatDateDMY(sub.start || t.start)}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateGanttSubtaskField('${t.id}', '${sub.id}', 'start', this.value)" class="w-full bg-card border border-border/80 focus:border-brand-500 rounded-lg pl-2 pr-7 py-1 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                        <i class="ph ph-calendar absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
+                                    </div>
+                                </td>
+                                <td class="py-2 px-3">
+                                    <div class="relative">
+                                        <input type="text" value="${this.formatDateDMY(sub.end || sub.start || t.end)}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateGanttSubtaskField('${t.id}', '${sub.id}', 'end', this.value)" class="w-full bg-card border border-border/80 focus:border-brand-500 rounded-lg pl-2 pr-7 py-1 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                        <i class="ph ph-calendar absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
+                                    </div>
+                                </td>
+                                <td class="py-2 px-2 text-center">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-muted text-foreground border border-border">
+                                        ${subDays} วัน
+                                    </span>
+                                </td>
+                                <td class="py-2 px-3 text-center text-muted-foreground text-[10px] font-mono">
+                                    <span class="opacity-60">- งานย่อย -</span>
+                                </td>
+                                <td class="py-2 px-3">
+                                    <button type="button" onclick="app.openDailyWorkLogModal('${t.id}', '${sub.start}', '${sub.id}')" class="px-2 py-0.5 rounded-lg text-[10px] font-semibold ${sub.status === 'DONE' ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30' : 'bg-brand-500/10 text-brand-600 border border-brand-500/30'} flex items-center gap-1 hover:brightness-105 transition cursor-pointer">
+                                        <i class="ph ph-notebook text-xs"></i>
+                                        <span>บันทึกช่าง (${sub.status === 'DONE' ? '✓ เสร็จ' : 'กำลังทำ'})</span>
+                                    </button>
+                                </td>
+                                <td class="py-2 px-3">
+                                    <select onchange="app.updateGanttSubtaskField('${t.id}', '${sub.id}', 'tech', this.value)" class="w-full bg-card border border-border/80 focus:border-brand-500 rounded-lg px-2 py-1 text-xs text-foreground focus:outline-none cursor-pointer">
+                                        ${subTechOpts}
+                                    </select>
+                                </td>
+                                <td class="py-2 px-3">
+                                    <select onchange="app.updateGanttSubtaskField('${t.id}', '${sub.id}', 'status', this.value)" class="w-full bg-card border border-border/80 focus:border-brand-500 rounded-lg px-2 py-1 text-[11px] font-semibold focus:outline-none cursor-pointer">
+                                        <option value="IN_PROGRESS" ${sub.status === 'IN_PROGRESS' ? 'selected' : ''}>กำลังทำ</option>
+                                        <option value="DONE" ${sub.status === 'DONE' ? 'selected' : ''}>เสร็จสิ้น</option>
+                                        <option value="TODO" ${sub.status === 'TODO' ? 'selected' : ''}>รอดำเนินการ</option>
+                                    </select>
+                                </td>
+                                <td class="py-2 px-2 text-center">
+                                    <button type="button" onclick="app.deleteGanttSubtask('${t.id}', '${sub.id}')" class="p-1 text-muted-foreground hover:text-rose-500 rounded-lg hover:bg-rose-500/10 transition cursor-pointer" title="ลบ Subtask นี้">
+                                        <i class="ph ph-trash text-xs"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            `;
+                        }).join('') : '';
+
+                        return mainRowHtml + subtasksHtml;
                     }).join('');
 
                     // --- IF LIST VIEW MODE ---
@@ -17457,6 +18186,8 @@ const app = {
                     const todoCount = tasks.filter(t => t.status === 'TODO' || !t.status).length;
 
                     const allRowsHtml = tasks.map((t, idx) => {
+                        const subtasks = this.ensureTaskSubtasks(t);
+                        const isExpanded = Boolean(this.state.expandedGanttTaskIds && this.state.expandedGanttTaskIds[t.id]);
                         const targetJob = (DB.jobs || []).find(j => j.id === t.jobId) || {};
                         const s = new Date(t.start || '2026-09-01');
                         const e = new Date(t.end || t.start || '2026-09-01');
@@ -17512,9 +18243,16 @@ const app = {
                                   </button>`
                             );
 
-                        return `
-                        <tr class="hover:bg-muted/20 transition gantt-list-row">
-                            <td class="py-2.5 px-3 text-center font-mono text-muted-foreground font-semibold text-xs">${idx + 1}</td>
+                        const mainRowHtml = `
+                        <tr class="hover:bg-muted/20 transition gantt-list-row ${isExpanded ? 'bg-brand-500/[0.02]' : ''}">
+                            <td class="py-2.5 px-3 text-center font-mono text-muted-foreground font-semibold text-xs">
+                                <div class="flex items-center justify-center gap-1">
+                                    <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="p-1 rounded-md hover:bg-brand-500/15 text-brand-600 dark:text-brand-400 cursor-pointer transition shrink-0" title="${isExpanded ? 'ย่อซ่อน Subtasks' : 'คลิกดู Subtasks ย่อย'}">
+                                        <i class="ph ${isExpanded ? 'ph-caret-down-bold' : 'ph-caret-right-bold'} text-xs"></i>
+                                    </button>
+                                    <span>${idx + 1}</span>
+                                </div>
+                            </td>
                             <td class="py-2.5 px-3">
                                 <button type="button" onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-600 dark:text-purple-400 font-bold px-2 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-xs transition cursor-pointer flex items-center gap-1 inline-flex" title="คลิกเพื่อเลือกโครงการ ${t.jobId}">
                                     <i class="ph ph-folder text-xs"></i> ${t.jobId}
@@ -17522,7 +18260,26 @@ const app = {
                                 <div class="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[140px]" title="${custName}">คุณ${custName}</div>
                             </td>
                             <td class="py-2.5 px-3">
-                                <input type="text" value="${cleanName}" onchange="app.updateGanttTaskField('${t.id}', 'name', this.value)" class="w-full bg-card/60 hover:bg-card focus:bg-card border border-border/60 focus:border-brand-500 rounded-lg px-2.5 py-1.5 text-xs font-medium text-foreground transition focus:outline-none" placeholder="ชื่องานบริการ / Task">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-1.5">
+                                        <input type="text" value="${cleanName}" onchange="app.updateGanttTaskField('${t.id}', 'name', this.value)" class="w-full bg-card/60 hover:bg-card focus:bg-card border border-border/60 focus:border-brand-500 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-foreground transition focus:outline-none" placeholder="ชื่องานบริการ / Task">
+                                        <button type="button" onclick="app.addGanttSubtask('${t.id}')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500/20 border border-brand-500/20 transition cursor-pointer shrink-0 flex items-center gap-1" title="เพิ่มงานย่อย (Subtask)">
+                                            <i class="ph ph-plus-circle text-xs"></i>
+                                            <span>+ Subtask</span>
+                                        </button>
+                                    </div>
+                                    ${subtasks.length > 0 ? `
+                                        <div class="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                                            <span class="px-1.5 py-0.2 rounded bg-brand-500/10 text-brand-600 dark:text-brand-400 font-mono font-bold">${subtasks.length} Subtasks</span>
+                                            <span>•</span>
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">เสร็จแล้ว ${subtasks.filter(s => s.status === 'DONE').length}</span>
+                                            <span>•</span>
+                                            <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="text-brand-500 hover:underline cursor-pointer">
+                                                ${isExpanded ? '▼ ซ่อนงานย่อย' : '▶ ดูแถบงานย่อย'}
+                                            </button>
+                                        </div>
+                                    ` : ''}
+                                </div>
                             </td>
                             <td class="py-2.5 px-3">
                                 <div class="relative">
@@ -17566,6 +18323,76 @@ const app = {
                             </td>
                         </tr>
                         `;
+
+                        const subtasksHtml = isExpanded ? subtasks.map((sub, sIdx) => {
+                            const subDays = sub.days || 1;
+                            const subTech = sub.tech || curTech;
+                            let subTechOpts = availableTechs.map(tc => `<option value="${tc}" ${tc === subTech ? 'selected' : ''}>${tc}</option>`).join('');
+                            if (!availableTechs.includes(subTech)) {
+                                subTechOpts += `<option value="${subTech}" selected>${subTech}</option>`;
+                            }
+                            return `
+                            <tr class="bg-brand-500/[0.03] hover:bg-brand-500/[0.07] border-l-2 border-l-brand-500/70 transition gantt-list-row">
+                                <td class="py-2 px-3 text-right font-mono text-[11px] text-muted-foreground font-semibold">
+                                    <span class="text-brand-500">└─</span> ${idx + 1}.${sIdx + 1}
+                                </td>
+                                <td class="py-2 px-3">
+                                    <span class="text-[10px] font-mono text-muted-foreground/80 pl-2">└─ ${t.jobId}</span>
+                                </td>
+                                <td class="py-2 px-3 pl-4">
+                                    <div class="flex items-center gap-2">
+                                        <i class="ph ph-arrow-elbow-down-right text-brand-500 text-xs shrink-0"></i>
+                                        <input type="text" value="${(sub.name || '').replace(/"/g, '&quot;')}" onchange="app.updateGanttSubtaskField('${t.id}', '${sub.id}', 'name', this.value)" class="w-full bg-card border border-border/80 focus:border-brand-500 rounded-lg px-2.5 py-1 text-xs text-foreground focus:outline-none" placeholder="ชื่องานย่อย (Subtask)">
+                                    </div>
+                                </td>
+                                <td class="py-2 px-3">
+                                    <div class="relative">
+                                        <input type="text" value="${this.formatDateDMY(sub.start || t.start)}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateGanttSubtaskField('${t.id}', '${sub.id}', 'start', this.value)" class="w-full bg-card border border-border/80 focus:border-brand-500 rounded-lg pl-2 pr-7 py-1 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                        <i class="ph ph-calendar absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
+                                    </div>
+                                </td>
+                                <td class="py-2 px-3">
+                                    <div class="relative">
+                                        <input type="text" value="${this.formatDateDMY(sub.end || sub.start || t.end)}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateGanttSubtaskField('${t.id}', '${sub.id}', 'end', this.value)" class="w-full bg-card border border-border/80 focus:border-brand-500 rounded-lg pl-2 pr-7 py-1 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                        <i class="ph ph-calendar absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
+                                    </div>
+                                </td>
+                                <td class="py-2 px-2 text-center">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-muted text-foreground border border-border">
+                                        ${subDays} วัน
+                                    </span>
+                                </td>
+                                <td class="py-2 px-3 text-center text-muted-foreground text-[10px] font-mono">
+                                    <span class="opacity-60">- งานย่อย -</span>
+                                </td>
+                                <td class="py-2 px-3">
+                                    <button type="button" onclick="app.openDailyWorkLogModal('${t.id}', '${sub.start}', '${sub.id}')" class="px-2 py-0.5 rounded-lg text-[10px] font-semibold ${sub.status === 'DONE' ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30' : 'bg-brand-500/10 text-brand-600 border border-brand-500/30'} flex items-center gap-1 hover:brightness-105 transition cursor-pointer">
+                                        <i class="ph ph-notebook text-xs"></i>
+                                        <span>บันทึกช่าง (${sub.status === 'DONE' ? '✓ เสร็จ' : 'กำลังทำ'})</span>
+                                    </button>
+                                </td>
+                                <td class="py-2 px-3">
+                                    <select onchange="app.updateGanttSubtaskField('${t.id}', '${sub.id}', 'tech', this.value)" class="w-full bg-card border border-border/80 focus:border-brand-500 rounded-lg px-2 py-1 text-xs text-foreground focus:outline-none cursor-pointer">
+                                        ${subTechOpts}
+                                    </select>
+                                </td>
+                                <td class="py-2 px-3">
+                                    <select onchange="app.updateGanttSubtaskField('${t.id}', '${sub.id}', 'status', this.value)" class="w-full bg-card border border-border/80 focus:border-brand-500 rounded-lg px-2 py-1 text-[11px] font-semibold focus:outline-none cursor-pointer">
+                                        <option value="IN_PROGRESS" ${sub.status === 'IN_PROGRESS' ? 'selected' : ''}>กำลังทำ</option>
+                                        <option value="DONE" ${sub.status === 'DONE' ? 'selected' : ''}>เสร็จสิ้น</option>
+                                        <option value="TODO" ${sub.status === 'TODO' ? 'selected' : ''}>รอดำเนินการ</option>
+                                    </select>
+                                </td>
+                                <td class="py-2 px-2 text-center">
+                                    <button type="button" onclick="app.deleteGanttSubtask('${t.id}', '${sub.id}')" class="p-1 text-muted-foreground hover:text-rose-500 rounded-lg hover:bg-rose-500/10 transition cursor-pointer" title="ลบ Subtask นี้">
+                                        <i class="ph ph-trash text-xs"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            `;
+                        }).join('') : '';
+
+                        return mainRowHtml + subtasksHtml;
                     }).join('');
 
                     container.innerHTML = `
@@ -18879,8 +19706,22 @@ const app = {
                     return (Number(b.dayNumber) || 0) - (Number(a.dayNumber) || 0);
                 });
 
-                const maxProgress = taskLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
-                const isCompleted = taskLogs.some(l => l.isCompleted) || (task && task.status === 'DONE') || (job && (job.status === 'QC_PENDING' || job.status === 'QC_PASSED'));
+                // Calculate completed days & proper progress (avoid premature 100% completion)
+                const completedDaysCount = taskLogs.filter(l => l.isCompleted || (Number(l.progressPercent) || 0) > 0).length;
+                const isTaskExplicitlyDone = (task && task.status === 'DONE');
+                const hasEarlyFinish = taskLogs.some(l => l.isEarlyCompleted);
+                const isCompleted = isTaskExplicitlyDone || (completedDaysCount >= taskDays && taskLogs.some(l => l.isCompleted)) || hasEarlyFinish;
+
+                // True task progress percentage based on completed days vs total days
+                let trueProgress = 0;
+                if (isCompleted) {
+                    trueProgress = 100;
+                } else if (taskDays > 0) {
+                    trueProgress = Math.min(95, Math.round((completedDaysCount / taskDays) * 100));
+                    if (trueProgress === 0 && taskLogs.length > 0) {
+                        trueProgress = Math.min(95, Math.round((taskLogs[0].progressPercent || 0) / taskDays));
+                    }
+                }
 
                 // Determine next day number & suggest next date
                 let nextDate = this.state.targetDailyLogDate || endDateStr;
@@ -18908,6 +19749,25 @@ const app = {
                 if (matchedDayIndex >= 1 && matchedDayIndex <= taskDays + 5) {
                     nextDayNum = matchedDayIndex;
                 }
+
+                // Subtask selector options
+                const subtasks = this.ensureTaskSubtasks(task);
+                const subtaskOptionsHtml = (subtasks.length > 0) ? `
+                    <div class="space-y-1 pb-1">
+                        <label class="block text-[11px] font-bold text-foreground flex items-center gap-1">
+                            <i class="ph ph-tree-structure text-cyan-500"></i>
+                            <span>หมวดงานย่อยที่ปฏิบัติงาน (Subtask):</span>
+                        </label>
+                        <select id="dwl-input-subtask-id" onchange="app.state.activeDailyLogSubtaskId = this.value" class="w-full bg-card border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs font-semibold text-foreground focus:outline-none cursor-pointer shadow-xs">
+                            <option value="">-- งานรวมของ Task (${taskName}) --</option>
+                            ${subtasks.map(s => `
+                                <option value="${s.id}" ${this.state.activeDailyLogSubtaskId === s.id ? 'selected' : ''}>
+                                    ${s.status === 'DONE' ? '✓' : '⚡'} ${s.name} (${this.formatDateDMY(s.start).slice(0, 5)} - ${this.formatDateDMY(s.end).slice(0, 5)}, ${s.days} วัน, ${s.tech})
+                                </option>
+                            `).join('')}
+                        </select>
+                    </div>
+                ` : '';
 
                 // Daily Timeline Steps Pills with Realtime Status & 3-Day Retroactive Rule
                 const timelineStepHtml = Array.from({ length: taskDays }).map((_, i) => {
@@ -19026,14 +19886,14 @@ const app = {
                             </div>
                             <div class="flex items-center gap-2">
                                 <span class="px-3 py-1 rounded-xl text-xs font-mono font-bold ${isCompleted ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40' : 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30'}">
-                                    ${isCompleted ? '✓ ช่างบันทึกสำเร็จ 100%' : `ความคืบหน้ารวม ${maxProgress}%`}
+                                    ${isCompleted ? '✓ ช่างบันทึกสำเร็จ 100%' : `ความคืบหน้ารวม ${trueProgress}% (${completedDaysCount}/${taskDays} วัน)`}
                                 </span>
                             </div>
                         </div>
 
                         <!-- Progress Bar -->
                         <div class="w-full bg-muted/60 h-2.5 rounded-full overflow-hidden border border-border">
-                            <div class="bg-gradient-to-r from-cyan-500 to-emerald-500 h-full rounded-full transition-all duration-300" style="width: ${Math.min(100, Math.max(isCompleted ? 100 : 5, maxProgress))}%;"></div>
+                            <div class="bg-gradient-to-r from-cyan-500 to-emerald-500 h-full rounded-full transition-all duration-300" style="width: ${Math.min(100, Math.max(isCompleted ? 100 : 5, trueProgress))}%;"></div>
                         </div>
 
                         <!-- Daily Steps Grid -->
@@ -19108,6 +19968,8 @@ const app = {
                                         ${this.renderDailyLogShiftPresetsHtml('dwl')}
                                     </div>
 
+                                    ${subtaskOptionsHtml}
+
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
                                             <label class="block text-[11px] font-medium text-foreground mb-1">ผู้บันทึก (Recorded By):</label>
@@ -19125,13 +19987,13 @@ const app = {
                                     <div>
                                         <div class="flex items-center justify-between mb-1">
                                             <label class="text-[11px] font-medium text-foreground">ความคืบหน้าสะสมรวม (%):</label>
-                                            <span class="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-400" id="dwl-progress-val">${Math.min(100, Math.max(maxProgress, nextDayNum >= taskDays ? 100 : Math.round((nextDayNum / taskDays) * 100)))}%</span>
+                                            <span class="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-400" id="dwl-progress-val">${Math.min(100, Math.max(trueProgress, nextDayNum >= taskDays ? 100 : Math.round((nextDayNum / taskDays) * 100)))}%</span>
                                         </div>
-                                        <input type="range" id="dwl-input-progress" min="0" max="100" step="5" value="${Math.min(100, Math.max(maxProgress, nextDayNum >= taskDays ? 100 : Math.round((nextDayNum / taskDays) * 100)))}" oninput="document.getElementById('dwl-progress-val').innerText = this.value + '%'; if(Number(this.value) === 100) document.getElementById('dwl-input-completed').checked = true;" class="w-full accent-cyan-500 cursor-pointer">
+                                        <input type="range" id="dwl-input-progress" min="0" max="100" step="5" value="${Math.min(100, Math.max(trueProgress, nextDayNum >= taskDays ? 100 : Math.round((nextDayNum / taskDays) * 100)))}" oninput="document.getElementById('dwl-progress-val').innerText = this.value + '%'; if(Number(this.value) === 100 && ${nextDayNum >= taskDays}) document.getElementById('dwl-input-completed').checked = true;" class="w-full accent-cyan-500 cursor-pointer">
                                         <div class="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
                                             <button type="button" onclick="document.getElementById('dwl-input-progress').value = 35; document.getElementById('dwl-progress-val').innerText = '35%';" class="hover:text-foreground cursor-pointer">35% (Day 1)</button>
                                             <button type="button" onclick="document.getElementById('dwl-input-progress').value = 70; document.getElementById('dwl-progress-val').innerText = '70%';" class="hover:text-foreground cursor-pointer">70% (Day 2)</button>
-                                            <button type="button" onclick="document.getElementById('dwl-input-progress').value = 100; document.getElementById('dwl-progress-val').innerText = '100%'; document.getElementById('dwl-input-completed').checked = true;" class="text-emerald-600 font-bold hover:underline cursor-pointer">100% (สำเร็จ)</button>
+                                            <button type="button" onclick="document.getElementById('dwl-input-progress').value = 100; document.getElementById('dwl-progress-val').innerText = '100%';" class="text-emerald-600 font-bold hover:underline cursor-pointer">100% (สำเร็จ)</button>
                                         </div>
                                     </div>
 
@@ -19171,11 +20033,17 @@ const app = {
                                     </div>
 
                                     <!-- Completion Checkbox Card -->
-                                    <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 transition">
-                                        <input type="checkbox" id="dwl-input-completed" class="mt-0.5 accent-emerald-600 w-4 h-4 cursor-pointer" ${isCompleted || nextDayNum >= taskDays ? 'checked' : ''}>
+                                    <div class="p-3.5 rounded-xl ${nextDayNum >= taskDays ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'} border flex items-start gap-2.5 transition">
+                                        <input type="checkbox" id="dwl-input-completed" class="mt-0.5 accent-emerald-600 w-4 h-4 cursor-pointer" ${isCompleted ? 'checked' : ''}>
                                         <label for="dwl-input-completed" class="text-xs text-foreground font-medium cursor-pointer">
-                                            <strong class="text-emerald-700 dark:text-emerald-300 block">☑️ ช่างบันทึกสำเร็จ (งานติดตั้งเสร็จสมบูรณ์ 100%)</strong>
-                                            <span class="text-[11px] text-muted-foreground block mt-0.5">ระบบจะปรับสถานะ Task เป็น DONE, ยืนยันจองช่าง QC ณ วันสิ้นสุด (${this.formatDateDMY(endDateStr)}) และส่งงานเข้าสู่คิวรอตรวจรับรองคุณภาพ QC ทันที</span>
+                                            <strong class="${nextDayNum >= taskDays ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'} block">
+                                                ${nextDayNum >= taskDays ? '☑️ ช่างบันทึกสำเร็จ (วันสุดท้ายของแผนงาน - งานติดตั้งเสร็จสมบูรณ์ 100%)' : '☑️ ยืนยันจบงานก่อนกำหนด (Early Finish - งานติดตั้งเสร็จสมบูรณ์ทั้งโครงการก่อนครบกำหนดวัน)'}
+                                            </strong>
+                                            <span class="text-[11px] text-muted-foreground block mt-0.5">
+                                                ${nextDayNum >= taskDays 
+                                                    ? `ระบบจะปรับสถานะ Task เป็น DONE, ยืนยันจองช่าง QC ณ วันสิ้นสุด (${this.formatDateDMY(endDateStr)}) และส่งงานเข้าสู่คิวรอตรวจรับรองคุณภาพ QC ทันที`
+                                                    : `⚠️ หากเป็นเพียงการบันทึกงานประจำวันของวันนี้ ไม่ต้องติ๊กช่องนี้ (ระบบจะบันทึกความคืบหน้ารายวัน ${Math.round((1/taskDays)*100)}% และนับวันตามจริงให้อัตโนมัติ)`}
+                                            </span>
                                         </label>
                                     </div>
 
@@ -19267,17 +20135,24 @@ const app = {
                     ];
                 }
 
+                const selSubtaskId = document.getElementById(`${prefix}-input-subtask-id`)?.value || this.state.activeDailyLogSubtaskId || '';
+                const taskDays = task ? (task.days || 3) : 3;
+                const isFinalDay = (dayNumVal >= taskDays);
+                const isEarlyFinish = isCompletedVal && !isFinalDay;
+                const isTrueOverallComplete = forceComplete || (isCompletedVal && (isFinalDay || isEarlyFinish));
+
                 const newLog = {
                     id: `LOG_${Date.now()}`,
                     jobId: jobId,
                     taskId: taskId,
+                    subtaskId: selSubtaskId || undefined,
                     taskName: task ? task.name : 'งานบริการติดตั้ง',
                     logDate: dateVal,
                     startTime: startTimeVal,
                     endTime: endTimeVal,
                     workHours: workHoursVal,
                     dayNumber: dayNumVal,
-                    totalDays: task ? (task.days || 3) : 3,
+                    totalDays: taskDays,
                     technician: task ? (task.tech || job.tech || 'Team B (ประเสริฐ)') : (job.tech || 'Team B (ประเสริฐ)'),
                     recordedBy: recByVal,
                     reporterRole: roleVal,
@@ -19288,6 +20163,7 @@ const app = {
                     materialsUsed: matVal,
                     photos: attachedPhotos,
                     isCompleted: isCompletedVal,
+                    isEarlyCompleted: isEarlyFinish,
                     createdAt: new Date().toISOString()
                 };
 
@@ -19295,8 +20171,22 @@ const app = {
                 DB.dailyWorkLogs.push(newLog);
                 this.persistDailyWorkLogs();
 
-                // If completed (ช่างบันทึกสำเร็จ 100%), update Task & Job Status to QC_PENDING
-                if (isCompletedVal) {
+                // If subtask was chosen, update that subtask status and progress
+                if (selSubtaskId && task && Array.isArray(task.subtasks)) {
+                    const sub = task.subtasks.find(s => String(s.id) === String(selSubtaskId));
+                    if (sub) {
+                        if (isCompletedVal || progressVal >= 100) {
+                            sub.status = 'DONE';
+                            sub.progress = 100;
+                        } else {
+                            sub.status = 'IN_PROGRESS';
+                            sub.progress = progressVal;
+                        }
+                    }
+                }
+
+                // If truly completed (final day or early finish confirmed), update Task & Job Status to QC_PENDING
+                if (isTrueOverallComplete) {
                     if (task) {
                         task.status = 'DONE';
                         task.progress = 100;
@@ -19342,14 +20232,32 @@ const app = {
                     return;
                 }
 
-                // If not completed, normal background API sync
+                // Progressive daily update: calculate proportional task progress
+                const taskDistinctLogs = (DB.dailyWorkLogs || []).filter(l => 
+                    String(l.taskId) === String(taskId) || 
+                    (String(l.jobId) === String(jobId) && l.taskName === (task ? task.name : ''))
+                );
+                const distinctDaysCount = new Set(taskDistinctLogs.map(l => Number(l.dayNumber) || l.logDate)).size;
+                const progressivePercent = Math.min(95, Math.round((distinctDaysCount / Math.max(1, taskDays)) * 100));
+
+                if (task) {
+                    task.status = 'IN_PROGRESS';
+                    task.progress = Math.max(task.progress || 0, progressivePercent);
+                }
+                if (job && job.status !== 'QC_PENDING' && job.status !== 'QC_PASSED') {
+                    job.status = 'IN_PROGRESS';
+                    job.progress = Math.max(job.progress || 50, Math.round(50 + (progressivePercent * 0.35)));
+                }
+                this.persistJobs();
+
+                // Normal background API sync
                 fetch(`/api/v1/jobs/${jobId}/daily-logs`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(newLog)
                 }).catch(() => {});
 
-                this.showToast(`💾 บันทึกความคืบหน้าวันที่ ${dayNumVal} (${progressVal}%) พร้อมเวลา ${startTimeVal} - ${endTimeVal} สำเร็จ`);
+                this.showToast(`💾 บันทึกความคืบหน้าวันที่ ${dayNumVal} (${progressivePercent}%) พร้อมเวลา ${startTimeVal} - ${endTimeVal} สำเร็จ`);
                 
                 // Clear photo slots for next day
                 this.state.dailyLogPhotoSlots = [null, null, null, null, null];
@@ -24610,3 +25518,4 @@ const app = {
         window.app = app;
         window.formatDateDMY = (d) => app.formatDateDMY(d);
         window.formatDateTimeDMY = (d, s) => app.formatDateTimeDMY(d, s);
+        window.openJobDetailModal = (id) => app.openJobDetailModal(id);
