@@ -5550,6 +5550,26 @@
                                     </ul>
                                 </div>
                             </details>
+
+                            <!-- Q18: Keying Technician Name & INT Technician Booking -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q18:</span>
+                                        <span>การเปิดให้ Key ชื่อช่างอิสระ และปุ่ม "จองช่างจาก INT" (ทำไว้รอเชื่อมต่อ API) ในหน้าจอแปลง BOQ มีการทำงานอย่างไร?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> ในหน้าต่าง <strong>"นำเข้า BOQ สู่ Project Tasks & แผนงาน Gantt"</strong> (`modal-convert-boq-tasks`) คอลัมน์ <strong>"ผู้รับผิดชอบ (ช่าง/Crew)"</strong> ได้รับการพัฒนาให้รองรับการทำงาน 2 รูปแบบอย่างยืดหยุ่น:</p>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
+                                        <li><strong>เปิดให้ Key ชื่อช่างได้โดยตรง (Free Text Keying):</strong> เจ้าหน้าที่สามารถพิมพ์ชื่อช่าง ทีมช่าง หรือเบอร์ติดต่อลงในช่อง Input ได้อย่างอิสระ พร้อมระบบ Autocomplete ดึงชื่อช่างที่คุ้นเคยมาช่วยแนะนำ</li>
+                                        <li><strong>ปุ่ม "จองช่างจาก INT" (INT Booking Integration):</strong> แต่ละแถวมีปุ่ม <code class="bg-purple-500/10 text-purple-700 font-bold px-1.5 py-0.2 rounded text-[10px]">จองช่างจาก INT</code> เมื่อคลิกจะเปิดหน้าต่างดึงรายชื่อช่างจากระบบ INT พร้อมคะแนนดาวรีวิว (เช่น สมชาย ใจดี ★ 4.9, อนุรักษ์ มีสุข ★ 4.8, กมลวรรณ ★ 4.7) และปุ่มยืนยันการจองช่าง (Confirm) เพื่อออกเลขรหัสการจอง <code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">INT-BOOK-XXXX</code></li>
+                                        <li><strong>ปุ่ม "จองช่างจาก INT ทั้งหมด":</strong> แถบเครื่องมือด้านบนมีปุ่มลัดสำหรับดึงและจัดสรรคิวช่าง INT ให้ทุกงานพร้อมกันในคลิกเดียว</li>
+                                        <li><strong>ทำระบบรอเชื่อมต่อ API จริง:</strong> เมื่อกดจองช่าง ระบบจะจำลอง Request และบันทึกลงใน API Logs เพื่อให้ทีมพัฒนาระบบ INT สามารถเชื่อมต่อ Endpoint จริงได้ทันทีโดยไม่ต้องแก้โค้ดหน้าบ้านใหม่</li>
+                                    </ul>
+                                </div>
+                            </details>
                         </div>
                     </div>
                 </div>
@@ -8605,6 +8625,10 @@
                             <button type="button" onclick="app.insertConvertTaskAt(-1)" class="text-[11px] bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 px-2.5 py-1 rounded-lg border border-purple-500/30 flex items-center gap-1 cursor-pointer font-medium">
                                 <i class="ph ph-plus"></i> + แทรกงานใหม่
                             </button>
+                            <button type="button" onclick="app.batchBookAllTechsFromINT()" class="text-[11px] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-500/30 flex items-center gap-1 cursor-pointer font-medium" title="ดึงคิวจองช่างจากระบบ INT ให้ทุกงาน (ทำไว้ รอเชื่อมต่อ)">
+                                <i class="ph ph-calendar-check text-indigo-600"></i>
+                                <span>จองช่างจาก INT ทั้งหมด (รอเชื่อมต่อ)</span>
+                            </button>
                             <button type="button" onclick="app.sortConvertTasksByStartDate(true)" class="text-[11px] bg-muted hover:bg-muted/80 text-foreground px-2.5 py-1 rounded-lg border border-border flex items-center gap-1 cursor-pointer" title="จัดเรียงรายการ Task ตามวันเริ่มต้น">
                                 <i class="ph ph-arrows-down-up"></i> จัดเรียงตามวันเริ่มงาน
                             </button>
@@ -8624,7 +8648,7 @@
                                     <th class="py-2.5 px-3 w-36">วันเริ่มต้น (Start Date)</th>
                                     <th class="py-2.5 px-3 w-36">วันสิ้นสุด (End Date)</th>
                                     <th class="py-2.5 px-3 w-20 text-center">ระยะเวลา</th>
-                                    <th class="py-2.5 px-3 min-w-[220px]">ผู้รับผิดชอบ (ช่าง/Crew)</th>
+                                    <th class="py-2.5 px-3 min-w-[280px]">ผู้รับผิดชอบ (Key ชื่อช่าง / จองจาก INT)</th>
                                     <th class="py-2.5 px-2 w-28 text-center">การแทรก / ลบ</th>
                                 </tr>
                             </thead>
@@ -8633,6 +8657,19 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Datalist for Technician Key Autocomplete / INT Suggestions -->
+                    <datalist id="int-tech-suggestions">
+                        <option value="สมชาย ใจดี (หัวหน้าช่าง Team A - ★ 4.9)">
+                        <option value="อนุรักษ์ มีสุข (ช่างเทคนิคระบบ - ★ 4.8)">
+                        <option value="กมลวรรณ วงศ์วิบูลย์ (ช่างติดตั้งและเก็บงาน - ★ 4.7)">
+                        <option value="Team A (สมศักดิ์)">
+                        <option value="Team B (ประเสริฐ)">
+                        <option value="Team C (วิชัย)">
+                        <option value="ธนกฤต ช่างแอร์ (★ 4.8)">
+                        <option value="กิตติพงษ์ ช่างไฟฟ้า">
+                        <option value="อนุชา (ผู้ช่วยช่าง)">
+                    </datalist>
                 </div>
 
                 <div class="p-3 rounded-xl bg-muted/30 border border-border text-[11px] text-muted-foreground flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
@@ -8661,6 +8698,71 @@
                         <i class="ph ph-calendar-check text-sm"></i> ⚡ ยืนยันสร้าง Task & ซิงค์เข้า Gantt Timeline
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================================= -->
+    <!-- MODAL: INT TECHNICIAN BOOKING (จองช่างจากระบบ INT - ทำไว้รอเชื่อมต่อ)          -->
+    <!-- ============================================================================= -->
+    <div id="modal-int-technician-booking" onclick="if(event.target === this) app.hideModal('modal-int-technician-booking')" class="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-4" style="z-index: 110 !important;">
+        <div class="artifact-card rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border flex flex-col max-h-[92vh]">
+            <!-- Header -->
+            <div class="p-4 sm:p-5 border-b border-border flex items-center justify-between bg-purple-500/5 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-600 flex items-center justify-center text-xl font-bold border border-purple-500/30 shrink-0">
+                        <i class="ph ph-calendar-check"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="font-display font-bold text-sm sm:text-base text-foreground">จองช่างจากระบบ INT</h3>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/15 text-amber-700 border border-amber-500/30">⚡ ทำไว้รอเชื่อมต่อ API</span>
+                        </div>
+                        <p class="text-xs text-muted-foreground mt-0.5">จัดสรรคิวและผูกรหัสช่างจากฐานข้อมูล INT โดยตรง (INT Tech Dispatching Integration)</p>
+                    </div>
+                </div>
+                <button type="button" onclick="app.hideModal('modal-int-technician-booking')" class="w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center transition cursor-pointer">
+                    <i class="ph ph-x text-base font-bold"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1">
+                <!-- Task Info Strip -->
+                <div class="p-3.5 rounded-xl bg-muted/30 border border-border text-xs space-y-1.5">
+                    <div class="flex items-start justify-between gap-2">
+                        <span class="text-muted-foreground shrink-0">ชื่องานที่มอบหมาย:</span>
+                        <span class="font-bold text-foreground text-right" id="int-booking-task-name">-</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-2 text-[11px] pt-1 border-t border-border/60">
+                        <span class="text-muted-foreground">ช่วงเวลาปฏิบัติงาน:</span>
+                        <span class="font-mono font-bold text-purple-700" id="int-booking-task-dates">-</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-1">
+                    <span class="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <i class="ph ph-users-three text-purple-600"></i>
+                        <span>รายชื่อช่างพร้อมรับงาน (INT Active Technicians)</span>
+                    </span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 font-bold border border-emerald-500/20">5 ช่างว่าง</span>
+                </div>
+
+                <!-- List of INT Technicians (Selectable Cards) -->
+                <div class="space-y-2.5" id="int-tech-list-container">
+                    <!-- Populated dynamically by app.renderIntTechList() -->
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-border bg-card flex items-center justify-between gap-3 shrink-0">
+                <button type="button" onclick="app.hideModal('modal-int-technician-booking')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer">
+                    ยกเลิก
+                </button>
+                <button type="button" onclick="app.confirmIntTechBooking()" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-xs cursor-pointer flex items-center gap-1.5 transition hover:scale-[1.02]">
+                    <i class="ph ph-check-circle-fill text-sm"></i>
+                    <span>ยืนยันการจองช่าง (Confirm)</span>
+                </button>
             </div>
         </div>
     </div>

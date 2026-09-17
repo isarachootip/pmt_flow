@@ -12469,6 +12469,9 @@ const app = {
                             this.initDatePicker(endInp, { defaultDate: dmy });
                         }
                     }
+                } else if (field === 'tech') {
+                    task.tech = value;
+                    task.assignees = [value];
                 }
 
                 const countEl = document.getElementById('convert-task-count');
@@ -12497,15 +12500,6 @@ const app = {
                 const countEl = document.getElementById('convert-task-count');
                 const tasks = this.state.convertTasks || [];
 
-                const availableTechs = [
-                    'Team A (สมศักดิ์)',
-                    'Team B (ประเสริฐ)',
-                    'Team C (วิชัย)',
-                    'อนุชา (ผู้ช่วยช่าง)',
-                    'ธนกฤต (ช่างแอร์)',
-                    'กิตติพงษ์ (ช่างไฟฟ้า)'
-                ];
-
                 if (countEl) countEl.innerText = tasks.filter(t => t.selected).length;
 
                 if (tasks.length === 0) {
@@ -12514,16 +12508,7 @@ const app = {
                 }
 
                 const rowsHtml = tasks.map((t, idx) => {
-                    const assignees = t.assignees || [t.tech || 'Team A (สมศักดิ์)'];
-                    const techChips = availableTechs.map(tech => {
-                        const isSelected = assignees.includes(tech);
-                        const shortName = tech.split(' ')[0] + (tech.includes('(') ? ' ' + tech.slice(tech.indexOf('(')) : '');
-                        return `
-                        <button type="button" onclick="app.toggleTaskAssignee(${idx}, '${tech}')" class="px-2 py-0.5 rounded text-[10px] transition cursor-pointer ${isSelected ? 'bg-purple-500 text-white font-semibold shadow-xs' : 'bg-muted/70 hover:bg-muted text-muted-foreground border border-border'}">
-                            ${isSelected ? '✓ ' : '+ '}${shortName}
-                        </button>
-                        `;
-                    }).join('');
+                    const techName = t.tech || (t.assignees && t.assignees[0]) || '';
 
                     return `
                     <tr class="hover:bg-muted/30 transition">
@@ -12553,12 +12538,43 @@ const app = {
                                 ${t.days || 1} วัน
                             </span>
                         </td>
-                        <td class="py-2.5 px-3">
-                            <div class="flex flex-wrap gap-1 max-w-[260px]">
-                                ${techChips}
-                            </div>
-                            <div class="text-[10px] text-purple-600 font-medium mt-1 truncate">
-                                👥 ผู้รับผิดชอบ: ${assignees.join(', ')}
+                        <!-- ผู้รับผิดชอบ (Key ชื่อช่าง / จองจาก INT) -->
+                        <td class="py-2.5 px-3 min-w-[280px]">
+                            <div class="space-y-1.5">
+                                <div class="flex items-center gap-1.5">
+                                    <div class="relative flex-1">
+                                        <i class="ph ph-user text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 text-xs pointer-events-none"></i>
+                                        <input type="text"
+                                               list="int-tech-suggestions"
+                                               value="${(techName || '').replace(/"/g, '&quot;')}"
+                                               oninput="app.updateConvertTaskField(${idx}, 'tech', this.value)"
+                                               placeholder="Key ระบุชื่อช่าง..."
+                                               class="w-full bg-card hover:bg-muted/40 focus:bg-card border border-border focus:border-purple-500 rounded-lg pl-8 pr-2 py-1.5 text-xs text-foreground font-semibold focus:outline-none shadow-2xs transition">
+                                    </div>
+                                    <button type="button"
+                                            onclick="app.openIntTechBookingModal(${idx})"
+                                            class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1 text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-300 cursor-pointer shadow-2xs shrink-0 whitespace-nowrap transition"
+                                            title="จองช่างจากระบบ INT (ทำไว้ รอเชื่อมต่อ API)">
+                                        <i class="ph ph-calendar-check text-xs text-purple-600"></i>
+                                        <span>จองช่างจาก INT</span>
+                                    </button>
+                                </div>
+                                ${t.int_booked ? `
+                                    <div class="flex items-center gap-1.5 text-[10px]">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
+                                            <i class="ph-fill ph-check-circle text-emerald-600 text-[10px]"></i>
+                                            <span>INT: ${t.int_booking_ref || 'จองสำเร็จ'}</span>
+                                        </span>
+                                        <span class="text-[9px] text-amber-700 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 font-medium">รอเชื่อมต่อจริง</span>
+                                    </div>
+                                ` : `
+                                    <div class="flex items-center gap-1 text-[10px] text-muted-foreground flex-wrap">
+                                        <span class="text-muted-foreground/60">ด่วน:</span>
+                                        <button type="button" onclick="app.setQuickTech(${idx}, 'สมชาย ใจดี')" class="px-1.5 py-0.2 rounded bg-muted hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 border border-border transition text-[10px] cursor-pointer">สมชาย (★4.9)</button>
+                                        <button type="button" onclick="app.setQuickTech(${idx}, 'อนุรักษ์ มีสุข')" class="px-1.5 py-0.2 rounded bg-muted hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 border border-border transition text-[10px] cursor-pointer">อนุรักษ์ (★4.8)</button>
+                                        <button type="button" onclick="app.setQuickTech(${idx}, 'กมลวรรณ')" class="px-1.5 py-0.2 rounded bg-muted hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 border border-border transition text-[10px] cursor-pointer">กมลวรรณ (★4.7)</button>
+                                    </div>
+                                `}
                             </div>
                         </td>
                         <td class="py-2.5 px-2 text-center">
@@ -12681,6 +12697,222 @@ const app = {
                         }
                     }
                 }, 350);
+            },
+
+            // =========================================================================
+            // INT TECHNICIAN BOOKING ENGINE (จองช่างจากระบบ INT - ทำไว้ รอเชื่อมต่อ API)
+            // =========================================================================
+            getIntTechnicians() {
+                return [
+                    {
+                        id: 'INT-TECH-001',
+                        name: 'สมชาย ใจดี',
+                        role: 'หัวหน้าช่างติดตั้งระบบปรับอากาศ (Team A Lead)',
+                        rating: 4.9,
+                        reviews: 124,
+                        phone: '081-452-9901',
+                        available: true,
+                        badge: 'Top Rated 4.9',
+                        skills: 'Air Conditioning, Electrical, Piping'
+                    },
+                    {
+                        id: 'INT-TECH-002',
+                        name: 'อนุรักษ์ มีสุข',
+                        role: 'ช่างเทคนิคระบบปรับอากาศ & งานโครงสร้าง',
+                        rating: 4.8,
+                        reviews: 98,
+                        phone: '089-612-4432',
+                        available: true,
+                        badge: 'Expert 4.8',
+                        skills: 'Renovation, Plumbing, HVAC'
+                    },
+                    {
+                        id: 'INT-TECH-003',
+                        name: 'กมลวรรณ วงศ์วิบูลย์',
+                        role: 'วิศวกรและช่างติดตั้งเก็บงานระบบ',
+                        rating: 4.7,
+                        reviews: 82,
+                        phone: '086-773-1129',
+                        available: true,
+                        badge: 'Reliable 4.7',
+                        skills: 'System Verification, Electrical, QC'
+                    },
+                    {
+                        id: 'INT-TECH-004',
+                        name: 'Team A (สมศักดิ์)',
+                        role: 'ทีมช่างรับเหมาช่วงมาตรฐานระดับ Tier 1',
+                        rating: 4.9,
+                        reviews: 210,
+                        phone: '082-334-5511',
+                        available: true,
+                        badge: 'Standard Tier 1',
+                        skills: 'Full Turnkey, Renovate, Masonry'
+                    },
+                    {
+                        id: 'INT-TECH-005',
+                        name: 'ธนกฤต ช่างแอร์',
+                        role: 'ช่างผู้ชำนาญการเดินท่อและเทสระบบทำความเย็น',
+                        rating: 4.8,
+                        reviews: 65,
+                        phone: '090-218-4933',
+                        available: true,
+                        badge: 'Specialist 4.8',
+                        skills: 'Inverter Systems, Pressure Test'
+                    }
+                ];
+            },
+
+            openIntTechBookingModal(taskIdx) {
+                if (!this.state.convertTasks || !this.state.convertTasks[taskIdx]) return;
+                this.state.currentIntBookingTaskIdx = taskIdx;
+                const task = this.state.convertTasks[taskIdx];
+
+                const nameEl = document.getElementById('int-booking-task-name');
+                const datesEl = document.getElementById('int-booking-task-dates');
+
+                if (nameEl) nameEl.innerText = task.name || 'งานติดตั้งและเดินระบบ';
+                if (datesEl) {
+                    const startStr = this.formatDateDMY(task.start);
+                    const endStr = this.formatDateDMY(task.end);
+                    datesEl.innerText = `${startStr} - ${endStr} (${task.days || 1} วัน)`;
+                }
+
+                // Default select existing tech if matches, or first tech
+                const techs = this.getIntTechnicians();
+                const matchedTech = techs.find(t => t.name === task.tech) || techs[0];
+                this.state.selectedIntTechId = matchedTech ? matchedTech.id : 'INT-TECH-001';
+
+                this.renderIntTechList();
+                this.showModal('modal-int-technician-booking');
+            },
+
+            renderIntTechList() {
+                const container = document.getElementById('int-tech-list-container');
+                if (!container) return;
+
+                const techs = this.getIntTechnicians();
+                const selectedId = this.state.selectedIntTechId || 'INT-TECH-001';
+
+                container.innerHTML = techs.map(tech => {
+                    const isSelected = tech.id === selectedId;
+                    return `
+                        <div onclick="app.selectIntTech('${tech.id}')" class="p-3 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 ${isSelected ? 'border-purple-500 bg-purple-500/10 ring-2 ring-purple-500/30' : 'border-border bg-card hover:bg-muted/40'}">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-700 flex items-center justify-center font-bold text-base shrink-0 border border-purple-500/30">
+                                    <i class="ph ph-user"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-bold text-xs text-foreground">${tech.name}</span>
+                                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/15 text-amber-700 border border-amber-500/20">
+                                            <i class="ph-fill ph-star text-amber-500 text-[10px]"></i>
+                                            <span>${tech.rating}</span>
+                                            <span class="text-muted-foreground font-normal">(${tech.reviews})</span>
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-muted-foreground truncate mt-0.5">${tech.role}</p>
+                                    <div class="text-[10px] text-muted-foreground flex items-center gap-2 mt-0.5">
+                                        <span><i class="ph ph-phone mr-0.5"></i>${tech.phone}</span>
+                                        <span>•</span>
+                                        <span class="text-purple-600 font-medium">${tech.skills}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="shrink-0 flex items-center">
+                                <div class="w-5 h-5 rounded-full border flex items-center justify-center ${isSelected ? 'border-purple-600 bg-purple-600 text-white' : 'border-muted-foreground/40 bg-card'}">
+                                    ${isSelected ? '<i class="ph ph-check font-bold text-xs"></i>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            selectIntTech(techId) {
+                this.state.selectedIntTechId = techId;
+                this.renderIntTechList();
+            },
+
+            confirmIntTechBooking() {
+                const taskIdx = this.state.currentIntBookingTaskIdx;
+                if (taskIdx === undefined || !this.state.convertTasks || !this.state.convertTasks[taskIdx]) {
+                    this.showToast('⚠️ ไม่พบข้อมูล Task ที่ต้องการจองช่าง');
+                    return;
+                }
+
+                const techs = this.getIntTechnicians();
+                const selectedTech = techs.find(t => t.id === this.state.selectedIntTechId) || techs[0];
+                const task = this.state.convertTasks[taskIdx];
+
+                task.tech = selectedTech.name;
+                task.assignees = [selectedTech.name];
+                task.int_booked = true;
+                task.int_booking_ref = `INT-BOOK-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
+                task.int_booked_at = new Date().toISOString();
+
+                // Mock Inbound/Integration API Log for developer inspection
+                if (Array.isArray(this.state.apiLogs)) {
+                    this.state.apiLogs.unshift({
+                        id: `REQ-${Date.now().toString().slice(-4)}`,
+                        method: 'POST',
+                        path: '/api/v1/int/dispatch-technician',
+                        status: 200,
+                        statusText: '200 OK (INT Dispatch Reserved)',
+                        ip: '10.0.4.15 (INT-Gateway)',
+                        duration: '28 ms',
+                        timestamp: new Date().toISOString(),
+                        reqBody: {
+                            action: 'BOOK_TECHNICIAN',
+                            job_id: this.state.convertJobId,
+                            task_name: task.name,
+                            technician_id: selectedTech.id,
+                            technician_name: selectedTech.name,
+                            start_date: task.start,
+                            end_date: task.end,
+                            booking_ref: task.int_booking_ref,
+                            status: 'RESERVED_AWAITING_SYNC'
+                        },
+                        resBody: {
+                            success: true,
+                            booking_ref: task.int_booking_ref,
+                            message: `Technician ${selectedTech.name} successfully reserved from INT database (Integration Ready).`
+                        }
+                    });
+                }
+
+                this.hideModal('modal-int-technician-booking');
+                this.renderConvertTasksRows();
+                this.showToast(`✅ จองช่าง ${selectedTech.name} จากระบบ INT สำเร็จ (Ref: ${task.int_booking_ref}) [ทำไว้รอเชื่อมต่อ API]`);
+            },
+
+            batchBookAllTechsFromINT() {
+                const tasks = this.state.convertTasks || [];
+                if (tasks.length === 0) {
+                    this.showToast('⚠️ ไม่มีรายการ Task ในตาราง');
+                    return;
+                }
+
+                const techs = this.getIntTechnicians();
+                tasks.forEach((t, idx) => {
+                    const tech = techs[idx % techs.length];
+                    t.tech = tech.name;
+                    t.assignees = [tech.name];
+                    t.int_booked = true;
+                    t.int_booking_ref = `INT-BOOK-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${String(idx + 1).padStart(3, '0')}`;
+                    t.int_booked_at = new Date().toISOString();
+                });
+
+                this.renderConvertTasksRows();
+                this.showToast(`⚡ จัดสรรและดึงคิวจองช่างจากระบบ INT ให้ทั้ง ${tasks.length} งานเรียบร้อยแล้ว (ทำไว้รอเชื่อมต่อ API)`);
+            },
+
+            setQuickTech(idx, techName) {
+                if (!this.state.convertTasks || !this.state.convertTasks[idx]) return;
+                const task = this.state.convertTasks[idx];
+                task.tech = techName;
+                task.assignees = [techName];
+                this.renderConvertTasksRows();
+                this.showToast(`👤 ระบุช่าง: ${techName}`);
             },
 
             openCloseLostModal(jobId) {
