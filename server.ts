@@ -1970,7 +1970,9 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
     const runningStr = String(runningSeq).padStart(5, '0');
     const jobNo = payload.job_info?.job_number || payload.job_no || `JOB${yy}${mm}${dd}${runningStr}`;
 
-    const jobDetails = Array.isArray(payload.job_details) ? payload.job_details : [];
+    const jobDetails = Array.isArray(payload.job_details)
+      ? payload.job_details
+      : (Array.isArray(payload.jobdetails) ? payload.jobdetails : []);
     let servicesList: string[] = [];
     if (jobDetails.length > 0) {
       servicesList = jobDetails.map((item: any) => typeof item === 'string' ? item : (item.installation_detail || item.job_type || item.service_name || 'งานบริการ'));
@@ -1987,7 +1989,7 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
     }
 
     const serviceName = servicesList[0] || 'งานติดตั้ง';
-    const isQuick = /ติดตั้ง|ซ่อม|ล้าง|แอร์|เครื่องปรับอากาศ|เครื่องทำน้ำอุ่น|ปั้ม|กรองน้ำ|กล้อง/i.test(serviceName) && !/รีโนเวท|ต่อเติม|renovate/i.test(serviceName);
+    const isQuick = /ติดตั้ง|ซ่อม|ล้าง|แอร์|เครื่องปรับอากาศ|เครื่องทำน้ำอุ่น|ปั้ม|ปั๊ม|แท็งก์|แทงก์|กรองน้ำ|กล้อง/i.test(serviceName) && !/รีโนเวท|ต่อเติม|renovate/i.test(serviceName);
     const jobType = payload.job_info?.project_type?.toLowerCase() === 'renovate' ? 'renovate' : (isQuick ? 'quick' : 'renovate');
 
     const photos: any[] = [];
@@ -2041,23 +2043,28 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
       google_map_url: googleMapUrl
     };
 
+    const assignedTechName = (typeof payload.technician === 'object' && payload.technician ? payload.technician.name : payload.technician) || payload.agent?.name || 'Team A (สมศักดิ์)';
+    const planDate = payload.installation?.date || payload.schedule_plan?.visit_date || payload.appointment?.date || new Date().toISOString().split('T')[0];
+    const storeCode = payload.branch?.store_code || payload.store?.code || payload.store_code || '';
+    const agentName = payload.agent?.name || payload.agent_name || payload.branch?.name || '';
+
     const newJob: CoreJob = {
       id: Date.now(),
       job_no: jobNo,
       external_ref_id: externalRefId,
-      booking_no: payload.job_info?.booking_no || payload.booking_no || '',
+      booking_no: payload.job_info?.booking_no || payload.booking_no || payload.vfix_no || payload.job_info?.vfix_no || '',
       ticket_no: payload.job_info?.ticket_no || payload.ticket_no || '',
       customer_id: customer.id,
       services: servicesList,
-      assigned_tech: payload.agent?.name || payload.technician?.name || 'Team A (สมศักดิ์)',
-      plan_date: payload.schedule_plan?.visit_date || payload.appointment?.date || new Date().toISOString().split('T')[0],
+      assigned_tech: assignedTechName,
+      plan_date: planDate,
       status: JobStatus.SURVEYED,          // Orders from INT are always survey jobs
       job_type: jobType,
       property_type: payload.job_info?.property_type || 'บ้านเดี่ยว',
       project_type: payload.job_info?.project_type || (isQuick ? 'Installation' : 'Renovate'),
       project_sub_type: payload.job_info?.project_sub_type || serviceName,
-      store_code: payload.store?.code || payload.store_code || '',
-      agent_name: payload.agent?.name || payload.agent_name || '',
+      store_code: storeCode,
+      agent_name: agentName,
       pmt_accepted: false,                  // Not yet accepted into PMT pipeline; needs BOQ+Design in Step 1
       pmt_accepted_at: undefined,
       step_timestamps: {
@@ -2094,9 +2101,10 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
       success: true,
       data: {
         ...newJob,
+        vfix_no: newJob.booking_no,
         customer: customerData,
-        assigned_tech: payload.agent?.name || payload.technician || null,
-        appointment: payload.schedule_plan || payload.appointment || null
+        assigned_tech: assignedTechName,
+        appointment: payload.schedule_plan || payload.appointment || payload.installation || null
       },
       meta: { message: 'Order received successfully from INT system and added to Core Jobs' }
     });

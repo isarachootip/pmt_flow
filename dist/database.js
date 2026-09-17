@@ -469,6 +469,7 @@ function mapDbJobRow(row) {
         job_no: row.job_no,
         external_ref_id: row.external_ref_id,
         booking_no: row.booking_no,
+        vfix_no: row.booking_no,
         ticket_no: row.ticket_no,
         customer: customerFullName,
         customer_data: cust,

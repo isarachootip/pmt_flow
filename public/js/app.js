@@ -2973,7 +2973,10 @@ const app = {
                 this.state.currentView = view;
 
                 // Page specific renders
-                if(view === 'jobs') this.renderJobs();
+                if(view === 'jobs') {
+                    this.renderJobs();
+                    this.fetchJobsFromApi();
+                }
                 if(view === 'blueprints') this.renderBlueprints();
                 if(view === 'tickets') this.renderTickets();
                 if(view === 'boq') this.renderBOQPage(param);
