@@ -274,7 +274,6 @@ window.auth =  {
             const roleEl = document.getElementById('sidebar-user-role');
             const avatarEl = document.getElementById('sidebar-avatar');
             const navUsers = document.getElementById('nav-users');
-            const topbarUserMgmtBtn = document.getElementById('topbar-user-mgmt-btn');
 
             const topbarAuthBtn = document.getElementById('topbar-auth-btn');
             const sidebarAuthBtn = document.getElementById('sidebar-auth-btn');
@@ -296,10 +295,6 @@ window.auth =  {
                 if (navUsers) {
                     navUsers.style.setProperty('display', 'none', 'important');
                     navUsers.classList.add('hidden');
-                }
-                if (topbarUserMgmtBtn) {
-                    topbarUserMgmtBtn.style.setProperty('display', 'none', 'important');
-                    topbarUserMgmtBtn.classList.add('hidden');
                 }
 
                 // Topbar auth button -> Green "เข้าสู่ระบบ"
@@ -340,19 +335,10 @@ window.auth =  {
             if (roleEl) roleEl.textContent = { ADMIN:'ผู้ดูแลระบบ (Admin)', AE:'Account Executive', QC:'Quality Control', CONTACT_CENTER:'Contact Center' }[u.role] || u.role;
             if (avatarEl) avatarEl.textContent = (u.full_name || 'ผ').charAt(0).toUpperCase();
 
-            // User Management nav & topbar button
+            // User Management nav
             if (navUsers) {
                 navUsers.style.setProperty('display', 'flex', 'important');
                 navUsers.classList.remove('hidden');
-            }
-            if (topbarUserMgmtBtn) {
-                if (u.role === 'ADMIN' || this.isIsaraChootip(u)) {
-                    topbarUserMgmtBtn.style.removeProperty('display');
-                    topbarUserMgmtBtn.classList.remove('hidden');
-                } else {
-                    topbarUserMgmtBtn.style.setProperty('display', 'none', 'important');
-                    topbarUserMgmtBtn.classList.add('hidden');
-                }
             }
 
             // Enable superadmin buttons for admin, superadmin, or isarachootip
