@@ -559,7 +559,7 @@ const app = {
                 return String(dateInput);
             },
 
-            compressImage(file, maxDim = 1200, quality = 0.8) {
+            compressImage(file, maxDim = 1920, quality = 0.82) {
                 return new Promise((resolve) => {
                     const isImg = file && ((file.type && file.type.startsWith('image/')) || (file.name && /\.(jpe?g|png|webp|gif|bmp)$/i.test(file.name)));
                     if (!file || !isImg) {
@@ -573,8 +573,9 @@ const app = {
                         img.onload = () => {
                             let w = img.width;
                             let h = img.height;
+                            // Scale down only if larger than maxDim — never upscale
                             if (w > maxDim || h > maxDim) {
-                                if (w > h) {
+                                if (w >= h) {
                                     h = Math.round((h * maxDim) / w);
                                     w = maxDim;
                                 } else {
@@ -587,6 +588,9 @@ const app = {
                             canvas.height = h;
                             const ctx = canvas.getContext('2d');
                             if (ctx) {
+                                // White background for PNG→JPEG conversion (avoids black fill)
+                                ctx.fillStyle = '#FFFFFF';
+                                ctx.fillRect(0, 0, w, h);
                                 ctx.drawImage(img, 0, 0, w, h);
                                 resolve(canvas.toDataURL('image/jpeg', quality));
                             } else {
@@ -5434,10 +5438,14 @@ const app = {
                 if (!job.photos) job.photos = [];
 
                 let addedCount = 0;
+                let totalOriginalKB = 0;
+                let totalCompressedKB = 0;
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
                     if (!file.type || !file.type.startsWith('image/')) continue;
-                    let dataUrl = await this.compressImage(file, 1200, 0.75);
+                    const originalKB = Math.round(file.size / 1024);
+                    totalOriginalKB += originalKB;
+                    let dataUrl = await this.compressImage(file, 1920, 0.82);
                     if (!dataUrl) {
                         dataUrl = await new Promise(r => {
                             const rd = new FileReader();
@@ -5447,6 +5455,8 @@ const app = {
                         });
                     }
                     if (!dataUrl) continue;
+                    const compressedKB = Math.round((dataUrl.length * 3) / 4 / 1024);
+                    totalCompressedKB += compressedKB;
 
                     const title = file.name.replace(/\.[^/.]+$/, "") || `ภาพสำรวจหน้างาน #${job.photos.length + 1}`;
                     const newPhoto = {
@@ -5477,7 +5487,11 @@ const app = {
                     this.renderUnifiedSurveyPhotos();
                     this.updateUnifiedStudioIndicators();
                     this.renderJobDetail();
-                    this.showToast(`📷 เพิ่มรูปถ่ายหน้างานเรียบร้อยแล้ว (${addedCount} รูป)`);
+                    const savedKB = totalOriginalKB - totalCompressedKB;
+                    const sizeInfo = totalOriginalKB > 0
+                        ? ` · ${totalOriginalKB >= 1024 ? (totalOriginalKB/1024).toFixed(1)+'MB' : totalOriginalKB+'KB'} → ${totalCompressedKB >= 1024 ? (totalCompressedKB/1024).toFixed(1)+'MB' : totalCompressedKB+'KB'}`
+                        : '';
+                    this.showToast(`📷 เพิ่มรูปถ่ายเรียบร้อย (${addedCount} รูป${sizeInfo})`);
                     this.addJobActivityLog(jobId, 1, 'เพิ่มรูปภาพสำรวจหน้างาน', `เพิ่มรูปถ่ายจำนวน ${addedCount} รูป`);
                 }
             },
