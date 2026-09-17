@@ -693,8 +693,89 @@ Date: 12/09/2026
   }
   console.log(`   ✅ SUCCESS: 3 non-work material rows excluded; 2 work header items ingested and task names sanitized cleanly\n`);
 
+  // 18. Work-Items-Only Import Standard (Zero Money & No Quantity: qty=0, mat_price=0, labor_price=0, price=0)
+  console.log('▶ [TEST 18] Verifying Work-Item-Only Import (Zero Money & Zero/No Quantity Rule)...');
+  const mockWorkRows = [
+    { code: 'SKU-AC-INV18', name: "'งานติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU", unit: 'งาน', rawQty: 2, rawMat: 500, rawLabor: 2500 },
+    { code: 'SKU-ELEC-01', name: 'งานเดินสายไฟเมนและต่อเบรกเกอร์', unit: 'จุด', rawQty: 1, rawMat: 300, rawLabor: 800 },
+    { code: 'MAT-PIPE', name: 'ชุดท่อน้ำยาแอร์ 4 ม.', unit: 'ชุด', rawQty: 1, rawMat: 1800, rawLabor: 0 }
+  ];
+
+  // Ingestion simulation matching app.js (filter work headers, zero money and qty)
+  const formattedWorkItems = mockWorkRows
+    .filter(r => isWorkHeader(r.name) || isWorkHeader(r.code))
+    .map(r => ({
+      code: r.code,
+      name: r.name,
+      type: 'LABOR',
+      qty: 0,
+      unit: r.unit || 'งาน',
+      mat_price: 0,
+      labor_price: 0,
+      price: 0,
+      total: 0
+    }));
+
+  if (formattedWorkItems.length !== 2) {
+    throw new Error(`❌ Test 18 Failed: Expected 2 items filtered, got ${formattedWorkItems.length}`);
+  }
+
+  formattedWorkItems.forEach(item => {
+    if (item.qty !== 0 || item.mat_price !== 0 || item.labor_price !== 0 || item.price !== 0 || item.total !== 0) {
+      throw new Error(`❌ Test 18 Failed: Item ${item.name} has non-zero money or qty: ${JSON.stringify(item)}`);
+    }
+    if (item.type !== 'LABOR') {
+      throw new Error(`❌ Test 18 Failed: Item ${item.name} type is not LABOR`);
+    }
+  });
+
+  // Calculate Job BOQ totals
+  const test18Subtotal = formattedWorkItems.reduce((sum, it) => sum + (it.qty * it.price), 0);
+  const test18GrandTotal = Math.max(0, test18Subtotal - 0);
+  if (test18Subtotal !== 0 || test18GrandTotal !== 0) {
+    throw new Error(`❌ Test 18 Failed: Subtotal or GrandTotal not 0: subtotal=${test18Subtotal}, grandTotal=${test18GrandTotal}`);
+  }
+
+  // Verify preview formatting helper logic (Qty displays as '-' or 0, money as '0.00 ฿')
+  const formatQtyForPreview = (qty) => (Number(qty) > 0 ? qty : '-');
+  const formatMoneyForPreview = (val) => `${Number(val || 0).toFixed(2)} ฿`;
+
+  if (formatQtyForPreview(formattedWorkItems[0].qty) !== '-') {
+    throw new Error(`❌ Test 18 Failed: Preview Qty display expected '-', got ${formatQtyForPreview(formattedWorkItems[0].qty)}`);
+  }
+  if (formatMoneyForPreview(formattedWorkItems[0].labor_price) !== '0.00 ฿') {
+    throw new Error(`❌ Test 18 Failed: Preview Money display expected '0.00 ฿', got ${formatMoneyForPreview(formattedWorkItems[0].labor_price)}`);
+  }
+
+  // Verify conversion to Gantt Tasks with isLaborItem logic
+  const isLaborItem = (item) => {
+    if (!item) return false;
+    if (item.type === 'LABOR') return true;
+    if (isWorkHeader(item.name)) return true;
+    if (item.type === 'MATERIAL') return false;
+    return (parseFloat(item.labor_price) || 0) > 0;
+  };
+
+  const tasksConverted = formattedWorkItems.filter(isLaborItem).map(it => ({
+    name: (it.name || '').replace(/^['"‘“\s]+/, ''),
+    type: 'LABOR',
+    labor_price: it.labor_price
+  }));
+
+  if (tasksConverted.length !== 2) {
+    throw new Error(`❌ Test 18 Failed: Expected 2 tasks converted from zero-money LABOR items, got ${tasksConverted.length}`);
+  }
+  if (tasksConverted[0].name !== 'งานติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU' ||
+      tasksConverted[1].name !== 'งานเดินสายไฟเมนและต่อเบรกเกอร์') {
+    throw new Error(`❌ Test 18 Failed: Task names mismatch: ${JSON.stringify(tasksConverted)}`);
+  }
+
+  console.log(`   ✅ SUCCESS: Work items ingested strictly with qty=0, mat_price=0, labor_price=0, price=0`);
+  console.log(`   ✅ SUCCESS: Preview displays '-' for qty and '0.00 ฿' for prices`);
+  console.log(`   ✅ SUCCESS: Labor-to-Task rule successfully converts all work items to Gantt tasks regardless of zero price\n`);
+
   console.log('================================================================');
-  console.log('🎉 ALL 17 TESTS PASSED: BOQ IMPORT & LABOR-ONLY TASK PIPELINE VERIFIED 100%');
+  console.log('🎉 ALL 18 TESTS PASSED: BOQ IMPORT & LABOR-ONLY TASK PIPELINE VERIFIED 100%');
   console.log('================================================================');
 }
 

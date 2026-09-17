@@ -11030,11 +11030,11 @@ const app = {
                         address: 'หมู่บ้านพัทยารุ่งเรือง ซอยระหว่างมาบยายเลีย ตำบลหนองปรือ อำเภอบางละมุง จังหวัดชลบุรี 20150'
                     };
                     this.state.pendingBOQItems = [
-                        { code: 'SKU-AC-INV18', name: "'งานติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU", qty: 1, unit: 'งาน', mat_price: 0, labor_price: 2500, price: 2500, remark: 'รวมชุดเบรกเกอร์' },
-                        { code: 'SKU-AC-PIPE', name: "'งานเดินระบบท่อน้ำยาแอร์และฉนวนหุ้ม 4 ม.", qty: 1, unit: 'งาน', mat_price: 1800, labor_price: 0, price: 1800, remark: 'ท่อทองแดง 0.7 มม.' },
-                        { code: 'SKU-AC-DUCT', name: "'งานติดตั้งรางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.", qty: 1, unit: 'งาน', mat_price: 950, labor_price: 0, price: 950, remark: 'สีครีมมาตรฐาน' },
-                        { code: 'SKU-AC-BRK', name: "'งานติดตั้งขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม", qty: 1, unit: 'งาน', mat_price: 650, labor_price: 0, price: 650, remark: 'แบบหนาพิเศษ' },
-                        { code: 'SKU-AC-SW', name: "'งานติดตั้งชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง", qty: 1, unit: 'งาน', mat_price: 500, labor_price: 0, price: 500, remark: 'มอก. แท้' }
+                        { code: 'SKU-AC-INV18', name: "'งานติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU", qty: 0, unit: 'งาน', mat_price: 0, labor_price: 0, price: 0, remark: 'รวมชุดเบรกเกอร์' },
+                        { code: 'SKU-AC-PIPE', name: "'งานเดินระบบท่อน้ำยาแอร์และฉนวนหุ้ม 4 ม.", qty: 0, unit: 'งาน', mat_price: 0, labor_price: 0, price: 0, remark: 'ท่อทองแดง 0.7 มม.' },
+                        { code: 'SKU-AC-DUCT', name: "'งานติดตั้งรางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.", qty: 0, unit: 'งาน', mat_price: 0, labor_price: 0, price: 0, remark: 'สีครีมมาตรฐาน' },
+                        { code: 'SKU-AC-BRK', name: "'งานติดตั้งขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม", qty: 0, unit: 'งาน', mat_price: 0, labor_price: 0, price: 0, remark: 'แบบหนาพิเศษ' },
+                        { code: 'SKU-AC-SW', name: "'งานติดตั้งชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง", qty: 0, unit: 'งาน', mat_price: 0, labor_price: 0, price: 0, remark: 'มอก. แท้' }
                     ].filter(it => this.isWorkHeader(it.name));
 
                     this.renderBOQPreviewTable();
@@ -11102,7 +11102,7 @@ const app = {
                                 sheetContainer.classList.remove('hidden');
                                 if (sheetBadge) sheetBadge.innerText = `พบทั้งหมด ${sheetAnalysis.length} Sheet (เลือก "${bestSheet?.name || ''}" อัตโนมัติ)`;
                                 sheetSelect.innerHTML = sheetAnalysis.map((s) => {
-                                    const countText = s.itemCount > 0 ? `(${s.itemCount} รายการ - รวมไม่รวม VAT ${s.totalAmount.toLocaleString()} ฿)` : '(ไม่มีรายการ)';
+                                    const countText = s.itemCount > 0 ? `(${s.itemCount} รายการ - นำเข้าเฉพาะรายการ)` : '(ไม่มีรายการ)';
                                     const custText = s.customer ? ` [ลูกค้า: ${s.customer}]` : '';
                                     const isSelected = (s.name === bestSheet?.name) ? 'selected' : '';
                                     return `<option value="${s.name}" ${isSelected}>${s.name} ${custText} ${countText}</option>`;
@@ -11115,7 +11115,7 @@ const app = {
                                 this.state.pendingBOQHeader = parsed.header || {};
                                 this.state.pendingBOQItems = parsed.items;
                                 this.renderBOQPreviewTable();
-                                if (nameEl) nameEl.innerHTML = `<span class="text-emerald-500 font-bold">✓ อ่านไฟล์สำเร็จ [Sheet: ${bestSheet.name}] (นำเข้าเฉพาะ ${parsed.items.length} รายการที่ขึ้นต้นว่า "'งาน" - ราคาไม่รวม VAT) — 🔄 กำลัง upload ไป Server...</span>`;
+                                if (nameEl) nameEl.innerHTML = `<span class="text-emerald-500 font-bold">✓ อ่านไฟล์สำเร็จ [Sheet: ${bestSheet.name}] (นำเข้าเฉพาะ ${parsed.items.length} รายการที่ขึ้นต้นว่า "'งาน" - นำเข้าเฉพาะรายการ ไม่ใส่เงินและจำนวน) — 🔄 กำลัง upload ไป Server...</span>`;
                                 this.showToast(`📊 อ่านไฟล์ Excel "${file.name}" สำเร็จ (${parsed.items.length} รายการที่ขึ้นต้นว่า "'งาน")`);
                             } else if (bestSheet) {
                                 const parsed = this.parseVFixExcelSheet(wb.Sheets[bestSheet.name], bestSheet.name);
@@ -11136,7 +11136,7 @@ const app = {
                     reader.onload = (e) => {
                         const content = e.target.result;
                         this.parsePastedBOQ(content);
-                        this.showToast(`อ่านไฟล์ "${file.name}" สำเร็จ (${this.state.pendingBOQItems.length} รายการที่ขึ้นต้นว่า "'งาน" - ราคาไม่รวม VAT)`);
+                        this.showToast(`อ่านไฟล์ "${file.name}" สำเร็จ (${this.state.pendingBOQItems.length} รายการที่ขึ้นต้นว่า "'งาน" - นำเข้าเฉพาะรายการ ไม่ใส่เงินและจำนวน)`);
                     };
                     reader.readAsText(file);
                 }
@@ -11179,7 +11179,7 @@ const app = {
 
                 const nameEl = document.getElementById('boq-file-name');
                 if (nameEl) {
-                    nameEl.innerHTML = `<span class="text-emerald-500 font-bold">✓ เปลี่ยนเป็น Sheet: ${sheetName} (${parsed.items.length} รายการที่ขึ้นต้นว่า "'งาน" - ราคาไม่รวม VAT)</span>`;
+                    nameEl.innerHTML = `<span class="text-emerald-500 font-bold">✓ เปลี่ยนเป็น Sheet: ${sheetName} (${parsed.items.length} รายการที่ขึ้นต้นว่า "'งาน" - นำเข้าเฉพาะรายการ ไม่ใส่เงินและจำนวน)</span>`;
                 }
                 this.showToast(`🔄 สลับไปใช้ข้อมูลจาก Sheet "${sheetName}" (${parsed.items.length} รายการที่ขึ้นต้นว่า "'งาน")`);
             },
@@ -11349,36 +11349,16 @@ const app = {
                             continue;
                         }
 
-                        if (name && (qty > 0 || laborPrice > 0 || matPrice > 0 || totalAmount > 0)) {
-                            let unitPrice = 0;
-                            let itemType = 'MATERIAL';
-
-                            if (laborPrice > 0 && matPrice > 0) {
-                                unitPrice = (matPrice || 0) + (laborPrice || 0);
-                                itemType = 'MATERIAL';
-                            } else if (laborPrice > 0) {
-                                unitPrice = laborPrice;
-                                itemType = 'LABOR';
-                            } else if (matPrice > 0) {
-                                unitPrice = matPrice;
-                                itemType = 'MATERIAL';
-                            } else if (qty > 0 && totalAmount > 0) {
-                                unitPrice = totalAmount / qty;
-                                itemType = (name.includes('ค่าแรง') || name.includes('งานติดตั้ง') || name.includes('งานบริการ')) ? 'LABOR' : 'MATERIAL';
-                            } else if (totalAmount > 0) {
-                                unitPrice = totalAmount;
-                                itemType = (name.includes('ค่าแรง') || name.includes('งานติดตั้ง') || name.includes('งานบริการ')) ? 'LABOR' : 'MATERIAL';
-                            }
-
+                        if (name) {
                             items.push({
                                 code: code || `SKU-${items.length + 1}`,
-                                type: itemType,
+                                type: 'LABOR',
                                 name: name,
-                                qty: qty || 1,
+                                qty: 0,
                                 unit: unit || 'ชุด',
-                                mat_price: matPrice,
-                                labor_price: laborPrice,
-                                price: unitPrice, // ราคาต่อหน่วยไม่รวม VAT (Exclude VAT)
+                                mat_price: 0,
+                                labor_price: 0,
+                                price: 0,
                                 remark: remark
                             });
                         }
@@ -11531,12 +11511,13 @@ const app = {
 
                             items.push({
                                 code: itemCode || `SKU-${items.length + 1}`,
+                                type: 'LABOR',
                                 name: name,
-                                qty: qty,
+                                qty: 0,
                                 unit: unit || 'ชุด',
-                                mat_price: matPrice,
-                                labor_price: laborPrice,
-                                price: price,
+                                mat_price: 0,
+                                labor_price: 0,
+                                price: 0,
                                 remark: remark
                             });
                         }
@@ -11610,31 +11591,24 @@ const app = {
                 let laborSubtotal = 0;
 
                 const rowsHtml = items.map((item, idx) => {
-                    const lineMat = (item.qty || 0) * (item.mat_price || 0);
-                    const lineLabor = (item.qty || 0) * (item.labor_price || 0);
-                    const rowTotal = (item.qty || 0) * (item.price || 0);
-                    subtotal += rowTotal;
-                    matSubtotal += lineMat;
-                    laborSubtotal += lineLabor;
-
                     return `
                     <tr class="hover:bg-muted/30">
                         <td class="py-2 px-2.5 text-center text-muted-foreground font-mono">${idx + 1}</td>
                         <td class="py-2 px-2.5 font-mono text-[10px] text-muted-foreground">${item.code || '-'}</td>
                         <td class="py-2 px-2.5 font-medium text-foreground truncate max-w-[180px]" title="${item.name}">${item.name}</td>
-                        <td class="py-2 px-2.5 text-center font-mono">${item.qty}</td>
+                        <td class="py-2 px-2.5 text-center font-mono text-muted-foreground">-</td>
                         <td class="py-2 px-2.5 text-center text-muted-foreground">${item.unit || 'ชุด'}</td>
-                        <td class="py-2 px-2.5 text-right font-mono text-muted-foreground">${(item.mat_price || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-                        <td class="py-2 px-2.5 text-right font-mono text-muted-foreground">${(item.labor_price || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-                        <td class="py-2 px-2.5 text-right font-mono font-semibold text-emerald-600">${rowTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</td>
+                        <td class="py-2 px-2.5 text-right font-mono text-muted-foreground">0.00</td>
+                        <td class="py-2 px-2.5 text-right font-mono text-muted-foreground">0.00</td>
+                        <td class="py-2 px-2.5 text-right font-mono text-muted-foreground">0.00 ฿</td>
                     </tr>
                     `;
                 }).join('');
 
                 if (tbody) tbody.innerHTML = rowsHtml;
-                if (totalEl) totalEl.innerText = `ยอดรวม (ไม่รวม VAT): ${subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
-                if (matTotalEl) matTotalEl.innerText = `ค่าวัสดุ (ไม่รวม VAT): ${matSubtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
-                if (laborTotalEl) laborTotalEl.innerText = `ค่าแรง (ไม่รวม VAT): ${laborSubtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
+                if (totalEl) totalEl.innerText = `ยอดรวม (ไม่รวม VAT): 0.00 ฿`;
+                if (matTotalEl) matTotalEl.innerText = `ค่าวัสดุ (ไม่รวม VAT): 0.00 ฿`;
+                if (laborTotalEl) laborTotalEl.innerText = `ค่าแรง (ไม่รวม VAT): 0.00 ฿`;
             },
 
             confirmImportBOQ() {
@@ -11656,27 +11630,16 @@ const app = {
                 const mode = modeEl ? modeEl.value : 'replace';
 
                 const formattedItems = newItems.map((it, idx) => {
-                    let itemType = it.type;
-                    if (!itemType) {
-                        if (it.labor_price > 0 && (!it.mat_price || it.mat_price === 0)) {
-                            itemType = 'LABOR';
-                        } else if (it.name && (it.name.includes('ค่าแรง') || it.name.includes('งานติดตั้ง') || it.name.includes('งานบริการ'))) {
-                            itemType = 'LABOR';
-                        } else {
-                            itemType = 'MATERIAL';
-                        }
-                    }
-                    const unitPrice = (it.price !== undefined && it.price !== null) ? Number(it.price) : ((Number(it.mat_price) || 0) + (Number(it.labor_price) || 0));
                     return {
                         id: idx + 1,
                         code: it.code || `SKU-${idx + 1}`,
-                        type: itemType,
+                        type: 'LABOR',
                         name: it.name,
-                        qty: Number(it.qty) || 1,
+                        qty: 0,
                         unit: it.unit || 'ชุด',
-                        price: unitPrice, // ราคาต่อหน่วยไม่รวม VAT (Exclude VAT)
-                        mat_price: Number(it.mat_price) || 0,
-                        labor_price: Number(it.labor_price) || 0,
+                        price: 0, // นำเข้าเฉพาะรายการ ไม่ใส่เงินและจำนวน
+                        mat_price: 0,
+                        labor_price: 0,
                         remark: it.remark || ''
                     };
                 });
@@ -11734,7 +11697,7 @@ const app = {
                     this.updateUnifiedStudioIndicators();
                 }
 
-                this.showToast(`✅ นำเข้า BOQ ${newItems.length} รายการ เรียบร้อย (คงข้อมูลลูกค้า: ${customerDisplayName})`);
+                this.showToast(`✅ นำเข้าเฉพาะรายการ BOQ ${newItems.length} รายการ เรียบร้อย (ไม่ใส่เงินและจำนวน • คงข้อมูลลูกค้า: ${customerDisplayName})`);
 
                 // Only open Convert BOQ to Tasks modal if user is explicitly on Step 2 (Project Conversion) or Gantt view
                 if (this.state.currentView === 'project-conversion' || this.state.currentView === 'gantt') {
@@ -12064,6 +12027,9 @@ const app = {
 
                 // Helper to identify labor items (ค่าแรง / งานบริการ)
                 const isLaborItem = (item) => {
+                    if (!item) return false;
+                    if (item.type === 'LABOR') return true;
+                    if (item.name && this.isWorkHeader && this.isWorkHeader(item.name)) return true;
                     // Check explicit labor cost
                     if (item.labor_price && Number(item.labor_price) > 0) return true;
                     if (item.mat_price && Number(item.mat_price) > 0 && (!item.labor_price || Number(item.labor_price) === 0)) {
@@ -15126,11 +15092,11 @@ const app = {
                         textReader.readAsText(file);
                     } else if (isImageOrPdf) {
                         this.state.modalBOQItems = [
-                            { name: "'งานติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU", is_labor: true, qty: 1, unit: 'งาน', price: 2500, labor_price: 2500, mat_price: 0 },
-                            { name: "'งานเดินระบบท่อน้ำยาแอร์และฉนวนหุ้ม 4 ม.", is_labor: true, qty: 1, unit: 'งาน', price: 1800, labor_price: 0, mat_price: 1800 },
-                            { name: "'งานติดตั้งรางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.", is_labor: true, qty: 1, unit: 'งาน', price: 950, labor_price: 0, mat_price: 950 },
-                            { name: "'งานติดตั้งขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม", is_labor: true, qty: 1, unit: 'งาน', price: 650, labor_price: 0, mat_price: 650 },
-                            { name: "'งานติดตั้งชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง", is_labor: true, qty: 1, unit: 'งาน', price: 500, labor_price: 0, mat_price: 500 }
+                            { name: "'งานติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU", is_labor: true, qty: 0, unit: 'งาน', price: 0, labor_price: 0, mat_price: 0 },
+                            { name: "'งานเดินระบบท่อน้ำยาแอร์และฉนวนหุ้ม 4 ม.", is_labor: true, qty: 0, unit: 'งาน', price: 0, labor_price: 0, mat_price: 0 },
+                            { name: "'งานติดตั้งรางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.", is_labor: true, qty: 0, unit: 'งาน', price: 0, labor_price: 0, mat_price: 0 },
+                            { name: "'งานติดตั้งขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม", is_labor: true, qty: 0, unit: 'งาน', price: 0, labor_price: 0, mat_price: 0 },
+                            { name: "'งานติดตั้งชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง", is_labor: true, qty: 0, unit: 'งาน', price: 0, labor_price: 0, mat_price: 0 }
                         ].filter(it => this.isWorkHeader(it.name));
                         this.renderManageBOQModal();
                         this.showToast(`✅ สแกนเอกสารใบเสนอราคาและคัดกรองเฉพาะหัวข้องาน "${file.name}" เรียบร้อย! (${this.state.modalBOQItems.length} รายการ)`);

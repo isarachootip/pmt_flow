@@ -5439,6 +5439,7 @@
                                     <p><strong class="text-foreground">คำตอบ:</strong> เพื่อให้การนำเข้า BOQ ได้เฉพาะรายการทำงานจริงและรักษาความถูกต้องของข้อมูลลูกค้าเดิม ระบบ PMT Flow มีเงื่อนไขและมาตรการสำคัญดังนี้:</p>
                                     <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
                                         <li><strong>นำเข้าเฉพาะหัวข้อที่ขึ้นต้นด้วย &quot;&#39;งาน&quot; หรือ &quot;งาน&quot; เท่านั้น (Strict Work Header Filter):</strong> ระบบจะดึงเฉพาะรายการที่ชื่อรายการ/รายละเอียดสินค้าขึ้นต้นด้วย <code class="text-brand-600 font-semibold bg-brand-50 px-1 rounded">&quot;&#39;งาน&quot;</code> หรือ <code class="text-brand-600 font-semibold bg-brand-50 px-1 rounded">&quot;งาน&quot;</code> เข้าสู่ตาราง BOQ เท่านั้น รายการวัสดุ/อุปกรณ์ย่อย (เช่น ชุดท่อน้ำยาแอร์, รางครอบ, ขาแขวน) หรือแถวสรุปยอด (รวมเงิน, ภาษีมูลค่าเพิ่ม) จะถูกข้ามออกไปโดยอัตโนมัติ เพื่อป้องกันข้อมูลขยะและให้ตารางสะท้อนหมวดงานจริง</li>
+                                        <li><strong>นำเข้าเฉพาะรายการ ไม่ใส่เงินและจำนวน:</strong> ระบบจะนำเข้าเฉพาะรหัสและชื่อรายการงาน โดยไม่ใส่ยอดเงิน (ค่าวัสดุ = 0, ค่าแรง = 0, รวมเงิน = 0) และไม่ใส่จำนวน (แสดงเป็น - หรือ 0) เพื่อความคล่องตัวในการเตรียมแปลงเป็นรายการ Task ใน Gantt Timeline โดยตรง</li>
                                         <li><strong>ล็อคข้อมูลลูกค้าเดิม 100% (Customer Name Protection Standard):</strong> ข้อมูลชื่อลูกค้า, เบอร์โทรศัพท์, ที่อยู่หน้างาน, สาขา และวันที่ของโครงการเดิม จะไม่ถูกจับคู่หรือเขียนทับโดยเด็ดขาด ไม่ว่าหัวเอกสารในไฟล์ Excel หรือ AI OCR จะระบุชื่อลูกค้าท่านใดก็ตาม</li>
                                         <li><strong>ข้อมูลหัวเอกสารเพื่อการอ้างอิงเท่านั้น:</strong> หากตรวจพบข้อมูลหัวเอกสารในไฟล์ vFIX ระบบจะจัดเก็บเป็น Metadata อ้างอิงแหล่งที่มาของเอกสารต้นทาง เพื่อใช้ในการตรวจสอบย้อนกลับ (Audit Trail) เท่านั้น โดยไม่กระทบข้อมูลหลักของโครงการ</li>
                                     </ul>
@@ -8337,7 +8338,7 @@
                     </div>
                     <div>
                         <h3 class="font-display font-bold text-sm text-foreground">📥 นำเข้าใบ BOQ / ใบเสนอราคา vFIX (Import BOQ)</h3>
-                        <p class="text-[10px] text-muted-foreground">รองรับไฟล์ Excel/CSV ทั้งแบบมาตรฐาน PMT และใบเสนอราคา vFIX (นำเข้าเฉพาะหัวข้อที่ขึ้นต้นว่า "'งาน" โดยไม่เปลี่ยนชื่อลูกค้าเดิมของโครงการ)</p>
+                        <p class="text-[10px] text-muted-foreground">รองรับไฟล์ Excel/CSV ทั้งแบบมาตรฐาน PMT และใบเสนอราคา vFIX (นำเข้าเฉพาะหัวข้อที่ขึ้นต้นว่า "'งาน" ไม่ใส่เงินและจำนวน โดยไม่เปลี่ยนชื่อลูกค้าเดิมของโครงการ)</p>
                     </div>
                 </div>
                 <button onclick="app.hideModal('modal-import-boq')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition cursor-pointer">
@@ -8353,13 +8354,13 @@
                     </div>
                     <div class="text-xs leading-relaxed">
                         <div class="font-bold text-amber-900 flex items-center gap-1.5 flex-wrap">
-                            <span>💡 หมายเหตุสำคัญ: นำเข้าเฉพาะหัวข้อที่ขึ้นต้นว่า "'งาน" (ไม่จับ/ทับชื่อลูกค้าเดิม)</span>
+                            <span>💡 หมายเหตุสำคัญ: นำเข้าเฉพาะหัวข้อที่ขึ้นต้นว่า "'งาน" (ไม่ใส่เงินและจำนวน • ไม่จับ/ทับชื่อลูกค้าเดิม)</span>
                             <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
                                 <i class="ph ph-lock-key mr-0.5"></i> ล็อคข้อมูลลูกค้าเดิม
                             </span>
                         </div>
                         <p class="mt-1 text-amber-800">
-                            ระบบจะนำเข้าเฉพาะหัวข้อรายการที่ขึ้นต้นว่า <strong>"'งาน"</strong> หรือ <strong>"งาน"</strong> เท่านั้น (เช่น 'งานติดตั้ง, 'งานรื้อถอน, 'งานระบบ) โดยคัดกรองแถววัสดุและอุปกรณ์อื่นๆ ออกโดยอัตโนมัติ และไม่มีการจับคู่หรือเปลี่ยนชื่อลูกค้าของโครงการ เพื่อความถูกต้องและคงข้อมูลเดิม 100%
+                            ระบบจะนำเข้าเฉพาะหัวข้อรายการที่ขึ้นต้นว่า <strong>"'งาน"</strong> หรือ <strong>"งาน"</strong> เท่านั้น (เช่น 'งานติดตั้ง, 'งานรื้อถอน, 'งานระบบ) โดยไม่ดึงยอดเงินและไม่ใส่จำนวน เพื่อเตรียมพร้อมสำหรับการแปลงเป็นแผนงาน Task ใน Gantt ได้ทันที คัดกรองแถววัสดุและอุปกรณ์อื่นๆ ออกโดยอัตโนมัติ และไม่มีการจับคู่หรือเปลี่ยนชื่อลูกค้าของโครงการ เพื่อความถูกต้องและคงข้อมูลเดิม 100%
                         </p>
                     </div>
                 </div>
@@ -8429,7 +8430,7 @@
                         <input type="file" id="boq-file-input" accept=".xlsx,.xls,.csv,.txt" class="hidden" onchange="app.handleBOQFileSelect(event)">
                         <i class="ph ph-cloud-arrow-up text-3xl text-emerald-500 mb-1.5"></i>
                         <div class="text-xs font-semibold text-foreground">ลากไฟล์ Excel / CSV มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
-                        <div class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์ใบเสนอราคา vFIX หรือ CSV (ระบบจะคัดกรองนำเข้าเฉพาะรายการที่ขึ้นต้นว่า "'งาน" หรือ "งาน")</div>
+                        <div class="text-[10px] text-muted-foreground mt-0.5">รองรับไฟล์ใบเสนอราคา vFIX หรือ CSV (ระบบจะคัดกรองนำเข้าเฉพาะรายการที่ขึ้นต้นว่า "'งาน" หรือ "งาน" โดยไม่ใส่เงินและจำนวน)</div>
                         <div id="boq-file-name" class="mt-2 text-xs font-mono text-emerald-600 font-semibold"></div>
                     </div>
 
