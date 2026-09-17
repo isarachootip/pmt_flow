@@ -598,6 +598,48 @@ paths:
         '200':
           description: Job closed and exported to BMT successfully
 
+  /jobs/{id}/export-stk:
+    post:
+      summary: Export QC Evaluation Results to STK System (Outbound REST API)
+      description: Sends job number, checklist questions, scores obtained, and overall QC score to STK external system.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                job_no:
+                  type: string
+                questions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      question_no:
+                        type: integer
+                      question_title:
+                        type: string
+                      category:
+                        type: string
+                      answer:
+                        type: string
+                      score:
+                        type: number
+                      result:
+                        type: string
+                qc_score:
+                  type: number
+      responses:
+        '200':
+          description: QC results exported to STK successfully
+
   /system/api-logs:
     get:
       summary: Get Inbound API Request Logs

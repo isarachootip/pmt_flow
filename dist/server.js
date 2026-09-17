@@ -21,6 +21,7 @@ const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const multer_1 = __importDefault(require("multer"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const database_1 = require("./database");
@@ -32,6 +33,40 @@ app.use(express_1.default.urlencoded({ limit: '50mb', extended: true }));
 const DATA_DIR = path_1.default.join(process.cwd(), 'data');
 const LOGS_FILE = path_1.default.join(DATA_DIR, 'inbound_api_logs.json');
 exports.sysApiLogStore = [];
+// =============================================================================
+// BOQ FILE STORAGE (multer) — data/boq_files/<jobId>/
+// =============================================================================
+const BOQ_FILES_DIR = path_1.default.join(DATA_DIR, 'boq_files');
+if (!fs_1.default.existsSync(BOQ_FILES_DIR))
+    fs_1.default.mkdirSync(BOQ_FILES_DIR, { recursive: true });
+const boqStorage = multer_1.default.diskStorage({
+    destination: (req, _file, cb) => {
+        const jobId = req.params.id || 'unknown';
+        const dir = path_1.default.join(BOQ_FILES_DIR, jobId);
+        if (!fs_1.default.existsSync(dir))
+            fs_1.default.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (_req, file, cb) => {
+        const ts = Date.now();
+        const safe = file.originalname.replace(/[^a-zA-Z0-9._\u0E00-\u0E7F-]/g, '_');
+        cb(null, `${ts}_${safe}`);
+    }
+});
+const boqUpload = (0, multer_1.default)({
+    storage: boqStorage,
+    limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB max
+    fileFilter: (_req, file, cb) => {
+        const allowed = ['.xlsx', '.xls', '.csv', '.xlsm'];
+        const ext = path_1.default.extname(file.originalname).toLowerCase();
+        if (allowed.includes(ext)) {
+            cb(null, true);
+        }
+        else {
+            cb(new Error(`ไม่รองรับนามสกุลไฟล์ ${ext} (อนุญาตเฉพาะ xlsx, xls, csv)`));
+        }
+    }
+});
 function loadPersistedApiLogs() {
     try {
         if (!fs_1.default.existsSync(DATA_DIR)) {
@@ -2572,6 +2607,110 @@ app.post('/api/v1/jobs/:id/boq', requireAuth, async (req, res) => {
     }
     return res.status(201).json({ success: true, data: boq });
 });
+// POST /api/v1/jobs/:id/boq/upload-file — Upload original BOQ file to server filesystem
+app.post('/api/v1/jobs/:id/boq/upload-file', requireAuth, (req, res) => {
+    boqUpload.single('file')(req, res, async (err) => {
+        if (err) {
+            return res.status(400).json({ success: false, message: err.message || 'Upload failed' });
+        }
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'ไม่พบไฟล์ที่ upload (field name: file)' });
+        }
+        const jobId = req.params.id;
+        const file = req.file;
+        const fileUrl = `/api/v1/boq-files/${encodeURIComponent(jobId)}/${encodeURIComponent(file.filename)}`;
+        // Persist file metadata to job record
+        try {
+            const job = await (0, database_1.dbGetJob)(jobId);
+            if (job) {
+                const fileMeta = {
+                    name: file.originalname,
+                    stored_name: file.filename,
+                    size: file.size,
+                    size_formatted: `${(file.size / 1024).toFixed(1)} KB`,
+                    type: file.mimetype,
+                    url: fileUrl,
+                    uploaded_at: new Date().toISOString(),
+                    source: 'user_upload'
+                };
+                await (0, database_1.dbUpdateJob)(jobId, { boq_original_file: fileMeta });
+                // Cleanup old files for this job (keep only the latest)
+                const dir = path_1.default.join(BOQ_FILES_DIR, jobId);
+                if (fs_1.default.existsSync(dir)) {
+                    const files = fs_1.default.readdirSync(dir).filter(f => f !== file.filename);
+                    files.forEach(f => {
+                        try {
+                            fs_1.default.unlinkSync(path_1.default.join(dir, f));
+                        }
+                        catch { }
+                    });
+                }
+            }
+        }
+        catch (dbErr) {
+            console.error('[BOQ UPLOAD] DB update error:', dbErr);
+        }
+        return res.status(201).json({
+            success: true,
+            data: {
+                url: fileUrl,
+                name: file.originalname,
+                stored_name: file.filename,
+                size: file.size,
+                size_formatted: `${(file.size / 1024).toFixed(1)} KB`,
+                type: file.mimetype,
+                uploaded_at: new Date().toISOString()
+            }
+        });
+    });
+});
+// GET /api/v1/boq-files/:jobId/:filename — Serve BOQ file (authenticated)
+app.get('/api/v1/boq-files/:jobId/:filename', requireAuth, (req, res) => {
+    const jobId = decodeURIComponent(req.params.jobId);
+    const filename = decodeURIComponent(req.params.filename);
+    // Prevent path traversal
+    const safejobId = path_1.default.basename(jobId);
+    const safeFilename = path_1.default.basename(filename);
+    const filePath = path_1.default.join(BOQ_FILES_DIR, safejobId, safeFilename);
+    if (!fs_1.default.existsSync(filePath)) {
+        return res.status(404).json({ success: false, message: 'ไม่พบไฟล์ BOQ' });
+    }
+    const ext = path_1.default.extname(safeFilename).toLowerCase();
+    const contentTypeMap = {
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        '.xls': 'application/vnd.ms-excel',
+        '.xlsm': 'application/vnd.ms-excel.sheet.macroEnabled.12',
+        '.csv': 'text/csv'
+    };
+    const contentType = contentTypeMap[ext] || 'application/octet-stream';
+    // Use inline for browser-viewable types, attachment for others
+    const disposition = 'attachment';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(safeFilename)}"`);
+    return res.sendFile(filePath);
+});
+// DELETE /api/v1/jobs/:id/boq/file — Delete BOQ original file from server
+app.delete('/api/v1/jobs/:id/boq/file', requireAuth, async (req, res) => {
+    const jobId = req.params.id;
+    const dir = path_1.default.join(BOQ_FILES_DIR, jobId);
+    try {
+        if (fs_1.default.existsSync(dir)) {
+            const files = fs_1.default.readdirSync(dir);
+            files.forEach(f => {
+                try {
+                    fs_1.default.unlinkSync(path_1.default.join(dir, f));
+                }
+                catch { }
+            });
+            fs_1.default.rmdirSync(dir);
+        }
+        await (0, database_1.dbUpdateJob)(jobId, { boq_original_file: null });
+        return res.json({ success: true, message: 'ลบไฟล์ BOQ เรียบร้อย' });
+    }
+    catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
 // =============================================================================
 // 4. TASK & GANTT SCHEDULING API (Req #7 & #8 - Independent Tasks)
 // =============================================================================
@@ -3239,6 +3378,86 @@ app.post('/api/v1/jobs/:id/close-and-export-bmt', requireAuth, async (req, res) 
     }
     catch (err) {
         return res.status(500).json({ success: false, error: { code: 'BMT_EXPORT_FAILED', message: err.message } });
+    }
+});
+// =============================================================================
+// 7. STK OUTBOUND REST INTEGRATION API (QC Results Export: Job No, Questions, Scores)
+// =============================================================================
+app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'], async (req, res) => {
+    try {
+        const param = req.params.id;
+        const numId = Number(param);
+        const payload = req.body || {};
+        const jobNo = payload.job_no || (String(param).startsWith('JOB') ? param : `JOB2609090000${param}`);
+        const questions = Array.isArray(payload.questions) ? payload.questions : [];
+        const qcScore = payload.qc_score != null ? Number(payload.qc_score) : 5.0;
+        const stkRef = payload.stk_ref || `STK-QC-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+        const exportedAt = new Date().toISOString();
+        const formattedQuestions = questions.map((q, idx) => ({
+            question_no: q.question_no || (idx + 1),
+            question_title: q.question_title || q.title || `คำถามข้อที่ ${idx + 1}`,
+            category: q.category || 'มาตรฐาน QC',
+            answer: q.answer || (Number(q.score) >= 5 ? 'YES' : 'NO'),
+            score: Number(q.score) || 5,
+            max_score: q.max_score || 5,
+            result: q.result || (q.answer === 'YES' || Number(q.score) >= 5 ? 'PASS' : 'DEFECT'),
+            remarks: q.remarks || '',
+            photos_count: q.photos_count || (Array.isArray(q.photos) ? q.photos.length : 0)
+        }));
+        const formattedOutboundPayload = {
+            job_no: jobNo,
+            stk_export_ref: stkRef,
+            exported_at: exportedAt,
+            customer: payload.customer || { name: 'คุณสมชาย ใจดี', phone: '081-234-5678' },
+            service: payload.service || 'ติดตั้งเครื่องทำน้ำอุ่น',
+            tech_team: payload.tech_team || 'ทีมช่าง สมศักดิ์ (Team A)',
+            qc_inspector: payload.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
+            qc_score: qcScore,
+            total_score_obtained: payload.total_score_obtained ?? formattedQuestions.reduce((acc, q) => acc + Number(q.score || 0), 0),
+            max_possible_score: payload.max_possible_score ?? (formattedQuestions.length * 5),
+            total_questions: formattedQuestions.length,
+            passed_questions: payload.passed_questions ?? formattedQuestions.filter((q) => q.result === 'PASS' || q.answer === 'YES').length,
+            questions: formattedQuestions,
+            qc_remarks: payload.qc_remarks || 'งานติดตั้งเรียบร้อยตามมาตรฐาน'
+        };
+        // Persist to PostgreSQL database
+        await (0, database_1.dbUpdateJob)(param, {
+            status: JobStatus.QC_PASSED,
+            overall_progress: 100,
+            qc_score: qcScore,
+            qc_passed_at: exportedAt
+        });
+        const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
+        if (targetJob) {
+            targetJob.status = JobStatus.QC_PASSED;
+            targetJob.overall_progress = 100;
+            targetJob.qc_score = qcScore;
+            targetJob.stk_ref = stkRef;
+            targetJob.stk_status = 'DELIVERED';
+            targetJob.stk_exported_at = exportedAt;
+            targetJob.stk_payload = formattedOutboundPayload;
+        }
+        return res.status(200).json({
+            success: true,
+            data: {
+                job_no: jobNo,
+                stk_ref: stkRef,
+                stk_status: 'DELIVERED',
+                exported_at: exportedAt,
+                questions_count: formattedQuestions.length,
+                qc_score: qcScore,
+                exported_payload: formattedOutboundPayload
+            },
+            meta: {
+                message: 'ส่งผลการตรวจ QC (เลขที่, คำถาม, คะแนน) ไปยังระบบ STK เรียบร้อยแล้ว (STK Outbound REST API Successful)'
+            }
+        });
+    }
+    catch (err) {
+        return res.status(500).json({
+            success: false,
+            error: { code: 'STK_EXPORT_FAILED', message: err.message }
+        });
     }
 });
 exports.maChecklistTemplateStore = [

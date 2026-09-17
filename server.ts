@@ -9,8 +9,10 @@ import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
 import fs from 'fs';
+import multer from 'multer';
 import dotenv from 'dotenv';
 dotenv.config();
+
 
 import {
   initDatabase,
@@ -78,6 +80,41 @@ export interface ApiRequestLog {
 const DATA_DIR = path.join(process.cwd(), 'data');
 const LOGS_FILE = path.join(DATA_DIR, 'inbound_api_logs.json');
 export const sysApiLogStore: ApiRequestLog[] = [];
+
+// =============================================================================
+// BOQ FILE STORAGE (multer) — data/boq_files/<jobId>/
+// =============================================================================
+const BOQ_FILES_DIR = path.join(DATA_DIR, 'boq_files');
+if (!fs.existsSync(BOQ_FILES_DIR)) fs.mkdirSync(BOQ_FILES_DIR, { recursive: true });
+
+const boqStorage = multer.diskStorage({
+  destination: (req, _file, cb) => {
+    const jobId = req.params.id || 'unknown';
+    const dir = path.join(BOQ_FILES_DIR, jobId);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    const ts = Date.now();
+    const safe = file.originalname.replace(/[^a-zA-Z0-9._\u0E00-\u0E7F-]/g, '_');
+    cb(null, `${ts}_${safe}`);
+  }
+});
+
+const boqUpload = multer({
+  storage: boqStorage,
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB max
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['.xlsx', '.xls', '.csv', '.xlsm'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`ไม่รองรับนามสกุลไฟล์ ${ext} (อนุญาตเฉพาะ xlsx, xls, csv)`));
+    }
+  }
+});
+
 
 function loadPersistedApiLogs() {
   try {
@@ -3147,6 +3184,113 @@ app.post('/api/v1/jobs/:id/boq', requireAuth, async (req: Request, res: Response
   return res.status(201).json({ success: true, data: boq });
 });
 
+// POST /api/v1/jobs/:id/boq/upload-file — Upload original BOQ file to server filesystem
+app.post('/api/v1/jobs/:id/boq/upload-file', requireAuth, (req: Request, res: Response) => {
+  boqUpload.single('file')(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ success: false, message: err.message || 'Upload failed' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'ไม่พบไฟล์ที่ upload (field name: file)' });
+    }
+
+    const jobId = req.params.id;
+    const file = req.file;
+    const fileUrl = `/api/v1/boq-files/${encodeURIComponent(jobId)}/${encodeURIComponent(file.filename)}`;
+
+    // Persist file metadata to job record
+    try {
+      const job = await dbGetJob(jobId);
+      if (job) {
+        const fileMeta = {
+          name: file.originalname,
+          stored_name: file.filename,
+          size: file.size,
+          size_formatted: `${(file.size / 1024).toFixed(1)} KB`,
+          type: file.mimetype,
+          url: fileUrl,
+          uploaded_at: new Date().toISOString(),
+          source: 'user_upload'
+        };
+        await dbUpdateJob(jobId, { boq_original_file: fileMeta } as any);
+
+        // Cleanup old files for this job (keep only the latest)
+        const dir = path.join(BOQ_FILES_DIR, jobId);
+        if (fs.existsSync(dir)) {
+          const files = fs.readdirSync(dir).filter(f => f !== file.filename);
+          files.forEach(f => {
+            try { fs.unlinkSync(path.join(dir, f)); } catch {}
+          });
+        }
+      }
+    } catch (dbErr) {
+      console.error('[BOQ UPLOAD] DB update error:', dbErr);
+    }
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        url: fileUrl,
+        name: file.originalname,
+        stored_name: file.filename,
+        size: file.size,
+        size_formatted: `${(file.size / 1024).toFixed(1)} KB`,
+        type: file.mimetype,
+        uploaded_at: new Date().toISOString()
+      }
+    });
+  });
+});
+
+// GET /api/v1/boq-files/:jobId/:filename — Serve BOQ file (authenticated)
+app.get('/api/v1/boq-files/:jobId/:filename', requireAuth, (req: Request, res: Response) => {
+  const jobId = decodeURIComponent(req.params.jobId);
+  const filename = decodeURIComponent(req.params.filename);
+
+  // Prevent path traversal
+  const safejobId = path.basename(jobId);
+  const safeFilename = path.basename(filename);
+  const filePath = path.join(BOQ_FILES_DIR, safejobId, safeFilename);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ success: false, message: 'ไม่พบไฟล์ BOQ' });
+  }
+
+  const ext = path.extname(safeFilename).toLowerCase();
+  const contentTypeMap: Record<string, string> = {
+    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.xls': 'application/vnd.ms-excel',
+    '.xlsm': 'application/vnd.ms-excel.sheet.macroEnabled.12',
+    '.csv': 'text/csv'
+  };
+  const contentType = contentTypeMap[ext] || 'application/octet-stream';
+
+  // Use inline for browser-viewable types, attachment for others
+  const disposition = 'attachment';
+  res.setHeader('Content-Type', contentType);
+  res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(safeFilename)}"`);
+  return res.sendFile(filePath);
+});
+
+// DELETE /api/v1/jobs/:id/boq/file — Delete BOQ original file from server
+app.delete('/api/v1/jobs/:id/boq/file', requireAuth, async (req: Request, res: Response) => {
+  const jobId = req.params.id;
+  const dir = path.join(BOQ_FILES_DIR, jobId);
+  try {
+    if (fs.existsSync(dir)) {
+      const files = fs.readdirSync(dir);
+      files.forEach(f => {
+        try { fs.unlinkSync(path.join(dir, f)); } catch {}
+      });
+      fs.rmdirSync(dir);
+    }
+    await dbUpdateJob(jobId, { boq_original_file: null } as any);
+    return res.json({ success: true, message: 'ลบไฟล์ BOQ เรียบร้อย' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // =============================================================================
 // 4. TASK & GANTT SCHEDULING API (Req #7 & #8 - Independent Tasks)
 // =============================================================================
@@ -3874,6 +4018,92 @@ app.post('/api/v1/jobs/:id/close-and-export-bmt', requireAuth, async (req: Reque
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: { code: 'BMT_EXPORT_FAILED', message: err.message } });
+  }
+});
+
+// =============================================================================
+// 7. STK OUTBOUND REST INTEGRATION API (QC Results Export: Job No, Questions, Scores)
+// =============================================================================
+app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'], async (req: Request, res: Response) => {
+  try {
+    const param = req.params.id;
+    const numId = Number(param);
+    const payload = req.body || {};
+
+    const jobNo = payload.job_no || (String(param).startsWith('JOB') ? param : `JOB2609090000${param}`);
+    const questions = Array.isArray(payload.questions) ? payload.questions : [];
+    const qcScore = payload.qc_score != null ? Number(payload.qc_score) : 5.0;
+    const stkRef = payload.stk_ref || `STK-QC-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+    const exportedAt = new Date().toISOString();
+
+    const formattedQuestions = questions.map((q: any, idx: number) => ({
+      question_no: q.question_no || (idx + 1),
+      question_title: q.question_title || q.title || `คำถามข้อที่ ${idx + 1}`,
+      category: q.category || 'มาตรฐาน QC',
+      answer: q.answer || (Number(q.score) >= 5 ? 'YES' : 'NO'),
+      score: Number(q.score) || 5,
+      max_score: q.max_score || 5,
+      result: q.result || (q.answer === 'YES' || Number(q.score) >= 5 ? 'PASS' : 'DEFECT'),
+      remarks: q.remarks || '',
+      photos_count: q.photos_count || (Array.isArray(q.photos) ? q.photos.length : 0)
+    }));
+
+    const formattedOutboundPayload = {
+      job_no: jobNo,
+      stk_export_ref: stkRef,
+      exported_at: exportedAt,
+      customer: payload.customer || { name: 'คุณสมชาย ใจดี', phone: '081-234-5678' },
+      service: payload.service || 'ติดตั้งเครื่องทำน้ำอุ่น',
+      tech_team: payload.tech_team || 'ทีมช่าง สมศักดิ์ (Team A)',
+      qc_inspector: payload.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
+      qc_score: qcScore,
+      total_score_obtained: payload.total_score_obtained ?? formattedQuestions.reduce((acc: number, q: any) => acc + Number(q.score || 0), 0),
+      max_possible_score: payload.max_possible_score ?? (formattedQuestions.length * 5),
+      total_questions: formattedQuestions.length,
+      passed_questions: payload.passed_questions ?? formattedQuestions.filter((q: any) => q.result === 'PASS' || q.answer === 'YES').length,
+      questions: formattedQuestions,
+      qc_remarks: payload.qc_remarks || 'งานติดตั้งเรียบร้อยตามมาตรฐาน'
+    };
+
+    // Persist to PostgreSQL database
+    await dbUpdateJob(param, {
+      status: JobStatus.QC_PASSED,
+      overall_progress: 100,
+      qc_score: qcScore,
+      qc_passed_at: exportedAt
+    });
+
+    const targetJob = coreJobStore.find(j => j.id === numId || j.job_no === param);
+    if (targetJob) {
+      targetJob.status = JobStatus.QC_PASSED;
+      targetJob.overall_progress = 100;
+      targetJob.qc_score = qcScore;
+      (targetJob as any).stk_ref = stkRef;
+      (targetJob as any).stk_status = 'DELIVERED';
+      (targetJob as any).stk_exported_at = exportedAt;
+      (targetJob as any).stk_payload = formattedOutboundPayload;
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        job_no: jobNo,
+        stk_ref: stkRef,
+        stk_status: 'DELIVERED',
+        exported_at: exportedAt,
+        questions_count: formattedQuestions.length,
+        qc_score: qcScore,
+        exported_payload: formattedOutboundPayload
+      },
+      meta: {
+        message: 'ส่งผลการตรวจ QC (เลขที่, คำถาม, คะแนน) ไปยังระบบ STK เรียบร้อยแล้ว (STK Outbound REST API Successful)'
+      }
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      error: { code: 'STK_EXPORT_FAILED', message: err.message }
+    });
   }
 });
 

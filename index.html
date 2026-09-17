@@ -3151,7 +3151,7 @@
                                     </div>
                                     <div class="flex items-baseline justify-between mt-1">
                                         <span class="text-lg font-bold font-display text-foreground" id="qc-dist-passed-count">0</span>
-                                        <span class="text-[10px] text-muted-foreground">ส่งต่อ CSAT</span>
+                                        <span class="text-[10px] text-muted-foreground">ส่งผลไป STK</span>
                                     </div>
                                 </div>
 
@@ -3191,7 +3191,7 @@
                                         คู่มือการทำงาน & สรุปฟีเจอร์สำคัญของขั้นตอน QC (Step 4 SOP & Feature Guide)
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/25 hidden sm:inline-flex">มาตรฐาน Zero-Defect</span>
                                     </h4>
-                                    <p class="text-[11px] text-muted-foreground">ข้อกำหนดเฉพาะงาน Renovate (Advance Draft QC Booking), การประเมินและให้คะแนนงานย่อย BOQ 1-5 ดาว, และเงื่อนไขส่งต่อ CSAT 100%</p>
+                                    <p class="text-[11px] text-muted-foreground">ข้อกำหนดเฉพาะงาน Renovate (Advance Draft QC Booking), การประเมินและให้คะแนนงานย่อย BOQ 1-5 ดาว, และเงื่อนไขยิง API ส่งผลตรวจไป STK 100%</p>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
@@ -3253,12 +3253,12 @@
                                 <div class="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-2">
                                     <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
                                         <i class="ph ph-shield-check text-base"></i>
-                                        <span>4. กฎเหล็กส่งต่อ CSAT 100%</span>
+                                        <span>4. กฎเหล็กส่งข้อมูลไป STK 100%</span>
                                     </div>
                                     <ul class="space-y-1.5 text-[11px] text-muted-foreground leading-relaxed">
                                         <li>• <strong>Strict Gating:</strong> ต้องตรวจและประเมินงานย่อยครบ 100% จึงจะปลดล็อกปุ่มอนุมัติ</li>
                                         <li>• <strong>Progress Bar:</strong> แถบวัดความคืบหน้าแจ้งเตือนชัดเจนหากยังตรวจไม่ครบ</li>
-                                        <li>• <strong>Dispatch to Step 6:</strong> เมี่อกดอนุมัติ สถานะเปลี่ยนเป็น <span class="font-mono text-[10px] font-bold text-emerald-600">QC_PASSED</span> และส่งต่องานเข้าคิว CSAT ทันที</li>
+                                        <li>• <strong>Dispatch to STK:</strong> เมี่อกดอนุมัติ สถานะเปลี่ยนเป็น <span class="font-mono text-[10px] font-bold text-emerald-600">QC_PASSED</span> และยิง REST API ส่งข้อมูลผลตรวจ (เลขที่, คำถาม, คะแนน) ไปยังระบบ STK ทันที</li>
                                     </ul>
                                 </div>
                             </div>
@@ -3271,7 +3271,7 @@
                             <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 flex items-center justify-center font-bold text-xs shrink-0">🛡️</span>
                             <div>
                                 <span class="font-bold">คิวงานตรวจสอบคุณภาพ (QC Inspection Queue):</span>
-                                <span class="text-muted-foreground ml-1">แสดงรายการงานที่อยู่ในขั้นตอน QC คลิกที่รายการเพื่อเปิดดูรายละเอียด ประเมินและให้คะแนนงานย่อยตาม BOQ แนบรูปภาพเฉพาะแต่ละงาน และบันทึกผลส่งต่อ CSAT</span>
+                                <span class="text-muted-foreground ml-1">แสดงรายการงานที่อยู่ในขั้นตอน QC คลิกที่รายการเพื่อเปิดดูรายละเอียด ประเมินและให้คะแนนงานย่อยตาม BOQ แนบรูปภาพเฉพาะแต่ละงาน และบันทึกผลส่ง API ไปยังระบบ STK</span>
                             </div>
                         </div>
                         <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold shrink-0">QC State Queue</span>
@@ -6303,9 +6303,9 @@
                         <i class="ph ph-arrow-u-down-left"></i>
                         <span>❌ แจ้งช่างแก้ไขงาน (Rework)</span>
                     </button>
-                    <button type="button" id="btn-qc-approve-csat" onclick="app.approveCurrentJobToCSAT()" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                        <i class="ph ph-check-circle text-base"></i>
-                        <span id="btn-qc-approve-csat-label">✓ อนุมัติผ่านเกณฑ์ QC & ส่งต่อ CSAT</span>
+                    <button type="button" id="btn-qc-approve-csat" onclick="app.approveCurrentJobToSTK()" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                        <i class="ph ph-paper-plane-tilt text-base"></i>
+                        <span id="btn-qc-approve-csat-label">✓ อนุมัติผ่านเกณฑ์ QC & ส่งข้อมูลไป STK</span>
                     </button>
                 </div>
             </div>

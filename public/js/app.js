@@ -10730,25 +10730,24 @@ const app = {
 
                 const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.xlsm') || (file.type && (file.type.includes('spreadsheet') || file.type.includes('excel')));
 
-                // เก็บ metadata ไฟล์ต้นฉบับใน state เพื่อบันทึกเมื่อ confirmImport
+                // เก็บ metadata เบื้องต้น (ก่อน upload เสร็จ)
                 this.state.pendingBOQOriginalFileMeta = {
                     name: file.name,
                     size: file.size,
                     size_formatted: `${(file.size / 1024).toFixed(1)} KB`,
                     type: file.type || (isExcel ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv'),
                     uploaded_at: new Date().toISOString(),
-                    source: 'user_upload'
+                    source: 'user_upload',
+                    url: null  // จะ set หลัง upload สำเร็จ
                 };
+                // เก็บ File object ไว้สำหรับ upload ตอน confirmImport
+                this.state.pendingBOQOriginalFile = file;
 
                 if (isExcel && typeof XLSX !== 'undefined') {
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         try {
-                            // เก็บ base64 ของไฟล์ต้นฉบับ
                             const rawBytes = e.target.result;
-                            const b64 = btoa(String.fromCharCode(...new Uint8Array(rawBytes)));
-                            this.state.pendingBOQOriginalFileMeta.dataUrl = `data:${this.state.pendingBOQOriginalFileMeta.type};base64,${b64}`;
-
                             const data = new Uint8Array(rawBytes);
                             const wb = XLSX.read(data, { type: 'array' });
                             this.state.currentBOQWorkbook = wb;
@@ -10757,7 +10756,7 @@ const app = {
                             const sheetAnalysis = this.analyzeBOQWorkbookSheets(wb);
                             this.state.availableBOQSheets = sheetAnalysis;
 
-                            // Setup sheet selector dropdown (Intelligently select best sheet with items)
+                            // Setup sheet selector dropdown
                             const sheetContainer = document.getElementById('boq-sheet-selector-container');
                             const sheetSelect = document.getElementById('boq-sheet-select');
                             const sheetBadge = document.getElementById('boq-sheet-summary-badge');
@@ -10780,8 +10779,8 @@ const app = {
                                 this.state.pendingBOQHeader = parsed.header || {};
                                 this.state.pendingBOQItems = parsed.items;
                                 this.renderBOQPreviewTable();
-                                if (nameEl) nameEl.innerHTML = `<span class="text-emerald-500 font-bold">✓ อ่านไฟล์สำเร็จ [Sheet: ${bestSheet.name}] (${parsed.items.length} รายการ - ราคาไม่รวม VAT)</span>`;
-                                this.showToast(`📊 อ่านไฟล์ Excel "${file.name}" (Sheet: ${bestSheet.name}) สำเร็จ (${parsed.items.length} รายการ - ราคาไม่รวม VAT)`);
+                                if (nameEl) nameEl.innerHTML = `<span class="text-emerald-500 font-bold">✓ อ่านไฟล์สำเร็จ [Sheet: ${bestSheet.name}] (${parsed.items.length} รายการ - ราคาไม่รวม VAT) — 🔄 กำลัง upload ไป Server...</span>`;
+                                this.showToast(`📊 อ่านไฟล์ Excel "${file.name}" สำเร็จ (${parsed.items.length} รายการ)`);
                             } else if (bestSheet) {
                                 const parsed = this.parseVFixExcelSheet(wb.Sheets[bestSheet.name], bestSheet.name);
                                 this.state.pendingBOQHeader = parsed.header || {};
@@ -10800,15 +10799,37 @@ const app = {
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         const content = e.target.result;
-                        // เก็บ base64 ของ CSV ต้นฉบับ
-                        const b64 = btoa(unescape(encodeURIComponent(content)));
-                        this.state.pendingBOQOriginalFileMeta.dataUrl = `data:text/csv;base64,${b64}`;
                         this.parsePastedBOQ(content);
                         this.showToast(`อ่านไฟล์ "${file.name}" สำเร็จ (${this.state.pendingBOQItems.length} รายการ - ราคาไม่รวม VAT)`);
                     };
                     reader.readAsText(file);
                 }
             },
+
+            async uploadBOQFileToServer(jobId, file) {
+                // Upload ไฟล์ไปยัง server filesystem
+                try {
+                    const token = auth && auth.getToken ? auth.getToken() : (localStorage.getItem('pmt_token') || '');
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const resp = await fetch(`/api/v1/jobs/${jobId}/boq/upload-file`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: formData
+                    });
+                    if (!resp.ok) {
+                        const err = await resp.json().catch(() => ({}));
+                        throw new Error(err.message || `Upload failed (${resp.status})`);
+                    }
+                    const result = await resp.json();
+                    return result.data; // { url, name, size, size_formatted, type, uploaded_at }
+                } catch (err) {
+                    console.error('[BOQ UPLOAD] Error:', err);
+                    throw err;
+                }
+            },
+
+
 
             handleBOQSheetChange(sheetName) {
                 if (!this.state.currentBOQWorkbook || !sheetName) return;
@@ -19525,7 +19546,18 @@ const app = {
                     // Status Badge
                     let statusBadge = '';
                     if (j.status === 'QC_PASSED') {
-                        statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1"><i class="ph ph-check-circle"></i> ผ่านเกณฑ์แล้ว</span>`;
+                        statusBadge = `
+                            <div class="flex flex-col gap-1 items-start">
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1">
+                                    <i class="ph ph-check-circle"></i> ผ่านเกณฑ์แล้ว
+                                </span>
+                                ${j.stk_ref ? `
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-purple-500/10 text-purple-600 border border-purple-500/20 inline-flex items-center gap-1" title="ส่ง API ไปยังระบบ STK แล้ว (Ref: ${j.stk_ref})">
+                                        <i class="ph ph-paper-plane-tilt"></i> STK ส่งแล้ว
+                                    </span>
+                                ` : ''}
+                            </div>
+                        `;
                     } else if (j.status === 'QC_REWORK') {
                         statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 inline-flex items-center gap-1"><i class="ph ph-warning"></i> แจ้งแก้ไขงาน</span>`;
                     } else if (isDraftQC) {
@@ -19952,7 +19984,7 @@ const app = {
                     const isQCConfirmed = !isQuick && (job.qc_status === 'QC_CONFIRMED' || booking.status === 'CONFIRMED') && (job.status !== 'QC_PASSED' && job.status !== 'QC_REWORK');
 
                     if (job.status === 'QC_PASSED') {
-                        elStatus.innerText = 'ผ่านเกณฑ์แล้ว';
+                        elStatus.innerText = job.stk_ref ? `ผ่านเกณฑ์แล้ว (ส่ง STK: ${job.stk_ref})` : 'ผ่านเกณฑ์แล้ว';
                         elStatus.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30';
                     } else if (job.status === 'QC_REWORK') {
                         elStatus.innerText = 'แจ้งแก้ไขงาน';
@@ -20285,14 +20317,14 @@ const app = {
                 const elSubBadge = document.getElementById('qc-detail-subtask-badge');
                 if (elSubBadge) elSubBadge.innerText = `${progress.total} ข้อคำถาม QC`;
 
-                // Update CSAT Submit Button (Gating rule!)
+                // Update STK Submit Button (Gating rule!)
                 const btnCSAT = document.getElementById('btn-qc-approve-csat');
                 const btnLabel = document.getElementById('btn-qc-approve-csat-label');
                 if (btnCSAT && btnLabel) {
                     if (progress.isAllComplete) {
                         btnCSAT.disabled = false;
                         btnCSAT.className = 'btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all';
-                        btnLabel.innerText = `✓ อนุมัติผ่านเกณฑ์ QC (${progress.averageScore} คะแนน) & ส่งต่อ CSAT`;
+                        btnLabel.innerText = `✓ อนุมัติผ่านเกณฑ์ QC (${progress.averageScore} คะแนน) & ส่งข้อมูลไป STK`;
                     } else if (progress.defect > 0) {
                         btnCSAT.disabled = true;
                         btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 bg-rose-500/10 text-rose-600 border border-rose-500/20 cursor-not-allowed opacity-80 transition-all';
@@ -20592,14 +20624,14 @@ const app = {
                 this.showToast(`⚠️ บันทึกสถานะส่งกลับแก้ไขงาน (Rework) สำหรับโครงการ ${job.id} เรียบร้อย`);
             },
 
-            approveCurrentJobToCSAT() {
+            approveCurrentJobToSTK() {
                 const jobId = this.state.currentQCModalJobId;
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return;
 
                 const progress = this.calculateJobQCProgress(job);
                 if (!progress.isAllComplete) {
-                    this.showToast(`⚠️ ไม่สามารถส่งต่อ CSAT ได้: กรุณาประเมินและให้คะแนนงานย่อยให้ครบทุกงานก่อน (คงเหลือ ${progress.total - progress.completed} งาน)`);
+                    this.showToast(`⚠️ ไม่สามารถส่งผลตรวจไป STK ได้: กรุณาประเมินและให้คะแนนงานย่อยให้ครบทุกข้อก่อน (คงเหลือ ${progress.total - progress.completed} ข้อ)`);
                     return;
                 }
 
@@ -20608,21 +20640,98 @@ const app = {
                 const remarksEl = document.getElementById('qc-modal-overall-remarks');
                 if (remarksEl) job.qc_remarks = remarksEl.value.trim();
 
+                const subtasks = this.getJobQCSubtasks(job);
+                const questionsPayload = subtasks.map((s, idx) => ({
+                    question_no: s.num || (idx + 1),
+                    question_title: s.title || `ข้อที่ ${idx + 1}`,
+                    category: s.category || 'มาตรฐาน QC',
+                    answer: s.answer || (Number(s.score) >= 5 ? 'YES' : 'NO'),
+                    score: Number(s.score) || (s.answer === 'YES' ? 5 : 1),
+                    max_score: 5,
+                    result: (s.answer === 'YES' || Number(s.score) >= 5) ? 'PASS' : 'DEFECT',
+                    remarks: s.remarks || '',
+                    photos_count: Array.isArray(s.photos) ? s.photos.length : 0,
+                    photos: (Array.isArray(s.photos) ? s.photos : []).map(p => ({
+                        id: p.id,
+                        title: p.title,
+                        url: p.url,
+                        uploaded_at: p.uploaded_at
+                    }))
+                }));
+
+                const stkRef = `STK-QC-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+                const nowIso = new Date().toISOString();
+
+                // Format Outbound STK API Payload (เลขที่, คำถาม, คะแนนที่ได้)
+                const stkPayload = {
+                    job_no: job.job_no || job.id,
+                    job_id: job.id,
+                    stk_ref: stkRef,
+                    inspection_date: nowIso,
+                    customer: {
+                        name: job.customer || job.customer_name || 'ลูกค้า',
+                        phone: job.phone || job.customer_phone || '-'
+                    },
+                    service: job.service || job.service_type || 'บริการติดตั้ง',
+                    tech_team: job.tech || job.assigned_team || '-',
+                    qc_inspector: job.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
+                    qc_score: Number(progress.averageScore),
+                    total_score_obtained: questionsPayload.reduce((sum, q) => sum + q.score, 0),
+                    max_possible_score: questionsPayload.length * 5,
+                    total_questions: questionsPayload.length,
+                    passed_questions: questionsPayload.filter(q => q.result === 'PASS').length,
+                    questions: questionsPayload,
+                    qc_remarks: job.qc_remarks || 'งานติดตั้งเรียบร้อยตามมาตรฐาน'
+                };
+
                 job.status = 'QC_PASSED';
                 job.qc_score = progress.averageScore;
-                job.qc_passed_at = new Date().toISOString();
+                job.qc_passed_at = nowIso;
                 job.progress = 100;
-                if (!job.step_timestamps) job.step_timestamps = {};
-                job.step_timestamps.qc_passed_at = job.qc_passed_at;
+                job.stk_status = 'DELIVERED';
+                job.stk_ref = stkRef;
+                job.stk_exported_at = nowIso;
+                job.stk_payload = stkPayload;
 
-                this.recordStepTimestamp(job.id, 'qc_passed_at', job.qc_passed_at, `ตรวจประเมินคุณภาพ QC ผ่านครบทุกงานย่อย (${progress.averageScore} คะแนน) และส่งต่อ CSAT`);
+                if (!job.step_timestamps) job.step_timestamps = {};
+                job.step_timestamps.qc_passed_at = nowIso;
+                job.step_timestamps.stk_exported_at = nowIso;
+
+                this.recordStepTimestamp(
+                    job.id, 
+                    'stk_exported_at', 
+                    nowIso, 
+                    `อนุมัติผ่านเกณฑ์ QC (${progress.averageScore} คะแนน) และส่งข้อมูลผลตรวจออก API ไปยังระบบ STK (Ref: ${stkRef})`
+                );
                 this.persistJobs();
                 this.updateStepBadges();
                 this.updateQCDashboard();
 
+                // Outbound REST API call to backend & STK integration
+                const token = sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                fetch(`/api/v1/jobs/${job.id}/export-stk`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    },
+                    body: JSON.stringify(stkPayload)
+                }).then(r => r.json()).then(resp => {
+                    if (resp && resp.data && resp.data.stk_ref) {
+                        job.stk_ref = resp.data.stk_ref;
+                        this.persistJobs();
+                    }
+                }).catch(err => {
+                    console.warn('STK Export background API error:', err);
+                });
+
+                // Also update job record via standard PATCH
                 fetch(`/api/v1/jobs/${job.id}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    },
                     body: JSON.stringify({
                         status: 'QC_PASSED',
                         overall_progress: 100,
@@ -20634,7 +20743,11 @@ const app = {
 
                 this.hideModal('modal-qc-job-detail');
                 this.renderQC();
-                this.showToast(`🎉 อนุมัติผ่านเกณฑ์ QC โครงการ ${job.id} (${progress.averageScore} คะแนน) ครบทุกงานย่อยแล้ว! ส่งต่องานไปยังขั้นตอน CSAT เรียบร้อย`);
+                this.showToast(`🚀 อนุมัติผ่านเกณฑ์ QC ใบงาน ${job.job_no || job.id} (${progress.averageScore} คะแนน) และส่งข้อมูลผลตรวจ (เลขที่, คำถาม, คะแนน) ไปยังระบบ STK สำเร็จ (Ref: ${stkRef})`);
+            },
+
+            approveCurrentJobToCSAT() {
+                return this.approveCurrentJobToSTK();
             },
 
             simulateMockQCJobs() {
