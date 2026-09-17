@@ -5343,13 +5343,25 @@ const app = {
                 if (metricEl) metricEl.innerText = `${photos.length} รูปถ่าย`;
 
                 if (photos.length === 0) {
+                    const jobId2 = this.state.unifiedStudioJobId || job.id;
                     grid.innerHTML = `
-                        <div class="col-span-full p-6 text-center bg-muted/20 rounded-xl border border-dashed border-border text-muted-foreground">
-                            <i class="ph ph-camera-slash text-2xl text-muted-foreground/60 mb-1"></i>
-                            <p class="text-xs font-medium">ยังไม่มีรูปถ่ายสำรวจหน้างาน</p>
-                            <button type="button" onclick="app.openUnifiedPhotoUpload()" class="mt-2 btn-artifact-secondary px-3 py-1 rounded-lg text-xs font-semibold text-teal-600 hover:underline cursor-pointer">
-                                + อัปโหลดรูปหน้างาน
-                            </button>
+                        <div class="col-span-full">
+                            <div class="flex flex-col items-center justify-center gap-4 py-10 px-6 rounded-2xl border-2 border-dashed border-teal-400/50 bg-teal-50/60 text-center">
+                                <div class="w-16 h-16 rounded-2xl bg-teal-100 flex items-center justify-center text-teal-500">
+                                    <i class="ph ph-camera-plus text-4xl"></i>
+                                </div>
+                                <div class="space-y-1">
+                                    <p class="font-display font-bold text-sm text-foreground">ยังไม่มีรูปถ่ายหน้างาน</p>
+                                    <p class="text-xs text-muted-foreground">กรุณาเพิ่มรูป Check-in, สำรวจหน้างาน และ Check-out<br>อย่างน้อย 1 รูป เพื่อบันทึกสภาพหน้างานจริง</p>
+                                </div>
+                                <button type="button"
+                                    onclick="app.openUnifiedPhotoUpload()"
+                                    class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all hover:scale-105 cursor-pointer">
+                                    <i class="ph ph-camera-plus text-sm"></i>
+                                    <span>เพิ่มรูปภาพหน้างาน</span>
+                                </button>
+                                <p class="text-[10px] text-muted-foreground/70">รองรับ JPG, PNG — ขนาดไม่เกิน 10MB ต่อรูป</p>
+                            </div>
                         </div>
                     `;
                     return;
