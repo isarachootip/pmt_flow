@@ -333,6 +333,36 @@ app.get('/openapi.yaml', (req, res) => {
         return res.sendFile(localOpenapi);
     return res.status(404).send('openapi.yaml not found');
 });
+// Dynamic OpenAPI spec — overrides `servers[0].url` to match the actual request host
+// so Swagger UI on prod.vibepmt.online sends requests to prod, not to DEV.
+app.get('/openapi-dynamic.yaml', (req, res) => {
+    const candidates = [
+        path_1.default.join(__dirname, '../openapi.yaml'),
+        path_1.default.join(__dirname, './openapi.yaml'),
+    ];
+    const yamlPath = candidates.find(p => fs_1.default.existsSync(p));
+    if (!yamlPath)
+        return res.status(404).send('openapi.yaml not found');
+    try {
+        let content = fs_1.default.readFileSync(yamlPath, 'utf-8');
+        // Detect current host (trust X-Forwarded-Host set by reverse proxy)
+        const forwardedHost = req.headers['x-forwarded-host'];
+        const host = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost) || req.hostname;
+        const protocol = req.headers['x-forwarded-proto'] === 'https' || req.secure ? 'https' : 'http';
+        const baseUrl = `${protocol}://${host}/api/v1`;
+        // Replace the entire servers block so Swagger UI uses the correct environment
+        content = content.replace(/^servers:\n(  -[^\n]+\n    description:[^\n]+\n)*/m, `servers:\n  - url: ${baseUrl}\n    description: Current Server (${host})\n  - url: http://localhost:3000/api/v1\n    description: Local Development Server\n`);
+        res.setHeader('Content-Type', 'text/yaml; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        return res.send(content);
+    }
+    catch (err) {
+        console.error('[openapi-dynamic] Failed to read/patch openapi.yaml:', err);
+        return res.status(500).send('Failed to generate dynamic OpenAPI spec');
+    }
+});
 // Export API Specification for Google Sheets & Excel
 app.get(['/SPMT_API_Specification_GoogleSheets.xlsx', '/docs/excel', '/docs/sheet'], (req, res) => {
     const filePaths = [
@@ -445,7 +475,7 @@ const renderSwaggerDocs = (req, res) => {
       <script>
         window.onload = () => {
           window.ui = SwaggerUIBundle({
-            url: '/openapi.yaml?t=' + new Date().getTime(),
+            url: '/openapi-dynamic.yaml?t=' + new Date().getTime(),
             dom_id: '#swagger-ui',
           });
         };
