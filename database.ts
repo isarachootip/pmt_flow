@@ -251,7 +251,9 @@ export async function initDatabase(): Promise<boolean> {
         ADD COLUMN IF NOT EXISTS approval_data JSONB DEFAULT '{}'::jsonb,
         ADD COLUMN IF NOT EXISTS visit_results JSONB DEFAULT '[]'::jsonb,
         ADD COLUMN IF NOT EXISTS remarks_data JSONB DEFAULT '{}'::jsonb,
-        ADD COLUMN IF NOT EXISTS file_int_image TEXT,
+        ADD COLUMN IF NOT EXISTS customer_name VARCHAR(150),
+        ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(50),
+        ADD COLUMN IF NOT EXISTS customer_address TEXT,
         ADD COLUMN IF NOT EXISTS raw_payload JSONB DEFAULT '{}'::jsonb;
 
       ALTER TABLE core_daily_work_logs
@@ -441,12 +443,15 @@ export function mapDbJobRow(row: any): any {
     booking_no: row.booking_no,
     vfix_no: row.booking_no,
     ticket_no: row.ticket_no,
-    customer: customerFullName,
+    customer: row.customer_name || customerFullName,
+    customer_name: row.customer_name || customerFullName,
+    customer_phone: row.customer_phone || cust.phone || cust.mobile_no || '',
+    customer_address: row.customer_address || cust.address || (cust.location?.address) || '',
     customer_data: cust,
-    firstName: cust.first_name || (customerFullName.replace(/^คุณ/, '').trim().split(' ')[0] || ''),
-    lastName: cust.last_name || (customerFullName.replace(/^คุณ/, '').trim().split(' ').slice(1).join(' ') || ''),
-    phone: cust.phone || cust.mobile_no || '',
-    address: cust.address || (cust.location?.address) || '',
+    firstName: cust.first_name || ((row.customer_name || customerFullName).replace(/^คุณ/, '').trim().split(' ')[0] || ''),
+    lastName: cust.last_name || ((row.customer_name || customerFullName).replace(/^คุณ/, '').trim().split(' ').slice(1).join(' ') || ''),
+    phone: row.customer_phone || cust.phone || cust.mobile_no || '',
+    address: row.customer_address || cust.address || (cust.location?.address) || '',
     lat: cust.lat || (cust.location?.latitude) || 13.7563,
     lng: cust.lng || (cust.location?.longitude) || 100.5018,
     google_map_url: cust.google_map_url || (cust.location?.google_map_url) || '',
@@ -557,19 +562,22 @@ export async function dbSaveJob(job: any): Promise<void> {
     const remarksData = job.remarks_data || job.remarks || {};
     const jobDetails = job.job_details || [];
     const rawPayload = job.raw_payload || {};
+    const customerName = job.customer_name || customerData.name || customerData.first_name || 'ลูกค้าทั่วไป';
+    const customerPhone = job.customer_phone || customerData.phone || customerData.mobile_no || '';
+    const customerAddress = job.customer_address || customerData.address || customerData.location?.address || '';
 
     await pool.query(
       `INSERT INTO core_jobs (
         job_no, external_ref_id, booking_no, ticket_no, customer_id, status, job_type,
         step_timestamps, property_type, project_type, project_sub_type, store_code,
         agent_name, assigned_tech, plan_date, services, overall_progress,
-        special_instructions, additional_notes, customer_data, tasks, photos,
+        special_instructions, additional_notes, customer_data, customer_name, customer_phone, customer_address, tasks, photos,
         boq_items, boq_discount, boq_subtotal, boq_grand_total, pmt_accepted, pmt_accepted_at, step3_confirmed,
         job_details, agent_data, store_data, schedule_plan, checkin_data, checkout_data, approval_data,
         visit_results, remarks_data, file_int_image, raw_payload, created_at
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29,
-        $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, COALESCE($41::timestamptz, CURRENT_TIMESTAMP)
+        $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, COALESCE($44::timestamptz, CURRENT_TIMESTAMP)
       ) ON CONFLICT (job_no) DO UPDATE SET
         external_ref_id = EXCLUDED.external_ref_id,
         booking_no = EXCLUDED.booking_no,
@@ -590,6 +598,9 @@ export async function dbSaveJob(job: any): Promise<void> {
         special_instructions = EXCLUDED.special_instructions,
         additional_notes = EXCLUDED.additional_notes,
         customer_data = EXCLUDED.customer_data,
+        customer_name = EXCLUDED.customer_name,
+        customer_phone = EXCLUDED.customer_phone,
+        customer_address = EXCLUDED.customer_address,
         tasks = EXCLUDED.tasks,
         photos = EXCLUDED.photos,
         boq_items = EXCLUDED.boq_items,
@@ -632,6 +643,9 @@ export async function dbSaveJob(job: any): Promise<void> {
         job.special_instructions || null,
         job.additional_notes || null,
         JSON.stringify(customerData),
+        customerName,
+        customerPhone,
+        customerAddress,
         JSON.stringify(job.tasks || []),
         JSON.stringify(job.photos || []),
         JSON.stringify(job.boq_items || []),
