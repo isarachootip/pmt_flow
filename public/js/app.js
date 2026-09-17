@@ -12565,6 +12565,16 @@ const app = {
                     datesEl.innerText = `${startStr} - ${endStr} (${task.days || 1} วัน)`;
                 }
 
+                // Pre-fill manual name if task already has a tech (not from INT)
+                const manualInput = document.getElementById('int-manual-tech-name');
+                if (manualInput) {
+                    manualInput.value = (!task.int_booked && task.tech) ? task.tech : '';
+                    this.state.intManualTechName = manualInput.value;
+                }
+
+                // Reset INT API button state
+                this._resetIntApiBtn();
+
                 // Default select existing tech if matches, or first tech
                 const techs = this.getIntTechnicians();
                 const matchedTech = techs.find(t => t.name === task.tech) || techs[0];
@@ -12628,49 +12638,153 @@ const app = {
                     return;
                 }
 
-                const techs = this.getIntTechnicians();
-                const selectedTech = techs.find(t => t.id === this.state.selectedIntTechId) || techs[0];
                 const task = this.state.convertTasks[taskIdx];
 
-                task.tech = selectedTech.name;
-                task.assignees = [selectedTech.name];
-                task.int_booked = true;
-                task.int_booking_ref = `INT-BOOK-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
+                // ★ Prefer manual name if filled in
+                const manualName = (this.state.intManualTechName || '').trim();
+                let finalTechName, finalTechId, isManual;
+
+                if (manualName) {
+                    finalTechName = manualName;
+                    finalTechId = 'MANUAL';
+                    isManual = true;
+                } else {
+                    const techs = this.getIntTechnicians();
+                    const selectedTech = techs.find(t => t.id === this.state.selectedIntTechId) || techs[0];
+                    finalTechName = selectedTech.name;
+                    finalTechId = selectedTech.id;
+                    isManual = false;
+                }
+
+                task.tech = finalTechName;
+                task.assignees = [finalTechName];
+                task.int_booked = !isManual;
+                task.int_booking_ref = isManual
+                    ? `MANUAL-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`
+                    : `INT-BOOK-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
                 task.int_booked_at = new Date().toISOString();
 
-                // Mock Inbound/Integration API Log for developer inspection
+                // API Log for developer inspection
                 if (Array.isArray(this.state.apiLogs)) {
                     this.state.apiLogs.unshift({
                         id: `REQ-${Date.now().toString().slice(-4)}`,
                         method: 'POST',
-                        path: '/api/v1/int/dispatch-technician',
+                        path: isManual ? '/api/v1/pmt/assign-manual-tech' : '/api/v1/int/dispatch-technician',
                         status: 200,
-                        statusText: '200 OK (INT Dispatch Reserved)',
-                        ip: '10.0.4.15 (INT-Gateway)',
-                        duration: '28 ms',
+                        statusText: isManual ? '200 OK (Manual Assignment)' : '200 OK (INT Dispatch Reserved)',
+                        ip: isManual ? '127.0.0.1 (Local)' : '10.0.4.15 (INT-Gateway)',
+                        duration: isManual ? '2 ms' : '28 ms',
                         timestamp: new Date().toISOString(),
                         reqBody: {
-                            action: 'BOOK_TECHNICIAN',
+                            action: isManual ? 'ASSIGN_MANUAL_TECH' : 'BOOK_TECHNICIAN',
                             job_id: this.state.convertJobId,
                             task_name: task.name,
-                            technician_id: selectedTech.id,
-                            technician_name: selectedTech.name,
+                            technician_id: finalTechId,
+                            technician_name: finalTechName,
                             start_date: task.start,
                             end_date: task.end,
                             booking_ref: task.int_booking_ref,
-                            status: 'RESERVED_AWAITING_SYNC'
+                            status: isManual ? 'MANUAL_ASSIGNED' : 'RESERVED_AWAITING_SYNC'
                         },
                         resBody: {
                             success: true,
                             booking_ref: task.int_booking_ref,
-                            message: `Technician ${selectedTech.name} successfully reserved from INT database (Integration Ready).`
+                            message: isManual
+                                ? `Technician ${finalTechName} manually assigned (no INT sync).`
+                                : `Technician ${finalTechName} successfully reserved from INT database (Integration Ready).`
                         }
                     });
                 }
 
                 this.hideModal('modal-int-technician-booking');
                 this.renderConvertTasksRows();
-                this.showToast(`✅ จองช่าง ${selectedTech.name} จากระบบ INT สำเร็จ (Ref: ${task.int_booking_ref}) [ทำไว้รอเชื่อมต่อ API]`);
+                this.showToast(isManual
+                    ? `👤 มอบหมายช่าง "${finalTechName}" (กรอกมือ) เรียบร้อย`
+                    : `✅ จองช่าง ${finalTechName} จากระบบ INT สำเร็จ (Ref: ${task.int_booking_ref})`
+                );
+            },
+
+            /** Handle manual tech name input — clears INT selection if user types */
+            onManualTechNameInput(value) {
+                this.state.intManualTechName = value.trim();
+                // Visually dim the INT list when manual name is being typed
+                const container = document.getElementById('int-tech-list-container');
+                if (container) {
+                    container.style.opacity = value.trim() ? '0.4' : '1';
+                    container.style.pointerEvents = value.trim() ? 'none' : '';
+                }
+            },
+
+            /** Simulate INT API fetch with loading state */
+            async fetchIntTechnicianList() {
+                const btn = document.getElementById('btn-call-int-api');
+                const icon = document.getElementById('int-api-btn-icon');
+                const label = document.getElementById('int-api-btn-label');
+                const statusText = document.getElementById('int-api-status-text');
+                const countBadge = document.getElementById('int-tech-count-badge');
+
+                if (!btn) return;
+
+                // ── Loading state ──
+                btn.disabled = true;
+                btn.classList.add('opacity-75', 'cursor-not-allowed');
+                btn.classList.remove('hover:bg-indigo-700');
+                if (icon) icon.className = 'ph ph-circle-notch text-sm animate-spin';
+                if (label) label.textContent = 'กำลังเชื่อมต่อ...';
+                if (statusText) { statusText.textContent = 'กำลังดึงข้อมูลจาก INT API...'; statusText.classList.remove('hidden'); }
+
+                try {
+                    // Simulated API delay (replace with real fetch when INT API is ready)
+                    await new Promise(resolve => setTimeout(resolve, 1200));
+
+                    // TODO: Replace with real INT API call, e.g.:
+                    // const res = await fetch('/api/v1/int/technicians?available=true');
+                    // const data = await res.json();
+                    // this.state.intTechniciansCache = data.technicians;
+
+                    // For now: refresh from static list (mock success)
+                    const techs = this.getIntTechnicians();
+                    this.renderIntTechList();
+
+                    // ── Success state ──
+                    if (icon) icon.className = 'ph ph-check-circle text-sm';
+                    if (label) label.textContent = '✔ INT API โหลดแล้ว';
+                    if (statusText) { statusText.textContent = `พบช่างว่าง ${techs.length} คน (ข้อมูล ณ ${new Date().toLocaleTimeString('th-TH')} น.)`; }
+                    if (countBadge) countBadge.textContent = `${techs.length} ช่างว่าง`;
+                    btn.classList.replace('bg-indigo-600', 'bg-emerald-600');
+                    btn.classList.add('hover:bg-emerald-700');
+
+                    this.showToast(`✅ INT API: ดึงรายชื่อช่าง ${techs.length} คนสำเร็จ`);
+                } catch (err) {
+                    // ── Error state ──
+                    if (icon) icon.className = 'ph ph-warning text-sm';
+                    if (label) label.textContent = '⚠ เชื่อมต่อ INT ไม่ได้';
+                    if (statusText) { statusText.textContent = 'เชื่อมต่อ INT API ไม่สำเร็จ — ใช้ข้อมูล Offline'; statusText.classList.add('text-rose-500'); statusText.classList.remove('text-muted-foreground'); }
+                    btn.classList.replace('bg-indigo-600', 'bg-rose-500');
+                    this.showToast('⚠️ INT API ไม่ตอบสนอง — แสดงข้อมูล Offline แทน');
+                } finally {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                }
+            },
+
+            /** Reset INT API button to default state */
+            _resetIntApiBtn() {
+                const btn = document.getElementById('btn-call-int-api');
+                const icon = document.getElementById('int-api-btn-icon');
+                const label = document.getElementById('int-api-btn-label');
+                const statusText = document.getElementById('int-api-status-text');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition cursor-pointer';
+                }
+                if (icon) icon.className = 'ph ph-plugs-connected text-sm';
+                if (label) label.textContent = '⚡ เรียก INT API';
+                if (statusText) { statusText.textContent = ''; statusText.classList.add('hidden'); }
+                // Reset opacity of INT list container
+                const container = document.getElementById('int-tech-list-container');
+                if (container) { container.style.opacity = '1'; container.style.pointerEvents = ''; }
+                this.state.intManualTechName = '';
             },
 
             batchBookAllTechsFromINT() {
