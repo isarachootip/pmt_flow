@@ -110,7 +110,7 @@ const app = {
                                     if (j.activity_logs) {
                                         j.activity_logs.forEach((log, idx) => {
                                             if (idx > 3 && log.thumbnail && log.thumbnail.startsWith('data:')) {
-                                                log.thumbnail = 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=500&auto=format&fit=crop&q=80';
+                                                log.thumbnail = '';
                                             }
                                         });
                                     }
@@ -1505,9 +1505,7 @@ const app = {
                         step1_order_at: job.step_timestamps?.step1_order_at || new Date().toISOString(),
                         step1_survey_at: new Date().toISOString()
                     };
-                    if (!job.photos || job.photos.length === 0) {
-                        job.photos = this.getSampleVisitPlanPhotos(job);
-                    }
+                    job.photos = job.photos || [];
                     job.boq_items = [];
                     job.boq_discount = 0;
                     job.boq_grand_total = 0;
@@ -2265,7 +2263,7 @@ const app = {
                     o.boq_items = [];
                     o.boq_discount = 0;
                     o.boq_grand_total = 0;
-                    o.photos = this.getSampleVisitPlanPhotos(o);
+                    o.photos = [];
                 });
                 DB.jobs = this.sortJobsDescending(JSON.parse(JSON.stringify(mockOrders)));
                 DB.tasks = [];
@@ -2334,48 +2332,7 @@ const app = {
                         additionalDetails: 'ดำเนินการตามแบบแปลน CAD Step 2 และประสานงานเจ้าของบ้านเรียบร้อย',
                         issues: 'พื้นที่ติดตั้งมีความชื้นเล็กน้อย ได้ทำการเป่าแห้งและซีลท่อกันชื้นเรียบร้อย',
                         materialsUsed: 'ท่อร้อยสายไฟ EMT 1/2 นิ้ว (30 ม.), กล่องพักสาย 4x4 (6 ชิ้น), พุกและสกรูยึด',
-                        photos: [
-                            {
-                                id: 'ph_log_1_1',
-                                slot: 1,
-                                url: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&auto=format&fit=crop&q=60',
-                                title: 'รูปที่ 1: ตรวจสอบสภาพหน้างานเดิมและแนวเดินท่อไฟก่อนเริ่มงาน',
-                                phase: 'BEFORE',
-                                uploadedAt: '2026-09-07T08:45:00.000Z'
-                            },
-                            {
-                                id: 'ph_log_1_2',
-                                slot: 2,
-                                url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&auto=format&fit=crop&q=60',
-                                title: 'รูปที่ 2: รื้อถอนสายไฟเก่าและติดตั้งแนวท่อ EMT ผนัง',
-                                phase: 'DURING_1',
-                                uploadedAt: '2026-09-07T11:30:00.000Z'
-                            },
-                            {
-                                id: 'ph_log_1_3',
-                                slot: 3,
-                                url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&auto=format&fit=crop&q=60',
-                                title: 'รูปที่ 3: ติดตั้งกล่องพักสายไฟ 4x4 และท่อเชื่อมต่อ',
-                                phase: 'DURING_2',
-                                uploadedAt: '2026-09-07T14:15:00.000Z'
-                            },
-                            {
-                                id: 'ph_log_1_4',
-                                slot: 4,
-                                url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=60',
-                                title: 'รูปที่ 4: ตรวจสอบความแข็งแรงของจุดยึดและระดับท่อ',
-                                phase: 'TESTING',
-                                uploadedAt: '2026-09-07T16:00:00.000Z'
-                            },
-                            {
-                                id: 'ph_log_1_5',
-                                slot: 5,
-                                url: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=800&auto=format&fit=crop&q=60',
-                                title: 'รูปที่ 5: ภาพรวมพื้นที่หน้างานสิ้นสุดวันที่ 1 ทำความสะอาดเรียบร้อย',
-                                phase: 'AFTER',
-                                uploadedAt: '2026-09-07T17:00:00.000Z'
-                            }
-                        ],
+                        photos: [],
                         isCompleted: false,
                         createdAt: '2026-09-07T17:00:00.000Z'
                     },
@@ -2398,48 +2355,7 @@ const app = {
                         additionalDetails: 'ทดสอบการต่อวงจรเบื้องต้น ไม่มีไฟรั่วหรือลัดวงจร',
                         issues: 'ไม่มีปัญหา การดำเนินงานราบรื่นตามแผนงาน',
                         materialsUsed: 'สายไฟ THW 2.5/4.0 Yazaki, เต้ารับ/สวิตช์ Panasonic Wide Series 8 ชุด, โคมไฟ LED 4 ชุด',
-                        photos: [
-                            {
-                                id: 'ph_log_2_1',
-                                slot: 1,
-                                url: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&auto=format&fit=crop&q=60',
-                                title: 'รูปที่ 1: ตรวจเช็ควัสดุสายไฟและเต้ารับก่อนลงมือร้อยสาย',
-                                phase: 'BEFORE',
-                                uploadedAt: '2026-09-08T08:40:00.000Z'
-                            },
-                            {
-                                id: 'ph_log_2_2',
-                                slot: 2,
-                                url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&auto=format&fit=crop&q=60',
-                                title: 'รูปที่ 2: ดำเนินการร้อยสายไฟ THW เข้าท่อฝังผนัง',
-                                phase: 'DURING_1',
-                                uploadedAt: '2026-09-08T11:00:00.000Z'
-                            },
-                            {
-                                id: 'ph_log_2_3',
-                                slot: 3,
-                                url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&auto=format&fit=crop&q=60',
-                                title: 'รูปที่ 3: เดินสายไฟเข้าตู้พักสายไฟและต่อสายดินอย่างแน่นหนา',
-                                phase: 'DURING_2',
-                                uploadedAt: '2026-09-08T14:30:00.000Z'
-                            },
-                            {
-                                id: 'ph_log_2_4',
-                                slot: 4,
-                                url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=60',
-                                title: 'รูปที่ 4: ทดสอบวัดแรงดันไฟฟ้าด้วยมัลติมิเตอร์ 220V นิ่งเสถียร',
-                                phase: 'TESTING',
-                                uploadedAt: '2026-09-08T16:30:00.000Z'
-                            },
-                            {
-                                id: 'ph_log_2_5',
-                                slot: 5,
-                                url: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=800&auto=format&fit=crop&q=60',
-                                title: 'รูปที่ 5: สภาพพื้นที่เมื่อสิ้นสุดวันที่ 2 เต้ารับติดแน่น ฝ้าเรียบร้อย',
-                                phase: 'AFTER',
-                                uploadedAt: '2026-09-08T17:30:00.000Z'
-                            }
-                        ],
+                        photos: [],
                         isCompleted: false,
                         createdAt: '2026-09-08T17:30:00.000Z'
                     }
@@ -2488,7 +2404,7 @@ const app = {
                             o.boq_items = [];
                             o.boq_discount = 0;
                             o.boq_grand_total = 0;
-                            o.photos = this.getSampleVisitPlanPhotos(o);
+                            o.photos = [];
                         });
                         DB.jobs = this.sortJobsDescending(JSON.parse(JSON.stringify(mockOrders)));
                         DB.tasks = [];
@@ -2543,6 +2459,9 @@ const app = {
                         }
                     }
                 });
+
+                // Auto-Purge: Remove all fake/demo/Unsplash photos from existing stored jobs
+                this.purgeAllMockPhotos();
 
                 // Restore saved tasks
                 const savedTasks = localStorage.getItem('pmt_tasks');
@@ -3235,48 +3154,7 @@ const app = {
                     tech: 'ทีมช่าง สมศักดิ์ (Team A)',
                     instructions: 'ระวังหมาดุ, เข้าหน้างานช่วงเช้า 10:00 น. ตรวจสอบเบรกเกอร์ ELCB',
                     notes: 'Order ส่งตรงจากระบบ INT (Inbound API #1) ลูกค้าเตรียมพื้นที่ติดตั้งพร้อมสายไฟเมนเบอร์ 4 แล้ว',
-                    samplePhotos: [
-                        {
-                            id: 'INT-PHT-01',
-                            title: '1. จุดติดตั้งเครื่องทำน้ำอุ่นเดิมในห้องน้ำ',
-                            name: '01_waterheater_site.jpg',
-                            url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'จุดติดตั้งเดิม'
-                        },
-                        {
-                            id: 'INT-PHT-02',
-                            title: '2. ตู้คอนซูเมอร์ยูนิตและเบรกเกอร์ ELCB',
-                            name: '02_circuit_breaker.jpg',
-                            url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'ระบบไฟ'
-                        },
-                        {
-                            id: 'INT-PHT-03',
-                            title: '3. จุดเดินท่อน้ำดีและสต็อปวาล์วใต้อ่าง/ฝักบัว',
-                            name: '03_water_inlet_valve.jpg',
-                            url: 'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'ระบบท่อน้ำ'
-                        },
-                        {
-                            id: 'INT-PHT-04',
-                            title: '4. จุดตอกหลักดิน Ground Rod และสายดิน',
-                            name: '04_grounding_rod.jpg',
-                            url: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'ระบบสายดิน'
-                        },
-                        {
-                            id: 'INT-PHT-05',
-                            title: '5. พื้นที่ทำงานและทางเดินเข้าห้องน้ำ',
-                            name: '05_bathroom_access.jpg',
-                            url: 'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'พื้นที่ปฏิบัติงาน'
-                        }
-                    ]
+                    samplePhotos: []
                 },
                 air_con: {
                     firstName: 'กิตติศักดิ์',
@@ -3290,48 +3168,7 @@ const app = {
                     tech: 'ทีมช่าง เอกชัย (Team B)',
                     instructions: 'คอนโดชั้น 14 ติดต่อนิติบุคคลแลกบัตรก่อนขึ้นอาคาร, มีขาแขวนคอยล์ร้อนเดิม',
                     notes: 'แอร์ Inverter 18,000 BTU ท่อน้ำยายาว 4 เมตร รวมติดตั้งเบรกเกอร์และท่อครอบสายไฟ',
-                    samplePhotos: [
-                        {
-                            id: 'INT-PHT-06',
-                            title: '1. ตำแหน่งเจาะรูท่อน้ำยาแอร์และผนังติดตั้งคอยล์เย็น',
-                            name: '01_aircon_wall.jpg',
-                            url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'ตำแหน่งติดตั้ง'
-                        },
-                        {
-                            id: 'INT-PHT-07',
-                            title: '2. ระเบียงคอนโดจุดวางคอนเดนซิ่งยูนิตคอยล์ร้อน',
-                            name: '02_aircon_balcony.jpg',
-                            url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'จุดวางคอยล์ร้อน'
-                        },
-                        {
-                            id: 'INT-PHT-08',
-                            title: '3. เบรกเกอร์ควบคุมและแนวเดินท่อร้อยสายไฟ',
-                            name: '03_aircon_breaker.jpg',
-                            url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'ระบบไฟฟ้า'
-                        },
-                        {
-                            id: 'INT-PHT-09',
-                            title: '4. แนวท่อน้ำทิ้งแอร์และจุดระบายน้ำทิ้ง',
-                            name: '04_aircon_drain_pipe.jpg',
-                            url: 'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'ท่อน้ำทิ้ง'
-                        },
-                        {
-                            id: 'INT-PHT-10',
-                            title: '5. ช่องเปิดฝ้าเพดานและโครงสร้างรับน้ำหนัก',
-                            name: '05_ceiling_structure.jpg',
-                            url: 'https://images.unsplash.com/photo-1541888946425-d0fbb1861564?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'โครงสร้างฝ้า'
-                        }
-                    ]
+                    samplePhotos: []
                 },
                 kitchen_reno: {
                     firstName: 'คุณหญิงนภา',
@@ -3345,48 +3182,7 @@ const app = {
                     tech: 'ทีมช่าง วิชัย (Team C)',
                     instructions: 'เข้าปฏิบัติงานได้เฉพาะ จ.-ส. 09:00 - 17:00 น. ปูพลาสติกกันฝุ่นบริเวณโถงบ้าน',
                     notes: 'ปรับปรุงเคาน์เตอร์ครัวปูน Built-in L-Shape ปูกระเบื้องแกรนิตโต้และติดตั้งฮูดดูดควัน',
-                    samplePhotos: [
-                        {
-                            id: 'INT-PHT-11',
-                            title: '1. สภาพห้องครัวเดิมก่อนการรีโนเวท',
-                            name: '01_kitchen_before.jpg',
-                            url: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'สภาพก่อนปรับปรุง'
-                        },
-                        {
-                            id: 'INT-PHT-12',
-                            title: '2. จุดต่อท่อน้ำทิ้งและปลั๊กไฟเตาแม่เหล็ก',
-                            name: '02_kitchen_piping.jpg',
-                            url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'สุขาภิบาล/ไฟฟ้า'
-                        },
-                        {
-                            id: 'INT-PHT-13',
-                            title: '3. แนวเคาน์เตอร์เดิมและผนังติดตั้งกระเบื้อง',
-                            name: '03_kitchen_countertop.jpg',
-                            url: 'https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'เคาน์เตอร์ครัว'
-                        },
-                        {
-                            id: 'INT-PHT-14',
-                            title: '4. ตำแหน่งเจาะช่องระบายอากาศและติดตั้งฮูดดูดควัน',
-                            name: '04_exhaust_hood_spot.jpg',
-                            url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'ฮูดดูดควัน'
-                        },
-                        {
-                            id: 'INT-PHT-15',
-                            title: '5. ช่องทางขนย้ายวัสดุและจุดปูพลาสติกกันรอยหน้างาน',
-                            name: '05_site_protection.jpg',
-                            url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'ป้องกันพื้นที่'
-                        }
-                    ]
+                    samplePhotos: []
                 },
                 ma_service: {
                     firstName: 'บจก. สยามอินโนเวชั่น คอนซัลติ้ง',
@@ -3400,48 +3196,7 @@ const app = {
                     tech: 'ทีมช่าง สมศักดิ์ (Team A)',
                     instructions: 'ตรวจเช็คปั๊มน้ำแรงดันคงที่และล้างถังพักน้ำสเตนเลสประจำปี 4 รอบ/ปี',
                     notes: 'สัญญาบริการบำรุงรักษาอาคารสำนักงานประจำปีรอบที่ 1 พร้อมตรวจวัดแรงดันและคลอรีนตกค้าง',
-                    samplePhotos: [
-                        {
-                            id: 'INT-PHT-16',
-                            title: '1. ถังพักน้ำและปั๊มน้ำบูสเตอร์หลักของอาคาร',
-                            name: '01_booster_pump.jpg',
-                            url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'อุปกรณ์ปั๊มน้ำ'
-                        },
-                        {
-                            id: 'INT-PHT-17',
-                            title: '2. เกจวัดแรงดันน้ำ Pressure Gauge',
-                            name: '02_pressure_gauge.jpg',
-                            url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'ตรวจวัดแรงดัน'
-                        },
-                        {
-                            id: 'INT-PHT-18',
-                            title: '3. เช็ควาล์วและระบบท่อจ่ายน้ำหลัก',
-                            name: '03_check_valve_manifold.jpg',
-                            url: 'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'ท่อจ่ายน้ำ'
-                        },
-                        {
-                            id: 'INT-PHT-19',
-                            title: '4. ตู้ควบคุมไฟฟ้าปั๊มน้ำ Control Panel',
-                            name: '04_pump_control_panel.jpg',
-                            url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'ตู้คอนโทรล'
-                        },
-                        {
-                            id: 'INT-PHT-20',
-                            title: '5. สภาพภายในถังพักน้ำสเตนเลสก่อนล้าง',
-                            name: '05_stainless_watertank.jpg',
-                            url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1000&auto=format&fit=crop&q=80',
-                            category: 'survey',
-                            tag: 'ถังพักน้ำ'
-                        }
-                    ]
+                    samplePhotos: []
                 }
             },
 
@@ -5372,7 +5127,7 @@ const app = {
                 }
 
                 grid.innerHTML = photos.map((p, idx) => {
-                    const photoUrl = p.url || p.dataUrl || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800';
+                    const photoUrl = p.url || p.dataUrl || '';
                     const photoTitle = p.title || p.name || `ภาพสำรวจหน้างาน #${idx + 1}`;
                     const photoTag = p.tag || p.category || (idx === 0 ? 'Check-in' : (idx === photos.length - 1 ? 'Check-out' : 'Survey Site'));
                     const photoDate = p.uploaded_at ? this.formatDateDMY(p.uploaded_at) : this.formatDateDMY(new Date());
@@ -7464,31 +7219,8 @@ const app = {
                 const s2Iso = jts.step2_ticket_at || jts.step4_ticket_at || jts.step1_accepted_at || jts.step1_order_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
                 const s2Formatted = s2Iso ? this.formatDateTimeDMY(s2Iso, false, true) : '-';
 
-                // Photos - get or provide realistic site survey photos based on service type
+                // Photos - get attached survey photos
                 let photos = job.photos || [];
-                if (!photos || photos.length === 0) {
-                    if (job.service && job.service.includes('แอร์')) {
-                        photos = [
-                            { url: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80', caption: 'จุดติดตั้งเครื่องปรับอากาศเดิม', type: 'สำรวจหน้างาน' },
-                            { url: 'https://images.unsplash.com/photo-1581094288338-2314dddb7ece?w=600&q=80', caption: 'ตำแหน่งเบรกเกอร์และสายไฟเมน', type: 'ระบบไฟฟ้า' }
-                        ];
-                    } else if (job.service && (job.service.includes('กระเบื้อง') || job.service.includes('พื้น'))) {
-                        photos = [
-                            { url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&q=80', caption: 'สภาพพื้นผิวก่อนรื้อและระดับ Slope', type: 'สำรวจหน้างาน' },
-                            { url: 'https://images.unsplash.com/photo-1502005229762-ee1b2b81ec65?w=600&q=80', caption: 'จุดเชื่อมต่อท่อระบายน้ำทิ้ง Floor Drain', type: 'จุดสำคัญ' }
-                        ];
-                    } else if (job.service && (job.service.includes('ปั้ม') || job.service.includes('แท็งก์') || job.service.includes('น้ำ'))) {
-                        photos = [
-                            { url: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=600&q=80', caption: 'ฐานปูนวางถังเก็บน้ำและจุดต่อท่อประปา', type: 'สำรวจหน้างาน' },
-                            { url: 'https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?w=600&q=80', caption: 'จุดปลั๊กไฟกันน้ำภายนอกอาคาร', type: 'ระบบไฟฟ้า' }
-                        ];
-                    } else {
-                        photos = [
-                            { url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&q=80', caption: 'สภาพหน้างานและพื้นที่โดยรอบ', type: 'สำรวจหน้างาน' },
-                            { url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&q=80', caption: 'จุดเตรียมต่อระบบและระยะหน้างาน', type: 'จุดสำคัญ' }
-                        ];
-                    }
-                }
 
                 modalContent.innerHTML = `
                     <!-- Modal Header -->
@@ -7641,22 +7373,29 @@ const app = {
                                     <span>รูปภาพสำรวจหน้างานที่เคยบันทึกไว้ (Survey Photos / Visit Plan)</span>
                                     <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/15 text-indigo-700 font-mono font-bold">${photos.length} รูป</span>
                                 </div>
-                                <span class="text-[11px] text-muted-foreground">คลิกรูปเพื่อเปิดดูแบบขยายใหญ่ (Lightbox)</span>
+                                ${photos.length > 0 ? '<span class="text-[11px] text-muted-foreground">คลิกรูปเพื่อเปิดดูแบบขยายใหญ่ (Lightbox)</span>' : ''}
                             </div>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                ${photos.map((p, pIdx) => `
-                                    <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.showPhotoLightbox('${p.url}', '${p.caption || 'รูปภาพหน้างาน'}', '${p.type || 'สำรวจหน้างาน'}', 'โครงการ ${job.id} - ${job.customer}', '${s2Formatted}')">
-                                        <img src="${p.url}" alt="${p.caption || 'รูปถ่ายหน้างาน'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
-                                            <span class="text-[9px] font-bold text-white bg-black/50 px-1.5 py-0.5 rounded backdrop-blur-xs w-fit">${p.type || 'ภาพถ่าย'}</span>
-                                            <div class="flex items-center justify-between text-white">
-                                                <span class="text-[10px] truncate max-w-[120px] font-medium">${p.caption || 'ดูรูปขนาดใหญ่'}</span>
-                                                <i class="ph ph-arrows-out-simple text-xs"></i>
+                            ${photos.length === 0 ? `
+                                <div class="py-6 text-center bg-muted/30 border border-dashed border-border rounded-xl">
+                                    <i class="ph ph-camera text-2xl text-muted-foreground/60 mb-1 block"></i>
+                                    <p class="text-xs text-muted-foreground">ยังไม่มีรูปภาพสำรวจหน้างานที่บันทึกไว้สำหรับคำสั่งซื้อนี้</p>
+                                </div>
+                            ` : `
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    ${photos.map((p, pIdx) => `
+                                        <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.showPhotoLightbox('${p.url || p.dataUrl}', '${p.caption || p.title || 'รูปภาพหน้างาน'}', '${p.type || p.tag || 'สำรวจหน้างาน'}', 'โครงการ ${job.id} - ${job.customer}', '${s2Formatted}')">
+                                            <img src="${p.url || p.dataUrl}" alt="${p.caption || p.title || 'รูปถ่ายหน้างาน'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
+                                                <span class="text-[9px] font-bold text-white bg-black/50 px-1.5 py-0.5 rounded backdrop-blur-xs w-fit">${p.type || p.tag || 'ภาพถ่าย'}</span>
+                                                <div class="flex items-center justify-between text-white">
+                                                    <span class="text-[10px] truncate max-w-[120px] font-medium">${p.caption || p.title || 'ดูรูปขนาดใหญ่'}</span>
+                                                    <i class="ph ph-arrows-out-simple text-xs"></i>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                `).join('')}
-                            </div>
+                                    `).join('')}
+                                </div>
+                            `}
                         </div>
 
                         <!-- Section 4: Tickets & Slips Summary -->
@@ -8078,16 +7817,7 @@ const app = {
             },
 
             openBasePhotoLightbox(num) {
-                const basePhotos = [
-                    { num: 1, title: 'สภาพพื้นที่ก่อนติดตั้ง', desc: 'มุมมองกว้างบริเวณผนังห้องนอน', preview: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80' },
-                    { num: 2, title: 'การวัดระดับและยึด Plate', desc: 'ระดับน้ำตรง แข็งแรงตามสเปก', preview: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80' },
-                    { num: 3, title: 'แนวท่อน้ำยาและรางครอบ', desc: 'เดินท่อเรียบร้อย ไม่รั่วซึม', preview: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80' },
-                    { num: 4, title: 'ระบบไฟฟ้าและสายดิน', desc: 'เบรกเกอร์แยกและวัดกราวด์ผ่าน', preview: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80' },
-                    { num: 5, title: 'หลังติดตั้งและเก็บกวาด', desc: 'ทดสอบความเย็น 16°C ปกติ', preview: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80' },
-                ];
-                const p = basePhotos.find(b => b.num === num);
-                if (!p) return;
-                this.showLightbox(p.preview, p.title, `รูปที่ ${p.num} • มาตรฐาน`, p.desc, 'ภาพมาตรฐานหน้างาน');
+                // Deprecated: Base mock photos removed. All photos are uploaded from real sites.
             },
 
             openUploadedPhotoLightbox(jobId, photoId) {
@@ -9067,47 +8797,7 @@ const app = {
 
                 // Process 1: Site photos data
                 const uploadedPhotos = job.photos || [];
-                const totalPhotoCount = 5 + uploadedPhotos.length;
-                const basePhotos = [
-                    { num: 1, icon: 'ph ph-house-line', file: 'IMG_SITE_01.JPG', title: 'สภาพพื้นที่ก่อนติดตั้ง', desc: 'มุมมองกว้างบริเวณผนังห้องนอน', preview: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop&q=80' },
-                    { num: 2, icon: 'ph ph-ruler', file: 'IMG_SITE_02.JPG', title: 'การวัดระดับและยึด Plate', desc: 'ระดับน้ำตรง แข็งแรงตามสเปก', preview: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80' },
-                    { num: 3, icon: 'ph ph-pipe', file: 'IMG_SITE_03.JPG', title: 'แนวท่อน้ำยาและรางครอบ', desc: 'เดินท่อเรียบร้อย ไม่รั่วซึม', preview: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&auto=format&fit=crop&q=80' },
-                    { num: 4, icon: 'ph ph-lightning', file: 'IMG_SITE_04.JPG', title: 'ระบบไฟฟ้าและสายดิน', desc: 'เบรกเกอร์แยกและวัดกราวด์ผ่าน', preview: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80' },
-                    { num: 5, icon: 'ph ph-check-circle', file: 'IMG_SITE_05.JPG', title: 'หลังติดตั้งและเก็บกวาด', desc: 'ทดสอบความเย็น 16°C ปกติ', preview: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=600&auto=format&fit=crop&q=80' },
-                ];
-
-                let extraPhotosHtml = '';
-                if (uploadedPhotos.length > 0) {
-                    extraPhotosHtml = uploadedPhotos.map((p, idx) => {
-                        const photoNum = 5 + idx + 1;
-                        const uploadTime = p.uploaded_at ? `${this.formatTime24(p.uploaded_at)} น.` : 'ล่าสุด';
-                        const displayImg = p.url || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=500&auto=format&fit=crop&q=80';
-                        return `
-                        <div class="artifact-card p-1.5 rounded-lg space-y-1 border border-brand-500/30 hover:border-brand-500 transition relative group">
-                            <div class="aspect-[16/10] bg-muted/60 rounded flex flex-col items-center justify-center border border-dashed border-brand-500/40 relative overflow-hidden cursor-pointer" onclick="app.openUploadedPhotoLightbox('${job.id}', '${p.id}')">
-                                <img src="${displayImg}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                                <span class="absolute top-1 right-1 px-1 py-0.2 bg-brand-500 text-white rounded text-[8px] font-medium shadow-sm leading-tight">รูปที่ ${photoNum}</span>
-                                <span class="absolute top-1 left-1 px-1 py-0.2 bg-black/65 backdrop-blur-xs text-white rounded text-[7px] font-medium leading-tight">${p.tag || 'เพิ่ม'}</span>
-                                <div class="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                                    <span class="text-white text-[9px] font-semibold bg-black/60 px-1.5 py-0.5 rounded flex items-center gap-0.5"><i class="ph ph-magnifying-glass-plus"></i> ขยาย</span>
-                                </div>
-                            </div>
-                            <div class="flex items-start justify-between gap-0.5">
-                                <div class="flex-1 min-w-0">
-                                    <div class="text-[11px] font-semibold text-foreground truncate leading-tight" title="${p.title}">${p.title}</div>
-                                </div>
-                                <button type="button" onclick="app.deletePhoto('${job.id}', '${p.id}')" title="ลบรูปนี้" class="p-0.5 text-muted-foreground hover:text-rose-500 rounded transition opacity-60 hover:opacity-100 cursor-pointer">
-                                    <i class="ph ph-trash text-xs"></i>
-                                </button>
-                            </div>
-                            <div class="flex items-center justify-between text-[8px] font-mono leading-tight">
-                                <span class="text-emerald-600 flex items-center gap-0.5"><i class="ph ph-check"></i> GPS Verified</span>
-                                <span class="text-muted-foreground">${uploadTime}</span>
-                            </div>
-                        </div>
-                        `;
-                    }).join('');
-                }
+                const totalPhotoCount = uploadedPhotos.length;
 
                 const curJobType = (job.job_type || (job.service && job.service.toLowerCase().includes('renovate') ? 'renovate' : (job.service && (job.service.toLowerCase().includes('ma') || job.service.includes('ล้าง')) ? 'ma' : 'quick'))).toLowerCase();
                 job.job_type = curJobType;
@@ -9194,7 +8884,7 @@ const app = {
                                             <h3 class="font-display font-bold text-sm text-foreground flex items-center gap-1.5">
                                                 <i class="ph ph-map-pin-line text-emerald-500"></i> Check in ข้อมูลหน้างาน (จุด) & รูปถ่าย
                                             </h3>
-                                            <p class="text-[11px] text-muted-foreground">ข้อมูลลูกค้า สถานที่ พิกัด GPS สำรวจ และภาพถ่ายหน้างาน 5 จุดมาตรฐาน</p>
+                                            <p class="text-[11px] text-muted-foreground">ข้อมูลลูกค้า สถานที่ พิกัด GPS สำรวจ และภาพถ่ายหน้างานจริง</p>
                                         </div>
                                     </div>
                                     ${isCheckedIn ? `
@@ -9257,41 +8947,59 @@ const app = {
                                     </div>
                                 </div>
 
-                                <!-- Site Photos 6-grid -->
+                                <!-- Site Photos Grid -->
                                 <div class="space-y-2 pt-1">
                                     <div class="flex items-center justify-between pb-1 border-b border-border/60">
                                         <div class="flex items-center gap-2">
                                             <h4 class="font-display font-semibold text-xs text-foreground flex items-center gap-1">
                                                 <i class="ph ph-images text-emerald-500"></i> รูปถ่ายหน้างาน (รวม ${totalPhotoCount} รูป)
                                             </h4>
-                                            <span class="text-[10px] text-muted-foreground">• 5 รูปมาตรฐาน + รูปถ่ายเพิ่มเติม</span>
+                                            <span class="text-[10px] text-muted-foreground">• ภาพถ่ายจากการสำรวจและบันทึกหน้างานจริง</span>
                                         </div>
                                         <button type="button" class="btn-artifact-primary px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 shadow-2xs font-medium cursor-pointer" onclick="app.openPhotoUploadModal('${job.id}')">
                                             <i class="ph ph-camera-plus text-xs"></i> <span>ถ่ายรูปเพิ่ม / Upload</span>
                                         </button>
                                     </div>
 
-                                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-                                        ${basePhotos.map(p => `
-                                        <div class="artifact-card p-1.5 rounded-lg space-y-1 border border-border hover:border-emerald-500/50 hover:shadow-md transition duration-200 group cursor-pointer" onclick="app.openBasePhotoLightbox(${p.num})" title="คลิกเพื่อขยายดูรูปภาพเต็ม">
-                                            <div class="aspect-[16/10] bg-muted/60 rounded overflow-hidden relative group border border-border/80">
-                                                <img src="${p.preview}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" loading="lazy">
-                                                <span class="absolute top-1 right-1 px-1.5 py-0.5 bg-emerald-600/90 text-white rounded text-[8px] font-bold shadow-xs leading-tight backdrop-blur-xs">รูปที่ ${p.num}</span>
-                                                <div class="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition duration-200 flex items-center justify-center">
-                                                    <span class="text-white text-[9px] font-semibold bg-black/70 backdrop-blur-xs px-2 py-0.5 rounded flex items-center gap-1">
-                                                        <i class="ph ph-magnifying-glass-plus"></i> ขยาย
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div class="text-[11px] font-semibold text-foreground truncate leading-tight mt-0.5" title="${p.title}">${p.title}</div>
-                                            <div class="flex items-center justify-between text-[8px] text-muted-foreground leading-tight">
-                                                <span class="text-emerald-600 font-mono flex items-center gap-0.5 font-medium"><i class="ph ph-check-circle-fill"></i> GPS</span>
-                                                <span class="text-[8px] text-muted-foreground font-mono">${checkinTimeDisplay}</span>
-                                            </div>
+                                    ${uploadedPhotos.length === 0 ? `
+                                        <div class="py-8 text-center bg-muted/30 border border-dashed border-border rounded-xl">
+                                            <i class="ph ph-camera text-3xl text-muted-foreground/60 mb-2 block"></i>
+                                            <p class="text-xs text-muted-foreground font-medium">ยังไม่มีรูปถ่ายหน้างานที่บันทึกไว้</p>
+                                            <p class="text-[10px] text-muted-foreground/70 mt-0.5">กดปุ่ม "ถ่ายรูปเพิ่ม / Upload" ด้านบน เพื่อแนบรูปถ่ายจากหน้างานจริง</p>
                                         </div>
-                                        `).join('')}
-                                        ${extraPhotosHtml}
-                                    </div>
+                                    ` : `
+                                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                                            ${uploadedPhotos.map((p, idx) => {
+                                                const photoNum = idx + 1;
+                                                const uploadTime = p.uploaded_at ? `${this.formatTime24(p.uploaded_at)} น.` : 'ล่าสุด';
+                                                const displayImg = p.url || p.dataUrl || '';
+                                                return `
+                                                <div class="artifact-card p-1.5 rounded-lg space-y-1 border border-brand-500/30 hover:border-brand-500 transition relative group">
+                                                    <div class="aspect-[16/10] bg-muted/60 rounded flex flex-col items-center justify-center border border-dashed border-brand-500/40 relative overflow-hidden cursor-pointer" onclick="app.openUploadedPhotoLightbox('${job.id}', '${p.id}')">
+                                                        <img src="${displayImg}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                                        <span class="absolute top-1 right-1 px-1 py-0.2 bg-brand-500 text-white rounded text-[8px] font-medium shadow-sm leading-tight">รูปที่ ${photoNum}</span>
+                                                        <span class="absolute top-1 left-1 px-1 py-0.2 bg-black/65 backdrop-blur-xs text-white rounded text-[7px] font-medium leading-tight">${p.tag || p.category || 'หน้างาน'}</span>
+                                                        <div class="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                                            <span class="text-white text-[9px] font-semibold bg-black/60 px-1.5 py-0.5 rounded flex items-center gap-0.5"><i class="ph ph-magnifying-glass-plus"></i> ขยาย</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex items-start justify-between gap-0.5">
+                                                        <div class="flex-1 min-w-0">
+                                                            <div class="text-[11px] font-semibold text-foreground truncate leading-tight" title="${p.title || p.name || `รูปที่ ${photoNum}`}">${p.title || p.name || `รูปที่ ${photoNum}`}</div>
+                                                        </div>
+                                                        <button type="button" onclick="app.deletePhoto('${job.id}', '${p.id}')" title="ลบรูปนี้" class="p-0.5 text-muted-foreground hover:text-rose-500 rounded transition opacity-60 hover:opacity-100 cursor-pointer">
+                                                            <i class="ph ph-trash text-xs"></i>
+                                                        </button>
+                                                    </div>
+                                                    <div class="flex items-center justify-between text-[8px] font-mono leading-tight">
+                                                        <span class="text-emerald-600 flex items-center gap-0.5"><i class="ph ph-check"></i> GPS Verified</span>
+                                                        <span class="text-muted-foreground">${uploadTime}</span>
+                                                    </div>
+                                                </div>
+                                                `;
+                                            }).join('')}
+                                        </div>
+                                    `}
                                 </div>
 
                                 <!-- Special Instructions & Notes -->
@@ -10456,7 +10164,11 @@ const app = {
             openJobPhotoPreview(jobId) {
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return;
-                const photoUrl = (job.photos && job.photos[0] && job.photos[0].url) || 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800&auto=format&fit=crop&q=80';
+                const photoUrl = (job.photos && job.photos[0] && (job.photos[0].url || job.photos[0].dataUrl)) || '';
+                if (!photoUrl) {
+                    this.showToast('ℹ️ ยังไม่มีรูปถ่ายหน้างานสำหรับคำสั่งซื้อนี้', 'info');
+                    return;
+                }
                 this.showLightbox(
                     photoUrl,
                     `ภาพสำรวจหน้างาน: ${job.id}`,
@@ -22360,10 +22072,7 @@ const app = {
                         date: new Date().toISOString(),
                         step_timestamps: { qc_pending_at: new Date().toISOString() },
                         boq_items: [],
-                        photos: [
-                            { id: 'p_ev_1', title: 'จุดติดตั้งตู้ควบคุมไฟ Consumer ย่อย', url: 'https://images.unsplash.com/photo-1558441719-8b489c634a1b?w=800&auto=format&fit=crop&q=80', uploaded_at: new Date().toISOString() },
-                            { id: 'p_ev_2', title: 'สายเมนและเครื่องชาร์จ EV Charger', url: 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&auto=format&fit=crop&q=80', uploaded_at: new Date().toISOString() }
-                        ],
+                        photos: [],
                         qc_subtasks: [
                             { id: 'q1', num: 1, title: 'ช่างทำงานตาม BOQ/มาตรฐานการติดตั้งที่กำหนด', category: 'มาตรฐาน & BOQ', mandatory: true, status: 'PASSED', answer: 'YES', score: 5, photos: [], remarks: 'เดินสายเมน THW และติดตั้งท่อร้อยสายไฟถูกต้องตามมาตรฐาน' },
                             { id: 'q2', num: 2, title: 'ความเรียบร้อยของงานติดตั้ง', category: 'คุณภาพงานติดตั้ง', mandatory: true, status: 'PASSED', answer: 'YES', score: 5, photos: [], remarks: 'ติดตั้งกล่องเบรกเกอร์แนบสนิท เก็บสายเรียบร้อย' },
@@ -22406,9 +22115,7 @@ const app = {
                             { id: 'boq_12_2', name: 'งานปูกระเบื้องพื้นกันลื่น R11 และผนังห้องน้ำ', unit: 'ตร.ม.', qty: 35, unit_price: 1200, amount: 42000 },
                             { id: 'boq_12_3', name: 'งานติดตั้งราวจับสแตนเลสและสุขภัณฑ์อัตโนมัติ', unit: 'ชุด', qty: 1, unit_price: 35000, amount: 35000 }
                         ],
-                        photos: [
-                            { id: 'p_ren_1', title: 'สภาพงานกันซึมและแนวท่อระบายน้ำ', url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800&auto=format&fit=crop&q=80', uploaded_at: new Date().toISOString() }
-                        ],
+                        photos: [],
                         qc_subtasks: [
                             { id: 'q1', num: 1, title: 'ช่างทำงานตาม BOQ/มาตรฐานการติดตั้งที่กำหนด', category: 'มาตรฐาน & BOQ', mandatory: true, status: 'PASSED', answer: 'YES', score: 5, photos: [], remarks: 'ทดสอบขังน้ำ 24 ชม. ไม่พบการรั่วซึม' },
                             { id: 'q2', num: 2, title: 'ความเรียบร้อยของงานติดตั้ง', category: 'คุณภาพงานติดตั้ง', mandatory: true, status: 'PENDING', answer: null, score: 0, photos: [], remarks: '' },
@@ -22551,83 +22258,52 @@ const app = {
             },
 
             getSampleVisitPlanPhotos(job) {
-                const s = ((job && job.service) || '').toLowerCase();
-                const nowIso = new Date().toISOString();
+                // ตัดรูปหลอก / Mock Demo ออก 100% — ส่งคืน Array เปล่าเสมอ
+                return [];
+            },
 
-                // 1. EV Charger
-                if (s.includes('ev') || s.includes('ชาร์จ') || s.includes('charger')) {
-                    return [
-                        { id: 'vp_ev_1', num: 1, title: '1. จุดติดตั้งตู้เบรกเกอร์ Main Panel และสายเมน', note: 'ตรวจสอบขนาดสายไฟ THW และลูกเซอร์กิตเบรกเกอร์ Main ก่อนเข้าตู้ EV', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_ev_2', num: 2, title: '2. การเดินท่อร้อยสายไฟ EMT และสายดินแท้', note: 'ตอกหลักดิน Ground Rod 2.4 ม. วัดค่าความต้านทานดิน < 5 โอห์ม', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_ev_3', num: 3, title: '3. ติดตั้ง Wallbox EV Charger เข้าผนัง', note: 'ยึดพุกแข็งแรง ระดับความสูงมาตรฐาน 1.20 ม. มีซีลกันน้ำ IP54/IP65', url: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_ev_4', num: 4, title: '4. ระบบเบรกเกอร์ Type B RCD & Safe-T-Cut', note: 'ตรวจเช็คระบบตัดไฟรั่ว DC 6mA และ AC 30mA ตามมาตรฐาน กฟน./กฟภ.', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_ev_5', num: 5, title: '5. ทดสอบชาร์จรถยนต์ไฟฟ้า Live Charging Test', note: 'วัดแรงดันไฟ 230V/400V ชาร์จไฟเข้าปกติ ส่งมอบบัตร RFID และคู่มือ', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' }
-                    ];
+            purgeAllMockPhotos() {
+                const isMockPhoto = (p) => {
+                    if (!p) return false;
+                    const url = String(p.url || p.dataUrl || '');
+                    const id = String(p.id || '');
+                    if (url.includes('images.unsplash.com')) return true;
+                    if (id.startsWith('vp_') || id.startsWith('csat_demo_') || id.startsWith('mock_')) return true;
+                    if (/^p[1-6]$/.test(id) && url.includes('unsplash')) return true;
+                    return false;
+                };
+
+                let changed = false;
+                (DB.jobs || []).forEach(j => {
+                    if (Array.isArray(j.photos) && j.photos.length > 0) {
+                        const origLen = j.photos.length;
+                        j.photos = j.photos.filter(p => !isMockPhoto(p));
+                        if (j.photos.length !== origLen) changed = true;
+                    }
+                    if (Array.isArray(j.qc_photos) && j.qc_photos.length > 0) {
+                        const origLen = j.qc_photos.length;
+                        j.qc_photos = j.qc_photos.filter(p => !isMockPhoto(p));
+                        if (j.qc_photos.length !== origLen) changed = true;
+                    }
+                    if (Array.isArray(j.csat_photos) && j.csat_photos.length > 0) {
+                        const origLen = j.csat_photos.length;
+                        j.csat_photos = j.csat_photos.filter(p => !isMockPhoto(p));
+                        if (j.csat_photos.length !== origLen) changed = true;
+                    }
+                    if (Array.isArray(j.qc_subtasks) && j.qc_subtasks.length > 0) {
+                        j.qc_subtasks.forEach(sub => {
+                            if (Array.isArray(sub.photos) && sub.photos.length > 0) {
+                                const origSubLen = sub.photos.length;
+                                sub.photos = sub.photos.filter(p => !isMockPhoto(p));
+                                if (sub.photos.length !== origSubLen) changed = true;
+                            }
+                        });
+                    }
+                });
+
+                if (changed) {
+                    this.persistJobs();
                 }
-
-                // 2. Renovate / Bathroom / Built-in
-                if (s.includes('renovate') || s.includes('รีโนเวท') || s.includes('ห้องน้ำ') || s.includes('bathroom') || s.includes('กระเบื้อง') || s.includes('ครัว') || s.includes('built-in')) {
-                    return [
-                        { id: 'vp_ren_1', num: 1, title: '1. สภาพเดิมและการสกัดพื้นปรับระดับ', note: 'รื้อถอนสุขภัณฑ์เดิม สกัดกระเบื้องและปรับสโลปพื้นระบายน้ำ', url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_ren_2', num: 2, title: '2. ระบบท่อน้ำดี-น้ำเสีย และกันซึม 2 ชั้น', note: 'ทากันซึม Cement Base ชนิดยืดหยุ่นสูง ปูตาข่ายไฟเบอร์เสริมแรงตามมุม', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_ren_3', num: 3, title: '3. งานปูกระเบื้องผนัง-พื้น R11 กันลื่น', note: 'ปูกระเบื้องแนวเส้นตรง ร่องยาแนวยับยั้งเชื้อรา สโลปสู่ Floor Drain สมบูรณ์', url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_ren_4', num: 4, title: '4. ติดตั้งสุขภัณฑ์ ก๊อกน้ำ และราวจับสแตนเลส', note: 'ติดตั้งสุขภัณฑ์ระดับมาตรฐาน ยิงซิลิโคนกันเชื้อรารอบฐานแน่นหนา', url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_ren_5', num: 5, title: '5. ทดสอบขังน้ำ 24 ชม. และส่งมอบงาน', note: 'ทดสอบการระบายน้ำ ไม่มีรั่วซึม ทำความสะอาดห้องน้ำพร้อมส่งมอบ', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' }
-                    ];
-                }
-
-                // 3. Air Conditioner / HVAC
-                if (s.includes('แอร์') || s.includes('air') || s.includes('ac') || s.includes('ปรับอากาศ')) {
-                    return [
-                        { id: 'vp_air_1', num: 1, title: '1. จุดติดตั้งและเจาะร้อยท่อน้ำยา', note: 'วัดระดับเจาะรูลาดเอียงออกภายนอก ป้องกันน้ำทิ้งไหลย้อน', url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_air_2', num: 2, title: '2. ติดตั้งขายึดคอยล์ร้อนและยางกันสะเทือน', note: 'ยึดขาแขวนหนาพิเศษ ใส่ลูกยางลดแรงสั่นสะเทือนระบายอากาศได้ดี', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_air_3', num: 3, title: '3. การเดินท่อน้ำยาหุ้มฉนวน Armaflex & รางครอบท่อ', note: 'ใส่รางครอบท่อเก็บงานเรียบร้อย ท่อน้ำทิ้ง PVC หุ้มฉนวนป้องกันเหงื่อหยด', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_air_4', num: 4, title: '4. แวคคั่มระบบสุญญากาศและเช็คแรงดันน้ำยา', note: 'ทำ Vacuum นาน 30 นาที ค่าเกจ์คงที่ ไม่มีการรั่วซึมในระบบ', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_air_5', num: 5, title: '5. วัดอุณหภูมิลมเย็น 18-20°C และส่งมอบงาน', note: 'วัดกระแสไฟฟ้าตามสเปกเครื่อง ทดสอบรีโมทคอนโทรล แนะนำการล้างแผ่นกรอง', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' }
-                    ];
-                }
-
-                // 4. Solar Rooftop
-                if (s.includes('โซลาร์') || s.includes('solar')) {
-                    return [
-                        { id: 'vp_sol_1', num: 1, title: '1. สภาพโครงสร้างหลังคาและจุดติดตั้งแผง', note: 'ตรวจสอบความแข็งแรงโครงสร้างซีแพคโมเนีย ก่อนติดตั้งแผงโซลาร์เซลล์', url: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_sol_2', num: 2, title: '2. การติดตั้งราง Rail & Solar Mount', note: 'ยึด Rail แน่นหนาตามมุมลาดเอียง ทนแรงลมได้ดี ป้องกันน้ำรั่วซึม', url: 'https://images.unsplash.com/photo-1508873696983-2df57046475a?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_sol_3', num: 3, title: '3. แผงโซลาร์เซลล์ Solar Rooftop Tier 1', note: 'ติดตั้งแผง Tier 1 ครบตามจำนวน จัดเรียงระนาบสวยงาม', url: 'https://images.unsplash.com/photo-1545208942-e1c9c916524b?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_sol_4', num: 4, title: '4. ระบบ Inverter & ตู้เบรกเกอร์ DC/AC', note: 'กล่อง Combiner, เบรกเกอร์ Surge Protection และระบบสายดิน ELCB', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_sol_5', num: 5, title: '5. ทดสอบผลิตไฟฟ้า On-Grid และส่งมอบงาน', note: 'วัดค่าไฟ On-Grid ผลิตได้ตามมาตรฐาน ส่งมอบแอปพลิเคชันมอนิเตอร์', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' }
-                    ];
-                }
-
-                // 5. Water Heater
-                if (s.includes('น้ำอุ่น') || s.includes('heater') || s.includes('stiebel')) {
-                    return [
-                        { id: 'vp_wh_1', num: 1, title: '1. สภาพผนังห้องน้ำก่อนเริ่มงาน', note: 'ตรวจจุดท่อน้ำดีและตำแหน่งเจาะยึดเครื่องทำน้ำอุ่น', url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_wh_2', num: 2, title: '2. การยึดตัวเครื่องระดับน้ำตรง', note: 'เจาะพุกยึดเครื่องทำน้ำอุ่น Stiebel Eltron มั่นคงแข็งแรง', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_wh_3', num: 3, title: '3. การต่อท่อน้ำดีและชุดฝักบัว', note: 'ข้อต่อเกลียวทองเหลืองพร้อมวาล์วเปิด-ปิด ทดสอบแรงดันน้ำไม่รั่วซึม', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_wh_4', num: 4, title: '4. ระบบสายดิน & เบรกเกอร์ Safe-T-Cut', note: 'เดินสายดินแท้ลง Ground Rod และเช็คเบรกเกอร์ ELCB', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_wh_5', num: 5, title: '5. ทดสอบปุ่ม Test ELCB และอุณหภูมิ', note: 'ระบบตัดไฟรั่วทำงานปกติ 100% น้ำอุ่นสม่ำเสมอ ส่งมอบคู่มือและใบรับประกัน', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' }
-                    ];
-                }
-
-                // 6. Water Pump & Plumbing
-                if (s.includes('ปั๊มน้ำ') || s.includes('แท้งค์') || s.includes('pump') || s.includes('plumb')) {
-                    return [
-                        { id: 'vp_wp_1', num: 1, title: '1. ฐานรากคอนกรีตวางถังพักน้ำและปั๊มน้ำ', note: 'ปรับระดับพื้นคอนกรีตเรียบ ได้ระดับ ไม่ทรุดตัว', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_wp_2', num: 2, title: '2. วางแท้งค์น้ำและต่อท่อบายพาส Bypass', note: 'เดินท่อ PVC ชั้น 13.5 พร้อมติดตั้ง Check Valve และวาล์ว Bypass', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_wp_3', num: 3, title: '3. ติดตั้งปั๊มน้ำอัตโนมัติและต่อสายดิน', note: 'ยึดฐานปั๊มแน่นหนา ใส่ยางกันสะเทือน ต่อสายดินลง Ground Rod', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_wp_4', num: 4, title: '4. ตรวจเช็คแรงดันน้ำทุกจุดในบ้าน', note: 'เปิดน้ำพร้อมกันทุกจุด แรงดันคงที่ ไม่พบการรั่วซึมตามข้อต่อ', url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                        { id: 'vp_wp_5', num: 5, title: '5. ทดสอบระบบ Auto Switch และส่งมอบงาน', note: 'ปั๊มน้ำตัดต่ออัตโนมัติตามการเปิด-ปิดน้ำ ส่งมอบคู่มือและใบรับประกัน', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' }
-                    ];
-                }
-
-                // Default Quick Service photos
-                return [
-                    { id: 'vp_1', num: 1, title: '1. สภาพพื้นที่ก่อนติดตั้ง', note: 'ภาพรวมบริเวณปฏิบัติงานก่อนเริ่มการติดตั้ง', url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                    { id: 'vp_2', num: 2, title: '2. การวัดระดับและยึดอุปกรณ์', note: 'ตำแหน่งติดตั้งถูกต้องตามมาตรฐานช่าง VFIX', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                    { id: 'vp_3', num: 3, title: '3. จุดต่อระบบท่อ / สายไฟ', note: 'เดินระบบเรียบร้อย มีการเก็บรอยต่อสวยงาม ปลอดภัย', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                    { id: 'vp_4', num: 4, title: '4. ระบบความปลอดภัยและสายดิน', note: 'ตรวจเช็คเบรกเกอร์และสายดินตามเกณฑ์มาตรฐานความปลอดภัย', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' },
-                    { id: 'vp_5', num: 5, title: '5. งานแล้วเสร็จและทดสอบการทำงาน', note: 'เก็บกวาดพื้นที่สะอาด ทดสอบระบบพร้อมส่งมอบให้ลูกค้า', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80', uploaded_at: nowIso, source: 'QC Verified' }
-                ];
             },
 
             getJobQCPhotos(job) {
@@ -23502,10 +23178,7 @@ const app = {
                 if (!DB.jobs) DB.jobs = [];
                 const todayIso = new Date().toISOString();
                 const todayStr = todayIso.slice(0, 10);
-                const sampleVisitPhotos = [
-                    { id: 'csat_demo_p1', name: 'รูปตรวจสอบระบบหลังส่งมอบ.jpg', url: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=800&auto=format&fit=crop&q=80', uploaded_at: todayIso },
-                    { id: 'csat_demo_p2', name: 'ภาพความเรียบร้อยของหน้างาน.jpg', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&auto=format&fit=crop&q=80', uploaded_at: todayIso }
-                ];
+                const sampleVisitPhotos = [];
 
                 // Demo Job 1: Quick Services entered today (waiting for CSAT, NEW!)
                 let job1 = DB.jobs.find(j => j.id === 'JOB26090900010');
@@ -23527,7 +23200,7 @@ const app = {
                 job1.qc_inspector = 'วรเทพ ชำนาญการ (QC Lead)';
                 job1.qc_inspection_type = 'ONLINE';
                 job1.qc_type = 'ONLINE';
-                job1.photos = this.getSampleVisitPlanPhotos(job1);
+                job1.photos = [];
                 job1.csat_score = null;
                 job1.csat_remarks = '';
                 job1.csat_photos = [];
@@ -23555,7 +23228,7 @@ const app = {
                 job2.qc_inspector = 'วิศวกร ธนกร ตรวจมาตรฐาน (QC)';
                 job2.qc_inspection_type = 'ONSITE';
                 job2.qc_type = 'ONSITE';
-                job2.photos = this.getSampleVisitPlanPhotos(job2);
+                job2.photos = [];
                 job2.csat_score = null;
                 job2.csat_remarks = '';
                 job2.csat_photos = [];
@@ -23583,10 +23256,10 @@ const app = {
                 job3.qc_inspector = 'วิศวกร เกียรติศักดิ์ (QC Specialist)';
                 job3.qc_inspection_type = 'ONLINE';
                 job3.qc_type = 'ONLINE';
-                job3.photos = this.getSampleVisitPlanPhotos(job3);
+                job3.photos = [];
                 job3.csat_score = 5;
                 job3.csat_remarks = 'ช่างบริการสุภาพมาก ตรงต่อเวลา งานติดตั้งเนี้ยบเรียบร้อย แนะนำวิธีดูแลชัดเจน ประทับใจมากค่ะ';
-                job3.csat_photos = sampleVisitPhotos;
+                job3.csat_photos = [];
                 job3.csat_surveyor = 'Contact Center Officer';
                 job3.csat_evaluated_at = todayIso;
                 job3.progress = 100;
@@ -24786,14 +24459,7 @@ const app = {
             // COMPLETED JOBS (JOB CLOSE & QC/CSAT EVALUATION REPORT) METHODS
             // =========================================================================
             getCompletedJobsMockSeed() {
-                const samplePhotos = [
-                    { id: 'p1', num: 1, title: '1. สภาพพื้นที่ก่อนติดตั้ง', desc: 'มุมมองกว้างบริเวณผนังและตำแหน่งติดตั้ง', tag: 'ก่อนติดตั้ง (Before)', url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80' },
-                    { id: 'p2', num: 2, title: '2. การวัดระดับและยึด Plate', desc: 'วัดระดับน้ำตรง แข็งแรงแน่นหนาตามสเปก', tag: 'โครงสร้าง (Mounting)', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1000&auto=format&fit=crop&q=80' },
-                    { id: 'p3', num: 3, title: '3. แนวท่อน้ำยาและรางครอบ', desc: 'เดินท่อเรียบร้อย ขันแฟร์นัทแน่น ไร้รอยรั่ว', tag: 'งานท่อ & ราง (Piping)', url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1000&auto=format&fit=crop&q=80' },
-                    { id: 'p4', num: 4, title: '4. ระบบไฟฟ้าและสายดิน', desc: 'เบรกเกอร์แยกเฉพาะและทดสอบค่ากราวด์ผ่าน', tag: 'ระบบไฟ & กราวด์ (Electrical)', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1000&auto=format&fit=crop&q=80' },
-                    { id: 'p5', num: 5, title: '5. หลังติดตั้งและเก็บกวาด', desc: 'ส่งมอบพื้นที่สะอาด ทดสอบความเย็นสมบูรณ์', tag: 'ส่งมอบงาน (After Handover)', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1000&auto=format&fit=crop&q=80' },
-                    { id: 'p6', num: 6, title: 'แบบแปลนและตำแหน่งติดตั้ง', desc: 'แบบแปลนติดตั้งมาตรฐานที่ได้รับอนุมัติ', tag: 'แบบแปลน (Blueprint)', url: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1000&auto=format&fit=crop&q=80' }
-                ];
+                const samplePhotos = [];
 
                 return [
                     { id: 'JOB202609002', customer: 'นาย ไทย วงศ์สว่าง', phone: '089-777-7777', branch: 'พัทยาใต้', address: '88/12 ม.5 ต.หนองปรือ อ.บางละมุง จ.ชลบุรี', service: 'ติดตั้งเครื่องทำน้ำอุ่น 4500W', technician: 'ทีมช่างสมศักดิ์ (Team A)', total_amount: 3500, ticket_no: 'TCK-202609002', qc_passed_at: '2026-09-14T10:30:00.000Z', created_at: '2026-09-08T08:30:00.000Z', qc_score: 5.0, csat_score: 5.0, status: 'CLOSED', inspector: 'วิศวกร ธนกร ชำนาญการ', surveyor: 'Contact Center Officer', feedback: 'ช่างมาตรงเวลา งานติดตั้งเครื่องทำน้ำอุ่นเรียบร้อย สายดินและเบรกเกอร์ ELCB ได้มาตรฐานดีมาก', photos: samplePhotos },
@@ -25450,41 +25116,50 @@ const app = {
                 // 3. Tab 2 - Work Photos & Blueprints Gallery
                 const photosGrid = document.getElementById('jcd-photos-grid');
                 const photosCountBadge = document.getElementById('jcd-photos-count');
-                const photos = (job.photos && job.photos.length > 0) ? job.photos : this.getCompletedJobsMockSeed()[0].photos;
+                const photos = (job.photos && job.photos.length > 0) ? job.photos : [];
                 if (photosCountBadge) photosCountBadge.innerText = photos.length;
 
                 if (photosGrid) {
-                    photosGrid.innerHTML = photos.map(p => {
-                        const imgUrl = p.url || p.preview || 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800';
-                        const title = p.title || `รูปถ่ายหน้างาน #${p.num || 1}`;
-                        const tag = p.tag || 'ภาพผลงานหน้างาน';
-                        const desc = p.desc || 'รูปถ่ายตรวจสอบความเรียบร้อยหน้างาน';
-                        const timeStr = this.formatDateDMY(job.qc_passed_at);
-
-                        return `
-                            <div class="rounded-2xl border border-border bg-card overflow-hidden shadow-2xs hover:shadow-md transition group flex flex-col cursor-pointer" onclick="app.showLightbox('${imgUrl}', '${title}', '${tag}', '${desc}', '${timeStr}')">
-                                <div class="relative aspect-4/3 bg-muted/40 overflow-hidden">
-                                    <img src="${imgUrl}" alt="${title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                        <span class="w-10 h-10 rounded-full bg-white/90 text-foreground flex items-center justify-center shadow-lg transform translate-y-2 group-hover:translate-y-0 transition">
-                                            <i class="ph ph-magnifying-glass-plus text-lg"></i>
-                                        </span>
-                                    </div>
-                                    <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-black/60 text-white backdrop-blur-xs font-mono">
-                                        ${tag}
-                                    </span>
-                                </div>
-                                <div class="p-3 flex flex-col justify-between flex-1">
-                                    <div class="font-semibold text-foreground text-xs line-clamp-1">${title}</div>
-                                    <div class="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">${desc}</div>
-                                    <div class="text-[10px] text-brand-600 font-mono flex items-center justify-between pt-2 border-t border-border/40 mt-2">
-                                        <span><i class="ph ph-calendar mr-1"></i>${timeStr}</span>
-                                        <span class="hover:underline flex items-center gap-0.5">ขยายภาพ <i class="ph ph-caret-right"></i></span>
-                                    </div>
-                                </div>
+                    if (photos.length === 0) {
+                        photosGrid.innerHTML = `
+                            <div class="col-span-full py-8 text-center bg-muted/20 border border-dashed border-border rounded-xl">
+                                <i class="ph ph-image text-3xl text-muted-foreground/60 mb-2 block"></i>
+                                <p class="text-xs text-muted-foreground font-medium">ไม่มีรูปถ่ายหน้างานที่บันทึกไว้สำหรับคำสั่งซื้อนี้</p>
                             </div>
                         `;
-                    }).join('');
+                    } else {
+                        photosGrid.innerHTML = photos.map(p => {
+                            const imgUrl = p.url || p.preview || p.dataUrl || '';
+                            const title = p.title || `รูปถ่ายหน้างาน #${p.num || 1}`;
+                            const tag = p.tag || 'ภาพผลงานหน้างาน';
+                            const desc = p.desc || 'รูปถ่ายตรวจสอบความเรียบร้อยหน้างาน';
+                            const timeStr = this.formatDateDMY(job.qc_passed_at);
+
+                            return `
+                                <div class="rounded-2xl border border-border bg-card overflow-hidden shadow-2xs hover:shadow-md transition group flex flex-col cursor-pointer" onclick="app.showLightbox('${imgUrl}', '${title}', '${tag}', '${desc}', '${timeStr}')">
+                                    <div class="relative aspect-4/3 bg-muted/40 overflow-hidden">
+                                        <img src="${imgUrl}" alt="${title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <span class="w-10 h-10 rounded-full bg-white/90 text-foreground flex items-center justify-center shadow-lg transform translate-y-2 group-hover:translate-y-0 transition">
+                                                <i class="ph ph-magnifying-glass-plus text-lg"></i>
+                                            </span>
+                                        </div>
+                                        <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-black/60 text-white backdrop-blur-xs font-mono">
+                                            ${tag}
+                                        </span>
+                                    </div>
+                                    <div class="p-3 flex flex-col justify-between flex-1">
+                                        <div class="font-semibold text-foreground text-xs line-clamp-1">${title}</div>
+                                        <div class="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">${desc}</div>
+                                        <div class="text-[10px] text-brand-600 font-mono flex items-center justify-between pt-2 border-t border-border/40 mt-2">
+                                            <span><i class="ph ph-calendar mr-1"></i>${timeStr}</span>
+                                            <span class="hover:underline flex items-center gap-0.5">ขยายภาพ <i class="ph ph-caret-right"></i></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
                 }
 
                 // 4. Tab 3 - Order History & Audit Timeline (8 Steps)
