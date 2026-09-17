@@ -6408,6 +6408,11 @@
                     </div>
                 </div>
 
+                <!-- INT Photos Gallery — Quick Jobs Only (ภาพก่อนเริ่มงาน จาก Step 1 / INT) -->
+                <div id="qc-int-photos-section" class="hidden">
+                    <!-- Rendered by JS: renderQCIntPhotos() -->
+                </div>
+
                 <!-- Renovate Dedicated QC Booking & Confirmation Card -->
                 <div id="qc-renovate-booking-card" class="p-5 rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/5 via-card to-brand-500/5 space-y-4 shadow-sm">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/70 pb-3">
@@ -6520,11 +6525,11 @@
                                 <i class="ph ph-chart-donut"></i>
                             </div>
                             <div>
-                                <h4 class="font-display font-bold text-foreground text-xs flex items-center gap-2">
+                                <h4 id="qc-progress-card-title" class="font-display font-bold text-foreground text-xs flex items-center gap-2">
                                     ความคืบหน้าการประเมินมาตรฐานคุณภาพ QC (5 ข้อคำถามมาตรฐาน)
                                     <span id="qc-detail-completion-badge" class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400">ยังไม่ครบ</span>
                                 </h4>
-                                <p class="text-[11px] text-muted-foreground">ต้องประเมินและตอบ Yes/No (Yes=5, No=1) พร้อมแนบรูปภาพให้ครบ 5 ข้อ จึงจะสามารถส่งมอบต่อไปยังขั้นตอน CSAT (Step 6)</p>
+                                <p id="qc-progress-card-desc" class="text-[11px] text-muted-foreground">ต้องประเมินและตอบ Yes/No (Yes=5, No=1) พร้อมแนบรูปภาพให้ครบ 5 ข้อ จึงจะสามารถส่งมอบต่อไปยังขั้นตอน CSAT (Step 6)</p>
                             </div>
                         </div>
                         <div class="flex items-baseline gap-1.5 self-start sm:self-auto shrink-0">
@@ -6548,7 +6553,7 @@
                 <div class="space-y-4">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
-                            <span class="font-display font-bold text-xs uppercase tracking-wider text-foreground">5 ข้อคำถามมาตรฐานการประเมินคุณภาพ QC (Isara Chootip Standard)</span>
+                            <span id="qc-subtasks-section-title" class="font-display font-bold text-xs uppercase tracking-wider text-foreground">5 ข้อคำถามมาตรฐานการประเมินคุณภาพ QC (Isara Chootip Standard)</span>
                             <span class="text-[10px] text-muted-foreground">(Yes = 5 คะแนน, No = 1 คะแนน | แนบรูปภาพและบันทึกหมายเหตุรายข้อ)</span>
                         </div>
                         <span id="qc-detail-subtask-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted text-foreground border border-border">5 ข้อคำถาม QC</span>

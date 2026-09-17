@@ -21297,6 +21297,39 @@ const app = {
 
             getJobQCSubtasks(job) {
                 if (!job) return [];
+
+                const isQuick = this.isQuickJob(job);
+
+                // ── Quick Job: 1 คำถามเดียว ──────────────────────────────────
+                if (isQuick) {
+                    const QUICK_Q = {
+                        id: 'qq1', num: 1,
+                        title: 'ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด',
+                        category: 'มาตรฐานการทำงาน', mandatory: true
+                    };
+                    // Return existing if already initialised for Quick
+                    if (Array.isArray(job.qc_subtasks) && job.qc_subtasks.length === 1 && job.qc_subtasks[0].id === 'qq1') {
+                        return job.qc_subtasks;
+                    }
+                    // Migrate/init — try to carry over previous answer if any
+                    const oldSub = Array.isArray(job.qc_subtasks) ? (job.qc_subtasks[0] || {}) : {};
+                    let ans = null, score = 0, st = 'PENDING';
+                    if (oldSub.answer === 'YES' || oldSub.score === 5 || oldSub.status === 'PASSED') {
+                        ans = 'YES'; score = 5; st = 'PASSED';
+                    } else if (oldSub.answer === 'NO' || oldSub.score === 1 || oldSub.status === 'DEFECT') {
+                        ans = 'NO'; score = 1; st = 'DEFECT';
+                    }
+                    job.qc_subtasks = [{
+                        id: QUICK_Q.id, num: QUICK_Q.num,
+                        title: QUICK_Q.title, category: QUICK_Q.category,
+                        mandatory: true, status: st, answer: ans, score: score,
+                        photos: Array.isArray(oldSub.photos) ? oldSub.photos : [],
+                        remarks: oldSub.remarks || ''
+                    }];
+                    return job.qc_subtasks;
+                }
+
+                // ── Renovate Job: 5 ข้อมาตรฐาน (Isara Chootip Standard) ─────
                 const standardQuestions = [
                     { id: 'q1', num: 1, title: 'ช่างทำงานตาม BOQ/มาตรฐานการติดตั้งที่กำหนด', category: 'มาตรฐาน & BOQ', mandatory: true },
                     { id: 'q2', num: 2, title: 'ความเรียบร้อยของงานติดตั้ง', category: 'คุณภาพงานติดตั้ง', mandatory: true },
@@ -21463,6 +21496,29 @@ const app = {
                 }
 
                 this.renderQCSubtasks(job);
+                this.renderQCIntPhotos(job);
+
+                // Update dynamic labels based on job type
+                const numQ = isQuick ? 1 : 5;
+                const elProgressTitle = document.getElementById('qc-progress-card-title');
+                if (elProgressTitle) {
+                    const badge = elProgressTitle.querySelector('#qc-detail-completion-badge');
+                    elProgressTitle.childNodes[0].textContent = `ความคืบหน้าการประเมินมาตรฐานคุณภาพ QC (${numQ} ข้อคำถาม${isQuick ? '' : 'มาตรฐาน'})`;
+                    if (badge) elProgressTitle.appendChild(badge);
+                }
+                const elProgressDesc = document.getElementById('qc-progress-card-desc');
+                if (elProgressDesc) {
+                    elProgressDesc.textContent = isQuick
+                        ? 'ตอบ ผ่าน/ไม่ผ่าน เพียง 1 ข้อ จึงจะสามารถส่งมอบต่อไปยังขั้นตอน CSAT (Step 6)'
+                        : 'ต้องประเมินและตอบ Yes/No (Yes=5, No=1) พร้อมแนบรูปภาพให้ครบ 5 ข้อ จึงจะสามารถส่งมอบต่อไปยังขั้นตอน CSAT (Step 6)';
+                }
+                const elSecTitle = document.getElementById('qc-subtasks-section-title');
+                if (elSecTitle) {
+                    elSecTitle.textContent = isQuick
+                        ? '1 ข้อคำถามประเมินคุณภาพ QC (Quick Service)'
+                        : '5 ข้อคำถามมาตรฐานการประเมินคุณภาพ QC (Isara Chootip Standard)';
+                }
+
                 this.showModal('modal-qc-job-detail');
             },
 
@@ -21471,6 +21527,87 @@ const app = {
                 if (previewEl && dateVal) {
                     previewEl.innerText = this.formatDateDMY(dateVal);
                 }
+            },
+
+            // แสดงภาพหน้างานก่อนเริ่มงาน (จาก Step 1 / INT) สำหรับงาน Quick เท่านั้น
+            renderQCIntPhotos(job) {
+                const section = document.getElementById('qc-int-photos-section');
+                if (!section) return;
+
+                const isQuick = this.isQuickJob(job);
+                if (!isQuick) {
+                    section.style.display = 'none';
+                    section.innerHTML = '';
+                    return;
+                }
+
+                section.style.display = 'block';
+
+                // รวบรวมภาพจาก job.photos — category: survey, check_in, หรือ file_int_image
+                const allPhotos = Array.isArray(job.photos) ? job.photos : [];
+                const intPhotos = allPhotos.filter(p =>
+                    p.category === 'survey' || p.category === 'check_in' ||
+                    p.tag === 'ภาพถ่ายสำรวจหน้างานจากระบบภายนอก' ||
+                    p.category === 'int' || p.category === 'before'
+                );
+
+                // ถ้าไม่มีรูปตาม category แต่มีรูปทั่วไป ให้แสดงทั้งหมด
+                const displayPhotos = intPhotos.length > 0 ? intPhotos : allPhotos;
+
+                // เพิ่ม file_int_image (รูปเดี่ยวจาก INT job_info) ถ้ายังไม่อยู่ใน array
+                const intSingleUrl = job.file_int_image;
+                if (intSingleUrl && !displayPhotos.some(p => p.url === intSingleUrl)) {
+                    displayPhotos.unshift({
+                        id: 'int_single',
+                        title: 'ภาพจาก INT (file_int_image)',
+                        url: intSingleUrl,
+                        category: 'int',
+                        uploaded_at: job.created_at || null
+                    });
+                }
+
+                if (displayPhotos.length === 0) {
+                    section.innerHTML = `
+                        <div class="p-4 rounded-xl bg-muted/40 border border-border flex items-center gap-2.5 text-xs text-muted-foreground">
+                            <i class="ph ph-image text-muted-foreground text-base shrink-0"></i>
+                            <span>ยังไม่มีภาพหน้างานจาก Step 1 (INT) สำหรับงานนี้ — ช่างอาจยังไม่ได้อัปโหลด</span>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const photosHtml = displayPhotos.map((p, idx) => {
+                    const safeUrl = (p.url || '').replace(/'/g, "\\'");
+                    const safeTitle = (p.title || `ภาพหน้างาน ${idx + 1}`).replace(/'/g, "\\'");
+                    const safeDate = p.uploaded_at ? this.formatDateDMY(p.uploaded_at) : '';
+                    return `
+                        <div class="relative shrink-0 w-28 h-28 rounded-xl overflow-hidden border border-cyan-500/30 bg-muted/40 shadow-xs cursor-pointer group"
+                             onclick="app.showLightbox('${safeUrl}', '${safeTitle}', 'ภาพก่อนเริ่มงาน #${idx + 1} — จาก Step 1 / INT', '${safeDate}', 'INT / Step 1')">
+                            <img src="${p.url}" alt="${safeTitle}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23e2e8f0%22 width=%22100%22 height=%22100%22/><text y=%2250%22 x=%2250%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22 fill=%22%2394a3b8%22 font-size=%2212%22>No Img</text></svg>'">
+                            <span class="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-mono bg-black/60 text-white backdrop-blur-xs">#${idx + 1}</span>
+                            <div class="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/15 transition-all">
+                                <i class="ph ph-magnifying-glass-plus text-white opacity-0 group-hover:opacity-100 text-lg transition-opacity"></i>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                section.innerHTML = `
+                    <div class="p-4 rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/5 to-card space-y-3 shadow-xs">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <div class="w-7 h-7 rounded-lg bg-cyan-500/15 text-cyan-600 flex items-center justify-center shrink-0">
+                                <i class="ph ph-images text-sm"></i>
+                            </div>
+                            <span class="font-display font-bold text-xs text-foreground">ภาพหน้างานก่อนเริ่มงาน (ดึงจาก Step 1 / INT)</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-600 border border-cyan-500/20">${displayPhotos.length} รูป</span>
+                            <span class="text-[11px] text-muted-foreground">— กด Lightbox เพื่อดูขนาดเต็ม</span>
+                        </div>
+                        <div class="flex items-center gap-2 overflow-x-auto pb-1 scroll-smooth">
+                            ${photosHtml}
+                        </div>
+                    </div>
+                `;
             },
 
             setQCBookingDatePreset(preset) {
@@ -21738,7 +21875,7 @@ const app = {
                 if (elBadge) {
                     if (progress.isAllComplete) {
                         elBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
-                        elBadge.innerHTML = '<i class="ph ph-check-circle"></i> ประเมินครบ 5 ข้อ (ผ่านเกณฑ์ 100%)';
+                        elBadge.innerHTML = `<i class="ph ph-check-circle"></i> ประเมินครบ ${progress.total} ข้อ (ผ่านเกณฑ์ 100%)`;
                     } else if (progress.defect > 0) {
                         elBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400';
                         elBadge.innerHTML = `<i class="ph ph-warning"></i> พบข้อบกพร่อง ${progress.defect} ข้อ`;
@@ -21766,7 +21903,7 @@ const app = {
                     } else {
                         btnCSAT.disabled = true;
                         btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 bg-muted text-muted-foreground cursor-not-allowed opacity-60 transition-all';
-                        btnLabel.innerText = `ประเมินแล้ว ${progress.completed}/${progress.total} ข้อ (ต้องตอบ Yes/No ให้ครบ 5 ข้อ)`;
+                        btnLabel.innerText = `ประเมินแล้ว ${progress.completed}/${progress.total} ข้อ (ต้องตอบ Yes/No ให้ครบ ${progress.total} ข้อ)`;
                     }
                 }
 
@@ -21936,7 +22073,7 @@ const app = {
                 this.persistJobs();
                 this.renderQCSubtasks(job);
                 this.updateQCDashboard();
-                this.showToast('✅ เลือก Yes (5 คะแนน) ให้ครบทั้ง 5 ข้อเรียบร้อย (คะแนนรวม 5.0 คะแนน)');
+                this.showToast(`✅ เลือก Yes (5 คะแนน) ให้ครบทั้ง ${subtasks.length} ข้อเรียบร้อย (คะแนนรวม 5.0 คะแนน)`);
             },
 
             resetAllQCSubtasks(jobId) {
@@ -21952,7 +22089,7 @@ const app = {
                 this.persistJobs();
                 this.renderQCSubtasks(job);
                 this.updateQCDashboard();
-                this.showToast('↺ ล้างผลการตอบทั้ง 5 ข้อเรียบร้อย');
+                this.showToast(`↺ ล้างผลการตอบทั้ง ${subtasks.length} ข้อเรียบร้อย`);
             },
 
             setSubtaskScore(jobId, subtaskId, score) {
