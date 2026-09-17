@@ -23377,13 +23377,10 @@ const app = {
 
                 return merged.map(job => {
                     const qc = Number(job.qc_score) || 5.0;
-                    const csat = Number(job.csat_score) || 5.0;
-                    const total = Number(((qc + csat) / 2).toFixed(1));
                     return {
                         ...job,
                         qc_score: qc,
-                        csat_score: csat,
-                        total_score: total
+                        total_score: qc
                     };
                 });
             },
@@ -23400,8 +23397,6 @@ const app = {
                 }).length;
                 const totalAmount = allJobs.reduce((sum, j) => sum + (Number(j.total_amount) || 0), 0);
                 const avgQC = (allJobs.reduce((sum, j) => sum + j.qc_score, 0) / (totalCount || 1)).toFixed(1);
-                const avgCSAT = (allJobs.reduce((sum, j) => sum + j.csat_score, 0) / (totalCount || 1)).toFixed(1);
-                const avgTotal = (allJobs.reduce((sum, j) => sum + j.total_score, 0) / (totalCount || 1)).toFixed(1);
 
                 const elTotal = document.getElementById('csat-stat-total');
                 if (elTotal) elTotal.innerText = totalCount;
@@ -23410,11 +23405,9 @@ const app = {
                 const elAmount = document.getElementById('csat-stat-total-amount');
                 if (elAmount) elAmount.innerText = totalAmount.toLocaleString('th-TH');
                 const elAvg = document.getElementById('csat-stat-avg');
-                if (elAvg) elAvg.innerText = avgTotal;
+                if (elAvg) elAvg.innerText = avgQC;
                 const elQcAvg = document.getElementById('csat-stat-qc-avg');
                 if (elQcAvg) elQcAvg.innerText = avgQC;
-                const elCsatAvg = document.getElementById('csat-stat-csat-avg');
-                if (elCsatAvg) elCsatAvg.innerText = avgCSAT;
 
                 // 2. Calculate Segment Distribution Summary (Quick, Renovate, MA, Done 100%)
                 const quickJobs = allJobs.filter(j => j.job_type === 'quick');
@@ -23648,18 +23641,15 @@ const app = {
                                     <span class="text-[9px] text-emerald-600 font-mono">ตัดสต็อกแล้ว</span>
                                 </td>
 
-                                <!-- Col 7: QC / CSAT -->
+                                <!-- Col 7: คะแนน QC -->
                                 <td class="py-3 px-4 text-center whitespace-nowrap">
-                                    <div class="flex items-center justify-center gap-1">
-                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-500/15 text-amber-700" title="คะแนนตรวจรับรองมาตรฐาน QC">
-                                            ${qcFormatted}
-                                        </span>
-                                        <span class="text-muted-foreground/50 text-[10px]">/</span>
-                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono bg-blue-500/15 text-blue-700" title="คะแนนความพึงพอใจลูกค้า CSAT">
-                                            ${csatFormatted}
+                                    <div class="flex items-center justify-center">
+                                        <span class="px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-amber-500/15 text-amber-700 flex items-center gap-1" title="คะแนนตรวจรับรองมาตรฐาน QC">
+                                            <i class="ph-fill ph-shield-check text-amber-600"></i>
+                                            <span>${qcFormatted}</span>
                                         </span>
                                     </div>
-                                    <div class="text-[9px] text-muted-foreground font-mono mt-0.5">เฉลี่ย ${totalFormatted}</div>
+                                    <div class="text-[9px] text-muted-foreground font-sans mt-0.5">CSAT ในระบบ STK</div>
                                 </td>
 
                                 <!-- Col 8: สถานะส่ง STK -->
@@ -23874,11 +23864,8 @@ const app = {
                 // 2. Tab 1 - Scores & KPI
                 setText('jcd-qc-score', job.qc_score.toFixed(1));
                 setText('jcd-inspector', job.inspector || 'วิศวกร ธนกร ชำนาญการ');
-                setText('jcd-csat-score', job.csat_score.toFixed(1));
-                setText('jcd-surveyor', job.surveyor || 'Contact Center Officer');
-                setText('jcd-total-score', job.total_score.toFixed(1));
-                setText('jcd-customer-feedback', job.feedback || 'ลูกค้ามีความพึงพอใจในคุณภาพงานและการให้บริการ ช่างปฏิบัติงานเรียบร้อย');
-                setText('jcd-csat-date', this.formatDateDMY(job.qc_passed_at));
+                setText('jcd-stk-badge-ref', `STK Synced (${job.stk_ref || '200 OK'})`);
+                setText('jcd-csat-stk-ref', job.stk_ref || `STK-REF-2026-${job.id.replace('JOB', '')}`);
 
                 // 5 QC Standard Subtasks Breakdown (Yes=5, No=1)
                 const subtaskList = document.getElementById('jcd-qc-subtasks-list');
@@ -23974,7 +23961,7 @@ const app = {
                         { step: 4, name: 'จัดเตรียมอุปกรณ์ & จ่ายงานช่าง (Work Prep & Dispatch)', time: this.formatDateTimeDMY(d4.toISOString(), false, true), actor: 'หัวหน้างานจ่ายงาน (Dispatcher)', status: 'COMPLETED', note: `มอบหมายงานให้ ${job.technician || 'ทีมช่างสมศักดิ์'} เข้าปฏิบัติงานตามนัดหมาย` },
                         { step: 5, name: 'ดำเนินการติดตั้ง & บันทึกงานประจำวัน (Gantt & Daily Logs)', time: this.formatDateTimeDMY(d5.toISOString(), false, true), actor: job.technician || 'ทีมช่างสมศักดิ์', status: 'COMPLETED', note: 'บันทึกเวลาเข้า-ออกหน้างาน แนบภาพถ่าย 5 ขั้นตอนมาตรฐานครบถ้วน' },
                         { step: 6, name: 'ตรวจรับรองคุณภาพมาตรฐาน (QC Inspection Approved)', time: this.formatDateTimeDMY(d6.toISOString(), false, true), actor: job.inspector || 'วิศวกร ธนกร ชำนาญการ', status: 'PASSED', note: `ตรวจผ่านเกณฑ์มาตรฐาน 5/5 ข้อ ได้รับคะแนน QC ${job.qc_score.toFixed(1)} คะแนน` },
-                        { step: 7, name: 'โทรสำรวจความพึงพอใจลูกค้า (CSAT Evaluation Completed)', time: this.formatDateTimeDMY(d7.toISOString(), false, true), actor: job.surveyor || 'Contact Center Officer', status: 'SURVEYED', note: `ประเมินความพึงพอใจได้ ${job.csat_score.toFixed(1)} คะแนน ลูกค้ายืนยันส่งมอบเรียบร้อย` },
+                        { step: 7, name: 'ส่งต่อการประเมิน CSAT ไประบบ STK (CSAT on STK System)', time: this.formatDateTimeDMY(d7.toISOString(), false, true), actor: 'ระบบเชื่อมต่อ STK Integration', status: 'STK_HANDOVER', note: 'ส่งข้อมูลปิดงานและผลตรวจ QC เข้าสู่ระบบ STK เพื่อดำเนินการประเมินผลความพึงพอใจ (CSAT) ต่อไป' },
                         { step: 8, name: 'ปิดงานคำสั่งซื้อ & ส่ง API ระบบ STK (Job Closed & STK Synced)', time: this.formatDateTimeDMY(d8.toISOString(), false, true), actor: 'ระบบอัตโนมัติ PMT Flow Cloud ERP', status: 'CLOSED', note: `ส่ง API ตัดสต็อก STK รหัส ${job.stk_ref} สำเร็จ 200 OK สามารถเรียกดูประวัติย้อนหลังได้ 6 เดือน` }
                     ];
 

@@ -3512,15 +3512,15 @@
                             </div>
                         </div>
 
-                        <!-- Card 4: คะแนนเฉลี่ยความสำเร็จ (QC & CSAT) -->
+                        <!-- Card 4: คะแนนตรวจรับรอง QC เฉลี่ย (CSAT ทำในระบบ STK) -->
                         <div class="p-4.5 rounded-xl bg-card border border-border hover:border-amber-500/40 hover:shadow-md transition-all flex items-center justify-between gap-3 relative overflow-hidden">
                             <div class="flex items-center gap-3.5">
                                 <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0">
-                                    <i class="ph ph-star-fill"></i>
+                                    <i class="ph ph-shield-check"></i>
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-1.5">
-                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">คะแนนคุณภาพเฉลี่ย</p>
+                                        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">คะแนน QC เฉลี่ย</p>
                                         <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground">/ 5.0</span>
                                     </div>
                                     <div class="flex items-baseline gap-1.5 mt-0.5">
@@ -3528,14 +3528,14 @@
                                         <span class="text-xs text-amber-500 font-medium">★</span>
                                     </div>
                                     <p class="text-[11px] text-muted-foreground/80 mt-0.5 flex items-center gap-1.5">
-                                        <span class="text-emerald-600 font-medium">QC: <b id="csat-stat-qc-avg">5.0</b></span>
+                                        <span class="text-emerald-600 font-medium"><i class="ph ph-check-circle"></i> ผ่านมาตรฐาน QC</span>
                                         <span>•</span>
-                                        <span class="text-blue-600 font-medium">CSAT: <b id="csat-stat-csat-avg">5.0</b></span>
+                                        <span class="text-blue-600 font-medium">CSAT ในระบบ STK</span>
                                     </p>
                                 </div>
                             </div>
                             <div class="flex flex-col items-end gap-2 shrink-0">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">QC & CSAT</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">QC Score</span>
                             </div>
                         </div>
                     </div>
@@ -3681,7 +3681,7 @@
                                         <th class="py-3.5 px-4">งานบริการ & เลข Ticket</th>
                                         <th class="py-3.5 px-4">ทีมช่าง & ผู้ตรวจ QC</th>
                                         <th class="py-3.5 px-4 text-right">ยอดเงินรวม</th>
-                                        <th class="py-3.5 px-4 text-center">QC / CSAT</th>
+                                        <th class="py-3.5 px-4 text-center">คะแนน QC</th>
                                         <th class="py-3.5 px-4 text-center">สถานะส่ง STK</th>
                                         <th class="py-3.5 px-4 text-center w-36">การดำเนินการ</th>
                                     </tr>
@@ -6642,7 +6642,7 @@
                             <h3 class="font-display font-bold text-base text-foreground">สรุปผลการประเมินโครงการ & ประวัติงาน (Job Close & History Track)</h3>
                             <span class="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-brand-500/10 text-brand-600 border border-brand-500/20" id="jcd-job-id">JOB...</span>
                         </div>
-                        <p class="text-xs text-muted-foreground mt-0.5">รายงานผลตรวจรับรองมาตรฐาน QC, ความพึงพอใจลูกค้า CSAT, ภาพงาน และประวัติไทม์ไลน์ย้อนหลัง</p>
+                        <p class="text-xs text-muted-foreground mt-0.5">รายงานผลตรวจรับรองมาตรฐาน QC, ภาพถ่ายหน้างาน และประวัติไทม์ไลน์ย้อนหลัง (คะแนน CSAT ดำเนินการในระบบ STK)</p>
                     </div>
                 </div>
                 <button type="button" onclick="app.hideModal('modal-job-close-detail')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-xl hover:bg-muted transition cursor-pointer">
@@ -6653,8 +6653,8 @@
             <!-- Modal Nav Tabs -->
             <div class="flex items-center gap-2 px-6 pt-3 border-b border-border bg-muted/15 shrink-0 overflow-x-auto">
                 <button type="button" onclick="app.switchJobCloseModalTab('overview')" id="jcd-tab-btn-overview" class="px-4 py-2.5 text-xs font-bold border-b-2 border-brand-500 text-brand-600 flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap">
-                    <i class="ph ph-chart-donut text-sm"></i>
-                    <span>สรุปผลประเมิน QC & CSAT</span>
+                    <i class="ph ph-shield-check text-sm"></i>
+                    <span>สรุปผลการตรวจรับรอง QC</span>
                 </button>
                 <button type="button" onclick="app.switchJobCloseModalTab('photos')" id="jcd-tab-btn-photos" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap">
                     <i class="ph ph-images text-sm"></i>
@@ -6705,45 +6705,47 @@
                         <!-- QC Card -->
                         <div class="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 flex flex-col justify-between">
                             <div class="flex items-center justify-between">
-                                <span class="text-xs font-semibold text-amber-700">1. คะแนน QC</span>
+                                <span class="text-xs font-semibold text-amber-700">1. คะแนนตรวจรับรอง QC</span>
                                 <span class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-600 flex items-center justify-center text-xs"><i class="ph ph-shield-check"></i></span>
                             </div>
                             <div class="my-2 text-center">
                                 <span class="text-3xl font-display font-extrabold text-amber-600" id="jcd-qc-score">5.0</span>
-                                <span class="text-xs text-muted-foreground ml-1 font-mono">คะแนน</span>
+                                <span class="text-xs text-muted-foreground ml-1 font-mono">คะแนน (เต็ม 5.0)</span>
                             </div>
                             <div class="text-[11px] text-muted-foreground text-center">
                                 ผู้ตรวจ: <span class="font-medium text-foreground" id="jcd-inspector">-</span>
                             </div>
                         </div>
 
-                        <!-- CSAT Card -->
+                        <!-- CSAT Card: Done in STK System -->
                         <div class="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20 flex flex-col justify-between">
                             <div class="flex items-center justify-between">
-                                <span class="text-xs font-semibold text-blue-700">2. คะแนน CSAT</span>
-                                <span class="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-600 flex items-center justify-center text-xs"><i class="ph ph-heart"></i></span>
+                                <span class="text-xs font-semibold text-blue-700">2. การประเมินความพึงพอใจ (CSAT)</span>
+                                <span class="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-600 flex items-center justify-center text-xs"><i class="ph ph-arrows-clockwise"></i></span>
                             </div>
                             <div class="my-2 text-center">
-                                <span class="text-3xl font-display font-extrabold text-blue-600" id="jcd-csat-score">5.0</span>
-                                <span class="text-xs text-muted-foreground ml-1 font-mono">คะแนน</span>
+                                <span class="text-base font-display font-bold text-blue-600 block">ดำเนินการในระบบ STK</span>
+                                <span class="text-[10px] text-blue-500 font-mono">CSAT on STK System</span>
                             </div>
                             <div class="text-[11px] text-muted-foreground text-center">
-                                ผู้โทร: <span class="font-medium text-foreground" id="jcd-surveyor">Contact Center</span>
+                                สำรวจและประเมินผลผ่านระบบ STK
                             </div>
                         </div>
 
-                        <!-- Combined Score Card -->
+                        <!-- STK Integration Sync Card -->
                         <div class="p-4 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/30 flex flex-col justify-between shadow-xs">
                             <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-emerald-700">3. คะแนน รวม</span>
+                                <span class="text-xs font-bold text-emerald-700">3. สถานะส่ง API ระบบ STK</span>
                                 <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-600 flex items-center justify-center text-xs"><i class="ph ph-check-circle"></i></span>
                             </div>
                             <div class="my-2 text-center">
-                                <span class="text-3xl font-display font-extrabold text-emerald-600" id="jcd-total-score">5.0</span>
-                                <span class="text-xs text-emerald-700 ml-1 font-mono">คะแนนเฉลี่ย</span>
+                                <span class="text-base font-display font-extrabold text-emerald-600 flex items-center justify-center gap-1">
+                                    <i class="ph-fill ph-check-circle text-lg"></i> เชื่อมต่อสำเร็จ
+                                </span>
+                                <span class="text-[10px] text-emerald-700 font-mono mt-0.5 block" id="jcd-stk-badge-ref">STK Synced (200 OK)</span>
                             </div>
                             <div class="text-[10px] text-emerald-700 font-mono text-center">
-                                (คะแนน QC + CSAT) ÷ 2
+                                ตัดสต็อก & ส่งมอบงานสมบูรณ์
                             </div>
                         </div>
                     </div>
@@ -6762,21 +6764,29 @@
                         </div>
                     </div>
 
-                    <!-- Section: CSAT Feedback & Remarks -->
+                    <!-- Section: CSAT Integration & Remarks -->
                     <div class="space-y-3">
                         <h4 class="font-bold text-foreground text-xs flex items-center gap-1.5">
-                            <i class="ph ph-chat-circle-dots text-blue-500 text-base"></i>
-                            <span>ความคิดเห็นและคำติชมของลูกค้า (CSAT Customer Feedback)</span>
+                            <i class="ph ph-cpu text-blue-500 text-base"></i>
+                            <span>การประเมินความพึงพอใจลูกค้า (CSAT) & การส่งต่อระบบ STK</span>
                         </h4>
-                        <div class="p-3.5 rounded-xl bg-muted/40 border border-border space-y-2">
-                            <div class="italic text-foreground text-xs flex items-start gap-2">
-                                <span class="text-blue-500 text-base">“</span>
-                                <span id="jcd-customer-feedback">ลูกค้ามีความพึงพอใจสูงมาก การติดตั้งเรียบร้อย ช่างตรงเวลาและเก็บกวาดสะอาดเรียบร้อย</span>
-                                <span class="text-blue-500 text-base">”</span>
+                        <div class="p-3.5 rounded-xl bg-blue-500/5 border border-blue-500/20 space-y-2.5">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/10 text-blue-700 border border-blue-500/20">
+                                    ระบบ STK Integration
+                                </span>
+                                <span class="text-xs font-semibold text-foreground">
+                                    คะแนน CSAT ดำเนินการประเมินผลผ่านระบบ STK (ไม่มีการบันทึกคะแนน CSAT ใน PMT Flow)
+                                </span>
                             </div>
-                            <div class="text-[11px] text-muted-foreground pt-1 border-t border-border/40 flex items-center justify-between">
-                                <span>วันที่โทรสำรวจ: <span id="jcd-csat-date" class="font-mono text-foreground">-</span></span>
-                                <span>สถานะ BMT: <span class="text-emerald-600 font-bold font-mono">EXPORTED & BILLED</span></span>
+                            <p class="text-xs text-muted-foreground leading-relaxed">
+                                ระบบ PMT Flow ได้ทำการตรวจสอบและอนุมัติมาตรฐาน QC หน้างานครบถ้วน พร้อมส่งข้อมูลผลตรวจออก REST API ไปยังระบบ STK เรียบร้อยแล้ว เพื่อให้ฝ่ายบริการลูกค้าดำเนินการสำรวจและบันทึกผลคะแนน CSAT ภายในระบบ STK ต่อไป
+                            </p>
+                            <div class="text-[11px] text-muted-foreground pt-2 border-t border-blue-500/15 flex items-center justify-between">
+                                <span>เลขอ้างอิง STK: <span id="jcd-csat-stk-ref" class="font-mono font-bold text-brand-600">-</span></span>
+                                <span class="flex items-center gap-1 text-emerald-600 font-bold font-mono">
+                                    <i class="ph-fill ph-check-circle"></i> STK SYNCED (200 OK)
+                                </span>
                             </div>
                         </div>
                     </div>

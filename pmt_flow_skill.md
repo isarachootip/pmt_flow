@@ -15,7 +15,7 @@
 | **ADMIN** | ผู้ดูแลระบบ (Admin) | จัดการผู้ใช้ทั้งหมด, รีเซ็ตรหัสผ่าน, ดู Audit Logs, ตั้งค่าระบบ & API, สิทธิ์เต็มทุกขั้นตอน | ชมพู/แดง (`rose-500`) ไอคอน `ph-shield-star` |
 | **AE** | ฝ่ายขาย (Account Executive) | รับคำสั่งซื้อใหม่ (INT Intake Step 1), บันทึกแบบแปลน (Step 2), จัดการคลัง BOQ และเตรียมแผนงาน (Step 3) | ฟ้า/น้ำเงิน (`blue-500`) ไอคอน `ph-briefcase` |
 | **QC** | ตรวจสอบคุณภาพ (Quality Control) | ตรวจรับงานหน้างานและ Online (Step 5 / QC Inspection), ตรวจทานภาพถ่าย, อนุมัติ/ปฏิเสธงานพร้อมเหตุผล | เขียวมรกต (`emerald-500`) ไอคอน `ph-check-circle` |
-| **CONTACT_CENTER** | บริการลูกค้า (Contact Center) | จัดการประเมินความพึงพอใจลูกค้า CSAT (Step 6), ปิดงานส่งมอบ, ดูแลสัญญา MA หลังการขาย | เหลืองส้ม (`amber-500`) ไอคอน `ph-phone` |
+| **CONTACT_CENTER** | บริการลูกค้า (Contact Center) | ตรวจสอบงานส่งมอบสำเร็จ, ดูแลสัญญา MA หลังการขาย, และประสานงานประเมิน CSAT ในระบบ STK | เหลืองส้ม (`amber-500`) ไอคอน `ph-phone` |
 
 ### 1.2 ฟังก์ชันบังคับของหน้าจอ User Management
 1. **การ์ดสถิติผู้ใช้งาน (Stat Summary Cards)**:
@@ -115,7 +115,7 @@
 4. **Step 3: เตรียมแผนงานและทีมช่าง (Project Conversion)**: วันที่แปลงเข้าแผนงาน, วันที่มอบหมายช่าง
 5. **Step 4: ติดตั้ง & แผนงาน Gantt (Gantt Projects Timeline & Daily Logs)**: วันที่เริ่มต้น/สิ้นสุดแต่ละ Task, วันบันทึกช่างประจำวัน
 6. **Step 5: ตรวจรับงาน QC (QC Online / On-site Audit & Scoring)**: วันนัดตรวจ QC, วันที่ลงตรวจจริง, วันที่ส่งรายงาน
-7. **Step 6: จบงาน & ส่งมอบ (Closeout, CSAT, Payment & Receipt)**: วันที่ทำแบบประเมิน CSAT, วันที่ส่งมอบและปิดงาน BMT
+7. **Step 6: สรุปงานสำเร็จ & ส่งต่อ STK (Completed Jobs Summary & STK Outbound)**: วันที่ส่ง API ปิดงานเข้าระบบ STK (คะแนน CSAT ดำเนินการในระบบ STK)
 8. **คลังรายการ BOQ กลาง (Central BOQ Repository)**: วันที่สร้างใบเสนอราคา, วันที่อนุมัติงบประมาณ
 9. **บริการหลังการขาย & สัญญา MA**: วันที่เริ่ม-สิ้นสุดสัญญา MA, วันรอบตรวจบำรุงรักษา
 10. **User Management & Audit Logs**: วันที่เข้าสู่ระบบล่าสุด (Last Login), วันเวลาที่บันทึก Login Audit Trail
@@ -199,7 +199,7 @@
 5. **Step 5: ตรวจรับงาน QC (QC Online / On-site Audit & Scoring)** - ตรวจรับรองงานตามเกณฑ์มาตรฐาน:
    - **Quick Services**: ตรวจแบบ Online จากภาพถ่าย Visit Plan 5 หมวดหมู่ ไม่ต้องจองคิวช่าง On-site
    - **Renovate Projects**: จองคิวช่าง QC Lead ล่วงหน้า และประเมินให้คะแนนมาตรฐาน Isara Chootip (5 ข้อคำถาม Yes=5/No=1)
-6. **Step 6: จบงาน & ส่งมอบ (Closeout, CSAT, Payment & Receipt)** - ประเมินความพึงพอใจลูกค้า CSAT (ผ่าน=5 / ไม่ผ่าน=1), แนบหลักฐานส่งมอบ, ปิดงานส่งต่อระบบ BMT และดูแลสัญญา MA ต่อเนื่อง
+6. **Step 6: สรุปงานสำเร็จ & ส่งต่อ STK (Completed Jobs Summary & STK Outbound)** - รวบรวมงานที่ผ่าน QC และส่งถ่ายข้อมูลปิดงานผ่าน REST API เข้าสู่ระบบ STK (สถานะ CLOSED, 200 OK) โดยการประเมินคะแนนความพึงพอใจลูกค้า (CSAT) จะดำเนินการผ่านระบบ STK โดยตรง พร้อมดูแลสัญญา MA ต่อเนื่อง
 
 *หมายเหตุเรื่องคลังรายการ BOQ*: **คลังรายการ BOQ กลาง (Central BOQ Repository)** ทำหน้าที่เป็นศูนย์กลางข้อมูลประมาณการราคาและรายการพัสดุ (Master BOQ Data) ที่เข้าถึงได้อิสระจาก Topbar/Sidebar/Job Modals โดยปลดออกจากลำดับขั้นตอนบังคับใน Pipeline เพื่อความคล่องตัวสูงสุด (Decoupled from linear execution)
 
