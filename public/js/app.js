@@ -5336,10 +5336,7 @@ const app = {
                 const metricEl = document.getElementById('unified-metric-photos');
                 if (!grid || !job) return;
 
-                if (!job.photos || job.photos.length === 0) {
-                    job.photos = this.getSampleVisitPlanPhotos(job);
-                    this.persistJobs();
-                }
+                // ไม่ inject Demo photos — ถ้าไม่มีรูปจริงให้แสดง empty state
 
                 const photos = job.photos || [];
                 if (countEl) countEl.innerText = `${photos.length} รูป`;
@@ -6204,9 +6201,7 @@ const app = {
                     job.step_timestamps.step1_accepted_at = nowIso;
                     job.step_timestamps.qc_pending_at = nowIso;
                     job.step_timestamps.step5_skipped_at = nowIso;
-                    if (!job.photos || job.photos.length === 0) {
-                        job.photos = this.getSampleVisitPlanPhotos(job);
-                    }
+                    // ไม่ inject Demo photos — ใช้เฉพาะรูปจริงจาก API
                     this.persistJobs();
                     this.renderJobs();
                     this.updateStepBadges();
@@ -8277,9 +8272,7 @@ const app = {
                         const now = new Date().toISOString();
                         if (!job.step_timestamps.qc_pending_at) job.step_timestamps.qc_pending_at = now;
                         if (!job.step_timestamps.step5_skipped_at) job.step_timestamps.step5_skipped_at = now;
-                        if (!job.photos || job.photos.length === 0) {
-                            job.photos = this.getSampleVisitPlanPhotos(job);
-                        }
+                        // ไม่ inject Demo photos — ใช้เฉพาะรูปจริงจาก API
                         this.recordStepTimestamp(id, 'qc_pending_at', now, 'ย้ายงาน Quick Service เข้าสู่คิวรอตรวจ QC Online (Step 5)');
                         this.persistJobs();
                         fetch(`/api/v1/jobs/${id}`, {
@@ -14017,10 +14010,7 @@ const app = {
                         job.step_timestamps.qc_pending_at = newTicket.created_at;
                         job.step_timestamps.step5_skipped_at = newTicket.created_at;
 
-                        // Ensure photos exist from Visit Plan (or initialize sample photos if empty)
-                        if (!job.photos || job.photos.length === 0) {
-                            job.photos = this.getSampleVisitPlanPhotos(job);
-                        }
+                        // ไม่ inject Demo photos — ใช้เฉพาะรูปจริงจาก API
 
                         this.recordStepTimestamp(jobId, 'qc_pending_at', newTicket.created_at, 'บันทึก Ticket & ใบเสร็จ และส่งไปตั้งรอตรวจสอบที่คิว QC Online ทันที (ตรวจสอบแบบ Online แนบรูปอย่างเดียว จาก Visit Plan)');
                         this.persistJobs();
@@ -21373,10 +21363,7 @@ const app = {
                     };
                 });
 
-                // If job is Quick and has no photos, populate from Visit Plan
-                if (this.isQuickJob(job) && (!job.photos || job.photos.length === 0)) {
-                    job.photos = this.getSampleVisitPlanPhotos(job);
-                }
+                // ไม่ inject Demo photos — ใช้เฉพาะรูปจริงจาก API
 
                 // If job has photos from earlier stages, distribute them into subtasks
                 if (Array.isArray(job.photos) && job.photos.length > 0) {
