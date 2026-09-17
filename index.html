@@ -5564,6 +5564,27 @@
                                     </ul>
                                 </div>
                             </details>
+
+                            <!-- Q19: Subtask Management in Gantt Timeline & Daily Work Log Integration -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q19:</span>
+                                        <span>การเพิ่มงานย่อย (Subtasks Breakdown) ในตารางแถบงาน Gantt Chart มีวิธีการใช้งานอย่างไร และเชื่อมโยงกับบันทึกงานช่างประจำวันอย่างไร?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> ในแผนงาน Gantt Timeline ทุกมุมมอง (รายวัน Day, รายสัปดาห์ Week, รายเดือน Month) และตารางรายการ Task ผู้ใช้สามารถจัดการงานย่อย (Subtasks) ของแต่ละ Task ได้อย่างสมบูรณ์แบบ:</p>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
+                                        <li><strong>ปุ่ม "+ Subtask" และปุ่ม "จัดการ" บนตารางแถบงาน:</strong> ในแต่ละแถวของ Task จะมีปุ่ม <code class="bg-brand-500/10 text-brand-700 font-bold px-1.5 py-0.2 rounded text-[10px]">+ Subtask</code> เพื่อเพิ่มงานย่อยใหม่ได้ทันที และปุ่ม <code class="bg-purple-500/10 text-purple-700 font-bold px-1.5 py-0.2 rounded text-[10px]">จัดการ</code> เพื่อเปิดหน้าต่าง <em>จัดการงานย่อย (Subtasks Breakdown Modal)</em></li>
+                                        <li><strong>การแบ่งงานย่อยอัตโนมัติ (Auto-Split):</strong> มีปุ่ม <code class="bg-amber-500/10 text-amber-700 font-bold px-1.5 py-0.2 rounded text-[10px]">⚡ แบ่งย่อยอัตโนมัติ</code> ที่จะคำนวณระยะเวลาของ Task และสร้างเฟสงานย่อยตามประเภทงาน (เช่น งานเตรียมฐานราก, โครงสร้างหลัก, ติดตั้งอุปกรณ์, ทดสอบระบบและส่งมอบ) อย่างต่อเนื่องไม่ซ้อนทับกัน</li>
+                                        <li><strong>แถบแสดงผล Subtasks บน Timeline:</strong> ใต้แถว Task หลัก จะมีแถว Subtask พร้อมสัญลักษณ์ <code class="text-brand-600 font-mono font-bold">└─</code> และแถบสีความคืบหน้า (DONE สีเขียว, IN_PROGRESS สีส้ม, TODO สีม่วง) พร้อมจำนวนวันทำงาน (<code class="font-mono text-[10px]">Xd</code>)</li>
+                                        <li><strong>เชื่อมโยงกับ Daily Work Log:</strong> คลิกที่แถบสีของ Subtask หรือคลิกไอคอนสมุดโน้ต <code class="text-blue-600 font-bold">บันทึกช่าง</code> เพื่อเปิดแบบฟอร์มลงบันทึกงานประจำวันสำหรับงานย่อยนั้นๆ พร้อมระบุชื่อ Subtask ในหัวเรื่อง และอัปโหลดรูปถ่าย 5 รูปหน้างานได้อย่างไร้รอยต่อ</li>
+                                        <li><strong>การซิงค์ข้อมูลแบบ Real-time:</strong> เมื่อปรับสถานะหรือความคืบหน้าของ Subtask ระบบจะคำนวณค่าเฉลี่ย % ความคืบหน้าของ Task หลัก และซิงค์บันทึกลงสู่ฐานข้อมูล Backend REST API ทันที</li>
+                                    </ul>
+                                </div>
+                            </details>
                         </div>
                     </div>
                 </div>
@@ -9681,6 +9702,15 @@
             <div id="modal-daily-work-log-body" class="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6">
                 <!-- Injected via app.renderDailyWorkLogs(taskId) -->
             </div>
+        </div>
+    </div>
+
+    <!-- ============================================================================= -->
+    <!-- MODAL: GANTT SUBTASKS MANAGEMENT (จัดการงานย่อยของ Task ใน Gantt Chart)        -->
+    <!-- ============================================================================= -->
+    <div id="modal-gantt-subtasks" onclick="if(event.target === this) app.hideModal('modal-gantt-subtasks')" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-4">
+        <div class="artifact-card rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-gantt-subtasks-content">
+            <!-- Populated dynamically via app.renderSubtasksModalContent(taskId) -->
         </div>
     </div>
 

@@ -702,11 +702,12 @@
 <li><strong>การจัดกลุ่มตามทีมช่าง (Grouping by Technician):</strong></li>
 <li>แถวของ <code>Team A (สมศักดิ์)</code> แสดงรายการงานทั้งหมดที่สมศักดิ์รับผิดชอบ</li>
 <li>แถวของ <code>Team B (ประเสริฐ)</code> แสดงรายการงานของประเสริฐ ช่วยป้องกันการจัดตารางงานชนกัน (Overbooking)</li>
-<li><strong>ความหมายของสีแท่งงาน (Task Bar Color Coding):</strong></li>
-<li>🟪 <strong>สีม่วง (In Progress):</strong> งานที่กำลังดำเนินการติดตั้งอยู่ในปัจจุบัน</li>
-<li>🟩 <strong>สีเขียว (Done):</strong> งานที่ติดตั้งเสร็จสิ้นและตรวจรับเบื้องต้นแล้ว</li>
-<li>🟥 <strong>สีแดง (Delayed / Critical):</strong> งานที่เลยกำหนดเวลาส่งมอบ</li>
-<li><strong>แถบเลื่อนและปุ่มสลับมุมมอง:</strong> สามารถกดสลับดูแบบ <code>Card View</code>, <code>List View</code> หรือ <code>Gantt Chart</code> ได้ตามความถนัด</li>
+<li><strong>ความหมายของสีแท่งงาน Real-time (Realtime Task Bar Color Coding):</strong></li>
+<li>🟩 <strong>สีเขียว (✓ เสร็จสิ้น):</strong> วันที่ช่างหรือ QC ลงบันทึกงานเสร็จสมบูรณ์ 100% แล้ว</li>
+<li>🟥 <strong>สีแดง (ยังไม่อัปเดต):</strong> วันทำงานที่ยังไม่ได้ลงบันทึก สามารถอัปเดตย้อนหลังได้ไม่เกิน 3 วัน</li>
+<li>🟣 <strong>สีม่วง (Xd / ช่วงเวลาที่ยังไม่เริ่ม):</strong> วันทำงานในอนาคตตามแผนงาน</li>
+<li><strong>การจัดการงานย่อย (Subtasks Breakdown):</strong> รองรับการกดปุ่ม <code>[+ Subtask]</code> และ <code>[จัดการ]</code> เพื่อสร้างและจัดการงานย่อยของแต่ละ Task หรือกดปุ่ม <code>[⚡ แบ่งย่อยอัตโนมัติ]</code> เพื่อคำนวณและแตกเฟสงานย่อยตามระยะเวลาจริง พร้อมแถบสีความคืบหน้ารายวันและเชื่อมต่อกับระบบบันทึกงานช่าง Daily Work Log 24 ชม.</li>
+<li><strong>แถบเลื่อนและปุ่มสลับมุมมอง:</strong> สามารถกดสลับดูแบบ <code>Card View</code>, <code>List View</code> (ค่าเริ่มต้น) หรือ <code>Gantt Chart</code> ได้ตามความถนัด</li>
 <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;'>
 <h2>💡 แผนการสอนสำหรับ Trainer (Workshop Hands-on Guide)</h2>
 <h3>🎯 บททดสอบปฏิบัติการประจำห้องเรียน (30 นาที):</h3>

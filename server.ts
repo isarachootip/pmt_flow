@@ -1359,6 +1359,18 @@ export interface CoreSitePhoto {
   taken_at: string;
 }
 
+export interface CoreSubtask {
+  id: string;
+  taskId: string | number;
+  name: string;
+  start: string;
+  end: string;
+  days: number;
+  tech: string;
+  status: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  progress?: number;
+}
+
 export interface CoreTask {
   id: number | string;
   job_id: number | string;
@@ -1372,6 +1384,7 @@ export interface CoreTask {
   status: 'PENDING' | 'IN_PROGRESS' | 'DONE';
   progress_percent: number;
   source_boq_item?: string;
+  subtasks?: CoreSubtask[];
   created_at?: string;
 }
 
@@ -3486,7 +3499,7 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', requireAuth, async (req: Request, 
 app.post('/api/v1/jobs/:id/tasks', requireAuth, async (req: Request, res: Response) => {
   const param = req.params.id;
   const numId = isNaN(Number(param)) ? param : Number(param);
-  const { task_name, start_date, end_date, duration_days = 1, assigned_tech = 'Team A (สมศักดิ์)', assignees, allow_bypass = false } = req.body;
+  const { task_name, start_date, end_date, duration_days = 1, assigned_tech = 'Team A (สมศักดิ์)', assignees, subtasks, allow_bypass = false } = req.body;
 
   if (!task_name) {
     return res.status(400).json({ success: false, error: { code: 'MISSING_TASK_NAME', message: 'กรุณาระบุชื่อ Task' } });
@@ -3534,6 +3547,7 @@ app.post('/api/v1/jobs/:id/tasks', requireAuth, async (req: Request, res: Respon
     assignees: techList,
     status: 'IN_PROGRESS',
     progress_percent: 0,
+    subtasks: Array.isArray(subtasks) ? subtasks : [],
     created_at: new Date().toISOString()
   };
 
@@ -3605,7 +3619,7 @@ app.put('/api/v1/jobs/:id/tasks/:taskId', requireAuth, async (req: Request, res:
     return res.status(404).json({ success: false, error: { code: 'TASK_NOT_FOUND', message: 'ไม่พบ Task' } });
   }
 
-  const { task_name, name, start_date, start, end_date, end, duration_days, days, assigned_tech, tech, assignees, status } = req.body;
+  const { task_name, name, start_date, start, end_date, end, duration_days, days, assigned_tech, tech, assignees, status, subtasks } = req.body;
   if (task_name !== undefined || name !== undefined) task.task_name = task_name || name;
   if (start_date !== undefined || start !== undefined) task.plan_start_date = start_date || start;
   if (end_date !== undefined || end !== undefined) task.plan_end_date = end_date || end;
@@ -3619,6 +3633,7 @@ app.put('/api/v1/jobs/:id/tasks/:taskId', requireAuth, async (req: Request, res:
   if (assigned_tech !== undefined || tech !== undefined) task.assigned_tech = assigned_tech || tech;
   if (assignees !== undefined) task.assignees = assignees;
   if (status !== undefined) task.status = status;
+  if (subtasks !== undefined) task.subtasks = subtasks;
 
   await dbUpdateJob(id, { tasks });
 

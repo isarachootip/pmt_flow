@@ -2886,7 +2886,7 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', requireAuth, async (req, res) => {
 app.post('/api/v1/jobs/:id/tasks', requireAuth, async (req, res) => {
     const param = req.params.id;
     const numId = isNaN(Number(param)) ? param : Number(param);
-    const { task_name, start_date, end_date, duration_days = 1, assigned_tech = 'Team A (สมศักดิ์)', assignees, allow_bypass = false } = req.body;
+    const { task_name, start_date, end_date, duration_days = 1, assigned_tech = 'Team A (สมศักดิ์)', assignees, subtasks, allow_bypass = false } = req.body;
     if (!task_name) {
         return res.status(400).json({ success: false, error: { code: 'MISSING_TASK_NAME', message: 'กรุณาระบุชื่อ Task' } });
     }
@@ -2929,6 +2929,7 @@ app.post('/api/v1/jobs/:id/tasks', requireAuth, async (req, res) => {
         assignees: techList,
         status: 'IN_PROGRESS',
         progress_percent: 0,
+        subtasks: Array.isArray(subtasks) ? subtasks : [],
         created_at: new Date().toISOString()
     };
     let tasks = (job && Array.isArray(job.tasks)) ? [...job.tasks, newTask] : [newTask];
@@ -2991,7 +2992,7 @@ app.put('/api/v1/jobs/:id/tasks/:taskId', requireAuth, async (req, res) => {
     if (!task) {
         return res.status(404).json({ success: false, error: { code: 'TASK_NOT_FOUND', message: 'ไม่พบ Task' } });
     }
-    const { task_name, name, start_date, start, end_date, end, duration_days, days, assigned_tech, tech, assignees, status } = req.body;
+    const { task_name, name, start_date, start, end_date, end, duration_days, days, assigned_tech, tech, assignees, status, subtasks } = req.body;
     if (task_name !== undefined || name !== undefined)
         task.task_name = task_name || name;
     if (start_date !== undefined || start !== undefined)
@@ -3012,6 +3013,8 @@ app.put('/api/v1/jobs/:id/tasks/:taskId', requireAuth, async (req, res) => {
         task.assignees = assignees;
     if (status !== undefined)
         task.status = status;
+    if (subtasks !== undefined)
+        task.subtasks = subtasks;
     await (0, database_1.dbUpdateJob)(id, { tasks });
     // Update QC booking
     const qcDate = calculateQCBookingDate(task.plan_end_date, 5);

@@ -16863,6 +16863,8 @@ const app = {
                     const lastD = timelineDates[timelineDates.length - 1];
                     dateRangeStr = `${this.formatDateDMY(firstD.toISOString().slice(0, 10))} - ${this.formatDateDMY(lastD.toISOString().slice(0, 10))}`;
 
+                    const isAllJobs = (!isSingleJob || selectedJobId === 'all');
+
                     rowsHtml = tasks.map(t => {
                         const tStartObj = new Date(t.start || '2026-09-01');
                         const tEndObj = new Date(t.end || t.start || '2026-09-01');
@@ -16872,6 +16874,8 @@ const app = {
                         const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
                         const rawQcDate = qcBooking ? qcBooking.qcBookingDate : this.calculateQCBookingDate(endDateStr, 5);
                         const qcDateDisplay = this.formatDateDMY(rawQcDate);
+
+                        const jobBadgeHtml = isAllJobs ? `<button type="button" onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-600 dark:text-purple-400 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 text-[10px] shrink-0 inline-flex items-center gap-0.5 cursor-pointer" title="เลือกโครงการ ${t.jobId}"><i class="ph ph-folder text-[10px]"></i> ${t.jobId}</button>` : '';
 
                         const dailyStatuses = [];
                         for (let dayIdx = 0; dayIdx < taskDaysCount; dayIdx++) {
@@ -16976,16 +16980,26 @@ const app = {
 
                             return `
                             <div class="flex items-center border-t border-dashed border-border/70 py-1.5 relative h-10 bg-brand-500/[0.02] hover:bg-brand-500/[0.06] transition group">
-                                <div class="w-64 shrink-0 text-[11px] font-medium text-foreground truncate pr-4 pl-6 flex items-center gap-1.5">
-                                    <i class="ph ph-arrow-elbow-down-right text-brand-500 text-xs shrink-0"></i>
-                                    <span class="truncate text-foreground/90 font-medium" title="${sub.name}">${sub.name}</span>
-                                    <span class="text-[9px] font-mono text-muted-foreground shrink-0">(${subDaysCount}d)</span>
+                                <div class="w-72 shrink-0 text-[11px] font-medium text-foreground truncate pr-3 pl-6 flex items-center justify-between">
+                                    <div class="flex items-center gap-1.5 truncate min-w-0">
+                                        <i class="ph ph-arrow-elbow-down-right text-brand-500 text-xs shrink-0"></i>
+                                        <span class="truncate text-foreground/90 font-medium" title="${sub.name}">${sub.name}</span>
+                                        <span class="text-[9px] font-mono text-muted-foreground shrink-0">(${subDaysCount}d)</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition shrink-0">
+                                        <button type="button" onclick="app.openSubtasksModal('${t.id}', '${sub.id}')" class="p-1 text-muted-foreground hover:text-brand-600 hover:bg-brand-500/10 rounded cursor-pointer transition" title="แก้ไข Subtask นี้">
+                                            <i class="ph ph-pencil-simple text-xs"></i>
+                                        </button>
+                                        <button type="button" onclick="app.deleteGanttSubtask('${t.id}', '${sub.id}')" class="p-1 text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 rounded cursor-pointer transition" title="ลบ Subtask นี้">
+                                            <i class="ph ph-trash text-xs"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="flex-1 relative h-full flex items-center">
                                     ${todayMarkerPercent !== -1 ? `
                                         <div class="absolute inset-y-0 -translate-x-1/2 border-l border-dashed border-rose-500/40 pointer-events-none z-0" style="left: ${todayMarkerPercent}%;"></div>
                                     ` : ''}
-                                    <div onclick="app.openDailyWorkLogModal('${t.id}', '${sub.start || t.start}', '${sub.id}')" class="${subBarBg} border absolute h-6 rounded-md text-[10px] px-2 flex items-center justify-between truncate shadow-xs transition hover:brightness-110 cursor-pointer z-10" style="left: ${subOffsetPercent}%; width: ${subWidthPercent}%; min-width: 50px;" title="${sub.name} (${subStatusText}): ${this.formatDateDMY(sub.start || t.start)} ถึง ${this.formatDateDMY(sub.end || sub.start || t.end)} • ช่าง: ${sub.tech || t.tech || 'ช่าง'}">
+                                    <div onclick="app.openDailyWorkLogModal('${t.id}', '${sub.start || t.start}', '${sub.id}')" class="${subBarBg} border absolute h-6 rounded-md text-[10px] px-2 flex items-center justify-between truncate shadow-xs transition hover:brightness-110 cursor-pointer z-10" style="left: ${subOffsetPercent}%; width: ${subWidthPercent}%; min-width: 50px;" title="${sub.name} (${subStatusText}): ${this.formatDateDMY(sub.start || t.start)} ถึง ${this.formatDateDMY(sub.end || sub.start || t.end)} • ช่าง: ${sub.tech || t.tech || 'ช่าง'} • คลิกเพื่อบันทึกงานช่าง">
                                         <span class="truncate font-medium flex items-center gap-1"><i class="ph ${subIcon} text-[10px]"></i> ${sub.name}</span>
                                         <span class="text-[9px] font-mono font-bold bg-white/70 text-foreground px-1 rounded ml-1 shrink-0">${subDaysCount}d</span>
                                     </div>
@@ -16995,16 +17009,19 @@ const app = {
 
                         const mainRowHtml = `
                         <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group ${isExpanded ? 'bg-brand-500/[0.02]' : ''}">
-                            <div class="w-64 shrink-0 text-xs font-medium text-foreground truncate pr-4">
-                                <div class="flex items-center gap-1.5">
+                            <div class="w-72 shrink-0 text-xs font-medium text-foreground truncate pr-3">
+                                <div class="flex items-center gap-1.5 flex-wrap">
                                     ${jobBadgeHtml}
                                     <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="p-0.5 rounded text-brand-600 hover:bg-brand-500/10 cursor-pointer shrink-0 transition" title="${isExpanded ? 'ย่อซ่อนแถบงานย่อย' : 'คลิกดูแถบงานย่อย (Subtasks)'}">
                                         <i class="ph ${isExpanded ? 'ph-caret-down-bold' : 'ph-caret-right-bold'} text-xs"></i>
                                     </button>
-                                    <span class="truncate font-semibold text-foreground" title="${t.name}">${t.name}</span>
-                                    ${subtasks.length > 0 ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-brand-500/10 text-brand-600 shrink-0">${subtasks.length}</span>` : ''}
-                                    <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-[10px] text-purple-600 hover:text-purple-700 bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded font-medium transition cursor-pointer flex items-center gap-0.5 shrink-0" title="เปิดดูรายละเอียดและบันทึกงานช่าง">
-                                        <i class="ph ph-magnifying-glass text-[11px]"></i> ดูงาน
+                                    <span class="truncate font-semibold text-foreground max-w-[120px]" title="${t.name}">${t.name}</span>
+                                    ${subtasks.length > 0 ? `<button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-brand-500/10 text-brand-600 hover:bg-brand-500/20 shrink-0 cursor-pointer" title="คลิกเพื่อย่อ/ขยายงานย่อย">${subtasks.length} Subtasks</button>` : ''}
+                                    <button type="button" onclick="app.addGanttSubtask('${t.id}')" class="text-[10px] text-brand-600 hover:text-brand-700 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/20 px-1.5 py-0.5 rounded-md font-semibold transition cursor-pointer flex items-center gap-0.5 shrink-0" title="เพิ่ม Subtask ย่อยของงานนี้">
+                                        <i class="ph ph-plus-circle text-[11px]"></i> + Subtask
+                                    </button>
+                                    <button type="button" onclick="app.openSubtasksModal('${t.id}')" class="text-[10px] text-purple-600 hover:text-purple-700 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 px-1.5 py-0.5 rounded-md font-semibold transition cursor-pointer flex items-center gap-0.5 shrink-0" title="จัดการงานย่อยทั้งหมด">
+                                        <i class="ph ph-list-dashes text-[11px]"></i> จัดการ
                                     </button>
                                 </div>
                                 <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2 flex-wrap">
@@ -17092,6 +17109,8 @@ const app = {
 
                     dateRangeStr = `${this.formatDateDMY(weeks[0].startStr)} - ${this.formatDateDMY(weeks[weeks.length - 1].endStr)}`;
 
+                    const isAllJobs = (!isSingleJob || selectedJobId === 'all');
+
                     rowsHtml = tasks.map(t => {
                         const tStartObj = new Date(t.start || '2026-09-01');
                         const tEndObj = new Date(t.end || t.start || '2026-09-01');
@@ -17101,6 +17120,8 @@ const app = {
                         const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
                         const rawQcDate = qcBooking ? qcBooking.qcBookingDate : this.calculateQCBookingDate(endDateStr, 5);
                         const qcDateDisplay = this.formatDateDMY(rawQcDate);
+
+                        const jobBadgeHtml = isAllJobs ? `<button type="button" onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-600 dark:text-purple-400 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 text-[10px] shrink-0 inline-flex items-center gap-0.5 cursor-pointer" title="เลือกโครงการ ${t.jobId}"><i class="ph ph-folder text-[10px]"></i> ${t.jobId}</button>` : '';
 
                         const offsetPercent = Math.max(0, Math.min(100, ((tStartObj.getTime() - timelineStartMs) / totalDurationMs) * 100));
                         const widthPercent = Math.max(2.5, Math.min(100 - offsetPercent, ((tEndObj.getTime() - tStartObj.getTime() + oneDayMs) / totalDurationMs) * 100));
@@ -17149,16 +17170,26 @@ const app = {
 
                             return `
                             <div class="flex items-center border-t border-dashed border-border/70 py-1.5 relative h-10 bg-brand-500/[0.02] hover:bg-brand-500/[0.06] transition group">
-                                <div class="w-64 shrink-0 text-[11px] font-medium text-foreground truncate pr-4 pl-6 flex items-center gap-1.5">
-                                    <i class="ph ph-arrow-elbow-down-right text-brand-500 text-xs shrink-0"></i>
-                                    <span class="truncate text-foreground/90 font-medium" title="${sub.name}">${sub.name}</span>
-                                    <span class="text-[9px] font-mono text-muted-foreground shrink-0">(${subDaysCount}d)</span>
+                                <div class="w-72 shrink-0 text-[11px] font-medium text-foreground truncate pr-3 pl-6 flex items-center justify-between">
+                                    <div class="flex items-center gap-1.5 truncate min-w-0">
+                                        <i class="ph ph-arrow-elbow-down-right text-brand-500 text-xs shrink-0"></i>
+                                        <span class="truncate text-foreground/90 font-medium" title="${sub.name}">${sub.name}</span>
+                                        <span class="text-[9px] font-mono text-muted-foreground shrink-0">(${subDaysCount}d)</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition shrink-0">
+                                        <button type="button" onclick="app.openSubtasksModal('${t.id}', '${sub.id}')" class="p-1 text-muted-foreground hover:text-brand-600 hover:bg-brand-500/10 rounded cursor-pointer transition" title="แก้ไข Subtask นี้">
+                                            <i class="ph ph-pencil-simple text-xs"></i>
+                                        </button>
+                                        <button type="button" onclick="app.deleteGanttSubtask('${t.id}', '${sub.id}')" class="p-1 text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 rounded cursor-pointer transition" title="ลบ Subtask นี้">
+                                            <i class="ph ph-trash text-xs"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="flex-1 relative h-full flex items-center">
                                     ${todayMarkerPercent !== -1 ? `
                                         <div class="absolute inset-y-0 -translate-x-1/2 border-l border-dashed border-rose-500/40 pointer-events-none z-0" style="left: ${todayMarkerPercent}%;"></div>
                                     ` : ''}
-                                    <div onclick="app.openDailyWorkLogModal('${t.id}', '${sub.start || t.start}', '${sub.id}')" class="${subBarBg} border absolute h-6 rounded-md text-[10px] px-2 flex items-center justify-between truncate shadow-xs transition hover:brightness-110 cursor-pointer z-10" style="left: ${subOffsetPercent}%; width: ${subWidthPercent}%; min-width: 50px;" title="${sub.name} (${subStatusText}): ${this.formatDateDMY(sub.start || t.start)} ถึง ${this.formatDateDMY(sub.end || sub.start || t.end)} • ช่าง: ${sub.tech || t.tech || 'ช่าง'}">
+                                    <div onclick="app.openDailyWorkLogModal('${t.id}', '${sub.start || t.start}', '${sub.id}')" class="${subBarBg} border absolute h-6 rounded-md text-[10px] px-2 flex items-center justify-between truncate shadow-xs transition hover:brightness-110 cursor-pointer z-10" style="left: ${subOffsetPercent}%; width: ${subWidthPercent}%; min-width: 50px;" title="${sub.name} (${subStatusText}): ${this.formatDateDMY(sub.start || t.start)} ถึง ${this.formatDateDMY(sub.end || sub.start || t.end)} • ช่าง: ${sub.tech || t.tech || 'ช่าง'} • คลิกเพื่อบันทึกงานช่าง">
                                         <span class="truncate font-medium flex items-center gap-1"><i class="ph ${subIcon} text-[10px]"></i> ${sub.name}</span>
                                         <span class="text-[9px] font-mono font-bold bg-white/70 text-foreground px-1 rounded ml-1 shrink-0">${subDaysCount}d</span>
                                     </div>
@@ -17168,21 +17199,25 @@ const app = {
 
                         const mainRowHtml = `
                         <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group ${isExpanded ? 'bg-brand-500/[0.02]' : ''}">
-                            <div class="w-64 shrink-0 text-xs font-medium text-foreground truncate pr-4">
-                                <div class="flex items-center gap-1.5">
+                            <div class="w-72 shrink-0 text-xs font-medium text-foreground truncate pr-3">
+                                <div class="flex items-center gap-1.5 flex-wrap">
                                     ${jobBadgeHtml}
                                     <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="p-0.5 rounded text-brand-600 hover:bg-brand-500/10 cursor-pointer shrink-0 transition" title="${isExpanded ? 'ย่อซ่อนแถบงานย่อย' : 'คลิกดูแถบงานย่อย (Subtasks)'}">
                                         <i class="ph ${isExpanded ? 'ph-caret-down-bold' : 'ph-caret-right-bold'} text-xs"></i>
                                     </button>
-                                    <span class="truncate font-semibold text-foreground" title="${t.name}">${t.name}</span>
-                                    ${subtasks.length > 0 ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-brand-500/10 text-brand-600 shrink-0">${subtasks.length}</span>` : ''}
-                                    <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-[10px] text-purple-600 hover:text-purple-700 bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded font-medium transition cursor-pointer flex items-center gap-0.5 shrink-0" title="เปิดดูรายละเอียดและบันทึกงานช่าง">
-                                        <i class="ph ph-magnifying-glass text-[11px]"></i> ดูงาน
+                                    <span class="truncate font-semibold text-foreground max-w-[120px]" title="${t.name}">${t.name}</span>
+                                    ${subtasks.length > 0 ? `<button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-brand-500/10 text-brand-600 hover:bg-brand-500/20 shrink-0 cursor-pointer" title="คลิกเพื่อย่อ/ขยายงานย่อย">${subtasks.length} Subtasks</button>` : ''}
+                                    <button type="button" onclick="app.addGanttSubtask('${t.id}')" class="text-[10px] text-brand-600 hover:text-brand-700 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/20 px-1.5 py-0.5 rounded-md font-semibold transition cursor-pointer flex items-center gap-0.5 shrink-0" title="เพิ่ม Subtask ย่อยของงานนี้">
+                                        <i class="ph ph-plus-circle text-[11px]"></i> + Subtask
+                                    </button>
+                                    <button type="button" onclick="app.openSubtasksModal('${t.id}')" class="text-[10px] text-purple-600 hover:text-purple-700 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 px-1.5 py-0.5 rounded-md font-semibold transition cursor-pointer flex items-center gap-0.5 shrink-0" title="จัดการงานย่อยทั้งหมด">
+                                        <i class="ph ph-list-dashes text-[11px]"></i> จัดการ
                                     </button>
                                 </div>
                                 <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2 flex-wrap">
                                     <span>📅 ${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} (${taskDaysCount} วัน)</span>
                                     <span onclick="app.openQCFromTask('${t.id}')" class="text-brand-500 hover:underline cursor-pointer flex items-center gap-0.5" title="คลิกเพื่อดูการจองช่าง QC"><i class="ph ph-shield-check text-[11px]"></i> จอง QC: ${qcDateDisplay}</span>
+                                    <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-blue-500 hover:underline cursor-pointer flex items-center gap-0.5" title="เปิดบันทึกงานช่างประจำวัน"><i class="ph ph-notebook text-[11px]"></i> บันทึกช่าง</button>
                                 </div>
                             </div>
 
@@ -17262,6 +17297,8 @@ const app = {
 
                     dateRangeStr = `${this.formatDateDMY(months[0].start.toISOString().slice(0, 10))} - ${this.formatDateDMY(months[months.length - 1].end.toISOString().slice(0, 10))}`;
 
+                    const isAllJobs = (!isSingleJob || selectedJobId === 'all');
+
                     rowsHtml = tasks.map(t => {
                         const tStartObj = new Date(t.start || '2026-09-01');
                         const tEndObj = new Date(t.end || t.start || '2026-09-01');
@@ -17271,6 +17308,8 @@ const app = {
                         const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
                         const rawQcDate = qcBooking ? qcBooking.qcBookingDate : this.calculateQCBookingDate(endDateStr, 5);
                         const qcDateDisplay = this.formatDateDMY(rawQcDate);
+
+                        const jobBadgeHtml = isAllJobs ? `<button type="button" onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-600 dark:text-purple-400 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 text-[10px] shrink-0 inline-flex items-center gap-0.5 cursor-pointer" title="เลือกโครงการ ${t.jobId}"><i class="ph ph-folder text-[10px]"></i> ${t.jobId}</button>` : '';
 
                         const offsetPercent = Math.max(0, Math.min(100, ((tStartObj.getTime() - timelineStartMs) / totalDurationMs) * 100));
                         const widthPercent = Math.max(2, Math.min(100 - offsetPercent, ((tEndObj.getTime() - tStartObj.getTime() + oneDayMs) / totalDurationMs) * 100));
@@ -17319,16 +17358,26 @@ const app = {
 
                             return `
                             <div class="flex items-center border-t border-dashed border-border/70 py-1.5 relative h-10 bg-brand-500/[0.02] hover:bg-brand-500/[0.06] transition group">
-                                <div class="w-64 shrink-0 text-[11px] font-medium text-foreground truncate pr-4 pl-6 flex items-center gap-1.5">
-                                    <i class="ph ph-arrow-elbow-down-right text-brand-500 text-xs shrink-0"></i>
-                                    <span class="truncate text-foreground/90 font-medium" title="${sub.name}">${sub.name}</span>
-                                    <span class="text-[9px] font-mono text-muted-foreground shrink-0">(${subDaysCount}d)</span>
+                                <div class="w-72 shrink-0 text-[11px] font-medium text-foreground truncate pr-3 pl-6 flex items-center justify-between">
+                                    <div class="flex items-center gap-1.5 truncate min-w-0">
+                                        <i class="ph ph-arrow-elbow-down-right text-brand-500 text-xs shrink-0"></i>
+                                        <span class="truncate text-foreground/90 font-medium" title="${sub.name}">${sub.name}</span>
+                                        <span class="text-[9px] font-mono text-muted-foreground shrink-0">(${subDaysCount}d)</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition shrink-0">
+                                        <button type="button" onclick="app.openSubtasksModal('${t.id}', '${sub.id}')" class="p-1 text-muted-foreground hover:text-brand-600 hover:bg-brand-500/10 rounded cursor-pointer transition" title="แก้ไข Subtask นี้">
+                                            <i class="ph ph-pencil-simple text-xs"></i>
+                                        </button>
+                                        <button type="button" onclick="app.deleteGanttSubtask('${t.id}', '${sub.id}')" class="p-1 text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 rounded cursor-pointer transition" title="ลบ Subtask นี้">
+                                            <i class="ph ph-trash text-xs"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="flex-1 relative h-full flex items-center">
                                     ${todayMarkerPercent !== -1 ? `
                                         <div class="absolute inset-y-0 -translate-x-1/2 border-l border-dashed border-rose-500/40 pointer-events-none z-0" style="left: ${todayMarkerPercent}%;"></div>
                                     ` : ''}
-                                    <div onclick="app.openDailyWorkLogModal('${t.id}', '${sub.start || t.start}', '${sub.id}')" class="${subBarBg} border absolute h-6 rounded-md text-[10px] px-2 flex items-center justify-between truncate shadow-xs transition hover:brightness-110 cursor-pointer z-10" style="left: ${subOffsetPercent}%; width: ${subWidthPercent}%; min-width: 50px;" title="${sub.name} (${subStatusText}): ${this.formatDateDMY(sub.start || t.start)} ถึง ${this.formatDateDMY(sub.end || sub.start || t.end)} • ช่าง: ${sub.tech || t.tech || 'ช่าง'}">
+                                    <div onclick="app.openDailyWorkLogModal('${t.id}', '${sub.start || t.start}', '${sub.id}')" class="${subBarBg} border absolute h-6 rounded-md text-[10px] px-2 flex items-center justify-between truncate shadow-xs transition hover:brightness-110 cursor-pointer z-10" style="left: ${subOffsetPercent}%; width: ${subWidthPercent}%; min-width: 50px;" title="${sub.name} (${subStatusText}): ${this.formatDateDMY(sub.start || t.start)} ถึง ${this.formatDateDMY(sub.end || sub.start || t.end)} • ช่าง: ${sub.tech || t.tech || 'ช่าง'} • คลิกเพื่อบันทึกงานช่าง">
                                         <span class="truncate font-medium flex items-center gap-1"><i class="ph ${subIcon} text-[10px]"></i> ${sub.name}</span>
                                         <span class="text-[9px] font-mono font-bold bg-white/70 text-foreground px-1 rounded ml-1 shrink-0">${subDaysCount}d</span>
                                     </div>
@@ -17338,21 +17387,25 @@ const app = {
 
                         const mainRowHtml = `
                         <div class="flex items-center border-t border-border py-2.5 relative h-13 hover:bg-muted/20 transition group ${isExpanded ? 'bg-brand-500/[0.02]' : ''}">
-                            <div class="w-64 shrink-0 text-xs font-medium text-foreground truncate pr-4">
-                                <div class="flex items-center gap-1.5">
+                            <div class="w-72 shrink-0 text-xs font-medium text-foreground truncate pr-3">
+                                <div class="flex items-center gap-1.5 flex-wrap">
                                     ${jobBadgeHtml}
                                     <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="p-0.5 rounded text-brand-600 hover:bg-brand-500/10 cursor-pointer shrink-0 transition" title="${isExpanded ? 'ย่อซ่อนแถบงานย่อย' : 'คลิกดูแถบงานย่อย (Subtasks)'}">
                                         <i class="ph ${isExpanded ? 'ph-caret-down-bold' : 'ph-caret-right-bold'} text-xs"></i>
                                     </button>
-                                    <span class="truncate font-semibold text-foreground" title="${t.name}">${t.name}</span>
-                                    ${subtasks.length > 0 ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-brand-500/10 text-brand-600 shrink-0">${subtasks.length}</span>` : ''}
-                                    <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-[10px] text-purple-600 hover:text-purple-700 bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded font-medium transition cursor-pointer flex items-center gap-0.5 shrink-0" title="เปิดดูรายละเอียดและบันทึกงานช่าง">
-                                        <i class="ph ph-magnifying-glass text-[11px]"></i> ดูงาน
+                                    <span class="truncate font-semibold text-foreground max-w-[120px]" title="${t.name}">${t.name}</span>
+                                    ${subtasks.length > 0 ? `<button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-brand-500/10 text-brand-600 hover:bg-brand-500/20 shrink-0 cursor-pointer" title="คลิกเพื่อย่อ/ขยายงานย่อย">${subtasks.length} Subtasks</button>` : ''}
+                                    <button type="button" onclick="app.addGanttSubtask('${t.id}')" class="text-[10px] text-brand-600 hover:text-brand-700 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/20 px-1.5 py-0.5 rounded-md font-semibold transition cursor-pointer flex items-center gap-0.5 shrink-0" title="เพิ่ม Subtask ย่อยของงานนี้">
+                                        <i class="ph ph-plus-circle text-[11px]"></i> + Subtask
+                                    </button>
+                                    <button type="button" onclick="app.openSubtasksModal('${t.id}')" class="text-[10px] text-purple-600 hover:text-purple-700 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 px-1.5 py-0.5 rounded-md font-semibold transition cursor-pointer flex items-center gap-0.5 shrink-0" title="จัดการงานย่อยทั้งหมด">
+                                        <i class="ph ph-list-dashes text-[11px]"></i> จัดการ
                                     </button>
                                 </div>
                                 <div class="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-2 flex-wrap">
                                     <span>📅 ${this.formatDateDMY(t.start)} ถึง ${this.formatDateDMY(endDateStr)} (${taskDaysCount} วัน)</span>
                                     <span onclick="app.openQCFromTask('${t.id}')" class="text-brand-500 hover:underline cursor-pointer flex items-center gap-0.5" title="คลิกเพื่อดูการจองช่าง QC"><i class="ph ph-shield-check text-[11px]"></i> จอง QC: ${qcDateDisplay}</span>
+                                    <button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="text-blue-500 hover:underline cursor-pointer flex items-center gap-0.5" title="เปิดบันทึกงานช่างประจำวัน"><i class="ph ph-notebook text-[11px]"></i> บันทึกช่าง</button>
                                 </div>
                             </div>
 
@@ -17746,23 +17799,23 @@ const app = {
                 if (!Array.isArray(task.subtasks)) task.subtasks = [];
                 // Automatically seed default subtasks for multi-day tasks (e.g. งานต่อเติม 10+ days) if empty
                 if (task.subtasks.length === 0 && (task.name.includes('ต่อเติม') || (task.days || 1) >= 7)) {
-                    const s = new Date(task.start || '2026-09-11');
-                    const d1 = new Date(s);
-                    const d2 = new Date(s); d2.setDate(d2.getDate() + 2);
-                    const d3 = new Date(s); d3.setDate(d3.getDate() + 3);
-                    const d4 = new Date(s); d4.setDate(d4.getDate() + 6);
-                    const d5 = new Date(s); d5.setDate(d5.getDate() + 7);
-                    const d6 = new Date(s); d6.setDate(d6.getDate() + 10);
-                    const d7 = new Date(s); d7.setDate(d7.getDate() + 11);
-                    const d8 = new Date(task.end || '2026-09-24');
+                    const s = task.start || '2026-09-11';
+                    const d1 = s;
+                    const d2 = this.addDaysToDateStr(s, 2);
+                    const d3 = this.addDaysToDateStr(s, 3);
+                    const d4 = this.addDaysToDateStr(s, 6);
+                    const d5 = this.addDaysToDateStr(s, 7);
+                    const d6 = this.addDaysToDateStr(s, 10);
+                    const d7 = this.addDaysToDateStr(s, 11);
+                    const d8 = task.end || this.addDaysToDateStr(s, 13);
 
                     task.subtasks = [
                         {
                             id: `SUB_${task.id}_1`,
                             taskId: task.id,
                             name: 'งานรื้อถอนและปรับระดับพื้นฐานราก',
-                            start: d1.toISOString().slice(0, 10),
-                            end: d2.toISOString().slice(0, 10),
+                            start: d1,
+                            end: d2,
                             days: 3,
                             tech: task.tech || 'Team D (ประเสริฐ)',
                             status: 'DONE',
@@ -17772,8 +17825,8 @@ const app = {
                             id: `SUB_${task.id}_2`,
                             taskId: task.id,
                             name: 'งานโครงสร้างเหล็กและเสาหลัก Glasshouse',
-                            start: d3.toISOString().slice(0, 10),
-                            end: d4.toISOString().slice(0, 10),
+                            start: d3,
+                            end: d4,
                             days: 4,
                             tech: task.tech || 'Team D (ประเสริฐ)',
                             status: 'IN_PROGRESS',
@@ -17783,8 +17836,8 @@ const app = {
                             id: `SUB_${task.id}_3`,
                             taskId: task.id,
                             name: 'งานมุงหลังคาและก่อผนังกระจก Low-E',
-                            start: d5.toISOString().slice(0, 10),
-                            end: d6.toISOString().slice(0, 10),
+                            start: d5,
+                            end: d6,
                             days: 4,
                             tech: 'Team A (สมศักดิ์)',
                             status: 'TODO',
@@ -17794,8 +17847,8 @@ const app = {
                             id: `SUB_${task.id}_4`,
                             taskId: task.id,
                             name: 'งานติดตั้งระบบไฟ ระบายอากาศ และเก็บสีส่งมอบ',
-                            start: d7.toISOString().slice(0, 10),
-                            end: d8.toISOString().slice(0, 10),
+                            start: d7,
+                            end: d8,
                             days: 3,
                             tech: 'Team A (สมศักดิ์)',
                             status: 'TODO',
@@ -17806,7 +17859,30 @@ const app = {
                 return task.subtasks;
             },
 
-            addGanttSubtask(taskId) {
+            addDaysToDateStr(isoDateStr, numDays) {
+                if (!isoDateStr) return '2026-09-11';
+                const parts = isoDateStr.slice(0, 10).split('-');
+                if (parts.length < 3) return isoDateStr;
+                const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                d.setDate(d.getDate() + numDays);
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+            },
+
+            calcDaysBetweenDates(startStr, endStr) {
+                if (!startStr || !endStr) return 1;
+                const p1 = startStr.slice(0, 10).split('-');
+                const p2 = endStr.slice(0, 10).split('-');
+                if (p1.length < 3 || p2.length < 3) return 1;
+                const d1 = new Date(Number(p1[0]), Number(p1[1]) - 1, Number(p1[2]));
+                const d2 = new Date(Number(p2[0]), Number(p2[1]) - 1, Number(p2[2]));
+                const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+                return Math.max(1, diff + 1);
+            },
+
+            addGanttSubtask(taskId, presetName = null) {
                 const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
                 if (!task) return;
                 if (!Array.isArray(task.subtasks)) task.subtasks = [];
@@ -17816,21 +17892,22 @@ const app = {
                 if (task.subtasks.length > 0) {
                     const last = task.subtasks[task.subtasks.length - 1];
                     if (last && last.end) {
-                        const d = new Date(last.end);
-                        d.setDate(d.getDate() + 1);
-                        subStart = d.toISOString().slice(0, 10);
-                        if (new Date(subStart) > new Date(task.end)) subStart = task.end;
+                        subStart = this.addDaysToDateStr(last.end, 1);
+                        if (new Date(subStart) > new Date(task.end || subStart)) {
+                            subStart = task.end || subStart;
+                        }
                         subEnd = subStart;
                     }
                 }
 
+                const subName = presetName || `งานย่อย ${task.subtasks.length + 1} (${task.name})`;
                 const newSubtask = {
                     id: `SUB_${task.id}_${Date.now()}`,
                     taskId: task.id,
-                    name: `งานย่อย ${task.subtasks.length + 1} (${task.name})`,
+                    name: subName,
                     start: subStart,
                     end: subEnd,
-                    days: 1,
+                    days: this.calcDaysBetweenDates(subStart, subEnd),
                     tech: task.tech || 'Team A (สมศักดิ์)',
                     status: 'TODO',
                     progress: 0
@@ -17840,8 +17917,18 @@ const app = {
                 if (!this.state.expandedGanttTaskIds) this.state.expandedGanttTaskIds = {};
                 this.state.expandedGanttTaskIds[taskId] = true;
                 this.persistJobs();
+                this.syncSubtaskToBackend(task);
                 this.showToast(`➕ เพิ่ม Subtask ย่อย "${newSubtask.name}" เรียบร้อย`);
+                
+                const modal = document.getElementById('modal-gantt-subtasks');
+                if (modal && !modal.classList.contains('hidden-view')) {
+                    this.renderSubtasksModalContent(taskId, newSubtask.id);
+                }
                 this.renderGantt();
+            },
+
+            addGanttSubtaskFromModal(taskId) {
+                this.addGanttSubtask(taskId);
             },
 
             updateGanttSubtaskField(taskId, subtaskId, field, value) {
@@ -17857,18 +17944,14 @@ const app = {
                     sub.start = iso;
                     if (sub.start && sub.end) {
                         if (new Date(sub.end) < new Date(sub.start)) sub.end = sub.start;
-                        const s = new Date(sub.start);
-                        const e = new Date(sub.end);
-                        sub.days = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1);
+                        sub.days = this.calcDaysBetweenDates(sub.start, sub.end);
                     }
                 } else if (field === 'end') {
                     const iso = this.formatDateISO(value) || value;
                     sub.end = iso;
                     if (sub.start && sub.end) {
                         if (new Date(sub.end) < new Date(sub.start)) sub.start = sub.end;
-                        const s = new Date(sub.start);
-                        const e = new Date(sub.end);
-                        sub.days = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1);
+                        sub.days = this.calcDaysBetweenDates(sub.start, sub.end);
                     }
                 } else if (field === 'tech') {
                     sub.tech = value;
@@ -17877,9 +17960,35 @@ const app = {
                     if (value === 'DONE') sub.progress = 100;
                     else if (value === 'TODO') sub.progress = 0;
                     else if (value === 'IN_PROGRESS' && (!sub.progress || sub.progress === 0)) sub.progress = 50;
+                } else if (field === 'progress') {
+                    const p = Math.max(0, Math.min(100, Number(value) || 0));
+                    sub.progress = p;
+                    if (p === 100) sub.status = 'DONE';
+                    else if (p > 0) sub.status = 'IN_PROGRESS';
+                    else sub.status = 'TODO';
+                }
+
+                // Sync parent task progress
+                if (task.subtasks.length > 0) {
+                    const allDone = task.subtasks.every(s => s.status === 'DONE');
+                    const allTodo = task.subtasks.every(s => s.status === 'TODO');
+                    if (allDone) {
+                        task.status = 'DONE';
+                    } else if (allTodo) {
+                        task.status = 'TODO';
+                    } else {
+                        task.status = 'IN_PROGRESS';
+                    }
                 }
 
                 this.persistJobs();
+                this.syncSubtaskToBackend(task);
+
+                // If modal is open, re-render header/stats in modal
+                const modal = document.getElementById('modal-gantt-subtasks');
+                if (modal && !modal.classList.contains('hidden-view')) {
+                    this.renderSubtasksModalContent(taskId, subtaskId);
+                }
                 this.renderGantt();
             },
 
@@ -17889,8 +17998,391 @@ const app = {
                 if (!task || !Array.isArray(task.subtasks)) return;
                 task.subtasks = task.subtasks.filter(s => String(s.id) !== String(subtaskId));
                 this.persistJobs();
+                this.syncSubtaskToBackend(task);
                 this.showToast('🗑️ ลบ Subtask เรียบร้อย');
+                
+                const modal = document.getElementById('modal-gantt-subtasks');
+                if (modal && !modal.classList.contains('hidden-view')) {
+                    this.renderSubtasksModalContent(taskId);
+                }
                 this.renderGantt();
+            },
+
+            autoSplitTaskIntoSubtasks(taskId) {
+                const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
+                if (!task) return;
+                const totalDays = Math.max(1, Number(task.days) || this.calcDaysBetweenDates(task.start, task.end));
+                const s = task.start || '2026-09-11';
+                const e = task.end || s;
+
+                let templates = [];
+                if (task.name.includes('ไฟ') || task.name.includes('Solar') || task.name.includes('EV')) {
+                    templates = [
+                        'งานสำรวจหน้างานและเดินท่อร้อยสายไฟ',
+                        'งานติดตั้งตู้คอนโทรล/เบรกเกอร์/สวิตช์บอร์ด',
+                        'งานประกอบและติดตั้งอุปกรณ์หลัก/โคมไฟ',
+                        'งานทดสอบระบบ วัดค่าความปลอดภัย และส่งมอบ'
+                    ];
+                } else if (task.name.includes('ต่อเติม') || task.name.includes('โครงสร้าง') || task.name.includes('หลังคา')) {
+                    templates = [
+                        'งานรื้อถอนและเตรียมปรับระดับฐานราก',
+                        'งานประกอบโครงสร้างเหล็กและเสาหลัก',
+                        'งานมุงหลังคา ผนัง และติดตั้งกระจก',
+                        'งานเดินระบบไฟ ทาสีเก็บงาน และทำความสะอาดส่งมอบ'
+                    ];
+                } else if (task.name.includes('แอร์') || task.name.includes('ปรับอากาศ')) {
+                    templates = [
+                        'งานสำรวจจุดติดตั้งและเจาะผนังเดินท่อน้ำยา',
+                        'งานติดตั้งคอยล์เย็น (FCU) และคอยล์ร้อน (CDU)',
+                        'งานแวคคั่มระบบ เติมน้ำยา และเดินสายไฟ',
+                        'งานทดสอบความเย็น วัดกระแสไฟ และส่งมอบงาน'
+                    ];
+                } else {
+                    templates = [
+                        'งานเตรียมพื้นที่ สำรวจ และเบิกอุปกรณ์',
+                        'งานติดตั้งและประกอบโครงสร้างหลัก',
+                        'งานเดินระบบเชื่อมต่อและติดตั้งอุปกรณ์เสริม',
+                        'งานตรวจสอบคุณภาพ QC ทดสอบระบบ และส่งมอบ'
+                    ];
+                }
+
+                if (totalDays <= 2) {
+                    templates = [
+                        'งานติดตั้งหลักและประกอบอุปกรณ์',
+                        'งานทดสอบระบบ เก็บรายละเอียด และส่งมอบงาน'
+                    ];
+                }
+
+                const numSplits = templates.length;
+                const daysPerSplit = Math.max(1, Math.floor(totalDays / numSplits));
+                let curStart = s;
+
+                const newSubtasks = [];
+                for (let i = 0; i < numSplits; i++) {
+                    const isLast = (i === numSplits - 1);
+                    let subDays = isLast ? Math.max(1, this.calcDaysBetweenDates(curStart, e)) : daysPerSplit;
+                    let curEnd = this.addDaysToDateStr(curStart, subDays - 1);
+                    if (new Date(curEnd) > new Date(e) || isLast) {
+                        curEnd = e;
+                        subDays = this.calcDaysBetweenDates(curStart, curEnd);
+                    }
+
+                    newSubtasks.push({
+                        id: `SUB_${task.id}_${i + 1}_${Date.now()}`,
+                        taskId: task.id,
+                        name: templates[i],
+                        start: curStart,
+                        end: curEnd,
+                        days: subDays,
+                        tech: task.tech || 'Team A (สมศักดิ์)',
+                        status: i === 0 ? 'IN_PROGRESS' : 'TODO',
+                        progress: i === 0 ? 50 : 0
+                    });
+
+                    curStart = this.addDaysToDateStr(curEnd, 1);
+                    if (new Date(curStart) > new Date(e)) curStart = e;
+                }
+
+                task.subtasks = newSubtasks;
+                if (!this.state.expandedGanttTaskIds) this.state.expandedGanttTaskIds = {};
+                this.state.expandedGanttTaskIds[taskId] = true;
+                this.persistJobs();
+                this.syncSubtaskToBackend(task);
+                this.showToast(`⚡ แบ่งงานย่อย ${newSubtasks.length} ขั้นตอนตามระยะเวลา ${totalDays} วัน เรียบร้อย`);
+
+                const modal = document.getElementById('modal-gantt-subtasks');
+                if (modal && !modal.classList.contains('hidden-view')) {
+                    this.renderSubtasksModalContent(taskId);
+                }
+                this.renderGantt();
+            },
+
+            markAllSubtasksDone(taskId) {
+                const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
+                if (!task || !Array.isArray(task.subtasks) || task.subtasks.length === 0) return;
+                task.subtasks.forEach(s => {
+                    s.status = 'DONE';
+                    s.progress = 100;
+                });
+                task.status = 'DONE';
+                this.persistJobs();
+                this.syncSubtaskToBackend(task);
+                this.showToast('✅ ปรับสถานะงานย่อยทั้งหมดเป็นเสร็จสมบูรณ์ 100% เรียบร้อย');
+
+                const modal = document.getElementById('modal-gantt-subtasks');
+                if (modal && !modal.classList.contains('hidden-view')) {
+                    this.renderSubtasksModalContent(taskId);
+                }
+                this.renderGantt();
+            },
+
+            syncSubtaskToBackend(task) {
+                if (!task || !task.jobId) return;
+                fetch(`/api/v1/jobs/${task.jobId}/tasks/${task.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: task.name,
+                        start: task.start,
+                        end: task.end,
+                        days: task.days,
+                        tech: task.tech,
+                        status: task.status,
+                        subtasks: task.subtasks || []
+                    })
+                }).catch(() => {});
+            },
+
+            openSubtasksModal(taskId, focusSubtaskId = null) {
+                let task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
+                if (!task) return;
+                this.ensureTaskSubtasks(task);
+                this.state.activeSubtasksTaskId = taskId;
+
+                this.renderSubtasksModalContent(taskId, focusSubtaskId);
+
+                const modal = document.getElementById('modal-gantt-subtasks');
+                const content = document.getElementById('modal-gantt-subtasks-content');
+                if (!modal) return;
+
+                modal.classList.remove('hidden-view');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    if (content) content.classList.remove('scale-95');
+                }, 10);
+            },
+
+            closeSubtasksModal() {
+                const modal = document.getElementById('modal-gantt-subtasks');
+                const content = document.getElementById('modal-gantt-subtasks-content');
+                if (!modal) return;
+                modal.classList.add('opacity-0');
+                if (content) content.classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden-view');
+                }, 200);
+            },
+
+            renderSubtasksModalContent(taskId, focusSubtaskId = null) {
+                const container = document.getElementById('modal-gantt-subtasks-content');
+                if (!container) return;
+                const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
+                if (!task) {
+                    container.innerHTML = `<div class="p-6 text-center text-muted-foreground">ไม่พบข้อมูล Task</div>`;
+                    return;
+                }
+
+                const job = (DB.jobs || []).find(j => j.id === task.jobId) || {};
+                const subtasks = Array.isArray(task.subtasks) ? task.subtasks : [];
+                const totalSubs = subtasks.length;
+                const doneSubs = subtasks.filter(s => s.status === 'DONE').length;
+                const inProgSubs = subtasks.filter(s => s.status === 'IN_PROGRESS').length;
+                const todoSubs = subtasks.filter(s => s.status === 'TODO').length;
+                const avgPct = totalSubs > 0 ? Math.round(subtasks.reduce((sum, s) => sum + (Number(s.progress) || 0), 0) / totalSubs) : (task.status === 'DONE' ? 100 : 0);
+
+                const techOptions = [
+                    'Team A (สมศักดิ์)',
+                    'Team B (ประเสริฐ)',
+                    'Team C (วิชัย)',
+                    'Team D (ประเสริฐ)',
+                    'ช่างติดตั้งทั่วไป'
+                ];
+
+                let rowsHtml = '';
+                if (subtasks.length === 0) {
+                    rowsHtml = `
+                        <div class="py-12 px-4 text-center bg-muted/20 rounded-2xl border-2 border-dashed border-border/80 my-3">
+                            <div class="w-14 h-14 mx-auto rounded-2xl bg-brand-500/10 text-brand-600 flex items-center justify-center text-2xl mb-3 shadow-xs">
+                                <i class="ph ph-tree-structure"></i>
+                            </div>
+                            <h4 class="font-bold text-base text-foreground mb-1">ยังไม่มีงานย่อย (Subtasks)</h4>
+                            <p class="text-xs text-muted-foreground max-w-md mx-auto mb-5 leading-relaxed">คุณสามารถเพิ่มงานย่อยเพื่อแบ่งเฟสการทำงานรายวัน มอบหมายช่างแต่ละส่วน และติดตามความคืบหน้าร่วมกับ Daily Work Log ได้</p>
+                            <div class="flex items-center justify-center gap-3 flex-wrap">
+                                <button type="button" onclick="app.addGanttSubtaskFromModal('${task.id}')" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm cursor-pointer">
+                                    <i class="ph ph-plus-circle text-sm"></i> เพิ่ม Subtask แรก
+                                </button>
+                                <button type="button" onclick="app.autoSplitTaskIntoSubtasks('${task.id}')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-amber-500/30 text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 shadow-xs cursor-pointer">
+                                    <i class="ph ph-lightning text-sm text-amber-600"></i> แบ่งย่อยอัตโนมัติ (${task.days || 1} วัน)
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    rowsHtml = `
+                        <div class="overflow-x-auto rounded-xl border border-border bg-card shadow-xs">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-muted/50 border-b border-border text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                                        <th class="py-2.5 px-3 w-10 text-center">#</th>
+                                        <th class="py-2.5 px-3 min-w-[200px]">ชื่องานย่อย (Subtask)</th>
+                                        <th class="py-2.5 px-3 min-w-[130px]">วันที่เริ่ม</th>
+                                        <th class="py-2.5 px-3 min-w-[130px]">วันที่สิ้นสุด</th>
+                                        <th class="py-2.5 px-2 w-16 text-center">วัน</th>
+                                        <th class="py-2.5 px-3 min-w-[150px]">ช่าง / ทีมงาน</th>
+                                        <th class="py-2.5 px-3 min-w-[130px]">สถานะ</th>
+                                        <th class="py-2.5 px-3 min-w-[120px]">ความคืบหน้า</th>
+                                        <th class="py-2.5 px-3 w-28 text-center">การกระทำ</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border">
+                                    ${subtasks.map((sub, idx) => {
+                                        const isFocused = focusSubtaskId && String(sub.id) === String(focusSubtaskId);
+                                        const statusBadgeBg = sub.status === 'DONE' ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30' : (sub.status === 'IN_PROGRESS' ? 'bg-blue-500/15 text-blue-700 border-blue-500/30' : 'bg-slate-500/15 text-slate-700 border-slate-500/30');
+                                        return `
+                                            <tr class="hover:bg-muted/30 transition ${isFocused ? 'bg-brand-500/10 ring-2 ring-brand-500/40' : ''}">
+                                                <td class="py-2.5 px-3 text-center font-mono font-bold text-muted-foreground">
+                                                    ${idx + 1}
+                                                </td>
+                                                <td class="py-2.5 px-3">
+                                                    <input type="text" value="${(sub.name || '').replace(/"/g, '&quot;')}" onchange="app.updateGanttSubtaskField('${task.id}', '${sub.id}', 'name', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 font-medium" placeholder="ระบุชื่องานย่อย...">
+                                                </td>
+                                                <td class="py-2.5 px-3">
+                                                    <div class="relative flex items-center">
+                                                        <i class="ph ph-calendar-blank absolute left-2.5 text-muted-foreground pointer-events-none text-xs"></i>
+                                                        <input type="text" data-datepicker="true" value="${this.formatDateDMY(sub.start || task.start)}" onchange="app.updateGanttSubtaskField('${task.id}', '${sub.id}', 'start', this.value)" class="w-full pl-7 pr-2 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-mono" placeholder="DD/MM/YYYY">
+                                                    </div>
+                                                </td>
+                                                <td class="py-2.5 px-3">
+                                                    <div class="relative flex items-center">
+                                                        <i class="ph ph-calendar-check absolute left-2.5 text-muted-foreground pointer-events-none text-xs"></i>
+                                                        <input type="text" data-datepicker="true" value="${this.formatDateDMY(sub.end || sub.start || task.end)}" onchange="app.updateGanttSubtaskField('${task.id}', '${sub.id}', 'end', this.value)" class="w-full pl-7 pr-2 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-mono" placeholder="DD/MM/YYYY">
+                                                    </div>
+                                                </td>
+                                                <td class="py-2.5 px-2 text-center">
+                                                    <span class="inline-block px-2 py-0.5 rounded-md font-mono font-bold text-xs bg-muted text-foreground border border-border/80">
+                                                        ${sub.days || 1}
+                                                    </span>
+                                                </td>
+                                                <td class="py-2.5 px-3">
+                                                    <select onchange="app.updateGanttSubtaskField('${task.id}', '${sub.id}', 'tech', this.value)" class="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-medium focus:ring-2 focus:ring-brand-500/30">
+                                                        ${techOptions.map(t => `<option value="${t}" ${sub.tech === t ? 'selected' : ''}>${t}</option>`).join('')}
+                                                    </select>
+                                                </td>
+                                                <td class="py-2.5 px-3">
+                                                    <select onchange="app.updateGanttSubtaskField('${task.id}', '${sub.id}', 'status', this.value)" class="w-full px-2 py-1.5 rounded-lg border text-xs font-bold ${statusBadgeBg} cursor-pointer">
+                                                        <option value="TODO" ${sub.status === 'TODO' ? 'selected' : ''}>⏳ รอดำเนินการ</option>
+                                                        <option value="IN_PROGRESS" ${sub.status === 'IN_PROGRESS' ? 'selected' : ''}>⚙️ กำลังทำ</option>
+                                                        <option value="DONE" ${sub.status === 'DONE' ? 'selected' : ''}>✅ เสร็จสิ้น</option>
+                                                    </select>
+                                                </td>
+                                                <td class="py-2.5 px-3">
+                                                    <div class="flex items-center gap-2">
+                                                        <input type="range" min="0" max="100" step="5" value="${sub.progress || 0}" onchange="app.updateGanttSubtaskField('${task.id}', '${sub.id}', 'progress', this.value)" class="w-16 accent-brand-600 cursor-pointer">
+                                                        <span class="font-mono text-xs font-bold w-9 text-right ${sub.progress === 100 ? 'text-emerald-600' : (sub.progress > 0 ? 'text-blue-600' : 'text-muted-foreground')}">${sub.progress || 0}%</span>
+                                                    </div>
+                                                </td>
+                                                <td class="py-2.5 px-3 text-center">
+                                                    <div class="flex items-center justify-center gap-1">
+                                                        <button type="button" onclick="app.closeSubtasksModal(); app.openDailyWorkLogModal('${task.id}', '${sub.start || task.start}', '${sub.id}')" class="p-1.5 rounded-lg text-blue-600 hover:bg-blue-500/15 border border-blue-500/30 transition cursor-pointer" title="เปิดบันทึกงานช่างสำหรับงานย่อยนี้">
+                                                            <i class="ph ph-notebook text-sm"></i>
+                                                        </button>
+                                                        <button type="button" onclick="app.deleteGanttSubtask('${task.id}', '${sub.id}')" class="p-1.5 rounded-lg text-rose-600 hover:bg-rose-500/15 border border-rose-500/30 transition cursor-pointer" title="ลบงานย่อยนี้">
+                                                            <i class="ph ph-trash text-sm"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = `
+                    <!-- Modal Header -->
+                    <div class="p-4 sm:p-5 border-b border-border flex items-center justify-between gap-4 bg-muted/20 shrink-0">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-10 h-10 rounded-xl bg-brand-500/15 text-brand-600 flex items-center justify-center text-xl shrink-0 border border-brand-500/30">
+                                <i class="ph ph-tree-structure"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="font-display font-bold text-base text-foreground">จัดการงานย่อย (Subtasks Breakdown)</h3>
+                                    <span class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-brand-500/15 text-brand-700 border border-brand-500/30">${task.jobId}</span>
+                                    <span class="px-2 py-0.5 rounded text-[11px] font-mono text-muted-foreground bg-muted border border-border">${task.id}</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground truncate mt-0.5">
+                                    Task: <strong class="text-foreground">${task.name}</strong> • แผนงาน: <span class="font-mono">${this.formatDateDMY(task.start)} ถึง ${this.formatDateDMY(task.end)}</span> (${task.days || 1} วัน) • ช่างหลัก: ${task.tech || job.tech || '-'}
+                                </p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="app.closeSubtasksModal()" class="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition cursor-pointer shrink-0" title="ปิดหน้าต่าง (Esc)">
+                            <i class="ph ph-x text-lg"></i>
+                        </button>
+                    </div>
+
+                    <!-- Modal Body -->
+                    <div class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
+                        <!-- Progress Summary Card -->
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-muted/20 p-3.5 rounded-xl border border-border">
+                            <div class="sm:col-span-2 flex flex-col justify-center">
+                                <div class="flex items-center justify-between text-xs mb-1.5">
+                                    <span class="font-semibold text-foreground flex items-center gap-1.5">
+                                        <i class="ph ph-chart-donut text-brand-600"></i> ความคืบหน้ารวมของ Subtasks
+                                    </span>
+                                    <span class="font-mono font-bold text-brand-700 text-sm">${avgPct}%</span>
+                                </div>
+                                <div class="w-full h-2.5 bg-muted rounded-full overflow-hidden border border-border/60">
+                                    <div class="h-full bg-gradient-to-r from-brand-500 to-emerald-500 transition-all duration-300" style="width: ${avgPct}%"></div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 bg-card p-2.5 rounded-lg border border-border">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
+                                    <i class="ph ph-check-circle"></i>
+                                </div>
+                                <div>
+                                    <div class="text-[11px] text-muted-foreground">เสร็จสิ้น</div>
+                                    <div class="font-mono font-bold text-xs text-foreground">${doneSubs} / ${totalSubs} รายการ</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 bg-card p-2.5 rounded-lg border border-border">
+                                <div class="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0">
+                                    <i class="ph ph-clock-clockwise"></i>
+                                </div>
+                                <div>
+                                    <div class="text-[11px] text-muted-foreground">กำลังทำ / รอ</div>
+                                    <div class="font-mono font-bold text-xs text-foreground">${inProgSubs} กำลังทำ • ${todoSubs} รอ</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top Action Buttons -->
+                        <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="app.addGanttSubtaskFromModal('${task.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer">
+                                    <i class="ph ph-plus-circle text-sm"></i> เพิ่มงานย่อย
+                                </button>
+                                <button type="button" onclick="app.autoSplitTaskIntoSubtasks('${task.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-amber-500/30 text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 shadow-xs cursor-pointer" title="คำนวณและแบ่งเฟสงานย่อยตามระยะเวลาของ Task">
+                                    <i class="ph ph-lightning text-sm text-amber-600"></i> แบ่งย่อยอัตโนมัติ
+                                </button>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="app.markAllSubtasksDone('${task.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-emerald-500/30 text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 shadow-xs cursor-pointer">
+                                    <i class="ph ph-check-square text-sm text-emerald-600"></i> เสร็จสิ้นทั้งหมด
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Subtasks Table / Cards -->
+                        ${rowsHtml}
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="p-3.5 sm:p-4 border-t border-border flex items-center justify-between gap-3 bg-muted/20 shrink-0">
+                        <div class="text-xs text-muted-foreground flex items-center gap-1.5">
+                            <i class="ph ph-info text-brand-600 text-sm"></i>
+                            <span>ข้อมูลงานย่อยจะซิงค์กับ Timeline บน Gantt Chart และระบบบันทึกงานช่างโดยอัตโนมัติ</span>
+                        </div>
+                        <button type="button" onclick="app.closeSubtasksModal()" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-semibold cursor-pointer shadow-sm">
+                            ตกลง / ปิดหน้าต่าง
+                        </button>
+                    </div>
+                `;
+
+                // Initialize all datepickers inside the modal
+                this.initAllDatePickers(container);
             },
 
             renderGantt() {
@@ -19813,7 +20305,7 @@ const app = {
             },
 
             // ─── MODAL: DAILY TECHNICIAN WORK LOG (INTEGRATED WITH GANTT) ───────────
-            openDailyWorkLogModal(taskId, targetDate = null) {
+            openDailyWorkLogModal(taskId, targetDate = null, subtaskId = null) {
                 let task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
                 let jobId = task ? task.jobId : this.state.selectedGanttJobId;
                 if (!jobId || jobId === 'all') jobId = 'JOB202609001';
@@ -19830,19 +20322,25 @@ const app = {
 
                 this.state.activeDailyLogTaskId = taskId;
                 this.state.activeDailyLogJobId = jobId;
+                this.state.activeDailyLogSubtaskId = subtaskId;
                 if (targetDate) {
                     this.state.targetDailyLogDate = targetDate;
+                }
+
+                let subtask = null;
+                if (task && Array.isArray(task.subtasks) && subtaskId) {
+                    subtask = task.subtasks.find(s => String(s.id) === String(subtaskId));
                 }
 
                 const modal = document.getElementById('modal-daily-work-log');
                 const content = document.getElementById('modal-daily-work-log-content');
                 if (!modal) return;
 
-                const taskName = task ? task.name : (job.service || 'งาน set ระบบ ไฟ');
-                const startDate = task ? task.start : '2026-09-07';
-                const endDate = task ? (task.end || task.start) : '2026-09-09';
-                const days = task ? (task.days || 3) : 3;
-                const tech = task ? (task.tech || job.tech || 'Team B (ประเสริฐ)') : (job.tech || 'Team B (ประเสริฐ)');
+                const taskName = subtask ? `${task.name} ➔ [งานย่อย] ${subtask.name}` : (task ? task.name : (job.service || 'งาน set ระบบ ไฟ'));
+                const startDate = subtask ? (subtask.start || task.start) : (task ? task.start : '2026-09-07');
+                const endDate = subtask ? (subtask.end || subtask.start || task.end) : (task ? (task.end || task.start) : '2026-09-09');
+                const days = subtask ? (subtask.days || 1) : (task ? (task.days || 3) : 3);
+                const tech = subtask ? (subtask.tech || task.tech || job.tech || 'Team B (ประเสริฐ)') : (task ? (task.tech || job.tech || 'Team B (ประเสริฐ)') : (job.tech || 'Team B (ประเสริฐ)'));
 
                 const elJobId = document.getElementById('dwl-modal-job-id');
                 if (elJobId) elJobId.innerText = jobId;
