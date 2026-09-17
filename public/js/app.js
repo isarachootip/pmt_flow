@@ -5487,9 +5487,12 @@ const app = {
                     this.renderUnifiedSurveyPhotos();
                     this.updateUnifiedStudioIndicators();
                     this.renderJobDetail();
-                    const savedKB = totalOriginalKB - totalCompressedKB;
+                    const fmtSize = (kb) => {
+                        const kbStr = kb.toLocaleString('th-TH') + ' KB';
+                        return kb >= 1024 ? `${(kb/1024).toFixed(1)} MB (${kbStr})` : kbStr;
+                    };
                     const sizeInfo = totalOriginalKB > 0
-                        ? ` · ${totalOriginalKB >= 1024 ? (totalOriginalKB/1024).toFixed(1)+'MB' : totalOriginalKB+'KB'} → ${totalCompressedKB >= 1024 ? (totalCompressedKB/1024).toFixed(1)+'MB' : totalCompressedKB+'KB'}`
+                        ? ` · ${fmtSize(totalOriginalKB)} → ${fmtSize(totalCompressedKB)}`
                         : '';
                     this.showToast(`📷 เพิ่มรูปถ่ายเรียบร้อย (${addedCount} รูป${sizeInfo})`);
                     this.addJobActivityLog(jobId, 1, 'เพิ่มรูปภาพสำรวจหน้างาน', `เพิ่มรูปถ่ายจำนวน ${addedCount} รูป`);
