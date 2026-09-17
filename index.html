@@ -783,13 +783,7 @@
                                 <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
                                 <input type="text" id="jobs-table-search" oninput="app.filterJobsTable()" placeholder="ค้นหาเลขที่งาน, VFIX, Ticket, ลูกค้า..." class="w-full bg-card border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-brand-500 shadow-2xs">
                             </div>
-                            <select id="filter-service" onchange="app.renderJobs()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-brand-500">
-                                <option value="all">ทุกประเภทบริการ</option>
-                                <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
-                                <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
-                                <option value="Renovate ครัว">Renovate ครัว</option>
-                                <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
-                            </select>
+
                             <button id="btn-dev-reset-draft" onclick="app.resetAllJobStatuses()" class="btn-artifact-secondary isara-only text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer" title="ถอยสถานะทุกโครงการกลับเป็น Survey (25% พร้อมทำแบบ/BOQ) [เฉพาะ Isara Chootip]">
                                 <i class="ph ph-arrow-counter-clockwise"></i>
                                 <span>ถอยสถานะเป็น Survey</span>
