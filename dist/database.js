@@ -309,6 +309,14 @@ async function initDatabase() {
         ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMP WITH TIME ZONE,
         ADD COLUMN IF NOT EXISTS confirmed_by VARCHAR(150),
         ADD COLUMN IF NOT EXISTS remarks TEXT;
+
+      -- Backfill customer columns if null
+      UPDATE core_jobs 
+      SET 
+        customer_name = COALESCE(NULLIF(customer_name, ''), customer_data->>'name', customer_data->>'first_name', 'ลูกค้าทั่วไป'),
+        customer_phone = COALESCE(NULLIF(customer_phone, ''), customer_data->>'phone', customer_data->>'mobile_no', ''),
+        customer_address = COALESCE(NULLIF(customer_address, ''), customer_data->>'address', customer_data->'location'->>'address', '')
+      WHERE customer_name IS NULL OR customer_phone IS NULL OR customer_address IS NULL;
     `);
         // 2. Ensure default users exist in sys_users
         await client.query(`
