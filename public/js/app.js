@@ -22686,10 +22686,7 @@ const app = {
                     });
                 }
 
-                // 4. Fallback if empty: generate service-specific standard photos
-                if (photos.length === 0) {
-                    photos = this.getSampleVisitPlanPhotos(job);
-                }
+                // ไม่ inject Demo photos — ถ้าไม่มีรูปจริงให้คืน array เปล่า
 
                 // Deduplicate by URL
                 const seenUrls = new Set();
