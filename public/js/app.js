@@ -2762,7 +2762,9 @@ const app = {
                     }
                 });
 
-                if (window.auth && window.auth.user) {
+                const initTok = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                const initUser = (window.auth && window.auth.user) || sessionStorage.getItem('pmt_user') || localStorage.getItem('pmt_user');
+                if (initTok && initUser) {
                     const urlParams = new URLSearchParams(window.location.search);
                     const targetView = urlParams.get('view') || (window.location.hash ? window.location.hash.replace('#', '') : null);
                     if (targetView && document.getElementById(`page-${targetView}`)) {
@@ -2815,6 +2817,10 @@ const app = {
                             'Authorization': `Bearer ${token}`
                         }
                     });
+                    if (res.status === 401) {
+                        console.warn('[API POLL JOBS] Token expired or invalid (HTTP 401).');
+                        return;
+                    }
                     if (res.ok) {
                         const json = await res.json();
                         if (json.success && Array.isArray(json.data)) {
@@ -2845,7 +2851,15 @@ const app = {
                             if (remoteJobs.length > 0) {
                                 DB.jobs = this.sortJobsDescending(remoteJobs);
                                 this.persistJobs();
-                                if (this.state.currentView === 'jobs') this.renderJobs();
+                                
+                                const tblSearch = document.getElementById('jobs-table-search');
+                                const glbSearch = document.getElementById('global-search-input');
+                                const currentSearch = (tblSearch && tblSearch.value) || (glbSearch && glbSearch.value) || '';
+                                if (currentSearch && typeof this.filterJobsTable === 'function') {
+                                    this.filterJobsTable();
+                                } else {
+                                    if (this.state.currentView === 'jobs') this.renderJobs();
+                                }
                                 if (this.state.currentView === 'dashboard') this.renderDashboard();
                                 
                                 const activeEl = document.activeElement;

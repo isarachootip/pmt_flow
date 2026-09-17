@@ -82,6 +82,12 @@ window.auth =  {
                 this.showLoginOverlay();
             } else {
                 this.hideLoginOverlay();
+                // Ensure fresh data is fetched when restoring existing session
+                try {
+                    if (typeof window.app !== 'undefined' && typeof window.app.fetchJobsFromApi === 'function') {
+                        window.app.fetchJobsFromApi();
+                    }
+                } catch(e) {}
             }
             this.updateUI();
         },
