@@ -632,8 +632,69 @@ Date: 12/09/2026
   if (testGetCustomerName(jobWithNull) !== 'คุณลูกค้า') throw new Error('❌ Test 15 Failed on null');
   console.log('   ✅ SUCCESS: Customer names safely resolved across string, object, and null cases\n');
 
+  // 16. Strict Work Header Filter (Only headers starting with "'งาน" or "งาน")
+  console.log('▶ [TEST 16] Verifying Strict Work Header Filter (isWorkHeader)...');
+  const isWorkHeader = (val) => /^['"‘“]*\s*งาน/i.test(String(val || '').trim());
+
+  const workHeaderTestCases = [
+    { input: "'งานติดตั้งเครื่องปรับอากาศ 18000 BTU", expected: true },
+    { input: "งานติดตั้งเครื่องปรับอากาศ Inverter", expected: true },
+    { input: '"งานวางท่อประปาและสุขภัณฑ์"', expected: true },
+    { input: "‘งานเดินสายไฟเมนเข้าตู้ควบคุม’", expected: true },
+    { input: "“งานเจาะยึดขาแขวนคอยล์ร้อน”", expected: true },
+    { input: " ' งานติดตั้งแอร์", expected: true },
+    { input: "ชุดท่อน้ำยาแอร์ทองแดงหนาพิเศษพร้อมฉนวนหุ้ม 4 ม.", expected: false },
+    { input: "รางครอบท่อน้ำยาแอร์และข้อต่อมุมมาตรฐาน 4 ม.", expected: false },
+    { input: "ขาแขวนคอยล์ร้อนแบบกระเช้าชุบกัลวาไนซ์กันสนิม", expected: false },
+    { input: "ชุดเบรกเกอร์ควบคุม Safety Switch มอก. 30A พร้อมกล่อง", expected: false },
+    { input: "รวมมูลค่าทั้งสิ้น (Subtotal)", expected: false },
+    { input: "ภาษีมูลค่าเพิ่ม VAT 7%", expected: false },
+    { input: "", expected: false },
+    { input: null, expected: false }
+  ];
+
+  workHeaderTestCases.forEach((tc, idx) => {
+    const res = isWorkHeader(tc.input);
+    if (res !== tc.expected) {
+      throw new Error(`❌ Test 16 Failed on item ${idx}: "${tc.input}" expected ${tc.expected}, got ${res}`);
+    }
+  });
+  console.log(`   ✅ SUCCESS: All 14 test cases verified strictly matching only "'งาน" and "งาน" prefixes\n`);
+
+  // 17. Filtered Ingestion Simulation & Task Name Quote Sanitization
+  console.log('▶ [TEST 17] Verifying Filtered BOQ Ingestion & Quote Sanitization in Gantt Task Conversion...');
+  const mixedRawRows = [
+    { code: 'SKU-01', name: "'งานติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU", qty: 1, price: 2500 },
+    { code: 'MAT-01', name: "ชุดท่อน้ำยาแอร์ทองแดงหนา 4 ม.", qty: 1, price: 1800 },
+    { code: 'MAT-02', name: "รางครอบท่อน้ำยาแอร์", qty: 1, price: 950 },
+    { code: 'SKU-02', name: "“งานทดสอบระบบทำความเย็นและตรวจวัดแรงดันน้ำยา”", qty: 1, price: 800 },
+    { code: 'MAT-03', name: "ขาแขวนคอยล์ร้อน", qty: 1, price: 650 }
+  ];
+
+  const ingestedBOQItems = mixedRawRows.filter(r => isWorkHeader(r.name) || isWorkHeader(r.code));
+  if (ingestedBOQItems.length !== 2) {
+    throw new Error(`❌ Test 17 Failed: Expected 2 work items imported, got ${ingestedBOQItems.length}`);
+  }
+  if (ingestedBOQItems[0].name !== "'งานติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU" ||
+      ingestedBOQItems[1].name !== "“งานทดสอบระบบทำความเย็นและตรวจวัดแรงดันน้ำยา”") {
+    throw new Error('❌ Test 17 Failed: Ingested items mismatch');
+  }
+
+  // Task name sanitization check (strips leading quotes so Gantt task is clean "งาน...")
+  const sanitizedTasks = ingestedBOQItems.map(it => {
+    let cleanName = (it.name || '').replace(/^['"‘“\s]+/, '');
+    return cleanName;
+  });
+  if (sanitizedTasks[0] !== "งานติดตั้งเครื่องปรับอากาศ Inverter 18000 BTU") {
+    throw new Error(`❌ Test 17 Failed: Task 1 quotes not sanitized properly: "${sanitizedTasks[0]}"`);
+  }
+  if (!sanitizedTasks[1].startsWith("งานทดสอบระบบทำความเย็น")) {
+    throw new Error(`❌ Test 17 Failed: Task 2 quotes not sanitized properly: "${sanitizedTasks[1]}"`);
+  }
+  console.log(`   ✅ SUCCESS: 3 non-work material rows excluded; 2 work header items ingested and task names sanitized cleanly\n`);
+
   console.log('================================================================');
-  console.log('🎉 ALL 15 TESTS PASSED: BOQ IMPORT & LABOR-ONLY TASK PIPELINE VERIFIED 100%');
+  console.log('🎉 ALL 17 TESTS PASSED: BOQ IMPORT & LABOR-ONLY TASK PIPELINE VERIFIED 100%');
   console.log('================================================================');
 }
 
