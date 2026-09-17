@@ -1230,7 +1230,7 @@ export async function dbSaveDailyWorkLog(log: any): Promise<void> {
         JSON.stringify(log.photos || []),
         Boolean(log.is_completed),
         Boolean(log.is_final_day),
-        Boolean(log.supervisor_approved),
+        Boolean(log.user_confirmed || log.supervisor_approved),
         log.created_at ? new Date(log.created_at) : new Date()
       ]
     );

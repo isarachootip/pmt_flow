@@ -1437,6 +1437,8 @@ export interface CoreDailyWorkLog {
     uploaded_at?: string;
   }>;
   is_completed: boolean;
+  user_confirmed?: boolean;
+  user_confirmed_at?: string | null;
   created_at: string;
 }
 
@@ -3830,6 +3832,15 @@ async function handleCreateDailyLog(payload: any, jobIdParam?: string): Promise<
   const isFinalDay = (Number(payload.day_number || payload.dayNumber) || 1) >= (Number(payload.total_days || payload.totalDays) || 1);
   const isEarlyCompleted = Boolean(payload.is_early_completed || payload.isEarlyCompleted);
   const isOverallComplete = Boolean((payload.is_completed || payload.isCompleted) && (isFinalDay || isEarlyCompleted));
+  const isCompleted = Boolean(payload.is_completed || payload.isCompleted || (payload.progress_percent >= 100) || (payload.progressPercent >= 100));
+  const userConfirmed = Boolean(payload.user_confirmed || payload.userConfirmed || isCompleted || isOverallComplete);
+
+  let workDesc = payload.work_description || payload.workDescription || '';
+  if ((isCompleted || isOverallComplete) && workDesc && !workDesc.includes('User ยืนยัน')) {
+    workDesc = `${workDesc.trim()} (User ยืนยัน)`;
+  } else if ((isCompleted || isOverallComplete) && !workDesc) {
+    workDesc = 'งานติดตั้งเสร็จสมบูรณ์ 100% (User ยืนยัน) ตรวจสอบระบบเรียบร้อย พร้อมส่งมอบให้ทีม QC ตรวจรับรองคุณภาพ';
+  }
 
   const newLog: CoreDailyWorkLog = {
     id: payload.id || `LOG_${Date.now()}`,
@@ -3847,12 +3858,14 @@ async function handleCreateDailyLog(payload: any, jobIdParam?: string): Promise<
     recorded_by: payload.recorded_by || payload.recordedBy || 'ช่างหน้างาน',
     reporter_role: payload.reporter_role || payload.reporterRole || 'TECH',
     progress_percent: Number(payload.progress_percent !== undefined ? payload.progress_percent : payload.progressPercent) || 0,
-    work_description: payload.work_description || payload.workDescription || '',
+    work_description: workDesc,
     additional_details: payload.additional_details || payload.additionalDetails || '',
     issues: payload.issues || '',
     materials_used: payload.materials_used || payload.materialsUsed || '',
     photos: Array.isArray(payload.photos) ? payload.photos : [],
-    is_completed: Boolean(payload.is_completed || payload.isCompleted || (payload.progress_percent >= 100) || (payload.progressPercent >= 100)),
+    is_completed: isCompleted,
+    user_confirmed: userConfirmed,
+    user_confirmed_at: userConfirmed ? (payload.user_confirmed_at || payload.userConfirmedAt || new Date().toISOString()) : null,
     created_at: payload.created_at || payload.createdAt || new Date().toISOString()
   };
 
@@ -3925,7 +3938,7 @@ app.post('/api/v1/jobs/:id/daily-logs', requireAuth, async (req: Request, res: R
   return res.status(201).json({
     success: true,
     message: newLog.is_completed
-      ? 'ช่างบันทึกสำเร็จ 100%! ส่งมอบงานเข้าคิวตรวจคุณภาพ QC ล่วงหน้าเรียบร้อย'
+      ? 'ช่างบันทึกสำเร็จ 100% (User ยืนยัน)! ส่งมอบงานเข้าคิวตรวจคุณภาพ QC ล่วงหน้าเรียบร้อย'
       : 'บันทึกความคืบหน้างานช่างประจำวันเรียบร้อย',
     data: newLog
   });
@@ -3937,7 +3950,7 @@ app.post('/api/v1/daily-logs', requireAuth, async (req: Request, res: Response) 
   return res.status(201).json({
     success: true,
     message: newLog.is_completed
-      ? 'ช่างบันทึกสำเร็จ 100%! ส่งมอบงานเข้าคิวตรวจคุณภาพ QC ล่วงหน้าเรียบร้อย'
+      ? 'ช่างบันทึกสำเร็จ 100% (User ยืนยัน)! ส่งมอบงานเข้าคิวตรวจคุณภาพ QC ล่วงหน้าเรียบร้อย'
       : 'บันทึกความคืบหน้างานช่างประจำวันเรียบร้อย',
     data: newLog
   });
@@ -3949,7 +3962,31 @@ app.delete('/api/v1/daily-logs/:logId', requireAuth, async (req: Request, res: R
   await dbDeleteDailyWorkLog(logId);
   const idx = coreDailyWorkLogStore.findIndex(l => l.id === logId);
   if (idx !== -1) {
+    const deletedLog = coreDailyWorkLogStore[idx];
     coreDailyWorkLogStore.splice(idx, 1);
+
+    // Auto Rollback Task and Job status if no completed logs remain
+    const taskId = deletedLog.task_id;
+    const remainingLogs = coreDailyWorkLogStore.filter(l => String(l.task_id) === String(taskId));
+    const hasRemainingCompleted = remainingLogs.some(l => l.is_completed || l.user_confirmed);
+    if (!hasRemainingCompleted) {
+      const taskDays = deletedLog.total_days || 3;
+      const completedDays = remainingLogs.filter(l => (Number(l.progress_percent) || 0) > 0).length;
+      const newProgress = completedDays > 0 ? Math.min(95, Math.round((completedDays / taskDays) * 100)) : 0;
+
+      const memTask = coreTaskStore.find(t => String(t.id) === String(taskId));
+      if (memTask) {
+        memTask.status = newProgress > 0 ? 'IN_PROGRESS' : 'PENDING';
+        memTask.progress_percent = newProgress;
+      }
+
+      const jobId = deletedLog.job_id;
+      const targetJob = coreJobStore.find(j => String(j.id) === String(jobId) || j.job_no === jobId);
+      if (targetJob && targetJob.status === JobStatus.QC_PENDING) {
+        targetJob.status = JobStatus.IN_PROGRESS;
+        targetJob.overall_progress = 70;
+      }
+    }
   }
   return res.json({ success: true, message: 'ลบรายการบันทึกงานประจำวันเรียบร้อย' });
 });

@@ -79,9 +79,17 @@ Provide 1-click preset buttons for technicians:
 
 ---
 
-## 🔗 4. QC & Gantt Handoff
-- Checking **"☑️ ช่างบันทึกสำเร็จ (งานติดตั้งเสร็จสมบูรณ์ 100%)"** or clicking **"🚀 ยืนยันสำเร็จ & ส่งตรวจ QC"**
+## 🔗 4. QC & Gantt Handoff & "User ยืนยัน" Completion Standard
+- **Mandatory "User ยืนยัน" on Completion**:
+  - Checking **"☑️ ช่างบันทึกสำเร็จ (User ยืนยัน - งานติดตั้งเสร็จสมบูรณ์ 100%)"** or clicking **"🚀 ยืนยันสำเร็จ & ส่งตรวจ QC"** MUST require user confirmation that the User/Customer has verified and confirmed completion.
+  - Automatically records `userConfirmed: true` and appends `(User ยืนยัน)` to the work description (e.g., *"งานติดตั้งเสร็จสมบูรณ์ 100% (User ยืนยัน) ตรวจสอบระบบเรียบร้อย พร้อมส่งมอบให้ทีม QC ตรวจรับรองคุณภาพ"*).
+  - Displays badges `✓ ช่างบันทึกสำเร็จ (User ยืนยัน)` across Log History Cards, Daily Timeline Steps, and Milestone Headers.
   - Updates Task status to `DONE` (`100%`).
   - Updates Project status to `QC_PENDING` (`85%`).
   - Confirms QC booking date on task end date (`qcBookingDate`).
-  - Adds audit trail entry and notifies system toast.
+  - Adds audit trail entry: `ช่างบันทึกงานเสร็จสมบูรณ์ (User ยืนยัน) ส่งต่อเข้าคิวรอตรวจรับรองคุณภาพ QC` and notifies system toast.
+- **Auto Rollback on Log Deletion**:
+  - If a completed daily log (100% / User ยืนยัน / Early Finish) is deleted via the trash icon, the system automatically checks remaining logs:
+    - If no other completed logs remain, Task status is cleanly rolled back to `IN_PROGRESS` (or `PENDING`), with progress recalculated based on remaining active logged days.
+    - Project status is reverted from `QC_PENDING` back to `IN_PROGRESS` (progress 70%), preventing jobs from getting stuck at 100% when a log is deleted or corrected.
+

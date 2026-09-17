@@ -19892,6 +19892,7 @@ const app = {
 
                 const maxProgress = taskLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
                 const isCompleted = taskLogs.some(l => l.isCompleted) || (task && task.status === 'DONE') || (job && (job.status === 'QC_PENDING' || job.status === 'QC_PASSED'));
+                const hasUserConfirmed = taskLogs.some(l => l.userConfirmed || l.isCompleted) || isCompleted;
 
                 // Determine next day number & suggest next date
                 let nextDayNum = taskLogs.length + 1;
@@ -19947,7 +19948,7 @@ const app = {
                         <div class="flex items-center justify-between text-xs">
                             <span class="font-bold ${isDayDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}">วันที่ ${dayIdx} (${this.formatDateDMY(dStr).slice(0, 5)})</span>
                             ${isDayDone 
-                                ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">✓ ${dayLog.progressPercent}%</span>`
+                                ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">✓ ${dayLog.progressPercent}%${(dayLog.userConfirmed || dayLog.isCompleted) ? ' (User ยืนยัน)' : ''}</span>`
                                 : (isLastDay ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold">นัดตรวจ QC</span>` : `<span class="text-[10px] text-muted-foreground group-hover:text-cyan-500">รอลงบันทึก</span>`)}
                         </div>
                         <div class="text-[11px] text-muted-foreground mt-1.5 truncate">
@@ -19986,7 +19987,7 @@ const app = {
                                     </span>
                                 ` : ''}
                                 <span class="text-[10px] px-2 py-0.5 rounded-md ${l.isCompleted ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold' : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold'}">
-                                    ความคืบหน้า ${l.progressPercent}% ${l.isCompleted ? '✓ ช่างบันทึกสำเร็จ' : ''}
+                                    ความคืบหน้า ${l.progressPercent}% ${l.isCompleted ? `✓ ช่างบันทึกสำเร็จ${(l.userConfirmed || l.isCompleted) ? ' (User ยืนยัน)' : ''}` : ''}
                                 </span>
                             </div>
                             <div class="flex items-center gap-2">
@@ -20054,7 +20055,7 @@ const app = {
                             </div>
                             <div class="flex items-center gap-2 shrink-0">
                                 <span class="px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold ${isCompleted ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40' : 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30'}">
-                                    ${isCompleted ? '✓ ช่างบันทึกสำเร็จ 100%' : `ความคืบหน้ารวม ${maxProgress}%`}
+                                    ${isCompleted ? `✓ ช่างบันทึกสำเร็จ 100%${hasUserConfirmed ? ' (User ยืนยัน)' : ''}` : `ความคืบหน้ารวม ${maxProgress}%`}
                                 </span>
                             </div>
                         </div>
@@ -20219,8 +20220,8 @@ const app = {
                                 <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 transition">
                                     <input type="checkbox" id="page-input-completed" class="mt-0.5 accent-emerald-600 w-4 h-4 cursor-pointer" ${isCompleted || nextDayNum >= taskDays ? 'checked' : ''}>
                                     <label for="page-input-completed" class="text-xs text-foreground font-medium cursor-pointer">
-                                        <strong class="text-emerald-700 dark:text-emerald-300 block">☑️ ช่างบันทึกสำเร็จ (งานติดตั้งเสร็จสมบูรณ์ 100%)</strong>
-                                        <span class="text-[11px] text-muted-foreground block mt-0.5">ระบบจะปรับสถานะ Task เป็น DONE, ยืนยันจองช่าง QC ณ วันสิ้นสุด (${this.formatDateDMY(endDateStr)}) และส่งงานเข้าสู่คิวรอตรวจรับรองคุณภาพ QC ทันที</span>
+                                        <strong class="text-emerald-700 dark:text-emerald-300 block">☑️ ช่างบันทึกสำเร็จ (User ยืนยัน - งานติดตั้งเสร็จสมบูรณ์ 100%)</strong>
+                                        <span class="text-[11px] text-muted-foreground block mt-0.5">ระบบจะบันทึกสถานะว่า "User ยืนยัน", ปรับสถานะ Task เป็น DONE, ยืนยันจองช่าง QC ณ วันสิ้นสุด (${this.formatDateDMY(endDateStr)}) และส่งงานเข้าสู่คิวรอตรวจรับรองคุณภาพ QC ทันที</span>
                                     </label>
                                 </div>
 
@@ -20428,6 +20429,7 @@ const app = {
                 const isTaskExplicitlyDone = (task && task.status === 'DONE');
                 const hasEarlyFinish = taskLogs.some(l => l.isEarlyCompleted);
                 const isCompleted = isTaskExplicitlyDone || (completedDaysCount >= taskDays && taskLogs.some(l => l.isCompleted)) || hasEarlyFinish;
+                const hasUserConfirmed = taskLogs.some(l => l.userConfirmed || l.isCompleted) || isCompleted;
 
                 // True task progress percentage based on completed days vs total days
                 let trueProgress = 0;
@@ -20503,7 +20505,7 @@ const app = {
                     let statusBadgeHtml = '';
                     if (isDayDone) {
                         cardBgClass = 'bg-emerald-500/10 border-emerald-500/30';
-                        statusBadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">✓ ${dayLog.progressPercent}%</span>`;
+                        statusBadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">✓ ${dayLog.progressPercent}%${(dayLog.userConfirmed || dayLog.isCompleted) ? ' (User ยืนยัน)' : ''}</span>`;
                     } else if (isToday) {
                         cardBgClass = 'bg-rose-500/10 border-rose-500/40 ring-1 ring-rose-500/30';
                         statusBadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold">วันนี้ (รออัปเดต)</span>`;
@@ -20560,7 +20562,7 @@ const app = {
                                     </span>
                                 ` : ''}
                                 <span class="text-[10px] px-2 py-0.5 rounded-md ${l.isCompleted ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold' : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold'}">
-                                    ความคืบหน้า ${l.progressPercent}% ${l.isCompleted ? '✓ ช่างบันทึกสำเร็จ' : ''}
+                                    ความคืบหน้า ${l.progressPercent}% ${l.isCompleted ? `✓ ช่างบันทึกสำเร็จ${(l.userConfirmed || l.isCompleted) ? ' (User ยืนยัน)' : ''}` : ''}
                                 </span>
                             </div>
                             <div class="flex items-center gap-2">
@@ -20603,7 +20605,7 @@ const app = {
                             </div>
                             <div class="flex items-center gap-2">
                                 <span class="px-3 py-1 rounded-xl text-xs font-mono font-bold ${isCompleted ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40' : 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30'}">
-                                    ${isCompleted ? '✓ ช่างบันทึกสำเร็จ 100%' : `ความคืบหน้ารวม ${trueProgress}% (${completedDaysCount}/${taskDays} วัน)`}
+                                    ${isCompleted ? `✓ ช่างบันทึกสำเร็จ 100%${hasUserConfirmed ? ' (User ยืนยัน)' : ''}` : `ความคืบหน้ารวม ${trueProgress}% (${completedDaysCount}/${taskDays} วัน)`}
                                 </span>
                             </div>
                         </div>
@@ -20754,12 +20756,12 @@ const app = {
                                         <input type="checkbox" id="dwl-input-completed" class="mt-0.5 accent-emerald-600 w-4 h-4 cursor-pointer" ${isCompleted ? 'checked' : ''}>
                                         <label for="dwl-input-completed" class="text-xs text-foreground font-medium cursor-pointer">
                                             <strong class="${nextDayNum >= taskDays ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'} block">
-                                                ${nextDayNum >= taskDays ? '☑️ ช่างบันทึกสำเร็จ (วันสุดท้ายของแผนงาน - งานติดตั้งเสร็จสมบูรณ์ 100%)' : '☑️ ยืนยันจบงานก่อนกำหนด (Early Finish - งานติดตั้งเสร็จสมบูรณ์ทั้งโครงการก่อนครบกำหนดวัน)'}
+                                                ${nextDayNum >= taskDays ? '☑️ ช่างบันทึกสำเร็จ (User ยืนยัน - วันสุดท้ายของแผนงาน งานเสร็จสมบูรณ์ 100%)' : '☑️ ยืนยันจบงานก่อนกำหนด (User ยืนยัน - งานเสร็จสมบูรณ์ทั้งโครงการก่อนครบกำหนดวัน)'}
                                             </strong>
                                             <span class="text-[11px] text-muted-foreground block mt-0.5">
                                                 ${nextDayNum >= taskDays 
-                                                    ? `ระบบจะปรับสถานะ Task เป็น DONE, ยืนยันจองช่าง QC ณ วันสิ้นสุด (${this.formatDateDMY(endDateStr)}) และส่งงานเข้าสู่คิวรอตรวจรับรองคุณภาพ QC ทันที`
-                                                    : `⚠️ หากเป็นเพียงการบันทึกงานประจำวันของวันนี้ ไม่ต้องติ๊กช่องนี้ (ระบบจะบันทึกความคืบหน้ารายวัน ${Math.round((1/taskDays)*100)}% และนับวันตามจริงให้อัตโนมัติ)`}
+                                                    ? `ระบบจะบันทึกสถานะว่า "User ยืนยัน", ปรับสถานะ Task เป็น DONE, ยืนยันจองช่าง QC ณ วันสิ้นสุด (${this.formatDateDMY(endDateStr)}) และส่งงานเข้าสู่คิวรอตรวจรับรองคุณภาพ QC ทันที`
+                                                    : `⚠️ กรณี User/ลูกค้า ยืนยันรับมอบงานเสร็จสมบูรณ์ก่อนกำหนด ระบบจะบันทึกว่า "User ยืนยัน" และส่งตรวจ QC ทันที (หากเป็นเพียงการบันทึกประจำวันของวันนี้ ไม่ต้องติ๊กช่องนี้)`}
                                             </span>
                                         </label>
                                     </div>
@@ -20814,7 +20816,11 @@ const app = {
                 if (forceComplete) {
                     progressVal = 100;
                     isCompletedVal = true;
-                    if (!descVal) descVal = 'งานติดตั้งเสร็จสมบูรณ์ 100% ตรวจสอบระบบเรียบร้อย พร้อมส่งมอบให้ทีม QC ตรวจรับรองคุณภาพ';
+                    if (!descVal) descVal = 'งานติดตั้งเสร็จสมบูรณ์ 100% (User ยืนยัน) ตรวจสอบระบบเรียบร้อย พร้อมส่งมอบให้ทีม QC ตรวจรับรองคุณภาพ';
+                }
+
+                if (isCompletedVal && descVal && !descVal.includes('User ยืนยัน')) {
+                    descVal = `${descVal.trim()} (User ยืนยัน)`;
                 }
 
                 if (!descVal.trim()) {
@@ -20881,6 +20887,8 @@ const app = {
                     photos: attachedPhotos,
                     isCompleted: isCompletedVal,
                     isEarlyCompleted: isEarlyFinish,
+                    userConfirmed: Boolean(isTrueOverallComplete || isCompletedVal || forceComplete),
+                    userConfirmedAt: (isTrueOverallComplete || isCompletedVal || forceComplete) ? new Date().toISOString() : null,
                     createdAt: new Date().toISOString()
                 };
 
@@ -20913,7 +20921,7 @@ const app = {
                         job.progress = 85;
                         if (!job.step_timestamps) job.step_timestamps = {};
                         job.step_timestamps.qc_pending_at = new Date().toISOString();
-                        this.recordStepTimestamp(job.id, 'qc_pending_at', job.step_timestamps.qc_pending_at, 'ช่างบันทึกงานเสร็จสมบูรณ์ ส่งต่อเข้าคิวรอตรวจรับรองคุณภาพ QC');
+                        this.recordStepTimestamp(job.id, 'qc_pending_at', job.step_timestamps.qc_pending_at, 'ช่างบันทึกงานเสร็จสมบูรณ์ (User ยืนยัน) ส่งต่อเข้าคิวรอตรวจรับรองคุณภาพ QC');
                     }
                     // Auto-confirm QC booking on the End Date
                     const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(taskId) || b.jobId === jobId);
@@ -20934,7 +20942,7 @@ const app = {
                         body: JSON.stringify(newLog)
                     }).catch(() => {});
 
-                    this.showToast(`🚀 ช่างบันทึกสำเร็จ 100%! ส่งต่อโครงการ ${jobId} เข้าคิวตรวจคุณภาพ QC เรียบร้อย`);
+                    this.showToast(`🚀 ช่างบันทึกสำเร็จ 100% (User ยืนยัน)! ส่งต่อโครงการ ${jobId} เข้าคิวตรวจคุณภาพ QC เรียบร้อย`);
                     
                     // Reset photo slots
                     this.state.dailyLogPhotoSlots = [null, null, null, null, null];
@@ -20990,16 +20998,45 @@ const app = {
             },
 
             completeDailyWorkAndMoveToQC(taskId, isPageForm = false) {
-                if (!confirm('ยืนยันว่าช่างได้ดำเนินการติดตั้งเสร็จสมบูรณ์ 100% และต้องการส่งต่อให้ทีม QC เข้าตรวจใช่หรือไม่?')) return;
+                if (!confirm('ยืนยันว่า User ได้ตรวจสอบและยืนยันงานติดตั้งเสร็จสมบูรณ์ 100% แล้วใช่หรือไม่?\n\n(ระบบจะบันทึกสถานะว่า "User ยืนยัน" และส่งมอบงานเข้าสู่คิวรอตรวจรับรองคุณภาพ QC ทันที)')) return;
                 this.saveDailyWorkLog(taskId, true, isPageForm);
             },
 
             deleteDailyWorkLog(logId, taskId) {
                 if (!confirm('คุณต้องการลบรายการบันทึกนี้ใช่หรือไม่?')) return;
+                const targetLog = (DB.dailyWorkLogs || []).find(l => l.id === logId);
                 DB.dailyWorkLogs = (DB.dailyWorkLogs || []).filter(l => l.id !== logId);
                 this.persistDailyWorkLogs();
                 fetch(`/api/v1/daily-logs/${logId}`, { method: 'DELETE' }).catch(() => {});
-                this.showToast('🗑️ ลบบันทึกงานประจำวันเรียบร้อย');
+
+                // Auto Rollback Task and Job status if no completed logs remain
+                const remainingLogs = (DB.dailyWorkLogs || []).filter(l => String(l.taskId) === String(taskId));
+                const hasRemainingCompleted = remainingLogs.some(l => l.isCompleted || l.userConfirmed || l.isEarlyCompleted);
+                const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
+
+                if (task && !hasRemainingCompleted) {
+                    const taskDays = task.days || 3;
+                    const completedDays = remainingLogs.filter(l => (Number(l.progressPercent) || 0) > 0).length;
+                    const newProgress = completedDays > 0 ? Math.min(95, Math.round((completedDays / taskDays) * 100)) : 0;
+                    task.progress = newProgress;
+                    task.status = newProgress > 0 ? 'IN_PROGRESS' : 'PENDING';
+
+                    const jobId = task.jobId || targetLog?.jobId;
+                    const job = (DB.jobs || []).find(j => j.id === jobId);
+                    if (job && job.status === 'QC_PENDING') {
+                        const otherJobTasks = (DB.tasks || []).filter(t => t.jobId === jobId && String(t.id) !== String(taskId));
+                        const allOthersDone = otherJobTasks.length > 0 && otherJobTasks.every(t => t.status === 'DONE');
+                        if (!allOthersDone) {
+                            job.status = 'IN_PROGRESS';
+                            job.progress = 70;
+                            if (job.step_timestamps) delete job.step_timestamps.qc_pending_at;
+                            this.recordStepTimestamp(job.id, 'daily_log_reverted', new Date().toISOString(), 'ยกเลิกสถานะส่งตรวจ QC เนื่องจากมีการลบบันทึกเสร็จสมบูรณ์ คืนสถานะงานเป็นระหว่างดำเนินงาน');
+                        }
+                    }
+                    this.persistJobs();
+                }
+
+                this.showToast('🗑️ ลบบันทึกงานประจำวันเรียบร้อย (ปรับปรุงสถานะงานตามบันทึกที่เหลือ)');
                 
                 if (this.state.currentView === 'daily-logs') {
                     this.renderDailyLogJobQueue();

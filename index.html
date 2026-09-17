@@ -5582,6 +5582,21 @@
                                         <li><strong>แถบแสดงผล Subtasks บน Timeline:</strong> ใต้แถว Task หลัก จะมีแถว Subtask พร้อมสัญลักษณ์ <code class="text-brand-600 font-mono font-bold">└─</code> และแถบสีความคืบหน้า (DONE สีเขียว, IN_PROGRESS สีส้ม, TODO สีม่วง) พร้อมจำนวนวันทำงาน (<code class="font-mono text-[10px]">Xd</code>)</li>
                                         <li><strong>เชื่อมโยงกับ Daily Work Log:</strong> คลิกที่แถบสีของ Subtask หรือคลิกไอคอนสมุดโน้ต <code class="text-blue-600 font-bold">บันทึกช่าง</code> เพื่อเปิดแบบฟอร์มลงบันทึกงานประจำวันสำหรับงานย่อยนั้นๆ พร้อมระบุชื่อ Subtask ในหัวเรื่อง และอัปโหลดรูปถ่าย 5 รูปหน้างานได้อย่างไร้รอยต่อ</li>
                                         <li><strong>การซิงค์ข้อมูลแบบ Real-time:</strong> เมื่อปรับสถานะหรือความคืบหน้าของ Subtask ระบบจะคำนวณค่าเฉลี่ย % ความคืบหน้าของ Task หลัก และซิงค์บันทึกลงสู่ฐานข้อมูล Backend REST API ทันที</li>
+                            <!-- Q20: Daily Work Log "User ยืนยัน" Completion Standard & Auto-Rollback -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q20:</span>
+                                        <span>การกดเสร็จสิ้นงานช่างประจำวัน (100% / ส่งตรวจ QC) มีข้อกำหนด "User ยืนยัน" อย่างไร และหากลบบันทึก ระบบจะถอยสถานะให้อัตโนมัติหรือไม่?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> เพื่อป้องกันความเข้าใจผิดเมื่อช่างปฏิบัติงานเสร็จเร็วกว่าแผน (เช่น แผน 4 วัน แต่จบวันที่ 2 หรือจบวันสุดท้าย) ระบบ PMT Flow ได้บังคับใช้มาตรฐาน <strong>"User ยืนยัน" (Customer/User Sign-off Standard)</strong> ดังนี้:</p>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
+                                        <li><strong>ต้องผ่านการยืนยันจาก User:</strong> เมื่อกดปุ่มสีเขียว <code class="bg-emerald-500/15 text-emerald-700 font-bold px-1.5 py-0.2 rounded text-[10px]">🚀 ยืนยันสำเร็จ & ส่งตรวจ QC</code> หรือติ๊กเลือก <code class="bg-emerald-500/10 text-emerald-700 font-bold px-1.5 py-0.2 rounded text-[10px]">ช่างบันทึกสำเร็จ (User ยืนยัน)</code> ระบบจะขึ้นกล่องถามยืนยันชัดเจนว่า User ได้ตรวจสอบและยืนยันงานเสร็จสมบูรณ์แล้ว</li>
+                                        <li><strong>ระบุคำว่า "(User ยืนยัน)" อัตโนมัติ:</strong> รายละเอียดงานจะระบุข้อความ <code class="bg-muted px-1.5 py-0.2 rounded font-semibold text-[10px]">(User ยืนยัน)</code> เสมอ และป้ายสถานะประวัติงานจะแสดง <code class="bg-emerald-500/15 text-emerald-600 font-bold px-1.5 py-0.2 rounded text-[10px]">✓ ช่างบันทึกสำเร็จ (User ยืนยัน)</code> เพื่อเป็นหลักฐานตรวจสอบย้อนหลัง</li>
+                                        <li><strong>ระบบคืนสถานะอัตโนมัติ (Auto Rollback):</strong> หากเผลอกดจบงานผิดวัน แล้วกดปุ่มลบ (ถังขยะ) บันทึกนั้นออก ระบบจะคำนวณถอยสถานะ Task และ Job กลับเป็น <code class="bg-amber-500/15 text-amber-700 font-bold px-1.5 py-0.2 rounded text-[10px]">IN_PROGRESS</code> ตามจำนวนวันที่บันทึกจริงทันที ไม่เกิดปัญหางานค้าง 100%</li>
                                     </ul>
                                 </div>
                             </details>
