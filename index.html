@@ -781,7 +781,7 @@
                         <div class="flex flex-wrap items-center gap-2.5">
                             <div class="relative w-64">
                                 <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
-                                <input type="text" id="jobs-table-search" oninput="app.filterJobsTable()" placeholder="ค้นหาเลขที่งาน, VFIX, Ticket, ลูกค้า..." class="w-full bg-card border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-brand-500 shadow-2xs">
+                                <input type="text" id="jobs-table-search" oninput="app.filterJobsTable()" placeholder="ค้นหาเลขที่งาน, Ref ID, Booking, วันนัด, ลูกค้า..." class="w-full bg-card border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-brand-500 shadow-2xs">
                             </div>
 
                             <button id="btn-dev-reset-draft" onclick="app.resetAllJobStatuses()" class="btn-artifact-secondary isara-only text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer" title="ถอยสถานะทุกโครงการกลับเป็น Survey (25% พร้อมทำแบบ/BOQ) [เฉพาะ Isara Chootip]">
@@ -1064,13 +1064,16 @@
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
                                     <tr>
-                                        <th class="px-5 py-3.5">เลขที่งาน</th>
-                                        <th class="px-5 py-3.5">ลูกค้า &amp; เบอร์ติดต่อ</th>
-                                        <th class="px-5 py-3.5">ประเภทบริการ</th>
-                                        <th class="px-5 py-3.5">วันที่/เวลารับ Order</th>
-                                        <th class="px-5 py-3.5">แบบแปลน (Design)</th>
-                                        <th class="px-5 py-3.5">ประมาณการ (BOQ)</th>
-                                        <th class="px-5 py-3.5 text-right">Studio จัดการงาน</th>
+                                        <th class="px-5 py-3.5 whitespace-nowrap">เลขที่งาน</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">เลขที่อ้างอิง (Ref ID)</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">เลขที่ Booking</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">กำหนดวันนัด</th>
+                                        <th class="px-5 py-3.5 min-w-[150px]">ลูกค้า &amp; เบอร์ติดต่อ</th>
+                                        <th class="px-5 py-3.5 min-w-[140px]">ประเภทบริการ</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">วันที่รับ Order</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">แบบแปลน (Design)</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">ประมาณการ (BOQ)</th>
+                                        <th class="px-5 py-3.5 text-right whitespace-nowrap">Studio จัดการงาน</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-border" id="jobs-table-body">
@@ -1378,13 +1381,16 @@
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
                                     <tr>
-                                        <th class="px-5 py-3.5">เลขที่งาน</th>
-                                        <th class="px-5 py-3.5">ลูกค้า & เบอร์ติดต่อ</th>
-                                        <th class="px-5 py-3.5">ประเภทบริการ</th>
-                                        <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
-                                        <th class="px-5 py-3.5">สถานะ</th>
+                                        <th class="px-5 py-3.5 whitespace-nowrap">เลขที่งาน</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">เลขที่อ้างอิง (Ref ID)</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">เลขที่ Booking</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">กำหนดวันนัด</th>
+                                        <th class="px-5 py-3.5 min-w-[150px]">ลูกค้า &amp; เบอร์ติดต่อ</th>
+                                        <th class="px-5 py-3.5 min-w-[140px]">ประเภทบริการ</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">ช่าง / ผู้รับผิดชอบ</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">สถานะ</th>
                                         <th class="px-5 py-3.5 min-w-[210px]">สถานะ SLA / เข้า State</th>
-                                        <th class="px-5 py-3.5 text-right">การจัดการ</th>
+                                        <th class="px-5 py-3.5 text-right whitespace-nowrap">การจัดการ</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-border" id="blueprints-table-body">
@@ -1758,13 +1764,16 @@
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
                                     <tr>
-                                        <th class="px-5 py-3.5">เลขที่งาน</th>
-                                        <th class="px-5 py-3.5">ลูกค้า & เบอร์ติดต่อ</th>
-                                        <th class="px-5 py-3.5">ประเภทบริการ</th>
-                                        <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
-                                        <th class="px-5 py-3.5">สถานะ</th>
+                                        <th class="px-5 py-3.5 whitespace-nowrap">เลขที่งาน</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">เลขที่อ้างอิง (Ref ID)</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">เลขที่ Booking</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">กำหนดวันนัด</th>
+                                        <th class="px-5 py-3.5 min-w-[150px]">ลูกค้า &amp; เบอร์ติดต่อ</th>
+                                        <th class="px-5 py-3.5 min-w-[140px]">ประเภทบริการ</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">ช่าง / ผู้รับผิดชอบ</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">สถานะ</th>
                                         <th class="px-5 py-3.5 min-w-[210px]">สถานะ SLA / เข้า State</th>
-                                        <th class="px-5 py-3.5 text-right">การจัดการ</th>
+                                        <th class="px-5 py-3.5 text-right whitespace-nowrap">การจัดการ</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-border" id="tickets-jobs-table-body">
@@ -2165,13 +2174,16 @@
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
                                     <tr>
-                                        <th class="px-5 py-3.5">เลขที่งาน</th>
-                                        <th class="px-5 py-3.5">ลูกค้า & เบอร์ติดต่อ</th>
-                                        <th class="px-5 py-3.5">ประเภทบริการ</th>
-                                        <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
-                                        <th class="px-5 py-3.5">สถานะ</th>
+                                        <th class="px-5 py-3.5 whitespace-nowrap">เลขที่งาน</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">เลขที่อ้างอิง (Ref ID)</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">เลขที่ Booking</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">กำหนดวันนัด</th>
+                                        <th class="px-5 py-3.5 min-w-[150px]">ลูกค้า &amp; เบอร์ติดต่อ</th>
+                                        <th class="px-5 py-3.5 min-w-[140px]">ประเภทบริการ</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">ช่าง / ผู้รับผิดชอบ</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">สถานะ</th>
                                         <th class="px-5 py-3.5 min-w-[210px]">สถานะ SLA / เข้า State</th>
-                                        <th class="px-5 py-3.5 text-right">การจัดการ</th>
+                                        <th class="px-5 py-3.5 text-right whitespace-nowrap">การจัดการ</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-border" id="boq-jobs-table-body">
@@ -2548,13 +2560,16 @@
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
                                     <tr>
-                                        <th class="px-5 py-3.5">เลขที่งาน</th>
-                                        <th class="px-5 py-3.5">ลูกค้า & เบอร์ติดต่อ</th>
-                                        <th class="px-5 py-3.5">ประเภทบริการ</th>
-                                        <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
-                                        <th class="px-5 py-3.5">สถานะ</th>
+                                        <th class="px-5 py-3.5 whitespace-nowrap">เลขที่งาน</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">เลขที่อ้างอิง (Ref ID)</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">เลขที่ Booking</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">กำหนดวันนัด</th>
+                                        <th class="px-5 py-3.5 min-w-[150px]">ลูกค้า &amp; เบอร์ติดต่อ</th>
+                                        <th class="px-5 py-3.5 min-w-[140px]">ประเภทบริการ</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">ช่าง / ผู้รับผิดชอบ</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">สถานะ</th>
                                         <th class="px-5 py-3.5 min-w-[210px]">สถานะ SLA / เข้า State</th>
-                                        <th class="px-5 py-3.5 text-right">การจัดการ</th>
+                                        <th class="px-5 py-3.5 text-right whitespace-nowrap">การจัดการ</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-border" id="conversion-jobs-table-body">
@@ -3289,12 +3304,15 @@
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
                                     <tr>
-                                        <th class="px-5 py-3.5">เลขที่งาน</th>
-                                        <th class="px-5 py-3.5">ลูกค้า & เบอร์ติดต่อ</th>
-                                        <th class="px-5 py-3.5">ประเภทบริการ</th>
-                                        <th class="px-5 py-3.5">ช่าง / ผู้รับผิดชอบ</th>
-                                        <th class="px-5 py-3.5">สถานะ QC</th>
-                                        <th class="px-5 py-3.5 text-right">การจัดการ</th>
+                                        <th class="px-5 py-3.5 whitespace-nowrap">เลขที่งาน</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">เลขที่อ้างอิง (Ref ID)</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">เลขที่ Booking</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">กำหนดวันนัด</th>
+                                        <th class="px-5 py-3.5 min-w-[150px]">ลูกค้า &amp; เบอร์ติดต่อ</th>
+                                        <th class="px-5 py-3.5 min-w-[140px]">ประเภทบริการ</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">ช่าง / ผู้รับผิดชอบ</th>
+                                        <th class="px-4 py-3.5 whitespace-nowrap">สถานะ QC</th>
+                                        <th class="px-5 py-3.5 text-right whitespace-nowrap">การจัดการ</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-border" id="qc-jobs-table-body">
@@ -5583,6 +5601,10 @@
                                         <li><strong>แถบแสดงผล Subtasks บน Timeline:</strong> ใต้แถว Task หลัก จะมีแถว Subtask พร้อมสัญลักษณ์ <code class="text-brand-600 font-mono font-bold">└─</code> และแถบสีความคืบหน้า (DONE สีเขียว, IN_PROGRESS สีส้ม, TODO สีม่วง) พร้อมจำนวนวันทำงาน (<code class="font-mono text-[10px]">Xd</code>)</li>
                                         <li><strong>เชื่อมโยงกับ Daily Work Log:</strong> คลิกที่แถบสีของ Subtask หรือคลิกไอคอนสมุดโน้ต <code class="text-blue-600 font-bold">บันทึกช่าง</code> เพื่อเปิดแบบฟอร์มลงบันทึกงานประจำวันสำหรับงานย่อยนั้นๆ พร้อมระบุชื่อ Subtask ในหัวเรื่อง และอัปโหลดรูปถ่าย 5 รูปหน้างานได้อย่างไร้รอยต่อ</li>
                                         <li><strong>การซิงค์ข้อมูลแบบ Real-time:</strong> เมื่อปรับสถานะหรือความคืบหน้าของ Subtask ระบบจะคำนวณค่าเฉลี่ย % ความคืบหน้าของ Task หลัก และซิงค์บันทึกลงสู่ฐานข้อมูล Backend REST API ทันที</li>
+                                    </ul>
+                                </div>
+                            </details>
+
                             <!-- Q20: Daily Work Log "User ยืนยัน" Completion Standard & Auto-Rollback -->
                             <details class="p-4 rounded-xl bg-muted/30 border border-border group">
                                 <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
@@ -5598,6 +5620,27 @@
                                         <li><strong>ต้องผ่านการยืนยันจาก User:</strong> เมื่อกดปุ่มสีเขียว <code class="bg-emerald-500/15 text-emerald-700 font-bold px-1.5 py-0.2 rounded text-[10px]">🚀 ยืนยันสำเร็จ & ส่งตรวจ QC</code> หรือติ๊กเลือก <code class="bg-emerald-500/10 text-emerald-700 font-bold px-1.5 py-0.2 rounded text-[10px]">ช่างบันทึกสำเร็จ (User ยืนยัน)</code> ระบบจะขึ้นกล่องถามยืนยันชัดเจนว่า User ได้ตรวจสอบและยืนยันงานเสร็จสมบูรณ์แล้ว</li>
                                         <li><strong>ระบุคำว่า "(User ยืนยัน)" อัตโนมัติ:</strong> รายละเอียดงานจะระบุข้อความ <code class="bg-muted px-1.5 py-0.2 rounded font-semibold text-[10px]">(User ยืนยัน)</code> เสมอ และป้ายสถานะประวัติงานจะแสดง <code class="bg-emerald-500/15 text-emerald-600 font-bold px-1.5 py-0.2 rounded text-[10px]">✓ ช่างบันทึกสำเร็จ (User ยืนยัน)</code> เพื่อเป็นหลักฐานตรวจสอบย้อนหลัง</li>
                                         <li><strong>ระบบคืนสถานะอัตโนมัติ (Auto Rollback):</strong> หากเผลอกดจบงานผิดวัน แล้วกดปุ่มลบ (ถังขยะ) บันทึกนั้นออก ระบบจะคำนวณถอยสถานะ Task และ Job กลับเป็น <code class="bg-amber-500/15 text-amber-700 font-bold px-1.5 py-0.2 rounded text-[10px]">IN_PROGRESS</code> ตามจำนวนวันที่บันทึกจริงทันที ไม่เกิดปัญหางานค้าง 100%</li>
+                                    </ul>
+                                </div>
+                            </details>
+
+                            <!-- Q21: Sequential Columns Standard (Job No, Ref ID, Booking, Plan Date) -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q21:</span>
+                                        <span>การจัดเรียงคอลัมน์มาตรฐาน 4 ข้อมูลแรก (เลขที่งาน, Ref ID, Booking No, กำหนดวันนัด) ในทุกคิวงาน (Step 1 - Step 6) มีมาตรฐานอย่างไร?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> เพื่อให้เจ้าหน้าที่ (SA / Admin / AE / QC) สามารถสแกนและตรวจสอบข้อมูลสำคัญของคำสั่งซื้อได้อย่างรวดเร็วในบรรทัดเดียว ระบบ PMT Flow จึงจัดเรียง 4 คอลัมน์แรกในตารางคิวงานทุกขั้นตอน (Step 1 ถึง Step 6) เรียงลำดับต่อเนื่องกันเสมอ:</p>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
+                                        <li><strong>1. เลขที่งาน (Job ID):</strong> รหัสงานหลักในระบบ PMT Flow (<code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">job_no || id</code>) พร้อมป้ายสถานะ <code class="bg-rose-500 text-white px-1 rounded text-[9px] font-bold">NEW!</code> สำหรับงานใหม่ล่าสุด</li>
+                                        <li><strong>2. เลขที่อ้างอิง (Ref ID):</strong> เลขที่เอกสารอ้างอิงภายนอกจากระบบ INT หรือระบบต้นทาง (<code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">external_ref_id</code>) แสดงเป็น Badge สีฟ้า ชัดเจน</li>
+                                        <li><strong>3. เลขที่ Booking:</strong> รหัสการจองคิวงานจากระบบ Booking กลาง (<code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">booking_no</code>) แสดงเป็น Badge สีม่วง</li>
+                                        <li><strong>4. กำหนดวันนัด:</strong> วันนัดหมายปฏิบัติงาน (<code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">plan_date</code>) แสดงผลพร้อมไอคอนปฏิทินตามมาตรฐานวันที่ <strong>DD/MM/YYYY</strong> 100% (เช่น 18/09/2026)</li>
+                                        <li><strong>การค้นหาแบบครอบคลุม:</strong> ช่องค้นหาหลัก (Global Search) และตัวกรองคิวงาน รองรับการพิมพ์ค้นหาทั้งด้วยเลขที่งาน, Ref ID, Booking No, วันที่นัดหมาย, ชื่อลูกค้า และเบอร์โทรศัพท์ ได้แบบเรียลไทม์</li>
                                     </ul>
                                 </div>
                             </details>

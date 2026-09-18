@@ -507,6 +507,7 @@ function mapDbJobRow(row) {
         file_int_image: row.file_int_image || '',
         raw_payload: row.raw_payload || {},
         status: row.status || 'DRAFT',
+        plan_date: row.plan_date || (row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : '2026-09-08'),
         date: row.plan_date || (row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : '2026-09-08'),
         progress: row.overall_progress || 0,
         tech: row.assigned_tech || 'Team A (สมศักดิ์)',
@@ -554,6 +555,7 @@ async function dbLoadJobs(filters) {
                     (j.external_ref_id && String(j.external_ref_id).toLowerCase().includes(q)) ||
                     (j.booking_no && String(j.booking_no).toLowerCase().includes(q)) ||
                     (j.ticket_no && String(j.ticket_no).toLowerCase().includes(q)) ||
+                    (j.plan_date && String(j.plan_date).toLowerCase().includes(q)) ||
                     (j.customer && String(j.customer).toLowerCase().includes(q)) ||
                     (j.phone && String(j.phone).includes(q)) ||
                     (j.service && String(j.service).toLowerCase().includes(q)));

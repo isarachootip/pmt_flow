@@ -4411,11 +4411,14 @@ const app = {
                         const refMatch = String(j.external_ref_id || '').toLowerCase().includes(query);
                         const tktMatch = String(j.ticket_no || j.ticketNo || '').toLowerCase().includes(query);
                         const bkgMatch = String(j.booking_no || j.bookingNo || '').toLowerCase().includes(query);
+                        const planDateStr = j.plan_date || j.date || '';
+                        const planDateFormatted = planDateStr ? this.formatDateDMY(planDateStr) : '';
+                        const dateMatch = String(planDateStr).toLowerCase().includes(query) || planDateFormatted.toLowerCase().includes(query);
                         const custMatch = String(j.customer || '').toLowerCase().includes(query);
                         const phoneMatch = String(j.phone || '').toLowerCase().includes(query);
                         const srvMatch = String(j.service || '').toLowerCase().includes(query);
                         const techMatch = String(j.tech || '').toLowerCase().includes(query);
-                        return idMatch || noMatch || refMatch || tktMatch || bkgMatch || custMatch || phoneMatch || srvMatch || techMatch;
+                        return idMatch || noMatch || refMatch || tktMatch || bkgMatch || dateMatch || custMatch || phoneMatch || srvMatch || techMatch;
                     });
                     this.renderJobs(list);
                 } else {
@@ -4444,11 +4447,14 @@ const app = {
                     const refMatch = String(j.external_ref_id || '').toLowerCase().includes(query);
                     const tktMatch = String(j.ticket_no || j.ticketNo || '').toLowerCase().includes(query);
                     const bkgMatch = String(j.booking_no || j.bookingNo || '').toLowerCase().includes(query);
+                    const planDateStr = j.plan_date || j.date || '';
+                    const planDateFormatted = planDateStr ? this.formatDateDMY(planDateStr) : '';
+                    const dateMatch = String(planDateStr).toLowerCase().includes(query) || planDateFormatted.toLowerCase().includes(query);
                     const custMatch = String(j.customer || '').toLowerCase().includes(query);
                     const phoneMatch = String(j.phone || '').toLowerCase().includes(query);
                     const srvMatch = String(j.service || '').toLowerCase().includes(query);
                     const techMatch = String(j.tech || '').toLowerCase().includes(query);
-                    return idMatch || noMatch || refMatch || tktMatch || bkgMatch || custMatch || phoneMatch || srvMatch || techMatch;
+                    return idMatch || noMatch || refMatch || tktMatch || bkgMatch || dateMatch || custMatch || phoneMatch || srvMatch || techMatch;
                 });
 
                 if (this.state.currentView === 'jobs') {
@@ -4539,6 +4545,20 @@ const app = {
                                 ` : ''}
                             </div>
                         </td>
+                        <td class="px-4 py-4 font-mono text-xs text-foreground/80">
+                            ${j.external_ref_id ? `<span class="px-2 py-0.5 rounded bg-muted text-foreground border border-border text-[11px] font-mono font-medium">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
+                        </td>
+                        <td class="px-4 py-4 font-mono text-xs text-foreground/80">
+                            ${j.booking_no ? `<span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-[11px] font-mono font-medium">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                        </td>
+                        <td class="px-4 py-4 whitespace-nowrap">
+                            ${(j.plan_date || j.date) ? `
+                                <div class="font-mono text-xs text-foreground font-semibold flex items-center gap-1.5">
+                                    <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-sm"></i>
+                                    <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
+                                </div>
+                            ` : '<span class="text-muted-foreground">-</span>'}
+                        </td>
                         <td class="px-5 py-4">
                             <div class="text-foreground font-medium group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition flex items-center gap-1.5">
                                 <span>${j.customer}</span>
@@ -4627,7 +4647,7 @@ const app = {
                 const isIsaraUser = window.auth && window.auth.isIsaraChootip ? window.auth.isIsaraChootip() : false;
                 document.getElementById('jobs-table-body').innerHTML = html || `
                     <tr>
-                        <td colspan="7" class="px-5 py-12 text-center">
+                        <td colspan="10" class="px-5 py-12 text-center">
                             <div class="max-w-md mx-auto space-y-3">
                                 <div class="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-2xl font-bold shadow-xs">
                                     <i class="ph ph-tray"></i>
@@ -4682,11 +4702,16 @@ const app = {
                 const titleEl = document.getElementById('unified-modal-job-id');
                 if (titleEl) {
                     const isVFix = (job.booking_no && job.booking_no.startsWith('VFIX')) || (job.id && job.id.startsWith('VFIX')) || (job.job_no && job.job_no.startsWith('VFIX'));
-                    if (isVFix) {
-                        titleEl.innerHTML = `${job.id} <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans"><i class="ph ph-wrench"></i> vFIX: ${job.booking_no || job.id}</span>`;
-                    } else {
-                        titleEl.innerText = job.id;
+                    let extraTags = '';
+                    if (job.external_ref_id) {
+                        extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-muted text-foreground border border-border font-sans font-mono"><i class="ph ph-tag"></i> Ref: ${job.external_ref_id}</span>`;
                     }
+                    if (job.booking_no) {
+                        extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans font-mono"><i class="ph ph-bookmark-simple"></i> Booking: ${job.booking_no}</span>`;
+                    } else if (isVFix) {
+                        extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans"><i class="ph ph-wrench"></i> vFIX: ${job.id}</span>`;
+                    }
+                    titleEl.innerHTML = `${job.job_no || job.id}${extraTags}`;
                 }
                 const custEl = document.getElementById('unified-modal-customer');
                 if (custEl) custEl.innerText = job.customer || 'คุณลูกค้า';
@@ -7228,20 +7253,30 @@ const app = {
                         <div class="space-y-1.5">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-brand-500/10 text-brand-600 border border-brand-500/20 inline-flex items-center gap-1.5">
-                                    <i class="ph ph-hash"></i> ${job.id}
-                                    <button type="button" onclick="event.stopPropagation(); navigator.clipboard.writeText('${job.id}'); app.showToast('คัดลอกรหัสงานเรียบร้อย');" class="text-muted-foreground hover:text-foreground cursor-pointer" title="คัดลอกรหัสงาน">
+                                    <i class="ph ph-hash"></i> ${job.job_no || job.id}
+                                    <button type="button" onclick="event.stopPropagation(); navigator.clipboard.writeText('${job.job_no || job.id}'); app.showToast('คัดลอกรหัสงานเรียบร้อย');" class="text-muted-foreground hover:text-foreground cursor-pointer" title="คัดลอกรหัสงาน">
                                         <i class="ph ph-copy text-xs"></i>
                                     </button>
                                 </span>
+                                ${job.external_ref_id ? `
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-muted text-foreground border border-border inline-flex items-center gap-1" title="เลขที่อ้างอิง (Ref ID)">
+                                        <i class="ph ph-tag text-[10px] text-muted-foreground"></i> Ref: ${job.external_ref_id}
+                                    </span>
+                                ` : ''}
+                                ${job.booking_no ? `
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 inline-flex items-center gap-1" title="เลขที่ Booking">
+                                        <i class="ph ph-bookmark-simple text-[10px]"></i> Booking: ${job.booking_no}
+                                    </span>
+                                ` : ''}
+                                ${(job.plan_date || job.date) ? `
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 inline-flex items-center gap-1" title="กำหนดวันนัด (Plan Date)">
+                                        <i class="ph ph-calendar-check text-[10px]"></i> นัด: ${this.formatDateDMY(job.plan_date || job.date)}
+                                    </span>
+                                ` : ''}
                                 <span class="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase ${isQuick ? 'bg-amber-500/10 text-amber-700 border border-amber-500/20' : (isRenovate ? 'bg-indigo-500/10 text-indigo-700 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20')}">
                                     ${job.job_type || (isQuick ? 'QUICK SERVICE' : 'RENOVATE')}
                                 </span>
                                 ${this.getStatusHtml(job.status)}
-                                ${job.booking_no ? `
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/10 text-purple-700 border border-purple-500/20" title="Ref: Booking / External Order">
-                                        Booking: ${job.booking_no}
-                                    </span>
-                                ` : ''}
                             </div>
                             <h3 class="font-display font-bold text-lg text-foreground flex items-center gap-2">
                                 <span>${job.service || 'ไม่ระบุประเภทงาน'}</span>
@@ -9459,7 +9494,7 @@ const app = {
                     if (tableJobs.length === 0) {
                         bpTableBody.innerHTML = `
                             <tr>
-                                <td colspan="7" class="px-5 py-10 text-center text-muted-foreground">
+                                <td colspan="10" class="px-5 py-10 text-center text-muted-foreground">
                                     <div class="max-w-md mx-auto space-y-2">
                                         <i class="ph ph-compass-tool text-3xl text-indigo-500/50"></i>
                                         <div class="text-sm font-semibold text-foreground">ไม่มีรายการงานในคิว Step 2 ตามเงื่อนไข</div>
@@ -9506,7 +9541,7 @@ const app = {
                                     <td class="px-5 py-4 font-mono font-semibold text-indigo-600 dark:text-indigo-400">
                                         <div class="flex items-center gap-1.5 flex-wrap">
                                             <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
-                                                <span>${j.id}</span>
+                                                <span>${j.job_no || j.id}</span>
                                                 <i class="ph ph-arrow-square-out text-[11px] opacity-70"></i>
                                             </button>
                                             ${isTopNew ? `
@@ -9515,6 +9550,20 @@ const app = {
                                                 </span>
                                             ` : ''}
                                         </div>
+                                    </td>
+                                    <td class="px-4 py-4 font-mono text-xs text-foreground/80">
+                                        ${j.external_ref_id ? `<span class="px-2 py-0.5 rounded bg-muted text-foreground border border-border text-[11px] font-mono font-medium">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                    </td>
+                                    <td class="px-4 py-4 font-mono text-xs text-foreground/80">
+                                        ${j.booking_no ? `<span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-[11px] font-mono font-medium">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        ${(j.plan_date || j.date) ? `
+                                            <div class="font-mono text-xs text-foreground font-semibold flex items-center gap-1.5">
+                                                <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-sm"></i>
+                                                <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
+                                            </div>
+                                        ` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
                                     <td class="px-5 py-4">
                                         <div class="text-foreground font-medium group-hover:text-indigo-500 transition flex items-center gap-1.5">
@@ -13066,7 +13115,7 @@ const app = {
                     if (tableJobs.length === 0) {
                         tktTableBody.innerHTML = `
                             <tr>
-                                <td colspan="7" class="px-5 py-10 text-center text-muted-foreground">
+                                <td colspan="10" class="px-5 py-10 text-center text-muted-foreground">
                                     <div class="max-w-md mx-auto space-y-2">
                                         <i class="ph ph-receipt text-3xl text-emerald-500/50"></i>
                                         <div class="text-sm font-semibold text-foreground">ไม่มีรายการงานในคิว Step 2 ตามเงื่อนไข</div>
@@ -13119,7 +13168,7 @@ const app = {
                                     <td class="px-5 py-4 font-mono font-semibold text-emerald-600 dark:text-emerald-400">
                                         <div class="flex items-center gap-1.5 flex-wrap">
                                             <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
-                                                <span>${j.id}</span>
+                                                <span>${j.job_no || j.id}</span>
                                                 <i class="ph ph-arrow-square-out text-[11px] opacity-70"></i>
                                             </button>
                                             ${isTopNew ? `
@@ -13128,6 +13177,20 @@ const app = {
                                                 </span>
                                             ` : ''}
                                         </div>
+                                    </td>
+                                    <td class="px-4 py-4 font-mono text-xs text-foreground/80">
+                                        ${j.external_ref_id ? `<span class="px-2 py-0.5 rounded bg-muted text-foreground border border-border text-[11px] font-mono font-medium">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                    </td>
+                                    <td class="px-4 py-4 font-mono text-xs text-foreground/80">
+                                        ${j.booking_no ? `<span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-[11px] font-mono font-medium">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        ${(j.plan_date || j.date) ? `
+                                            <div class="font-mono text-xs text-foreground font-semibold flex items-center gap-1.5">
+                                                <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-sm"></i>
+                                                <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
+                                            </div>
+                                        ` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
                                     <td class="px-5 py-4">
                                         <div class="text-foreground font-medium group-hover:text-emerald-500 transition flex items-center gap-1.5">
@@ -14158,7 +14221,7 @@ const app = {
                     if (tableJobs.length === 0) {
                         boqTableBody.innerHTML = `
                             <tr>
-                                <td colspan="7" class="px-5 py-10 text-center text-muted-foreground">
+                                <td colspan="10" class="px-5 py-10 text-center text-muted-foreground">
                                     <div class="max-w-md mx-auto space-y-2">
                                         <i class="ph ph-receipt text-3xl text-purple-500/50"></i>
                                         <div class="text-sm font-semibold text-foreground">ไม่มีรายการงานในคิวตามเงื่อนไข</div>
@@ -14220,7 +14283,7 @@ const app = {
                                     <td class="px-5 py-4 font-mono font-semibold text-purple-600 dark:text-purple-400">
                                         <div class="flex items-center gap-1.5 flex-wrap">
                                             <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-purple-600 dark:text-purple-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
-                                                <span>${j.id}</span>
+                                                <span>${j.job_no || j.id}</span>
                                                 <i class="ph ph-arrow-square-out text-[11px] opacity-70"></i>
                                             </button>
                                             ${isTopNew ? `
@@ -14229,6 +14292,20 @@ const app = {
                                                 </span>
                                             ` : ''}
                                         </div>
+                                    </td>
+                                    <td class="px-4 py-4 font-mono text-xs text-foreground/80">
+                                        ${j.external_ref_id ? `<span class="px-2 py-0.5 rounded bg-muted text-foreground border border-border text-[11px] font-mono font-medium">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                    </td>
+                                    <td class="px-4 py-4 font-mono text-xs text-foreground/80">
+                                        ${j.booking_no ? `<span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-[11px] font-mono font-medium">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        ${(j.plan_date || j.date) ? `
+                                            <div class="font-mono text-xs text-foreground font-semibold flex items-center gap-1.5">
+                                                <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-sm"></i>
+                                                <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
+                                            </div>
+                                        ` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
                                     <td class="px-5 py-4">
                                         <div class="text-foreground font-medium group-hover:text-purple-500 transition flex items-center gap-1.5">
@@ -15622,7 +15699,7 @@ const app = {
                     if (tableJobs.length === 0) {
                         convTableBody.innerHTML = `
                             <tr>
-                                <td colspan="7" class="px-5 py-10 text-center text-muted-foreground">
+                                <td colspan="10" class="px-5 py-10 text-center text-muted-foreground">
                                     <div class="max-w-md mx-auto space-y-2">
                                         <i class="ph ph-kanban text-3xl text-amber-500/50"></i>
                                         <div class="text-sm font-semibold text-foreground">ไม่มีรายการงานในคิว Step 3 ตามเงื่อนไข</div>
@@ -15669,8 +15746,8 @@ const app = {
                                 <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSelected ? 'bg-amber-500/5' : (isTopNew ? 'bg-rose-500/[0.02]' : '')}" onclick="app.renderProjectConversion('${j.id}')">
                                     <td class="px-5 py-4 font-mono font-semibold text-amber-600 dark:text-amber-400">
                                         <div class="flex items-center gap-1.5 flex-wrap">
-                                            <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-amber-600 dark:text-amber-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
-                                                <span>${j.id}</span>
+                                            <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-amber-600 dark:text-amber-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.job_no || j.id}">
+                                                <span>${j.job_no || j.id}</span>
                                                 <i class="ph ph-arrow-square-out text-[11px] opacity-70"></i>
                                             </button>
                                             ${isTopNew ? `
@@ -15678,6 +15755,18 @@ const app = {
                                                     <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
                                                 </span>
                                             ` : ''}
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4 text-xs font-mono text-muted-foreground whitespace-nowrap">
+                                        ${j.external_ref_id ? `<span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">${j.external_ref_id}</span>` : '<span class="text-gray-400">-</span>'}
+                                    </td>
+                                    <td class="px-4 py-4 text-xs font-mono text-muted-foreground whitespace-nowrap">
+                                        ${j.booking_no ? `<span class="px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 font-semibold">${j.booking_no}</span>` : '<span class="text-gray-400">-</span>'}
+                                    </td>
+                                    <td class="px-4 py-4 text-xs text-muted-foreground whitespace-nowrap">
+                                        <div class="inline-flex items-center gap-1 font-mono text-foreground font-medium">
+                                            <i class="ph ph-calendar-check text-amber-500"></i>
+                                            <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
                                         </div>
                                     </td>
                                     <td class="px-5 py-4">
@@ -15733,15 +15822,23 @@ const app = {
                 if (q) {
                     pendingJobs = pendingJobs.filter(j => 
                         (j.id && j.id.toLowerCase().includes(q)) ||
+                        (j.job_no && j.job_no.toLowerCase().includes(q)) ||
+                        (j.booking_no && j.booking_no.toLowerCase().includes(q)) ||
+                        (j.external_ref_id && j.external_ref_id.toLowerCase().includes(q)) ||
                         (j.customer && j.customer.toLowerCase().includes(q)) ||
                         (j.service && j.service.toLowerCase().includes(q)) ||
-                        (j.phone && j.phone.includes(q))
+                        (j.phone && j.phone.includes(q)) ||
+                        (j.plan_date && (j.plan_date.includes(q) || this.formatDateDMY(j.plan_date).toLowerCase().includes(q)))
                     );
                     convertedJobs = convertedJobs.filter(j => 
                         (j.id && j.id.toLowerCase().includes(q)) ||
+                        (j.job_no && j.job_no.toLowerCase().includes(q)) ||
+                        (j.booking_no && j.booking_no.toLowerCase().includes(q)) ||
+                        (j.external_ref_id && j.external_ref_id.toLowerCase().includes(q)) ||
                         (j.customer && j.customer.toLowerCase().includes(q)) ||
                         (j.service && j.service.toLowerCase().includes(q)) ||
-                        (j.phone && j.phone.includes(q))
+                        (j.phone && j.phone.includes(q)) ||
+                        (j.plan_date && (j.plan_date.includes(q) || this.formatDateDMY(j.plan_date).toLowerCase().includes(q)))
                     );
                 }
                 if (sFilter && sFilter !== 'all') {
@@ -15794,10 +15891,10 @@ const app = {
                                             <tr class="hover:bg-muted/30 transition">
                                                 <td class="py-3 px-4 font-mono font-bold text-foreground">
                                                     <button type="button" onclick="app.openConvertBOQToTasksModal('${j.id}')" class="bg-muted hover:bg-amber-50 dark:hover:bg-amber-950/50 hover:text-amber-600 hover:border-amber-500 px-2 py-0.5 rounded border border-border cursor-pointer transition font-mono font-bold text-xs" title="คลิกเพื่อแปลงเข้า Project">
-                                                        ${j.id}
+                                                        ${j.job_no || j.id}
                                                     </button>
                                                 </td>
-                                                <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${j.date || '-'}</td>
+                                                <td class="py-3 px-4 font-mono text-muted-foreground text-[11px]">${this.formatDateDMY(j.plan_date || j.date)}</td>
                                                 <td class="py-3 px-4 font-medium text-foreground">${j.customer}</td>
                                                 <td class="py-3 px-4">
                                                     <div class="font-semibold text-brand-600 dark:text-brand-400 truncate max-w-[200px]" title="${j.service}">
@@ -15936,13 +16033,13 @@ const app = {
                                             const jTasks = allTasks.filter(t => t.jobId === j.id);
                                             const startDates = jTasks.map(t => t.start).filter(Boolean).sort();
                                             const endDates = jTasks.map(t => t.end).filter(Boolean).sort();
-                                            const timelineRange = (startDates.length > 0 && endDates.length > 0) ? `${startDates[0]} ถึง ${endDates[endDates.length - 1]}` : (j.date || '-');
+                                            const timelineRange = (startDates.length > 0 && endDates.length > 0) ? `${this.formatDateDMY(startDates[0])} ถึง ${this.formatDateDMY(endDates[endDates.length - 1])}` : (this.formatDateDMY(j.plan_date || j.date) || '-');
                                             const uniqueTechs = [...new Set(jTasks.map(t => t.tech).filter(Boolean))];
                                             return `
                                             <tr class="hover:bg-muted/30 transition">
                                                 <td class="py-3 px-4 font-mono font-bold text-amber-600 dark:text-amber-400">
                                                     <button type="button" onclick="app.switchConversionJob('${j.id}')" class="hover:underline cursor-pointer">
-                                                        ${j.id}
+                                                        ${j.job_no || j.id}
                                                     </button>
                                                 </td>
                                                 <td class="py-3 px-4 font-medium text-foreground">${j.customer}</td>
@@ -21291,7 +21388,7 @@ const app = {
                 if (list.length === 0) {
                     tableBody.innerHTML = `
                         <tr>
-                            <td colspan="6" class="px-5 py-12 text-center text-muted-foreground">
+                            <td colspan="9" class="px-5 py-12 text-center text-muted-foreground">
                                 <div class="flex flex-col items-center justify-center gap-3">
                                     <div class="w-12 h-12 rounded-2xl bg-muted/60 border border-border flex items-center justify-center text-muted-foreground text-2xl">
                                         <i class="ph ph-shield-check"></i>
@@ -21381,7 +21478,7 @@ const app = {
                     <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTopNew ? 'bg-emerald-500/[0.02] dark:bg-emerald-500/[0.03]' : ''}" onclick="app.openQCDetailModal('${j.id}')" title="คลิกเพื่อเปิดรายละเอียด QC: ${j.id}">
                         <td class="px-5 py-4 font-mono font-semibold text-brand-500">
                             <div class="flex items-center gap-1.5 flex-wrap">
-                                <span>${j.id}</span>
+                                <span>${j.job_no || j.id}</span>
                                 ${isTopNew ? `
                                     <span class="badge-new-item text-[9px] py-0 px-1.5 font-bold uppercase bg-gradient-to-r from-rose-500 to-amber-500 text-white shadow-xs" title="รายการใหม่ล่าสุด (NEW!)">
                                         <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
@@ -21392,6 +21489,18 @@ const app = {
                                         DRAFT QC
                                     </span>
                                 ` : ''}
+                            </div>
+                        </td>
+                        <td class="px-4 py-4 text-xs font-mono text-muted-foreground whitespace-nowrap">
+                            ${j.external_ref_id ? `<span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">${j.external_ref_id}</span>` : '<span class="text-gray-400">-</span>'}
+                        </td>
+                        <td class="px-4 py-4 text-xs font-mono text-muted-foreground whitespace-nowrap">
+                            ${j.booking_no ? `<span class="px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 font-semibold">${j.booking_no}</span>` : '<span class="text-gray-400">-</span>'}
+                        </td>
+                        <td class="px-4 py-4 text-xs text-muted-foreground whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1 font-mono text-foreground font-medium">
+                                <i class="ph ph-calendar-check text-amber-500"></i>
+                                <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
                             </div>
                         </td>
                         <td class="px-5 py-4">
