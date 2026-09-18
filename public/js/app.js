@@ -4672,8 +4672,8 @@ const app = {
                 }
 
                 const html = list.map((j, idx) => {
+                    const isTop3New = idx < 3;
                     const isQuick = this.isQuickJob(j);
-                    const isSurvey = j.status === 'SURVEYED' || j.status === 'Survey' || j.status === 'Surveyed';
 
                     // Design / Blueprints status
                     const jobBps = (DB.blueprints || []).filter(b => b.jobId === j.id);
@@ -4692,16 +4692,16 @@ const app = {
                     const displayId = shortId || rawId;
 
                     return `
-                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSurvey ? 'bg-teal-500/[0.03] border-l-2 border-l-teal-500' : ''}" onclick="app.openUnifiedOrderStudio('${j.id}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${j.id})">
+                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTop3New ? 'bg-indigo-500/[0.02]' : ''}" onclick="app.openUnifiedOrderStudio('${j.id}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${j.id})">
                         <td class="px-3.5 py-3 font-mono whitespace-nowrap">
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-extrabold text-sm sm:text-base text-brand-600 dark:text-brand-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
                                     <span>${displayId}</span>
                                     <i class="ph ph-arrow-square-out text-xs opacity-70"></i>
                                 </button>
-                                ${isSurvey ? `
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-teal-500/15 text-teal-700 border border-teal-500/30" title="งานสำรวจหน้างานจากระบบภายนอก (INT)">
-                                        <i class="ph ph-compass-tool"></i> SURVEY
+                                ${isTop3New ? `
+                                    <span class="badge-new-item" title="3 รายการคำสั่งซื้อใหม่ล่าสุด (NEW!)">
+                                        <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
                                     </span>
                                 ` : ''}
                             </div>
