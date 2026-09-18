@@ -21856,6 +21856,7 @@ const app = {
                 if (!job) return [];
 
                 const isQuick = this.isQuickJob(job);
+                const isJobRework = job.status === 'QC_REWORK' || (job.qc_rework_count && job.qc_rework_count > 0) || (job.rework_count && job.rework_count > 0) || !!job.has_rework;
 
                 // ── Quick Job: 1 คำถามเดียว ──────────────────────────────────
                 if (isQuick) {
@@ -21866,22 +21867,42 @@ const app = {
                     };
                     // Return existing if already initialised for Quick
                     if (Array.isArray(job.qc_subtasks) && job.qc_subtasks.length === 1 && job.qc_subtasks[0].id === 'qq1') {
+                        const sub = job.qc_subtasks[0];
+                        if (isJobRework) {
+                            sub.failed_once = true;
+                            sub.has_rework = true;
+                        }
+                        if ((sub.answer === 'YES' || sub.status === 'PASSED') && (sub.failed_once || sub.has_rework || isJobRework || sub.is_rework_pass)) {
+                            sub.score = 1;
+                            sub.status = 'PASSED';
+                            sub.is_rework_pass = true;
+                            sub.failed_once = true;
+                            sub.has_rework = true;
+                        }
                         return job.qc_subtasks;
                     }
                     // Migrate/init — try to carry over previous answer if any
                     const oldSub = Array.isArray(job.qc_subtasks) ? (job.qc_subtasks[0] || {}) : {};
                     let ans = null, score = 0, st = 'PENDING';
-                    if (oldSub.answer === 'YES' || oldSub.score === 5 || oldSub.status === 'PASSED') {
-                        ans = 'YES'; score = 5; st = 'PASSED';
-                    } else if (oldSub.answer === 'NO' || oldSub.score === 1 || oldSub.status === 'DEFECT') {
-                        ans = 'NO'; score = 1; st = 'DEFECT';
+                    const isRework = oldSub.failed_once || oldSub.has_rework || oldSub.is_rework_pass || isJobRework;
+                    if (oldSub.answer === 'YES' || oldSub.status === 'PASSED') {
+                        ans = 'YES';
+                        score = isRework ? 1 : (Number(oldSub.score) > 0 ? Number(oldSub.score) : 5);
+                        st = 'PASSED';
+                    } else if (oldSub.answer === 'NO' || oldSub.status === 'DEFECT' || Number(oldSub.score) === 1) {
+                        ans = 'NO';
+                        score = 1;
+                        st = 'DEFECT';
                     }
                     job.qc_subtasks = [{
                         id: QUICK_Q.id, num: QUICK_Q.num,
                         title: QUICK_Q.title, category: QUICK_Q.category,
                         mandatory: true, status: st, answer: ans, score: score,
                         photos: Array.isArray(oldSub.photos) ? oldSub.photos : [],
-                        remarks: oldSub.remarks || ''
+                        remarks: oldSub.remarks || '',
+                        failed_once: !!(oldSub.failed_once || isJobRework),
+                        has_rework: !!(oldSub.has_rework || isJobRework),
+                        is_rework_pass: !!(oldSub.is_rework_pass || (ans === 'YES' && isRework))
                     }];
                     return job.qc_subtasks;
                 }
@@ -21897,6 +21918,19 @@ const app = {
 
                 // Check if existing qc_subtasks matches the 5 standard questions
                 if (Array.isArray(job.qc_subtasks) && job.qc_subtasks.length === 5 && job.qc_subtasks[0].id === 'q1') {
+                    job.qc_subtasks.forEach(sub => {
+                        if (isJobRework && (sub.status === 'DEFECT' || sub.answer === 'NO')) {
+                            sub.failed_once = true;
+                            sub.has_rework = true;
+                        }
+                        if ((sub.answer === 'YES' || sub.status === 'PASSED') && (sub.failed_once || sub.has_rework || sub.is_rework_pass)) {
+                            sub.score = 1;
+                            sub.status = 'PASSED';
+                            sub.is_rework_pass = true;
+                            sub.failed_once = true;
+                            sub.has_rework = true;
+                        }
+                    });
                     return job.qc_subtasks;
                 }
 
@@ -21907,11 +21941,12 @@ const app = {
                     let score = 0;
                     let answer = null;
                     let status = 'PENDING';
-                    if (oldMatch.answer === 'YES' || oldMatch.score === 5 || oldMatch.status === 'PASSED') {
+                    const isRework = oldMatch.failed_once || oldMatch.has_rework || oldMatch.is_rework_pass || (isJobRework && (oldMatch.status === 'DEFECT' || oldMatch.answer === 'NO'));
+                    if (oldMatch.answer === 'YES' || oldMatch.status === 'PASSED') {
                         answer = 'YES';
-                        score = 5;
+                        score = isRework ? 1 : (Number(oldMatch.score) > 0 ? Number(oldMatch.score) : 5);
                         status = 'PASSED';
-                    } else if (oldMatch.answer === 'NO' || oldMatch.score === 1 || oldMatch.status === 'DEFECT') {
+                    } else if (oldMatch.answer === 'NO' || oldMatch.status === 'DEFECT') {
                         answer = 'NO';
                         score = 1;
                         status = 'DEFECT';
@@ -21926,7 +21961,10 @@ const app = {
                         answer: answer,
                         score: score,
                         photos: Array.isArray(oldMatch.photos) ? oldMatch.photos : [],
-                        remarks: oldMatch.remarks || ''
+                        remarks: oldMatch.remarks || '',
+                        failed_once: !!(oldMatch.failed_once || (isJobRework && oldMatch.status === 'DEFECT')),
+                        has_rework: !!(oldMatch.has_rework || (isJobRework && oldMatch.status === 'DEFECT')),
+                        is_rework_pass: !!(oldMatch.is_rework_pass || (answer === 'YES' && isRework))
                     };
                 });
 
@@ -21955,12 +21993,39 @@ const app = {
                 if (!job) return { total: 5, completed: 0, passed: 0, defect: 0, averageScore: '0.0', percent: 0, isAllComplete: false };
                 const subtasks = this.getJobQCSubtasks(job);
                 const total = subtasks.length || 5;
-                const completed = subtasks.filter(s => s.answer === 'YES' || s.answer === 'NO' || Number(s.score) > 0).length;
-                const passed = subtasks.filter(s => s.answer === 'YES' || s.status === 'PASSED' || Number(s.score) === 5).length;
-                const defect = subtasks.filter(s => s.answer === 'NO' || s.status === 'DEFECT' || Number(s.score) === 1).length;
+                const completed = subtasks.filter(s => s.answer === 'YES' || s.answer === 'NO' || s.status === 'PASSED' || s.status === 'DEFECT').length;
+                const passed = subtasks.filter(s => s.answer === 'YES' || s.status === 'PASSED').length;
+                const defect = subtasks.filter(s => s.answer === 'NO' || s.status === 'DEFECT').length;
 
-                const scoredList = subtasks.filter(s => Number(s.score) > 0);
-                const avgNum = scoredList.length > 0 ? (scoredList.reduce((sum, s) => sum + Number(s.score), 0) / scoredList.length) : 0;
+                const isJobRework = job.status === 'QC_REWORK' || (job.qc_rework_count && job.qc_rework_count > 0) || (job.rework_count && job.rework_count > 0) || !!job.has_rework;
+                const isQuick = this.isQuickJob(job);
+
+                let totalScore = 0;
+                let scoredCount = 0;
+                subtasks.forEach(s => {
+                    if (s.answer === 'YES' || s.status === 'PASSED') {
+                        const isRework = s.is_rework_pass || s.failed_once || s.has_rework || (isQuick && isJobRework);
+                        const sc = isRework ? 1 : (Number(s.score) > 0 ? Number(s.score) : 5);
+                        s.score = sc;
+                        if (isRework) {
+                            s.is_rework_pass = true;
+                            s.failed_once = true;
+                            s.has_rework = true;
+                        }
+                        totalScore += sc;
+                        scoredCount++;
+                    } else if (s.answer === 'NO' || s.status === 'DEFECT') {
+                        const sc = 1;
+                        s.score = sc;
+                        s.failed_once = true;
+                        s.has_rework = true;
+                        s.is_rework_pass = false;
+                        totalScore += sc;
+                        scoredCount++;
+                    }
+                });
+
+                const avgNum = scoredCount > 0 ? (totalScore / scoredCount) : 0;
                 const averageScore = avgNum.toFixed(1);
                 const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
                 const isAllComplete = (total > 0) && (completed === total) && (defect === 0);
@@ -22428,8 +22493,13 @@ const app = {
                 const elBadge = document.getElementById('qc-detail-completion-badge');
                 if (elBadge) {
                     if (progress.isAllComplete) {
-                        elBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
-                        elBadge.innerHTML = `<i class="ph ph-check-circle"></i> ประเมินครบ ${progress.total} ข้อ (ผ่านเกณฑ์ 100%)`;
+                        const hasReworkPass = subtasks.some(s => s.is_rework_pass || (s.status === 'PASSED' && s.score === 1));
+                        elBadge.className = hasReworkPass
+                            ? 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                            : 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
+                        elBadge.innerHTML = hasReworkPass
+                            ? `<i class="ph ph-check-circle"></i> ประเมินครบ ${progress.total} ข้อ (ผ่านรอบแก้ไข ${progress.averageScore} คะแนน)`
+                            : `<i class="ph ph-check-circle"></i> ประเมินครบ ${progress.total} ข้อ (ผ่านเกณฑ์ 100%)`;
                     } else if (progress.defect > 0) {
                         elBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400';
                         elBadge.innerHTML = `<i class="ph ph-warning"></i> พบข้อบกพร่อง ${progress.defect} ข้อ`;
@@ -22465,6 +22535,10 @@ const app = {
                 const container = document.getElementById('qc-subtasks-list');
                 if (!container) return;
 
+                const isJobRework = job.status === 'QC_REWORK' || (job.qc_rework_count && job.qc_rework_count > 0) || (job.rework_count && job.rework_count > 0) || !!job.has_rework;
+                const isQuick = this.isQuickJob(job);
+                const hasAnyRework = subtasks.some(s => s.failed_once || s.has_rework || s.is_rework_pass) || isJobRework;
+
                 // Action Controls Header above questions
                 let html = `
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-muted/40 rounded-xl border border-border/80 mb-3 shadow-2xs">
@@ -22474,13 +22548,13 @@ const app = {
                             </span>
                             <div>
                                 <span class="font-display font-bold text-xs text-foreground">คำถามประเมินมาตรฐาน QC (Isara Chootip Standard)</span>
-                                <span class="ml-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-600 border border-brand-500/20">Yes=5, No=1</span>
+                                <span class="ml-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-600 border border-brand-500/20">Yes=5 (รอบแก้=1), No=1</span>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
-                            <button type="button" onclick="app.setAllQCSubtasksYes('${job.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition cursor-pointer shadow-xs" title="ตอบ Yes (5 คะแนน) ให้ครบทั้ง 5 ข้อในคลิกเดียว">
+                            <button type="button" onclick="app.setAllQCSubtasksYes('${job.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition cursor-pointer shadow-xs" title="ตอบผ่านเกณฑ์ทั้งหมด">
                                 <i class="ph ph-check-circle"></i>
-                                <span>✓ เลือก Yes ทั้งหมด (ได้ 5 คะแนนทุกข้อ)</span>
+                                <span>✓ เลือก Yes ทั้งหมด ${hasAnyRework ? '(รอบแก้ได้ 1 คะแนน)' : '(ได้ 5 คะแนนทุกข้อ)'}</span>
                             </button>
                             <button type="button" onclick="app.resetAllQCSubtasks('${job.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 border border-border flex items-center gap-1 transition cursor-pointer" title="ล้างผลการตอบ">
                                 <i class="ph ph-arrow-counter-clockwise"></i>
@@ -22491,8 +22565,10 @@ const app = {
                 `;
 
                 html += subtasks.map((s, idx) => {
-                    const isYes = s.answer === 'YES' || (Number(s.score) === 5 && s.status === 'PASSED');
-                    const isNo = s.answer === 'NO' || (Number(s.score) === 1 && s.status === 'DEFECT');
+                    const isYes = s.answer === 'YES' || s.status === 'PASSED';
+                    const isNo = s.answer === 'NO' || s.status === 'DEFECT';
+                    const isRework = s.failed_once || s.has_rework || s.is_rework_pass || (isQuick && isJobRework);
+                    const isReworkPass = isYes && (s.is_rework_pass || isRework);
                     const photos = Array.isArray(s.photos) ? s.photos : [];
 
                     // Photo gallery for this subtask
@@ -22512,22 +22588,26 @@ const app = {
                     }
 
                     return `
-                    <div class="p-4.5 rounded-2xl bg-card border ${isYes ? 'border-emerald-500/40 ring-1 ring-emerald-500/20' : (isNo ? 'border-rose-500/40 ring-1 ring-rose-500/20' : 'border-border')} shadow-xs space-y-3.5 transition-all">
+                    <div class="p-4.5 rounded-2xl bg-card border ${isYes ? (isReworkPass ? 'border-amber-500/40 ring-1 ring-amber-500/20' : 'border-emerald-500/40 ring-1 ring-emerald-500/20') : (isNo ? 'border-rose-500/40 ring-1 ring-rose-500/20' : 'border-border')} shadow-xs space-y-3.5 transition-all">
                         <!-- Question Header -->
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-2.5">
                             <div class="flex items-center gap-2 flex-wrap">
-                                <span class="w-7 h-7 rounded-lg ${isYes ? 'bg-emerald-500/20 text-emerald-600 font-bold' : (isNo ? 'bg-rose-500/20 text-rose-600 font-bold' : 'bg-muted text-muted-foreground')} flex items-center justify-center font-mono text-xs">
+                                <span class="w-7 h-7 rounded-lg ${isYes ? (isReworkPass ? 'bg-amber-500/20 text-amber-700 font-bold' : 'bg-emerald-500/20 text-emerald-600 font-bold') : (isNo ? 'bg-rose-500/20 text-rose-600 font-bold' : 'bg-muted text-muted-foreground')} flex items-center justify-center font-mono text-xs">
                                     ${idx + 1}
                                 </span>
                                 <h5 class="font-display font-bold text-foreground text-xs sm:text-sm">${s.title}</h5>
                                 <span class="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-muted text-muted-foreground border border-border/80">${s.category || 'หมวดประเมิน'}</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                ${isYes ? `
+                                ${isYes ? (isReworkPass ? `
+                                    <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1.5" title="ผ่านเกณฑ์รอบแก้ไข (ได้ 1 คะแนน)">
+                                        <i class="ph ph-check-circle-fill text-amber-600"></i> ผ่านเกณฑ์รอบแก้ (Yes = 1 คะแนน)
+                                    </span>
+                                ` : `
                                     <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
                                         <i class="ph ph-check-circle-fill text-emerald-500"></i> ผ่านเกณฑ์ (Yes = 5 คะแนน)
                                     </span>
-                                ` : (isNo ? `
+                                `) : (isNo ? `
                                     <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1.5">
                                         <i class="ph ph-warning-fill text-rose-500"></i> ข้อบกพร่อง (No = 1 คะแนน)
                                     </span>
@@ -22539,21 +22619,21 @@ const app = {
                             </div>
                         </div>
 
-                        <!-- Yes / No Evaluation Buttons (คะแนน Y=5, N=1) -->
+                        <!-- Yes / No Evaluation Buttons (คะแนน Y=5 [รอบแก้ Y=1], N=1) -->
                         <div class="bg-muted/20 p-3 rounded-xl border border-border/60">
                             <label class="block text-[11px] font-semibold text-foreground mb-2 flex items-center justify-between">
                                 <span class="flex items-center gap-1.5">
                                     <i class="ph ph-scales text-brand-500"></i>
                                     <span>ผลการประเมินข้อนี้ (Yes / No):</span>
                                 </span>
-                                <span class="font-mono text-xs font-bold ${isYes ? 'text-emerald-600' : (isNo ? 'text-rose-600' : 'text-muted-foreground')}">
-                                    ${isYes ? '✓ Yes (ได้ 5 คะแนน)' : (isNo ? '✕ No (ได้ 1 คะแนน)' : 'ยังไม่ได้เลือก')}
+                                <span class="font-mono text-xs font-bold ${isYes ? (isReworkPass ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600') : (isNo ? 'text-rose-600' : 'text-muted-foreground')}">
+                                    ${isYes ? (isReworkPass ? '✓ Yes (ผ่านรอบแก้ไข ได้ 1 คะแนน)' : '✓ Yes (ได้ 5 คะแนน)') : (isNo ? '✕ No (ได้ 1 คะแนน)' : 'ยังไม่ได้เลือก')}
                                 </span>
                             </label>
                             <div class="grid grid-cols-2 gap-3">
-                                <button type="button" onclick="app.setQCSubtaskAnswer('${job.id}', '${s.id}', 'YES')" class="py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${isYes ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500/30 scale-[1.01]' : 'bg-card text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10'}">
+                                <button type="button" onclick="app.setQCSubtaskAnswer('${job.id}', '${s.id}', 'YES')" class="py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${isYes ? (isReworkPass ? 'bg-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-500/30 scale-[1.01]' : 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500/30 scale-[1.01]') : (isRework ? 'bg-card text-amber-700 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10' : 'bg-card text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10')}">
                                     <i class="ph ${isYes ? 'ph-check-circle-fill' : 'ph-check-circle'} text-base"></i>
-                                    <span>✓ Yes — ผ่านเกณฑ์ (5 คะแนน)</span>
+                                    <span>✓ Yes — ${isRework ? 'ผ่านเกณฑ์รอบแก้ (1 คะแนน)' : 'ผ่านเกณฑ์ (5 คะแนน)'}</span>
                                 </button>
                                 <button type="button" onclick="app.setQCSubtaskAnswer('${job.id}', '${s.id}', 'NO')" class="py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${isNo ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-500/30 scale-[1.01]' : 'bg-card text-rose-700 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10'}">
                                     <i class="ph ${isNo ? 'ph-x-circle-fill' : 'ph-x-circle'} text-base"></i>
@@ -22597,13 +22677,28 @@ const app = {
                 const subtasks = this.getJobQCSubtasks(job);
                 const sub = subtasks.find(s => s.id === subtaskId);
                 if (sub) {
+                    const isQuick = this.isQuickJob(job);
+                    const isJobRework = job.status === 'QC_REWORK' || (job.qc_rework_count && job.qc_rework_count > 0) || (job.rework_count && job.rework_count > 0) || !!job.has_rework;
                     sub.answer = answer;
                     if (answer === 'YES') {
-                        sub.score = 5;
-                        sub.status = 'PASSED';
+                        const isRework = sub.failed_once || sub.has_rework || sub.is_rework_pass || (isQuick && isJobRework) || (isJobRework && (sub.status === 'DEFECT' || sub.answer === 'NO'));
+                        if (isRework) {
+                            sub.score = 1;
+                            sub.status = 'PASSED';
+                            sub.is_rework_pass = true;
+                            sub.failed_once = true;
+                            sub.has_rework = true;
+                        } else {
+                            sub.score = 5;
+                            sub.status = 'PASSED';
+                            sub.is_rework_pass = false;
+                        }
                     } else if (answer === 'NO') {
                         sub.score = 1;
                         sub.status = 'DEFECT';
+                        sub.failed_once = true;
+                        sub.has_rework = true;
+                        sub.is_rework_pass = false;
                     } else {
                         sub.score = 0;
                         sub.status = 'PENDING';
@@ -22618,27 +22713,45 @@ const app = {
                 const targetJobId = jobId || this.state.currentQCModalJobId;
                 const job = (DB.jobs || []).find(j => j.id === targetJobId);
                 if (!job) return;
+                const isQuick = this.isQuickJob(job);
+                const isJobRework = job.status === 'QC_REWORK' || (job.qc_rework_count && job.qc_rework_count > 0) || (job.rework_count && job.rework_count > 0) || !!job.has_rework;
                 const subtasks = this.getJobQCSubtasks(job);
                 subtasks.forEach(s => {
+                    const isRework = s.failed_once || s.has_rework || s.is_rework_pass || (isQuick && isJobRework);
                     s.answer = 'YES';
-                    s.score = 5;
                     s.status = 'PASSED';
+                    if (isRework) {
+                        s.score = 1;
+                        s.is_rework_pass = true;
+                        s.failed_once = true;
+                        s.has_rework = true;
+                    } else {
+                        s.score = 5;
+                        s.is_rework_pass = false;
+                    }
                 });
                 this.persistJobs();
                 this.renderQCSubtasks(job);
                 this.updateQCDashboard();
-                this.showToast(`✅ เลือก Yes (5 คะแนน) ให้ครบทั้ง ${subtasks.length} ข้อเรียบร้อย (คะแนนรวม 5.0 คะแนน)`);
+                const progress = this.calculateJobQCProgress(job);
+                this.showToast(`✅ บันทึกผลผ่านเกณฑ์ครบทุกข้อเรียบร้อย (คะแนนรวม ${progress.averageScore} คะแนน)`);
             },
 
             resetAllQCSubtasks(jobId) {
                 const targetJobId = jobId || this.state.currentQCModalJobId;
                 const job = (DB.jobs || []).find(j => j.id === targetJobId);
                 if (!job) return;
+                const isJobRework = job.status === 'QC_REWORK' || (job.qc_rework_count && job.qc_rework_count > 0) || (job.rework_count && job.rework_count > 0) || !!job.has_rework;
                 const subtasks = this.getJobQCSubtasks(job);
                 subtasks.forEach(s => {
                     s.answer = null;
                     s.score = 0;
                     s.status = 'PENDING';
+                    if (!isJobRework) {
+                        s.failed_once = false;
+                        s.has_rework = false;
+                        s.is_rework_pass = false;
+                    }
                 });
                 this.persistJobs();
                 this.renderQCSubtasks(job);
@@ -22741,12 +22854,33 @@ const app = {
                 const remark = remarksEl && remarksEl.value.trim() ? remarksEl.value.trim() : 'พบข้อบกพร่อง ต้องดำเนินการแก้ไขก่อนส่งตรวจใหม่';
 
                 job.status = 'QC_REWORK';
+                job.qc_status = 'QC_REWORK';
                 job.qc_remarks = remark;
+                job.has_rework = true;
+                job.qc_rework_count = (job.qc_rework_count || 0) + 1;
+                job.rework_count = (job.rework_count || 0) + 1;
+
+                const isQuick = this.isQuickJob(job);
+                const subtasks = this.getJobQCSubtasks(job);
+                subtasks.forEach(s => {
+                    if (isQuick || s.status === 'DEFECT' || s.answer === 'NO' || s.status !== 'PASSED') {
+                        s.failed_once = true;
+                        s.has_rework = true;
+                        s.is_rework_pass = false;
+                        if (s.answer !== 'NO') {
+                            s.answer = 'NO';
+                            s.score = 1;
+                            s.status = 'DEFECT';
+                        }
+                    }
+                });
+
+                this.recordStepTimestamp(job.id, 'qc_rework_at', new Date().toISOString(), `แจ้งช่างแก้ไขงาน (Rework): ${remark}`);
                 this.persistJobs();
                 this.updateQCDashboard();
                 this.renderQC();
                 this.hideModal('modal-qc-job-detail');
-                this.showToast(`⚠️ บันทึกสถานะส่งกลับแก้ไขงาน (Rework) สำหรับโครงการ ${job.id} เรียบร้อย`);
+                this.showToast(`⚠️ บันทึกสถานะส่งกลับแก้ไขงาน (Rework) สำหรับโครงการ ${job.id} เรียบร้อย (รอบแก้จะได้ 1 คะแนนเมื่อตรวจผ่าน)`);
             },
 
             approveCurrentJobToSTK() {
@@ -22766,23 +22900,33 @@ const app = {
                 if (remarksEl) job.qc_remarks = remarksEl.value.trim();
 
                 const subtasks = this.getJobQCSubtasks(job);
-                const questionsPayload = subtasks.map((s, idx) => ({
-                    question_no: s.num || (idx + 1),
-                    question_title: s.title || `ข้อที่ ${idx + 1}`,
-                    category: s.category || 'มาตรฐาน QC',
-                    answer: s.answer || (Number(s.score) >= 5 ? 'YES' : 'NO'),
-                    score: Number(s.score) || (s.answer === 'YES' ? 5 : 1),
-                    max_score: 5,
-                    result: (s.answer === 'YES' || Number(s.score) >= 5) ? 'PASS' : 'DEFECT',
-                    remarks: s.remarks || '',
-                    photos_count: Array.isArray(s.photos) ? s.photos.length : 0,
-                    photos: (Array.isArray(s.photos) ? s.photos : []).map(p => ({
-                        id: p.id,
-                        title: p.title,
-                        url: p.url,
-                        uploaded_at: p.uploaded_at
-                    }))
-                }));
+                const isQuick = this.isQuickJob(job);
+                const isJobRework = job.status === 'QC_REWORK' || (job.qc_rework_count && job.qc_rework_count > 0) || (job.rework_count && job.rework_count > 0) || !!job.has_rework;
+
+                const questionsPayload = subtasks.map((s, idx) => {
+                    const isRework = s.is_rework_pass || s.failed_once || s.has_rework || (isQuick && isJobRework);
+                    const finalScore = (s.answer === 'YES' || s.status === 'PASSED') 
+                        ? (isRework ? 1 : (Number(s.score) > 0 ? Number(s.score) : 5))
+                        : 1;
+                    return {
+                        question_no: s.num || (idx + 1),
+                        question_title: s.title || `ข้อที่ ${idx + 1}`,
+                        category: s.category || 'มาตรฐาน QC',
+                        answer: s.answer || ((s.status === 'PASSED' || Number(s.score) >= 1) ? 'YES' : 'NO'),
+                        score: finalScore,
+                        max_score: 5,
+                        result: (s.answer === 'YES' || s.status === 'PASSED') ? 'PASS' : 'DEFECT',
+                        is_rework_pass: isRework && (s.answer === 'YES' || s.status === 'PASSED'),
+                        remarks: s.remarks || '',
+                        photos_count: Array.isArray(s.photos) ? s.photos.length : 0,
+                        photos: (Array.isArray(s.photos) ? s.photos : []).map(p => ({
+                            id: p.id,
+                            title: p.title,
+                            url: p.url,
+                            uploaded_at: p.uploaded_at
+                        }))
+                    };
+                });
 
                 const stkRef = `STK-QC-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
                 const nowIso = new Date().toISOString();
@@ -22810,7 +22954,8 @@ const app = {
                 };
 
                 job.status = 'QC_PASSED';
-                job.qc_score = progress.averageScore;
+                job.qc_status = 'QC_PASSED';
+                job.qc_score = Number(progress.averageScore);
                 job.qc_passed_at = nowIso;
                 job.progress = 100;
                 job.stk_status = 'DELIVERED';
@@ -25905,34 +26050,45 @@ const app = {
                 setText('jcd-stk-badge-ref', `STK Synced (${job.stk_ref || '200 OK'})`);
                 setText('jcd-csat-stk-ref', job.stk_ref || `STK-REF-2026-${job.id.replace('JOB', '')}`);
 
-                // 5 QC Standard Subtasks Breakdown (Yes=5, No=1)
+                // QC Standard Subtasks Breakdown (Yes=5, Rework Pass=1, No=1)
                 const subtaskList = document.getElementById('jcd-qc-subtasks-list');
                 if (subtaskList) {
                     const isPerfectQC = job.qc_score >= 5.0;
-                    const questions = [
-                        { num: 1, title: 'ช่างทำงานตาม BOQ/มาตรฐานการติดตั้งที่กำหนด', pass: true, score: 5 },
-                        { num: 2, title: 'ความเรียบร้อยของงานติดตั้ง', pass: isPerfectQC, score: isPerfectQC ? 5 : (job.qc_score >= 4.8 ? 4 : 3) },
-                        { num: 3, title: 'ช่างเข้าปฏิบัติงานตรงตามเวลาที่นัดหมายกับลูกค้า', pass: true, score: 5 },
-                        { num: 4, title: 'ส่งมอบงานได้ตามกำหนดเวลา', pass: true, score: 5 },
-                        { num: 5, title: 'ช่างป้องกันพื้นที่ติดตั้งและส่งมอบพื้นที่คืนโดยไม่เกิดความเสียหาย', pass: true, score: 5 }
+                    const actualSubtasks = Array.isArray(job.qc_subtasks) && job.qc_subtasks.length > 0 ? job.qc_subtasks : null;
+                    const questions = actualSubtasks ? actualSubtasks.map((s, idx) => {
+                        const pass = s.status === 'PASSED' || s.answer === 'YES';
+                        const isRework = !!s.is_rework_pass || (pass && Number(s.score) === 1);
+                        return {
+                            num: s.num || (idx + 1),
+                            title: s.title || `คำถามข้อที่ ${idx + 1}`,
+                            pass: pass,
+                            score: Number(s.score) || (pass ? (isRework ? 1 : 5) : 1),
+                            isRework: isRework
+                        };
+                    }) : [
+                        { num: 1, title: 'ช่างทำงานตาม BOQ/มาตรฐานการติดตั้งที่กำหนด', pass: true, score: 5, isRework: false },
+                        { num: 2, title: 'ความเรียบร้อยของงานติดตั้ง', pass: isPerfectQC, score: isPerfectQC ? 5 : (job.qc_score >= 4.8 ? 4 : 3), isRework: false },
+                        { num: 3, title: 'ช่างเข้าปฏิบัติงานตรงตามเวลาที่นัดหมายกับลูกค้า', pass: true, score: 5, isRework: false },
+                        { num: 4, title: 'ส่งมอบงานได้ตามกำหนดเวลา', pass: true, score: 5, isRework: false },
+                        { num: 5, title: 'ช่างป้องกันพื้นที่ติดตั้งและส่งมอบพื้นที่คืนโดยไม่เกิดความเสียหาย', pass: true, score: 5, isRework: false }
                     ];
 
-                    setText('jcd-subtask-summary', isPerfectQC ? '5 จาก 5 ข้อ ผ่านเกณฑ์สมบูรณ์ (Yes=5 ทุกข้อ)' : 'ผ่านเกณฑ์มาตรฐาน พร้อมส่งมอบเรียบร้อย');
+                    setText('jcd-subtask-summary', isPerfectQC ? `${questions.length} จาก ${questions.length} ข้อ ผ่านเกณฑ์สมบูรณ์ (Yes=5 ทุกข้อ)` : `ผ่านเกณฑ์มาตรฐาน (${(job.qc_score || 0).toFixed(1)} คะแนน) พร้อมส่งมอบเรียบร้อย`);
 
                     subtaskList.innerHTML = questions.map(q => `
                         <div class="p-3 flex items-center justify-between gap-3 hover:bg-muted/20 transition">
                             <div class="flex items-start gap-2.5">
-                                <span class="w-5 h-5 rounded-md ${q.pass ? 'bg-emerald-500/15 text-emerald-600' : 'bg-amber-500/15 text-amber-600'} flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                                <span class="w-5 h-5 rounded-md ${q.pass ? (q.isRework ? 'bg-amber-500/15 text-amber-700' : 'bg-emerald-500/15 text-emerald-600') : 'bg-rose-500/15 text-rose-600'} flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
                                     <i class="ph ${q.pass ? 'ph-check-circle' : 'ph-warning-circle'}"></i>
                                 </span>
                                 <div>
                                     <div class="font-medium text-foreground text-xs">${q.num}. ${q.title}</div>
-                                    <div class="text-[10px] text-muted-foreground mt-0.5">เกณฑ์มาตรฐาน: ผ่าน (Yes) = 5 คะแนน, ไม่ผ่าน (No) = 1 คะแนน</div>
+                                    <div class="text-[10px] text-muted-foreground mt-0.5">เกณฑ์มาตรฐาน: ผ่าน (Yes) = 5 คะแนน [รอบแก้ได้ 1 คะแนน], ไม่ผ่าน (No) = 1 คะแนน</div>
                                 </div>
                             </div>
                             <div class="text-right shrink-0">
-                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${q.pass ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'} font-mono">
-                                    ${q.score}.0 คะแนน (${q.pass ? 'ผ่าน' : 'ไม่ผ่าน'})
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${q.pass ? (q.isRework ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20') : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'} font-mono">
+                                    ${q.score}.0 คะแนน (${q.pass ? (q.isRework ? 'ผ่านรอบแก้' : 'ผ่าน') : 'ไม่ผ่าน'})
                                 </span>
                             </div>
                         </div>

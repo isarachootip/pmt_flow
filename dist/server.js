@@ -3491,17 +3491,22 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
         const qcScore = payload.qc_score != null ? Number(payload.qc_score) : 5.0;
         const stkRef = payload.stk_ref || `STK-QC-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
         const exportedAt = new Date().toISOString();
-        const formattedQuestions = questions.map((q, idx) => ({
-            question_no: q.question_no || (idx + 1),
-            question_title: q.question_title || q.title || `คำถามข้อที่ ${idx + 1}`,
-            category: q.category || 'มาตรฐาน QC',
-            answer: q.answer || (Number(q.score) >= 5 ? 'YES' : 'NO'),
-            score: Number(q.score) || 5,
-            max_score: q.max_score || 5,
-            result: q.result || (q.answer === 'YES' || Number(q.score) >= 5 ? 'PASS' : 'DEFECT'),
-            remarks: q.remarks || '',
-            photos_count: q.photos_count || (Array.isArray(q.photos) ? q.photos.length : 0)
-        }));
+        const formattedQuestions = questions.map((q, idx) => {
+            const isPass = q.result === 'PASS' || q.answer === 'YES';
+            const scoreVal = q.score != null ? Number(q.score) : (isPass ? 5 : 1);
+            return {
+                question_no: q.question_no || (idx + 1),
+                question_title: q.question_title || q.title || `คำถามข้อที่ ${idx + 1}`,
+                category: q.category || 'มาตรฐาน QC',
+                answer: q.answer || (isPass ? 'YES' : 'NO'),
+                score: scoreVal,
+                max_score: q.max_score || 5,
+                result: q.result || (isPass ? 'PASS' : 'DEFECT'),
+                is_rework_pass: !!q.is_rework_pass || (isPass && scoreVal === 1),
+                remarks: q.remarks || '',
+                photos_count: q.photos_count || (Array.isArray(q.photos) ? q.photos.length : 0)
+            };
+        });
         const formattedOutboundPayload = {
             job_no: jobNo,
             stk_export_ref: stkRef,
