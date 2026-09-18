@@ -4522,7 +4522,7 @@ const app = {
 
                     return `
                     <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSurvey ? 'bg-teal-500/[0.03] border-l-2 border-l-teal-500' : shouldShowNewBadge ? 'bg-indigo-500/[0.02]' : ''}" onclick="app.openUnifiedOrderStudio('${j.id}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${j.id})">
-                        <td class="px-5 py-4 font-mono font-semibold text-brand-500">
+                        <td class="px-3 py-2.5 font-mono font-semibold text-brand-500 whitespace-nowrap">
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-brand-600 dark:text-brand-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
                                     <span>${j.id}</span>
@@ -4545,43 +4545,43 @@ const app = {
                                 ` : ''}
                             </div>
                         </td>
-                        <td class="px-4 py-4 font-mono text-xs text-foreground/80">
-                            ${j.external_ref_id ? `<span class="px-2 py-0.5 rounded bg-muted text-foreground border border-border text-[11px] font-mono font-medium">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
+                        <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
+                            ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
                         </td>
-                        <td class="px-4 py-4 font-mono text-xs text-foreground/80">
-                            ${j.booking_no ? `<span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-[11px] font-mono font-medium">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                        <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
+                            ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                         </td>
-                        <td class="px-4 py-4 whitespace-nowrap">
+                        <td class="px-2.5 py-2.5 whitespace-nowrap">
                             ${(j.plan_date || j.date) ? `
-                                <div class="font-mono text-xs text-foreground font-semibold flex items-center gap-1.5">
-                                    <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-sm"></i>
+                                <div class="inline-flex items-center gap-1 font-mono text-[11px] text-foreground font-semibold whitespace-nowrap">
+                                    <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-xs shrink-0"></i>
                                     <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
                                 </div>
                             ` : '<span class="text-muted-foreground">-</span>'}
                         </td>
-                        <td class="px-5 py-4">
-                            <div class="text-foreground font-medium group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition flex items-center gap-1.5">
-                                <span>${j.customer}</span>
-                                ${shouldShowNewBadge ? `<span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" title="รายการใหม่ล่าสุด"></span>` : ''}
+                        <td class="px-3 py-2.5 min-w-[125px] max-w-[150px]">
+                            <div class="text-foreground font-semibold text-xs truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition flex items-center gap-1.5" title="${j.customer || ''}">
+                                <span class="truncate">${j.customer}</span>
+                                ${shouldShowNewBadge ? `<span class="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0 animate-ping" title="รายการใหม่ล่าสุด"></span>` : ''}
                             </div>
-                            <div class="text-[11px] text-muted-foreground font-mono flex items-center gap-1 mt-0.5">
-                                <i class="ph ph-phone text-[10px]"></i>
-                                <span>${j.phone}</span>
+                            <div class="text-[11px] text-muted-foreground font-mono flex items-center gap-1 mt-0.5 truncate">
+                                <i class="ph ph-phone text-[10px] shrink-0"></i>
+                                <span class="truncate">${j.phone}</span>
                             </div>
                         </td>
-                        <td class="px-5 py-4 text-muted-foreground">
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${isQuick ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'}">${isQuick ? 'quick' : 'renovate'}</span>
-                                <span class="text-xs font-medium text-foreground">
+                        <td class="px-2.5 py-2.5 min-w-[115px] max-w-[140px] text-muted-foreground">
+                            <div class="flex items-center gap-1 flex-wrap">
+                                <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase shrink-0 ${isQuick ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'}">${isQuick ? 'quick' : 'renovate'}</span>
+                                <span class="text-xs font-medium text-foreground truncate" title="${j.service || ''}">
                                     ${j.service}
                                 </span>
                             </div>
-                            <div class="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
-                                <i class="ph ph-user-gear text-[10px]"></i>
-                                <span>${j.tech || 'รอระบุช่าง'}</span>
+                            <div class="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1 truncate">
+                                <i class="ph ph-user-gear text-[10px] shrink-0"></i>
+                                <span class="truncate">${j.tech || 'รอระบุช่าง'}</span>
                             </div>
                         </td>
-                        <td class="px-5 py-4">
+                        <td class="px-2.5 py-2.5 whitespace-nowrap">
                             ${(() => {
                                 const intakeTs = (j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || (j.date ? `${j.date}T08:30:00.000Z` : null);
                                 const formatted = this.formatTimestamp(intakeTs);
@@ -4595,48 +4595,48 @@ const app = {
                                 </div>`;
                             })()}
                         </td>
-                        <td class="px-5 py-4">
+                        <td class="px-2.5 py-2.5 whitespace-nowrap">
                             ${isQuick ? `
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-muted/80 text-muted-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอนแบบแปลน">
                                     <i class="ph ph-minus text-[10px]"></i> ข้าม (Quick)
                                 </span>
                             ` : hasBps ? `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'design')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1.5 hover:bg-indigo-500/25 transition cursor-pointer shadow-2xs" title="ดู/แก้ไขแบบแปลน ${bpCount} รายการ">
-                                    <i class="ph ph-blueprint text-indigo-600 dark:text-indigo-400"></i>
-                                    <span>${bpCount} แบบ (CAD/PDF)</span>
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'design')" class="px-2 py-1 rounded-lg text-xs font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1 hover:bg-indigo-500/25 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไขแบบแปลน ${bpCount} รายการ">
+                                    <i class="ph ph-blueprint text-indigo-600 dark:text-indigo-400 text-xs"></i>
+                                    <span>${bpCount} แบบ</span>
                                 </button>
                             ` : `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'design')" class="px-2 py-1 rounded-lg text-[11px] font-medium bg-muted hover:bg-indigo-500/10 text-muted-foreground hover:text-indigo-600 border border-border inline-flex items-center gap-1 transition cursor-pointer" title="แนบแบบแปลน 2D/3D">
-                                    <i class="ph ph-plus-circle"></i>
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'design')" class="px-2 py-1 rounded-lg text-[11px] font-medium bg-muted hover:bg-indigo-500/10 text-muted-foreground hover:text-indigo-600 border border-border inline-flex items-center gap-1 transition cursor-pointer whitespace-nowrap" title="แนบแบบแปลน 2D/3D">
+                                    <i class="ph ph-plus-circle text-xs"></i>
                                     <span>+ แนบแบบ</span>
                                 </button>
                             `}
                         </td>
-                        <td class="px-5 py-4">
+                        <td class="px-2.5 py-2.5 whitespace-nowrap">
                             ${isQuick ? `
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-muted/80 text-muted-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอน BOQ">
                                     <i class="ph ph-minus text-[10px]"></i> ข้าม (Quick)
                                 </span>
                             ` : hasBOQ ? `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'boq')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 inline-flex items-center gap-1.5 hover:bg-purple-500/25 transition cursor-pointer shadow-2xs" title="ดู/แก้ไข BOQ (${itemsCount} รายการ)">
-                                    <i class="ph ph-calculator text-purple-600 dark:text-purple-400"></i>
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'boq')" class="px-2 py-1 rounded-lg text-xs font-semibold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 inline-flex items-center gap-1 hover:bg-purple-500/25 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไข BOQ (${itemsCount} รายการ)">
+                                    <i class="ph ph-calculator text-purple-600 dark:text-purple-400 text-xs"></i>
                                     <span>฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${itemsCount})</span>
                                 </button>
                             ` : `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'boq')" class="px-2 py-1 rounded-lg text-[11px] font-medium bg-muted hover:bg-purple-500/10 text-muted-foreground hover:text-purple-600 border border-border inline-flex items-center gap-1 transition cursor-pointer" title="จัดทำรายการประมาณการ BOQ">
-                                    <i class="ph ph-plus-circle"></i>
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'boq')" class="px-2 py-1 rounded-lg text-[11px] font-medium bg-muted hover:bg-purple-500/10 text-muted-foreground hover:text-purple-600 border border-border inline-flex items-center gap-1 transition cursor-pointer whitespace-nowrap" title="จัดทำรายการประมาณการ BOQ">
+                                    <i class="ph ph-plus-circle text-xs"></i>
                                     <span>+ ลง BOQ</span>
                                 </button>
                             `}
                         </td>
-                        <td class="px-5 py-4 text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'intake')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition hover:scale-105 cursor-pointer" title="เปิด One-Stop Studio: ข้อมูลคำสั่งซื้อ • Design แบบแปลน • BOQ">
-                                    <i class="ph ph-squares-four text-sm font-bold"></i>
+                        <td class="px-3 py-2.5 text-right whitespace-nowrap">
+                            <div class="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'intake')" class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition hover:scale-105 cursor-pointer whitespace-nowrap" title="เปิด One-Stop Studio: ข้อมูลคำสั่งซื้อ • Design แบบแปลน • BOQ">
+                                    <i class="ph ph-squares-four text-xs font-bold"></i>
                                     <span>Studio</span>
                                 </button>
                                 <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="btn-artifact-secondary p-1.5 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer" title="ดูข้อมูลงาน (Pop up)">
-                                    <i class="ph ph-eye text-base"></i>
+                                    <i class="ph ph-eye text-sm"></i>
                                 </button>
                             </div>
                         </td>
@@ -4704,12 +4704,12 @@ const app = {
                     const isVFix = (job.booking_no && job.booking_no.startsWith('VFIX')) || (job.id && job.id.startsWith('VFIX')) || (job.job_no && job.job_no.startsWith('VFIX'));
                     let extraTags = '';
                     if (job.external_ref_id) {
-                        extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-muted text-foreground border border-border font-sans font-mono"><i class="ph ph-tag"></i> Ref: ${job.external_ref_id}</span>`;
+                        extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-muted text-foreground border border-border font-sans font-mono whitespace-nowrap"><i class="ph ph-tag"></i> Ref: ${job.external_ref_id}</span>`;
                     }
                     if (job.booking_no) {
-                        extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans font-mono"><i class="ph ph-bookmark-simple"></i> Booking: ${job.booking_no}</span>`;
+                        extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans font-mono whitespace-nowrap"><i class="ph ph-bookmark-simple"></i> Booking: ${job.booking_no}</span>`;
                     } else if (isVFix) {
-                        extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans"><i class="ph ph-wrench"></i> vFIX: ${job.id}</span>`;
+                        extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans whitespace-nowrap"><i class="ph ph-wrench"></i> vFIX: ${job.id}</span>`;
                     }
                     titleEl.innerHTML = `${job.job_no || job.id}${extraTags}`;
                 }
@@ -9538,7 +9538,7 @@ const app = {
 
                             return `
                                 <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTopNew ? 'bg-rose-500/[0.02]' : ''}" onclick="app.openJobDetailModal('${j.id}')" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
-                                    <td class="px-5 py-4 font-mono font-semibold text-indigo-600 dark:text-indigo-400">
+                                    <td class="px-3 py-2.5 font-mono font-semibold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
                                         <div class="flex items-center gap-1.5 flex-wrap">
                                             <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
                                                 <span>${j.job_no || j.id}</span>
@@ -9551,37 +9551,37 @@ const app = {
                                             ` : ''}
                                         </div>
                                     </td>
-                                    <td class="px-4 py-4 font-mono text-xs text-foreground/80">
-                                        ${j.external_ref_id ? `<span class="px-2 py-0.5 rounded bg-muted text-foreground border border-border text-[11px] font-mono font-medium">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                    <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
+                                        ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
-                                    <td class="px-4 py-4 font-mono text-xs text-foreground/80">
-                                        ${j.booking_no ? `<span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-[11px] font-mono font-medium">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                    <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
+                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
-                                    <td class="px-4 py-4 whitespace-nowrap">
+                                    <td class="px-2.5 py-2.5 whitespace-nowrap">
                                         ${(j.plan_date || j.date) ? `
-                                            <div class="font-mono text-xs text-foreground font-semibold flex items-center gap-1.5">
-                                                <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-sm"></i>
+                                            <div class="inline-flex items-center gap-1 font-mono text-[11px] text-foreground font-semibold whitespace-nowrap">
+                                                <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-xs shrink-0"></i>
                                                 <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
                                             </div>
                                         ` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
-                                    <td class="px-5 py-4">
-                                        <div class="text-foreground font-medium group-hover:text-indigo-500 transition flex items-center gap-1.5">
-                                            <span>${j.customer}</span>
-                                            ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="สถานะล่าสุด"></span>` : ''}
+                                    <td class="px-3 py-2.5 min-w-[125px] max-w-[150px]">
+                                        <div class="text-foreground font-semibold text-xs truncate group-hover:text-indigo-500 transition flex items-center gap-1.5" title="${j.customer || ''}">
+                                            <span class="truncate">${j.customer}</span>
+                                            ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-ping" title="สถานะล่าสุด"></span>` : ''}
                                         </div>
-                                        <div class="text-[11px] text-muted-foreground font-mono">${j.phone || '-'}</div>
+                                        <div class="text-[11px] text-muted-foreground font-mono truncate">${j.phone || '-'}</div>
                                     </td>
-                                    <td class="px-5 py-4 text-muted-foreground">
-                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : (j.job_type === 'renovate' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20')}">${j.job_type || 'quick'}</span>
-                                            <span class="inline-flex items-center gap-1 text-xs">${j.service}</span>
+                                    <td class="px-2.5 py-2.5 min-w-[115px] max-w-[140px] text-muted-foreground">
+                                        <div class="flex items-center gap-1 flex-wrap">
+                                            <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase shrink-0 ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : (j.job_type === 'renovate' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20')}">${j.job_type || 'quick'}</span>
+                                            <span class="text-xs font-medium text-foreground truncate" title="${j.service || ''}">${j.service}</span>
                                         </div>
                                     </td>
-                                    <td class="px-5 py-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
-                                    <td class="px-5 py-4">${this.getStatusHtml(j.status, isTopNew)}</td>
-                                    <td class="px-5 py-4 min-w-[210px] w-52">${stageHtml}</td>
-                                    <td class="px-5 py-4 text-right">${actionButtons}</td>
+                                    <td class="px-2.5 py-2.5 whitespace-nowrap text-muted-foreground"><span class="text-xs truncate block max-w-[110px]" title="${j.tech || '-'}">${j.tech || '-'}</span></td>
+                                    <td class="px-2.5 py-2.5 whitespace-nowrap">${this.getStatusHtml(j.status, isTopNew)}</td>
+                                    <td class="px-3 py-2.5 min-w-[150px] whitespace-nowrap">${stageHtml}</td>
+                                    <td class="px-3 py-2.5 text-right whitespace-nowrap">${actionButtons}</td>
                                 </tr>
                             `;
                         }).join('');
@@ -13165,7 +13165,7 @@ const app = {
 
                             return `
                                 <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTopNew ? 'bg-rose-500/[0.02]' : ''}" onclick="app.openJobDetailModal('${j.id}')" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
-                                    <td class="px-5 py-4 font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                                    <td class="px-3 py-2.5 font-mono font-semibold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                                         <div class="flex items-center gap-1.5 flex-wrap">
                                             <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
                                                 <span>${j.job_no || j.id}</span>
@@ -13178,37 +13178,37 @@ const app = {
                                             ` : ''}
                                         </div>
                                     </td>
-                                    <td class="px-4 py-4 font-mono text-xs text-foreground/80">
-                                        ${j.external_ref_id ? `<span class="px-2 py-0.5 rounded bg-muted text-foreground border border-border text-[11px] font-mono font-medium">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                    <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
+                                        ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
-                                    <td class="px-4 py-4 font-mono text-xs text-foreground/80">
-                                        ${j.booking_no ? `<span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-[11px] font-mono font-medium">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                    <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
+                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
-                                    <td class="px-4 py-4 whitespace-nowrap">
+                                    <td class="px-2.5 py-2.5 whitespace-nowrap">
                                         ${(j.plan_date || j.date) ? `
-                                            <div class="font-mono text-xs text-foreground font-semibold flex items-center gap-1.5">
-                                                <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-sm"></i>
+                                            <div class="inline-flex items-center gap-1 font-mono text-[11px] text-foreground font-semibold whitespace-nowrap">
+                                                <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-xs shrink-0"></i>
                                                 <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
                                             </div>
                                         ` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
-                                    <td class="px-5 py-4">
-                                        <div class="text-foreground font-medium group-hover:text-emerald-500 transition flex items-center gap-1.5">
-                                            <span>${j.customer}</span>
-                                            ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="สถานะล่าสุด"></span>` : ''}
+                                    <td class="px-3 py-2.5 min-w-[125px] max-w-[150px]">
+                                        <div class="text-foreground font-medium group-hover:text-emerald-500 transition flex items-center gap-1.5" title="${j.customer || ''}">
+                                            <span class="truncate">${j.customer}</span>
+                                            ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-ping" title="สถานะล่าสุด"></span>` : ''}
                                         </div>
-                                        <div class="text-[11px] text-muted-foreground font-mono">${j.phone || '-'}</div>
+                                        <div class="text-[11px] text-muted-foreground font-mono truncate">${j.phone || '-'}</div>
                                     </td>
-                                    <td class="px-5 py-4 text-muted-foreground">
-                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : (j.job_type === 'renovate' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20')}">${j.job_type || 'quick'}</span>
-                                            <span class="inline-flex items-center gap-1 text-xs">${j.service}</span>
+                                    <td class="px-2.5 py-2.5 min-w-[115px] max-w-[140px] text-muted-foreground">
+                                        <div class="flex items-center gap-1 flex-wrap">
+                                            <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase shrink-0 ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : (j.job_type === 'renovate' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20')}">${j.job_type || 'quick'}</span>
+                                            <span class="text-xs font-medium text-foreground truncate" title="${j.service || ''}">${j.service}</span>
                                         </div>
                                     </td>
-                                    <td class="px-5 py-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
-                                    <td class="px-5 py-4">${this.getStatusHtml(j.status, isTopNew)}</td>
-                                    <td class="px-5 py-4 min-w-[210px] w-52">${stageHtml}</td>
-                                    <td class="px-5 py-4 text-right">${actionButtons}</td>
+                                    <td class="px-2.5 py-2.5 whitespace-nowrap text-muted-foreground"><span class="text-xs truncate block max-w-[110px]" title="${j.tech || '-'}">${j.tech || '-'}</span></td>
+                                    <td class="px-2.5 py-2.5 whitespace-nowrap">${this.getStatusHtml(j.status, isTopNew)}</td>
+                                    <td class="px-3 py-2.5 min-w-[150px] whitespace-nowrap">${stageHtml}</td>
+                                    <td class="px-3 py-2.5 text-right whitespace-nowrap">${actionButtons}</td>
                                 </tr>
                             `;
                         }).join('');
@@ -14280,7 +14280,7 @@ const app = {
 
                             return `
                                 <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSelected ? 'bg-purple-500/5' : (isTopNew ? 'bg-rose-500/[0.02]' : '')}" onclick="app.openManageBOQModal('${j.id}')">
-                                    <td class="px-5 py-4 font-mono font-semibold text-purple-600 dark:text-purple-400">
+                                    <td class="px-3 py-2.5 font-mono font-semibold text-purple-600 dark:text-purple-400 whitespace-nowrap">
                                         <div class="flex items-center gap-1.5 flex-wrap">
                                             <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-purple-600 dark:text-purple-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
                                                 <span>${j.job_no || j.id}</span>
@@ -14293,37 +14293,37 @@ const app = {
                                             ` : ''}
                                         </div>
                                     </td>
-                                    <td class="px-4 py-4 font-mono text-xs text-foreground/80">
-                                        ${j.external_ref_id ? `<span class="px-2 py-0.5 rounded bg-muted text-foreground border border-border text-[11px] font-mono font-medium">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                    <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
+                                        ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
-                                    <td class="px-4 py-4 font-mono text-xs text-foreground/80">
-                                        ${j.booking_no ? `<span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-[11px] font-mono font-medium">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                    <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
+                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
-                                    <td class="px-4 py-4 whitespace-nowrap">
+                                    <td class="px-2.5 py-2.5 whitespace-nowrap">
                                         ${(j.plan_date || j.date) ? `
-                                            <div class="font-mono text-xs text-foreground font-semibold flex items-center gap-1.5">
-                                                <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-sm"></i>
+                                            <div class="inline-flex items-center gap-1 font-mono text-[11px] text-foreground font-semibold whitespace-nowrap">
+                                                <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-xs shrink-0"></i>
                                                 <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
                                             </div>
                                         ` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
-                                    <td class="px-5 py-4">
-                                        <div class="text-foreground font-medium group-hover:text-purple-500 transition flex items-center gap-1.5">
-                                            <span>${j.customer}</span>
-                                            ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="สถานะล่าสุด"></span>` : ''}
+                                    <td class="px-3 py-2.5 min-w-[125px] max-w-[150px]">
+                                        <div class="text-foreground font-medium group-hover:text-purple-500 transition flex items-center gap-1.5" title="${j.customer || ''}">
+                                            <span class="truncate">${j.customer}</span>
+                                            ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-ping" title="สถานะล่าสุด"></span>` : ''}
                                         </div>
-                                        <div class="text-[11px] text-muted-foreground font-mono">${j.phone || '-'}</div>
+                                        <div class="text-[11px] text-muted-foreground font-mono truncate">${j.phone || '-'}</div>
                                     </td>
-                                    <td class="px-5 py-4 text-muted-foreground">
-                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : (j.job_type === 'renovate' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20')}">${j.job_type || 'quick'}</span>
-                                            <span class="inline-flex items-center gap-1 text-xs">${j.service}</span>
+                                    <td class="px-2.5 py-2.5 min-w-[115px] max-w-[140px] text-muted-foreground">
+                                        <div class="flex items-center gap-1 flex-wrap">
+                                            <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase shrink-0 ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : (j.job_type === 'renovate' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20')}">${j.job_type || 'quick'}</span>
+                                            <span class="text-xs font-medium text-foreground truncate" title="${j.service || ''}">${j.service}</span>
                                         </div>
                                     </td>
-                                    <td class="px-5 py-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
-                                    <td class="px-5 py-4">${this.getStatusHtml(j.status, isTopNew)}</td>
-                                    <td class="px-5 py-4 min-w-[210px] w-52">${stageHtml}</td>
-                                    <td class="px-5 py-4 text-right">${actionButtons}</td>
+                                    <td class="px-2.5 py-2.5 whitespace-nowrap text-muted-foreground"><span class="text-xs truncate block max-w-[110px]" title="${j.tech || '-'}">${j.tech || '-'}</span></td>
+                                    <td class="px-2.5 py-2.5 whitespace-nowrap">${this.getStatusHtml(j.status, isTopNew)}</td>
+                                    <td class="px-3 py-2.5 min-w-[150px] whitespace-nowrap">${stageHtml}</td>
+                                    <td class="px-3 py-2.5 text-right whitespace-nowrap">${actionButtons}</td>
                                 </tr>
                             `;
                         }).join('');
@@ -15744,7 +15744,7 @@ const app = {
 
                             return `
                                 <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSelected ? 'bg-amber-500/5' : (isTopNew ? 'bg-rose-500/[0.02]' : '')}" onclick="app.renderProjectConversion('${j.id}')">
-                                    <td class="px-5 py-4 font-mono font-semibold text-amber-600 dark:text-amber-400">
+                                    <td class="px-3 py-2.5 font-mono font-semibold text-amber-600 dark:text-amber-400 whitespace-nowrap">
                                         <div class="flex items-center gap-1.5 flex-wrap">
                                             <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-amber-600 dark:text-amber-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.job_no || j.id}">
                                                 <span>${j.job_no || j.id}</span>
@@ -15757,35 +15757,37 @@ const app = {
                                             ` : ''}
                                         </div>
                                     </td>
-                                    <td class="px-4 py-4 text-xs font-mono text-muted-foreground whitespace-nowrap">
-                                        ${j.external_ref_id ? `<span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">${j.external_ref_id}</span>` : '<span class="text-gray-400">-</span>'}
+                                    <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
+                                        ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
-                                    <td class="px-4 py-4 text-xs font-mono text-muted-foreground whitespace-nowrap">
-                                        ${j.booking_no ? `<span class="px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 font-semibold">${j.booking_no}</span>` : '<span class="text-gray-400">-</span>'}
+                                    <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
+                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
-                                    <td class="px-4 py-4 text-xs text-muted-foreground whitespace-nowrap">
-                                        <div class="inline-flex items-center gap-1 font-mono text-foreground font-medium">
-                                            <i class="ph ph-calendar-check text-amber-500"></i>
-                                            <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
+                                    <td class="px-2.5 py-2.5 whitespace-nowrap">
+                                        ${(j.plan_date || j.date) ? `
+                                            <div class="inline-flex items-center gap-1 font-mono text-[11px] text-foreground font-semibold whitespace-nowrap">
+                                                <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-xs shrink-0"></i>
+                                                <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
+                                            </div>
+                                        ` : '<span class="text-muted-foreground">-</span>'}
+                                    </td>
+                                    <td class="px-3 py-2.5 min-w-[125px] max-w-[150px]">
+                                        <div class="text-foreground font-semibold text-xs truncate group-hover:text-amber-500 transition flex items-center gap-1.5" title="${j.customer || ''}">
+                                            <span class="truncate">${j.customer}</span>
+                                            ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-ping" title="สถานะล่าสุด"></span>` : ''}
+                                        </div>
+                                        <div class="text-[11px] text-muted-foreground font-mono truncate">${j.phone || '-'}</div>
+                                    </td>
+                                    <td class="px-2.5 py-2.5 min-w-[115px] max-w-[140px] text-muted-foreground">
+                                        <div class="flex items-center gap-1 flex-wrap">
+                                            <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase shrink-0 ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : (j.job_type === 'renovate' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20')}">${j.job_type || 'quick'}</span>
+                                            <span class="text-xs font-medium text-foreground truncate" title="${j.service || ''}">${j.service}</span>
                                         </div>
                                     </td>
-                                    <td class="px-5 py-4">
-                                        <div class="text-foreground font-medium group-hover:text-amber-500 transition flex items-center gap-1.5">
-                                            <span>${j.customer}</span>
-                                            ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="สถานะล่าสุด"></span>` : ''}
-                                        </div>
-                                        <div class="text-[11px] text-muted-foreground font-mono">${j.phone || '-'}</div>
-                                    </td>
-                                    <td class="px-5 py-4 text-muted-foreground">
-                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : (j.job_type === 'renovate' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20')}">${j.job_type || 'quick'}</span>
-                                            <span class="inline-flex items-center gap-1 text-xs">${j.service}</span>
-                                        </div>
-                                    </td>
-                                    <td class="px-5 py-4 text-muted-foreground"><span class="text-xs">${j.tech || '-'}</span></td>
-                                    <td class="px-5 py-4">${this.getStatusHtml(j.status, isTopNew)}</td>
-                                    <td class="px-5 py-4 min-w-[210px] w-52">${stageHtml}</td>
-                                    <td class="px-5 py-4 text-right">${actionButtons}</td>
+                                    <td class="px-2.5 py-2.5 whitespace-nowrap text-muted-foreground"><span class="text-xs truncate block max-w-[110px]" title="${j.tech || '-'}">${j.tech || '-'}</span></td>
+                                    <td class="px-2.5 py-2.5 whitespace-nowrap">${this.getStatusHtml(j.status, isTopNew)}</td>
+                                    <td class="px-3 py-2.5 min-w-[150px] whitespace-nowrap">${stageHtml}</td>
+                                    <td class="px-3 py-2.5 text-right whitespace-nowrap">${actionButtons}</td>
                                 </tr>
                             `;
                         }).join('');
@@ -21476,7 +21478,7 @@ const app = {
 
                     return `
                     <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTopNew ? 'bg-emerald-500/[0.02] dark:bg-emerald-500/[0.03]' : ''}" onclick="app.openQCDetailModal('${j.id}')" title="คลิกเพื่อเปิดรายละเอียด QC: ${j.id}">
-                        <td class="px-5 py-4 font-mono font-semibold text-brand-500">
+                        <td class="px-3 py-2.5 font-mono font-semibold text-brand-500 whitespace-nowrap">
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span>${j.job_no || j.id}</span>
                                 ${isTopNew ? `
@@ -21491,49 +21493,49 @@ const app = {
                                 ` : ''}
                             </div>
                         </td>
-                        <td class="px-4 py-4 text-xs font-mono text-muted-foreground whitespace-nowrap">
-                            ${j.external_ref_id ? `<span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">${j.external_ref_id}</span>` : '<span class="text-gray-400">-</span>'}
+                        <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
+                            ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-gray-400">-</span>'}
                         </td>
-                        <td class="px-4 py-4 text-xs font-mono text-muted-foreground whitespace-nowrap">
-                            ${j.booking_no ? `<span class="px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 font-semibold">${j.booking_no}</span>` : '<span class="text-gray-400">-</span>'}
+                        <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
+                            ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-gray-400">-</span>'}
                         </td>
-                        <td class="px-4 py-4 text-xs text-muted-foreground whitespace-nowrap">
-                            <div class="inline-flex items-center gap-1 font-mono text-foreground font-medium">
-                                <i class="ph ph-calendar-check text-amber-500"></i>
+                        <td class="px-2.5 py-2.5 whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1 font-mono text-[11px] text-foreground font-semibold whitespace-nowrap">
+                                <i class="ph ph-calendar-check text-amber-500 text-xs shrink-0"></i>
                                 <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
                             </div>
                         </td>
-                        <td class="px-5 py-4">
-                            <div class="text-foreground font-medium group-hover:text-brand-500 transition flex items-center gap-1.5">
-                                <span>${j.customer}</span>
-                                ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="รายการใหม่ล่าสุด"></span>` : ''}
+                        <td class="px-3 py-2.5 min-w-[125px] max-w-[150px]">
+                            <div class="text-foreground font-semibold text-xs truncate group-hover:text-brand-500 transition flex items-center gap-1.5" title="${j.customer || ''}">
+                                <span class="truncate">${j.customer}</span>
+                                ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-ping" title="รายการใหม่ล่าสุด"></span>` : ''}
                             </div>
-                            <div class="text-[11px] text-muted-foreground font-mono">${j.phone || '-'}</div>
+                            <div class="text-[11px] text-muted-foreground font-mono truncate">${j.phone || '-'}</div>
                         </td>
-                        <td class="px-5 py-4 text-muted-foreground">
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${isQuick ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'}">
+                        <td class="px-2.5 py-2.5 min-w-[115px] max-w-[140px] text-muted-foreground">
+                            <div class="flex items-center gap-1 flex-wrap">
+                                <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase shrink-0 ${isQuick ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'}">
                                     ${isQuick ? 'QUICK' : 'RENOVATE'}
                                 </span>
-                                <span class="inline-flex items-center gap-1 text-xs text-foreground">
+                                <span class="text-xs font-medium text-foreground truncate" title="${j.service || ''}">
                                     ${j.service}
                                 </span>
                             </div>
-                            <div class="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-2">
+                            <div class="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-2 truncate">
                                 <span>งานย่อย: <strong>${completedCount}/${subtaskCount}</strong></span>
                                 <span>•</span>
                                 <span>คะแนน: <strong class="text-amber-600">${avgScore}</strong></span>
                             </div>
                         </td>
-                        <td class="px-5 py-4 text-muted-foreground">
-                            <div class="text-xs text-foreground font-medium">${j.tech || '-'}</div>
-                            <div class="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
-                                <i class="ph ph-user-check text-brand-500"></i>
-                                <span>QC: ${bookingTechDisplay}</span>
+                        <td class="px-2.5 py-2.5 whitespace-nowrap text-muted-foreground">
+                            <div class="text-xs text-foreground font-medium truncate max-w-[110px]" title="${j.tech || '-'}">${j.tech || '-'}</div>
+                            <div class="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1 truncate max-w-[110px]" title="QC: ${bookingTechDisplay}">
+                                <i class="ph ph-user-check text-brand-500 shrink-0"></i>
+                                <span class="truncate">QC: ${bookingTechDisplay}</span>
                             </div>
                         </td>
-                        <td class="px-5 py-4">${statusBadge}</td>
-                        <td class="px-5 py-4 w-48">
+                        <td class="px-2.5 py-2.5 whitespace-nowrap">${statusBadge}</td>
+                        <td class="px-3 py-2.5 w-48 whitespace-nowrap text-right">
                             <div class="space-y-1.5">
                                 <div class="flex items-center justify-between gap-1.5">
                                     <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1">
