@@ -4732,13 +4732,13 @@ const app = {
                         <td class="px-3 py-3 min-w-[140px] max-w-[170px] text-muted-foreground">
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span class="px-2 py-0.5 rounded text-xs font-mono font-bold uppercase shrink-0 ${isQuick ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30' : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30'}">${isQuick ? 'quick' : 'renovate'}</span>
-                                <span class="text-sm sm:text-base font-bold text-foreground truncate" title="${j.service || ''}">
-                                    ${j.service}
+                                <span class="text-sm sm:text-base font-bold text-foreground truncate" title="${j.project_sub_type || j.service || ''}">
+                                    ${j.project_sub_type || j.service || '-'}
                                 </span>
                             </div>
-                            <div class="text-xs sm:text-sm text-muted-foreground mt-0.5 flex items-center gap-1 truncate">
-                                <i class="ph ph-user-gear text-xs shrink-0"></i>
-                                <span class="truncate">${j.tech || 'รอระบุช่าง'}</span>
+                            <div class="text-xs sm:text-sm text-muted-foreground mt-0.5 flex items-center justify-between gap-1 truncate">
+                                <span class="truncate flex items-center gap-1"><i class="ph ph-user-gear text-xs shrink-0"></i> ${j.tech || 'รอระบุช่าง'}</span>
+                                ${(j.store_code || j.agent_name) ? `<span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground truncate" title="${[j.store_code, j.agent_name].filter(Boolean).join(' ')}">${j.store_code || j.agent_name}</span>` : ''}
                             </div>
                         </td>
                         <td class="px-3 py-3 whitespace-nowrap">
@@ -4897,17 +4897,134 @@ const app = {
                     }
                 }
 
-                // Populate Section 1: Intake
+                // Project Sub-type & Store/Agent in Header Subtitle
+                const subTypeEl = document.getElementById('unified-modal-project-sub-type');
+                const subTypeContainer = document.getElementById('unified-modal-subtype-container');
+                const displaySubType = job.project_sub_type || job.service || '';
+                if (subTypeEl && subTypeContainer) {
+                    if (displaySubType) {
+                        subTypeEl.innerText = displaySubType;
+                        subTypeContainer.classList.remove('hidden');
+                    } else {
+                        subTypeContainer.classList.add('hidden');
+                    }
+                }
+                const storeEl = document.getElementById('unified-modal-store-info');
+                const storeContainer = document.getElementById('unified-modal-store-container');
+                const displayStore = [job.store_code, job.agent_name].filter(Boolean).join(' - ');
+                if (storeEl && storeContainer) {
+                    if (displayStore) {
+                        storeEl.innerText = displayStore;
+                        storeContainer.classList.remove('hidden');
+                    } else {
+                        storeContainer.classList.add('hidden');
+                    }
+                }
+
+                // Check if this job originated or was stamped from INT
+                const isStampedFromInt = Boolean(
+                    job.booking_no || 
+                    job.external_ref_id || 
+                    job.store_code || 
+                    job.agent_name || 
+                    (job.job_no && String(job.job_no).startsWith('JOB2609')) ||
+                    job.file_int_image || 
+                    (job.raw_payload && Object.keys(job.raw_payload).length > 0)
+                );
+
+                // Section 1: Header Badges for INT Stamping
+                const leftStampBadge = document.getElementById('unified-intake-left-stamp-badge');
+                if (leftStampBadge) {
+                    if (isStampedFromInt) leftStampBadge.classList.remove('hidden');
+                    else leftStampBadge.classList.add('hidden');
+                }
+                const rightStampBadge = document.getElementById('unified-intake-right-stamp-badge');
+                if (rightStampBadge) {
+                    if (isStampedFromInt) rightStampBadge.classList.remove('hidden');
+                    else rightStampBadge.classList.add('hidden');
+                }
+
+                // Populate Section 1: Intake (STAMP มาจาก INT ให้ PMT แก้ไม่ได้เลย ยกเว้นประเภทบริการถ้ายังดึงมาไม่ได้ให้กรอกด้วย manual)
                 const nameInp = document.getElementById('unified-intake-customer');
-                if (nameInp) nameInp.value = job.customer || '';
+                if (nameInp) {
+                    nameInp.value = job.customer || '';
+                    if (isStampedFromInt) {
+                        nameInp.readOnly = true;
+                        nameInp.classList.add('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                    } else {
+                        nameInp.readOnly = false;
+                        nameInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                    }
+                }
+
                 const phoneInp = document.getElementById('unified-intake-phone');
-                if (phoneInp) phoneInp.value = job.phone || '';
-                const srvSelect = document.getElementById('unified-intake-service');
-                if (srvSelect) srvSelect.value = job.service || 'Renovate ครัว';
+                if (phoneInp) {
+                    phoneInp.value = job.phone || '';
+                    if (isStampedFromInt) {
+                        phoneInp.readOnly = true;
+                        phoneInp.classList.add('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                    } else {
+                        phoneInp.readOnly = false;
+                        phoneInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                    }
+                }
+
+                // ประเภทบริการ (Project Sub Type) - "ยกเว้นประเภทบริการถ้ายังดึงมาไม่ได้ให้กรอกด้วย manual"
+                const srvInp = document.getElementById('unified-intake-service');
+                const srvStampBadge = document.getElementById('unified-service-stamp-badge');
+                const srvManualBadge = document.getElementById('unified-service-manual-badge');
+                const srvHint = document.getElementById('unified-service-hint');
+                const subTypeVal = job.project_sub_type || job.service || '';
+
+                if (srvInp) {
+                    srvInp.value = subTypeVal;
+                    srvInp.readOnly = false;
+                    srvInp.classList.remove('bg-muted/60', 'cursor-not-allowed');
+
+                    if (subTypeVal && isStampedFromInt) {
+                        if (srvStampBadge) srvStampBadge.classList.remove('hidden');
+                        if (srvManualBadge) srvManualBadge.classList.add('hidden');
+                        if (srvHint) {
+                            srvHint.innerHTML = `<span class="text-emerald-600 font-semibold inline-flex items-center gap-1"><i class="ph ph-check-circle"></i> ดึง project_sub_type จาก INT สำเร็จ:</span> ${subTypeVal}`;
+                        }
+                    } else {
+                        if (srvStampBadge) srvStampBadge.classList.add('hidden');
+                        if (srvManualBadge) srvManualBadge.classList.remove('hidden');
+                        if (srvHint) {
+                            srvHint.innerHTML = `<span class="text-amber-600 font-semibold inline-flex items-center gap-1"><i class="ph ph-pencil-simple"></i> ยังดึงข้อมูลบริการจาก INT ไม่ได้ — สามารถกรอกด้วยตนเอง (Manual)</span>`;
+                        }
+                    }
+                }
+
                 const addrInp = document.getElementById('unified-intake-address');
-                if (addrInp) addrInp.value = job.address || '';
+                if (addrInp) {
+                    addrInp.value = job.address || '';
+                    if (isStampedFromInt) {
+                        addrInp.readOnly = true;
+                        addrInp.classList.add('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                    } else {
+                        addrInp.readOnly = false;
+                        addrInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                    }
+                }
+
                 const scopeInp = document.getElementById('unified-intake-scope');
-                if (scopeInp) scopeInp.value = job.scope_of_work || job.notes || '';
+                if (scopeInp) {
+                    scopeInp.value = job.scope_of_work || job.special_instructions || job.notes || '';
+                    if (isStampedFromInt && scopeInp.value) {
+                        scopeInp.readOnly = true;
+                        scopeInp.classList.add('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                    } else {
+                        scopeInp.readOnly = false;
+                        scopeInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                    }
+                }
+
+                // Store Code & Agent Name from INT
+                const storeCodeEl = document.getElementById('unified-intake-store-code');
+                if (storeCodeEl) storeCodeEl.innerText = job.store_code || '-';
+                const agentNameEl = document.getElementById('unified-intake-agent-name');
+                if (agentNameEl) agentNameEl.innerText = job.agent_name || '-';
                 
                 // Type
                 const isQuick = this.isQuickJob(job);
@@ -4919,12 +5036,19 @@ const app = {
                 // Survey Date (Strict DD/MM/YYYY)
                 const surveyDateInp = document.getElementById('unified-intake-survey-date');
                 if (surveyDateInp) {
-                    let dVal = job.survey_date || job.date || '';
+                    let dVal = job.survey_date || job.date || job.plan_date || '';
                     const formattedDVal = this.formatDateDMY(dVal);
                     surveyDateInp.value = formattedDVal !== '-' ? formattedDVal : '';
-                    this.initDatePicker(surveyDateInp, {
-                        defaultDate: formattedDVal !== '-' ? formattedDVal : undefined
-                    });
+                    if (isStampedFromInt) {
+                        surveyDateInp.readOnly = true;
+                        surveyDateInp.classList.add('bg-muted/60', 'cursor-not-allowed');
+                    } else {
+                        surveyDateInp.readOnly = false;
+                        surveyDateInp.classList.remove('bg-muted/60', 'cursor-not-allowed');
+                        this.initDatePicker(surveyDateInp, {
+                            defaultDate: formattedDVal !== '-' ? formattedDVal : undefined
+                        });
+                    }
                 }
 
                 // Survey Time
@@ -4940,6 +5064,13 @@ const app = {
                         }
                     }
                     if (!matched) timePreset.value = 'custom';
+                    if (isStampedFromInt) {
+                        timePreset.disabled = true;
+                        timePreset.classList.add('bg-muted/60', 'cursor-not-allowed');
+                    } else {
+                        timePreset.disabled = false;
+                        timePreset.classList.remove('bg-muted/60', 'cursor-not-allowed');
+                    }
                 }
 
                 // STAMP ข้อมูลช่าง มาจาก INT
@@ -4948,7 +5079,16 @@ const app = {
                 if (!job.tech || job.tech === 'รอระบุช่าง' || job.tech === '-') {
                     job.tech = stampedTech;
                 }
-                if (techInp) techInp.value = job.tech;
+                if (techInp) {
+                    techInp.value = job.tech;
+                    if (isStampedFromInt) {
+                        techInp.readOnly = true;
+                        techInp.classList.add('bg-muted/60', 'cursor-not-allowed');
+                    } else {
+                        techInp.readOnly = false;
+                        techInp.classList.remove('bg-muted/60', 'cursor-not-allowed');
+                    }
+                }
 
                 const notesInp = document.getElementById('unified-intake-notes');
                 if (notesInp) notesInp.value = job.internal_notes || '';
@@ -5216,7 +5356,12 @@ const app = {
                     const phoneInp = document.getElementById('unified-intake-phone');
                     if (phoneInp && phoneInp.value) job.phone = phoneInp.value.trim();
                     const srvSelect = document.getElementById('unified-intake-service');
-                    if (srvSelect) job.service = srvSelect.value;
+                    if (srvSelect && srvSelect.value) {
+                        const srvVal = srvSelect.value.trim();
+                        job.service = srvVal;
+                        job.project_sub_type = srvVal;
+                        job.services = [srvVal];
+                    }
                     const addrInp = document.getElementById('unified-intake-address');
                     if (addrInp) job.address = addrInp.value.trim();
                     const scopeInp = document.getElementById('unified-intake-scope');
@@ -5247,6 +5392,26 @@ const app = {
                     this.renderJobs();
                     this.updateUnifiedStudioTabs();
                     this.updateUnifiedStudioIndicators();
+
+                    fetch(`/api/v1/jobs/${jobId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            project_sub_type: job.project_sub_type,
+                            service: job.service,
+                            services: job.services,
+                            customer: job.customer,
+                            phone: job.phone,
+                            address: job.address,
+                            scope_of_work: job.scope_of_work,
+                            internal_notes: job.internal_notes,
+                            job_type: job.job_type,
+                            plan_date: job.survey_date,
+                            assigned_tech: job.tech,
+                            step_timestamps: job.step_timestamps
+                        })
+                    }).catch(() => {});
+
                     this.showToast('✅ บันทึกข้อมูลสำรวจ & คลังรูปภาพ เรียบร้อยแล้ว (Passed)', 'success');
                 } else if (stepNum === 2) {
                     const bps = (DB.blueprints || []).filter(b => b.jobId === jobId);
@@ -5280,9 +5445,18 @@ const app = {
                 const metricEl = document.getElementById('unified-metric-photos');
                 if (!grid || !job) return;
 
-                // ไม่ inject Demo photos — ถ้าไม่มีรูปจริงให้แสดง empty state
+                let photos = Array.isArray(job.photos) ? [...job.photos] : [];
+                if (job.file_int_image && !photos.some(p => p.url === job.file_int_image || p.dataUrl === job.file_int_image)) {
+                    photos.unshift({
+                        id: 'INT_IMAGE_' + job.id,
+                        url: job.file_int_image,
+                        title: 'ภาพสำรวจจากระบบ INT',
+                        category: 'INT Source',
+                        tag: 'INT Photo',
+                        uploaded_at: job.created_at || new Date().toISOString()
+                    });
+                }
 
-                const photos = job.photos || [];
                 if (countEl) countEl.innerText = `${photos.length} รูป`;
                 if (metricEl) metricEl.innerText = `${photos.length} รูปถ่าย`;
 
@@ -6127,7 +6301,12 @@ const app = {
                 const phoneInp = document.getElementById('unified-intake-phone');
                 if (phoneInp && phoneInp.value) job.phone = phoneInp.value.trim();
                 const srvSelect = document.getElementById('unified-intake-service');
-                if (srvSelect) job.service = srvSelect.value;
+                if (srvSelect && srvSelect.value) {
+                    const srvVal = srvSelect.value.trim();
+                    job.service = srvVal;
+                    job.project_sub_type = srvVal;
+                    job.services = [srvVal];
+                }
                 const addrInp = document.getElementById('unified-intake-address');
                 if (addrInp) job.address = addrInp.value.trim();
                 const scopeInp = document.getElementById('unified-intake-scope');
@@ -6180,6 +6359,14 @@ const app = {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
+                            project_sub_type: job.project_sub_type,
+                            service: job.service,
+                            services: job.services,
+                            customer: job.customer,
+                            phone: job.phone,
+                            address: job.address,
+                            scope_of_work: job.scope_of_work,
+                            internal_notes: job.internal_notes,
                             status: job.status,
                             overall_progress: job.progress,
                             assigned_tech: job.tech,
@@ -6208,6 +6395,26 @@ const app = {
                 this.updateStepBadges();
                 this.updateUnifiedStudioTabs();
                 this.updateUnifiedStudioIndicators();
+
+                fetch(`/api/v1/jobs/${jobId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project_sub_type: job.project_sub_type,
+                        service: job.service,
+                        services: job.services,
+                        customer: job.customer,
+                        phone: job.phone,
+                        address: job.address,
+                        scope_of_work: job.scope_of_work,
+                        internal_notes: job.internal_notes,
+                        status: job.status,
+                        overall_progress: job.progress,
+                        assigned_tech: job.tech,
+                        step_timestamps: job.step_timestamps
+                    })
+                }).catch(() => {});
+
                 this.showToast(`💾 บันทึกข้อมูล Order & Design & BOQ สำหรับ [${jobId}] สำเร็จแล้ว (Passed)`);
             },
 
@@ -7438,8 +7645,9 @@ const app = {
                                 </span>
                                 ${this.getStatusHtml(job.status)}
                             </div>
-                            <h3 class="font-display font-bold text-lg text-foreground flex items-center gap-2">
-                                <span>${job.service || 'ไม่ระบุประเภทงาน'}</span>
+                            <h3 class="font-display font-bold text-lg text-foreground flex items-center gap-2 flex-wrap">
+                                <span>${job.project_sub_type || job.service || 'ไม่ระบุประเภทงาน'}</span>
+                                ${job.project_sub_type && job.service && job.project_sub_type !== job.service ? `<span class="text-xs px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-700 font-normal">(${job.service})</span>` : ''}
                             </h3>
                             <div class="text-xs text-muted-foreground flex items-center gap-2.5 flex-wrap">
                                 <span class="inline-flex items-center gap-1">
@@ -7458,6 +7666,12 @@ const app = {
                                 <span class="inline-flex items-center gap-1">
                                     <i class="ph ph-user-gear text-amber-600"></i> ช่าง: <strong class="text-foreground font-semibold">${job.tech || 'รอระบุช่าง'}</strong>
                                 </span>
+                                ${(job.store_code || job.agent_name) ? `
+                                    <span>•</span>
+                                    <span class="inline-flex items-center gap-1">
+                                        <i class="ph ph-storefront text-indigo-600"></i> สาขา: <strong class="text-foreground font-semibold">${[job.store_code, job.agent_name].filter(Boolean).join(' - ')}</strong>
+                                    </span>
+                                ` : ''}
                             </div>
                         </div>
                         <button type="button" onclick="app.hideModal('modal-job-preview-detail')" class="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition cursor-pointer" title="ปิดหน้าต่าง (Esc)">

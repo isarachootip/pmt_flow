@@ -471,7 +471,7 @@ function mapDbJobRow(row) {
             customerFullName = `คุณ${cust.first_name || ''} ${cust.last_name || ''}`.trim();
         }
     }
-    const primaryService = (Array.isArray(row.services) && row.services[0]) || row.project_sub_type || 'งานติดตั้ง';
+    const primaryService = (row.project_sub_type && row.project_sub_type.trim() && row.project_sub_type !== 'งานบริการ' ? row.project_sub_type.trim() : null) || (Array.isArray(row.services) && row.services[0]) || row.project_sub_type || 'งานติดตั้ง';
     return {
         ...row,
         id: row.job_no || `JOB-${row.id}`,
@@ -494,7 +494,10 @@ function mapDbJobRow(row) {
         lng: cust.lng || (cust.location?.longitude) || 100.5018,
         google_map_url: cust.google_map_url || (cust.location?.google_map_url) || '',
         service: primaryService,
-        services: Array.isArray(row.services) ? row.services : [primaryService],
+        services: Array.isArray(row.services) && row.services.length > 0 ? row.services : [primaryService],
+        project_sub_type: row.project_sub_type || primaryService,
+        store_code: row.store_code || (row.store_data?.code) || '',
+        agent_name: row.agent_name || (row.agent_data?.name) || '',
         job_details: Array.isArray(row.job_details) ? row.job_details : [],
         agent: row.agent_data || { name: row.agent_name },
         store: row.store_data || { code: row.store_code },
