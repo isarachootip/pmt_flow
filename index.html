@@ -5655,6 +5655,24 @@
                                     </ul>
                                 </div>
                             </details>
+
+                            <!-- Q23: Simplified Layout for Quick Services ("งาน Q") vs Renovate Projects -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q23:</span>
+                                        <span>รูปแบบหน้าต่างจัดการคำสั่งซื้อสำหรับงานบริการด่วน ("งาน Q") มีความแตกต่างจากโครงการ Renovate อย่างไร?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> เพื่อความสะดวกรวดเร็วในการทำงานของเจ้าหน้าที่ และให้สอดคล้องกับลักษณะของงานบริการด่วนที่ช่างได้รับการระบุมาจากระบบ INT เรียบร้อยแล้ว ระบบ PMT Flow ได้แบ่งเลย์เอาต์ของโมดอลจัดการคำสั่งซื้อเป็น 2 โหมดอย่างชัดเจน:</p>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
+                                        <li><strong>โหมดงานบริการด่วน ("งาน Q" / Quick Services):</strong> แสดงผลแบบกระชับ เรียบง่าย และสบายตาสูงสุด (Clean Minimalist View ขนาดกว้างพอดี 2 คอลัมน์) โดยคงไว้เฉพาะ <strong>2 การ์ดสำคัญ</strong> ได้แก่ <em>1) ข้อมูลลูกค้าและสถานที่หน้างาน</em> (รวมประเภทบริการ <code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">project_sub_type</code>, รหัสสาขา และผู้เปิดงานจาก INT) และ <em>2) การนัดหมายสำรวจหน้างานและรูปแบบโครงการ</em> (วันที่แบบ <code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">DD/MM/YYYY</code>, เวลา 24 ชม., ข้อมูลช่าง STAMP จาก INT) และมีปุ่มดำเนินการหลักเพียงปุ่มเดียวคือปุ่มสีส้ม <code class="bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold px-1.5 py-0.2 rounded text-[10px]">⚡ บันทึก & วิ่งไปหน้า QC ทันที (ปิดงาน)</code> โดยซ่อนแถบแท็บ 3 สเต็ป, คลังรูปถ่ายสำรวจ, แบบแปลน CAD, รายการ BOQ และปุ่มยกเลิกงาน/ปุ่มบันทึกซ้ำซ้อนออกทั้งหมด เพื่อให้ปิดงานได้ใน 1 คลิก</li>
+                                        <li><strong>โหมดโครงการ Renovate (Full PM & SA Studio):</strong> แสดงผลแบบ Ultra-Wide เต็มจอ 3 มิติครบวงจร ทั้งแถบนำทางด่วน (Sticky Tab Bar), เมทริกซ์สรุปภาพรวมสด, คลังรูปถ่ายสำรวจหน้างาน, สตูดิโอแนบแบบแปลน CAD แยกโซน, ตารางถอดแบบ BOQ & สรุปต้นทุนสด และระบบควบคุมเงื่อนไข Gating Rules ก่อนส่งต่องานไปยังขั้นตอนออก Ticket ต่อไป</li>
+                                    </ul>
+                                </div>
+                            </details>
                         </div>
                     </div>
                 </div>
@@ -7498,7 +7516,7 @@
                     </div>
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">All-in-One Studio</span>
+                            <span id="unified-modal-allinone-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">All-in-One Studio</span>
                             <span id="unified-modal-status-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30">
                                 <i class="ph ph-compass-tool mr-0.5"></i> SURVEYED (สำรวจแล้ว)
                             </span>
@@ -7524,7 +7542,7 @@
 
                 <!-- Live Metrics Pills & Close Button -->
                 <div class="flex items-center gap-2.5 flex-wrap justify-between lg:justify-end">
-                    <div class="flex items-center gap-2 text-xs">
+                    <div id="unified-header-metrics" class="flex items-center gap-2 text-xs">
                         <div class="px-3 py-1.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-700 dark:text-teal-300 flex items-center gap-1.5 font-medium" title="รูปถ่ายสำรวจหน้างานจากระบบภายนอก">
                             <i class="ph ph-camera text-sm"></i>
                             <span id="unified-metric-photos">0 รูปถ่าย</span>
@@ -7546,7 +7564,7 @@
             </div>
 
             <!-- Sticky Quick Navigation & Section Anchor Bar -->
-            <div class="px-4 sm:px-6 py-2.5 bg-muted/20 border-b border-border flex items-center justify-between gap-3 shrink-0 overflow-x-auto">
+            <div id="unified-sticky-nav-bar" class="px-4 sm:px-6 py-2.5 bg-muted/20 border-b border-border flex items-center justify-between gap-3 shrink-0 overflow-x-auto">
                 <div class="flex items-center gap-2">
                     <button type="button" id="tab-btn-unified-intake" onclick="app.scrollUnifiedStudioTo('intake')" class="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5 cursor-pointer transition shadow-2xs">
                         <i id="tab-icon-unified-intake" class="ph ph-clipboard-text text-sm"></i>
@@ -7585,9 +7603,9 @@
                 
                 <!-- SECTION 1: INTAKE & SURVEY PHOTOS -->
                 <section id="unified-sec-intake" class="space-y-5 scroll-mt-4">
-                    <div class="flex items-center justify-between border-b border-border pb-2.5">
+                    <div id="unified-sec1-header" class="flex items-center justify-between border-b border-border pb-2.5">
                         <div class="flex items-center gap-2.5">
-                            <span class="w-7 h-7 rounded-xl bg-teal-500 text-white font-bold text-xs flex items-center justify-center shadow-xs">1</span>
+                            <span id="unified-sec1-number-badge" class="w-7 h-7 rounded-xl bg-teal-500 text-white font-bold text-xs flex items-center justify-center shadow-xs">1</span>
                             <div>
                                 <h4 class="font-display font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
                                     ข้อมูลคำสั่งซื้อ & ผลสำรวจหน้างาน (Order Intake & Survey Information)
@@ -7595,11 +7613,11 @@
                                 <p class="text-xs text-muted-foreground">ข้อมูลลูกค้า, นัดหมายช่าง, สถานที่ติดตั้ง, และรูปถ่ายสำรวจหน้างานที่ส่งมาจากระบบภายนอก (INT)</p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs font-mono font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-lg border border-teal-500/20">
+                        <div id="unified-sec1-right-actions" class="flex items-center gap-2">
+                            <span id="unified-sec1-status-badge" class="text-xs font-mono font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-lg border border-teal-500/20">
                                 Status: Surveyed
                             </span>
-                            <button type="button" onclick="app.saveUnifiedStep(1)" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="บันทึกข้อมูลและผลสำรวจหน้างาน (Step 1)">
+                            <button type="button" id="unified-sec1-save-btn" onclick="app.saveUnifiedStep(1)" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="บันทึกข้อมูลและผลสำรวจหน้างาน (Step 1)">
                                 <i class="ph ph-floppy-disk text-sm"></i>
                                 <span>บันทึกข้อมูลสำรวจ</span>
                             </button>
@@ -7788,7 +7806,7 @@
                     </div>
 
                     <!-- Survey Photos Gallery (Prominent Site Photos Hub in Step 1) -->
-                    <div class="bg-card p-5 rounded-2xl border border-border space-y-4 shadow-2xs">
+                    <div id="unified-sec-photos" class="bg-card p-5 rounded-2xl border border-border space-y-4 shadow-2xs">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
                             <div class="flex items-center gap-2.5">
                                 <div class="w-8 h-8 rounded-xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center text-base font-bold">
@@ -7987,12 +8005,12 @@
 
             <!-- Sticky Bottom Action Bar (Handover Control Center) -->
             <div class="p-4 sm:p-5 bg-muted/40 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3.5 shrink-0">
-                <div class="flex items-center gap-2.5 text-xs text-muted-foreground">
+                <div id="unified-modal-footer-left" class="flex items-center gap-2.5 text-xs text-muted-foreground">
                     <span id="unified-modal-status-dot" class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
                     <span id="unified-modal-validation-msg" class="font-medium">ข้อมูลพร้อมสำหรับการจัดเตรียมข้อเสนอ แบบแปลน และการส่งต่อ</span>
                 </div>
-                <div class="flex items-center gap-2.5 w-full sm:w-auto">
-                    <button type="button" onclick="app.openCloseLostModal(app.state.unifiedStudioJobId)" class="btn-artifact-secondary text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition shadow-2xs" title="บันทึกปิดงานไม่สำเร็จ / ลูกค้ายกเลิก (Close Lost & Cancel Job)">
+                <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                    <button type="button" id="unified-modal-closelost-btn" onclick="app.openCloseLostModal(app.state.unifiedStudioJobId)" class="btn-artifact-secondary text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition shadow-2xs" title="บันทึกปิดงานไม่สำเร็จ / ลูกค้ายกเลิก (Close Lost & Cancel Job)">
                         <i class="ph ph-x-circle text-rose-500 text-sm"></i>
                         <span>🚫 Close Lost (ยกเลิกงาน)</span>
                     </button>

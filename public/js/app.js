@@ -4858,20 +4858,27 @@ const app = {
                     return;
                 }
 
+                // Determine if Quick Service or Renovate
+                const isQuick = this.isQuickJob(job);
+
                 // Header info
                 const titleEl = document.getElementById('unified-modal-job-id');
                 if (titleEl) {
-                    const isVFix = (job.booking_no && job.booking_no.startsWith('VFIX')) || (job.id && job.id.startsWith('VFIX')) || (job.job_no && job.job_no.startsWith('VFIX'));
-                    let extraTags = '';
-                    if (job.external_ref_id) {
-                        extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-muted text-foreground border border-border font-sans font-mono whitespace-nowrap"><i class="ph ph-tag"></i> Ref: ${job.external_ref_id}</span>`;
+                    if (isQuick) {
+                        titleEl.innerHTML = `${job.job_no || job.id}`;
+                    } else {
+                        const isVFix = (job.booking_no && job.booking_no.startsWith('VFIX')) || (job.id && job.id.startsWith('VFIX')) || (job.job_no && job.job_no.startsWith('VFIX'));
+                        let extraTags = '';
+                        if (job.external_ref_id) {
+                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-muted text-foreground border border-border font-sans font-mono whitespace-nowrap"><i class="ph ph-tag"></i> Ref: ${job.external_ref_id}</span>`;
+                        }
+                        if (job.booking_no) {
+                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans font-mono whitespace-nowrap"><i class="ph ph-bookmark-simple"></i> Booking: ${job.booking_no}</span>`;
+                        } else if (isVFix) {
+                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans whitespace-nowrap"><i class="ph ph-wrench"></i> vFIX: ${job.id}</span>`;
+                        }
+                        titleEl.innerHTML = `${job.job_no || job.id}${extraTags}`;
                     }
-                    if (job.booking_no) {
-                        extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans font-mono whitespace-nowrap"><i class="ph ph-bookmark-simple"></i> Booking: ${job.booking_no}</span>`;
-                    } else if (isVFix) {
-                        extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans whitespace-nowrap"><i class="ph ph-wrench"></i> vFIX: ${job.id}</span>`;
-                    }
-                    titleEl.innerHTML = `${job.job_no || job.id}${extraTags}`;
                 }
                 const custEl = document.getElementById('unified-modal-customer');
                 if (custEl) custEl.innerText = job.customer || 'คุณลูกค้า';
@@ -5116,57 +5123,103 @@ const app = {
             },
 
             applyUnifiedJobTypeUI(isQuick) {
-                const tabDesign = document.getElementById('tab-btn-unified-design');
-                const tabBoq = document.getElementById('tab-btn-unified-boq');
+                const modalContent = document.getElementById('modal-unified-order-studio-content');
+                const modalTitle = document.getElementById('unified-modal-title');
+                const allInOneBadge = document.getElementById('unified-modal-allinone-badge');
+                const statusBadge = document.getElementById('unified-modal-status-badge');
+                const headerMetrics = document.getElementById('unified-header-metrics');
+                const stickyNavBar = document.getElementById('unified-sticky-nav-bar');
+                const sec1Header = document.getElementById('unified-sec1-header');
+                const secPhotos = document.getElementById('unified-sec-photos');
                 const secDesign = document.getElementById('unified-sec-design');
                 const secBoq = document.getElementById('unified-sec-boq');
                 const bannerQuick = document.getElementById('unified-quick-skip-banner');
                 const badgeStamp = document.getElementById('unified-tech-stamp-badge');
-                const scrollHint = document.getElementById('unified-studio-scroll-hint');
+                const footerLeft = document.getElementById('unified-modal-footer-left');
+                const closeLostBtn = document.getElementById('unified-modal-closelost-btn');
+                const saveBtn = document.getElementById('unified-modal-save-btn');
+                const proceedBtn = document.getElementById('unified-modal-proceed-btn');
                 const proceedBtnText = document.getElementById('unified-modal-proceed-btn-text');
-                const saveBtnText = document.getElementById('unified-modal-save-btn-text');
+
+                // Quick skip banner is crossed out in mockup
+                if (bannerQuick) bannerQuick.classList.add('hidden');
 
                 if (isQuick) {
-                    // 1. Disable Tab 2 (Design) and Tab 3 (BOQ)
-                    if (tabDesign) {
-                        tabDesign.disabled = true;
-                        tabDesign.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-muted/40 text-muted-foreground/50 border border-dashed border-border/80 flex items-center gap-1.5 cursor-not-allowed opacity-40 pointer-events-none transition shadow-none';
-                        const badge = document.getElementById('tab-unified-design-badge');
-                        if (badge) {
-                            badge.innerText = 'ข้าม';
-                            badge.className = 'px-1.5 py-0.2 rounded-full text-[10px] bg-muted text-muted-foreground font-mono font-bold';
-                        }
-                    }
-                    if (tabBoq) {
-                        tabBoq.disabled = true;
-                        tabBoq.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-muted/40 text-muted-foreground/50 border border-dashed border-border/80 flex items-center gap-1.5 cursor-not-allowed opacity-40 pointer-events-none transition shadow-none';
-                        const badge = document.getElementById('tab-unified-boq-badge');
-                        if (badge) {
-                            badge.innerText = 'ข้าม';
-                            badge.className = 'px-1.5 py-0.2 rounded-full text-[10px] bg-muted text-muted-foreground font-mono font-bold';
-                        }
+                    // Modal sizing: compact and clean for 2 cards
+                    if (modalContent) {
+                        modalContent.classList.remove('max-w-7xl', 'h-[96vh]');
+                        modalContent.classList.add('max-w-5xl', 'h-auto');
                     }
 
-                    // 2. Hide Sections 2 and 3 in modal body
+                    // Modal title
+                    if (modalTitle) {
+                        modalTitle.innerText = 'ศูนย์จัดการคำสั่งซื้อ (งานบริการด่วน)';
+                    }
+
+                    // Hide header badges & live metrics
+                    if (allInOneBadge) allInOneBadge.classList.add('hidden');
+                    if (statusBadge) statusBadge.classList.add('hidden');
+                    if (headerMetrics) headerMetrics.classList.add('hidden');
+
+                    // Hide sticky tab bar
+                    if (stickyNavBar) stickyNavBar.classList.add('hidden');
+
+                    // Hide Section 1 header (number badge, surveyed status, save survey button)
+                    if (sec1Header) sec1Header.classList.add('hidden');
+
+                    // Hide photo gallery in Step 1
+                    if (secPhotos) secPhotos.classList.add('hidden');
+
+                    // Hide Section 2 (Design) and Section 3 (BOQ)
                     if (secDesign) secDesign.classList.add('hidden');
                     if (secBoq) secBoq.classList.add('hidden');
 
-                    // 3. Show Fast-track banner & STAMP badge
-                    if (bannerQuick) bannerQuick.classList.remove('hidden');
+                    // Show tech STAMP badge if available
                     if (badgeStamp) badgeStamp.classList.remove('hidden');
-                    if (scrollHint) {
-                        scrollHint.innerHTML = '<i class="ph ph-lightning text-amber-500 text-xs"></i> โหมด Quick Services: แสดงเฉพาะส่วนที่ 1 และวิ่งตรงไป QC';
-                    }
 
-                    // 4. Update action buttons
-                    if (proceedBtnText) {
-                        proceedBtnText.innerHTML = '<i class="ph ph-lightning-fill mr-1"></i> บันทึก & วิ่งไปหน้า QC ทันที (ปิดงาน)';
+                    // Footer: hide left validation info, close lost button, secondary save button
+                    if (footerLeft) footerLeft.classList.add('hidden');
+                    if (closeLostBtn) closeLostBtn.classList.add('hidden');
+                    if (saveBtn) saveBtn.classList.add('hidden');
+
+                    // Single prominent orange action button
+                    if (proceedBtn) {
+                        proceedBtn.disabled = false;
+                        proceedBtn.className = 'w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-md transition flex items-center justify-center gap-2';
+                        proceedBtn.title = 'บันทึกข้อมูลและส่งตรงไปยังหน้า QC Online ทันที (ปิดงาน)';
                     }
-                    if (saveBtnText) {
-                        saveBtnText.innerText = 'บันทึก & วิ่งไป QC';
+                    if (proceedBtnText) {
+                        proceedBtnText.innerHTML = '<i class="ph ph-lightning-fill text-sm font-bold"></i> บันทึก & วิ่งไปหน้า QC ทันที (ปิดงาน)';
                     }
                 } else {
-                    // Enable Tabs & Sections for Renovate
+                    // Restore Renovate Project Full Studio Layout
+                    if (modalContent) {
+                        modalContent.classList.remove('max-w-5xl', 'h-auto');
+                        modalContent.classList.add('max-w-7xl', 'h-[96vh]');
+                    }
+
+                    if (modalTitle) {
+                        modalTitle.innerText = 'ศูนย์จัดการคำสั่งซื้อ • แบบแปลน Design • BOQ (PM & SA Studio)';
+                    }
+
+                    if (allInOneBadge) allInOneBadge.classList.remove('hidden');
+                    if (statusBadge) statusBadge.classList.remove('hidden');
+                    if (headerMetrics) headerMetrics.classList.remove('hidden');
+
+                    if (stickyNavBar) stickyNavBar.classList.remove('hidden');
+                    if (sec1Header) sec1Header.classList.remove('hidden');
+                    if (secPhotos) secPhotos.classList.remove('hidden');
+                    if (secDesign) secDesign.classList.remove('hidden');
+                    if (secBoq) secBoq.classList.remove('hidden');
+
+                    if (badgeStamp) badgeStamp.classList.add('hidden');
+
+                    if (footerLeft) footerLeft.classList.remove('hidden');
+                    if (closeLostBtn) closeLostBtn.classList.remove('hidden');
+                    if (saveBtn) saveBtn.classList.remove('hidden');
+
+                    const tabDesign = document.getElementById('tab-btn-unified-design');
+                    const tabBoq = document.getElementById('tab-btn-unified-boq');
                     if (tabDesign) {
                         tabDesign.disabled = false;
                         tabDesign.classList.remove('opacity-40', 'cursor-not-allowed', 'pointer-events-none', 'border-dashed');
@@ -5188,16 +5241,12 @@ const app = {
                             badge.className = 'px-1.5 py-0.2 rounded-full text-[10px] bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono font-bold';
                         }
                     }
-                    if (secDesign) secDesign.classList.remove('hidden');
-                    if (secBoq) secBoq.classList.remove('hidden');
-                    if (bannerQuick) bannerQuick.classList.add('hidden');
-                    if (badgeStamp) badgeStamp.classList.add('hidden');
+
+                    const scrollHint = document.getElementById('unified-studio-scroll-hint');
                     if (scrollHint) {
                         scrollHint.innerHTML = '<i class="ph ph-arrows-down-up text-xs"></i> สามารถเลื่อน Scroll ดูต่อเนื่องได้ทั้ง 3 ส่วน';
                     }
-                    if (proceedBtnText) {
-                        proceedBtnText.innerHTML = '🚀 อนุมัติ & ส่งเข้าสู่แผนงาน';
-                    }
+                    const saveBtnText = document.getElementById('unified-modal-save-btn-text');
                     if (saveBtnText) {
                         saveBtnText.innerText = 'บันทึกข้อมูล (Save)';
                     }
@@ -5215,6 +5264,24 @@ const app = {
                     const techInp = document.getElementById('unified-intake-tech');
                     if (techInp) techInp.value = job.tech;
                     this.scrollUnifiedStudioTo('intake');
+                }
+                const titleEl = document.getElementById('unified-modal-job-id');
+                if (titleEl) {
+                    if (isQuick) {
+                        titleEl.innerHTML = `${job.job_no || job.id}`;
+                    } else {
+                        const isVFix = (job.booking_no && job.booking_no.startsWith('VFIX')) || (job.id && job.id.startsWith('VFIX')) || (job.job_no && job.job_no.startsWith('VFIX'));
+                        let extraTags = '';
+                        if (job.external_ref_id) {
+                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-muted text-foreground border border-border font-sans font-mono whitespace-nowrap"><i class="ph ph-tag"></i> Ref: ${job.external_ref_id}</span>`;
+                        }
+                        if (job.booking_no) {
+                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans font-mono whitespace-nowrap"><i class="ph ph-bookmark-simple"></i> Booking: ${job.booking_no}</span>`;
+                        } else if (isVFix) {
+                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans whitespace-nowrap"><i class="ph ph-wrench"></i> vFIX: ${job.id}</span>`;
+                        }
+                        titleEl.innerHTML = `${job.job_no || job.id}${extraTags}`;
+                    }
                 }
                 this.applyUnifiedJobTypeUI(isQuick);
                 this.updateUnifiedStudioTabs();
@@ -6233,13 +6300,20 @@ const app = {
 
                 if (isQuick) {
                     // Quick Services: Fast-track directly to QC Online (Bypass Step 2-3 & Ticket)
+                    const footerLeft = document.getElementById('unified-modal-footer-left');
+                    const closeLostBtn = document.getElementById('unified-modal-closelost-btn');
+                    const saveBtn = document.getElementById('unified-modal-save-btn');
+                    if (footerLeft) footerLeft.classList.add('hidden');
+                    if (closeLostBtn) closeLostBtn.classList.add('hidden');
+                    if (saveBtn) saveBtn.classList.add('hidden');
+
                     if (proceedBtn) {
                         proceedBtn.disabled = false;
-                        proceedBtn.className = 'flex-1 sm:flex-none btn-artifact-primary px-6 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white cursor-pointer shadow-md transition flex items-center justify-center gap-1.5';
-                        proceedBtn.title = 'บันทึกข้อมูลและส่งตรงไปยังหน้า QC เพื่อตรวจรับรองและปิดงานทันที (ข้าม Step 2-3 และ Ticket)';
+                        proceedBtn.className = 'w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-md transition flex items-center justify-center gap-2';
+                        proceedBtn.title = 'บันทึกข้อมูลและส่งตรงไปยังหน้า QC Online ทันที (ปิดงาน)';
                     }
                     if (proceedBtnText) {
-                        proceedBtnText.innerHTML = '<i class="ph ph-lightning-fill text-sm"></i> บันทึก & วิ่งไปหน้า QC ทันที (ปิดงาน)';
+                        proceedBtnText.innerHTML = '<i class="ph ph-lightning-fill text-sm font-bold"></i> บันทึก & วิ่งไปหน้า QC ทันที (ปิดงาน)';
                     }
                     const saveBtnText = document.getElementById('unified-modal-save-btn-text');
                     if (saveBtnText) saveBtnText.innerText = 'บันทึก & วิ่งไป QC';
@@ -6248,6 +6322,13 @@ const app = {
                         validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5"><i class="ph ph-check-circle-fill text-base"></i> งาน Quick Service ข้ามขั้นตอน Step 2-3 และไม่ต้องไป Ticket พร้อมส่งตรงเข้า QC เพื่อปิดงาน</span>';
                     }
                 } else {
+                    const footerLeft = document.getElementById('unified-modal-footer-left');
+                    const closeLostBtn = document.getElementById('unified-modal-closelost-btn');
+                    const saveBtn = document.getElementById('unified-modal-save-btn');
+                    if (footerLeft) footerLeft.classList.remove('hidden');
+                    if (closeLostBtn) closeLostBtn.classList.remove('hidden');
+                    if (saveBtn) saveBtn.classList.remove('hidden');
+
                     // Renovate Projects: MANDATORY BOQ BEFORE STEP 2 (CONVERSION)
                     if (!hasBOQ) {
                         // CANNOT proceed to Step 2 if BOQ is NOT passed!
