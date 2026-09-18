@@ -506,14 +506,7 @@
                     <!-- Environment Status Badge (Auto-detected: UAT vs PROD) -->
                     <div id="topbar-env-badge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"></div>
 
-                    <!-- Command Bar Search Input -->
-                    <div class="relative w-64 lg:w-72 hidden md:block">
-                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
-                        <input type="text" id="global-search-input" onkeyup="app.handleGlobalSearch(event)" placeholder="ค้นหางาน, ช่าง, ลูกค้า..." class="w-full bg-muted/60 border border-border rounded-lg py-1.5 pl-9 pr-12 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all">
-                        <div class="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
-                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-card text-muted-foreground border border-border">⌘K</span>
-                        </div>
-                    </div>
+
                 </div>
 
                 <!-- Right Actions -->
@@ -772,14 +765,10 @@
                 <div id="page-jobs" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">Unified Studio</span>
-                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">ศูนย์รับคำสั่งซื้อ • Design แบบแปลน • BOQ (Order & Proposal Studio)</h2>
-                            </div>
-                            <p class="text-xs text-muted-foreground mt-0.5">คิวงานคำสั่งซื้อใหม่ พร้อมระบบจัดการแบบแปลน CAD/3D และประมาณการราคา BOQ แบบ One-Stop Shop ครบจบในหน้าจอเดียว</p>
+                            <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">ศูนย์รับคำสั่งซื้อ</h2>
                         </div>
                         <div class="flex flex-wrap items-center gap-2.5">
-                            <div class="relative w-64">
+                            <div class="relative w-64 sm:w-72">
                                 <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
                                 <input type="text" id="jobs-table-search" oninput="app.filterJobsTable()" placeholder="ค้นหาเลขที่งาน, Ref ID, Booking, วันนัด, ลูกค้า..." class="w-full bg-card border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-brand-500 shadow-2xs">
                             </div>
@@ -793,14 +782,6 @@
                                 <span>ล้างข้อมูลโครงการ</span>
                             </button>
                             <div class="flex items-center gap-2 shrink-0">
-                                <button onclick="app.showStep1TrainingGuide()" class="btn-artifact-secondary text-brand-600 dark:text-brand-400 hover:bg-brand-500/10 border-brand-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการใช้งานหน้าจอ Step 1 (Training Screen Guide)">
-                                    <i class="ph ph-graduation-cap text-brand-500 text-sm"></i>
-                                    <span>คู่มือ Order Studio</span>
-                                </button>
-                                <button onclick="app.exportAllJobsAuditCSV()" class="btn-artifact-secondary text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="ดาวน์โหลดรายงานสรุปเวลา Timestamp ทุก Step ของทุกโครงการเพื่อนำไปทำ Report">
-                                    <i class="ph ph-file-csv text-emerald-500 text-sm"></i>
-                                    <span>Export รายงาน Timestamps</span>
-                                </button>
                                 <button id="btn-dev-simulate-int" onclick="app.resetToINTOrdersOnly(true)" class="btn-artifact-secondary isara-only text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 border-purple-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer shadow-xs" title="ล้างระบบและรีเซ็ตเริ่มต้นใหม่ โดยคงไว้เฉพาะ 20 Order จาก INT (Quick 10, Renovate 10) ในสถานะ Step 1 [เฉพาะ Isara Chootip]">
                                     <i class="ph ph-arrows-clockwise text-brand-500 text-sm"></i>
                                     <span>รีเซ็ตเหลือเฉพาะ Order INT</span>
@@ -815,31 +796,17 @@
 
                     <!-- STEP 1 DASHBOARD (KPI CARDS & SEGMENT DISTRIBUTION - STYLE OF REFERENCE) -->
                     <div class="artifact-card p-5 space-y-5 bg-card/70 border border-border/80 rounded-2xl shadow-xs">
-                        <!-- Dashboard Header -->
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20 flex items-center justify-center text-base">
-                                    <i class="ph ph-chart-pie-slice"></i>
-                                </div>
-                                <div>
-                                    <h3 class="font-display text-base font-bold text-foreground tracking-tight flex items-center gap-2">
-                                        Order Intake Analytics & KPI
-                                        <span class="text-[11px] font-normal text-muted-foreground font-sans">(ภาพรวมสถิติงานรับคำสั่งซื้อ)</span>
-                                    </h3>
-                                    <p class="text-[11px] text-muted-foreground">สรุปปริมาณคำสั่งซื้อใหม่จาก INT อัตรางานค้างในคิว และสัดส่วนประเภทบริการ</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 self-start sm:self-auto">
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    Realtime Live
-                                </span>
-                                <span id="dash-date-indicator" class="text-[11px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/60 border border-border">วันนี้</span>
-                                <button type="button" onclick="app.openSLAConfigModal('step1')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border-blue-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ Step 1">
-                                    <i class="ph ph-gear-six text-xs"></i>
-                                    <span>ตั้งค่า SLA</span>
-                                </button>
-                            </div>
+                        <!-- Dashboard Header (Clean & Minimal) -->
+                        <div class="flex items-center justify-end gap-2 border-b border-border/60 pb-2.5">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                Realtime Live
+                            </span>
+                            <span id="dash-date-indicator" class="text-[11px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/60 border border-border">วันนี้</span>
+                            <button type="button" onclick="app.openSLAConfigModal('step1')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border-blue-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ Step 1">
+                                <i class="ph ph-gear-six text-xs"></i>
+                                <span>ตั้งค่า SLA</span>
+                            </button>
                         </div>
 
                         <!-- Top 5 Primary KPI Cards (ยอดงานเข้า ทั้งหมด, ยอดเข้าวันนี้, รอรับเข้า PMT, สถานะ SLA, ยอด Close Lost) -->
@@ -1036,27 +1003,7 @@
                                 </div>
                             </div>
 
-                            <!-- Segmented Progress Bar (Visual distribution) -->
-                            <div class="mt-3">
-                                <div class="w-full bg-muted/60 rounded-full h-2 flex overflow-hidden border border-border/40" id="dash-segment-bar">
-                                    <div id="bar-quick" class="bg-amber-500 transition-all duration-300 h-full" style="width: 30%" title="Quick Services"></div>
-                                    <div id="bar-renovate" class="bg-indigo-500 transition-all duration-300 h-full" style="width: 40%" title="Renovate Projects"></div>
-                                    <div id="bar-ma" class="bg-purple-500 transition-all duration-300 h-full" style="width: 30%" title="MA & Maintenance"></div>
-                                </div>
-                            </div>
                         </div>
-                    </div>
-
-                    <!-- Contextual Queue Banner -->
-                    <div id="step1-queue-banner" class="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-950 dark:text-indigo-200 flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-2.5">
-                            <span class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 flex items-center justify-center font-bold text-sm shrink-0">✨</span>
-                            <div>
-                                <span class="font-bold">ศูนย์รวมงาน Order Intake, Design & BOQ Studio:</span>
-                                <span class="text-muted-foreground ml-1">จัดการข้อมูลคำสั่งซื้อ, แนบแบบแปลน CAD/3D, และคิดราคา BOQ ครบจบในที่เดียว พร้อมกดอนุมัติส่งมอบงานไปยังฝ่ายปฏิบัติการและแผนงาน Gantt ได้ทันที</span>
-                            </div>
-                        </div>
-                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-bold shrink-0">3-in-1 Unified Hub</span>
                     </div>
                     
                     <div class="artifact-card overflow-hidden shadow-sm">
@@ -1085,19 +1032,39 @@
                             <span id="appt-date-filter-count" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 hidden"></span>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs">
-                                <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
+                            <table class="w-full text-left">
+                                <thead class="bg-muted/60 border-b border-border text-foreground font-bold text-sm">
                                     <tr>
-                                        <th class="px-3 py-2.5 whitespace-nowrap">เลขที่งาน</th>
-                                        <th class="px-2.5 py-2.5 whitespace-nowrap">เลขที่อ้างอิง (Ref ID)</th>
-                                        <th class="px-2.5 py-2.5 whitespace-nowrap">เลขที่ Booking</th>
-                                        <th class="px-2.5 py-2.5 whitespace-nowrap">กำหนดวันนัด</th>
-                                        <th class="px-3 py-2.5 min-w-[125px] max-w-[150px]">ลูกค้า &amp; เบอร์ติดต่อ</th>
-                                        <th class="px-2.5 py-2.5 min-w-[115px] max-w-[140px]">ประเภทบริการ</th>
-                                        <th class="px-2.5 py-2.5 whitespace-nowrap">วันที่รับ Order</th>
-                                        <th class="px-2.5 py-2.5 whitespace-nowrap">แบบแปลน (Design)</th>
-                                        <th class="px-2.5 py-2.5 whitespace-nowrap">ประมาณการ (BOQ)</th>
-                                        <th class="px-3 py-2.5 text-right whitespace-nowrap">Studio จัดการงาน</th>
+                                        <th class="px-3.5 py-3 whitespace-nowrap">เลขที่งาน</th>
+                                        <th class="px-3 py-3 whitespace-nowrap">เลขที่อ้างอิง (Ref ID)</th>
+                                        <th class="px-3 py-3 whitespace-nowrap">เลขที่ Booking</th>
+                                        <th class="px-3 py-3 whitespace-nowrap">
+                                            <div class="flex items-center gap-2">
+                                                <span>กำหนดวันนัด</span>
+                                                <select id="filter-appt-quick" onchange="app.handleApptQuickFilter(this.value)" class="text-xs bg-card border border-border rounded-md px-2 py-1 text-foreground font-normal cursor-pointer focus:outline-none focus:border-brand-500 shadow-2xs" title="กรองด่วนตามกำหนดวันนัด">
+                                                    <option value="all">ทั้งหมด</option>
+                                                    <option value="today">นัดวันนี้</option>
+                                                    <option value="upcoming">นัดข้างหน้า</option>
+                                                    <option value="overdue">เกินกำหนดนัด</option>
+                                                </select>
+                                            </div>
+                                        </th>
+                                        <th class="px-3.5 py-3 min-w-[140px] max-w-[180px]">ลูกค้า &amp; เบอร์ติดต่อ</th>
+                                        <th class="px-3 py-3 min-w-[160px]">
+                                            <div class="flex items-center gap-2">
+                                                <span>ประเภทบริการ</span>
+                                                <select id="filter-service" onchange="app.filterJobsTable()" class="text-xs bg-card border border-border rounded-md px-2 py-1 text-foreground font-normal cursor-pointer focus:outline-none focus:border-brand-500 shadow-2xs" title="กรองตามประเภทบริการ">
+                                                    <option value="all">ทั้งหมด</option>
+                                                    <option value="quick">Quick Services</option>
+                                                    <option value="renovate">Renovate</option>
+                                                    <option value="ma">MA & Maintenance</option>
+                                                </select>
+                                            </div>
+                                        </th>
+                                        <th class="px-3 py-3 whitespace-nowrap">วันที่รับ Order</th>
+                                        <th class="px-3 py-3 whitespace-nowrap">แบบแปลน (Design)</th>
+                                        <th class="px-3 py-3 whitespace-nowrap">ประมาณการ (BOQ)</th>
+                                        <th class="px-3.5 py-3 text-right whitespace-nowrap">Studio จัดการงาน</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-border" id="jobs-table-body">

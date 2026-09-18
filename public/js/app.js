@@ -4452,7 +4452,15 @@ const app = {
 
                 let list = DB.jobs || [];
                 if (serviceFilter !== 'all') {
-                    list = list.filter(j => j.service === serviceFilter);
+                    if (serviceFilter === 'quick') {
+                        list = list.filter(j => this.isQuickJob(j) || (j.job_type || '').toLowerCase() === 'quick');
+                    } else if (serviceFilter === 'renovate') {
+                        list = list.filter(j => !this.isQuickJob(j) && ((j.job_type || '').toLowerCase() === 'renovate' || (j.service || '').toLowerCase().includes('renovate')));
+                    } else if (serviceFilter === 'ma') {
+                        list = list.filter(j => (j.job_type || '').toLowerCase() === 'ma' || (j.service || '').toLowerCase().includes('ma'));
+                    } else {
+                        list = list.filter(j => j.service === serviceFilter);
+                    }
                 }
 
                 if (hasDateFilter) {
@@ -4495,7 +4503,7 @@ const app = {
                 // Update filter count badge
                 const countBadge = document.getElementById('appt-date-filter-count');
                 if (countBadge) {
-                    if (hasDateFilter) {
+                    if (hasDateFilter || serviceFilter !== 'all' || query) {
                         countBadge.textContent = `พบ ${list.length} รายการ`;
                         countBadge.classList.remove('hidden');
                     } else {
@@ -4503,11 +4511,64 @@ const app = {
                     }
                 }
 
-                if (query || hasDateFilter) {
+                if (query || hasDateFilter || serviceFilter !== 'all') {
                     this.renderJobs(list);
                 } else {
                     this.renderJobs();
                 }
+            },
+
+            handleApptQuickFilter(preset) {
+                const dateFromEl = document.getElementById('filter-appt-date-from');
+                const dateToEl = document.getElementById('filter-appt-date-to');
+                const now = new Date();
+                const todayStr = this.formatDateDMY(now);
+
+                if (preset === 'today') {
+                    if (dateFromEl) {
+                        if (dateFromEl._flatpickr) dateFromEl._flatpickr.setDate(now, true, 'd/m/Y');
+                        else dateFromEl.value = todayStr;
+                    }
+                    if (dateToEl) {
+                        if (dateToEl._flatpickr) dateToEl._flatpickr.setDate(now, true, 'd/m/Y');
+                        else dateToEl.value = todayStr;
+                    }
+                } else if (preset === 'upcoming') {
+                    const nextMonth = new Date();
+                    nextMonth.setDate(now.getDate() + 30);
+                    if (dateFromEl) {
+                        if (dateFromEl._flatpickr) dateFromEl._flatpickr.setDate(now, true, 'd/m/Y');
+                        else dateFromEl.value = todayStr;
+                    }
+                    if (dateToEl) {
+                        if (dateToEl._flatpickr) dateToEl._flatpickr.setDate(nextMonth, true, 'd/m/Y');
+                        else dateToEl.value = this.formatDateDMY(nextMonth);
+                    }
+                } else if (preset === 'overdue') {
+                    const pastYear = new Date();
+                    pastYear.setFullYear(now.getFullYear() - 1);
+                    const yesterday = new Date();
+                    yesterday.setDate(now.getDate() - 1);
+                    if (dateFromEl) {
+                        if (dateFromEl._flatpickr) dateFromEl._flatpickr.setDate(pastYear, true, 'd/m/Y');
+                        else dateFromEl.value = this.formatDateDMY(pastYear);
+                    }
+                    if (dateToEl) {
+                        if (dateToEl._flatpickr) dateToEl._flatpickr.setDate(yesterday, true, 'd/m/Y');
+                        else dateToEl.value = this.formatDateDMY(yesterday);
+                    }
+                } else {
+                    // all
+                    if (dateFromEl) {
+                        if (dateFromEl._flatpickr) dateFromEl._flatpickr.clear();
+                        else dateFromEl.value = '';
+                    }
+                    if (dateToEl) {
+                        if (dateToEl._flatpickr) dateToEl._flatpickr.clear();
+                        else dateToEl.value = '';
+                    }
+                }
+                this.filterJobsTable();
             },
 
             clearApptDateFilter() {
@@ -4521,6 +4582,8 @@ const app = {
                     if (dateToEl._flatpickr) dateToEl._flatpickr.clear();
                     else dateToEl.value = '';
                 }
+                const quickEl = document.getElementById('filter-appt-quick');
+                if (quickEl) quickEl.value = 'all';
                 const countBadge = document.getElementById('appt-date-filter-count');
                 if (countBadge) countBadge.classList.add('hidden');
                 this.renderJobs();
@@ -4574,7 +4637,15 @@ const app = {
 
                 if (!jobList) {
                     if (serviceFilter !== 'all') {
-                        list = list.filter(j => j.service === serviceFilter);
+                        if (serviceFilter === 'quick') {
+                            list = list.filter(j => this.isQuickJob(j) || (j.job_type || '').toLowerCase() === 'quick');
+                        } else if (serviceFilter === 'renovate') {
+                            list = list.filter(j => !this.isQuickJob(j) && ((j.job_type || '').toLowerCase() === 'renovate' || (j.service || '').toLowerCase().includes('renovate')));
+                        } else if (serviceFilter === 'ma') {
+                            list = list.filter(j => (j.job_type || '').toLowerCase() === 'ma' || (j.service || '').toLowerCase().includes('ma'));
+                        } else {
+                            list = list.filter(j => j.service === serviceFilter);
+                        }
                     }
                     // Show Step 1 jobs: SURVEYED (survey jobs from INT) AND NEW/DRAFT (not yet accepted)
                     list = list.filter(j => 
@@ -4601,10 +4672,8 @@ const app = {
                 }
 
                 const html = list.map((j, idx) => {
-                    const isTop3New = idx < 3;
                     const isQuick = this.isQuickJob(j);
                     const isSurvey = j.status === 'SURVEYED' || j.status === 'Survey' || j.status === 'Surveyed';
-                    const isVFix = (j.booking_no && j.booking_no.startsWith('VFIX')) || (j.id && j.id.startsWith('VFIX')) || (j.job_no && j.job_no.startsWith('VFIX')) || (j.source_channel === 'VFIX');
 
                     // Design / Blueprints status
                     const jobBps = (DB.blueprints || []).filter(b => b.jobId === j.id);
@@ -4617,126 +4686,117 @@ const app = {
                     const grandTotal = j.boq_grand_total || (boqItems.reduce((acc, item) => acc + ((Number(item.qty) || 0) * (Number(item.price) || 0)), 0));
                     const hasBOQ = itemsCount > 0;
 
-                    const isRecentlyCreated = j.created_at && (Date.now() - new Date(j.created_at).getTime() < 24 * 60 * 60 * 1000);
-                    const shouldShowNewBadge = isTop3New || isRecentlyCreated;
+                    // Shorten job number (strip VFIX- or JOB-)
+                    const rawId = String(j.id || '');
+                    const shortId = rawId.replace(/^(VFIX|JOB)-?/i, '');
+                    const displayId = shortId || rawId;
 
                     return `
-                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSurvey ? 'bg-teal-500/[0.03] border-l-2 border-l-teal-500' : shouldShowNewBadge ? 'bg-indigo-500/[0.02]' : ''}" onclick="app.openUnifiedOrderStudio('${j.id}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${j.id})">
-                        <td class="px-3 py-2.5 font-mono font-semibold text-brand-500 whitespace-nowrap">
+                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSurvey ? 'bg-teal-500/[0.03] border-l-2 border-l-teal-500' : ''}" onclick="app.openUnifiedOrderStudio('${j.id}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${j.id})">
+                        <td class="px-3.5 py-3 font-mono whitespace-nowrap">
                             <div class="flex items-center gap-1.5 flex-wrap">
-                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-brand-600 dark:text-brand-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
-                                    <span>${j.id}</span>
-                                    <i class="ph ph-arrow-square-out text-[11px] opacity-70"></i>
+                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-extrabold text-sm sm:text-base text-brand-600 dark:text-brand-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
+                                    <span>${displayId}</span>
+                                    <i class="ph ph-arrow-square-out text-xs opacity-70"></i>
                                 </button>
-                                ${shouldShowNewBadge ? `
-                                    <span class="badge-new-item" title="รายการคำสั่งซื้อใหม่ล่าสุด (NEW!)">
-                                        <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
-                                    </span>
-                                ` : ''}
-                                ${isVFix ? `
-                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 shadow-2xs" title="คำสั่งซื้อต้นทางระบบ vFIX (${j.booking_no || j.id})">
-                                        <i class="ph ph-wrench text-[10px]"></i> vFIX
-                                    </span>
-                                ` : ''}
                                 ${isSurvey ? `
-                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-teal-500/15 text-teal-700 border border-teal-500/30" title="งานสำรวจหน้างานจากระบบภายนอก (INT)">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-teal-500/15 text-teal-700 border border-teal-500/30" title="งานสำรวจหน้างานจากระบบภายนอก (INT)">
                                         <i class="ph ph-compass-tool"></i> SURVEY
                                     </span>
                                 ` : ''}
                             </div>
                         </td>
-                        <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                            ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
+                        <td class="px-3 py-3 font-mono whitespace-nowrap">
+                            ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-xs sm:text-sm font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground text-sm">-</span>'}
                         </td>
-                        <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                            ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                        <td class="px-3 py-3 font-mono whitespace-nowrap">
+                            ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-xs sm:text-sm font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground text-sm">-</span>'}
                         </td>
-                        <td class="px-2.5 py-2.5 whitespace-nowrap">
+                        <td class="px-3 py-3 whitespace-nowrap">
                             ${(j.plan_date || j.date) ? `
-                                <div class="inline-flex items-center gap-1 font-mono text-[11px] text-foreground font-semibold whitespace-nowrap">
-                                    <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-xs shrink-0"></i>
+                                <div class="inline-flex items-center gap-1.5 font-mono text-sm sm:text-base text-foreground font-bold whitespace-nowrap">
+                                    <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-base shrink-0"></i>
                                     <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
                                 </div>
-                            ` : '<span class="text-muted-foreground">-</span>'}
+                            ` : '<span class="text-muted-foreground text-sm">-</span>'}
                         </td>
-                        <td class="px-3 py-2.5 min-w-[125px] max-w-[150px]">
-                            <div class="text-foreground font-semibold text-xs truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition flex items-center gap-1.5" title="${j.customer || ''}">
+                        <td class="px-3.5 py-3 min-w-[140px] max-w-[180px]">
+                            <div class="text-foreground font-bold text-sm sm:text-base truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition" title="${j.customer || ''}">
                                 <span class="truncate">${j.customer}</span>
-                                ${shouldShowNewBadge ? `<span class="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0 animate-ping" title="รายการใหม่ล่าสุด"></span>` : ''}
                             </div>
-                            <div class="text-[11px] text-muted-foreground font-mono flex items-center gap-1 mt-0.5 truncate">
-                                <i class="ph ph-phone text-[10px] shrink-0"></i>
+                            <div class="text-xs sm:text-sm text-muted-foreground font-mono flex items-center gap-1 mt-0.5 truncate">
+                                <i class="ph ph-phone text-xs shrink-0"></i>
                                 <span class="truncate">${j.phone}</span>
                             </div>
                         </td>
-                        <td class="px-2.5 py-2.5 min-w-[115px] max-w-[140px] text-muted-foreground">
-                            <div class="flex items-center gap-1 flex-wrap">
-                                <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase shrink-0 ${isQuick ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'}">${isQuick ? 'quick' : 'renovate'}</span>
-                                <span class="text-xs font-medium text-foreground truncate" title="${j.service || ''}">
+                        <td class="px-3 py-3 min-w-[140px] max-w-[170px] text-muted-foreground">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="px-2 py-0.5 rounded text-xs font-mono font-bold uppercase shrink-0 ${isQuick ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30' : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30'}">${isQuick ? 'quick' : 'renovate'}</span>
+                                <span class="text-sm sm:text-base font-bold text-foreground truncate" title="${j.service || ''}">
                                     ${j.service}
                                 </span>
                             </div>
-                            <div class="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1 truncate">
-                                <i class="ph ph-user-gear text-[10px] shrink-0"></i>
+                            <div class="text-xs sm:text-sm text-muted-foreground mt-0.5 flex items-center gap-1 truncate">
+                                <i class="ph ph-user-gear text-xs shrink-0"></i>
                                 <span class="truncate">${j.tech || 'รอระบุช่าง'}</span>
                             </div>
                         </td>
-                        <td class="px-2.5 py-2.5 whitespace-nowrap">
+                        <td class="px-3 py-3 whitespace-nowrap">
                             ${(() => {
                                 const intakeTs = (j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || (j.date ? `${j.date}T08:30:00.000Z` : null);
                                 const formatted = this.formatTimestamp(intakeTs);
                                 const isToday = intakeTs && (() => { try { const d = new Date(intakeTs); const now = new Date(); return d.toDateString() === now.toDateString(); } catch(e) { return false; } })();
                                 return `<div class="flex flex-col gap-0.5">
-                                    <div class="font-mono text-[11px] ${isToday ? 'text-emerald-600 font-semibold' : 'text-foreground'} flex items-center gap-1">
-                                        <i class="ph ph-clock text-[10px] ${isToday ? 'text-emerald-500' : 'text-muted-foreground'}"></i>
+                                    <div class="font-mono text-xs sm:text-sm ${isToday ? 'text-emerald-600 font-bold' : 'text-foreground font-medium'} flex items-center gap-1.5">
+                                        <i class="ph ph-clock text-xs ${isToday ? 'text-emerald-500' : 'text-muted-foreground'}"></i>
                                         <span>${formatted}</span>
                                     </div>
-                                    ${isToday ? '<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 w-fit">วันนี้</span>' : ''}
+                                    ${isToday ? '<span class="text-[10px] font-bold px-2 py-0.2 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 w-fit">วันนี้</span>' : ''}
                                 </div>`;
                             })()}
                         </td>
-                        <td class="px-2.5 py-2.5 whitespace-nowrap">
+                        <td class="px-3 py-3 whitespace-nowrap">
                             ${isQuick ? `
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-muted/80 text-muted-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอนแบบแปลน">
-                                    <i class="ph ph-minus text-[10px]"></i> ข้าม (Quick)
+                                <span class="px-2.5 py-1 rounded text-xs font-bold bg-muted/80 text-muted-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอนแบบแปลน">
+                                    <i class="ph ph-minus text-xs"></i> ข้าม (Quick)
                                 </span>
                             ` : hasBps ? `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'design')" class="px-2 py-1 rounded-lg text-xs font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1 hover:bg-indigo-500/25 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไขแบบแปลน ${bpCount} รายการ">
-                                    <i class="ph ph-blueprint text-indigo-600 dark:text-indigo-400 text-xs"></i>
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'design')" class="px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1.5 hover:bg-indigo-500/25 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไขแบบแปลน ${bpCount} รายการ">
+                                    <i class="ph ph-blueprint text-indigo-600 dark:text-indigo-400 text-sm"></i>
                                     <span>${bpCount} แบบ</span>
                                 </button>
                             ` : `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'design')" class="px-2 py-1 rounded-lg text-[11px] font-medium bg-muted hover:bg-indigo-500/10 text-muted-foreground hover:text-indigo-600 border border-border inline-flex items-center gap-1 transition cursor-pointer whitespace-nowrap" title="แนบแบบแปลน 2D/3D">
-                                    <i class="ph ph-plus-circle text-xs"></i>
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'design')" class="px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-muted hover:bg-indigo-500/10 text-muted-foreground hover:text-indigo-600 border border-border inline-flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap" title="แนบแบบแปลน 2D/3D">
+                                    <i class="ph ph-plus-circle text-sm"></i>
                                     <span>+ แนบแบบ</span>
                                 </button>
                             `}
                         </td>
-                        <td class="px-2.5 py-2.5 whitespace-nowrap">
+                        <td class="px-3 py-3 whitespace-nowrap">
                             ${isQuick ? `
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-muted/80 text-muted-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอน BOQ">
-                                    <i class="ph ph-minus text-[10px]"></i> ข้าม (Quick)
+                                <span class="px-2.5 py-1 rounded text-xs font-bold bg-muted/80 text-muted-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอน BOQ">
+                                    <i class="ph ph-minus text-xs"></i> ข้าม (Quick)
                                 </span>
                             ` : hasBOQ ? `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'boq')" class="px-2 py-1 rounded-lg text-xs font-semibold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 inline-flex items-center gap-1 hover:bg-purple-500/25 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไข BOQ (${itemsCount} รายการ)">
-                                    <i class="ph ph-calculator text-purple-600 dark:text-purple-400 text-xs"></i>
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'boq')" class="px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 inline-flex items-center gap-1.5 hover:bg-purple-500/25 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไข BOQ (${itemsCount} รายการ)">
+                                    <i class="ph ph-calculator text-purple-600 dark:text-purple-400 text-sm"></i>
                                     <span>฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${itemsCount})</span>
                                 </button>
                             ` : `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'boq')" class="px-2 py-1 rounded-lg text-[11px] font-medium bg-muted hover:bg-purple-500/10 text-muted-foreground hover:text-purple-600 border border-border inline-flex items-center gap-1 transition cursor-pointer whitespace-nowrap" title="จัดทำรายการประมาณการ BOQ">
-                                    <i class="ph ph-plus-circle text-xs"></i>
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'boq')" class="px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-muted hover:bg-purple-500/10 text-muted-foreground hover:text-purple-600 border border-border inline-flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap" title="จัดทำรายการประมาณการ BOQ">
+                                    <i class="ph ph-plus-circle text-sm"></i>
                                     <span>+ ลง BOQ</span>
                                 </button>
                             `}
                         </td>
-                        <td class="px-3 py-2.5 text-right whitespace-nowrap">
-                            <div class="flex items-center justify-end gap-1.5 whitespace-nowrap">
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'intake')" class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition hover:scale-105 cursor-pointer whitespace-nowrap" title="เปิด One-Stop Studio: ข้อมูลคำสั่งซื้อ • Design แบบแปลน • BOQ">
-                                    <i class="ph ph-squares-four text-xs font-bold"></i>
+                        <td class="px-3.5 py-3 text-right whitespace-nowrap">
+                            <div class="flex items-center justify-end gap-2 whitespace-nowrap">
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'intake')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition hover:scale-105 cursor-pointer whitespace-nowrap" title="เปิด One-Stop Studio: ข้อมูลคำสั่งซื้อ • Design แบบแปลน • BOQ">
+                                    <i class="ph ph-squares-four text-sm font-bold"></i>
                                     <span>Studio</span>
                                 </button>
                                 <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="btn-artifact-secondary p-1.5 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer" title="ดูข้อมูลงาน (Pop up)">
-                                    <i class="ph ph-eye text-sm"></i>
+                                    <i class="ph ph-eye text-base"></i>
                                 </button>
                             </div>
                         </td>
