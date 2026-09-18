@@ -1060,6 +1060,30 @@
                     </div>
                     
                     <div class="artifact-card overflow-hidden shadow-sm">
+                        <!-- Date Filter Bar สำหรับกรองตามวันนัด -->
+                        <div class="flex flex-wrap items-center gap-2 px-3 py-2.5 bg-muted/30 border-b border-border/60">
+                            <div class="flex items-center gap-1.5 text-xs text-muted-foreground font-medium shrink-0">
+                                <i class="ph ph-calendar-blank text-indigo-500"></i>
+                                <span>กรองวันนัด:</span>
+                            </div>
+                            <div class="relative">
+                                <i class="ph ph-calendar-check absolute left-2.5 top-1/2 -translate-y-1/2 text-indigo-400 text-xs pointer-events-none"></i>
+                                <input type="text" id="filter-appt-date-from" data-datepicker="true" placeholder="DD/MM/YYYY" readonly
+                                    class="pl-7 pr-2.5 py-1 text-xs bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-indigo-400 w-32 cursor-pointer shadow-2xs">
+                            </div>
+                            <span class="text-muted-foreground text-xs">ถึง</span>
+                            <div class="relative">
+                                <i class="ph ph-calendar-check absolute left-2.5 top-1/2 -translate-y-1/2 text-indigo-400 text-xs pointer-events-none"></i>
+                                <input type="text" id="filter-appt-date-to" data-datepicker="true" placeholder="DD/MM/YYYY" readonly
+                                    class="pl-7 pr-2.5 py-1 text-xs bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-indigo-400 w-32 cursor-pointer shadow-2xs">
+                            </div>
+                            <button onclick="app.clearApptDateFilter()" title="ล้างตัวกรองวันนัด"
+                                class="flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border transition-colors cursor-pointer">
+                                <i class="ph ph-x-circle text-xs"></i>
+                                <span>ล้าง</span>
+                            </button>
+                            <span id="appt-date-filter-count" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 hidden"></span>
+                        </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">

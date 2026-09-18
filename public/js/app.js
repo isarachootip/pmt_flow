@@ -2913,6 +2913,40 @@ const app = {
                 if(view === 'jobs') {
                     this.renderJobs();
                     this.fetchJobsFromApi();
+                    // Init appointment date filter pickers
+                    setTimeout(() => {
+                        const self = this;
+                        const fromEl = document.getElementById('filter-appt-date-from');
+                        const toEl = document.getElementById('filter-appt-date-to');
+                        if (fromEl && typeof flatpickr !== 'undefined') {
+                            if (fromEl._flatpickr) fromEl._flatpickr.destroy();
+                            flatpickr(fromEl, {
+                                dateFormat: 'd/m/Y',
+                                allowInput: false,
+                                disableMobile: true,
+                                locale: {
+                                    firstDayOfWeek: 1,
+                                    weekdays: { shorthand: ['อา','จ','อ','พ','พฤ','ศ','ส'], longhand: ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'] },
+                                    months: { shorthand: ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'], longhand: ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'] }
+                                },
+                                onChange() { self.filterJobsTable(); }
+                            });
+                        }
+                        if (toEl && typeof flatpickr !== 'undefined') {
+                            if (toEl._flatpickr) toEl._flatpickr.destroy();
+                            flatpickr(toEl, {
+                                dateFormat: 'd/m/Y',
+                                allowInput: false,
+                                disableMobile: true,
+                                locale: {
+                                    firstDayOfWeek: 1,
+                                    weekdays: { shorthand: ['อา','จ','อ','พ','พฤ','ศ','ส'], longhand: ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'] },
+                                    months: { shorthand: ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'], longhand: ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'] }
+                                },
+                                onChange() { self.filterJobsTable(); }
+                            });
+                        }
+                    }, 100);
                 }
                 if(view === 'blueprints') this.renderBlueprints();
                 if(view === 'tickets') this.renderTickets();
@@ -4399,9 +4433,45 @@ const app = {
                 const query = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : '';
                 const serviceFilter = document.getElementById('filter-service') ? document.getElementById('filter-service').value : 'all';
 
+                // Date range filter for กำหนดวันนัด
+                const dateFromEl = document.getElementById('filter-appt-date-from');
+                const dateToEl = document.getElementById('filter-appt-date-to');
+                const dateFromStr = (dateFromEl && dateFromEl.value) ? dateFromEl.value.trim() : '';
+                const dateToStr = (dateToEl && dateToEl.value) ? dateToEl.value.trim() : '';
+
+                // Parse DD/MM/YYYY to Date object for comparison
+                const parseDMY = (s) => {
+                    if (!s) return null;
+                    const parts = s.split('/');
+                    if (parts.length !== 3) return null;
+                    return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+                };
+                const dateFrom = parseDMY(dateFromStr);
+                const dateTo = parseDMY(dateToStr);
+                const hasDateFilter = dateFrom || dateTo;
+
                 let list = DB.jobs || [];
                 if (serviceFilter !== 'all') {
                     list = list.filter(j => j.service === serviceFilter);
+                }
+
+                if (hasDateFilter) {
+                    list = list.filter(j => {
+                        const rawDate = j.plan_date || j.date || '';
+                        if (!rawDate) return false;
+                        // Normalize: rawDate may be ISO (YYYY-MM-DD) or DD/MM/YYYY
+                        let apptDate;
+                        if (/^\d{4}-\d{2}-\d{2}/.test(rawDate)) {
+                            const d = new Date(rawDate);
+                            apptDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                        } else {
+                            apptDate = parseDMY(rawDate);
+                        }
+                        if (!apptDate) return false;
+                        if (dateFrom && apptDate < dateFrom) return false;
+                        if (dateTo && apptDate > dateTo) return false;
+                        return true;
+                    });
                 }
 
                 if (query) {
@@ -4420,10 +4490,40 @@ const app = {
                         const techMatch = String(j.tech || '').toLowerCase().includes(query);
                         return idMatch || noMatch || refMatch || tktMatch || bkgMatch || dateMatch || custMatch || phoneMatch || srvMatch || techMatch;
                     });
+                }
+
+                // Update filter count badge
+                const countBadge = document.getElementById('appt-date-filter-count');
+                if (countBadge) {
+                    if (hasDateFilter) {
+                        countBadge.textContent = `พบ ${list.length} รายการ`;
+                        countBadge.classList.remove('hidden');
+                    } else {
+                        countBadge.classList.add('hidden');
+                    }
+                }
+
+                if (query || hasDateFilter) {
                     this.renderJobs(list);
                 } else {
                     this.renderJobs();
                 }
+            },
+
+            clearApptDateFilter() {
+                const dateFromEl = document.getElementById('filter-appt-date-from');
+                const dateToEl = document.getElementById('filter-appt-date-to');
+                if (dateFromEl) {
+                    if (dateFromEl._flatpickr) dateFromEl._flatpickr.clear();
+                    else dateFromEl.value = '';
+                }
+                if (dateToEl) {
+                    if (dateToEl._flatpickr) dateToEl._flatpickr.clear();
+                    else dateToEl.value = '';
+                }
+                const countBadge = document.getElementById('appt-date-filter-count');
+                if (countBadge) countBadge.classList.add('hidden');
+                this.renderJobs();
             },
 
             handleGlobalSearch(event) {
@@ -4546,10 +4646,10 @@ const app = {
                             </div>
                         </td>
                         <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                            ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
+                            ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
                         </td>
                         <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                            ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                            ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                         </td>
                         <td class="px-2.5 py-2.5 whitespace-nowrap">
                             ${(j.plan_date || j.date) ? `
