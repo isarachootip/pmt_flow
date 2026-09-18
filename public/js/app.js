@@ -4985,16 +4985,17 @@ const app = {
 
                 if (srvInp) {
                     srvInp.value = subTypeVal;
-                    srvInp.readOnly = false;
-                    srvInp.classList.remove('bg-muted/60', 'cursor-not-allowed');
-
                     if (subTypeVal && isStampedFromInt) {
+                        srvInp.readOnly = true;
+                        srvInp.classList.add('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
                         if (srvStampBadge) srvStampBadge.classList.remove('hidden');
                         if (srvManualBadge) srvManualBadge.classList.add('hidden');
                         if (srvHint) {
                             srvHint.innerHTML = `<span class="text-emerald-600 font-semibold inline-flex items-center gap-1"><i class="ph ph-check-circle"></i> ดึง project_sub_type จาก INT สำเร็จ:</span> ${subTypeVal}`;
                         }
                     } else {
+                        srvInp.readOnly = false;
+                        srvInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
                         if (srvStampBadge) srvStampBadge.classList.add('hidden');
                         if (srvManualBadge) srvManualBadge.classList.remove('hidden');
                         if (srvHint) {
@@ -5018,7 +5019,7 @@ const app = {
                 const scopeInp = document.getElementById('unified-intake-scope');
                 if (scopeInp) {
                     scopeInp.value = job.scope_of_work || job.special_instructions || job.notes || '';
-                    if (isStampedFromInt && scopeInp.value) {
+                    if (isStampedFromInt) {
                         scopeInp.readOnly = true;
                         scopeInp.classList.add('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
                     } else {
@@ -5039,6 +5040,21 @@ const app = {
                 const radioRenovate = document.getElementById('unified-type-renovate');
                 if (isQuick && radioQuick) radioQuick.checked = true;
                 else if (radioRenovate) radioRenovate.checked = true;
+                if (isStampedFromInt) {
+                    if (radioQuick) radioQuick.disabled = true;
+                    if (radioRenovate) radioRenovate.disabled = true;
+                    const lblQuick = document.getElementById('label-unified-type-quick');
+                    const lblReno = document.getElementById('label-unified-type-renovate');
+                    if (lblQuick) lblQuick.classList.add('cursor-not-allowed', 'opacity-80');
+                    if (lblReno) lblReno.classList.add('cursor-not-allowed', 'opacity-80');
+                } else {
+                    if (radioQuick) radioQuick.disabled = false;
+                    if (radioRenovate) radioRenovate.disabled = false;
+                    const lblQuick = document.getElementById('label-unified-type-quick');
+                    const lblReno = document.getElementById('label-unified-type-renovate');
+                    if (lblQuick) lblQuick.classList.remove('cursor-not-allowed', 'opacity-80');
+                    if (lblReno) lblReno.classList.remove('cursor-not-allowed', 'opacity-80');
+                }
 
                 // Survey Date (Strict DD/MM/YYYY)
                 const surveyDateInp = document.getElementById('unified-intake-survey-date');
@@ -5202,9 +5218,9 @@ const app = {
                         modalTitle.innerText = 'ศูนย์จัดการคำสั่งซื้อ • แบบแปลน Design • BOQ (PM & SA Studio)';
                     }
 
-                    if (allInOneBadge) allInOneBadge.classList.remove('hidden');
+                    if (allInOneBadge) allInOneBadge.classList.add('hidden');
                     if (statusBadge) statusBadge.classList.remove('hidden');
-                    if (headerMetrics) headerMetrics.classList.remove('hidden');
+                    if (headerMetrics) headerMetrics.classList.add('hidden');
 
                     if (stickyNavBar) stickyNavBar.classList.remove('hidden');
                     if (sec1Header) sec1Header.classList.remove('hidden');
@@ -5235,16 +5251,16 @@ const app = {
                         tabBoq.classList.remove('opacity-40', 'cursor-not-allowed', 'pointer-events-none', 'border-dashed');
                         const badge = document.getElementById('tab-unified-boq-badge');
                         const job = this.getUnifiedStudioJob();
-                        const bTotal = (job && job.boq_grand_total) || 0;
+                        const bCount = (job && job.boq_items && job.boq_items.length) || 0;
                         if (badge) {
-                            badge.innerText = `${bTotal > 0 ? (bTotal.toLocaleString('th-TH') + ' ฿') : '0 ฿'}`;
+                            badge.innerText = bCount === 0 ? 'Blank' : `${bCount} รายการ`;
                             badge.className = 'px-1.5 py-0.2 rounded-full text-[10px] bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono font-bold';
                         }
                     }
 
                     const scrollHint = document.getElementById('unified-studio-scroll-hint');
                     if (scrollHint) {
-                        scrollHint.innerHTML = '<i class="ph ph-arrows-down-up text-xs"></i> สามารถเลื่อน Scroll ดูต่อเนื่องได้ทั้ง 3 ส่วน';
+                        scrollHint.classList.add('hidden');
                     }
                     const saveBtnText = document.getElementById('unified-modal-save-btn-text');
                     if (saveBtnText) {
@@ -5994,20 +6010,20 @@ const app = {
 
                 const countBadge = document.getElementById('unified-boq-count-badge');
                 if (countBadge) {
-                    countBadge.textContent = `${job.boq_items.length} รายการ`;
+                    countBadge.textContent = job.boq_items.length === 0 ? 'Blank BOQ' : `${job.boq_items.length} รายการ`;
                 }
 
                 if (job.boq_items.length === 0) {
                     tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" class="py-10 px-4 text-center bg-card">
+                        <td colspan="6" class="py-10 px-4 text-center bg-card">
                             <div class="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                                 <div class="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center text-2xl mb-1 border border-purple-500/20 shadow-2xs">
                                     <i class="ph ph-calculator"></i>
                                 </div>
-                                <span class="text-xs font-bold text-foreground">ยังไม่มีรายการประมาณการราคา BOQ</span>
+                                <span class="text-xs font-bold text-foreground">ยังไม่มีรายการประมาณการราคา BOQ (Blank BOQ)</span>
                                 <p class="text-[11px] text-muted-foreground max-w-md">
-                                    เริ่มต้นจัดทำ BOQ โดยกดปุ่ม <strong class="text-purple-600 font-semibold">+ เพิ่มรายการ</strong>, เลือก <strong class="text-purple-600 font-semibold">Template</strong> หรือกด <strong class="text-purple-600 font-semibold">นำเข้า Excel / vFIX</strong> ด้านบน
+                                    เริ่มต้นจัดทำ BOQ โดยกดปุ่ม <strong class="text-purple-600 font-semibold">+ เพิ่มรายการ</strong> หรือกด <strong class="text-purple-600 font-semibold">📥 นำเข้า Excel / vFIX</strong> ด้านบน
                                 </p>
                             </div>
                         </td>
@@ -6018,9 +6034,7 @@ const app = {
                 }
 
                 const html = job.boq_items.map((item, idx) => {
-                    const itemQty = Number(item.qty) || 0;
-                    const itemPrice = this.getItemUnitPrice(item);
-                    const itemTotal = itemQty * itemPrice;
+                    const itemQty = item.qty !== undefined && item.qty !== null ? item.qty : 1;
                     const itemTypeStr = String(item.type || item.category || '').toUpperCase();
                     const isLabor = itemTypeStr.includes('LABOR') || itemTypeStr.includes('ค่าแรง') || !!item.isLabor || (item.name && (item.name.includes('ค่าแรง') || item.name.includes('งานติดตั้ง') || item.name.includes('งานบริการ')));
                     const safeName = (item.name || '').replace(/"/g, '&quot;');
@@ -6035,19 +6049,13 @@ const app = {
                             </select>
                         </td>
                         <td class="px-4 py-2.5">
-                            <input type="text" value="${safeName}" title="${safeName}" oninput="app.updateUnifiedBOQItem(${idx}, 'name', this.value)" placeholder="ระบุรายการสินค้า / วัสดุอุปกรณ์ / ค่าแรงอย่างละเอียด..." class="w-full bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-purple-500 font-medium hover:border-purple-300 transition">
+                            <input type="text" value="${safeName}" title="${safeName}" oninput="app.updateUnifiedBOQItem(${idx}, 'name', this.value)" placeholder="ระบุรายการงานช่าง / งานบริการ / วัสดุอุปกรณ์อย่างละเอียด..." class="w-full bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-purple-500 font-medium hover:border-purple-300 transition">
                         </td>
                         <td class="px-3 py-2.5 text-center">
-                            <input type="number" min="0" step="any" value="${item.qty !== undefined && item.qty !== null ? item.qty : 1}" oninput="app.updateUnifiedBOQItem(${idx}, 'qty', this.value)" class="w-full text-center bg-card border border-border rounded-lg px-2 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-purple-500">
+                            <input type="number" min="0" step="any" value="${itemQty}" oninput="app.updateUnifiedBOQItem(${idx}, 'qty', this.value)" class="w-full text-center bg-card border border-border rounded-lg px-2 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-purple-500">
                         </td>
                         <td class="px-3 py-2.5 text-center">
                             <input type="text" value="${safeUnit}" oninput="app.updateUnifiedBOQItem(${idx}, 'unit', this.value)" placeholder="หน่วย" class="w-full text-center bg-card border border-border rounded-lg px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-purple-500">
-                        </td>
-                        <td class="px-3.5 py-2.5 text-right">
-                            <input type="number" min="0" step="any" value="${itemPrice}" oninput="app.updateUnifiedBOQItem(${idx}, 'price', this.value)" class="w-full text-right bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-foreground focus:outline-none focus:border-purple-500">
-                        </td>
-                        <td class="px-4 py-2.5 text-right font-mono font-bold text-xs sm:text-sm text-foreground" id="unified-boq-row-total-${idx}">
-                            ${itemTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                         <td class="px-2 py-2.5 text-center">
                             <button type="button" onclick="app.removeUnifiedBOQItem(${idx})" class="w-8 h-8 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 flex items-center justify-center transition cursor-pointer mx-auto" title="ลบรายการนี้">
@@ -6329,39 +6337,18 @@ const app = {
                     if (closeLostBtn) closeLostBtn.classList.remove('hidden');
                     if (saveBtn) saveBtn.classList.remove('hidden');
 
-                    // Renovate Projects: MANDATORY BOQ BEFORE STEP 2 (CONVERSION)
-                    if (!hasBOQ) {
-                        // CANNOT proceed to Step 2 if BOQ is NOT passed!
-                        if (proceedBtn) {
-                            proceedBtn.disabled = true;
-                            proceedBtn.className = 'flex-1 sm:flex-none px-5 py-2 rounded-xl text-xs font-semibold bg-muted text-muted-foreground border border-border/80 cursor-not-allowed opacity-60 shadow-none transition flex items-center justify-center gap-1.5';
-                            proceedBtn.title = '⚠️ ไม่สามารถย้ายไป Step 2 ได้: คำสั่งซื้อนี้ยังไม่มีรายการ BOQ (ต้องมีรายการ BOQ อย่างน้อย 1 รายการก่อน)';
-                        }
-                        if (proceedBtnText) {
-                            proceedBtnText.innerText = '🔒 รอจัดทำ BOQ ก่อนไปเปิด Ticket';
-                        }
-                        if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse';
-                        if (validationMsg) {
-                            validationMsg.innerHTML = '<span class="text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1"><i class="ph ph-warning-octagon text-sm"></i> ต้องมีรายการ BOQ อย่างน้อย 1 รายการก่อน จึงจะสามารถอนุมัติและส่งต่อไปยัง Step 2 (บันทึก Ticket & แปลง Project) ได้</span>';
-                        }
-                    } else {
-                        // BOQ Passed: Allow proceeding to Step 2!
-                        if (proceedBtn) {
-                            proceedBtn.disabled = false;
-                            proceedBtn.className = 'flex-1 sm:flex-none btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white cursor-pointer shadow-md transition flex items-center justify-center gap-1.5';
-                            proceedBtn.title = 'อนุมัติข้อเสนอคำสั่งซื้อและส่งต่อไปยัง Step 2 (บันทึก Ticket & แปลง Project)';
-                        }
-                        if (proceedBtnText) {
-                            proceedBtnText.innerText = '🚀 อนุมัติ & ส่งต่อไปเปิด Ticket';
-                        }
-                        if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
-                        if (validationMsg) {
-                            if (bps.length > 0) {
-                                validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ ข้อมูลครบทั้ง 3 มิติ (Intake + Design + BOQ) พร้อมส่งต่อ Step 2 (บันทึก Ticket & แปลง Project)</span>';
-                            } else {
-                                validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ บันทึก BOQ เรียบร้อย พร้อมส่งต่อ Step 2 (บันทึก Ticket & แปลง Project)</span> <span class="text-amber-600 text-[10px] font-normal ml-1">(แนะนำแนบแบบแปลนเพิ่มเติม)</span>';
-                            }
-                        }
+                    // Renovate Projects: Allow proceeding to Step 2 (บันทึก Ticket)
+                    if (proceedBtn) {
+                        proceedBtn.disabled = false;
+                        proceedBtn.className = 'flex-1 sm:flex-none btn-artifact-primary px-6 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white cursor-pointer shadow-md transition flex items-center justify-center gap-2';
+                        proceedBtn.title = 'อนุมัติข้อเสนอคำสั่งซื้อและส่งต่อไปยัง Step 2 (บันทึก Ticket)';
+                    }
+                    if (proceedBtnText) {
+                        proceedBtnText.innerHTML = '<i class="ph ph-paper-plane-tilt text-sm font-bold"></i> อนุมัติ & ส่งต่อไปเปิด Ticket';
+                    }
+                    if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
+                    if (validationMsg) {
+                        validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ บันทึก BOQ เรียบร้อย พร้อมส่งต่อ Step 2 (บันทึก Ticket)</span>';
                     }
                 }
                 this.updateUnifiedStudioTabs();
@@ -6508,16 +6495,6 @@ const app = {
                 // For Quick Service: Save and immediately fast-track to QC!
                 if (isQuick) {
                     this.saveUnifiedOrderStudio();
-                    return;
-                }
-
-                const boqItems = job.boq_items || [];
-
-                // STRICT GATEKEEPER: Renovate MUST pass BOQ before moving forward!
-                if (!isQuick && boqItems.length === 0) {
-                    this.showToast('⚠️ ไม่สามารถส่งต่องานได้: งาน Renovate จำเป็นต้องมีรายการ BOQ ให้ครบถ้วนก่อนส่งต่อ');
-                    this.switchUnifiedStudioTab('boq');
-                    this.updateUnifiedStudioIndicators();
                     return;
                 }
 

@@ -7516,7 +7516,7 @@
                     </div>
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span id="unified-modal-allinone-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">All-in-One Studio</span>
+                            <span id="unified-modal-allinone-badge" class="hidden px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">All-in-One Studio</span>
                             <span id="unified-modal-status-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30">
                                 <i class="ph ph-compass-tool mr-0.5"></i> SURVEYED (สำรวจแล้ว)
                             </span>
@@ -7524,10 +7524,6 @@
                         </div>
                         <p class="text-xs text-muted-foreground mt-0.5 flex items-center flex-wrap gap-y-1" id="unified-modal-subtitle">
                             <span>รหัสงาน: <span class="font-mono font-bold text-brand-600 dark:text-brand-400" id="unified-modal-job-id">JOB-XXXX</span></span>
-                            <span class="mx-1.5 text-border">•</span>
-                            <span>ลูกค้า: <span class="font-semibold text-foreground" id="unified-modal-customer">คุณลูกค้า</span></span>
-                            <span class="mx-1.5 text-border">•</span>
-                            <span>นัดหมาย: <span class="font-medium text-foreground" id="unified-modal-schedule-preview">-</span></span>
                             <span id="unified-modal-subtype-container" class="inline-flex items-center">
                                 <span class="mx-1.5 text-border">•</span>
                                 <span>งาน: <span class="font-bold text-indigo-600 dark:text-indigo-400" id="unified-modal-project-sub-type">-</span></span>
@@ -7540,9 +7536,9 @@
                     </div>
                 </div>
 
-                <!-- Live Metrics Pills & Close Button -->
+                <!-- Live Metrics Pills (Hidden per Mockup) & Close Button -->
                 <div class="flex items-center gap-2.5 flex-wrap justify-between lg:justify-end">
-                    <div id="unified-header-metrics" class="flex items-center gap-2 text-xs">
+                    <div id="unified-header-metrics" class="hidden items-center gap-2 text-xs">
                         <div class="px-3 py-1.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-700 dark:text-teal-300 flex items-center gap-1.5 font-medium" title="รูปถ่ายสำรวจหน้างานจากระบบภายนอก">
                             <i class="ph ph-camera text-sm"></i>
                             <span id="unified-metric-photos">0 รูปถ่าย</span>
@@ -7591,8 +7587,8 @@
                     </button>
                 </div>
 
-                <div class="hidden sm:flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <span id="unified-studio-scroll-hint" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-muted font-medium">
+                <div class="hidden items-center gap-2 text-[11px] text-muted-foreground">
+                    <span id="unified-studio-scroll-hint" class="hidden items-center gap-1 px-2 py-0.5 rounded bg-muted font-medium">
                         <i class="ph ph-arrows-down-up text-xs"></i> สามารถเลื่อน Scroll ดูต่อเนื่องได้ทั้ง 3 ส่วน
                     </span>
                 </div>
@@ -7617,10 +7613,6 @@
                             <span id="unified-sec1-status-badge" class="text-xs font-mono font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-lg border border-teal-500/20">
                                 Status: Surveyed
                             </span>
-                            <button type="button" id="unified-sec1-save-btn" onclick="app.saveUnifiedStep(1)" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="บันทึกข้อมูลและผลสำรวจหน้างาน (Step 1)">
-                                <i class="ph ph-floppy-disk text-sm"></i>
-                                <span>บันทึกข้อมูลสำรวจ</span>
-                            </button>
                         </div>
                     </div>
 
@@ -7917,11 +7909,11 @@
                             <div>
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <h4 class="font-display font-bold text-sm sm:text-base text-foreground">
-                                        ประมาณการราคา BOQ & คำนวณต้นทุนสด (Live Costing & Pricing Studio)
+                                        ประมาณการรายการ BOQ (Work Items)
                                     </h4>
-                                    <span id="unified-boq-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-purple-500/15 text-purple-700 border border-purple-500/20">0 รายการ</span>
+                                    <span id="unified-boq-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-purple-500/15 text-purple-700 border border-purple-500/20">Blank BOQ</span>
                                 </div>
-                                <p class="text-xs text-muted-foreground">ถอดรายการวัสดุ-ค่าแรง, นำเข้าไฟล์ Excel / vFIX, และคำนวณราคาสุทธิอัตโนมัติ (No VAT)</p>
+                                <p class="text-xs text-muted-foreground">ถอดรายการงานช่าง, นำเข้าไฟล์ Excel / vFIX เพื่อส่งต่อเข้าสู่กระบวนการเปิด Ticket</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
@@ -7929,15 +7921,11 @@
                                 <i class="ph ph-file-arrow-up text-sm"></i>
                                 <span>📥 นำเข้า Excel / vFIX</span>
                             </button>
-                            <button type="button" onclick="app.downloadVFixBOQTemplate()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-1">
-                                <i class="ph ph-download-simple text-sm"></i>
-                                <span>Template</span>
-                            </button>
                             <button type="button" onclick="app.addUnifiedBOQItem()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-600 border-purple-500/30 hover:bg-purple-500/10 cursor-pointer flex items-center gap-1">
                                 <i class="ph ph-plus-circle text-sm"></i>
                                 <span>+ เพิ่มรายการ</span>
                             </button>
-                            <button type="button" onclick="app.saveUnifiedStep(3)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs flex items-center gap-1 transition" title="บันทึกราคาและรายการ BOQ (Step 3)">
+                            <button type="button" onclick="app.saveUnifiedStep(3)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs flex items-center gap-1 transition" title="บันทึกรายการ BOQ (Step 3)">
                                 <i class="ph ph-floppy-disk text-sm"></i>
                                 <span>บันทึกรายการ BOQ</span>
                             </button>
@@ -7946,17 +7934,14 @@
 
                     <!-- BOQ Items Table (Spacious Scrollable Table with Sticky Header & Scrollbar) -->
                     <div id="unified-boq-table-container" class="overflow-y-auto overflow-x-auto max-h-[460px] sm:max-h-[520px] rounded-xl border border-border bg-card shadow-xs custom-scrollbar relative">
-                        <table class="w-full text-xs text-left min-w-[840px] border-collapse">
+                        <table class="w-full text-xs text-left min-w-[700px] border-collapse">
                             <thead class="bg-slate-100/95 backdrop-blur sticky top-0 z-10 border-b border-border text-muted-foreground font-semibold uppercase text-[11px] shadow-2xs">
                                 <tr>
                                     <th class="px-3.5 py-3 w-12 text-center bg-slate-100/95 backdrop-blur">#</th>
                                     <th class="px-3.5 py-3 w-36 bg-slate-100/95 backdrop-blur">ประเภท</th>
-                                    <th class="px-4 py-3 min-w-[320px] bg-slate-100/95 backdrop-blur">รายการวัสดุ / งานบริการ (รายละเอียด)</th>
+                                    <th class="px-4 py-3 min-w-[320px] bg-slate-100/95 backdrop-blur">รายการงานช่าง / งานบริการ (รายละเอียด)</th>
                                     <th class="px-3 py-3 w-24 text-center bg-slate-100/95 backdrop-blur">จำนวน</th>
                                     <th class="px-3 py-3 w-24 text-center bg-slate-100/95 backdrop-blur">หน่วย</th>
-                                    <th class="px-3.5 py-3 w-28 text-right bg-blue-50/95 text-blue-900 font-bold backdrop-blur">ทุน (฿)</th>
-                                    <th class="px-3.5 py-3 w-28 text-right bg-purple-50/95 text-purple-900 font-bold backdrop-blur">ราคาขาย (฿)</th>
-                                    <th class="px-4 py-3 w-36 text-right bg-slate-100/95 backdrop-blur">รวมเงิน (฿)</th>
                                     <th class="px-2 py-3 w-12 text-center bg-slate-100/95 backdrop-blur">ลบ</th>
                                 </tr>
                             </thead>
@@ -7966,8 +7951,8 @@
                         </table>
                     </div>
 
-                    <!-- Financial Summary (Executive Costing Box) -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 bg-muted/20 p-5 rounded-2xl border border-border">
+                    <!-- Financial Summary (Executive Costing Box - Hidden per Mockup for Work Items) -->
+                    <div id="unified-boq-financial-summary" class="hidden grid-cols-1 md:grid-cols-2 gap-5 bg-muted/20 p-5 rounded-2xl border border-border">
                         <div class="space-y-2.5 text-xs">
                             <div class="flex justify-between py-1 border-b border-border/50 text-slate-700 bg-blue-500/5 px-2 rounded">
                                 <span class="font-bold text-blue-900">ราคาทุนรวม (Total Cost):</span>
@@ -8007,7 +7992,7 @@
             <div class="p-4 sm:p-5 bg-muted/40 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3.5 shrink-0">
                 <div id="unified-modal-footer-left" class="flex items-center gap-2.5 text-xs text-muted-foreground">
                     <span id="unified-modal-status-dot" class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-                    <span id="unified-modal-validation-msg" class="font-medium">ข้อมูลพร้อมสำหรับการจัดเตรียมข้อเสนอ แบบแปลน และการส่งต่อ</span>
+                    <span id="unified-modal-validation-msg" class="font-medium">✓ บันทึก BOQ เรียบร้อย พร้อมส่งต่อ Step 2 (บันทึก Ticket)</span>
                 </div>
                 <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
                     <button type="button" id="unified-modal-closelost-btn" onclick="app.openCloseLostModal(app.state.unifiedStudioJobId)" class="btn-artifact-secondary text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition shadow-2xs" title="บันทึกปิดงานไม่สำเร็จ / ลูกค้ายกเลิก (Close Lost & Cancel Job)">
@@ -8019,7 +8004,7 @@
                     </button>
                     <button type="button" id="unified-modal-proceed-btn" onclick="app.proceedUnifiedOrderToNextStage()" class="flex-1 sm:flex-none btn-artifact-primary px-6 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white cursor-pointer shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
                         <i class="ph ph-paper-plane-tilt text-sm font-bold"></i>
-                        <span id="unified-modal-proceed-btn-text">🚀 อนุมัติ & ส่งเข้าสู่แผนงาน</span>
+                        <span id="unified-modal-proceed-btn-text">🚀 อนุมัติ & ส่งต่อไปเปิด Ticket</span>
                     </button>
                 </div>
             </div>
