@@ -378,7 +378,9 @@
         }
 
         /* Standardized high-contrast bordered badge & field text */
-        .badge-framed-id {
+        .badge-framed-id,
+        .studio-badge,
+        .badge-framed {
             border: 1px solid var(--border);
             color: var(--foreground) !important;
             -webkit-text-fill-color: var(--foreground) !important;

@@ -4761,7 +4761,7 @@ const app = {
                         </td>
                         <td class="px-2 py-2 min-w-[130px] max-w-[160px] text-muted-foreground">
                             <div class="flex items-center gap-1 flex-wrap">
-                                <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold uppercase shrink-0 ${isQuick ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30' : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30'}">${isQuick ? 'quick' : 'renovate'}</span>
+                                <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold uppercase shrink-0 ${isQuick ? 'bg-amber-50 text-foreground border border-amber-300' : 'bg-indigo-50 text-foreground border border-indigo-300'} shadow-2xs">${isQuick ? 'quick' : 'renovate'}</span>
                                 <span class="text-xs sm:text-sm font-bold text-foreground truncate" title="${j.project_sub_type || j.service || ''}">
                                     ${j.project_sub_type || j.service || '-'}
                                 </span>
@@ -4807,7 +4807,7 @@ const app = {
                                         <div class="font-mono text-[11px] text-muted-foreground flex items-center gap-1">
                                             <i class="ph ph-clock text-[10px] shrink-0"></i>
                                             <span>${timePart}</span>
-                                            ${isToday ? '<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">วันนี้</span>' : ''}
+                                            ${isToday ? '<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-foreground border border-emerald-300 shadow-2xs">วันนี้</span>' : ''}
                                         </div>
                                     ` : ''}
                                 </div>`;
@@ -4815,13 +4815,13 @@ const app = {
                         </td>
                         <td class="px-2 py-2 whitespace-nowrap text-center">
                             ${isQuick ? `
-                                <span class="px-2 py-0.5 rounded text-xs font-bold bg-muted/80 text-muted-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอนแบบแปลน">
+                                <span class="px-2 py-0.5 rounded text-xs font-bold bg-muted/80 text-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอนแบบแปลน">
                                     <i class="ph ph-minus text-xs"></i> ข้าม (Quick)
                                 </span>
                             ` : hasBps ? `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'design')" class="px-2 py-1 rounded-md text-xs font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1 hover:bg-indigo-500/25 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไขแบบแปลน ${bpCount} รายการ">
-                                    <i class="ph ph-blueprint text-indigo-600 dark:text-indigo-400 text-xs"></i>
-                                    <span>${bpCount} แบบ</span>
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'design')" class="px-2 py-1 rounded-md text-xs font-bold bg-indigo-50 text-foreground border border-indigo-300 inline-flex items-center gap-1 hover:bg-indigo-100 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไขแบบแปลน ${bpCount} รายการ">
+                                    <i class="ph ph-blueprint text-indigo-600 text-xs font-bold"></i>
+                                    <span class="text-foreground font-bold">${bpCount} แบบ</span>
                                 </button>
                             ` : `
                                 <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'design')" class="px-2 py-1 rounded-md text-xs font-semibold bg-muted hover:bg-indigo-500/10 text-muted-foreground hover:text-indigo-600 border border-border inline-flex items-center gap-1 transition cursor-pointer whitespace-nowrap" title="แนบแบบแปลน 2D/3D">
@@ -4832,13 +4832,13 @@ const app = {
                         </td>
                         <td class="px-2 py-2 whitespace-nowrap text-center">
                             ${isQuick ? `
-                                <span class="px-2 py-0.5 rounded text-xs font-bold bg-muted/80 text-muted-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอน BOQ">
+                                <span class="px-2 py-0.5 rounded text-xs font-bold bg-muted/80 text-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอน BOQ">
                                     <i class="ph ph-minus text-xs"></i> ข้าม (Quick)
                                 </span>
                             ` : hasBOQ ? `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'boq')" class="px-2 py-1 rounded-md text-xs font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 inline-flex items-center gap-1 hover:bg-purple-500/25 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไข BOQ (${itemsCount} รายการ)">
-                                    <i class="ph ph-calculator text-purple-600 dark:text-purple-400 text-xs"></i>
-                                    <span>฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${itemsCount})</span>
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'boq')" class="px-2 py-1 rounded-md text-xs font-bold bg-purple-50 text-foreground border border-purple-300 inline-flex items-center gap-1 hover:bg-purple-100 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไข BOQ (${itemsCount} รายการ)">
+                                    <i class="ph ph-calculator text-purple-600 text-xs font-bold"></i>
+                                    <span class="text-foreground font-bold">฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${itemsCount})</span>
                                 </button>
                             ` : `
                                 <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'boq')" class="px-2 py-1 rounded-md text-xs font-semibold bg-muted hover:bg-purple-500/10 text-muted-foreground hover:text-purple-600 border border-border inline-flex items-center gap-1 transition cursor-pointer whitespace-nowrap" title="จัดทำรายการประมาณการ BOQ">
@@ -4932,9 +4932,9 @@ const app = {
                             extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-muted text-foreground border border-border font-sans font-mono whitespace-nowrap"><i class="ph ph-tag"></i> Ref: ${job.external_ref_id}</span>`;
                         }
                         if (job.booking_no) {
-                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans font-mono whitespace-nowrap"><i class="ph ph-bookmark-simple"></i> Booking: ${job.booking_no}</span>`;
+                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-foreground border border-purple-300 font-sans font-mono whitespace-nowrap shadow-2xs"><i class="ph ph-bookmark-simple text-purple-600"></i> Booking: ${job.booking_no}</span>`;
                         } else if (isVFix) {
-                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans whitespace-nowrap"><i class="ph ph-wrench"></i> vFIX: ${job.id}</span>`;
+                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-foreground border border-purple-300 font-sans whitespace-nowrap shadow-2xs"><i class="ph ph-wrench text-purple-600"></i> vFIX: ${job.id}</span>`;
                         }
                         titleEl.innerHTML = `${job.job_no || job.id}${extraTags}`;
                     }
@@ -4952,14 +4952,14 @@ const app = {
                 const badgeEl = document.getElementById('unified-modal-status-badge');
                 if (badgeEl) {
                     if (job.status === 'SURVEYED' || job.status === 'Survey' || job.status === 'Surveyed') {
-                        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30';
-                        badgeEl.innerHTML = '<i class="ph ph-compass-tool mr-0.5"></i> SURVEYED (สำรวจแล้ว)';
+                        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-foreground border border-teal-300 shadow-2xs inline-flex items-center gap-1';
+                        badgeEl.innerHTML = '<i class="ph ph-compass-tool text-teal-600 font-bold mr-0.5"></i> <span class="text-foreground font-bold">SURVEYED (สำรวจแล้ว)</span>';
                     } else if (job.status === 'DRAFT' || job.status === 'NEW' || job.status === 'Draft') {
-                        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30';
-                        badgeEl.innerText = 'รอจัดเตรียมข้อเสนอ';
+                        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-foreground border border-amber-300 shadow-2xs inline-flex items-center gap-1';
+                        badgeEl.innerHTML = '<span class="text-foreground font-bold">รอจัดเตรียมข้อเสนอ</span>';
                     } else {
-                        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30';
-                        badgeEl.innerText = job.status || 'ดำเนินการอยู่';
+                        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-foreground border border-emerald-300 shadow-2xs inline-flex items-center gap-1';
+                        badgeEl.innerHTML = `<span class="text-foreground font-bold">${this.escapeHtml(job.status || 'ดำเนินการอยู่')}</span>`;
                     }
                 }
 
@@ -5324,7 +5324,7 @@ const app = {
                         const bps = (DB.blueprints || []).filter(b => b.jobId === this.state.unifiedStudioJobId);
                         if (badge) {
                             badge.innerText = bps.length;
-                            badge.className = 'px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-mono font-bold';
+                            badge.className = 'px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-50 text-foreground border border-indigo-200 font-mono font-bold';
                         }
                     }
                     if (tabBoq) {
@@ -5335,7 +5335,7 @@ const app = {
                         const bCount = (job && job.boq_items && job.boq_items.length) || 0;
                         if (badge) {
                             badge.innerText = bCount === 0 ? 'Blank' : `${bCount} รายการ`;
-                            badge.className = 'px-1.5 py-0.2 rounded-full text-[10px] bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono font-bold';
+                            badge.className = 'px-1.5 py-0.2 rounded-full text-[10px] bg-purple-50 text-foreground border border-purple-200 font-mono font-bold';
                         }
                     }
 
@@ -5373,9 +5373,9 @@ const app = {
                             extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-muted text-foreground border border-border font-sans font-mono whitespace-nowrap"><i class="ph ph-tag"></i> Ref: ${job.external_ref_id}</span>`;
                         }
                         if (job.booking_no) {
-                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans font-mono whitespace-nowrap"><i class="ph ph-bookmark-simple"></i> Booking: ${job.booking_no}</span>`;
+                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-foreground border border-purple-300 font-sans font-mono whitespace-nowrap shadow-2xs"><i class="ph ph-bookmark-simple text-purple-600"></i> Booking: ${job.booking_no}</span>`;
                         } else if (isVFix) {
-                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-sans whitespace-nowrap"><i class="ph ph-wrench"></i> vFIX: ${job.id}</span>`;
+                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-foreground border border-purple-300 font-sans whitespace-nowrap shadow-2xs"><i class="ph ph-wrench text-purple-600"></i> vFIX: ${job.id}</span>`;
                         }
                         titleEl.innerHTML = `${job.job_no || job.id}${extraTags}`;
                     }
@@ -5480,8 +5480,8 @@ const app = {
                     // 2. Passed Badge: Shows "Passed" pill with green checkmark
                     if (badge) {
                         if (sc.passed) {
-                            badge.className = 'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-all shadow-2xs animate-in fade-in zoom-in-95';
-                            badge.innerHTML = '<i class="ph ph-check-bold text-[9px]"></i> Passed';
+                            badge.className = 'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-foreground border border-emerald-300 transition-all shadow-2xs animate-in fade-in zoom-in-95';
+                            badge.innerHTML = '<i class="ph ph-check-bold text-[9px] text-emerald-600 font-bold"></i> <span class="text-foreground font-bold">Passed</span>';
                         } else {
                             badge.className = 'hidden';
                         }
@@ -5491,13 +5491,13 @@ const app = {
                     if (btn) {
                         if (isActive) {
                             if (sc.passed) {
-                                btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 cursor-pointer transition shadow-2xs ring-2 ring-emerald-500/20';
+                                btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-xl bg-emerald-50 text-foreground border border-emerald-300 flex items-center gap-1.5 cursor-pointer transition shadow-2xs ring-2 ring-emerald-500/20';
                             } else {
-                                btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-xl bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5 cursor-pointer transition shadow-2xs';
+                                btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-xl bg-indigo-50 text-foreground border border-indigo-300 flex items-center gap-1.5 cursor-pointer transition shadow-2xs';
                             }
                         } else {
                             if (sc.passed) {
-                                btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-card hover:bg-emerald-500/10 text-foreground border border-emerald-500/30 flex items-center gap-1.5 cursor-pointer transition';
+                                btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-card hover:bg-emerald-50 text-foreground border border-emerald-300 flex items-center gap-1.5 cursor-pointer transition';
                             } else {
                                 btn.className = 'px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-card hover:bg-muted text-muted-foreground hover:text-foreground border border-border flex items-center gap-1.5 cursor-pointer transition';
                             }
@@ -5705,21 +5705,21 @@ const app = {
                         <div class="p-2.5 rounded-xl bg-card border border-border hover:border-indigo-500/40 transition shadow-2xs space-y-1">
                             <div class="flex items-start justify-between gap-2">
                                 <div class="flex items-start gap-1.5 min-w-0">
-                                    <span class="w-4.5 h-4.5 rounded-md bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-mono font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                                    <span class="w-4.5 h-4.5 rounded-md bg-indigo-50 border border-indigo-200 text-foreground font-mono font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
                                         #${idx + 1}
                                     </span>
                                     <span class="text-xs font-semibold text-foreground leading-snug break-words" title="${this.escapeHtml(title)}">
                                         ${this.escapeHtml(title)}
                                     </span>
                                 </div>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 shrink-0">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-50 text-foreground border border-indigo-300 shrink-0 shadow-2xs">
                                     จำนวน: ${qty}
                                 </span>
                             </div>
                             ${(type && type !== title) || remark ? `
                                 <div class="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground pt-0.5">
                                     ${type && type !== title ? `
-                                        <span class="px-1.5 py-0.2 rounded bg-muted text-[10px] font-medium text-foreground border border-border">
+                                        <span class="px-1.5 py-0.2 rounded bg-muted text-[10px] font-bold text-foreground border border-border">
                                             ${this.escapeHtml(type)}
                                         </span>
                                     ` : ''}
@@ -5764,9 +5764,9 @@ const app = {
                         chipsContainer.innerHTML = '';
                     } else {
                         chipsContainer.innerHTML = results.map(r => `
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-950 border border-emerald-300 shadow-2xs">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-foreground border border-emerald-300 shadow-2xs">
                                 <i class="ph ph-check-circle text-emerald-600 font-bold"></i>
-                                <span>${this.escapeHtml(r)}</span>
+                                <span class="text-foreground font-bold">${this.escapeHtml(r)}</span>
                             </span>
                         `).join('');
                     }
@@ -6076,7 +6076,7 @@ const app = {
                     const isDwg = b.fileName && (b.fileName.toLowerCase().endsWith('.dwg') || b.fileName.toLowerCase().endsWith('.dxf'));
                     const isImg = b.previewImg || (!isPdf && !isDwg);
                     const iconType = isDwg ? 'DWG' : (isPdf ? 'PDF' : 'IMG');
-                    const iconColor = isDwg ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' : (isPdf ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400');
+                    const iconColor = isDwg ? 'bg-indigo-50 text-foreground border border-indigo-300 shadow-2xs' : (isPdf ? 'bg-rose-50 text-foreground border border-rose-300 shadow-2xs' : 'bg-emerald-50 text-foreground border border-emerald-300 shadow-2xs');
                     const formattedDate = b.uploadedAt ? this.formatDateDMY(b.uploadedAt) : this.formatDateDMY(new Date());
 
                     // Thumbnail block: show image preview if available
@@ -6096,16 +6096,16 @@ const app = {
                                 </div>
                                 <div class="min-w-0">
                                     <h5 class="text-xs font-bold text-foreground truncate" title="${b.fileName}">${b.fileName || 'Blueprint Layout'}</h5>
-                                    <p class="text-[10px] text-muted-foreground font-mono truncate">โซน: <strong class="text-indigo-600 dark:text-indigo-400">${b.zone || b.roomZone || 'ทั่วไป'}</strong> • ${b.fileSize || '2.4 MB'}</p>
+                                    <p class="text-[10px] text-muted-foreground font-mono truncate">โซน: <strong class="text-foreground font-bold">${b.zone || b.roomZone || 'ทั่วไป'}</strong> • ${b.fileSize || '2.4 MB'}</p>
                                 </div>
                             </div>
-                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 shrink-0">${b.version || 'v2.0 Approved'}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-50 text-foreground border border-indigo-300 shrink-0 shadow-2xs">${b.version || 'v2.0 Approved'}</span>
                         </div>
-                        ${b.notes ? `<p class="text-[11px] text-muted-foreground bg-muted/30 p-2 rounded-lg border border-border/50">${b.notes}</p>` : ''}
+                        ${b.notes ? `<p class="text-[11px] text-foreground bg-muted/30 p-2 rounded-lg border border-border/50 font-medium">${b.notes}</p>` : ''}
                         <div class="flex items-center justify-between text-xs pt-1 border-t border-border/40">
                             <span class="text-[10px] text-muted-foreground font-mono">📅 ${formattedDate}</span>
                             <div class="flex items-center gap-1.5">
-                                <button type="button" onclick="app.previewBlueprintLightbox('${b.id || idx}')" class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
+                                <button type="button" onclick="app.previewBlueprintLightbox('${b.id || idx}')" class="text-[11px] font-bold text-foreground hover:underline cursor-pointer">
                                     🔍 ขยายดูแบบ
                                 </button>
                                 <button type="button" onclick="app.deleteUnifiedBlueprint('${b.id || idx}')" class="p-1 text-muted-foreground hover:text-rose-500 rounded transition cursor-pointer" title="ลบแบบแปลนนี้">
@@ -6356,7 +6356,7 @@ const app = {
                     <tr class="hover:bg-purple-500/[0.03] transition-colors border-b border-border" id="unified-boq-row-${idx}">
                         <td class="px-3.5 py-2.5 text-center text-muted-foreground font-mono text-xs font-semibold">${idx + 1}</td>
                         <td class="px-3.5 py-2.5">
-                            <select id="unified-boq-select-type-${idx}" onchange="app.updateUnifiedBOQItem(${idx}, 'type', this.value)" class="w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs font-bold ${isLabor ? 'text-purple-700 bg-purple-500/10 border-purple-300' : 'text-blue-700 bg-blue-500/10 border-blue-300'} focus:outline-none focus:border-purple-500 transition cursor-pointer">
+                            <select id="unified-boq-select-type-${idx}" onchange="app.updateUnifiedBOQItem(${idx}, 'type', this.value)" class="w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs font-bold ${isLabor ? 'text-foreground bg-purple-50 border-purple-300' : 'text-foreground bg-blue-50 border-blue-300'} focus:outline-none focus:border-purple-500 transition cursor-pointer shadow-2xs">
                                 <option value="LABOR" ${isLabor ? 'selected' : ''}>LABOR (ค่าแรง)</option>
                                 <option value="MATERIAL" ${!isLabor ? 'selected' : ''}>MATERIAL (วัสดุ)</option>
                             </select>
@@ -6432,7 +6432,7 @@ const app = {
                     const isLabor = String(val).toUpperCase().includes('LABOR') || String(val).includes('ค่าแรง');
                     const sel = document.getElementById(`unified-boq-select-type-${idx}`);
                     if (sel) {
-                        sel.className = `w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs font-bold ${isLabor ? 'text-purple-700 bg-purple-500/10 border-purple-300' : 'text-blue-700 bg-blue-500/10 border-blue-300'} focus:outline-none focus:border-purple-500 transition cursor-pointer`;
+                        sel.className = `w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs font-bold ${isLabor ? 'text-foreground bg-purple-50 border-purple-300' : 'text-foreground bg-blue-50 border-blue-300'} focus:outline-none focus:border-purple-500 transition cursor-pointer shadow-2xs`;
                     }
                 }
 
@@ -6558,21 +6558,21 @@ const app = {
                 if (descDesign) {
                     if (bps.length > 0) {
                         descDesign.innerText = `แนบแล้ว ${bps.length} แบบ (CAD/PDF)`;
-                        if (indDesign) indDesign.className = 'flex items-center gap-2 p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300';
+                        if (indDesign) indDesign.className = 'flex items-center gap-2 p-2 rounded-xl bg-emerald-50 border border-emerald-300 text-foreground font-bold shadow-2xs';
                         if (badgeDesign) {
                             badgeDesign.className = 'w-6 h-6 rounded-lg bg-emerald-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0';
                             badgeDesign.innerHTML = '✓';
                         }
                     } else if (isQuick) {
                         descDesign.innerText = '⚡ ยกเว้นแบบแปลน (Quick Service)';
-                        if (indDesign) indDesign.className = 'flex items-center gap-2 p-2 rounded-xl bg-muted/40 border border-border text-muted-foreground';
+                        if (indDesign) indDesign.className = 'flex items-center gap-2 p-2 rounded-xl bg-muted/40 border border-border text-foreground font-medium';
                         if (badgeDesign) {
-                            badgeDesign.className = 'w-6 h-6 rounded-lg bg-muted text-muted-foreground text-[11px] font-bold flex items-center justify-center shrink-0';
+                            badgeDesign.className = 'w-6 h-6 rounded-lg bg-muted text-foreground border border-border text-[11px] font-bold flex items-center justify-center shrink-0';
                             badgeDesign.innerText = '2';
                         }
                     } else {
                         descDesign.innerText = 'ยังไม่มีแบบแนบ';
-                        if (indDesign) indDesign.className = 'flex items-center gap-2 p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-700 dark:text-indigo-300';
+                        if (indDesign) indDesign.className = 'flex items-center gap-2 p-2 rounded-xl bg-indigo-50 border border-indigo-300 text-foreground font-bold shadow-2xs';
                         if (badgeDesign) {
                             badgeDesign.className = 'w-6 h-6 rounded-lg bg-indigo-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0';
                             badgeDesign.innerText = '2';
@@ -6588,28 +6588,28 @@ const app = {
                 if (descBoq) {
                     if (hasBOQ) {
                         descBoq.innerText = `${boqItems.length} รายการ (฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})`;
-                        if (indBoq) indBoq.className = 'flex items-center gap-2 p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300';
+                        if (indBoq) indBoq.className = 'flex items-center gap-2 p-2 rounded-xl bg-emerald-50 border border-emerald-300 text-foreground font-bold shadow-2xs';
                         if (badgeBoq) {
                             badgeBoq.className = 'w-6 h-6 rounded-lg bg-emerald-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0';
                             badgeBoq.innerHTML = '✓';
                         }
-                        if (titleBoq) titleBoq.innerHTML = '3. ประมาณการ BOQ <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold ml-1">(ผ่านแล้ว ✓)</span>';
+                        if (titleBoq) titleBoq.innerHTML = '3. ประมาณการ BOQ <span class="text-[10px] text-emerald-700 font-bold ml-1">(ผ่านแล้ว ✓)</span>';
                     } else if (isQuick) {
                         descBoq.innerText = '⚡ ไม่บังคับ BOQ (Quick Service)';
-                        if (indBoq) indBoq.className = 'flex items-center gap-2 p-2 rounded-xl bg-muted/40 border border-border text-muted-foreground';
+                        if (indBoq) indBoq.className = 'flex items-center gap-2 p-2 rounded-xl bg-muted/40 border border-border text-foreground font-medium';
                         if (badgeBoq) {
-                            badgeBoq.className = 'w-6 h-6 rounded-lg bg-muted text-muted-foreground text-[11px] font-bold flex items-center justify-center shrink-0';
+                            badgeBoq.className = 'w-6 h-6 rounded-lg bg-muted text-foreground border border-border text-[11px] font-bold flex items-center justify-center shrink-0';
                             badgeBoq.innerText = '3';
                         }
                         if (titleBoq) titleBoq.innerText = '3. ประมาณการ BOQ';
                     } else {
                         descBoq.innerText = 'ยังไม่มีรายการ (ต้องจัดทำ BOQ)';
-                        if (indBoq) indBoq.className = 'flex items-center gap-2 p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400';
+                        if (indBoq) indBoq.className = 'flex items-center gap-2 p-2 rounded-xl bg-rose-50 border border-rose-300 text-foreground font-bold shadow-2xs';
                         if (badgeBoq) {
                             badgeBoq.className = 'w-6 h-6 rounded-lg bg-rose-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0';
                             badgeBoq.innerText = '3';
                         }
-                        if (titleBoq) titleBoq.innerHTML = '3. ประมาณการ BOQ <span class="text-[10px] text-rose-600 dark:text-rose-400 font-bold ml-1">(ยังไม่ผ่าน ❌)</span>';
+                        if (titleBoq) titleBoq.innerHTML = '3. ประมาณการ BOQ <span class="text-[10px] text-rose-700 font-bold ml-1">(ยังไม่ผ่าน ❌)</span>';
                     }
                 }
 

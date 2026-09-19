@@ -7354,21 +7354,21 @@
                     </div>
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span id="unified-modal-allinone-badge" class="hidden px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">All-in-One Studio</span>
-                            <span id="unified-modal-status-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30">
-                                <i class="ph ph-compass-tool mr-0.5"></i> SURVEYED (สำรวจแล้ว)
+                            <span id="unified-modal-allinone-badge" class="hidden px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-50 text-foreground border border-indigo-300 shadow-2xs">All-in-One Studio</span>
+                            <span id="unified-modal-status-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-foreground border border-teal-300 shadow-2xs inline-flex items-center gap-1">
+                                <i class="ph ph-compass-tool text-teal-600 font-bold"></i> <span class="text-foreground font-bold">SURVEYED (สำรวจแล้ว)</span>
                             </span>
                             <h3 class="font-display font-bold text-base sm:text-lg text-foreground" id="unified-modal-title">ศูนย์จัดการคำสั่งซื้อ • แบบแปลน Design • BOQ (PM & SA Studio)</h3>
                         </div>
                         <p class="text-xs text-muted-foreground mt-0.5 flex items-center flex-wrap gap-y-1" id="unified-modal-subtitle">
-                            <span>รหัสงาน: <span class="font-mono font-bold text-brand-600 dark:text-brand-400" id="unified-modal-job-id">JOB-XXXX</span></span>
+                            <span>รหัสงาน: <span class="font-mono font-bold text-foreground" id="unified-modal-job-id">JOB-XXXX</span></span>
                             <span id="unified-modal-subtype-container" class="inline-flex items-center">
                                 <span class="mx-1.5 text-border">•</span>
-                                <span>งาน: <span class="font-bold text-indigo-600 dark:text-indigo-400" id="unified-modal-project-sub-type">-</span></span>
+                                <span>งาน: <span class="font-bold text-foreground" id="unified-modal-project-sub-type">-</span></span>
                             </span>
                             <span id="unified-modal-store-container" class="inline-flex items-center">
                                 <span class="mx-1.5 text-border">•</span>
-                                <span>สาขา: <span class="font-medium text-foreground" id="unified-modal-store-info">-</span></span>
+                                <span>สาขา: <span class="font-bold text-foreground" id="unified-modal-store-info">-</span></span>
                             </span>
                         </p>
                     </div>
@@ -7377,17 +7377,17 @@
                 <!-- Live Metrics Pills (Hidden per Mockup) & Close Button -->
                 <div class="flex items-center gap-2.5 flex-wrap justify-between lg:justify-end">
                     <div id="unified-header-metrics" class="hidden items-center gap-2 text-xs">
-                        <div class="px-3 py-1.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-700 dark:text-teal-300 flex items-center gap-1.5 font-medium" title="รูปถ่ายสำรวจหน้างานจากระบบภายนอก">
-                            <i class="ph ph-camera text-sm"></i>
-                            <span id="unified-metric-photos">0 รูปถ่าย</span>
+                        <div class="px-3 py-1.5 rounded-xl bg-teal-50 border border-teal-300 text-foreground flex items-center gap-1.5 font-bold shadow-2xs" title="รูปถ่ายสำรวจหน้างานจากระบบภายนอก">
+                            <i class="ph ph-camera text-teal-600 text-sm"></i>
+                            <span id="unified-metric-photos" class="text-foreground font-bold">0 รูปถ่าย</span>
                         </div>
-                        <div class="px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5 font-medium" title="ไฟล์แบบแปลน CAD/PDF ประจำโครงการ">
-                            <i class="ph ph-blueprint text-sm"></i>
-                            <span id="unified-metric-blueprints">0 แบบแปลน</span>
+                        <div class="px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-300 text-foreground flex items-center gap-1.5 font-bold shadow-2xs" title="ไฟล์แบบแปลน CAD/PDF ประจำโครงการ">
+                            <i class="ph ph-blueprint text-indigo-600 text-sm"></i>
+                            <span id="unified-metric-blueprints" class="text-foreground font-bold">0 แบบแปลน</span>
                         </div>
-                        <div class="px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300 flex items-center gap-1.5 font-mono font-bold" title="ยอดรวมประมาณการ BOQ สุทธิ">
-                            <i class="ph ph-coins text-sm"></i>
-                            <span id="unified-metric-boq">0.00 ฿</span>
+                        <div class="px-3 py-1.5 rounded-xl bg-purple-50 border border-purple-300 text-foreground flex items-center gap-1.5 font-mono font-bold shadow-2xs" title="ยอดรวมประมาณการ BOQ สุทธิ">
+                            <i class="ph ph-coins text-purple-600 text-sm"></i>
+                            <span id="unified-metric-boq" class="text-foreground font-mono font-bold">0.00 ฿</span>
                         </div>
                     </div>
                     <button type="button" onclick="app.hideModal('modal-unified-order-studio')" class="text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-xl hover:bg-muted transition cursor-pointer flex items-center gap-1.5 border border-border/70 hover:border-border" title="ปิดหน้าต่าง (Esc)">
@@ -7400,27 +7400,27 @@
             <!-- Sticky Quick Navigation & Section Anchor Bar -->
             <div id="unified-sticky-nav-bar" class="px-4 sm:px-6 py-2.5 bg-muted/20 border-b border-border flex items-center justify-between gap-3 shrink-0 overflow-x-auto">
                 <div class="flex items-center gap-2">
-                    <button type="button" id="tab-btn-unified-intake" onclick="app.scrollUnifiedStudioTo('intake')" class="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5 cursor-pointer transition shadow-2xs">
-                        <i id="tab-icon-unified-intake" class="ph ph-clipboard-text text-sm"></i>
-                        <span>1. ข้อมูลสำรวจ & คลังรูปภาพ (Intake & Photos)</span>
-                        <span id="tab-badge-unified-intake-passed" class="hidden px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 items-center gap-0.5 shadow-2xs">
-                            <i class="ph ph-check-bold text-[9px]"></i> Passed
+                    <button type="button" id="tab-btn-unified-intake" onclick="app.scrollUnifiedStudioTo('intake')" class="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-indigo-50 text-foreground border border-indigo-300 flex items-center gap-1.5 cursor-pointer transition shadow-2xs">
+                        <i id="tab-icon-unified-intake" class="ph ph-clipboard-text text-sm text-indigo-600 font-bold"></i>
+                        <span class="text-foreground font-bold">1. ข้อมูลสำรวจ & คลังรูปภาพ (Intake & Photos)</span>
+                        <span id="tab-badge-unified-intake-passed" class="hidden px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-foreground border border-emerald-300 items-center gap-0.5 shadow-2xs">
+                            <i class="ph ph-check-bold text-[9px] text-emerald-600 font-bold"></i> <span class="text-foreground font-bold">Passed</span>
                         </span>
                     </button>
-                    <button type="button" id="tab-btn-unified-design" onclick="app.scrollUnifiedStudioTo('design')" class="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-card hover:bg-indigo-500/10 text-muted-foreground hover:text-indigo-600 border border-border flex items-center gap-1.5 cursor-pointer transition">
-                        <i id="tab-icon-unified-design" class="ph ph-blueprint text-sm text-indigo-500"></i>
-                        <span>2. แบบแปลนติดตั้ง (Design & CAD)</span>
-                        <span id="tab-unified-design-badge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-mono font-bold">0</span>
-                        <span id="tab-badge-unified-design-passed" class="hidden px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 items-center gap-0.5 shadow-2xs">
-                            <i class="ph ph-check-bold text-[9px]"></i> Passed
+                    <button type="button" id="tab-btn-unified-design" onclick="app.scrollUnifiedStudioTo('design')" class="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-card hover:bg-indigo-50 text-foreground border border-border flex items-center gap-1.5 cursor-pointer transition">
+                        <i id="tab-icon-unified-design" class="ph ph-blueprint text-sm text-indigo-600 font-bold"></i>
+                        <span class="text-foreground font-bold">2. แบบแปลนติดตั้ง (Design & CAD)</span>
+                        <span id="tab-unified-design-badge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-50 text-foreground border border-indigo-200 font-mono font-bold">0</span>
+                        <span id="tab-badge-unified-design-passed" class="hidden px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-foreground border border-emerald-300 items-center gap-0.5 shadow-2xs">
+                            <i class="ph ph-check-bold text-[9px] text-emerald-600 font-bold"></i> <span class="text-foreground font-bold">Passed</span>
                         </span>
                     </button>
-                    <button type="button" id="tab-btn-unified-boq" onclick="app.scrollUnifiedStudioTo('boq')" class="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-card hover:bg-purple-500/10 text-muted-foreground hover:text-purple-600 border border-border flex items-center gap-1.5 cursor-pointer transition">
-                        <i id="tab-icon-unified-boq" class="ph ph-calculator text-sm text-purple-500"></i>
-                        <span>3. ประมาณการราคา BOQ (Pricing & Costing)</span>
-                        <span id="tab-unified-boq-badge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono font-bold">0 ฿</span>
-                        <span id="tab-badge-unified-boq-passed" class="hidden px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 items-center gap-0.5 shadow-2xs">
-                            <i class="ph ph-check-bold text-[9px]"></i> Passed
+                    <button type="button" id="tab-btn-unified-boq" onclick="app.scrollUnifiedStudioTo('boq')" class="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-card hover:bg-purple-50 text-foreground border border-border flex items-center gap-1.5 cursor-pointer transition">
+                        <i id="tab-icon-unified-boq" class="ph ph-calculator text-sm text-purple-600 font-bold"></i>
+                        <span class="text-foreground font-bold">3. ประมาณการราคา BOQ (Pricing & Costing)</span>
+                        <span id="tab-unified-boq-badge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-50 text-foreground border border-purple-200 font-mono font-bold">0 ฿</span>
+                        <span id="tab-badge-unified-boq-passed" class="hidden px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-foreground border border-emerald-300 items-center gap-0.5 shadow-2xs">
+                            <i class="ph ph-check-bold text-[9px] text-emerald-600 font-bold"></i> <span class="text-foreground font-bold">Passed</span>
                         </span>
                     </button>
                 </div>
@@ -7448,7 +7448,7 @@
                             </div>
                         </div>
                         <div id="unified-sec1-right-actions" class="flex items-center gap-2">
-                            <span id="unified-sec1-status-badge" class="text-xs font-mono font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-lg border border-teal-500/20">
+                            <span id="unified-sec1-status-badge" class="text-xs font-mono font-bold text-foreground bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-300 shadow-2xs">
                                 Status: Surveyed
                             </span>
                         </div>
@@ -7484,8 +7484,8 @@
                                     <i class="ph ph-user text-indigo-500 text-sm"></i>
                                     ข้อมูลลูกค้าและสถานที่หน้างาน
                                 </h5>
-                                <span id="unified-intake-left-stamp-badge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 inline-flex items-center gap-1 shadow-2xs">
-                                    <i class="ph ph-stamp text-xs"></i> ข้อมูล STAMP มาจาก INT
+                                <span id="unified-intake-left-stamp-badge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-foreground border border-blue-300 inline-flex items-center gap-1 shadow-2xs">
+                                    <i class="ph ph-stamp text-xs text-blue-600"></i> <span class="text-foreground font-bold">ข้อมูล STAMP มาจาก INT</span>
                                 </span>
                             </div>
                             <div class="space-y-3">
@@ -7501,11 +7501,11 @@
                                     <div>
                                         <div class="flex items-center justify-between mb-1">
                                             <label class="block text-xs font-semibold text-foreground">ประเภทบริการ (project_sub_type) <span class="text-rose-500">*</span></label>
-                                            <span id="unified-service-stamp-badge" class="hidden px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 inline-flex items-center gap-0.5">
-                                                <i class="ph ph-stamp text-[10px]"></i> จาก INT
+                                            <span id="unified-service-stamp-badge" class="hidden px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-50 text-foreground border border-blue-300 inline-flex items-center gap-0.5 shadow-2xs">
+                                                <i class="ph ph-stamp text-[10px] text-blue-600"></i> <span class="text-foreground font-bold">จาก INT</span>
                                             </span>
-                                            <span id="unified-service-manual-badge" class="hidden px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 inline-flex items-center gap-0.5">
-                                                <i class="ph ph-pencil-simple text-[10px]"></i> กรอก Manual
+                                            <span id="unified-service-manual-badge" class="hidden px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-50 text-foreground border border-amber-300 inline-flex items-center gap-0.5 shadow-2xs">
+                                                <i class="ph ph-pencil-simple text-[10px] text-amber-600"></i> <span class="text-foreground font-bold">กรอก Manual</span>
                                             </span>
                                         </div>
                                         <div class="relative">
@@ -7552,8 +7552,8 @@
                                             รายละเอียดงาน (Job Details / รายการติดตั้ง)
                                         </label>
                                         <div class="flex items-center gap-1.5">
-                                            <span id="unified-job-details-badge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 inline-flex items-center gap-1 shadow-2xs">
-                                                <i class="ph ph-stamp text-xs"></i> STAMP จาก INT
+                                            <span id="unified-job-details-badge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-foreground border border-blue-300 inline-flex items-center gap-1 shadow-2xs">
+                                                <i class="ph ph-stamp text-xs text-blue-600"></i> <span class="text-foreground font-bold">STAMP จาก INT</span>
                                             </span>
                                             <span id="unified-job-details-count" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-muted text-foreground border border-border">
                                                 0 รายการ
@@ -7592,8 +7592,8 @@
                                     <i class="ph ph-calendar-check text-indigo-500 text-sm"></i>
                                     การนัดหมายสำรวจหน้างาน & รูปแบบโครงการ
                                 </h5>
-                                <span id="unified-intake-right-stamp-badge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 inline-flex items-center gap-1 shadow-2xs">
-                                    <i class="ph ph-stamp text-xs"></i> STAMP มาจาก INT
+                                <span id="unified-intake-right-stamp-badge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-foreground border border-blue-300 inline-flex items-center gap-1 shadow-2xs">
+                                    <i class="ph ph-stamp text-xs text-blue-600"></i> <span class="text-foreground font-bold">STAMP มาจาก INT</span>
                                 </span>
                             </div>
                             <div class="space-y-3">
@@ -7642,8 +7642,8 @@
                                 <div>
                                     <div class="flex items-center justify-between mb-1">
                                         <label class="block text-xs font-semibold text-foreground">ช่างสำรวจ / ผู้รับผิดชอบ (Surveyor / Technician)</label>
-                                        <span id="unified-tech-stamp-badge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 inline-flex items-center gap-1 shadow-2xs">
-                                            <i class="ph ph-stamp text-xs"></i> STAMP ข้อมูลช่าง มาจาก INT
+                                        <span id="unified-tech-stamp-badge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-foreground border border-blue-300 inline-flex items-center gap-1 shadow-2xs">
+                                            <i class="ph ph-stamp text-xs text-blue-600"></i> <span class="text-foreground font-bold">STAMP ข้อมูลช่าง มาจาก INT</span>
                                         </span>
                                     </div>
                                     <input type="text" id="unified-intake-tech" placeholder="ระบุชื่อช่างหรือทีมสำรวจ..." class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500">
@@ -7657,8 +7657,8 @@
                                             ผลการสำรวจหน้างาน (Visit Results / ผลการสำรวจ)
                                         </label>
                                         <div class="flex items-center gap-1.5">
-                                            <span id="unified-visit-results-stamp-badge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 inline-flex items-center gap-1 shadow-2xs">
-                                                <i class="ph ph-stamp text-xs"></i> STAMP จาก INT
+                                            <span id="unified-visit-results-stamp-badge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-foreground border border-teal-300 inline-flex items-center gap-1 shadow-2xs">
+                                                <i class="ph ph-stamp text-xs text-teal-600"></i> <span class="text-foreground font-bold">STAMP จาก INT</span>
                                             </span>
                                             <span id="unified-visit-results-count" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-muted text-foreground border border-border">
                                                 0 ผลสำรวจ
@@ -7678,8 +7678,8 @@
                                             <i class="ph ph-chat-circle-text text-amber-500 text-sm"></i>
                                             หมายเหตุจากระบบภายนอก (Remarks Data from INT)
                                         </label>
-                                        <span id="unified-remarks-stamp-badge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 inline-flex items-center gap-1 shadow-2xs">
-                                            <i class="ph ph-stamp text-xs"></i> STAMP จาก INT
+                                        <span id="unified-remarks-stamp-badge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-foreground border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
+                                            <i class="ph ph-stamp text-xs text-amber-600"></i> <span class="text-foreground font-bold">STAMP จาก INT</span>
                                         </span>
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -7718,11 +7718,11 @@
                             </div>
 
                             <div class="flex items-center gap-2 flex-wrap">
-                                <span id="unified-survey-photos-count" class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300">0 รูป</span>
+                                <span id="unified-survey-photos-count" class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-teal-50 text-foreground border border-teal-300 shadow-2xs">0 รูป</span>
                                 <input type="file" id="unified-quick-photo-input" accept="image/*" multiple class="hidden" onchange="app.handleUnifiedQuickPhotoUpload(event)">
-                                <button type="button" onclick="document.getElementById('unified-quick-photo-input').click()" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold border border-teal-500/30 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10 cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="เลือกรูปถ่ายหลายไฟล์พร้อมกันจากเครื่องโดยตรง">
-                                    <i class="ph ph-images-square text-sm"></i>
-                                    <span>เลือกรูปด่วน</span>
+                                <button type="button" onclick="document.getElementById('unified-quick-photo-input').click()" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-bold border border-teal-300 bg-teal-50/70 hover:bg-teal-100 text-foreground cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="เลือกรูปถ่ายหลายไฟล์พร้อมกันจากเครื่องโดยตรง">
+                                    <i class="ph ph-images-square text-teal-600 text-sm"></i>
+                                    <span class="text-foreground font-bold">เลือกรูปด่วน</span>
                                 </button>
                                 <button type="button" onclick="app.openUnifiedPhotoUpload()" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="เปิดฟอร์มระบุรายละเอียดรูปถ่าย">
                                     <i class="ph ph-plus-circle text-sm"></i>
@@ -7752,10 +7752,10 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
-                            <span id="unified-design-count-pill" class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300">0 ไฟล์</span>
-                            <button type="button" onclick="app.saveUnifiedStep(2)" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold border border-indigo-500/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/10 cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="บันทึกข้อมูลแบบแปลน (Step 2)">
-                                <i class="ph ph-floppy-disk text-sm"></i>
-                                <span>บันทึกแบบแปลน</span>
+                            <span id="unified-design-count-pill" class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-indigo-50 text-foreground border border-indigo-300 shadow-2xs">0 ไฟล์</span>
+                            <button type="button" onclick="app.saveUnifiedStep(2)" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-bold border border-indigo-300 bg-indigo-50/70 hover:bg-indigo-100 text-foreground cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="บันทึกข้อมูลแบบแปลน (Step 2)">
+                                <i class="ph ph-floppy-disk text-indigo-600 text-sm font-bold"></i>
+                                <span class="text-foreground font-bold">บันทึกแบบแปลน</span>
                             </button>
                         </div>
                     </div>
@@ -7795,7 +7795,7 @@
                             </div>
                         </div>
                         <div class="flex justify-between items-center pt-2">
-                            <button type="button" onclick="app.addUnifiedDesignSample()" class="text-xs text-indigo-600 hover:underline font-semibold cursor-pointer">
+                            <button type="button" onclick="app.addUnifiedDesignSample()" class="text-xs text-foreground hover:underline font-bold cursor-pointer">
                                 ⚡ โหลดแบบแปลนจำลอง (DWG + PDF)
                             </button>
                             <button type="button" onclick="app.submitUnifiedDesignBlueprint()" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs">
@@ -7816,7 +7816,7 @@
                                     <h4 class="font-display font-bold text-sm sm:text-base text-foreground">
                                         ประมาณการรายการ BOQ (Work Items)
                                     </h4>
-                                    <span id="unified-boq-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-purple-500/15 text-purple-700 border border-purple-500/20">Blank BOQ</span>
+                                    <span id="unified-boq-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-purple-50 text-foreground border border-purple-300 shadow-2xs">Blank BOQ</span>
                                 </div>
                                 <p class="text-xs text-muted-foreground">ถอดรายการงานช่าง, นำเข้าไฟล์ Excel / vFIX เพื่อส่งต่อเข้าสู่กระบวนการเปิด Ticket</p>
                             </div>
@@ -7826,9 +7826,9 @@
                                 <i class="ph ph-file-arrow-up text-sm"></i>
                                 <span>📥 นำเข้า Excel / vFIX</span>
                             </button>
-                            <button type="button" onclick="app.addUnifiedBOQItem()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-600 border-purple-500/30 hover:bg-purple-500/10 cursor-pointer flex items-center gap-1">
-                                <i class="ph ph-plus-circle text-sm"></i>
-                                <span>+ เพิ่มรายการ</span>
+                            <button type="button" onclick="app.addUnifiedBOQItem()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-bold text-foreground border border-purple-300 bg-purple-50/70 hover:bg-purple-100 cursor-pointer flex items-center gap-1 shadow-2xs">
+                                <i class="ph ph-plus-circle text-purple-600 text-sm font-bold"></i>
+                                <span class="text-foreground font-bold">+ เพิ่มรายการ</span>
                             </button>
                             <button type="button" onclick="app.saveUnifiedStep(3)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs flex items-center gap-1 transition" title="บันทึกรายการ BOQ (Step 3)">
                                 <i class="ph ph-floppy-disk text-sm"></i>
