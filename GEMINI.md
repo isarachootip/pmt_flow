@@ -62,12 +62,13 @@ PostgreSQL database. They are NOT the same machine and NOT the same data.
 ## ⏰ TIME FORMAT STANDARD: 24-HOUR FORMAT (STRICTLY NO AM/PM)
 - **Mandatory 24-Hour Clock**: ทุกหน้าจอและฟอร์มบันทึกเวลาต้องใช้ระบบ **24 ชั่วโมง (`00:00 - 23:59 น.` หรือ `HH:mm`)** เช่น `07:00`, `08:30`, `12:00`, `13:00`, `17:00`
 - **Prohibited Formats**: ห้ามแสดงผลหรือมีปุ่ม `AM` / `PM` บน UI เด็ดขาด (ห้ามใช้ Native `<input type="time">` ของเบราว์เซอร์ ให้ใช้ Custom 24-Hour Dropdown และปุ่ม Quick Shift Presets เสมอ).
-- **Daily Technician Work Log**: ต้องรักษาหน้าจอทำงานประจำวันของช่าง (`page-daily-logs`) และโมดอลใน Gantt Chart พร้อมช่องแนบรูปถ่าย 5 รูปและ Lightbox Preview เสมอ.
+- **Daily Technician Work Log**: รวมศูนย์การบันทึกงานช่างประจำวันไว้ที่จุดเดียวผ่านโมดอลในแผนงานโครงการ Gantt Chart (`#modal-daily-work-log` / `app.openDailyWorkLogModal`) เพื่อตัดความซ้ำซ้อน พร้อมช่องแนบรูปถ่าย 5 รูปและ Lightbox Preview เสมอ (ยกเลิกหน้าจอแยกเดี่ยว `page-daily-logs`).
 
 ## 📚 MANDATORY ONLINE SYSTEM MANUAL UPDATE UPON ANY PROCESS CHANGE
 - **Strict Mandatory Rule**: ทุกครั้งที่มีการปรับปรุง แก้ไข หรือเพิ่มเติม Process / Workflow ในระบบ (เช่น Step 1 ถึง Step 7, Quick Services Jump, QC Online/On-site, Daily Work Logs) เมื่อโค้ดได้รับการแก้ไขและ Build ผ่านเรียบร้อยแล้ว **จะต้อง Update ตัวคู่มือระบบ Online (`doc/*.md` และหน้าจอ `page-faq` ใน `index.html`) ควบคู่ไปด้วยเสมอ** ห้ามปล่อยให้คู่มือระบบไม่สอดคล้องกับพฤติกรรมจริงของระบบ (100% Code & Documentation Sync).
 
 ## 📊 DEFAULT VIEW STANDARD: STRICTLY LIST VIEW (NO DEFAULT CARD VIEW)
-- **Mandatory Default List View**: ทุกหน้าจอที่มีปุ่มสลับมุมมอง (Step 2 Design, Step 3 BOQ, Step 4 Tickets & Receipts, Step 5 Conversion, Gantt Projects, และ คิวงานช่าง Daily Technician Work Log Queue) **ต้องเริ่มต้นการแสดงผลเป็น "แบบตารางรายการ (List View)" 100% เสมอ** ห้ามตั้งค่าเริ่มต้นเป็น Card View เพื่อให้เจ้าหน้าที่ (SA / Admin / AE / QC) สแกนข้อมูล, รหัสคำสั่งซื้อ, วันที่, และป้ายสถานะได้อย่างรวดเร็วในบรรทัดเดียว (Card View คงไว้เฉพาะการกดสลับด้วยความสมัครใจของผู้ใช้เท่านั้น).
+- **Mandatory Default List View**: ทุกหน้าจอที่มีปุ่มสลับมุมมอง (Step 2 Design, Step 3 BOQ, Step 4 Tickets & Receipts, Step 5 Conversion, Gantt Projects) **ต้องเริ่มต้นการแสดงผลเป็น "แบบตารางรายการ (List View)" 100% เสมอ** ห้ามตั้งค่าเริ่มต้นเป็น Card View เพื่อให้เจ้าหน้าที่ (SA / Admin / AE / QC) สแกนข้อมูล, รหัสคำสั่งซื้อ, วันที่, และป้ายสถานะได้อย่างรวดเร็วในบรรทัดเดียว (Card View คงไว้เฉพาะการกดสลับด้วยความสมัครใจของผู้ใช้เท่านั้น).
+
 
 

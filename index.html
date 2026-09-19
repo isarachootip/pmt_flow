@@ -1779,9 +1779,9 @@
                             <span>คลัง Ticket, สลิปโอนเงิน และสัญญาจ้าง</span>
                             <span id="tab-ticket-library-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono font-bold">0</span>
                         </button>
-                        <button type="button" id="tab-ticket-conversion" onclick="app.navigate('project-conversion')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer" title="Task ย่อย: แปลงรายการค่าแรง BOQ เป็น Task ใน Gantt Timeline">
+                        <button type="button" id="tab-ticket-conversion" onclick="app.navigate('project-conversion')" class="pb-3 text-xs font-semibold flex items-center gap-2 transition border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer" title="Task ย่อย: Convert เข้า Project">
                             <i class="ph ph-lightning text-amber-500 text-sm"></i>
-                            <span>⚡ Task ย่อย: Convert เข้า Project (Labor-to-Task)</span>
+                            <span>⚡ Task ย่อย: Convert เข้า Project</span>
                             <span id="tab-ticket-conversion-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold">0</span>
                         </button>
                     </div>
@@ -2253,73 +2253,35 @@
                     </div>
                 </div>
 
-                <!-- STEP 3: PROJECT CONVERSION & DISPATCH PREPARATION VIEW -->
+                <!-- STEP 2 (Task ย่อย): PROJECT CONVERSION VIEW -->
                 <div id="page-project-conversion" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">Step 2 (Task ย่อย)</span>
-                                <span class="text-2xl">⚡</span>
-                                <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">Convert เข้า Project & จัดการทีมช่าง (Labor-to-Task Studio)</h2>
-                            </div>
-                            <p class="text-xs text-muted-foreground mt-1">Task ย่อยในขั้นตอนที่ 2: ตรวจสอบการชำระเงิน คัดแยกแปลงรายการค่าแรง BOQ เข้าสู่แผนงานโครงการ (Labor-to-Task Rule) และจัดสรรทีมช่างผู้รับผิดชอบก่อนส่งต่อเข้า Gantt Timeline</p>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">Step 2 (Task ย่อย)</span>
+                            <span class="text-2xl">⚡</span>
+                            <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">Convert เข้า Project</h2>
                         </div>
-                        <div class="flex flex-wrap items-center gap-2.5">
+                        <div class="flex items-center gap-2.5">
                             <button onclick="app.navigate('tickets')" class="btn-artifact-secondary text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="กลับไปหน้าบันทึก Ticket & ใบเสร็จ">
                                 <i class="ph ph-arrow-left text-xs"></i>
                                 <span>🧾 บันทึก Ticket & ใบเสร็จ</span>
-                            </button>
-                            <select id="filter-conversion-service" onchange="app.renderProjectConversion()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-amber-500">
-                                <option value="all">ทุกประเภทบริการ</option>
-                                <option value="ติดตั้งเครื่องทำน้ำอุ่น">ติดตั้งเครื่องทำน้ำอุ่น</option>
-                                <option value="ปั้มแท็งก์">ปั้มแท็งก์</option>
-                                <option value="Renovate ครัว">Renovate ครัว</option>
-                                <option value="สำรวจหน้างาน">สำรวจหน้างาน</option>
-                            </select>
-                            <select id="filter-conversion-status" onchange="app.renderProjectConversion()" class="bg-card border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-amber-500">
-                                <option value="STEP5_QUEUE" selected>⚡ คิวงานรอแปลงเข้า Project (Pending)</option>
-                                <option value="ALL">🗂️ ทั้งหมดทุกขั้นตอน (All Work Orders)</option>
-                                <option value="NOT_CONVERTED">รอแปลงเข้า Project (Not Converted)</option>
-                                <option value="CONVERTED">แปลงเป็น Task แล้ว (Converted)</option>
-                            </select>
-                            <button onclick="app.showStep3TrainingGuide()" class="btn-artifact-secondary text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs" title="เปิดคู่มือฝึกอบรมการแปลง BOQ เข้า Project">
-                                <i class="ph ph-graduation-cap text-amber-500 text-sm"></i>
-                                <span>คู่มือ Training</span>
-                            </button>
-                            <button onclick="app.openConvertBOQToTasksModal(app.state.selectedConversionJobId || app.state.selectedGanttJobId)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white cursor-pointer">
-                                <i class="ph ph-lightning text-sm"></i>
-                                <span>⚡ แปลง BOQ เป็น Task ใน Gantt</span>
                             </button>
                         </div>
                     </div>
 
                     <!-- STEP 3 DASHBOARD (KPI CARDS & SEGMENT DISTRIBUTION & SLA) -->
                     <div class="artifact-card p-5 space-y-5 bg-card/70 border border-border/80 rounded-2xl shadow-xs">
-                        <!-- Dashboard Header -->
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-base">
-                                    <i class="ph ph-chart-pie-slice"></i>
-                                </div>
-                                <div>
-                                    <h3 class="font-display text-base font-bold text-foreground tracking-tight flex items-center gap-2">
-                                        Project Conversion & Gantt Analytics & KPI
-                                        <span class="text-[11px] font-normal text-muted-foreground font-sans">(ภาพรวมสถิติแปลงงานเข้าโครงการ)</span>
-                                    </h3>
-                                    <p class="text-[11px] text-muted-foreground">สรุปปริมาณงานรอแปลงเข้าสู่แผนงาน Gantt (Step 3) อัตราความสำเร็จ และประสิทธิภาพเกณฑ์เวลา SLA</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 self-start sm:self-auto">
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    Realtime Live
-                                </span>
-                                <span id="step5-date-indicator" class="text-[11px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/60 border border-border">วันนี้</span>
-                                <button type="button" onclick="app.openSLAConfigModal('step3')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ Step 3">
-                                    <i class="ph ph-gear-six text-xs"></i>
-                                    <span>ตั้งค่า SLA</span>
-                                </button>
-                            </div>
+                        <!-- Dashboard Header (Clean & Minimal) -->
+                        <div class="flex items-center justify-end gap-2 border-b border-border/60 pb-2.5">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                Realtime Live
+                            </span>
+                            <span id="step5-date-indicator" class="text-[11px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/60 border border-border">วันนี้</span>
+                            <button type="button" onclick="app.openSLAConfigModal('step3')" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/30" title="ตั้งค่าเกณฑ์เวลา SLA สำหรับ Step 3">
+                                <i class="ph ph-gear-six text-xs"></i>
+                                <span>ตั้งค่า SLA</span>
+                            </button>
                         </div>
 
                         <!-- Top 5 Primary KPI Cards for Step 5 -->
@@ -2523,43 +2485,6 @@
                         <!-- Hidden compatibility span -->
                         <div class="hidden">
                             <span id="step5-stat-completed">0</span>
-                        </div>
-                    </div>
-
-                    <!-- Contextual Queue Banner -->
-                    <div id="step5-queue-banner" class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-2.5">
-                            <span class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-xs shrink-0">⚡</span>
-                            <div>
-                                <span class="font-bold">คิวงาน Step 3 (เตรียมแผนงานและทีมช่าง):</span>
-                                <span class="text-muted-foreground ml-1">แสดงเฉพาะงานที่พร้อมแปลงรายการค่าแรง/บริการจาก BOQ เข้าสู่แผนงาน Gantt Timeline ตามกฎ Labor-to-Task Rule เมื่องานถูกแปลงแล้ว สามารถเปิดดูแผนงาน Gantt ได้ทันที</span>
-                            </div>
-                        </div>
-                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold shrink-0">Single State Queue</span>
-                    </div>
-
-                    <!-- Standard Work Order List Table -->
-                    <div class="artifact-card overflow-hidden shadow-sm">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs">
-                                <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
-                                    <tr>
-                                        <th class="px-3 py-2.5 whitespace-nowrap">เลขที่งาน</th>
-                                        <th class="px-2.5 py-2.5 whitespace-nowrap">เลขที่อ้างอิง (Ref ID)</th>
-                                        <th class="px-2.5 py-2.5 whitespace-nowrap">เลขที่ Booking</th>
-                                        <th class="px-2.5 py-2.5 whitespace-nowrap">กำหนดวันนัด</th>
-                                        <th class="px-3 py-2.5 min-w-[125px] max-w-[150px]">ลูกค้า &amp; เบอร์ติดต่อ</th>
-                                        <th class="px-2.5 py-2.5 min-w-[115px] max-w-[140px]">ประเภทบริการ</th>
-                                        <th class="px-2.5 py-2.5 whitespace-nowrap">ช่าง / ผู้รับผิดชอบ</th>
-                                        <th class="px-2.5 py-2.5 whitespace-nowrap">สถานะ</th>
-                                        <th class="px-3 py-2.5 min-w-[150px] whitespace-nowrap">สถานะ SLA / เข้า State</th>
-                                        <th class="px-3 py-2.5 text-right whitespace-nowrap">การจัดการ</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-border" id="conversion-jobs-table-body">
-                                    <!-- Populated dynamically by JS -->
-                                </tbody>
-                            </table>
                         </div>
                     </div>
 

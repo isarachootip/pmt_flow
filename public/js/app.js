@@ -2857,7 +2857,7 @@ const app = {
                     'jobs': 'Step 1: รับ Order, Design & BOQ Studio',
                     'job-detail': `รายละเอียดงาน ${param || ''}`,
                     'tickets': 'Step 2: บันทึก Ticket, ใบเสร็จ & Convert เข้า Project',
-                    'project-conversion': 'Step 2 (Task ย่อย): Convert เข้า Project & จัดการทีมช่าง (Labor-to-Task)',
+                    'project-conversion': 'Step 2 (Task ย่อย): Convert เข้า Project',
                     'gantt': 'Step 4: แผนงาน & บันทึกช่างประจำวัน (Gantt Timeline)',
                     'qc': 'Step 5: การตรวจรับรองคุณภาพ (Quality Control - Step 5)',
                     'csat': 'สรุปงานที่สำเร็จแล้ว (Completed Jobs Summary - ส่ง API ระบบ STK)',
@@ -7653,43 +7653,38 @@ const app = {
                         this.showToast('🧾 แสดงงานที่ออก Ticket & แนบสลิปแล้ว');
                     }
                 } else if (stepNumber === 5 || stepNumber === 3) {
-                    const svcSel = document.getElementById('filter-conversion-service');
-                    const stSel = document.getElementById('filter-conversion-status');
                     if (type === 'ALL') {
-                        if (stSel) stSel.value = 'ALL';
-                        if (svcSel) svcSel.value = 'all';
                         this.renderProjectConversion(null, allJobs);
-                        this.showToast(`📊 แสดงรายการทั้งหมดใน Step 3 (${allJobs.length} รายการ)`);
+                        this.showToast(`📊 แสดงรายการทั้งหมด (${allJobs.length} รายการ)`);
                     } else if (type === 'TODAY') {
-                        if (svcSel) svcSel.value = 'all';
                         let todayList = allJobs.filter(j => {
                             const ts = (j.step_timestamps && (j.step_timestamps.step5_project_at || j.step_timestamps.step3_conversion_at));
                             return ts && ts.slice(0, 10) === todayStr;
                         });
                         if (todayList.length === 0 && allJobs.length > 0) todayList = allJobs.slice(0, 2);
-                        if (stSel) stSel.value = 'ALL';
                         this.renderProjectConversion(null, todayList);
                         this.showToast(`📅 แสดงงานที่แปลงเข้า Project วันนี้ (${todayList.length} รายการ)`);
                     } else if (type === 'REMAINING' || type === 'STEP5_QUEUE' || type === 'STEP3_QUEUE') {
-                        if (stSel) stSel.value = 'STEP5_QUEUE';
-                        if (svcSel) svcSel.value = 'all';
+                        this.switchConversionTab('pending');
                         this.renderProjectConversion();
-                        this.showToast('📥 แสดงเฉพาะคิวงานที่รอแปลง BOQ เข้า Project ใน Step 3');
+                        this.showToast('📥 แสดงเฉพาะคิวงานที่รอแปลง BOQ เข้า Project');
                     } else if (type === 'OVERDUE') {
                         const overdueList = allJobs.filter(j => {
                             const sla = this.calculateJobSLA(j, 3) || this.calculateJobSLA(j, 5);
                             return sla && sla.status === 'OVERDUE';
                         });
-                        if (stSel) stSel.value = 'ALL';
                         this.renderProjectConversion(null, overdueList);
-                        this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA ใน Step 3 (${overdueList.length} รายการ)`);
+                        this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA (${overdueList.length} รายการ)`);
+                    } else if (type === 'CLOSE_LOST') {
+                        const list = allJobs.filter(j => j.status === 'CLOSE_LOST');
+                        this.renderProjectConversion(null, list);
+                        this.showToast(`🚫 แสดงรายการ Close Lost (${list.length} รายการ)`);
                     } else if (type === 'quick' || type === 'renovate' || type === 'ma') {
                         const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === type);
-                        if (stSel) stSel.value = 'ALL';
                         this.renderProjectConversion(null, list);
                         this.showToast(`⚡ กรองประเภท ${type.toUpperCase()} (${list.length} รายการ)`);
                     } else if (type === 'transferred') {
-                        if (stSel) stSel.value = 'CONVERTED';
+                        this.switchConversionTab('library');
                         this.renderProjectConversion();
                         this.showToast('⚡ แสดงงานที่แปลงเข้า Task / Gantt แล้ว');
                     }
@@ -16447,147 +16442,12 @@ const app = {
             renderProjectConversion(jobId = null, customJobList = null) {
                 this.updateStep5Dashboard();
 
-                // Top Header Filters for Step 5 Standard Table
-                const convStatusFilter = document.getElementById('filter-conversion-status')?.value || 'STEP5_QUEUE';
-                const convServiceFilter = document.getElementById('filter-conversion-service')?.value || 'all';
-
-                const bannerEl = document.getElementById('step5-queue-banner');
-                if (bannerEl) {
-                    bannerEl.style.display = (convStatusFilter === 'STEP5_QUEUE') ? 'flex' : 'none';
-                }
-
                 const allJobs = DB.jobs || [];
                 const allTasks = DB.tasks || [];
                 const convertedJobIds = new Set(allTasks.map(t => t.jobId));
-                let tableJobs = customJobList || allJobs;
-                if (!customJobList) {
-                    if (convServiceFilter !== 'all') {
-                        tableJobs = tableJobs.filter(j => j.service === convServiceFilter);
-                    }
-                    // BOQ Guard: กรองเฉพาะ job ที่มี BOQ แล้วเท่านั้น
-                    tableJobs = tableJobs.filter(j => j.boq_items && j.boq_items.length > 0);
-                    if (convStatusFilter === 'STEP5_QUEUE') {
-                        tableJobs = tableJobs.filter(j => 
-                            !this.isQuickJob(j) &&
-                            j.pmt_accepted &&
-                            ((j.step_timestamps && j.step_timestamps.step5_project_at) ||
-                             (DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id) ||
-                             j.ticket_id) &&
-                            !convertedJobIds.has(j.id)
-                        );
-                        if (tableJobs.length === 0) {
-                            tableJobs = allJobs.filter(j => !this.isQuickJob(j) && !convertedJobIds.has(j.id) && j.boq_items && j.boq_items.length > 0);
-                        }
-                    } else if (convStatusFilter === 'NOT_CONVERTED') {
-                        tableJobs = tableJobs.filter(j => !this.isQuickJob(j) && !convertedJobIds.has(j.id));
-                    } else if (convStatusFilter === 'CONVERTED') {
-                        tableJobs = tableJobs.filter(j => convertedJobIds.has(j.id));
-                    }
-                }
+                const sourceJobs = customJobList || allJobs;
 
-                // Render Top Standard Work Order List Table (#conversion-jobs-table-body)
-                tableJobs = this.sortJobsDescending(tableJobs);
-                const convTableBody = document.getElementById('conversion-jobs-table-body');
-                if (convTableBody) {
-                    if (tableJobs.length === 0) {
-                        convTableBody.innerHTML = `
-                            <tr>
-                                <td colspan="10" class="px-5 py-10 text-center text-muted-foreground">
-                                    <div class="max-w-md mx-auto space-y-2">
-                                        <i class="ph ph-kanban text-3xl text-amber-500/50"></i>
-                                        <div class="text-sm font-semibold text-foreground">ไม่มีรายการงานในคิว Step 3 ตามเงื่อนไข</div>
-                                        <div class="text-xs text-muted-foreground">สามารถเลือกตัวกรอง "ทั้งหมดทุกขั้นตอน" เพื่อดูงานทั้งหมด</div>
-                                    </div>
-                                </td>
-                            </tr>
-                        `;
-                    } else {
-                        convTableBody.innerHTML = tableJobs.map((j, idx) => {
-                            const isTopNew = idx < 3;
-                            const jobTasks = (DB.tasks || []).filter(t => t.jobId === j.id);
-                            const hasTasks = jobTasks.length > 0;
-                            const stageHtml = this.renderStageWithSLA(j, 3);
-                            const isSelected = j.id === (jobId || this.state.selectedConversionJobId);
-
-                            const actionButtons = hasTasks ? `
-                                <div class="flex items-center justify-end gap-1.5">
-                                    <button onclick="event.stopPropagation(); app.openBOQPreviewModal('${j.id}')" class="p-1.5 rounded-lg border border-purple-500/30 hover:bg-purple-500/10 text-purple-600 dark:text-purple-400 cursor-pointer transition" title="ดู Preview ตาราง BOQ">
-                                        <i class="ph ph-eye text-sm font-bold"></i>
-                                    </button>
-                                    <button onclick="event.stopPropagation(); app.openConvertBOQToTasksModal('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted text-foreground inline-flex items-center gap-1 cursor-pointer" title="ปรับแต่ง Tasks">
-                                        <i class="ph ph-pencil-simple"></i>
-                                        <span>ปรับแต่ง Tasks (${jobTasks.length})</span>
-                                    </button>
-                                    <button onclick="event.stopPropagation(); app.state.selectedGanttJobId = '${j.id}'; app.navigate('gantt')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="เปิดดูผัง Gantt">
-                                        <span>เปิดดูผัง Gantt</span>
-                                        <i class="ph ph-arrow-right-bold text-xs"></i>
-                                    </button>
-                                </div>
-                            ` : `
-                                <div class="flex items-center justify-end gap-1.5">
-                                    <button onclick="event.stopPropagation(); app.openBOQPreviewModal('${j.id}')" class="p-1.5 rounded-lg border border-purple-500/30 hover:bg-purple-500/10 text-purple-600 dark:text-purple-400 cursor-pointer transition" title="ดู Preview ตาราง BOQ">
-                                        <i class="ph ph-eye text-sm font-bold"></i>
-                                    </button>
-                                    <button onclick="event.stopPropagation(); app.openConvertBOQToTasksModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="แปลง BOQ เข้า Project">
-                                        <i class="ph ph-lightning text-xs"></i>
-                                        <span>บันทึก BOQ เข้า Project</span>
-                                    </button>
-                                </div>
-                            `;
-
-                            return `
-                                <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSelected ? 'bg-amber-500/5' : (isTopNew ? 'bg-rose-500/[0.02]' : '')}" onclick="app.renderProjectConversion('${j.id}')">
-                                    <td class="px-3 py-2.5 font-mono font-semibold text-amber-600 dark:text-amber-400 whitespace-nowrap">
-                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                            <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-amber-600 dark:text-amber-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.job_no || j.id}">
-                                                <span>${j.job_no || j.id}</span>
-                                                <i class="ph ph-arrow-square-out text-[11px] opacity-70"></i>
-                                            </button>
-                                            ${isTopNew ? `
-                                                <span class="badge-new-item" title="สถานะล่าสุด (NEW!)">
-                                                    <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
-                                                </span>
-                                            ` : ''}
-                                        </div>
-                                    </td>
-                                    <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                                        ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
-                                    </td>
-                                    <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
-                                    </td>
-                                    <td class="px-2.5 py-2.5 whitespace-nowrap">
-                                        ${(j.plan_date || j.date) ? `
-                                            <div class="inline-flex items-center gap-1 font-mono text-[11px] text-foreground font-semibold whitespace-nowrap">
-                                                <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-xs shrink-0"></i>
-                                                <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
-                                            </div>
-                                        ` : '<span class="text-muted-foreground">-</span>'}
-                                    </td>
-                                    <td class="px-3 py-2.5 min-w-[125px] max-w-[150px]">
-                                        <div class="text-foreground font-semibold text-xs truncate group-hover:text-amber-500 transition flex items-center gap-1.5" title="${j.customer || ''}">
-                                            <span class="truncate">${j.customer}</span>
-                                            ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-ping" title="สถานะล่าสุด"></span>` : ''}
-                                        </div>
-                                        <div class="text-[11px] text-muted-foreground font-mono truncate">${j.phone || '-'}</div>
-                                    </td>
-                                    <td class="px-2.5 py-2.5 min-w-[115px] max-w-[140px] text-muted-foreground">
-                                        <div class="flex items-center gap-1 flex-wrap">
-                                            <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase shrink-0 ${j.job_type === 'quick' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : (j.job_type === 'renovate' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20')}">${j.job_type || 'quick'}</span>
-                                            <span class="text-xs font-medium text-foreground truncate" title="${j.service || ''}">${j.service}</span>
-                                        </div>
-                                    </td>
-                                    <td class="px-2.5 py-2.5 whitespace-nowrap text-muted-foreground"><span class="text-xs truncate block max-w-[110px]" title="${j.tech || '-'}">${j.tech || '-'}</span></td>
-                                    <td class="px-2.5 py-2.5 whitespace-nowrap">${this.getStatusHtml(j.status, isTopNew)}</td>
-                                    <td class="px-3 py-2.5 min-w-[150px] whitespace-nowrap">${stageHtml}</td>
-                                    <td class="px-3 py-2.5 text-right whitespace-nowrap">${actionButtons}</td>
-                                </tr>
-                            `;
-                        }).join('');
-                    }
-                }
-
-                // ── Secondary Section: Tabs, Search, Pending Queue & Converted Library ──
+                // ── Main Section: Tabs, Search, Pending Queue & Converted Library ──
                 const isLabor = (name) => {
                     if (!name) return false;
                     const n = name.toLowerCase();
@@ -16605,14 +16465,14 @@ const app = {
                 if (badgePending) badgePending.innerText = totalPendingCount;
                 if (badgeLibrary) badgeLibrary.innerText = totalConvertedCount;
 
-                // Search & Filter values for Secondary tabs
+                // Search & Filter values for tabs
                 const searchInput = document.getElementById('conversion-search');
                 const serviceFilterEl = document.getElementById('conversion-filter-service');
                 const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
                 const sFilter = serviceFilterEl ? serviceFilterEl.value : 'all';
 
-                let pendingJobs = allJobs.filter(j => !this.isQuickJob(j) && !convertedJobIds.has(j.id));
-                let convertedJobs = allJobs.filter(j => convertedJobIds.has(j.id));
+                let pendingJobs = sourceJobs.filter(j => !this.isQuickJob(j) && !convertedJobIds.has(j.id));
+                let convertedJobs = sourceJobs.filter(j => convertedJobIds.has(j.id));
 
                 if (q) {
                     pendingJobs = pendingJobs.filter(j => 
@@ -20425,662 +20285,6 @@ const app = {
                 }
             },
 
-            // ─── DEDICATED PAGE: RENDER DAILY LOGS PAGE (OPTION A: MASTER-DETAIL SPLIT VIEW) ───────────
-            renderDailyLogsPage(param = null) {
-                const allJobs = DB.jobs || [];
-                if (allJobs.length === 0) return;
-
-                // State defaults
-                if (!this.state.dailyLogActiveTab) this.state.dailyLogActiveTab = 'form';
-                if (!this.state.dailyLogFilterStatus) this.state.dailyLogFilterStatus = 'all';
-                if (!this.state.dailyLogSearchQuery) this.state.dailyLogSearchQuery = '';
-
-                // Determine active job
-                let selectedJobId = param || this.state.dailyLogSelectedJobId || this.state.selectedGanttJobId || 'JOB26090900002';
-                if (!allJobs.some(j => j.id === selectedJobId)) {
-                    selectedJobId = allJobs[0].id;
-                }
-                this.state.dailyLogSelectedJobId = selectedJobId;
-
-                // Render Master Job Queue on left
-                this.renderDailyLogJobQueue();
-
-                // Select and render right workspace with progressive disclosure
-                this.selectDailyLogJob(selectedJobId, false);
-            },
-
-            onDailyLogQueueSearch(query) {
-                this.state.dailyLogSearchQuery = (query || '').toLowerCase().trim();
-                this.renderDailyLogJobQueue();
-            },
-
-            toggleDailyLogQueueVisibility() {
-                const list = document.getElementById('daily-log-job-queue-list');
-                const controls = document.getElementById('daily-log-queue-controls');
-                const toggleText = document.getElementById('daily-log-queue-toggle-text');
-                const toggleIcon = document.getElementById('daily-log-queue-toggle-icon');
-                if (!list) return;
-                const isHidden = list.classList.contains('hidden');
-                if (isHidden) {
-                    list.classList.remove('hidden');
-                    if (controls) controls.classList.remove('hidden');
-                    if (toggleText) toggleText.innerText = 'ย่อคิวงาน';
-                    if (toggleIcon) toggleIcon.className = 'ph ph-caret-up text-xs';
-                } else {
-                    list.classList.add('hidden');
-                    if (controls) controls.classList.add('hidden');
-                    if (toggleText) toggleText.innerText = 'แสดงคิวงานทั้งหมด';
-                    if (toggleIcon) toggleIcon.className = 'ph ph-caret-down text-xs';
-                }
-            },
-
-            setDailyLogQueueFilter(filterType) {
-                this.state.dailyLogFilterStatus = filterType;
-                const btnAll = document.getElementById('daily-log-tab-filter-all');
-                const btnPending = document.getElementById('daily-log-tab-filter-pending');
-                const btnDone = document.getElementById('daily-log-tab-filter-done');
-                [btnAll, btnPending, btnDone].forEach(b => {
-                    if (b) b.className = 'px-3 py-1 rounded-lg font-medium transition cursor-pointer text-center text-muted-foreground hover:text-foreground';
-                });
-                const activeBtn = filterType === 'all' ? btnAll : (filterType === 'pending' ? btnPending : btnDone);
-                if (activeBtn) {
-                    activeBtn.className = 'px-3 py-1 rounded-lg font-semibold transition cursor-pointer text-center bg-card text-foreground shadow-xs';
-                }
-                this.renderDailyLogJobQueue();
-            },
-
-            setDailyLogQueueViewMode(mode) {
-                this.state.dailyLogQueueViewMode = mode;
-                try { localStorage.setItem('pmt_daily_log_queue_view_mode', mode); } catch (e) {}
-                this.updateDailyLogQueueViewModeButtons();
-                this.renderDailyLogJobQueue();
-            },
-
-            updateDailyLogQueueViewModeButtons() {
-                const mode = this.state.dailyLogQueueViewMode || 'list';
-                const btnCard = document.getElementById('btn-daily-log-mode-card');
-                const btnList = document.getElementById('btn-daily-log-mode-list');
-                if (btnCard && btnList) {
-                    if (mode === 'card') {
-                        btnCard.className = 'px-2.5 py-1 rounded-lg font-semibold transition flex items-center gap-1 cursor-pointer bg-card text-foreground shadow-xs';
-                        btnList.className = 'px-2.5 py-1 rounded-lg font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground';
-                    } else {
-                        btnList.className = 'px-2.5 py-1 rounded-lg font-semibold transition flex items-center gap-1 cursor-pointer bg-card text-foreground shadow-xs';
-                        btnCard.className = 'px-2.5 py-1 rounded-lg font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground';
-                    }
-                }
-            },
-
-            renderDailyLogJobQueue() {
-                const listContainer = document.getElementById('daily-log-job-queue-list');
-                const countBadge = document.getElementById('daily-log-queue-count-badge');
-                if (!listContainer) return;
-
-                this.updateDailyLogQueueViewModeButtons();
-                const isList = (this.state.dailyLogQueueViewMode || 'list') === 'list';
-
-                const allJobs = DB.jobs || [];
-                const allLogs = DB.dailyWorkLogs || [];
-                const allTasks = DB.tasks || [];
-                const todayStr = new Date().toISOString().slice(0, 10);
-                const query = (this.state.dailyLogSearchQuery || '').toLowerCase();
-                const filter = this.state.dailyLogFilterStatus || 'all';
-                const selectedJobId = this.state.dailyLogSelectedJobId;
-
-                // Filter jobs
-                const filteredJobs = allJobs.filter(j => {
-                    const jobTasks = allTasks.filter(t => t.jobId === j.id);
-                    const jobLogs = allLogs.filter(l => String(l.jobId) === String(j.id));
-                    const hasTodayLog = jobLogs.some(l => l.logDate === todayStr || (l.createdAt && l.createdAt.startsWith(todayStr)));
-                    const maxProgress = jobLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
-                    const isCompleted = maxProgress >= 100 || j.status === 'DONE' || j.status === 'QC_PENDING' || j.status === 'QC_PASSED';
-
-                    if (query) {
-                        const matchId = (j.id || '').toLowerCase().includes(query);
-                        const matchCust = (j.customer || '').toLowerCase().includes(query);
-                        const matchTech = (j.tech || '').toLowerCase().includes(query);
-                        const matchService = (j.service || '').toLowerCase().includes(query);
-                        const matchPhone = (j.phone || '').toLowerCase().includes(query);
-                        const matchTasks = jobTasks.some(t => (t.name || '').toLowerCase().includes(query) || (t.tech || '').toLowerCase().includes(query));
-                        if (!matchId && !matchCust && !matchTech && !matchService && !matchPhone && !matchTasks) return false;
-                    }
-
-                    if (filter === 'pending') {
-                        if (hasTodayLog || isCompleted) return false;
-                    } else if (filter === 'done') {
-                        if (!hasTodayLog && !isCompleted) return false;
-                    }
-
-                    return true;
-                });
-
-                if (countBadge) {
-                    countBadge.innerText = `${filteredJobs.length} รายการ`;
-                }
-
-                if (filteredJobs.length === 0) {
-                    listContainer.className = "w-full";
-                    listContainer.innerHTML = `
-                        <div class="py-8 text-center text-muted-foreground text-xs p-4 rounded-2xl border border-dashed border-border bg-muted/10 space-y-2">
-                            <i class="ph ph-magnifying-glass text-2xl text-muted-foreground/60"></i>
-                            <div class="font-medium">ไม่พบงานที่ตรงกับเงื่อนไขการค้นหา</div>
-                            <button type="button" onclick="app.setDailyLogQueueFilter('all'); document.getElementById('daily-log-queue-search').value = ''; app.onDailyLogQueueSearch('');" class="text-[11px] text-cyan-600 hover:underline cursor-pointer">ล้างตัวกรอง</button>
-                        </div>
-                    `;
-                    return;
-                }
-
-                // Sort descending so latest updated/status job is always at top
-                const sortedDailyJobs = this.sortJobsDescending(filteredJobs);
-
-                if (isList) {
-                    listContainer.className = "w-full overflow-hidden";
-                    listContainer.innerHTML = `
-                        <div class="overflow-x-auto rounded-xl border border-border bg-card shadow-2xs max-h-[380px] overflow-y-auto">
-                            <table class="w-full text-left border-collapse text-xs">
-                                <thead class="sticky top-0 bg-muted/95 backdrop-blur-xs z-10 border-b border-border text-muted-foreground font-semibold text-[11px]">
-                                    <tr>
-                                        <th class="py-2.5 px-3.5 font-mono">JOB ID</th>
-                                        <th class="py-2.5 px-3">สถานะบันทึกช่าง</th>
-                                        <th class="py-2.5 px-3">ลูกค้า / เบอร์ติดต่อ</th>
-                                        <th class="py-2.5 px-3">บริการ / งานหลัก</th>
-                                        <th class="py-2.5 px-3">ช่างผู้รับผิดชอบ</th>
-                                        <th class="py-2.5 px-3 text-center">ความคืบหน้ารวม</th>
-                                        <th class="py-2.5 px-3 text-center">ประวัติลงบันทึก</th>
-                                        <th class="py-2.5 px-3 text-right">เลือกโครงการ</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-border/60">
-                                    ${sortedDailyJobs.map((j) => {
-                                        const isSelected = j.id === selectedJobId;
-                                        const isTopNew = this.isTopLatestJob(j.id, sortedDailyJobs, 1);
-                                        const jobTasks = allTasks.filter(t => t.jobId === j.id);
-                                        const jobLogs = allLogs.filter(l => String(l.jobId) === String(j.id));
-                                        const hasTodayLog = jobLogs.some(l => l.logDate === todayStr || (l.createdAt && l.createdAt.startsWith(todayStr)));
-                                        const maxProgress = jobLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
-                                        const isCompleted = maxProgress >= 100 || j.status === 'DONE' || j.status === 'QC_PENDING' || j.status === 'QC_PASSED';
-                                        const primaryTask = jobTasks.length > 0 ? jobTasks[0] : null;
-                                        const taskName = primaryTask ? primaryTask.name : (j.service || 'งานบริการ');
-                                        const techName = primaryTask ? (primaryTask.tech || j.tech) : (j.tech || 'Team B');
-
-                                        let statusBadgeHtml = '';
-                                        if (isCompleted) {
-                                            statusBadgeHtml = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-600 font-mono inline-flex items-center gap-1"><i class="ph ph-check-circle"></i> รอ QC (100%)</span>`;
-                                        } else if (hasTodayLog) {
-                                            statusBadgeHtml = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-500/15 text-teal-600 font-mono inline-flex items-center gap-1"><i class="ph ph-check"></i> บันทึกแล้ววันนี้</span>`;
-                                        } else {
-                                            statusBadgeHtml = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-600 font-mono inline-flex items-center gap-1 animate-pulse"><i class="ph ph-warning-circle"></i> ค้างลงวันนี้</span>`;
-                                        }
-
-                                        const rowBgClass = isSelected
-                                            ? 'bg-cyan-500/10 border-l-4 border-l-cyan-500 font-medium text-foreground shadow-2xs'
-                                            : (isTopNew
-                                                ? 'hover:bg-muted/40 transition cursor-pointer border-l-4 border-l-cyan-500/40 bg-cyan-500/[0.02]'
-                                                : 'hover:bg-muted/40 transition cursor-pointer border-l-4 border-l-transparent');
-
-                                        return `
-                                        <tr onclick="app.selectDailyLogJob('${j.id}', true, true)" class="${rowBgClass}">
-                                            <td class="py-2.5 px-3.5 font-mono">
-                                                <div class="flex items-center gap-1.5 flex-wrap">
-                                                    <span class="font-bold text-xs ${isSelected ? 'text-cyan-600 font-bold' : 'text-foreground'}">${j.id}</span>
-                                                    ${isTopNew ? `<span class="badge-new-item text-[8px] py-0 px-1" title="สถานะล่าสุด"><i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!</span>` : ''}
-                                                </div>
-                                            </td>
-                                            <td class="py-2.5 px-3 whitespace-nowrap">
-                                                ${statusBadgeHtml}
-                                            </td>
-                                            <td class="py-2.5 px-3">
-                                                <div class="font-semibold text-foreground text-xs truncate max-w-[160px]">${j.customer || '-'}</div>
-                                                ${j.phone ? `<div class="text-[10px] font-mono text-muted-foreground flex items-center gap-1"><i class="ph ph-phone text-[10px]"></i> ${j.phone}</div>` : ''}
-                                            </td>
-                                            <td class="py-2.5 px-3">
-                                                <div class="font-medium text-foreground text-xs truncate max-w-[220px] flex items-center gap-1.5" title="${taskName}">
-                                                    <i class="ph ph-wrench text-cyan-500 text-xs shrink-0"></i>
-                                                    <span class="truncate">${taskName}</span>
-                                                </div>
-                                                ${j.service && j.service !== taskName ? `<div class="text-[10px] text-muted-foreground truncate max-w-[220px]">${j.service}</div>` : ''}
-                                            </td>
-                                            <td class="py-2.5 px-3 whitespace-nowrap">
-                                                <span class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                                                    <i class="ph ph-user text-cyan-500 text-xs shrink-0"></i>
-                                                    <span class="font-medium text-foreground">${techName}</span>
-                                                </span>
-                                            </td>
-                                            <td class="py-2.5 px-3 text-center whitespace-nowrap">
-                                                <div class="inline-flex items-center justify-center gap-2">
-                                                    <span class="font-mono text-xs font-bold text-foreground w-8 text-right">${maxProgress}%</span>
-                                                    <div class="w-14 bg-muted/80 h-1.5 rounded-full overflow-hidden shrink-0">
-                                                        <div class="bg-gradient-to-r from-cyan-500 via-brand-500 to-emerald-500 h-full rounded-full transition-all" style="width: ${Math.min(100, Math.max(isCompleted ? 100 : 5, maxProgress))}%;"></div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td class="py-2.5 px-3 text-center whitespace-nowrap">
-                                                <span class="font-mono text-xs text-muted-foreground inline-flex items-center gap-1">
-                                                    <i class="ph ph-notebook text-purple-500 text-xs"></i> ${jobLogs.length} วัน
-                                                </span>
-                                            </td>
-                                            <td class="py-2.5 px-3 text-right whitespace-nowrap">
-                                                ${isSelected ? `
-                                                    <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-cyan-500 text-white shadow-xs inline-flex items-center gap-1">
-                                                        <i class="ph ph-check-bold"></i> กำลังบันทึก
-                                                    </span>
-                                                ` : `
-                                                    <button type="button" onclick="event.stopPropagation(); app.selectDailyLogJob('${j.id}', true, true)" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-border bg-card hover:bg-cyan-500 hover:text-white hover:border-cyan-500 text-foreground inline-flex items-center gap-1 transition cursor-pointer shadow-2xs">
-                                                        เลือกงาน <i class="ph ph-arrow-right text-[10px]"></i>
-                                                    </button>
-                                                `}
-                                            </td>
-                                        </tr>`;
-                                    }).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    `;
-                } else {
-                    listContainer.className = "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[360px] overflow-y-auto pr-1";
-                    listContainer.innerHTML = sortedDailyJobs.map((j) => {
-                        const isSelected = j.id === selectedJobId;
-                        const isTopNew = this.isTopLatestJob(j.id, sortedDailyJobs, 1);
-                        const jobTasks = allTasks.filter(t => t.jobId === j.id);
-                        const jobLogs = allLogs.filter(l => String(l.jobId) === String(j.id));
-                        const hasTodayLog = jobLogs.some(l => l.logDate === todayStr || (l.createdAt && l.createdAt.startsWith(todayStr)));
-                        const maxProgress = jobLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
-                        const isCompleted = maxProgress >= 100 || j.status === 'DONE' || j.status === 'QC_PENDING' || j.status === 'QC_PASSED';
-                        const primaryTask = jobTasks.length > 0 ? jobTasks[0] : null;
-                        const taskName = primaryTask ? primaryTask.name : (j.service || 'งานบริการ');
-                        const techName = primaryTask ? (primaryTask.tech || j.tech) : (j.tech || 'Team B');
-
-                        let statusBadgeHtml = '';
-                        if (isCompleted) {
-                            statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1 shrink-0"><i class="ph ph-check-circle"></i> รอ QC</span>`;
-                        } else if (hasTodayLog) {
-                            statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-teal-500/15 text-teal-600 dark:text-teal-400 font-mono flex items-center gap-1 shrink-0"><i class="ph ph-check"></i> บันทึกแล้ว</span>`;
-                        } else {
-                            statusBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono flex items-center gap-1 shrink-0 animate-pulse"><i class="ph ph-warning-circle"></i> ค้างลง</span>`;
-                        }
-
-                        return `
-                        <div onclick="app.selectDailyLogJob('${j.id}', true, true)" class="p-3 rounded-xl border transition cursor-pointer space-y-2 group shadow-2xs ${isSelected ? 'bg-cyan-500/10 border-cyan-500 shadow-sm ring-2 ring-cyan-500/40' : (isTopNew ? 'border-cyan-500/40 bg-cyan-500/[0.03]' : 'bg-card border-border hover:border-cyan-500/40 hover:bg-muted/30')}">
-                            <div class="flex items-start justify-between gap-1.5">
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex items-center gap-1.5 flex-wrap">
-                                        <span class="font-mono text-xs font-bold ${isSelected ? 'text-cyan-600 dark:text-cyan-400' : 'text-foreground group-hover:text-cyan-500'}">${j.id}</span>
-                                        ${isTopNew ? `
-                                            <span class="badge-new-item text-[8px] py-0 px-1" title="สถานะล่าสุด (NEW!)">
-                                                <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
-                                            </span>
-                                        ` : ''}
-                                    </div>
-                                    <div class="text-xs font-semibold text-foreground truncate mt-0.5">${j.customer}</div>
-                                    <div class="text-[11px] text-muted-foreground truncate flex items-center gap-1 mt-0.5">
-                                        <i class="ph ph-wrench text-cyan-500 text-xs shrink-0"></i>
-                                        <span class="truncate">${taskName}</span>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col items-end gap-1">
-                                    ${statusBadgeHtml}
-                                    <span class="font-mono text-[10px] font-bold text-foreground">${maxProgress}%</span>
-                                </div>
-                            </div>
-
-                            <div class="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t border-border/50">
-                                <span class="flex items-center gap-1 truncate">
-                                    <i class="ph ph-user text-cyan-500"></i> ${techName}
-                                </span>
-                                <span class="font-mono flex items-center gap-1 shrink-0">
-                                    <i class="ph ph-notebook text-purple-500"></i> ${jobLogs.length} วัน
-                                </span>
-                            </div>
-
-                            <!-- Mini Progress Bar -->
-                            <div class="w-full bg-muted/70 h-1.5 rounded-full overflow-hidden">
-                                <div class="bg-gradient-to-r from-cyan-500 via-brand-500 to-emerald-500 h-full rounded-full transition-all duration-300" style="width: ${Math.min(100, Math.max(isCompleted ? 100 : 5, maxProgress))}%;"></div>
-                            </div>
-                        </div>`;
-                    }).join('');
-                }
-            },
-
-            selectDailyLogJob(jobId, shouldRerenderQueue = true, shouldScroll = false) {
-                this.state.dailyLogSelectedJobId = jobId;
-                const jobTasks = (DB.tasks || []).filter(t => t.jobId === jobId);
-                let selectedTaskId = this.state.dailyLogSelectedTaskId;
-                if (jobTasks.length > 0) {
-                    if (!jobTasks.some(t => String(t.id) === String(selectedTaskId))) {
-                        selectedTaskId = jobTasks[0].id;
-                    }
-                } else {
-                    selectedTaskId = `T_${jobId}_1`;
-                }
-                this.state.dailyLogSelectedTaskId = selectedTaskId;
-
-                // Reset photo slots for fresh selection
-                this.state.dailyLogPhotoSlots = [null, null, null, null, null];
-
-                if (shouldRerenderQueue) {
-                    this.renderDailyLogJobQueue();
-                }
-                this.renderDailyLogsPageContent();
-
-                if (shouldScroll) {
-                    const el = document.getElementById('daily-logs-page-container');
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            },
-
-            onDailyLogJobSelect(jobId) {
-                this.selectDailyLogJob(jobId);
-            },
-
-            selectDailyLogTask(taskId) {
-                this.state.dailyLogSelectedTaskId = taskId;
-                this.state.dailyLogPhotoSlots = [null, null, null, null, null];
-                this.renderDailyLogsPageContent();
-            },
-
-            onDailyLogTaskSelect(taskId) {
-                this.selectDailyLogTask(taskId);
-            },
-
-            switchDailyLogTab(tabName) {
-                this.state.dailyLogActiveTab = tabName;
-                this.renderDailyLogsPageContent();
-            },
-
-            selectDailyLogDayStep(dayNumber, isDone, logId = null) {
-                if (isDone) {
-                    this.state.dailyLogActiveTab = 'history';
-                    this.renderDailyLogsPageContent();
-                    if (logId) {
-                        setTimeout(() => {
-                            const cardEl = document.getElementById(`daily-log-card-${logId}`);
-                            if (cardEl) {
-                                cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                cardEl.classList.add('ring-2', 'ring-cyan-500', 'bg-cyan-500/5');
-                                setTimeout(() => cardEl.classList.remove('ring-2', 'ring-cyan-500', 'bg-cyan-500/5'), 2500);
-                            }
-                        }, 60);
-                    }
-                } else {
-                    this.state.dailyLogActiveTab = 'form';
-                    this.renderDailyLogsPageContent();
-                    setTimeout(() => {
-                        const dayInput = document.getElementById('page-input-day-num');
-                        if (dayInput) dayInput.value = dayNumber;
-                        const descInput = document.getElementById('page-input-desc');
-                        if (descInput) descInput.focus();
-                    }, 60);
-                }
-            },
-
-            renderDailyLogsPageContent() {
-                const container = document.getElementById('daily-logs-page-container');
-                if (!container) return;
-
-                const jobId = this.state.dailyLogSelectedJobId;
-                if (!jobId) {
-                    container.innerHTML = `
-                        <div class="h-full min-h-[460px] flex flex-col items-center justify-center text-center p-8 artifact-card rounded-2xl">
-                            <div class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400 mb-4 shadow-sm">
-                                <i class="ph ph-hand-pointing text-3xl"></i>
-                            </div>
-                            <h4 class="font-display font-bold text-foreground text-lg mb-1">กรุณาเลือกรายการ Job จากคิวด้านซ้าย</h4>
-                            <p class="text-xs text-muted-foreground max-w-sm leading-relaxed">
-                                เลือกโครงการติดตั้งเพื่อดูความคืบหน้าของงาน, ตรวจดูประวัติการเข้างานย้อนหลัง หรือลงบันทึกเวลาปฏิบัติงาน 24 ชั่วโมงพร้อมรูปถ่าย 5 ขั้นตอน
-                            </p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                const job = (DB.jobs || []).find(j => j.id === jobId) || {};
-                const jobTasks = (DB.tasks || []).filter(t => t.jobId === jobId);
-                let taskId = this.state.dailyLogSelectedTaskId;
-                if (!taskId || !jobTasks.some(t => String(t.id) === String(taskId))) {
-                    taskId = jobTasks.length > 0 ? jobTasks[0].id : `T_${jobId}_1`;
-                    this.state.dailyLogSelectedTaskId = taskId;
-                }
-                const task = jobTasks.find(t => String(t.id) === String(taskId));
-
-                const taskName = task ? task.name : (job.service || 'งานบริการติดตั้ง');
-                const startDateStr = task ? (task.start || '2026-09-07') : '2026-09-07';
-                const endDateStr = task ? (task.end || '2026-09-09') : '2026-09-09';
-                const taskDays = task ? (task.days || 3) : 3;
-                const techName = task ? (task.tech || job.tech || 'Team B (ประเสริฐ)') : (job.tech || 'Team B (ประเสริฐ)');
-
-                // Fetch logs for this task & job
-                const allLogs = DB.dailyWorkLogs || [];
-                const taskLogs = allLogs.filter(l => 
-                    (taskId && String(l.taskId) === String(taskId)) || 
-                    (String(l.jobId) === String(jobId) && (l.taskName === taskName || !task))
-                );
-                // Sort task logs descending so latest day / latest entry is at top
-                taskLogs.sort((a, b) => {
-                    const timeB = new Date(b.createdAt || b.logDate || '2026-01-01').getTime();
-                    const timeA = new Date(a.createdAt || a.logDate || '2026-01-01').getTime();
-                    if (timeB !== timeA) return timeB - timeA;
-                    return (Number(b.dayNumber) || 0) - (Number(a.dayNumber) || 0);
-                });
-
-                const maxProgress = taskLogs.reduce((max, l) => Math.max(max, Number(l.progressPercent) || 0), 0);
-                const isCompleted = taskLogs.some(l => l.isCompleted) || (task && task.status === 'DONE') || (job && (job.status === 'QC_PENDING' || job.status === 'QC_PASSED'));
-                const hasUserConfirmed = taskLogs.some(l => l.userConfirmed || l.isCompleted) || isCompleted;
-
-                // Determine next day number & suggest next date
-                let nextDayNum = taskLogs.length + 1;
-                let nextDate = endDateStr;
-                if (taskLogs.length > 0) {
-                    const lastLog = taskLogs[0]; // latest log since sorted descending
-                    if (lastLog.logDate) {
-                        const d = new Date(lastLog.logDate);
-                        d.setDate(d.getDate() + 1);
-                        nextDate = d.toISOString().slice(0, 10);
-                        if (new Date(nextDate) > new Date(endDateStr)) nextDate = endDateStr;
-                    }
-                } else {
-                    nextDate = startDateStr;
-                }
-
-                // Reset photo slots if uninitialized
-                if (!this.state.dailyLogPhotoSlots || !Array.isArray(this.state.dailyLogPhotoSlots)) {
-                    this.state.dailyLogPhotoSlots = [null, null, null, null, null];
-                }
-
-                // Multi-task selector buttons (if job has multiple tasks)
-                const taskPillsHtml = jobTasks.length > 1 ? `
-                    <div class="flex items-center gap-1.5 flex-wrap pt-2">
-                        <span class="text-[11px] text-muted-foreground font-semibold flex items-center gap-1">
-                            <i class="ph ph-git-commit text-purple-500"></i> เลือก Task ในงานนี้:
-                        </span>
-                        ${jobTasks.map(t => {
-                            const isCurrentTask = String(t.id) === String(taskId);
-                            const tLogs = allLogs.filter(l => String(l.taskId) === String(t.id));
-                            return `
-                                <button type="button" onclick="app.selectDailyLogTask('${t.id}')" class="px-2.5 py-1 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${isCurrentTask ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/40 shadow-xs' : 'bg-muted/40 hover:bg-muted text-muted-foreground border border-border'}">
-                                    <span>${t.name}</span>
-                                    <span class="text-[10px] font-mono px-1 py-0.2 rounded bg-card/60">${tLogs.length}/${t.days || 3} วัน</span>
-                                </button>
-                            `;
-                        }).join('')}
-                    </div>
-                ` : '';
-
-                // Level 2: Interactive Day Timeline Stepper
-                const timelineStepHtml = Array.from({ length: taskDays }).map((_, i) => {
-                    const dayIdx = i + 1;
-                    const d = new Date(startDateStr);
-                    d.setDate(d.getDate() + i);
-                    const dStr = d.toISOString().slice(0, 10);
-                    const dayLog = taskLogs.find(l => Number(l.dayNumber) === dayIdx || l.logDate === dStr);
-                    const isDayDone = dayLog && (dayLog.progressPercent > 0 || dayLog.isCompleted);
-                    const isLastDay = dayIdx === taskDays;
-
-                    return `
-                    <div onclick="app.selectDailyLogDayStep(${dayIdx}, ${isDayDone ? 'true' : 'false'}, '${dayLog ? dayLog.id : ''}')" class="flex-1 min-w-[130px] p-3 rounded-xl border ${isDayDone ? 'bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500' : (isLastDay ? 'bg-amber-500/10 border-amber-500/30 hover:border-amber-500' : 'bg-card border-border hover:border-cyan-500/40')} transition cursor-pointer flex flex-col justify-between shadow-xs group" title="คลิกเพื่อ${isDayDone ? 'ดูประวัติวันนี้' : 'เปิดฟอร์มลงบันทึกวันนี้'}">
-                        <div class="flex items-center justify-between text-xs">
-                            <span class="font-bold ${isDayDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}">วันที่ ${dayIdx} (${this.formatDateDMY(dStr).slice(0, 5)})</span>
-                            ${isDayDone 
-                                ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">✓ ${dayLog.progressPercent}%${(dayLog.userConfirmed || dayLog.isCompleted) ? ' (User ยืนยัน)' : ''}</span>`
-                                : (isLastDay ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold">นัดตรวจ QC</span>` : `<span class="text-[10px] text-muted-foreground group-hover:text-cyan-500">รอลงบันทึก</span>`)}
-                        </div>
-                        <div class="text-[11px] text-muted-foreground mt-1.5 truncate">
-                            ${isDayDone ? (dayLog.workDescription || 'บันทึกแล้ว') : (isLastDay ? 'วันสิ้นสุดงาน & จองตรวจ QC' : 'ตามแผนงาน')}
-                        </div>
-                        ${isDayDone && (dayLog.startTime || dayLog.endTime) ? `
-                            <div class="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 mt-1 flex items-center gap-1">
-                                <i class="ph ph-clock text-[11px]"></i> ${dayLog.startTime || '08:30'} - ${dayLog.endTime || '17:00'} (${dayLog.workHours || '8 ชม.'})
-                            </div>
-                        ` : ''}
-                    </div>`;
-                }).join('');
-
-                // Existing Logs History Cards (Latest on top with NEW badge)
-                const logsCardsHtml = taskLogs.map((l, idx) => {
-                    const photosCount = (l.photos || []).length;
-                    const photosHtml = (l.photos || []).map((p, pIdx) => `
-                        <div class="relative w-20 h-20 rounded-xl overflow-hidden border border-border group cursor-pointer shrink-0 shadow-xs hover:border-cyan-500 transition" onclick="app.showLightbox('${p.url}', '${p.title || `รูปที่ ${pIdx + 1}`}', 'บันทึกช่าง วันที่ ${l.dayNumber} • ${p.phase || 'SITE'}', '${l.workDescription}', '${l.recordedBy} (${l.logDate})')" title="${p.title || 'คลิกเพื่อดูรูปขนาดใหญ่'}">
-                            <img src="${p.url}" class="w-full h-full object-cover group-hover:scale-110 transition duration-200" alt="${p.title}">
-                            <span class="absolute bottom-0 inset-x-0 bg-black/70 text-white text-[8px] text-center font-mono py-0.5 truncate px-0.5">${p.phase || `รูปที่ ${pIdx + 1}`}</span>
-                            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs">
-                                <i class="ph ph-magnifying-glass-plus text-sm"></i>
-                            </div>
-                        </div>
-                    `).join('');
-
-                    return `
-                    <div id="daily-log-card-${l.id}" class="p-4 rounded-2xl bg-card border ${idx === 0 ? 'border-cyan-500/50 ring-1 ring-cyan-500/30' : 'border-border'} shadow-xs hover:border-cyan-500/40 transition space-y-3">
-                        <div class="flex items-center justify-between flex-wrap gap-2">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="w-7 h-7 rounded-xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 text-xs font-bold font-mono flex items-center justify-center border border-cyan-500/30">D${l.dayNumber || 1}</span>
-                                <span class="font-bold text-xs text-foreground font-mono">📅 ${this.formatDateDMY(l.logDate)}</span>
-                                ${idx === 0 ? `
-                                    <span class="badge-new-item" title="บันทึกล่าสุด">
-                                        <i class="ph ph-sparkle-fill text-yellow-200"></i> บันทึกล่าสุด (NEW!)
-                                    </span>
-                                ` : ''}
-                                <span class="text-[10px] px-2 py-0.5 rounded-md ${l.isCompleted ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold' : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold'}">
-                                    ความคืบหน้า ${l.progressPercent}% ${l.isCompleted ? `✓ ช่างบันทึกสำเร็จ${(l.userConfirmed || l.isCompleted) ? ' (User ยืนยัน)' : ''}` : ''}
-                                </span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-muted text-muted-foreground flex items-center gap-1">
-                                    <i class="ph ph-clock text-xs text-cyan-500"></i> ${l.startTime || '08:30'} - ${l.endTime || '17:00'} (${l.workHours || '8 ชม. 30 นาที'})
-                                </span>
-                                <button type="button" onclick="app.deleteDailyWorkLog('${l.id}', '${taskId}')" class="text-muted-foreground hover:text-rose-500 p-1 rounded-md transition cursor-pointer" title="ลบบันทึกนี้">
-                                    <i class="ph ph-trash text-sm"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="text-xs text-foreground bg-muted/20 p-3 rounded-xl border border-border/60 leading-relaxed">
-                            <strong class="text-muted-foreground block text-[10px] uppercase font-bold mb-0.5">รายละเอียดงาน:</strong>
-                            ${l.workDescription}
-                        </div>
-
-                        ${l.additionalDetails ? `
-                            <div class="text-[11px] text-muted-foreground bg-muted/10 p-2.5 rounded-xl border border-border/40 flex items-start gap-1.5">
-                                <i class="ph ph-info text-cyan-500 mt-0.5 shrink-0"></i>
-                                <div><strong class="text-foreground">ข้อมูลเพิ่มเติม:</strong> ${l.additionalDetails}</div>
-                            </div>
-                        ` : ''}
-
-                        ${l.materialsUsed ? `<div class="text-[11px] text-muted-foreground flex items-center gap-1.5"><i class="ph ph-wrench text-cyan-500"></i> <span>อุปกรณ์/อะไหล่: <strong>${l.materialsUsed}</strong></span></div>` : ''}
-                        ${l.issues ? `<div class="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5"><i class="ph ph-warning-circle text-amber-500"></i> <span>ข้อสังเกต/ปัญหา: ${l.issues}</span></div>` : ''}
-
-                        ${photosCount > 0 ? `
-                            <div class="pt-1">
-                                <div class="text-[11px] font-semibold text-muted-foreground mb-1.5 flex items-center justify-between">
-                                    <span>รูปภาพหน้างาน (${photosCount} รูป):</span>
-                                    <span class="text-[10px] text-cyan-500 font-normal">คลิกรูปเพื่อ Preview ขยายดูขนาดใหญ่</span>
-                                </div>
-                                <div class="flex items-center gap-2 overflow-x-auto pb-1">${photosHtml}</div>
-                            </div>
-                        ` : '<div class="text-[10px] text-muted-foreground italic">ไม่มีรูปภาพแนบในวันนี้</div>'}
-
-                        <div class="text-[10px] text-muted-foreground/80 flex items-center justify-between pt-2 border-t border-border/50">
-                            <span>ผู้บันทึก: <strong>${l.recordedBy}</strong> (${l.reporterRole === 'QC' ? 'QC Team' : 'ช่างหน้างาน'})</span>
-                            <span>บันทึกเมื่อ: ${new Date(l.createdAt || Date.now()).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</span>
-                        </div>
-                    </div>`;
-                }).join('');
-
-                const activeTab = this.state.dailyLogActiveTab || 'form';
-
-                // Assemble Right Column with Progressive Disclosure
-                container.innerHTML = `
-                    <!-- Level 1: Executive Job & Task Header Card -->
-                    <div class="p-5 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-brand-500/10 to-emerald-500/10 border border-cyan-500/20 shadow-xs space-y-3.5">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div>
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <span class="font-mono font-bold text-sm text-cyan-600 dark:text-cyan-400">${job.id}</span>
-                                    <span class="text-sm font-bold text-foreground">• ${job.customer}</span>
-                                    <span class="text-xs text-muted-foreground font-mono">(${job.phone || '08X-XXX-XXXX'})</span>
-                                </div>
-                                <div class="text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
-                                    <span>งานหลัก: <strong class="text-foreground">${taskName}</strong></span>
-                                    <span>•</span>
-                                    <span>แผนงาน: <strong>${this.formatDateDMY(startDateStr)} ถึง ${this.formatDateDMY(endDateStr)}</strong> (${taskDays} วัน)</span>
-                                    <span>•</span>
-                                    <span>ช่าง: <strong class="text-cyan-600 dark:text-cyan-400">${techName}</strong></span>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 shrink-0">
-                                <span class="px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold ${isCompleted ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40' : 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30'}">
-                                    ${isCompleted ? `✓ ช่างบันทึกสำเร็จ 100%${hasUserConfirmed ? ' (User ยืนยัน)' : ''}` : `ความคืบหน้ารวม ${maxProgress}%`}
-                                </span>
-                            </div>
-                        </div>
-
-                        ${taskPillsHtml}
-
-                        <!-- Overall Progress Bar -->
-                        <div class="space-y-1 pt-1">
-                            <div class="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
-                                <span>ความคืบหน้าสะสมรวม</span>
-                                <span class="font-bold text-foreground">${maxProgress}%</span>
-                            </div>
-                            <div class="w-full bg-muted/60 h-2.5 rounded-full overflow-hidden border border-border">
-                                <div class="bg-gradient-to-r from-cyan-500 via-brand-500 to-emerald-500 h-full rounded-full transition-all duration-300" style="width: ${Math.min(100, Math.max(isCompleted ? 100 : 5, maxProgress))}%;"></div>
-                            </div>
-                        </div>
-
-                        <!-- Level 2: Daily Steps Grid (Interactive Stepper) -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 pt-1.5">
-                            ${timelineStepHtml}
-                        </div>
-                    </div>
-
-                    <!-- Level 3: Contextual Action Tabs Switcher -->
-                    <div class="flex items-center gap-2 p-1.5 bg-muted/50 rounded-2xl border border-border shadow-xs">
-                        <button type="button" onclick="app.switchDailyLogTab('form')" class="flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${activeTab === 'form' ? 'bg-card text-foreground shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground'}">
-                            <i class="ph ph-note-pencil text-cyan-500 text-sm"></i>
-                            <span>✍️ ลงบันทึกงานประจำวัน ${nextDayNum <= taskDays ? `(รอบที่ ${nextDayNum} / ${taskDays} วัน)` : ''}</span>
-                        </button>
-                        <button type="button" onclick="app.switchDailyLogTab('history')" class="flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${activeTab === 'history' ? 'bg-card text-foreground shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground'}">
-                            <i class="ph ph-clock-counter-clockwise text-purple-500 text-sm"></i>
-                            <span>📋 ประวัติการบันทึกงานที่ผ่านมา</span>
-                            <span class="px-2 py-0.2 rounded-full text-[10px] font-mono ${taskLogs.length > 0 ? 'bg-purple-500/20 text-purple-600 dark:text-purple-400' : 'bg-muted text-muted-foreground'}">${taskLogs.length}</span>
-                        </button>
-                    </div>
-
-                    <!-- Level 4: Active Tab Content (Form or History) -->
-                    ${activeTab === 'form' ? `
-                        <!-- TAB CONTENT: ADD / EDIT DAILY LOG FORM -->
-                        <div class="artifact-card p-6 rounded-2xl border border-border space-y-4 shadow-sm transition">
-                            <div class="flex items-center justify-between pb-3 border-b border-border">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-pulse"></span>
-                                    <h4 class="font-display font-bold text-sm text-foreground">
-                                        แบบฟอร์มลงบันทึกเวลาปฏิบัติงานช่างและรูปถ่าย
-                                    </h4>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/20">
-                                        รอบที่ ${nextDayNum} / ${taskDays} วัน
-                                    </span>
-                                </div>
-                            </div>
             renderDailyLogsPage(param = null) {
                 // Standalone page removed per user specification: redirect directly to Gantt timeline
                 this.navigate('gantt', param);
@@ -21480,7 +20684,6 @@ const app = {
                                             ${this.render24HourTimePickerHtml('dwl', 'start', '08', '30', 'เวลาเริ่ม (Check-in)')}
                                             ${this.render24HourTimePickerHtml('dwl', 'end', '17', '00', 'เวลาสิ้นสุด (Check-out)')}
                                         </div>
-                                        ${this.renderDailyLogShiftPresetsHtml('dwl')}
                                     </div>
 
                                     ${subtaskOptionsHtml}
@@ -21488,27 +20691,14 @@ const app = {
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
                                             <label class="block text-[11px] font-medium text-foreground mb-1">ผู้บันทึก (Recorded By):</label>
-                                            <input type="text" id="dwl-input-recorded-by" value="ช่างประเสริฐ (หัวหน้าชุดติดตั้ง)" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none" required>
+                                            <input type="text" id="dwl-input-recorded-by" value="${tech || 'ช่างหน้างาน'}" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none" required>
                                         </div>
                                         <div>
                                             <label class="block text-[11px] font-medium text-foreground mb-1">บทบาทผู้บันทึก:</label>
                                             <select id="dwl-input-role" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none cursor-pointer font-medium">
-                                                <option value="TECH">ช่างหน้างาน (Technician)</option>
+                                                <option value="TECH" selected>ช่างหน้างาน (Technician)</option>
                                                 <option value="QC">เจ้าหน้าที่ QC ทีม (QC Inspector)</option>
                                             </select>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <div class="flex items-center justify-between mb-1">
-                                            <label class="text-[11px] font-medium text-foreground">ความคืบหน้าสะสมรวม (%):</label>
-                                            <span class="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-400" id="dwl-progress-val">${Math.min(100, Math.max(trueProgress, nextDayNum >= taskDays ? 100 : Math.round((nextDayNum / taskDays) * 100)))}%</span>
-                                        </div>
-                                        <input type="range" id="dwl-input-progress" min="0" max="100" step="5" value="${Math.min(100, Math.max(trueProgress, nextDayNum >= taskDays ? 100 : Math.round((nextDayNum / taskDays) * 100)))}" oninput="document.getElementById('dwl-progress-val').innerText = this.value + '%'; if(Number(this.value) === 100 && ${nextDayNum >= taskDays}) document.getElementById('dwl-input-completed').checked = true;" class="w-full accent-cyan-500 cursor-pointer">
-                                        <div class="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
-                                            <button type="button" onclick="document.getElementById('dwl-input-progress').value = 35; document.getElementById('dwl-progress-val').innerText = '35%';" class="hover:text-foreground cursor-pointer">35% (Day 1)</button>
-                                            <button type="button" onclick="document.getElementById('dwl-input-progress').value = 70; document.getElementById('dwl-progress-val').innerText = '70%';" class="hover:text-foreground cursor-pointer">70% (Day 2)</button>
-                                            <button type="button" onclick="document.getElementById('dwl-input-progress').value = 100; document.getElementById('dwl-progress-val').innerText = '100%';" class="text-emerald-600 font-bold hover:underline cursor-pointer">100% (สำเร็จ)</button>
                                         </div>
                                     </div>
 
@@ -21547,34 +20737,21 @@ const app = {
                                         </div>
                                     </div>
 
-                                    <!-- Completion Checkbox Card -->
-                                    <div class="p-3.5 rounded-xl ${nextDayNum >= taskDays ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'} border flex items-start gap-2.5 transition">
-                                        <input type="checkbox" id="dwl-input-completed" class="mt-0.5 accent-emerald-600 w-4 h-4 cursor-pointer" ${isCompleted ? 'checked' : ''}>
-                                        <label for="dwl-input-completed" class="text-xs text-foreground font-medium cursor-pointer">
-                                            <strong class="${nextDayNum >= taskDays ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'} block">
-                                                ${nextDayNum >= taskDays ? '☑️ ช่างบันทึกสำเร็จ (User ยืนยัน - วันสุดท้ายของแผนงาน งานเสร็จสมบูรณ์ 100%)' : '☑️ ยืนยันจบงานก่อนกำหนด (User ยืนยัน - งานเสร็จสมบูรณ์ทั้งโครงการก่อนครบกำหนดวัน)'}
-                                            </strong>
-                                            <span class="text-[11px] text-muted-foreground block mt-0.5">
-                                                ${nextDayNum >= taskDays 
-                                                    ? `ระบบจะบันทึกสถานะว่า "User ยืนยัน", ปรับสถานะ Task เป็น DONE, ยืนยันจองช่าง QC ณ วันสิ้นสุด (${this.formatDateDMY(endDateStr)}) และส่งงานเข้าสู่คิวรอตรวจรับรองคุณภาพ QC ทันที`
-                                                    : `⚠️ กรณี User/ลูกค้า ยืนยันรับมอบงานเสร็จสมบูรณ์ก่อนกำหนด ระบบจะบันทึกว่า "User ยืนยัน" และส่งตรวจ QC ทันที (หากเป็นเพียงการบันทึกประจำวันของวันนี้ ไม่ต้องติ๊กช่องนี้)`}
-                                            </span>
-                                        </label>
-                                    </div>
-
                                     <!-- Form Action Buttons -->
-                                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
-                                        <button type="button" onclick="app.closeDailyWorkLogModal()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium cursor-pointer">
-                                            ยกเลิก
+                                    <div class="flex items-center justify-between gap-2 pt-3 border-t border-border flex-wrap">
+                                        <button type="button" onclick="app.closeDailyWorkLogModal(); app.navigate('qc', '${jobId}');" class="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-700 hover:underline flex items-center gap-1.5 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-teal-500/10 transition" title="ไปยังหน้าถัดไป: Step 5 ตรวจรับรองคุณภาพ QC & บันทึกปิดงาน">
+                                            <span>ไปยังหน้าถัดไป (Step 5: ตรวจ QC & บันทึกปิดงาน)</span>
+                                            <i class="ph ph-arrow-right text-sm"></i>
                                         </button>
-                                        <button type="submit" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 cursor-pointer flex items-center gap-1.5">
-                                            <i class="ph ph-floppy-disk text-sm"></i>
-                                            <span>💾 บันทึกความคืบหน้ารายวัน</span>
-                                        </button>
-                                        <button type="button" onclick="app.completeDailyWorkAndMoveToQC('${taskId}', false)" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white cursor-pointer">
-                                            <i class="ph ph-paper-plane-tilt text-sm"></i>
-                                             <span>🚀 ยืนยันสำเร็จ & ส่งตรวจ QC</span>
-                                        </button>
+                                        <div class="flex items-center gap-2">
+                                            <button type="button" onclick="app.closeDailyWorkLogModal()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium cursor-pointer">
+                                                ยกเลิก
+                                            </button>
+                                            <button type="submit" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 cursor-pointer flex items-center gap-1.5 shadow-md transition hover:scale-[1.02]">
+                                                <i class="ph ph-floppy-disk text-sm"></i>
+                                                <span>💾 บันทึกความคืบหน้ารายวัน</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 </form>
                             </div>
@@ -21598,9 +20775,13 @@ const app = {
                 const endTimeVal = document.getElementById(`${prefix}-input-end-time`)?.value || '17:00';
                 const workHoursVal = this.calculateWorkDuration(startTimeVal, endTimeVal);
 
-                const recByVal = document.getElementById(`${prefix}-input-recorded-by`)?.value || 'ช่างหน้างาน';
+                const recByVal = document.getElementById(`${prefix}-input-recorded-by`)?.value || (task ? (task.tech || job.tech) : 'ช่างหน้างาน');
                 const roleVal = document.getElementById(`${prefix}-input-role`)?.value || 'TECH';
+                const taskDays = task ? (task.days || 3) : 3;
                 let progressVal = Number(document.getElementById(`${prefix}-input-progress`)?.value) || 0;
+                if (!progressVal && taskDays > 0) {
+                    progressVal = Math.min(95, Math.round((dayNumVal / taskDays) * 100));
+                }
                 let descVal = document.getElementById(`${prefix}-input-desc`)?.value || '';
                 const additionalDetailsVal = document.getElementById(`${prefix}-input-additional-details`)?.value || '';
                 const matVal = document.getElementById(`${prefix}-input-materials`)?.value || '';
@@ -21653,7 +20834,6 @@ const app = {
                 }
 
                 const selSubtaskId = document.getElementById(`${prefix}-input-subtask-id`)?.value || this.state.activeDailyLogSubtaskId || '';
-                const taskDays = task ? (task.days || 3) : 3;
                 const isFinalDay = (dayNumVal >= taskDays);
                 const isEarlyFinish = isCompletedVal && !isFinalDay;
                 const isTrueOverallComplete = forceComplete || (isCompletedVal && (isFinalDay || isEarlyFinish));
@@ -21741,12 +20921,7 @@ const app = {
                     // Reset photo slots
                     this.state.dailyLogPhotoSlots = [null, null, null, null, null];
 
-                    if (isPageForm) {
-                        this.renderDailyLogJobQueue();
-                        this.renderDailyLogsPageContent();
-                    } else {
-                        this.closeDailyWorkLogModal();
-                    }
+                    this.closeDailyWorkLogModal();
                     if (this.state.currentView === 'gantt') this.renderGantt();
                     return;
                 }
@@ -21781,19 +20956,14 @@ const app = {
                 // Clear photo slots for next day
                 this.state.dailyLogPhotoSlots = [null, null, null, null, null];
 
-                if (isPageForm) {
-                    this.renderDailyLogJobQueue();
-                    this.renderDailyLogsPageContent();
-                } else {
-                    this.renderDailyWorkLogs(taskId);
-                }
+                this.renderDailyWorkLogs(taskId);
                 this.updateStepBadges();
                 if (this.state.currentView === 'gantt') this.renderGantt();
             },
 
-            completeDailyWorkAndMoveToQC(taskId, isPageForm = false) {
+            completeDailyWorkAndMoveToQC(taskId) {
                 if (!confirm('ยืนยันว่า User ได้ตรวจสอบและยืนยันงานติดตั้งเสร็จสมบูรณ์ 100% แล้วใช่หรือไม่?\n\n(ระบบจะบันทึกสถานะว่า "User ยืนยัน" และส่งมอบงานเข้าสู่คิวรอตรวจรับรองคุณภาพ QC ทันที)')) return;
-                this.saveDailyWorkLog(taskId, true, isPageForm);
+                this.saveDailyWorkLog(taskId, true);
             },
 
             deleteDailyWorkLog(logId, taskId) {
@@ -21832,12 +21002,7 @@ const app = {
 
                 this.showToast('🗑️ ลบบันทึกงานประจำวันเรียบร้อย (ปรับปรุงสถานะงานตามบันทึกที่เหลือ)');
                 
-                if (this.state.currentView === 'daily-logs') {
-                    this.renderDailyLogJobQueue();
-                    this.renderDailyLogsPageContent();
-                } else {
-                    this.renderDailyWorkLogs(taskId);
-                }
+                this.renderDailyWorkLogs(taskId);
                 this.updateStepBadges();
                 if (this.state.currentView === 'gantt') this.renderGantt();
             },
@@ -22602,7 +21767,7 @@ const app = {
                     }
                 }
                 const elTitle = document.getElementById('qc-detail-job-title');
-                if (elTitle) elTitle.innerText = `แบบฟอร์มประเมินและให้คะแนน QC: ${job.service}`;
+                if (elTitle) elTitle.innerText = `แบบฟอร์มตรวจรับรองมาตรฐาน QC & บันทึกปิดงานโครงการ: ${job.service}`;
                 const elCust = document.getElementById('qc-detail-customer');
                 if (elCust) elCust.innerText = job.customer;
                 const elPhone = document.getElementById('qc-detail-phone');
@@ -23034,7 +22199,7 @@ const app = {
                     if (progress.isAllComplete) {
                         btnCSAT.disabled = false;
                         btnCSAT.className = 'btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all';
-                        btnLabel.innerText = `✓ อนุมัติผ่านเกณฑ์ QC (${progress.averageScore} คะแนน) & ส่งข้อมูลไป STK`;
+                        btnLabel.innerText = `✓ บันทึกปิดงาน & อนุมัติผ่านเกณฑ์ QC (${progress.averageScore} คะแนน) & ส่งข้อมูลไป STK`;
                     } else if (progress.defect > 0) {
                         btnCSAT.disabled = true;
                         btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 bg-rose-500/10 text-rose-600 border border-rose-500/20 cursor-not-allowed opacity-80 transition-all';

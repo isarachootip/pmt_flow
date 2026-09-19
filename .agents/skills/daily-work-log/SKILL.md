@@ -26,39 +26,32 @@ This skill governs the **Daily Technician Work Log (บันทึกงาน�
 ```
 - Store clean string `"08:30"` into hidden input element `${prefix}-input-${type}-time` so downstream APIs and duration calculators receive standard `HH:mm`.
 
-### 1.3 Quick Shift Presets (ปุ่มลัดกะเวลาทำงานด่วน)
-Provide 1-click preset buttons for technicians:
-- `08:00 - 17:00`
-- `08:30 - 17:00` (Default shift)
-- `08:30 - 17:30`
-- `09:00 - 18:00`
-- `13:00 - 17:00` (Afternoon half-day)
+### 1.3 24-Hour Time Format
+- Technicians select work start (Check-in) and finish (Check-out) times via controlled 24-hour hour & minute selectors.
+- Time presets are removed from the daily form to maintain a clean, distraction-free interface while retaining standard 24-hour inputs.
 
 ---
 
 ## 📋 2. Daily Technician Work Log Architecture
 
-### 2.1 Dual-Access Views
-1. **Dedicated Page (`page-daily-logs`)**:
-   - Accessible via sidebar menu **"บันทึกงานช่างประจำวัน"** (`nav-daily-logs`).
-   - **Master Job Queue (`daily-log-job-queue-list`)**: Displays jobs waiting or active for daily logging.
-     - **Default View: STRICTLY LIST VIEW (`list`) 100%**: Clean, scannable table showing Job ID, Daily Log Status, Customer & Phone, Service/Task, Technician, Progress bar & %, Log count, and Select button.
-     - Switchable to Card View (`card`) if chosen by user, persisted in `localStorage.getItem('pmt_daily_log_queue_view_mode')`.
-   - Filterable by Job (Project) and Gantt Task.
-   - Shows chronological timeline cards and active day progress.
-2. **Integrated Gantt Modal (`modal-daily-work-log`)**:
+### 2.1 Single-Access Integrated Gantt Modal
+1. **Integrated Gantt Modal (`modal-daily-work-log`)**:
+   - Primary and only data-entry interface for technician daily logs, eliminating redundancy.
    - Accessible from Gantt task rows via button **"บันทึกช่าง"** (`app.openDailyWorkLogModal(taskId)`).
-   - Allows quick log entry while inspecting project timeline.
+   - Allows quick daily progress entry while inspecting project timeline and tasks.
+2. **Auto-Redirect Route Handling**:
+   - Any invocation of `app.navigate('daily-logs')` is automatically redirected to `app.navigate('gantt')` to maintain backwards compatibility and prevent broken links.
 
-### 2.2 Form Fields
+### 2.2 Form Fields (Daily Progress Only - เหลือแค่บันทึกรายวัน)
 - **Work Date**: Standard Date input (must display in `DD/MM/YYYY` format).
 - **Day Number (รอบที่)**: Day # out of total task days (e.g., Day 1 / 3).
 - **Time In / Time Out**: Custom 24-hour selectors with automatic duration calculation (`⏱️ รวม 8 ชม. 30 นาที (08:30 - 17:00 น.)`).
-- **Recorded By & Role**: Technician Name & Role (`TECH` / `QC`).
-- **Progress Slider**: 0% to 100% cumulative completion slider with quick buttons (35%, 70%, 100%).
-- **Daily Accomplishment**: Required details of work done on the day.
+- **Recorded By (ผู้บันทึก)**: Dynamically bound to the assigned technician for the task/job (e.g. `techName`).
+- **Role (บทบาทผู้บันทึก)**: `TECH` (ช่างหน้างาน) as default.
+- **Daily Accomplishment (รายละเอียดงานที่ทำในวันนี้)**: Required details of work performed today.
 - **Additional Details & Materials**: Installed materials, equipment, and reference CAD drawings.
-- **Issues / Blockers**: Site obstacles, weather, or smooth progress notes.
+- **Issues / Blockers (ปัญหา / อุปสรรคหน้างาน)**: Site obstacles, weather, or smooth progress notes.
+- **Action Buttons**: Single primary action button **"💾 บันทึกความคืบหน้ารายวัน"** and "ยกเลิก" plus a navigation link to Step 5 QC.
 
 ---
 
@@ -79,17 +72,12 @@ Provide 1-click preset buttons for technicians:
 
 ---
 
-## 🔗 4. QC & Gantt Handoff & "User ยืนยัน" Completion Standard
-- **Mandatory "User ยืนยัน" on Completion**:
-  - Checking **"☑️ ช่างบันทึกสำเร็จ (User ยืนยัน - งานติดตั้งเสร็จสมบูรณ์ 100%)"** or clicking **"🚀 ยืนยันสำเร็จ & ส่งตรวจ QC"** MUST require user confirmation that the User/Customer has verified and confirmed completion.
-  - Automatically records `userConfirmed: true` and appends `(User ยืนยัน)` to the work description (e.g., *"งานติดตั้งเสร็จสมบูรณ์ 100% (User ยืนยัน) ตรวจสอบระบบเรียบร้อย พร้อมส่งมอบให้ทีม QC ตรวจรับรองคุณภาพ"*).
-  - Displays badges `✓ ช่างบันทึกสำเร็จ (User ยืนยัน)` across Log History Cards, Daily Timeline Steps, and Milestone Headers.
-  - Updates Task status to `DONE` (`100%`).
-  - Updates Project status to `QC_PENDING` (`85%`).
-  - Confirms QC booking date on task end date (`qcBookingDate`).
-  - Adds audit trail entry: `ช่างบันทึกงานเสร็จสมบูรณ์ (User ยืนยัน) ส่งต่อเข้าคิวรอตรวจรับรองคุณภาพ QC` and notifies system toast.
-- **Auto Rollback on Log Deletion**:
-  - If a completed daily log (100% / User ยืนยัน / Early Finish) is deleted via the trash icon, the system automatically checks remaining logs:
-    - If no other completed logs remain, Task status is cleanly rolled back to `IN_PROGRESS` (or `PENDING`), with progress recalculated based on remaining active logged days.
-    - Project status is reverted from `QC_PENDING` back to `IN_PROGRESS` (progress 70%), preventing jobs from getting stuck at 100% when a log is deleted or corrected.
+## 🔗 4. Separation of Daily Logging vs Job Closing (บันทึกปิดงาน ย้ายไป Step 5: QC)
+- **Daily Progress Logging in Gantt (บันทึกรายวัน)**:
+  - Technicians focus strictly on logging their day's attendance, accomplishments, and photos.
+  - Manual progress sliders and early finish checkboxes are removed from the daily form. Cumulative task progress is calculated proportionally based on active logged days vs total planned days.
+  - Jobs remain `IN_PROGRESS` while daily entries are added.
+- **Job Closing & Quality Certification in Step 5: QC (บันทึกปิดงาน ให้ไปอยู่หน้าถัดไป)**:
+  - Final project inspection, compliance verification, scoring, and official job closure (`QC_PASSED` / 100%) are performed by the QC Inspector in **Step 5: การตรวจรับรองคุณภาพ QC** (`modal-qc-job-detail`).
+  - Upon passing all inspection items, the QC Inspector clicks **"✓ บันทึกปิดงาน & อนุมัติผ่านเกณฑ์ QC & ส่งข้อมูลไป STK"**, completing the project closure and syncing with STK.
 
