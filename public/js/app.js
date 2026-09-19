@@ -439,6 +439,28 @@ const app = {
                 }
             },
 
+            escapeHtml(str) {
+                if (str === null || str === undefined) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            },
+
+            renderConversionList(list) {
+                if (typeof this.renderProjectConversion === 'function') {
+                    return this.renderProjectConversion(list);
+                }
+            },
+
+            renderTicketsPage(list) {
+                if (typeof this.renderTickets === 'function') {
+                    return this.renderTickets(list);
+                }
+            },
+
             formatDateDMY(dateInput) {
                 if (!dateInput) return '-';
                 try {
@@ -4693,12 +4715,13 @@ const app = {
                     const rawId = String(j.id || '');
                     const shortId = rawId.replace(/^(VFIX|JOB)-?/i, '');
                     const displayId = shortId || rawId;
+                    const safeId = rawId.replace(/'/g, "\\'");
 
                     return `
-                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTop3New ? 'bg-indigo-500/[0.02]' : ''}" onclick="app.openUnifiedOrderStudio('${j.id}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${j.id})">
+                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTop3New ? 'bg-indigo-500/[0.02]' : ''}" onclick="app.openUnifiedOrderStudio('${safeId}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${displayId})">
                         <td class="px-3.5 py-3 font-mono whitespace-nowrap">
                             <div class="flex items-center gap-1.5 flex-wrap">
-                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-extrabold text-sm sm:text-base text-brand-600 dark:text-brand-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
+                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${safeId}')" class="font-mono font-extrabold text-sm sm:text-base text-brand-600 dark:text-brand-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${displayId}">
                                     <span>${displayId}</span>
                                     <i class="ph ph-arrow-square-out text-xs opacity-70"></i>
                                 </button>
@@ -4764,12 +4787,12 @@ const app = {
                                     <i class="ph ph-minus text-xs"></i> ข้าม (Quick)
                                 </span>
                             ` : hasBps ? `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'design')" class="px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1.5 hover:bg-indigo-500/25 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไขแบบแปลน ${bpCount} รายการ">
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'design')" class="px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1.5 hover:bg-indigo-500/25 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไขแบบแปลน ${bpCount} รายการ">
                                     <i class="ph ph-blueprint text-indigo-600 dark:text-indigo-400 text-sm"></i>
                                     <span>${bpCount} แบบ</span>
                                 </button>
                             ` : `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'design')" class="px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-muted hover:bg-indigo-500/10 text-muted-foreground hover:text-indigo-600 border border-border inline-flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap" title="แนบแบบแปลน 2D/3D">
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'design')" class="px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-muted hover:bg-indigo-500/10 text-muted-foreground hover:text-indigo-600 border border-border inline-flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap" title="แนบแบบแปลน 2D/3D">
                                     <i class="ph ph-plus-circle text-sm"></i>
                                     <span>+ แนบแบบ</span>
                                 </button>
@@ -4781,12 +4804,12 @@ const app = {
                                     <i class="ph ph-minus text-xs"></i> ข้าม (Quick)
                                 </span>
                             ` : hasBOQ ? `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'boq')" class="px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 inline-flex items-center gap-1.5 hover:bg-purple-500/25 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไข BOQ (${itemsCount} รายการ)">
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'boq')" class="px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 inline-flex items-center gap-1.5 hover:bg-purple-500/25 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไข BOQ (${itemsCount} รายการ)">
                                     <i class="ph ph-calculator text-purple-600 dark:text-purple-400 text-sm"></i>
                                     <span>฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${itemsCount})</span>
                                 </button>
                             ` : `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'boq')" class="px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-muted hover:bg-purple-500/10 text-muted-foreground hover:text-purple-600 border border-border inline-flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap" title="จัดทำรายการประมาณการ BOQ">
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'boq')" class="px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-muted hover:bg-purple-500/10 text-muted-foreground hover:text-purple-600 border border-border inline-flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap" title="จัดทำรายการประมาณการ BOQ">
                                     <i class="ph ph-plus-circle text-sm"></i>
                                     <span>+ ลง BOQ</span>
                                 </button>
@@ -4794,11 +4817,11 @@ const app = {
                         </td>
                         <td class="px-3.5 py-3 text-right whitespace-nowrap">
                             <div class="flex items-center justify-end gap-2 whitespace-nowrap">
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${j.id}', 'intake')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition hover:scale-105 cursor-pointer whitespace-nowrap" title="เปิด One-Stop Studio: ข้อมูลคำสั่งซื้อ • Design แบบแปลน • BOQ">
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'intake')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition hover:scale-105 cursor-pointer whitespace-nowrap" title="เปิด One-Stop Studio: ข้อมูลคำสั่งซื้อ • Design แบบแปลน • BOQ">
                                     <i class="ph ph-squares-four text-sm font-bold"></i>
                                     <span>Studio</span>
                                 </button>
-                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="btn-artifact-secondary p-1.5 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer" title="ดูข้อมูลงาน (Pop up)">
+                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${safeId}')" class="btn-artifact-secondary p-1.5 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer" title="ดูข้อมูลงาน (Pop up)">
                                     <i class="ph ph-eye text-base"></i>
                                 </button>
                             </div>
@@ -4854,12 +4877,13 @@ const app = {
             },
 
             openUnifiedOrderStudio(jobId, initialTab = 'intake') {
-                this.state.unifiedStudioJobId = jobId;
-                const job = this.getUnifiedStudioJob();
-                if (!job) {
-                    this.showToast('ไม่พบข้อมูลคำสั่งซื้อ');
-                    return;
-                }
+                try {
+                    this.state.unifiedStudioJobId = jobId;
+                    const job = this.getUnifiedStudioJob();
+                    if (!job) {
+                        this.showToast('ไม่พบข้อมูลคำสั่งซื้อ');
+                        return;
+                    }
 
                 // Determine if Quick Service or Renovate
                 const isQuick = this.isQuickJob(job);
@@ -5143,7 +5167,11 @@ const app = {
                 // Show modal & scroll/switch to target section (Quick is strictly locked to intake)
                 this.showModal('modal-unified-order-studio');
                 this.scrollUnifiedStudioTo(isQuick ? 'intake' : initialTab);
-            },
+            } catch (err) {
+                console.error('Error in openUnifiedOrderStudio:', err);
+                this.showToast('⚠️ ไม่สามารถเปิดหน้าต่าง Studio ได้: ' + (err.message || err));
+            }
+        },
 
             applyUnifiedJobTypeUI(isQuick) {
                 const modalContent = document.getElementById('modal-unified-order-studio-content');
@@ -6205,7 +6233,10 @@ const app = {
                 if (lbl) lbl.innerText = 'คลิกเพื่อเลือกไฟล์แบบแปลน (DWG, DXF, PDF, หรือรูปภาพ)';
                 // Remove inline image preview
                 const inlinePrev = document.getElementById('unified-design-inline-preview');
-                if (inlinePrev) inlinePrev.remove();
+                if (inlinePrev) {
+                    if (typeof inlinePrev.remove === 'function') inlinePrev.remove();
+                    else if (inlinePrev.parentNode) inlinePrev.parentNode.removeChild(inlinePrev);
+                }
                 this.state._pendingDesignPreview = null;
             },
 
@@ -7878,14 +7909,15 @@ const app = {
             },
 
             openJobDetailModal(jobId) {
-                const job = (DB.jobs || []).find(j => j.id === jobId || j.job_no === jobId);
-                if (!job) {
-                    this.showToast('⚠️ ไม่พบข้อมูลงาน ' + jobId);
-                    return;
-                }
+                try {
+                    const job = (DB.jobs || []).find(j => j.id === jobId || j.job_no === jobId || String(j.id) === String(jobId));
+                    if (!job) {
+                        this.showToast('⚠️ ไม่พบข้อมูลงาน ' + jobId);
+                        return;
+                    }
 
-                const modalContent = document.getElementById('modal-job-preview-detail-content');
-                if (!modalContent) return;
+                    const modalContent = document.getElementById('modal-job-preview-detail-content');
+                    if (!modalContent) return;
 
                 const isQuick = this.isQuickJob(job);
                 const isRenovate = job.job_type === 'renovate' || (!isQuick && job.job_type !== 'ma');
@@ -8342,7 +8374,11 @@ const app = {
                 `;
 
                 this.showModal('modal-job-preview-detail');
-            },
+            } catch (err) {
+                console.error('Error in openJobDetailModal:', err);
+                this.showToast('⚠️ ไม่สามารถเปิดรายละเอียดงานได้: ' + (err.message || err));
+            }
+        },
 
             renderStageWithSLA(job, stepNumber) {
                 const sla = this.calculateJobSLA(job, stepNumber);
@@ -27336,6 +27372,8 @@ const app = {
             app.init();
         });
         window.app = app;
+        window.escapeHtml = (str) => app.escapeHtml(str);
         window.formatDateDMY = (d) => app.formatDateDMY(d);
         window.formatDateTimeDMY = (d, s) => app.formatDateTimeDMY(d, s);
         window.openJobDetailModal = (id) => app.openJobDetailModal(id);
+        window.openUnifiedOrderStudio = (id, tab) => app.openUnifiedOrderStudio(id, tab);
