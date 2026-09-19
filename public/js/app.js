@@ -2487,7 +2487,7 @@ const app = {
 
                 // Restore saved tasks
                 const savedTasks = localStorage.getItem('pmt_tasks');
-                if (savedTasks && !isExplicitlyCleared) {
+                if (savedTasks) {
                     try {
                         const parsedTasks = JSON.parse(savedTasks);
                         if (Array.isArray(parsedTasks)) {
@@ -2500,7 +2500,7 @@ const app = {
 
                 // Restore saved QC bookings
                 const savedQCBookings = localStorage.getItem('pmt_qc_bookings');
-                if (savedQCBookings && !isExplicitlyCleared) {
+                if (savedQCBookings) {
                     try {
                         const parsedBookings = JSON.parse(savedQCBookings);
                         if (Array.isArray(parsedBookings)) {
@@ -2513,7 +2513,7 @@ const app = {
 
                 // Restore saved tickets
                 const savedTickets = localStorage.getItem('pmt_tickets');
-                if (savedTickets && !isExplicitlyCleared) {
+                if (savedTickets) {
                     try {
                         const parsedTickets = JSON.parse(savedTickets);
                         if (Array.isArray(parsedTickets) && parsedTickets.length > 0) {
@@ -2530,7 +2530,7 @@ const app = {
 
                 // Restore saved blueprints
                 const savedBlueprints = localStorage.getItem('pmt_blueprints');
-                if (savedBlueprints && !isExplicitlyCleared) {
+                if (savedBlueprints) {
                     try {
                         const parsedBlueprints = JSON.parse(savedBlueprints);
                         if (Array.isArray(parsedBlueprints)) {
@@ -2547,7 +2547,7 @@ const app = {
 
                 // Restore saved daily work logs
                 const savedDailyLogs = localStorage.getItem('pmt_daily_work_logs');
-                if (savedDailyLogs && !isExplicitlyCleared) {
+                if (savedDailyLogs) {
                     try {
                         const parsedDailyLogs = JSON.parse(savedDailyLogs);
                         if (Array.isArray(parsedDailyLogs) && parsedDailyLogs.length > 0) {
@@ -14071,10 +14071,8 @@ const app = {
                 }
 
                 // Filters for Secondary Pending & Library Sections
-                const searchInput = document.getElementById('ticket-search');
                 const serviceFilterEl = document.getElementById('ticket-filter-service');
                 const methodFilterEl = document.getElementById('ticket-filter-method');
-                const q = (searchQuery || (searchInput ? searchInput.value : '')).toLowerCase().trim();
                 const sFilter = serviceFilterEl ? serviceFilterEl.value : 'all';
                 const mFilter = methodFilterEl ? methodFilterEl.value : 'all';
 
