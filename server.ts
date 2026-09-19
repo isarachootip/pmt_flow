@@ -1194,6 +1194,7 @@ export interface JobSurveyPayload {
     file_int_image?: string;
   };
   job_details: JobDetailItem[];
+  job_detail?: JobDetailItem[];
   customer: {
     code: string;
     name: string;
@@ -1227,9 +1228,14 @@ export interface JobSurveyPayload {
     distance: number;
   };
   visit_results: string[];
+  visit_result?: string[];
   remarks: {
     comment: string;
     note: string;
+  };
+  remarks_data?: {
+    comment?: string;
+    note?: string;
   };
 }
 
@@ -2133,14 +2139,17 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
     (newJob as any).customer = customerData;
     (newJob as any).customer_data = customerData;
     (newJob as any).job_details = jobDetails;
+    (newJob as any).job_detail = jobDetails;
     (newJob as any).agent_data = payload.agent || {};
     (newJob as any).store_data = payload.store || {};
     (newJob as any).schedule_plan = payload.schedule_plan || {};
     (newJob as any).checkin_data = payload.check_in || {};
     (newJob as any).checkout_data = payload.check_out || {};
     (newJob as any).approval_data = payload.approval || {};
-    (newJob as any).visit_results = payload.visit_results || [];
-    (newJob as any).remarks_data = payload.remarks || {};
+    (newJob as any).visit_results = payload.visit_results || payload.visit_result || [];
+    (newJob as any).visit_result = payload.visit_results || payload.visit_result || [];
+    (newJob as any).remarks_data = payload.remarks || payload.remarks_data || {};
+    (newJob as any).remarks = payload.remarks || payload.remarks_data || {};
     (newJob as any).file_int_image = payload.job_info?.file_int_image || '';
     (newJob as any).raw_payload = payload;
 
@@ -2507,15 +2516,18 @@ export function convertStagingToCorePmt(stagingRecord: StagingSurveyReport): {
       photos: photos,
       tasks: [],
       boq_items: [],
-      job_details: payload.job_details || [],
+      job_details: payload.job_details || payload.job_detail || [],
+      job_detail: payload.job_details || payload.job_detail || [],
       agent_data: payload.agent || {},
       store_data: payload.store || {},
       schedule_plan: payload.schedule_plan || {},
       checkin_data: payload.check_in || {},
       checkout_data: payload.check_out || {},
       approval_data: payload.approval || {},
-      visit_results: payload.visit_results || [],
-      remarks_data: payload.remarks || {},
+      visit_results: payload.visit_results || payload.visit_result || [],
+      visit_result: payload.visit_results || payload.visit_result || [],
+      remarks_data: payload.remarks || payload.remarks_data || {},
+      remarks: payload.remarks || payload.remarks_data || {},
       special_instructions: payload.remarks?.comment || '',
       additional_notes: payload.remarks?.note || '',
       file_int_image: payload.job_info?.file_int_image || '',

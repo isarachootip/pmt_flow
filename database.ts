@@ -468,15 +468,18 @@ export function mapDbJobRow(row: any): any {
     project_sub_type: row.project_sub_type || primaryService,
     store_code: row.store_code || (row.store_data?.code) || '',
     agent_name: row.agent_name || (row.agent_data?.name) || '',
-    job_details: Array.isArray(row.job_details) ? row.job_details : [],
+    job_details: Array.isArray(row.job_details) ? row.job_details : (Array.isArray(row.job_detail) ? row.job_detail : []),
+    job_detail: Array.isArray(row.job_details) ? row.job_details : (Array.isArray(row.job_detail) ? row.job_detail : []),
     agent: row.agent_data || { name: row.agent_name },
     store: row.store_data || { code: row.store_code },
     schedule_plan: row.schedule_plan || {},
     check_in: row.checkin_data || {},
     check_out: row.checkout_data || {},
     approval: row.approval_data || {},
-    visit_results: Array.isArray(row.visit_results) ? row.visit_results : [],
-    remarks: row.remarks_data || { comment: row.special_instructions, note: row.additional_notes },
+    visit_results: Array.isArray(row.visit_results) ? row.visit_results : (Array.isArray(row.visit_result) ? row.visit_result : []),
+    visit_result: Array.isArray(row.visit_results) ? row.visit_results : (Array.isArray(row.visit_result) ? row.visit_result : []),
+    remarks_data: row.remarks_data || row.remarks || { comment: row.special_instructions, note: row.additional_notes },
+    remarks: row.remarks_data || row.remarks || { comment: row.special_instructions, note: row.additional_notes },
     file_int_image: row.file_int_image || '',
     raw_payload: row.raw_payload || {},
     status: row.status || 'DRAFT',
@@ -571,9 +574,9 @@ export async function dbSaveJob(job: any): Promise<void> {
     const checkinData = job.checkin_data || job.check_in || {};
     const checkoutData = job.checkout_data || job.check_out || {};
     const approvalData = job.approval_data || job.approval || {};
-    const visitResults = job.visit_results || [];
+    const visitResults = job.visit_results || job.visit_result || [];
     const remarksData = job.remarks_data || job.remarks || {};
-    const jobDetails = job.job_details || [];
+    const jobDetails = job.job_details || job.job_detail || [];
     const rawPayload = job.raw_payload || {};
     const customerName = job.customer_name || customerData.name || customerData.first_name || 'ลูกค้าทั่วไป';
     const customerPhone = job.customer_phone || customerData.phone || customerData.mobile_no || '';
@@ -734,8 +737,14 @@ export async function dbUpdateJob(jobNoOrId: string | number, updates: any): Pro
       } else if (key === 'approval') {
         setClauses.push(`approval_data = $${idx++}`);
         values.push(JSON.stringify(val));
-      } else if (key === 'remarks') {
+      } else if (key === 'remarks' || key === 'remarks_data') {
         setClauses.push(`remarks_data = $${idx++}`);
+        values.push(JSON.stringify(val));
+      } else if (key === 'job_detail' || key === 'job_details') {
+        setClauses.push(`job_details = $${idx++}`);
+        values.push(JSON.stringify(val));
+      } else if (key === 'visit_result' || key === 'visit_results') {
+        setClauses.push(`visit_results = $${idx++}`);
         values.push(JSON.stringify(val));
       } else if (stringFields.includes(key)) {
         setClauses.push(`${key} = $${idx++}`);

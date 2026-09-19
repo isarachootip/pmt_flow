@@ -5116,6 +5116,11 @@ const app = {
                 const notesInp = document.getElementById('unified-intake-notes');
                 if (notesInp) notesInp.value = job.internal_notes || '';
 
+                // Render job_detail, visit_results, remarks_data from INT
+                this.renderUnifiedJobDetails(job);
+                this.renderUnifiedVisitResults(job);
+                this.renderUnifiedRemarksData(job);
+
                 // Populate Survey Photos Gallery in Section 1
                 this.renderUnifiedSurveyPhotos();
 
@@ -5518,6 +5523,207 @@ const app = {
                     const itemsCount = (job.boq_items || []).length;
                     this.showToast(`✅ บันทึกประมาณการราคา BOQ เรียบร้อยแล้ว (${itemsCount} รายการ - Passed)`, 'success');
                 }
+            },
+
+            normalizeJobDetails(val, fallbackService = '') {
+                if (Array.isArray(val) && val.length > 0) return val;
+                if (typeof val === 'string' && val.trim()) {
+                    try {
+                        const parsed = JSON.parse(val);
+                        if (Array.isArray(parsed)) return parsed;
+                        if (typeof parsed === 'object' && parsed !== null) return [parsed];
+                    } catch (e) {
+                        return [{ job_type: 'บริการหลัก', installation_detail: val.trim(), product_quantity: 1, remark: '' }];
+                    }
+                }
+                if (typeof val === 'object' && val !== null && !Array.isArray(val) && Object.keys(val).length > 0) {
+                    return [val];
+                }
+                if (fallbackService) {
+                    return [{ job_type: 'บริการหลัก', installation_detail: fallbackService, product_quantity: 1, remark: '' }];
+                }
+                return [];
+            },
+
+            normalizeVisitResults(val) {
+                if (Array.isArray(val)) {
+                    return val.map(item => typeof item === 'string' ? item.trim() : JSON.stringify(item)).filter(Boolean);
+                }
+                if (typeof val === 'string' && val.trim()) {
+                    try {
+                        const parsed = JSON.parse(val);
+                        if (Array.isArray(parsed)) {
+                            return parsed.map(item => typeof item === 'string' ? item.trim() : JSON.stringify(item)).filter(Boolean);
+                        }
+                    } catch (e) {}
+                    return val.split(/\r?\n|,/).map(s => s.trim()).filter(Boolean);
+                }
+                return [];
+            },
+
+            normalizeRemarksData(val, job = null) {
+                let note = '';
+                let comment = '';
+                if (typeof val === 'object' && val !== null) {
+                    note = val.note || val.notes || '';
+                    comment = val.comment || val.comments || '';
+                } else if (typeof val === 'string' && val.trim()) {
+                    try {
+                        const parsed = JSON.parse(val);
+                        if (typeof parsed === 'object' && parsed !== null) {
+                            note = parsed.note || parsed.notes || '';
+                            comment = parsed.comment || parsed.comments || '';
+                        } else {
+                            note = val.trim();
+                        }
+                    } catch (e) {
+                        note = val.trim();
+                    }
+                }
+                if (!comment && job && job.special_instructions) comment = job.special_instructions;
+                if (!note && job && job.additional_notes) note = job.additional_notes;
+                return { note: String(note || '').trim(), comment: String(comment || '').trim() };
+            },
+
+            renderUnifiedJobDetails(job) {
+                const container = document.getElementById('unified-job-details-container');
+                const badgeStamp = document.getElementById('unified-job-details-badge');
+                const countBadge = document.getElementById('unified-job-details-count');
+                if (!container) return;
+
+                const details = this.normalizeJobDetails(
+                    job.job_details || job.job_detail || (job.raw_payload && job.raw_payload.job_details),
+                    job.project_sub_type || job.service || ''
+                );
+                const isStampedFromInt = Boolean(
+                    job.booking_no || 
+                    job.external_ref_id || 
+                    (job.job_no && String(job.job_no).startsWith('JOB2609')) ||
+                    (job.raw_payload && (job.raw_payload.job_details || job.raw_payload.job_info))
+                );
+
+                if (badgeStamp) {
+                    if (isStampedFromInt && details.length > 0) badgeStamp.classList.remove('hidden');
+                    else badgeStamp.classList.add('hidden');
+                }
+                if (countBadge) {
+                    countBadge.innerText = `${details.length} รายการ`;
+                }
+
+                if (details.length === 0) {
+                    container.innerHTML = `
+                        <div class="p-3 rounded-xl bg-card border border-dashed border-border/80 text-xs text-muted-foreground flex items-center justify-between">
+                            <span class="italic">ไม่มีรายการงานย่อยเพิ่มเติม (ยึดตามประเภทบริการหลัก)</span>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = details.map((item, idx) => {
+                    const title = item.installation_detail || item.job_type || item.name || `รายการที่ ${idx + 1}`;
+                    const type = item.job_type || '';
+                    const qty = Number(item.product_quantity || item.qty || 1);
+                    const remark = item.remark || item.note || '';
+
+                    return `
+                        <div class="p-2.5 rounded-xl bg-card border border-border hover:border-indigo-500/40 transition shadow-2xs space-y-1">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="flex items-start gap-1.5 min-w-0">
+                                    <span class="w-4.5 h-4.5 rounded-md bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-mono font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                                        #${idx + 1}
+                                    </span>
+                                    <span class="text-xs font-semibold text-foreground leading-snug break-words" title="${this.escapeHtml(title)}">
+                                        ${this.escapeHtml(title)}
+                                    </span>
+                                </div>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 shrink-0">
+                                    จำนวน: ${qty}
+                                </span>
+                            </div>
+                            ${(type && type !== title) || remark ? `
+                                <div class="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground pt-0.5">
+                                    ${type && type !== title ? `
+                                        <span class="px-1.5 py-0.2 rounded bg-muted text-[10px] font-medium text-foreground border border-border">
+                                            ${this.escapeHtml(type)}
+                                        </span>
+                                    ` : ''}
+                                    ${remark ? `
+                                        <span class="text-[11px] text-muted-foreground truncate" title="${this.escapeHtml(remark)}">
+                                            <i class="ph ph-note text-amber-500 mr-0.5"></i> ${this.escapeHtml(remark)}
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            renderUnifiedVisitResults(job) {
+                const chipsContainer = document.getElementById('unified-visit-results-chips');
+                const textarea = document.getElementById('unified-intake-visit-results');
+                const badgeStamp = document.getElementById('unified-visit-results-stamp-badge');
+                const countBadge = document.getElementById('unified-visit-results-count');
+
+                const results = this.normalizeVisitResults(
+                    job.visit_results || job.visit_result || (job.raw_payload && job.raw_payload.visit_results)
+                );
+                const isStampedFromInt = Boolean(
+                    job.booking_no || 
+                    job.external_ref_id || 
+                    (job.job_no && String(job.job_no).startsWith('JOB2609')) ||
+                    (job.raw_payload && (job.raw_payload.visit_results || job.raw_payload.job_info))
+                );
+
+                if (badgeStamp) {
+                    if (isStampedFromInt && results.length > 0) badgeStamp.classList.remove('hidden');
+                    else badgeStamp.classList.add('hidden');
+                }
+                if (countBadge) {
+                    countBadge.innerText = `${results.length} ผลสำรวจ`;
+                }
+
+                if (chipsContainer) {
+                    if (results.length === 0) {
+                        chipsContainer.innerHTML = '';
+                    } else {
+                        chipsContainer.innerHTML = results.map(r => `
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-teal-500/10 text-teal-800 dark:text-teal-200 border border-teal-500/25">
+                                <i class="ph ph-check-circle text-teal-600 font-bold"></i>
+                                <span>${this.escapeHtml(r)}</span>
+                            </span>
+                        `).join('');
+                    }
+                }
+
+                if (textarea) {
+                    textarea.value = results.join('\n');
+                }
+            },
+
+            renderUnifiedRemarksData(job) {
+                const noteInput = document.getElementById('unified-remarks-note');
+                const commentInput = document.getElementById('unified-remarks-comment');
+                const badgeStamp = document.getElementById('unified-remarks-stamp-badge');
+
+                const remarks = this.normalizeRemarksData(
+                    job.remarks_data || job.remarks || (job.raw_payload && job.raw_payload.remarks),
+                    job
+                );
+                const isStampedFromInt = Boolean(
+                    job.booking_no || 
+                    job.external_ref_id || 
+                    (job.job_no && String(job.job_no).startsWith('JOB2609')) ||
+                    (job.raw_payload && (job.raw_payload.remarks || job.raw_payload.job_info))
+                );
+
+                if (badgeStamp) {
+                    if (isStampedFromInt && (remarks.note || remarks.comment)) badgeStamp.classList.remove('hidden');
+                    else badgeStamp.classList.add('hidden');
+                }
+
+                if (noteInput) noteInput.value = remarks.note || '';
+                if (commentInput) commentInput.value = remarks.comment || '';
             },
 
             renderUnifiedSurveyPhotos() {
@@ -6400,6 +6606,24 @@ const app = {
                 const notesInp = document.getElementById('unified-intake-notes');
                 if (notesInp) job.internal_notes = notesInp.value.trim();
 
+                // Save visit_results
+                const visitResultsInp = document.getElementById('unified-intake-visit-results');
+                if (visitResultsInp) {
+                    const vLines = visitResultsInp.value.split(/\r?\n|,/).map(s => s.trim()).filter(Boolean);
+                    job.visit_results = vLines;
+                    job.visit_result = vLines;
+                }
+
+                // Save remarks_data
+                const noteInp = document.getElementById('unified-remarks-note');
+                const commentInp = document.getElementById('unified-remarks-comment');
+                const remarksObj = {
+                    note: noteInp ? noteInp.value.trim() : (job.remarks_data?.note || ''),
+                    comment: commentInp ? commentInp.value.trim() : (job.remarks_data?.comment || '')
+                };
+                job.remarks_data = remarksObj;
+                job.remarks = remarksObj;
+
                 // Timestamps & Passed flags
                 const now = new Date();
                 if (!job.step_timestamps) job.step_timestamps = {};
@@ -6435,6 +6659,12 @@ const app = {
                             address: job.address,
                             scope_of_work: job.scope_of_work,
                             internal_notes: job.internal_notes,
+                            job_details: job.job_details || job.job_detail || [],
+                            job_detail: job.job_details || job.job_detail || [],
+                            visit_results: job.visit_results,
+                            visit_result: job.visit_results,
+                            remarks_data: job.remarks_data,
+                            remarks: job.remarks_data,
                             status: job.status,
                             overall_progress: job.progress,
                             assigned_tech: job.tech,
@@ -6476,6 +6706,12 @@ const app = {
                         address: job.address,
                         scope_of_work: job.scope_of_work,
                         internal_notes: job.internal_notes,
+                        job_details: job.job_details || job.job_detail || [],
+                        job_detail: job.job_details || job.job_detail || [],
+                        visit_results: job.visit_results,
+                        visit_result: job.visit_results,
+                        remarks_data: job.remarks_data,
+                        remarks: job.remarks_data,
                         status: job.status,
                         overall_progress: job.progress,
                         assigned_tech: job.tech,
@@ -7672,6 +7908,11 @@ const app = {
                 // Photos - get attached survey photos
                 let photos = job.photos || [];
 
+                // Job Details, Visit Results & Remarks Data (INT)
+                const jobDetails = this.normalizeJobDetails(job.job_details || job.job_detail || (job.raw_payload && job.raw_payload.job_details), job.project_sub_type || job.service || '');
+                const visitResults = this.normalizeVisitResults(job.visit_results || job.visit_result || (job.raw_payload && job.raw_payload.visit_results));
+                const remarksData = this.normalizeRemarksData(job.remarks_data || job.remarks || (job.raw_payload && job.raw_payload.remarks), job);
+
                 modalContent.innerHTML = `
                     <!-- Modal Header -->
                     <div class="p-5 border-b border-border flex justify-between items-start bg-muted/30 shrink-0">
@@ -7828,6 +8069,90 @@ const app = {
                                             ${job.additional_notes || 'ไม่มีบันทึกเพิ่มเติม'}
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 2.5: Job Details, Visit Results & Remarks Data (INT) -->
+                        <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3.5">
+                            <div class="flex items-center justify-between border-b border-border/60 pb-2 flex-wrap gap-2">
+                                <div class="flex items-center gap-2 font-bold text-foreground text-xs">
+                                    <i class="ph ph-list-checks text-indigo-600 text-sm"></i>
+                                    <span>รายละเอียดงาน, ผลการสำรวจ & หมายเหตุจากระบบ INT (INT Survey & Details)</span>
+                                </div>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 inline-flex items-center gap-1">
+                                    <i class="ph ph-stamp text-xs"></i> ข้อมูลระบบภายนอก (INT)
+                                </span>
+                            </div>
+
+                            <!-- Job Details Items -->
+                            <div>
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <span class="text-xs font-semibold text-foreground flex items-center gap-1">
+                                        <i class="ph ph-wrench text-indigo-500"></i> รายละเอียดงาน (Job Details):
+                                    </span>
+                                    <span class="text-[10px] font-mono text-muted-foreground font-semibold">${jobDetails.length} รายการ</span>
+                                </div>
+                                ${jobDetails.length > 0 ? `
+                                    <div class="space-y-1.5">
+                                        ${jobDetails.map((jd, jIdx) => `
+                                            <div class="p-2.5 rounded-lg bg-card border border-border text-xs flex items-start justify-between gap-2">
+                                                <div class="space-y-0.5 min-w-0">
+                                                    <div class="flex items-center gap-1.5">
+                                                        <span class="w-4 h-4 rounded bg-indigo-500/15 text-indigo-600 font-mono font-bold text-[10px] flex items-center justify-center shrink-0">#${jIdx + 1}</span>
+                                                        <strong class="text-foreground">${this.escapeHtml(jd.installation_detail || jd.job_type || 'รายการงาน')}</strong>
+                                                    </div>
+                                                    ${jd.job_type && jd.job_type !== jd.installation_detail ? `<div class="text-[11px] text-muted-foreground">${this.escapeHtml(jd.job_type)}</div>` : ''}
+                                                    ${jd.remark ? `<div class="text-[10px] text-amber-600 dark:text-amber-400 font-medium"><i class="ph ph-note mr-0.5"></i> หมายเหตุ: ${this.escapeHtml(jd.remark)}</div>` : ''}
+                                                </div>
+                                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 shrink-0 border border-indigo-500/20">
+                                                    จำนวน: ${Number(jd.product_quantity || jd.qty || 1)}
+                                                </span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : `
+                                    <div class="p-2 rounded-lg bg-card border border-dashed border-border text-xs text-muted-foreground italic">
+                                        ไม่มีรายการย่อยเพิ่มเติม (ยึดตามบริการหลัก)
+                                    </div>
+                                `}
+                            </div>
+
+                            <!-- Visit Results & Remarks Data 2-column -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-border/50">
+                                <div>
+                                    <span class="text-xs font-semibold text-foreground flex items-center gap-1 mb-1.5">
+                                        <i class="ph ph-clipboard-text text-teal-600"></i> ผลการสำรวจหน้างาน (Visit Results):
+                                    </span>
+                                    ${visitResults.length > 0 ? `
+                                        <div class="flex flex-wrap gap-1.5">
+                                            ${visitResults.map(vr => `
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-teal-500/10 text-teal-800 dark:text-teal-200 border border-teal-500/20">
+                                                    <i class="ph ph-check-circle text-teal-600 font-bold"></i>
+                                                    <span>${this.escapeHtml(vr)}</span>
+                                                </span>
+                                            `).join('')}
+                                        </div>
+                                    ` : `
+                                        <div class="p-2 rounded-lg bg-card border border-dashed border-border text-xs text-muted-foreground italic">
+                                            ยังไม่มีผลสำรวจบันทึกไว้
+                                        </div>
+                                    `}
+                                </div>
+                                <div>
+                                    <span class="text-xs font-semibold text-foreground flex items-center gap-1 mb-1.5">
+                                        <i class="ph ph-chat-circle-text text-amber-500"></i> หมายเหตุจาก INT (Remarks Data):
+                                    </span>
+                                    ${(remarksData.note || remarksData.comment) ? `
+                                        <div class="p-2.5 rounded-lg bg-card border border-border space-y-1 text-xs">
+                                            ${remarksData.note ? `<div><span class="text-muted-foreground font-medium">Note:</span> <span class="text-foreground">${this.escapeHtml(remarksData.note)}</span></div>` : ''}
+                                            ${remarksData.comment ? `<div><span class="text-muted-foreground font-medium">Comment:</span> <span class="text-foreground">${this.escapeHtml(remarksData.comment)}</span></div>` : ''}
+                                        </div>
+                                    ` : `
+                                        <div class="p-2 rounded-lg bg-card border border-dashed border-border text-xs text-muted-foreground italic">
+                                            ไม่มีหมายเหตุเพิ่มเติมจากระบบ INT
+                                        </div>
+                                    `}
                                 </div>
                             </div>
                         </div>

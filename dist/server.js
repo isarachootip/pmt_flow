@@ -1623,14 +1623,17 @@ app.post('/api/v1/integration/orders', async (req, res) => {
         newJob.customer = customerData;
         newJob.customer_data = customerData;
         newJob.job_details = jobDetails;
+        newJob.job_detail = jobDetails;
         newJob.agent_data = payload.agent || {};
         newJob.store_data = payload.store || {};
         newJob.schedule_plan = payload.schedule_plan || {};
         newJob.checkin_data = payload.check_in || {};
         newJob.checkout_data = payload.check_out || {};
         newJob.approval_data = payload.approval || {};
-        newJob.visit_results = payload.visit_results || [];
-        newJob.remarks_data = payload.remarks || {};
+        newJob.visit_results = payload.visit_results || payload.visit_result || [];
+        newJob.visit_result = payload.visit_results || payload.visit_result || [];
+        newJob.remarks_data = payload.remarks || payload.remarks_data || {};
+        newJob.remarks = payload.remarks || payload.remarks_data || {};
         newJob.file_int_image = payload.job_info?.file_int_image || '';
         newJob.raw_payload = payload;
         exports.coreJobStore.unshift(newJob);
@@ -1974,15 +1977,18 @@ function convertStagingToCorePmt(stagingRecord) {
             photos: photos,
             tasks: [],
             boq_items: [],
-            job_details: payload.job_details || [],
+            job_details: payload.job_details || payload.job_detail || [],
+            job_detail: payload.job_details || payload.job_detail || [],
             agent_data: payload.agent || {},
             store_data: payload.store || {},
             schedule_plan: payload.schedule_plan || {},
             checkin_data: payload.check_in || {},
             checkout_data: payload.check_out || {},
             approval_data: payload.approval || {},
-            visit_results: payload.visit_results || [],
-            remarks_data: payload.remarks || {},
+            visit_results: payload.visit_results || payload.visit_result || [],
+            visit_result: payload.visit_results || payload.visit_result || [],
+            remarks_data: payload.remarks || payload.remarks_data || {},
+            remarks: payload.remarks || payload.remarks_data || {},
             special_instructions: payload.remarks?.comment || '',
             additional_notes: payload.remarks?.note || '',
             file_int_image: payload.job_info?.file_int_image || '',
