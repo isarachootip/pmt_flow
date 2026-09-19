@@ -4722,9 +4722,9 @@ const app = {
                     <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTop3New ? 'bg-indigo-500/[0.02]' : ''}" onclick="app.openUnifiedOrderStudio('${safeId}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${displayId})">
                         <td class="px-3.5 py-3 font-mono whitespace-nowrap">
                             <div class="flex items-center gap-1.5 flex-wrap">
-                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${safeId}')" class="font-mono font-extrabold text-sm sm:text-base text-brand-600 dark:text-brand-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${displayId}">
+                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${safeId}')" class="font-mono font-extrabold text-sm sm:text-base text-foreground hover:text-brand-600 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${displayId}">
                                     <span>${displayId}</span>
-                                    <i class="ph ph-arrow-square-out text-xs opacity-70"></i>
+                                    <i class="ph ph-arrow-square-out text-xs text-muted-foreground"></i>
                                 </button>
                                 ${isTop3New ? `
                                     <span class="badge-new-item" title="3 รายการคำสั่งซื้อใหม่ล่าสุด (NEW!)">
@@ -4740,7 +4740,7 @@ const app = {
                             ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-xs sm:text-sm font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground text-sm">-</span>'}
                         </td>
                         <td class="px-3 py-3 font-mono whitespace-nowrap">
-                            ${j.ticket_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs sm:text-sm font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.ticket_no}</span>` : '<span class="text-muted-foreground text-sm">-</span>'}
+                            ${j.ticket_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-xs sm:text-sm font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.ticket_no}</span>` : '<span class="text-muted-foreground text-sm">-</span>'}
                         </td>
                         <td class="px-3 py-3 whitespace-nowrap">
                             ${(j.plan_date || j.date) ? `
@@ -4777,11 +4777,11 @@ const app = {
                                 const formatted = this.formatTimestamp(intakeTs);
                                 const isToday = intakeTs && (() => { try { const d = new Date(intakeTs); const now = new Date(); return d.toDateString() === now.toDateString(); } catch(e) { return false; } })();
                                 return `<div class="flex flex-col gap-0.5">
-                                    <div class="font-mono text-xs sm:text-sm ${isToday ? 'text-emerald-600 font-bold' : 'text-foreground font-medium'} flex items-center gap-1.5">
-                                        <i class="ph ph-clock text-xs ${isToday ? 'text-emerald-500' : 'text-muted-foreground'}"></i>
+                                    <div class="font-mono text-xs sm:text-sm text-foreground font-medium flex items-center gap-1.5">
+                                        <i class="ph ph-clock text-xs text-muted-foreground"></i>
                                         <span>${formatted}</span>
                                     </div>
-                                    ${isToday ? '<span class="text-[10px] font-bold px-2 py-0.2 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 w-fit">วันนี้</span>' : ''}
+                                    ${isToday ? '<span class="text-[10px] font-semibold px-2 py-0.2 rounded bg-muted text-foreground border border-border w-fit">วันนี้</span>' : ''}
                                 </div>`;
                             })()}
                         </td>
@@ -7963,13 +7963,13 @@ const app = {
                                     </span>
                                 ` : ''}
                                 ${job.booking_no ? `
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 inline-flex items-center gap-1" title="เลขที่ Booking">
-                                        <i class="ph ph-bookmark-simple text-[10px]"></i> Booking: ${job.booking_no}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-muted text-foreground border border-border inline-flex items-center gap-1" title="เลขที่ Booking">
+                                        <i class="ph ph-bookmark-simple text-[10px] text-muted-foreground"></i> Booking: ${job.booking_no}
                                     </span>
                                 ` : ''}
                                 ${job.ticket_no ? `
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1" title="เลขที่ Ticket (Ticket No)">
-                                        <i class="ph ph-receipt text-[10px]"></i> Ticket: ${job.ticket_no}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-muted text-foreground border border-border inline-flex items-center gap-1" title="เลขที่ Ticket (Ticket No)">
+                                        <i class="ph ph-receipt text-[10px] text-muted-foreground"></i> Ticket: ${job.ticket_no}
                                     </span>
                                 ` : ''}
                                 ${(job.plan_date || job.date) ? `
@@ -9689,8 +9689,8 @@ const app = {
                             <div>
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <h2 class="font-display text-xl font-bold text-foreground tracking-tight">${job.id}</h2>
-                                    ${(job.booking_no && job.booking_no.startsWith('VFIX')) || (job.id && job.id.startsWith('VFIX')) ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 shadow-2xs"><i class="ph ph-wrench"></i> vFIX: ${job.booking_no || job.id}</span>` : ''}
-                                    ${job.ticket_no ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 shadow-2xs" title="เลขที่ Ticket"><i class="ph ph-receipt"></i> Ticket: ${job.ticket_no}</span>` : ''}
+                                    ${(job.booking_no && job.booking_no.startsWith('VFIX')) || (job.id && job.id.startsWith('VFIX')) ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-muted text-foreground border border-border shadow-2xs"><i class="ph ph-wrench text-muted-foreground"></i> vFIX: ${job.booking_no || job.id}</span>` : ''}
+                                    ${job.ticket_no ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-muted text-foreground border border-border shadow-2xs" title="เลขที่ Ticket"><i class="ph ph-receipt text-muted-foreground"></i> Ticket: ${job.ticket_no}</span>` : ''}
                                     ${this.isTop3LatestJob(job) ? `<span class="badge-new-item" title="3 รายการล่าสุดที่รับเข้า (NEW!)"><i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!</span>` : ''}
                                     <span class="text-sm text-muted-foreground font-medium">/ ${job.customer}</span>
                                 </div>
@@ -14017,11 +14017,11 @@ const app = {
 
                             return `
                                 <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTopNew ? 'bg-rose-500/[0.02]' : ''}" onclick="app.openJobDetailModal('${j.id}')" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
-                                    <td class="px-3 py-2.5 font-mono font-semibold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                                    <td class="px-3 py-2.5 font-mono font-semibold text-foreground whitespace-nowrap">
                                         <div class="flex items-center gap-1.5 flex-wrap">
-                                            <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
+                                            <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-foreground hover:text-emerald-700 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
                                                 <span>${j.job_no || j.id}</span>
-                                                <i class="ph ph-arrow-square-out text-[11px] opacity-70"></i>
+                                                <i class="ph ph-arrow-square-out text-[11px] text-muted-foreground"></i>
                                             </button>
                                             ${isTopNew ? `
                                                 <span class="badge-new-item" title="สถานะล่าสุด (NEW!)">
@@ -14031,13 +14031,13 @@ const app = {
                                         </div>
                                     </td>
                                     <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                                        ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                        ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
                                     <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
                                     <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                                        ${j.ticket_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.ticket_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                        ${j.ticket_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.ticket_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
                                     <td class="px-2.5 py-2.5 whitespace-nowrap">
                                         ${(j.plan_date || j.date) ? `
@@ -14214,7 +14214,7 @@ const app = {
                                                     </div>
                                                 </td>
                                                 <td class="py-3 px-4 font-mono text-xs whitespace-nowrap">
-                                                    ${job.ticket_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${job.ticket_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                                    ${job.ticket_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${job.ticket_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                                                 </td>
                                                 <td class="py-3 px-4">
                                                     <div class="font-mono text-foreground font-medium text-[11px]">${this.formatDateDMY(job.date)}</div>
@@ -15147,11 +15147,11 @@ const app = {
 
                             return `
                                 <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSelected ? 'bg-purple-500/5' : (isTopNew ? 'bg-rose-500/[0.02]' : '')}" onclick="app.openManageBOQModal('${j.id}')">
-                                    <td class="px-3 py-2.5 font-mono font-semibold text-purple-600 dark:text-purple-400 whitespace-nowrap">
+                                    <td class="px-3 py-2.5 font-mono font-semibold text-foreground whitespace-nowrap">
                                         <div class="flex items-center gap-1.5 flex-wrap">
-                                            <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-purple-600 dark:text-purple-400 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
+                                            <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-foreground hover:text-purple-600 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
                                                 <span>${j.job_no || j.id}</span>
-                                                <i class="ph ph-arrow-square-out text-[11px] opacity-70"></i>
+                                                <i class="ph ph-arrow-square-out text-[11px] text-muted-foreground"></i>
                                             </button>
                                             ${isTopNew ? `
                                                 <span class="badge-new-item" title="สถานะล่าสุด (NEW!)">
@@ -15161,10 +15161,7 @@ const app = {
                                         </div>
                                     </td>
                                     <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                                        ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
-                                    </td>
-                                    <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
                                     <td class="px-2.5 py-2.5 whitespace-nowrap">
                                         ${(j.plan_date || j.date) ? `
