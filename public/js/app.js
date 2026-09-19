@@ -2824,6 +2824,11 @@ const app = {
             },
 
             navigate(view, param = null) {
+                // If navigating to daily-logs, redirect directly to gantt timeline
+                if (view === 'daily-logs') {
+                    return this.navigate('gantt', param);
+                }
+
                 // Scroll container back to top on view change
                 const pageContainer = document.getElementById('page-container');
                 if (pageContainer) {
@@ -2854,7 +2859,6 @@ const app = {
                     'tickets': 'Step 2: บันทึก Ticket, ใบเสร็จ & Convert เข้า Project',
                     'project-conversion': 'Step 2 (Task ย่อย): Convert เข้า Project & จัดการทีมช่าง (Labor-to-Task)',
                     'gantt': 'Step 4: แผนงาน & บันทึกช่างประจำวัน (Gantt Timeline)',
-                    'daily-logs': 'บันทึกงานช่างประจำวัน (Daily Technician Work Log)',
                     'qc': 'Step 5: การตรวจรับรองคุณภาพ (Quality Control - Step 5)',
                     'csat': 'สรุปงานที่สำเร็จแล้ว (Completed Jobs Summary - ส่ง API ระบบ STK)',
                     'blueprints': 'คลังแบบแปลนและไฟล์ออกแบบ (Central Blueprints & CAD)',
@@ -2993,7 +2997,6 @@ const app = {
                     }
                     this.renderGantt();
                 }
-                if(view === 'daily-logs') this.renderDailyLogsPage(param);
                 if(view === 'qc') this.renderQC();
                 if(view === 'csat' || view === 'completed-jobs') this.renderCompletedJobsSTK();
                 if(view === 'ma-contracts') this.renderMAContracts();
@@ -5035,7 +5038,6 @@ const app = {
                 if (agentNameEl) agentNameEl.innerText = job.agent_name || '-';
                 
                 // Type
-                const isQuick = this.isQuickJob(job);
                 const radioQuick = document.getElementById('unified-type-quick');
                 const radioRenovate = document.getElementById('unified-type-renovate');
                 if (isQuick && radioQuick) radioQuick.checked = true;
@@ -8190,38 +8192,109 @@ const app = {
                             `}
                         </div>
 
-                        <!-- Section 4: Tickets & Slips Summary -->
+                        <!-- Section 4: Tickets & Slips Summary with Previews -->
                         <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
                             <div class="flex items-center justify-between border-b border-border/60 pb-2">
                                 <div class="flex items-center gap-2 font-bold text-foreground text-xs">
                                     <i class="ph ph-receipt text-emerald-600 text-sm"></i>
                                     <span>ข้อมูล Ticket & สลิปการชำระเงิน (Step 2 Tickets & Receipts)</span>
+                                    ${hasTicket ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-700 font-mono font-bold">${tickets.length} รายการ</span>` : ''}
                                 </div>
-                                ${hasTicket ? `
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-700 font-bold">บันทึกเรียบร้อย</span>
-                                ` : `
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-700 font-bold">ยังไม่บันทึก</span>
-                                `}
+                                <div class="flex items-center gap-2">
+                                    ${hasTicket ? `
+                                        <span class="text-[11px] text-muted-foreground hidden sm:inline">คลิกรูปเพื่อเปิดดูแบบขยายใหญ่ (Lightbox)</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-700 font-bold">บันทึกเรียบร้อย</span>
+                                    ` : `
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-700 font-bold">ยังไม่บันทึก</span>
+                                    `}
+                                </div>
                             </div>
                             ${hasTicket ? `
-                                <div class="space-y-2">
-                                    ${tickets.map(t => `
-                                        <div class="p-3 rounded-xl bg-card border border-emerald-500/30 flex items-center justify-between gap-3">
-                                            <div class="space-y-0.5">
-                                                <div class="flex items-center gap-2">
-                                                    <span class="font-mono font-bold text-emerald-700">${t.ticket_no || t.ticketNo || 'TKT-PENDING'}</span>
-                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-700">${t.status || 'ISSUED'}</span>
+                                <div class="space-y-3">
+                                    ${tickets.map(t => {
+                                        const slipImgUrl = t.slip_url || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80';
+                                        const contractImgUrl = t.contract_url || 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80';
+                                        return `
+                                        <div class="p-3.5 rounded-xl bg-card border border-emerald-500/30 space-y-3 shadow-2xs">
+                                            <div class="flex items-center justify-between gap-3 border-b border-border/60 pb-2.5 flex-wrap">
+                                                <div class="space-y-0.5">
+                                                    <div class="flex items-center gap-2 flex-wrap">
+                                                        <span class="font-mono font-bold text-sm text-emerald-700">${t.ticket_no || t.ticketNo || 'TKT-PENDING'}</span>
+                                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${t.status === 'VERIFIED' ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/20' : 'bg-amber-500/15 text-amber-700 border border-amber-500/20'}">
+                                                            ${t.status === 'VERIFIED' ? '✓ ตรวจสอบแล้ว' : (t.status || 'ISSUED')}
+                                                        </span>
+                                                        ${t.payment_date ? `<span class="text-[11px] text-muted-foreground font-mono"><i class="ph ph-calendar text-xs"></i> ${this.formatDateDMY(t.payment_date)}</span>` : ''}
+                                                    </div>
+                                                    <div class="text-[11px] text-muted-foreground">
+                                                        ใบเสร็จ: <strong class="font-mono text-foreground">${t.receipt_no || t.receiptNo || '-'}</strong>
+                                                        <span class="mx-1">•</span>
+                                                        สัญญา: <strong class="font-mono text-foreground">${t.contract_no || t.contractNo || '-'}</strong>
+                                                    </div>
                                                 </div>
-                                                <div class="text-[11px] text-muted-foreground">
-                                                    ใบเสร็จ: <strong class="text-foreground">${t.receipt_no || t.receiptNo || '-'}</strong> • สัญญา: <strong class="text-foreground">${t.contract_no || t.contractNo || '-'}</strong>
+                                                <div class="text-right shrink-0">
+                                                    <div class="font-mono font-bold text-base text-foreground">${(Number(t.amount) || grandTotal).toLocaleString('th-TH')} ฿</div>
+                                                    <div class="text-[10px] text-muted-foreground">${t.payment_method || 'โอนเงิน'}</div>
                                                 </div>
                                             </div>
-                                            <div class="text-right shrink-0">
-                                                <div class="font-mono font-bold text-foreground">${(Number(t.amount) || grandTotal).toLocaleString('th-TH')} ฿</div>
-                                                <div class="text-[10px] text-muted-foreground">${t.payment_method || 'โอนเงิน'}</div>
+
+                                            <!-- Previews: Receipt & Contract -->
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <span class="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
+                                                        <i class="ph ph-image text-emerald-600"></i>
+                                                        <span>รูปใบเสร็จ / สัญญา (คลิกเพื่อดูขยายใหญ่):</span>
+                                                    </span>
+                                                    <span class="text-[10px] text-muted-foreground">Lightbox Zoom</span>
+                                                </div>
+                                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                    <!-- Slip / Receipt Box -->
+                                                    <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')" title="คลิกเพื่อดูใบเสร็จ / สลิปโอนเงิน">
+                                                        <img src="${slipImgUrl}" alt="สลิปใบเสร็จ" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                                        <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-85 group-hover:opacity-95 transition-opacity flex flex-col justify-between p-2.5">
+                                                            <div class="flex items-center justify-between">
+                                                                <span class="text-[9px] font-bold text-white bg-emerald-600/90 px-2 py-0.5 rounded backdrop-blur-xs flex items-center gap-1">
+                                                                    <i class="ph ph-receipt"></i> สลิป / ใบเสร็จ
+                                                                </span>
+                                                                <span class="text-[9px] font-mono text-white/90 bg-black/40 px-1.5 py-0.5 rounded">${t.receipt_no || ''}</span>
+                                                            </div>
+                                                            <div class="flex items-center justify-between text-white">
+                                                                <span class="text-[10px] truncate max-w-[150px] font-medium font-mono">${t.slip_name || 'slip.jpg'}</span>
+                                                                <span class="text-[10px] inline-flex items-center gap-1 text-emerald-300 font-semibold group-hover:underline">
+                                                                    <span>เปิดดูสลิป</span>
+                                                                    <i class="ph ph-arrows-out-simple text-xs"></i>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Contract Box -->
+                                                    <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.openTicketSlipLightbox('${t.id}', 'contract')" title="คลิกเพื่อดูสัญญาการทำงาน">
+                                                        <img src="${contractImgUrl}" alt="สัญญาการทำงาน" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                                        <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-85 group-hover:opacity-95 transition-opacity flex flex-col justify-between p-2.5">
+                                                            <div class="flex items-center justify-between">
+                                                                <span class="text-[9px] font-bold text-white bg-brand-600/90 px-2 py-0.5 rounded backdrop-blur-xs flex items-center gap-1">
+                                                                    <i class="ph ph-file-text"></i> สัญญาจ้างงาน
+                                                                </span>
+                                                                <span class="text-[9px] font-mono text-white/90 bg-black/40 px-1.5 py-0.5 rounded">${t.contract_no || ''}</span>
+                                                            </div>
+                                                            <div class="flex items-center justify-between text-white">
+                                                                <span class="text-[10px] truncate max-w-[150px] font-medium font-mono">${t.contract_name || 'contract.pdf'}</span>
+                                                                <span class="text-[10px] inline-flex items-center gap-1 text-blue-300 font-semibold group-hover:underline">
+                                                                    <span>เปิดดูสัญญา</span>
+                                                                    <i class="ph ph-arrows-out-simple text-xs"></i>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
+                                            ${t.notes ? `
+                                                <div class="text-[11px] text-muted-foreground bg-muted/40 p-2 rounded-lg border border-border/60">
+                                                    <span class="font-medium text-foreground">หมายเหตุ:</span> ${this.escapeHtml(t.notes)}
+                                                </div>
+                                            ` : ''}
                                         </div>
-                                    `).join('')}
+                                    `}).join('')}
                                 </div>
                             ` : `
                                 <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -8238,48 +8311,6 @@ const app = {
                                     </button>
                                 </div>
                             `}
-                        </div>
-
-                        <!-- Section 5: Pipeline Progression History -->
-                        <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
-                            <div class="flex items-center gap-2 font-bold text-foreground text-xs border-b border-border/60 pb-2">
-                                <i class="ph ph-clock-counter-clockwise text-blue-600 text-sm"></i>
-                                <span>ไทม์ไลน์และประวัติการดำเนินงาน (Pipeline Progress History)</span>
-                            </div>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                                <div class="p-2.5 rounded-lg bg-card border border-border space-y-1">
-                                    <div class="flex items-center justify-between">
-                                        <span class="font-bold text-foreground">Step 1: Intake</span>
-                                        <i class="ph ph-check-circle-fill text-emerald-500"></i>
-                                    </div>
-                                    <div class="text-[10px] text-muted-foreground font-mono">${jts.step1_order_at ? this.formatDateTimeDMY(jts.step1_order_at, false, true) : (job.date ? `${this.formatDateDMY(job.date)} 08:30` : '-')}</div>
-                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-emerald-500/10 text-emerald-700">รับ Order แล้ว</span>
-                                </div>
-                                <div class="p-2.5 rounded-lg bg-card border border-border space-y-1 ${hasTicket ? 'border-emerald-500/40 bg-emerald-500/[0.02]' : 'border-amber-500/40 bg-amber-500/[0.02]'}">
-                                    <div class="flex items-center justify-between">
-                                        <span class="font-bold text-foreground">Step 2: Ticket & Slip</span>
-                                        ${hasTicket ? '<i class="ph ph-check-circle-fill text-emerald-500"></i>' : '<i class="ph ph-hourglass-high text-amber-500"></i>'}
-                                    </div>
-                                    <div class="text-[10px] text-muted-foreground font-mono">${s2Formatted}</div>
-                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-semibold ${hasTicket ? 'bg-emerald-500/10 text-emerald-700' : 'bg-amber-500/10 text-amber-700'}">${hasTicket ? 'ออก Ticket แล้ว' : 'กำลังดำเนินการ'}</span>
-                                </div>
-                                <div class="p-2.5 rounded-lg bg-card border border-border space-y-1 opacity-70">
-                                    <div class="flex items-center justify-between">
-                                        <span class="font-bold text-foreground">${isQuick ? 'QC Online' : 'Step 3: BOQ / Gantt'}</span>
-                                        <i class="ph ph-circle text-muted-foreground"></i>
-                                    </div>
-                                    <div class="text-[10px] text-muted-foreground font-mono">-</div>
-                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-muted text-muted-foreground">รอดำเนินการ</span>
-                                </div>
-                                <div class="p-2.5 rounded-lg bg-card border border-border space-y-1 opacity-70">
-                                    <div class="flex items-center justify-between">
-                                        <span class="font-bold text-foreground">Step 6: CSAT</span>
-                                        <i class="ph ph-circle text-muted-foreground"></i>
-                                    </div>
-                                    <div class="text-[10px] text-muted-foreground font-mono">-</div>
-                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-muted text-muted-foreground">รอดำเนินการ</span>
-                                </div>
-                            </div>
                         </div>
                     </div>
 
@@ -14321,9 +14352,14 @@ const app = {
                                                 </td>
                                                 <td class="py-3 px-4 text-muted-foreground">${t.payment_method || 'โอนเงิน'}</td>
                                                 <td class="py-3 px-4 text-center">
-                                                    ${t.slip_url ? `
-                                                        <img src="${t.slip_url}" alt="Slip" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')" class="w-9 h-8 object-cover rounded-lg border border-border inline-block cursor-pointer hover:scale-105 transition shadow-2xs">
-                                                    ` : '<span class="text-muted-foreground">-</span>'}
+                                                    <div class="inline-flex items-center justify-center gap-1.5">
+                                                        ${t.slip_url ? `
+                                                            <img src="${t.slip_url}" alt="Slip" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')" class="w-9 h-8 object-cover rounded-lg border border-border inline-block cursor-pointer hover:scale-105 transition shadow-2xs" title="คลิกดูสลิปใบเสร็จ">
+                                                        ` : '<span class="text-muted-foreground">-</span>'}
+                                                        ${t.contract_url ? `
+                                                            <img src="${t.contract_url}" alt="Contract" onclick="app.openTicketSlipLightbox('${t.id}', 'contract')" class="w-9 h-8 object-cover rounded-lg border border-border inline-block cursor-pointer hover:scale-105 transition shadow-2xs" title="คลิกดูสัญญาจ้างงาน">
+                                                        ` : ''}
+                                                    </div>
                                                 </td>
                                                 <td class="py-3 px-4">
                                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${t.status === 'VERIFIED' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30'}">
@@ -20192,7 +20228,7 @@ const app = {
                 ];
             },
 
-            loadSamplePhotosForDailyLog(prefix = 'page') {
+            loadSamplePhotosForDailyLog(prefix = 'dwl') {
                 if (!this.state.dailyLogPhotoSlots || !Array.isArray(this.state.dailyLogPhotoSlots)) {
                     this.state.dailyLogPhotoSlots = [null, null, null, null, null];
                 }
@@ -20213,7 +20249,7 @@ const app = {
                 this.showToast('📸 โหลดรูปภาพตัวอย่าง 5 รูปจำลองครบถ้วน พร้อมระบบ Preview!');
             },
 
-            handleDailyLogPhotoUpload(slotIdx, event, prefix = 'page') {
+            handleDailyLogPhotoUpload(slotIdx, event, prefix = 'dwl') {
                 const file = event.target.files && event.target.files[0];
                 if (!file) return;
 
@@ -20239,7 +20275,7 @@ const app = {
                 reader.readAsDataURL(file);
             },
 
-            removeDailyLogPhotoSlot(slotIdx, prefix = 'page') {
+            removeDailyLogPhotoSlot(slotIdx, prefix = 'dwl') {
                 if (this.state.dailyLogPhotoSlots && this.state.dailyLogPhotoSlots[slotIdx]) {
                     this.state.dailyLogPhotoSlots[slotIdx] = null;
                     this.update5PhotoSlotsUI(prefix);
@@ -20247,7 +20283,7 @@ const app = {
                 }
             },
 
-            update5PhotoSlotsUI(prefix = 'page') {
+            update5PhotoSlotsUI(prefix = 'dwl') {
                 const container = document.getElementById(`${prefix}-5photo-slots-container`);
                 if (container) {
                     container.innerHTML = this.render5PhotoSlotsHtml(prefix);
@@ -20259,7 +20295,7 @@ const app = {
                 }
             },
 
-            render5PhotoSlotsHtml(prefix = 'page') {
+            render5PhotoSlotsHtml(prefix = 'dwl') {
                 const metaList = this.get5PhotoSlotMeta();
                 const slots = this.state.dailyLogPhotoSlots || [null, null, null, null, null];
 
@@ -20338,7 +20374,7 @@ const app = {
                 </div>`;
             },
 
-            renderDailyLogShiftPresetsHtml(prefix = 'page') {
+            renderDailyLogShiftPresetsHtml(prefix = 'dwl') {
                 return `
                 <div class="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-cyan-500/15 text-[10px]">
                     <span class="text-muted-foreground font-medium flex items-center gap-1"><i class="ph ph-lightning text-amber-500"></i> เลือกกะเวลารวดเร็ว:</span>
@@ -20350,7 +20386,7 @@ const app = {
                 </div>`;
             },
 
-            syncDailyLogTime(prefix = 'page') {
+            syncDailyLogTime(prefix = 'dwl') {
                 const sHour = document.getElementById(`${prefix}-start-hour`)?.value || '08';
                 const sMin = document.getElementById(`${prefix}-start-min`)?.value || '30';
                 const eHour = document.getElementById(`${prefix}-end-hour`)?.value || '17';
@@ -20379,7 +20415,7 @@ const app = {
                 this.showToast(`⏱️ ปรับเวลาทำงานเป็น ${sH}:${sM} - ${eH}:${eM} น. (24 ชม.)`);
             },
 
-            updateDailyLogDurationDisplay(prefix = 'page') {
+            updateDailyLogDurationDisplay(prefix = 'dwl') {
                 const sEl = document.getElementById(`${prefix}-input-start-time`);
                 const eEl = document.getElementById(`${prefix}-input-end-time`);
                 const outEl = document.getElementById(`${prefix}-duration-text`);
@@ -21045,188 +21081,12 @@ const app = {
                                     </span>
                                 </div>
                             </div>
-
-                            <form onsubmit="event.preventDefault(); app.saveDailyWorkLog('${taskId}', false, true);" class="space-y-4">
-                                <!-- Date & Day Number -->
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block text-[11px] font-semibold text-foreground mb-1">วันที่เข้าทำงาน (Work Date - DD/MM/YYYY): <span class="text-rose-500">*</span></label>
-                                        <div class="relative">
-                                            <input type="text" id="page-input-date" value="${this.formatDateDMY(nextDate)}" data-datepicker="true" placeholder="DD/MM/YYYY" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl pl-3 pr-9 py-2 text-xs font-mono text-foreground focus:outline-none cursor-pointer" required>
-                                            <i class="ph ph-calendar absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-sm"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="block text-[11px] font-semibold text-foreground mb-1">วันที่ในแผนงาน (Day #):</label>
-                                        <input type="number" id="page-input-day-num" value="${nextDayNum}" min="1" max="${taskDays + 5}" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs font-mono text-foreground focus:outline-none" required>
-                                    </div>
-                                </div>
-
-                                <!-- Time In & Time Out (24 Hours - Strictly NO AM/PM) -->
-                                <div class="p-3.5 rounded-xl bg-cyan-500/5 border border-cyan-500/20 space-y-2.5">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-[11px] font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5">
-                                            <i class="ph ph-clock text-sm"></i>
-                                            บันทึกระยะเวลาเข้าปฏิบัติงานจริง (24-Hour Time Tracking):
-                                        </span>
-                                        <span id="page-duration-text" class="text-[11px] font-mono font-bold px-2 py-0.5 rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30">
-                                            ⏱️ รวม 8 ชม. 30 นาที <span class="text-[10px] font-mono opacity-80">(08:30 - 17:00 น.)</span>
-                                        </span>
-                                    </div>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        ${this.render24HourTimePickerHtml('page', 'start', '08', '30', 'เวลาเริ่มเข้าหน้างาน (Check-in)')}
-                                        ${this.render24HourTimePickerHtml('page', 'end', '17', '00', 'เวลาสิ้นสุดการทำงาน (Check-out)')}
-                                    </div>
-                                    ${this.renderDailyLogShiftPresetsHtml('page')}
-                                </div>
-
-                                <!-- Recorded By & Role -->
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block text-[11px] font-semibold text-foreground mb-1">ผู้บันทึก / หัวหน้าช่าง:</label>
-                                        <input type="text" id="page-input-recorded-by" value="${techName}" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none" required>
-                                    </div>
-                                    <div>
-                                        <label class="block text-[11px] font-semibold text-foreground mb-1">บทบาทผู้บันทึก:</label>
-                                        <select id="page-input-role" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none cursor-pointer font-medium">
-                                            <option value="TECH">ช่างหน้างาน (Technician)</option>
-                                            <option value="QC">เจ้าหน้าที่ QC ทีม (QC Inspector)</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <!-- Progress Slider -->
-                                <div>
-                                    <div class="flex items-center justify-between mb-1">
-                                        <label class="text-[11px] font-semibold text-foreground">ความคืบหน้าสะสมรวม (%):</label>
-                                        <span class="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-400" id="page-progress-val">${Math.min(100, Math.max(maxProgress, nextDayNum >= taskDays ? 100 : Math.round((nextDayNum / taskDays) * 100)))}%</span>
-                                    </div>
-                                    <input type="range" id="page-input-progress" min="0" max="100" step="5" value="${Math.min(100, Math.max(maxProgress, nextDayNum >= taskDays ? 100 : Math.round((nextDayNum / taskDays) * 100)))}" oninput="document.getElementById('page-progress-val').innerText = this.value + '%'; if(Number(this.value) === 100) document.getElementById('page-input-completed').checked = true;" class="w-full accent-cyan-500 cursor-pointer">
-                                    <div class="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
-                                        <button type="button" onclick="document.getElementById('page-input-progress').value = 35; document.getElementById('page-progress-val').innerText = '35%';" class="hover:text-foreground cursor-pointer">35% (Day 1)</button>
-                                        <button type="button" onclick="document.getElementById('page-input-progress').value = 70; document.getElementById('page-progress-val').innerText = '70%';" class="hover:text-foreground cursor-pointer">70% (Day 2)</button>
-                                        <button type="button" onclick="document.getElementById('page-input-progress').value = 100; document.getElementById('page-progress-val').innerText = '100%'; document.getElementById('page-input-completed').checked = true;" class="text-emerald-600 font-bold hover:underline cursor-pointer">100% (สำเร็จ)</button>
-                                    </div>
-                                </div>
-
-                                <!-- Work Description -->
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-foreground mb-1">รายละเอียดงานที่ทำในวันนี้ (Daily Accomplishment): <span class="text-rose-500">*</span></label>
-                                    <textarea id="page-input-desc" rows="2.5" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none transition" placeholder="เช่น ต่อสายเมนเข้าตู้ Consumer Unit, ทดสอบเบรกเกอร์กันดูด RCBO Safe-T-Cut, ตรวจวัดแรงดันไฟทุกจุด 220V ปกติ และทำความสะอาดพื้นที่ 100%..." required></textarea>
-                                </div>
-
-                                <!-- Additional Details & Materials -->
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">รายละเอียดเพิ่มเติม / ข้อมูลอ้างอิง:</label>
-                                        <input type="text" id="page-input-additional-details" placeholder="เช่น ดำเนินการตามแบบ CAD จุดระเบียงห้องครัว" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none">
-                                    </div>
-                                    <div>
-                                        <label class="block text-[11px] font-medium text-muted-foreground mb-1">อุปกรณ์/อะไหล่ที่ติดตั้ง:</label>
-                                        <input type="text" id="page-input-materials" placeholder="เช่น ท่อ EMT 30 ม., เต้ารับ 8 ชุด" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none">
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="block text-[11px] font-medium text-muted-foreground mb-1">ปัญหา / อุปสรรคหน้างาน:</label>
-                                    <input type="text" id="page-input-issues" placeholder="เช่น ไม่มีปัญหา หรือ ฝนตกชั่วคราว ดำเนินการต่อได้ปกติ" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none">
-                                </div>
-
-                                <!-- 5 PHOTO SLOTS WITH LIVE PREVIEW & LIGHTBOX PREVIEW -->
-                                <div class="space-y-2 pt-1 border-t border-border">
-                                    <div class="flex items-center justify-between">
-                                        <label class="text-[11px] font-bold text-foreground flex items-center gap-1.5">
-                                            <i class="ph ph-images text-cyan-500 text-sm"></i>
-                                            <span>แนบรูปถ่ายหน้างาน 5 รูป (พร้อมระบบ Preview คลิกดูรูปใหญ่):</span>
-                                        </label>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-[10px] font-mono font-semibold text-cyan-600 dark:text-cyan-400" id="page-photos-count-badge">แนบแล้ว 0 / 5 รูป</span>
-                                            <button type="button" onclick="app.loadSamplePhotosForDailyLog('page')" class="text-[10px] text-cyan-600 hover:underline flex items-center gap-0.5 cursor-pointer font-medium" title="โหลดรูปตัวอย่าง 5 รูปจำลองเพื่อทดสอบ">
-                                                <i class="ph ph-sparkle"></i> โหลดรูปตัวอย่าง 5 รูป
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div id="page-5photo-slots-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
-                                        ${this.render5PhotoSlotsHtml('page')}
-                                    </div>
-                                </div>
-
-                                <!-- Completion Checkbox Card -->
-                                <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 transition">
-                                    <input type="checkbox" id="page-input-completed" class="mt-0.5 accent-emerald-600 w-4 h-4 cursor-pointer" ${isCompleted || nextDayNum >= taskDays ? 'checked' : ''}>
-                                    <label for="page-input-completed" class="text-xs text-foreground font-medium cursor-pointer">
-                                        <strong class="text-emerald-700 dark:text-emerald-300 block">☑️ ช่างบันทึกสำเร็จ (User ยืนยัน - งานติดตั้งเสร็จสมบูรณ์ 100%)</strong>
-                                        <span class="text-[11px] text-muted-foreground block mt-0.5">ระบบจะบันทึกสถานะว่า "User ยืนยัน", ปรับสถานะ Task เป็น DONE, ยืนยันจองช่าง QC ณ วันสิ้นสุด (${this.formatDateDMY(endDateStr)}) และส่งงานเข้าสู่คิวรอตรวจรับรองคุณภาพ QC ทันที</span>
-                                    </label>
-                                </div>
-
-                                <!-- Form Action Buttons -->
-                                <div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
-                                    <button type="button" onclick="app.resetDailyLogForm('page')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium cursor-pointer">
-                                        ล้างฟอร์ม
-                                    </button>
-                                    <button type="submit" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 cursor-pointer flex items-center gap-1.5 shadow-xs">
-                                        <i class="ph ph-floppy-disk text-sm"></i>
-                                        <span>💾 บันทึกความคืบหน้ารายวัน</span>
-                                    </button>
-                                    <button type="button" onclick="app.completeDailyWorkAndMoveToQC('${taskId}', true)" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white cursor-pointer">
-                                        <i class="ph ph-paper-plane-tilt text-sm"></i>
-                                        <span>🚀 ยืนยันสำเร็จ & ส่งตรวจ QC</span>
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    ` : `
-                        <!-- TAB CONTENT: EXISTING LOGS HISTORY -->
-                        <div class="space-y-4">
-                            <div class="flex items-center justify-between">
-                                <h4 class="font-display font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                                    <i class="ph ph-clock-counter-clockwise text-cyan-500 text-sm"></i>
-                                    ประวัติการบันทึกงานประจำวัน (${taskLogs.length} รายการ)
-                                </h4>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[10px] text-muted-foreground font-mono">เรียงตามวันที่ปฏิบัติงาน</span>
-                                    <button type="button" onclick="app.switchDailyLogTab('form')" class="px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 text-xs font-bold flex items-center gap-1 cursor-pointer">
-                                        <i class="ph ph-plus"></i> ลงบันทึกวันนี้
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="space-y-3">
-                                ${logsCardsHtml || `
-                                    <div class="py-16 text-center text-muted-foreground text-xs space-y-3 border border-dashed border-border rounded-2xl p-6 bg-muted/10">
-                                        <div class="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto text-muted-foreground">
-                                            <i class="ph ph-notebook text-2xl"></i>
-                                        </div>
-                                        <div class="font-bold text-foreground">ยังไม่มีบันทึกงานช่างประจำวันสำหรับ Task นี้</div>
-                                        <p class="text-[11px] max-w-sm mx-auto">คลิกปุ่ม "ลงบันทึกงานประจำวัน" ด้านบนเพื่อเริ่มบันทึกเวลาเข้า-ออก และอัปโหลดรูปถ่ายหน้างาน 5 รูป</p>
-                                        <button type="button" onclick="app.switchDailyLogTab('form')" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer">
-                                            <i class="ph ph-note-pencil"></i> ลงบันทึกงานรอบแรก
-                                        </button>
-                                    </div>
-                                `}
-                            </div>
-                        </div>
-                    `}
-                `;
-                this.initDatePicker('#page-input-date');
+            renderDailyLogsPage(param = null) {
+                // Standalone page removed per user specification: redirect directly to Gantt timeline
+                this.navigate('gantt', param);
             },
 
-            quickFillDailyLogSample() {
-                this.loadSamplePhotosForDailyLog('page');
-                const descEl = document.getElementById('page-input-desc');
-                if (descEl) descEl.value = 'ต่อสายเมนเข้าตู้ Consumer Unit, ทดสอบเบรกเกอร์กันดูด RCBO Safe-T-Cut, ตรวจวัดแรงดันไฟทุกจุด 220V ปกติ และทำความสะอาดพื้นที่ 100%';
-                const matEl = document.getElementById('page-input-materials');
-                if (matEl) matEl.value = 'สายไฟ THW 2.5/4.0 Yazaki, เต้ารับ Panasonic Wide Series 8 ชุด, โคมไฟ LED 4 ชุด';
-                const detailEl = document.getElementById('page-input-additional-details');
-                if (detailEl) detailEl.value = 'ดำเนินการตามแบบแปลน CAD Step 2 ตรวจสอบระบบเรียบร้อย';
-                const issuesEl = document.getElementById('page-input-issues');
-                if (issuesEl) issuesEl.value = 'ไม่มีปัญหา การดำเนินงานราบรื่นตามแผนงาน';
-                this.showToast('✨ กรอกข้อมูลและรูปตัวอย่าง 5 รูปให้เรียบร้อยแล้ว');
-            },
-
-            resetDailyLogForm(prefix = 'page') {
+            resetDailyLogForm(prefix = 'dwl') {
                 this.state.dailyLogPhotoSlots = [null, null, null, null, null];
                 this.update5PhotoSlotsUI(prefix);
                 const descEl = document.getElementById(`${prefix}-input-desc`);
@@ -21724,11 +21584,9 @@ const app = {
                 this.initDatePicker('#dwl-input-date');
             },
 
-            saveDailyWorkLog(taskId, forceComplete = false, isPageForm = false) {
-                const prefix = isPageForm ? 'page' : 'dwl';
-                const jobId = isPageForm 
-                    ? (this.state.dailyLogSelectedJobId || 'JOB26090900002') 
-                    : (this.state.activeDailyLogJobId || 'JOB26090900002');
+            saveDailyWorkLog(taskId, forceComplete = false) {
+                const prefix = 'dwl';
+                const jobId = this.state.activeDailyLogJobId || 'JOB26090900002';
 
                 const job = (DB.jobs || []).find(j => j.id === jobId) || {};
                 const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
