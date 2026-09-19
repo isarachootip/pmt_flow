@@ -362,3 +362,25 @@
             color: #cbd5e1 !important;
             font-weight: 400 !important;
         }
+
+        /* ============================================================================= */
+        /* HIGH-CONTRAST CLEAR TEXT STANDARD (FORM INPUTS, BADGES & FRAMED FIELDS)      */
+        /* ============================================================================= */
+        input[readonly],
+        textarea[readonly],
+        select:disabled,
+        input:disabled,
+        textarea:disabled {
+            color: var(--foreground) !important;
+            -webkit-text-fill-color: var(--foreground) !important;
+            opacity: 1 !important;
+            font-weight: 500;
+        }
+
+        /* Standardized high-contrast bordered badge & field text */
+        .badge-framed-id {
+            border: 1px solid var(--border);
+            color: var(--foreground) !important;
+            -webkit-text-fill-color: var(--foreground) !important;
+            font-weight: 700 !important;
+        }

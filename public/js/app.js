@@ -4734,13 +4734,13 @@ const app = {
                             </div>
                         </td>
                         <td class="px-2 py-2 font-mono whitespace-nowrap">
-                            ${j.external_ref_id ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] sm:text-xs font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground text-xs">-</span>'}
+                            ${j.external_ref_id ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] sm:text-xs font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground text-xs">-</span>'}
                         </td>
                         <td class="px-2 py-2 font-mono whitespace-nowrap">
-                            ${j.booking_no ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] sm:text-xs font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground text-xs">-</span>'}
+                            ${j.booking_no ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] sm:text-xs font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground text-xs">-</span>'}
                         </td>
                         <td class="px-2 py-2 font-mono whitespace-nowrap">
-                            ${j.ticket_no ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] sm:text-xs font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.ticket_no}</span>` : '<span class="text-muted-foreground text-xs">-</span>'}
+                            ${j.ticket_no ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] sm:text-xs font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.ticket_no}</span>` : '<span class="text-muted-foreground text-xs">-</span>'}
                         </td>
                         <td class="px-2 py-2 whitespace-nowrap">
                             ${(j.plan_date || j.date) ? `
@@ -5016,10 +5016,11 @@ const app = {
                     nameInp.value = job.customer || '';
                     if (isStampedFromInt) {
                         nameInp.readOnly = true;
-                        nameInp.classList.add('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                        nameInp.classList.add('bg-muted/30', 'cursor-default', 'text-foreground', 'font-medium');
+                        nameInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
                     } else {
                         nameInp.readOnly = false;
-                        nameInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                        nameInp.classList.remove('bg-muted/30', 'bg-muted/60', 'cursor-default', 'cursor-not-allowed', 'text-muted-foreground');
                     }
                 }
 
@@ -5028,10 +5029,11 @@ const app = {
                     phoneInp.value = job.phone || '';
                     if (isStampedFromInt) {
                         phoneInp.readOnly = true;
-                        phoneInp.classList.add('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                        phoneInp.classList.add('bg-muted/30', 'cursor-default', 'text-foreground', 'font-medium');
+                        phoneInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
                     } else {
                         phoneInp.readOnly = false;
-                        phoneInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                        phoneInp.classList.remove('bg-muted/30', 'bg-muted/60', 'cursor-default', 'cursor-not-allowed', 'text-muted-foreground');
                     }
                 }
 
@@ -5046,19 +5048,20 @@ const app = {
                     srvInp.value = subTypeVal;
                     if (subTypeVal && isStampedFromInt) {
                         srvInp.readOnly = true;
-                        srvInp.classList.add('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                        srvInp.classList.add('bg-muted/30', 'cursor-default', 'text-foreground', 'font-medium');
+                        srvInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
                         if (srvStampBadge) srvStampBadge.classList.remove('hidden');
                         if (srvManualBadge) srvManualBadge.classList.add('hidden');
                         if (srvHint) {
-                            srvHint.innerHTML = `<span class="text-emerald-600 font-semibold inline-flex items-center gap-1"><i class="ph ph-check-circle"></i> ดึง project_sub_type จาก INT สำเร็จ:</span> ${subTypeVal}`;
+                            srvHint.innerHTML = `<span class="text-emerald-700 font-bold inline-flex items-center gap-1"><i class="ph ph-check-circle"></i> ดึง project_sub_type จาก INT สำเร็จ:</span> <strong class="text-foreground">${this.escapeHtml(subTypeVal)}</strong>`;
                         }
                     } else {
                         srvInp.readOnly = false;
-                        srvInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                        srvInp.classList.remove('bg-muted/30', 'bg-muted/60', 'cursor-default', 'cursor-not-allowed', 'text-muted-foreground');
                         if (srvStampBadge) srvStampBadge.classList.add('hidden');
                         if (srvManualBadge) srvManualBadge.classList.remove('hidden');
                         if (srvHint) {
-                            srvHint.innerHTML = `<span class="text-amber-600 font-semibold inline-flex items-center gap-1"><i class="ph ph-pencil-simple"></i> ยังดึงข้อมูลบริการจาก INT ไม่ได้ — สามารถกรอกด้วยตนเอง (Manual)</span>`;
+                            srvHint.innerHTML = `<span class="text-amber-700 font-bold inline-flex items-center gap-1"><i class="ph ph-pencil-simple"></i> ยังดึงข้อมูลบริการจาก INT ไม่ได้ — สามารถกรอกด้วยตนเอง (Manual)</span>`;
                         }
                     }
                 }
@@ -5068,10 +5071,11 @@ const app = {
                     addrInp.value = job.address || '';
                     if (isStampedFromInt) {
                         addrInp.readOnly = true;
-                        addrInp.classList.add('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                        addrInp.classList.add('bg-muted/30', 'cursor-default', 'text-foreground', 'font-medium');
+                        addrInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
                     } else {
                         addrInp.readOnly = false;
-                        addrInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                        addrInp.classList.remove('bg-muted/30', 'bg-muted/60', 'cursor-default', 'cursor-not-allowed', 'text-muted-foreground');
                     }
                 }
 
@@ -5080,10 +5084,11 @@ const app = {
                     scopeInp.value = job.scope_of_work || job.special_instructions || job.notes || '';
                     if (isStampedFromInt) {
                         scopeInp.readOnly = true;
-                        scopeInp.classList.add('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                        scopeInp.classList.add('bg-muted/30', 'cursor-default', 'text-foreground', 'font-medium');
+                        scopeInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
                     } else {
                         scopeInp.readOnly = false;
-                        scopeInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                        scopeInp.classList.remove('bg-muted/30', 'bg-muted/60', 'cursor-default', 'cursor-not-allowed', 'text-muted-foreground');
                     }
                 }
 
@@ -5103,8 +5108,14 @@ const app = {
                     if (radioRenovate) radioRenovate.disabled = true;
                     const lblQuick = document.getElementById('label-unified-type-quick');
                     const lblReno = document.getElementById('label-unified-type-renovate');
-                    if (lblQuick) lblQuick.classList.add('cursor-not-allowed', 'opacity-80');
-                    if (lblReno) lblReno.classList.add('cursor-not-allowed', 'opacity-80');
+                    if (lblQuick) {
+                        lblQuick.classList.add('cursor-default');
+                        lblQuick.classList.remove('cursor-not-allowed', 'opacity-80');
+                    }
+                    if (lblReno) {
+                        lblReno.classList.add('cursor-default');
+                        lblReno.classList.remove('cursor-not-allowed', 'opacity-80');
+                    }
                 } else {
                     if (radioQuick) radioQuick.disabled = false;
                     if (radioRenovate) radioRenovate.disabled = false;
@@ -5122,10 +5133,11 @@ const app = {
                     surveyDateInp.value = formattedDVal !== '-' ? formattedDVal : '';
                     if (isStampedFromInt) {
                         surveyDateInp.readOnly = true;
-                        surveyDateInp.classList.add('bg-muted/60', 'cursor-not-allowed');
+                        surveyDateInp.classList.add('bg-muted/30', 'cursor-default', 'text-foreground', 'font-bold');
+                        surveyDateInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
                     } else {
                         surveyDateInp.readOnly = false;
-                        surveyDateInp.classList.remove('bg-muted/60', 'cursor-not-allowed');
+                        surveyDateInp.classList.remove('bg-muted/30', 'bg-muted/60', 'cursor-default', 'cursor-not-allowed', 'text-muted-foreground');
                         this.initDatePicker(surveyDateInp, {
                             defaultDate: formattedDVal !== '-' ? formattedDVal : undefined
                         });
@@ -5147,10 +5159,11 @@ const app = {
                     if (!matched) timePreset.value = 'custom';
                     if (isStampedFromInt) {
                         timePreset.disabled = true;
-                        timePreset.classList.add('bg-muted/60', 'cursor-not-allowed');
+                        timePreset.classList.add('bg-muted/30', 'cursor-default', 'text-foreground', 'font-medium');
+                        timePreset.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
                     } else {
                         timePreset.disabled = false;
-                        timePreset.classList.remove('bg-muted/60', 'cursor-not-allowed');
+                        timePreset.classList.remove('bg-muted/30', 'bg-muted/60', 'cursor-default', 'cursor-not-allowed', 'text-muted-foreground');
                     }
                 }
 
@@ -5164,10 +5177,11 @@ const app = {
                     techInp.value = job.tech;
                     if (isStampedFromInt) {
                         techInp.readOnly = true;
-                        techInp.classList.add('bg-muted/60', 'cursor-not-allowed');
+                        techInp.classList.add('bg-muted/30', 'cursor-default', 'text-foreground', 'font-medium');
+                        techInp.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
                     } else {
                         techInp.readOnly = false;
-                        techInp.classList.remove('bg-muted/60', 'cursor-not-allowed');
+                        techInp.classList.remove('bg-muted/30', 'bg-muted/60', 'cursor-default', 'cursor-not-allowed', 'text-muted-foreground');
                     }
                 }
 
@@ -5750,8 +5764,8 @@ const app = {
                         chipsContainer.innerHTML = '';
                     } else {
                         chipsContainer.innerHTML = results.map(r => `
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-teal-500/10 text-teal-800 dark:text-teal-200 border border-teal-500/25">
-                                <i class="ph ph-check-circle text-teal-600 font-bold"></i>
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-950 border border-emerald-300 shadow-2xs">
+                                <i class="ph ph-check-circle text-emerald-600 font-bold"></i>
                                 <span>${this.escapeHtml(r)}</span>
                             </span>
                         `).join('');
@@ -5760,6 +5774,14 @@ const app = {
 
                 if (textarea) {
                     textarea.value = results.join('\n');
+                    if (isStampedFromInt && results.length > 0) {
+                        textarea.readOnly = true;
+                        textarea.classList.add('bg-muted/30', 'cursor-default', 'text-foreground', 'font-medium');
+                        textarea.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                    } else {
+                        textarea.readOnly = false;
+                        textarea.classList.remove('bg-muted/30', 'bg-muted/60', 'cursor-default', 'cursor-not-allowed', 'text-muted-foreground');
+                    }
                 }
             },
 
@@ -5784,8 +5806,28 @@ const app = {
                     else badgeStamp.classList.add('hidden');
                 }
 
-                if (noteInput) noteInput.value = remarks.note || '';
-                if (commentInput) commentInput.value = remarks.comment || '';
+                if (noteInput) {
+                    noteInput.value = remarks.note || '';
+                    if (isStampedFromInt && remarks.note) {
+                        noteInput.readOnly = true;
+                        noteInput.classList.add('bg-muted/30', 'cursor-default', 'text-foreground', 'font-medium');
+                        noteInput.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                    } else {
+                        noteInput.readOnly = false;
+                        noteInput.classList.remove('bg-muted/30', 'bg-muted/60', 'cursor-default', 'cursor-not-allowed', 'text-muted-foreground');
+                    }
+                }
+                if (commentInput) {
+                    commentInput.value = remarks.comment || '';
+                    if (isStampedFromInt && remarks.comment) {
+                        commentInput.readOnly = true;
+                        commentInput.classList.add('bg-muted/30', 'cursor-default', 'text-foreground', 'font-medium');
+                        commentInput.classList.remove('bg-muted/60', 'cursor-not-allowed', 'text-muted-foreground');
+                    } else {
+                        commentInput.readOnly = false;
+                        commentInput.classList.remove('bg-muted/30', 'bg-muted/60', 'cursor-default', 'cursor-not-allowed', 'text-muted-foreground');
+                    }
+                }
             },
 
             renderUnifiedSurveyPhotos() {
@@ -10415,10 +10457,10 @@ const app = {
                                         </div>
                                     </td>
                                     <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                                        ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                        ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
                                     <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
                                     <td class="px-2.5 py-2.5 whitespace-nowrap">
                                         ${(j.plan_date || j.date) ? `
@@ -14059,13 +14101,13 @@ const app = {
                                         </div>
                                     </td>
                                     <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                                        ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                        ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
                                     <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
                                     <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                                        ${j.ticket_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.ticket_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                        ${j.ticket_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.ticket_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
                                     <td class="px-2.5 py-2.5 whitespace-nowrap">
                                         ${(j.plan_date || j.date) ? `
@@ -15189,7 +15231,7 @@ const app = {
                                         </div>
                                     </td>
                                     <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
                                     <td class="px-2.5 py-2.5 whitespace-nowrap">
                                         ${(j.plan_date || j.date) ? `
@@ -21378,10 +21420,10 @@ const app = {
                             </div>
                         </td>
                         <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                            ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-gray-400">-</span>'}
+                            ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-gray-400">-</span>'}
                         </td>
                         <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                            ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-gray-400">-</span>'}
+                            ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-gray-400">-</span>'}
                         </td>
                         <td class="px-2.5 py-2.5 whitespace-nowrap">
                             <div class="inline-flex items-center gap-1 font-mono text-[11px] text-foreground font-semibold whitespace-nowrap">
