@@ -4720,113 +4720,141 @@ const app = {
 
                     return `
                     <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTop3New ? 'bg-indigo-500/[0.02]' : ''}" onclick="app.openUnifiedOrderStudio('${safeId}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${displayId})">
-                        <td class="px-3.5 py-3 font-mono whitespace-nowrap">
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${safeId}')" class="font-mono font-extrabold text-sm sm:text-base text-foreground hover:text-brand-600 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${displayId}">
+                        <td class="px-2.5 py-2 font-mono whitespace-nowrap">
+                            <div class="flex items-center gap-1 flex-wrap">
+                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${safeId}')" class="font-mono font-extrabold text-xs sm:text-sm text-foreground hover:text-brand-600 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${displayId}">
                                     <span>${displayId}</span>
                                     <i class="ph ph-arrow-square-out text-xs text-muted-foreground"></i>
                                 </button>
                                 ${isTop3New ? `
-                                    <span class="badge-new-item" title="3 รายการคำสั่งซื้อใหม่ล่าสุด (NEW!)">
-                                        <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
+                                    <span class="badge-new-item text-[10px] py-0.2 px-1" title="3 รายการคำสั่งซื้อใหม่ล่าสุด (NEW!)">
+                                        <i class="ph ph-sparkle-fill text-yellow-200 text-[10px]"></i> NEW!
                                     </span>
                                 ` : ''}
                             </div>
                         </td>
-                        <td class="px-3 py-3 font-mono whitespace-nowrap">
-                            ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-xs sm:text-sm font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground text-sm">-</span>'}
+                        <td class="px-2 py-2 font-mono whitespace-nowrap">
+                            ${j.external_ref_id ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] sm:text-xs font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground text-xs">-</span>'}
                         </td>
-                        <td class="px-3 py-3 font-mono whitespace-nowrap">
-                            ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-xs sm:text-sm font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground text-sm">-</span>'}
+                        <td class="px-2 py-2 font-mono whitespace-nowrap">
+                            ${j.booking_no ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] sm:text-xs font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground text-xs">-</span>'}
                         </td>
-                        <td class="px-3 py-3 font-mono whitespace-nowrap">
-                            ${j.ticket_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-xs sm:text-sm font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.ticket_no}</span>` : '<span class="text-muted-foreground text-sm">-</span>'}
+                        <td class="px-2 py-2 font-mono whitespace-nowrap">
+                            ${j.ticket_no ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] sm:text-xs font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.ticket_no}</span>` : '<span class="text-muted-foreground text-xs">-</span>'}
                         </td>
-                        <td class="px-3 py-3 whitespace-nowrap">
+                        <td class="px-2 py-2 whitespace-nowrap">
                             ${(j.plan_date || j.date) ? `
-                                <div class="inline-flex items-center gap-1.5 font-mono text-sm sm:text-base text-foreground font-bold whitespace-nowrap">
-                                    <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-base shrink-0"></i>
+                                <div class="inline-flex items-center gap-1 font-mono text-xs sm:text-sm text-foreground font-bold whitespace-nowrap">
+                                    <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-sm shrink-0"></i>
                                     <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
                                 </div>
-                            ` : '<span class="text-muted-foreground text-sm">-</span>'}
+                            ` : '<span class="text-muted-foreground text-xs">-</span>'}
                         </td>
-                        <td class="px-3.5 py-3 min-w-[140px] max-w-[180px]">
-                            <div class="text-foreground font-bold text-sm sm:text-base truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition" title="${j.customer || ''}">
+                        <td class="px-2 py-2 min-w-[120px] max-w-[160px]">
+                            <div class="text-foreground font-bold text-xs sm:text-sm truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition" title="${j.customer || ''}">
                                 <span class="truncate">${j.customer}</span>
                             </div>
-                            <div class="text-xs sm:text-sm text-muted-foreground font-mono flex items-center gap-1 mt-0.5 truncate">
-                                <i class="ph ph-phone text-xs shrink-0"></i>
+                            <div class="text-[11px] text-muted-foreground font-mono flex items-center gap-1 mt-0.5 truncate">
+                                <i class="ph ph-phone text-[10px] shrink-0"></i>
                                 <span class="truncate">${j.phone}</span>
                             </div>
                         </td>
-                        <td class="px-3 py-3 min-w-[140px] max-w-[170px] text-muted-foreground">
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="px-2 py-0.5 rounded text-xs font-mono font-bold uppercase shrink-0 ${isQuick ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30' : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30'}">${isQuick ? 'quick' : 'renovate'}</span>
-                                <span class="text-sm sm:text-base font-bold text-foreground truncate" title="${j.project_sub_type || j.service || ''}">
+                        <td class="px-2 py-2 min-w-[130px] max-w-[160px] text-muted-foreground">
+                            <div class="flex items-center gap-1 flex-wrap">
+                                <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold uppercase shrink-0 ${isQuick ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30' : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30'}">${isQuick ? 'quick' : 'renovate'}</span>
+                                <span class="text-xs sm:text-sm font-bold text-foreground truncate" title="${j.project_sub_type || j.service || ''}">
                                     ${j.project_sub_type || j.service || '-'}
                                 </span>
                             </div>
-                            <div class="text-xs sm:text-sm text-muted-foreground mt-0.5 flex items-center justify-between gap-1 truncate">
-                                <span class="truncate flex items-center gap-1"><i class="ph ph-user-gear text-xs shrink-0"></i> ${j.tech || 'รอระบุช่าง'}</span>
-                                ${(j.store_code || j.agent_name) ? `<span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground truncate" title="${[j.store_code, j.agent_name].filter(Boolean).join(' ')}">${j.store_code || j.agent_name}</span>` : ''}
+                            <div class="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-between gap-1 truncate">
+                                <span class="truncate flex items-center gap-1"><i class="ph ph-user-gear text-[10px] shrink-0"></i> ${j.tech || 'รอระบุช่าง'}</span>
+                                ${(j.store_code || j.agent_name) ? `<span class="text-[9px] font-mono px-1 py-0.2 rounded bg-muted text-muted-foreground truncate" title="${[j.store_code, j.agent_name].filter(Boolean).join(' ')}">${j.store_code || j.agent_name}</span>` : ''}
                             </div>
                         </td>
-                        <td class="px-3 py-3 whitespace-nowrap">
+                        <td class="px-2 py-2 whitespace-nowrap">
                             ${(() => {
                                 const intakeTs = (j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || (j.date ? `${j.date}T08:30:00.000Z` : null);
-                                const formatted = this.formatTimestamp(intakeTs);
-                                const isToday = intakeTs && (() => { try { const d = new Date(intakeTs); const now = new Date(); return d.toDateString() === now.toDateString(); } catch(e) { return false; } })();
-                                return `<div class="flex flex-col gap-0.5">
-                                    <div class="font-mono text-xs sm:text-sm text-foreground font-medium flex items-center gap-1.5">
-                                        <i class="ph ph-clock text-xs text-muted-foreground"></i>
-                                        <span>${formatted}</span>
+                                let datePart = '-';
+                                let timePart = '';
+                                let isToday = false;
+                                if (intakeTs) {
+                                    try {
+                                        const d = new Date(intakeTs);
+                                        if (!isNaN(d.getTime())) {
+                                            const day = String(d.getDate()).padStart(2, '0');
+                                            const month = String(d.getMonth() + 1).padStart(2, '0');
+                                            const year = d.getFullYear() + 543;
+                                            const hours = String(d.getHours()).padStart(2, '0');
+                                            const minutes = String(d.getMinutes()).padStart(2, '0');
+                                            const seconds = String(d.getSeconds()).padStart(2, '0');
+                                            datePart = `${day}/${month}/${year}`;
+                                            timePart = `${hours}:${minutes}:${seconds} น.`;
+                                            const now = new Date();
+                                            isToday = d.toDateString() === now.toDateString();
+                                        } else {
+                                            datePart = String(intakeTs);
+                                        }
+                                    } catch(e) {
+                                        datePart = String(intakeTs);
+                                    }
+                                }
+                                return `<div class="flex flex-col gap-0.5 leading-tight">
+                                    <div class="font-mono text-xs text-foreground font-bold flex items-center gap-1">
+                                        <i class="ph ph-calendar text-xs text-indigo-600 dark:text-indigo-400 shrink-0"></i>
+                                        <span>${datePart}</span>
                                     </div>
-                                    ${isToday ? '<span class="text-[10px] font-semibold px-2 py-0.2 rounded bg-muted text-foreground border border-border w-fit">วันนี้</span>' : ''}
+                                    ${timePart ? `
+                                        <div class="font-mono text-[11px] text-muted-foreground flex items-center gap-1">
+                                            <i class="ph ph-clock text-[10px] shrink-0"></i>
+                                            <span>${timePart}</span>
+                                            ${isToday ? '<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">วันนี้</span>' : ''}
+                                        </div>
+                                    ` : ''}
                                 </div>`;
                             })()}
                         </td>
-                        <td class="px-3 py-3 whitespace-nowrap">
+                        <td class="px-2 py-2 whitespace-nowrap text-center">
                             ${isQuick ? `
-                                <span class="px-2.5 py-1 rounded text-xs font-bold bg-muted/80 text-muted-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอนแบบแปลน">
+                                <span class="px-2 py-0.5 rounded text-xs font-bold bg-muted/80 text-muted-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอนแบบแปลน">
                                     <i class="ph ph-minus text-xs"></i> ข้าม (Quick)
                                 </span>
                             ` : hasBps ? `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'design')" class="px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1.5 hover:bg-indigo-500/25 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไขแบบแปลน ${bpCount} รายการ">
-                                    <i class="ph ph-blueprint text-indigo-600 dark:text-indigo-400 text-sm"></i>
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'design')" class="px-2 py-1 rounded-md text-xs font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1 hover:bg-indigo-500/25 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไขแบบแปลน ${bpCount} รายการ">
+                                    <i class="ph ph-blueprint text-indigo-600 dark:text-indigo-400 text-xs"></i>
                                     <span>${bpCount} แบบ</span>
                                 </button>
                             ` : `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'design')" class="px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-muted hover:bg-indigo-500/10 text-muted-foreground hover:text-indigo-600 border border-border inline-flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap" title="แนบแบบแปลน 2D/3D">
-                                    <i class="ph ph-plus-circle text-sm"></i>
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'design')" class="px-2 py-1 rounded-md text-xs font-semibold bg-muted hover:bg-indigo-500/10 text-muted-foreground hover:text-indigo-600 border border-border inline-flex items-center gap-1 transition cursor-pointer whitespace-nowrap" title="แนบแบบแปลน 2D/3D">
+                                    <i class="ph ph-plus-circle text-xs"></i>
                                     <span>+ แนบแบบ</span>
                                 </button>
                             `}
                         </td>
-                        <td class="px-3 py-3 whitespace-nowrap">
+                        <td class="px-2 py-2 whitespace-nowrap text-center">
                             ${isQuick ? `
-                                <span class="px-2.5 py-1 rounded text-xs font-bold bg-muted/80 text-muted-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอน BOQ">
+                                <span class="px-2 py-0.5 rounded text-xs font-bold bg-muted/80 text-muted-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอน BOQ">
                                     <i class="ph ph-minus text-xs"></i> ข้าม (Quick)
                                 </span>
                             ` : hasBOQ ? `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'boq')" class="px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 inline-flex items-center gap-1.5 hover:bg-purple-500/25 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไข BOQ (${itemsCount} รายการ)">
-                                    <i class="ph ph-calculator text-purple-600 dark:text-purple-400 text-sm"></i>
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'boq')" class="px-2 py-1 rounded-md text-xs font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 inline-flex items-center gap-1 hover:bg-purple-500/25 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไข BOQ (${itemsCount} รายการ)">
+                                    <i class="ph ph-calculator text-purple-600 dark:text-purple-400 text-xs"></i>
                                     <span>฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${itemsCount})</span>
                                 </button>
                             ` : `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'boq')" class="px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-muted hover:bg-purple-500/10 text-muted-foreground hover:text-purple-600 border border-border inline-flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap" title="จัดทำรายการประมาณการ BOQ">
-                                    <i class="ph ph-plus-circle text-sm"></i>
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'boq')" class="px-2 py-1 rounded-md text-xs font-semibold bg-muted hover:bg-purple-500/10 text-muted-foreground hover:text-purple-600 border border-border inline-flex items-center gap-1 transition cursor-pointer whitespace-nowrap" title="จัดทำรายการประมาณการ BOQ">
+                                    <i class="ph ph-plus-circle text-xs"></i>
                                     <span>+ ลง BOQ</span>
                                 </button>
                             `}
                         </td>
-                        <td class="px-3.5 py-3 text-right whitespace-nowrap">
-                            <div class="flex items-center justify-end gap-2 whitespace-nowrap">
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'intake')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white shadow-xs inline-flex items-center gap-1.5 transition hover:scale-105 cursor-pointer whitespace-nowrap" title="เปิด One-Stop Studio: ข้อมูลคำสั่งซื้อ • Design แบบแปลน • BOQ">
+                        <td class="px-2.5 py-2 text-right whitespace-nowrap">
+                            <div class="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'intake')" class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:via-indigo-700 hover:to-indigo-800 text-white shadow-xs inline-flex items-center gap-1.5 transition hover:scale-105 cursor-pointer whitespace-nowrap" title="เปิด One-Stop Studio: ข้อมูลคำสั่งซื้อ • Design แบบแปลน • BOQ">
                                     <i class="ph ph-squares-four text-sm font-bold"></i>
                                     <span>Studio</span>
                                 </button>
                                 <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${safeId}')" class="btn-artifact-secondary p-1.5 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer" title="ดูข้อมูลงาน (Pop up)">
-                                    <i class="ph ph-eye text-base"></i>
+                                    <i class="ph ph-eye text-sm"></i>
                                 </button>
                             </div>
                         </td>

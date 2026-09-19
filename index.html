@@ -1028,14 +1028,14 @@
                             <table class="w-full text-left">
                                 <thead class="bg-muted/60 border-b border-border text-foreground font-bold text-sm">
                                     <tr>
-                                        <th class="px-3.5 py-3 whitespace-nowrap">เลขที่งาน</th>
-                                        <th class="px-3 py-3 whitespace-nowrap">เลขที่อ้างอิง (Ref ID)</th>
-                                        <th class="px-3 py-3 whitespace-nowrap">เลขที่ Booking</th>
-                                        <th class="px-3 py-3 whitespace-nowrap">เลขที่ Ticket</th>
-                                        <th class="px-3 py-3 whitespace-nowrap">
-                                            <div class="flex items-center gap-2">
+                                        <th class="px-2.5 py-2.5 whitespace-nowrap">เลขที่งาน</th>
+                                        <th class="px-2 py-2.5 whitespace-nowrap">เลขที่อ้างอิง (Ref ID)</th>
+                                        <th class="px-2 py-2.5 whitespace-nowrap">เลขที่ Booking</th>
+                                        <th class="px-2 py-2.5 whitespace-nowrap">เลขที่ Ticket</th>
+                                        <th class="px-2 py-2.5 whitespace-nowrap">
+                                            <div class="flex items-center gap-1.5">
                                                 <span>กำหนดวันนัด</span>
-                                                <select id="filter-appt-quick" onchange="app.handleApptQuickFilter(this.value)" class="text-xs bg-card border border-border rounded-md px-2 py-1 text-foreground font-normal cursor-pointer focus:outline-none focus:border-brand-500 shadow-2xs" title="กรองด่วนตามกำหนดวันนัด">
+                                                <select id="filter-appt-quick" onchange="app.handleApptQuickFilter(this.value)" class="text-[11px] bg-card border border-border rounded px-1.5 py-0.5 text-foreground font-normal cursor-pointer focus:outline-none focus:border-brand-500 shadow-2xs" title="กรองด่วนตามกำหนดวันนัด">
                                                     <option value="all">ทั้งหมด</option>
                                                     <option value="today">นัดวันนี้</option>
                                                     <option value="upcoming">นัดข้างหน้า</option>
@@ -1043,11 +1043,11 @@
                                                 </select>
                                             </div>
                                         </th>
-                                        <th class="px-3.5 py-3 min-w-[140px] max-w-[180px]">ลูกค้า &amp; เบอร์ติดต่อ</th>
-                                        <th class="px-3 py-3 min-w-[160px]">
-                                            <div class="flex items-center gap-2">
+                                        <th class="px-2 py-2.5 min-w-[120px] max-w-[160px]">ลูกค้า &amp; เบอร์ติดต่อ</th>
+                                        <th class="px-2 py-2.5 min-w-[130px]">
+                                            <div class="flex items-center gap-1.5">
                                                 <span>ประเภทบริการ</span>
-                                                <select id="filter-service" onchange="app.filterJobsTable()" class="text-xs bg-card border border-border rounded-md px-2 py-1 text-foreground font-normal cursor-pointer focus:outline-none focus:border-brand-500 shadow-2xs" title="กรองตามประเภทบริการ">
+                                                <select id="filter-service" onchange="app.filterJobsTable()" class="text-[11px] bg-card border border-border rounded px-1.5 py-0.5 text-foreground font-normal cursor-pointer focus:outline-none focus:border-brand-500 shadow-2xs" title="กรองตามประเภทบริการ">
                                                     <option value="all">ทั้งหมด</option>
                                                     <option value="quick">Quick Services</option>
                                                     <option value="renovate">Renovate</option>
@@ -1055,10 +1055,10 @@
                                                 </select>
                                             </div>
                                         </th>
-                                        <th class="px-3 py-3 whitespace-nowrap">วันที่รับ Order</th>
-                                        <th class="px-3 py-3 whitespace-nowrap">แบบแปลน (Design)</th>
-                                        <th class="px-3 py-3 whitespace-nowrap">ประมาณการ (BOQ)</th>
-                                        <th class="px-3.5 py-3 text-right whitespace-nowrap">Studio จัดการงาน</th>
+                                        <th class="px-2 py-2.5 whitespace-nowrap">วันที่รับ Order</th>
+                                        <th class="px-2 py-2.5 text-center whitespace-nowrap">แบบแปลน (Design)</th>
+                                        <th class="px-2 py-2.5 text-center whitespace-nowrap">ประมาณการ (BOQ)</th>
+                                        <th class="px-2.5 py-2.5 text-right whitespace-nowrap">Studio จัดการงาน</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-border" id="jobs-table-body">
