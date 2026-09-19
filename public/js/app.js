@@ -4512,7 +4512,8 @@ const app = {
                         const idMatch = String(j.id || '').toLowerCase().includes(query);
                         const noMatch = String(j.job_no || '').toLowerCase().includes(query);
                         const refMatch = String(j.external_ref_id || '').toLowerCase().includes(query);
-                        const tktMatch = String(j.ticket_no || j.ticketNo || '').toLowerCase().includes(query);
+                        const tktMatch = String(j.ticket_no || j.ticketNo || '').toLowerCase().includes(query) ||
+                            (DB.tickets || []).some(t => (t.job_id === j.id || t.jobId === j.id) && String(t.ticket_no || '').toLowerCase().includes(query));
                         const bkgMatch = String(j.booking_no || j.bookingNo || '').toLowerCase().includes(query);
                         const planDateStr = j.plan_date || j.date || '';
                         const planDateFormatted = planDateStr ? this.formatDateDMY(planDateStr) : '';
@@ -4738,6 +4739,9 @@ const app = {
                         <td class="px-3 py-3 font-mono whitespace-nowrap">
                             ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-xs sm:text-sm font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground text-sm">-</span>'}
                         </td>
+                        <td class="px-3 py-3 font-mono whitespace-nowrap">
+                            ${j.ticket_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs sm:text-sm font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.ticket_no}</span>` : '<span class="text-muted-foreground text-sm">-</span>'}
+                        </td>
                         <td class="px-3 py-3 whitespace-nowrap">
                             ${(j.plan_date || j.date) ? `
                                 <div class="inline-flex items-center gap-1.5 font-mono text-sm sm:text-base text-foreground font-bold whitespace-nowrap">
@@ -4833,7 +4837,7 @@ const app = {
                 const isIsaraUser = window.auth && window.auth.isIsaraChootip ? window.auth.isIsaraChootip() : false;
                 document.getElementById('jobs-table-body').innerHTML = html || `
                     <tr>
-                        <td colspan="10" class="px-5 py-12 text-center">
+                        <td colspan="11" class="px-5 py-12 text-center">
                             <div class="max-w-md mx-auto space-y-3">
                                 <div class="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-2xl font-bold shadow-xs">
                                     <i class="ph ph-tray"></i>
@@ -7963,6 +7967,11 @@ const app = {
                                         <i class="ph ph-bookmark-simple text-[10px]"></i> Booking: ${job.booking_no}
                                     </span>
                                 ` : ''}
+                                ${job.ticket_no ? `
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1" title="เลขที่ Ticket (Ticket No)">
+                                        <i class="ph ph-receipt text-[10px]"></i> Ticket: ${job.ticket_no}
+                                    </span>
+                                ` : ''}
                                 ${(job.plan_date || job.date) ? `
                                     <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 inline-flex items-center gap-1" title="กำหนดวันนัด (Plan Date)">
                                         <i class="ph ph-calendar-check text-[10px]"></i> นัด: ${this.formatDateDMY(job.plan_date || job.date)}
@@ -9681,6 +9690,7 @@ const app = {
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <h2 class="font-display text-xl font-bold text-foreground tracking-tight">${job.id}</h2>
                                     ${(job.booking_no && job.booking_no.startsWith('VFIX')) || (job.id && job.id.startsWith('VFIX')) ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 shadow-2xs"><i class="ph ph-wrench"></i> vFIX: ${job.booking_no || job.id}</span>` : ''}
+                                    ${job.ticket_no ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 shadow-2xs" title="เลขที่ Ticket"><i class="ph ph-receipt"></i> Ticket: ${job.ticket_no}</span>` : ''}
                                     ${this.isTop3LatestJob(job) ? `<span class="badge-new-item" title="3 รายการล่าสุดที่รับเข้า (NEW!)"><i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!</span>` : ''}
                                     <span class="text-sm text-muted-foreground font-medium">/ ${job.customer}</span>
                                 </div>
@@ -9794,6 +9804,12 @@ const app = {
                                                 <div class="text-[10px] text-muted-foreground">รหัสอ้างอิงต้นทาง:</div>
                                                 <div class="text-xs font-mono text-foreground truncate">${job.external_ref_id || 'INT-2026-001'}</div>
                                             </div>
+                                            ${job.ticket_no ? `
+                                            <div>
+                                                <div class="text-[10px] text-muted-foreground">เลขที่ Ticket:</div>
+                                                <div class="text-xs font-mono text-emerald-600 font-bold truncate">${job.ticket_no}</div>
+                                            </div>
+                                            ` : ''}
                                         </div>
                                         <div class="text-[11px] text-muted-foreground">
                                             <strong class="text-foreground font-medium">ทีมช่างผู้รับผิดชอบ:</strong> ${job.tech}
@@ -13927,6 +13943,23 @@ const app = {
                         tableJobs = tableJobs.filter(j => (ticketsByJob[j.id] || []).some(t => t.status === 'VERIFIED'));
                     }
                 }
+
+                const searchInput = document.getElementById('ticket-search');
+                const q = (searchQuery || (searchInput ? searchInput.value : '')).toLowerCase().trim();
+
+                if (q) {
+                    tableJobs = tableJobs.filter(j =>
+                        (j.id && String(j.id).toLowerCase().includes(q)) ||
+                        (j.job_no && String(j.job_no).toLowerCase().includes(q)) ||
+                        (j.external_ref_id && String(j.external_ref_id).toLowerCase().includes(q)) ||
+                        (j.booking_no && String(j.booking_no).toLowerCase().includes(q)) ||
+                        (j.ticket_no && String(j.ticket_no).toLowerCase().includes(q)) ||
+                        (j.customer && String(j.customer).toLowerCase().includes(q)) ||
+                        (j.service && String(j.service).toLowerCase().includes(q)) ||
+                        (j.phone && String(j.phone).includes(q)) ||
+                        (ticketsByJob[j.id] || []).some(t => (t.ticket_no && String(t.ticket_no).toLowerCase().includes(q)) || (t.receipt_no && String(t.receipt_no).toLowerCase().includes(q)))
+                    );
+                }
                 tableJobs = this.sortJobsDescending(tableJobs);
 
                 const tktTableBody = document.getElementById('tickets-jobs-table-body');
@@ -13934,7 +13967,7 @@ const app = {
                     if (tableJobs.length === 0) {
                         tktTableBody.innerHTML = `
                             <tr>
-                                <td colspan="10" class="px-5 py-10 text-center text-muted-foreground">
+                                <td colspan="11" class="px-5 py-10 text-center text-muted-foreground">
                                     <div class="max-w-md mx-auto space-y-2">
                                         <i class="ph ph-receipt text-3xl text-emerald-500/50"></i>
                                         <div class="text-sm font-semibold text-foreground">ไม่มีรายการงานในคิว Step 2 ตามเงื่อนไข</div>
@@ -14003,6 +14036,9 @@ const app = {
                                     <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
                                         ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
+                                    <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
+                                        ${j.ticket_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${j.ticket_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                    </td>
                                     <td class="px-2.5 py-2.5 whitespace-nowrap">
                                         ${(j.plan_date || j.date) ? `
                                             <div class="inline-flex items-center gap-1 font-mono text-[11px] text-foreground font-semibold whitespace-nowrap">
@@ -14046,10 +14082,15 @@ const app = {
                 let pendingJobs = this.sortJobsDescending(allJobs);
                 if (q) {
                     pendingJobs = pendingJobs.filter(j => 
-                        (j.id && j.id.toLowerCase().includes(q)) ||
-                        (j.customer && j.customer.toLowerCase().includes(q)) ||
-                        (j.service && j.service.toLowerCase().includes(q)) ||
-                        (j.phone && j.phone.includes(q))
+                        (j.id && String(j.id).toLowerCase().includes(q)) ||
+                        (j.job_no && String(j.job_no).toLowerCase().includes(q)) ||
+                        (j.external_ref_id && String(j.external_ref_id).toLowerCase().includes(q)) ||
+                        (j.booking_no && String(j.booking_no).toLowerCase().includes(q)) ||
+                        (j.ticket_no && String(j.ticket_no).toLowerCase().includes(q)) ||
+                        (j.customer && String(j.customer).toLowerCase().includes(q)) ||
+                        (j.service && String(j.service).toLowerCase().includes(q)) ||
+                        (j.phone && String(j.phone).includes(q)) ||
+                        (ticketsByJob[j.id] || []).some(t => (t.ticket_no && String(t.ticket_no).toLowerCase().includes(q)) || (t.receipt_no && String(t.receipt_no).toLowerCase().includes(q)))
                     );
                 }
                 if (sFilter && sFilter !== 'all') {
@@ -14142,6 +14183,7 @@ const app = {
                                     <thead>
                                         <tr class="border-b border-border bg-muted/40 text-muted-foreground font-semibold text-[11px]">
                                             <th class="py-3 px-4 font-mono">JOB ID</th>
+                                            <th class="py-3 px-4 font-mono">เลขที่ Ticket</th>
                                             <th class="py-3 px-4">วันที่รับ Order / เข้า Step 2</th>
                                             <th class="py-3 px-4">ลูกค้า</th>
                                             <th class="py-3 px-4">บริการ / งานติดตั้ง</th>
@@ -14172,6 +14214,9 @@ const app = {
                                                             </span>
                                                         ` : ''}
                                                     </div>
+                                                </td>
+                                                <td class="py-3 px-4 font-mono text-xs whitespace-nowrap">
+                                                    ${job.ticket_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-mono font-semibold tracking-tight whitespace-nowrap shadow-2xs">${job.ticket_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                                                 </td>
                                                 <td class="py-3 px-4">
                                                     <div class="font-mono text-foreground font-medium text-[11px]">${this.formatDateDMY(job.date)}</div>

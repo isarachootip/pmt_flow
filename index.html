@@ -763,7 +763,7 @@
                         <div class="flex flex-wrap items-center gap-2.5">
                             <div class="relative w-64 sm:w-72">
                                 <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
-                                <input type="text" id="jobs-table-search" oninput="app.filterJobsTable()" placeholder="ค้นหาเลขที่งาน, Ref ID, Booking, วันนัด, ลูกค้า..." class="w-full bg-card border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-brand-500 shadow-2xs">
+                                <input type="text" id="jobs-table-search" oninput="app.filterJobsTable()" placeholder="ค้นหาเลขที่งาน, Ref ID, Booking, Ticket No, วันนัด, ลูกค้า..." class="w-full bg-card border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-brand-500 shadow-2xs">
                             </div>
 
                             <button id="btn-dev-reset-draft" onclick="app.resetAllJobStatuses()" class="btn-artifact-secondary isara-only text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer" title="ถอยสถานะทุกโครงการกลับเป็น Survey (25% พร้อมทำแบบ/BOQ) [เฉพาะ Isara Chootip]">
@@ -1031,6 +1031,7 @@
                                         <th class="px-3.5 py-3 whitespace-nowrap">เลขที่งาน</th>
                                         <th class="px-3 py-3 whitespace-nowrap">เลขที่อ้างอิง (Ref ID)</th>
                                         <th class="px-3 py-3 whitespace-nowrap">เลขที่ Booking</th>
+                                        <th class="px-3 py-3 whitespace-nowrap">เลขที่ Ticket</th>
                                         <th class="px-3 py-3 whitespace-nowrap">
                                             <div class="flex items-center gap-2">
                                                 <span>กำหนดวันนัด</span>
@@ -1751,6 +1752,7 @@
                                         <th class="px-3 py-2.5 whitespace-nowrap">เลขที่งาน</th>
                                         <th class="px-2.5 py-2.5 whitespace-nowrap">เลขที่อ้างอิง (Ref ID)</th>
                                         <th class="px-2.5 py-2.5 whitespace-nowrap">เลขที่ Booking</th>
+                                        <th class="px-2.5 py-2.5 whitespace-nowrap">เลขที่ Ticket</th>
                                         <th class="px-2.5 py-2.5 whitespace-nowrap">กำหนดวันนัด</th>
                                         <th class="px-3 py-2.5 min-w-[125px] max-w-[150px]">ลูกค้า &amp; เบอร์ติดต่อ</th>
                                         <th class="px-2.5 py-2.5 min-w-[115px] max-w-[140px]">ประเภทบริการ</th>
