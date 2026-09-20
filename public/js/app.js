@@ -7995,7 +7995,30 @@ const app = {
 
                 const isQuick = this.isQuickJob(job);
                 const isRenovate = job.job_type === 'renovate' || (!isQuick && job.job_type !== 'ma');
-                const tickets = (DB.tickets || []).filter(t => (t.job_id || t.jobId) === job.id);
+                let tickets = (DB.tickets || []).filter(t => (t.job_id || t.jobId) === job.id);
+                if (tickets.length === 0 && (job.ticket_no || job.receipt_no || job.ticket_id || (job.step_timestamps && (job.step_timestamps.step2_ticket_at || job.step_timestamps.step4_ticket_at)))) {
+                    const tktNo = job.ticket_no || `TKT-202609-${String(job.id).replace(/\D/g, '').slice(-3) || '001'}`;
+                    const rcNo = job.receipt_no || `RC-VFIX-260901-${String(job.id).replace(/\D/g, '').slice(-3) || '001'}`;
+                    const ctrNo = job.contract_no || `CTR-202609-${String(job.id).replace(/\D/g, '').slice(-3) || '001'}`;
+                    tickets = [{
+                        id: job.ticket_id || tktNo,
+                        ticket_no: tktNo,
+                        receipt_no: rcNo,
+                        contract_no: ctrNo,
+                        job_id: job.id,
+                        customer_name: job.customer,
+                        service: job.service,
+                        amount: job.ticket_amount || job.boq_grand_total || 25000,
+                        payment_date: job.payment_date || job.date || '2026-09-08',
+                        payment_method: job.payment_method || 'โอนเงินผ่านธนาคาร (Bank Transfer)',
+                        slip_url: job.slip_url || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80',
+                        slip_name: job.slip_name || 'slip_kbank_transfer_001.jpg',
+                        contract_url: job.contract_url || 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80',
+                        contract_name: job.contract_name || 'contract_service_vfix.pdf',
+                        status: 'VERIFIED',
+                        notes: job.ticket_notes || 'ชำระเงินและแนบหลักฐานเรียบร้อย'
+                    }];
+                }
                 const hasTicket = tickets.length > 0;
                 const boqItems = job.boq_items || [];
                 const grandTotal = job.boq_grand_total || (boqItems.reduce((acc, item) => acc + ((Number(item.qty) || 1) * (Number(item.price) || 0)), 0));
@@ -8354,7 +8377,7 @@ const app = {
                                                 </div>
                                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                     <!-- Slip / Receipt Box -->
-                                                    <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.openTicketSlipLightbox('${t.id}', 'slip')" title="คลิกเพื่อดูใบเสร็จ / สลิปโอนเงิน">
+                                                    <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.openTicketSlipLightbox('${t.id || t.ticket_no}', 'slip')" title="คลิกเพื่อดูใบเสร็จ / สลิปโอนเงิน">
                                                         <img src="${slipImgUrl}" alt="สลิปใบเสร็จ" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                                                         <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-85 group-hover:opacity-95 transition-opacity flex flex-col justify-between p-2.5">
                                                             <div class="flex items-center justify-between">
@@ -8374,7 +8397,7 @@ const app = {
                                                     </div>
 
                                                     <!-- Contract Box -->
-                                                    <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.openTicketSlipLightbox('${t.id}', 'contract')" title="คลิกเพื่อดูสัญญาการทำงาน">
+                                                    <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.openTicketSlipLightbox('${t.id || t.ticket_no}', 'contract')" title="คลิกเพื่อดูสัญญาการทำงาน">
                                                         <img src="${contractImgUrl}" alt="สัญญาการทำงาน" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                                                         <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-85 group-hover:opacity-95 transition-opacity flex flex-col justify-between p-2.5">
                                                             <div class="flex items-center justify-between">
@@ -14666,17 +14689,29 @@ const app = {
                     this.initDatePicker(dateInput, { defaultDate: todayDMY });
                 }
 
-                // Slip preview reset
+                // Slip preview initialize & display
                 const previewContainer = document.getElementById('ticket-slip-preview-container');
-                if (previewContainer) previewContainer.classList.add('hidden');
-                this.state.newTicketSlipPreview = 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80';
-                this.state.newTicketSlipName = 'slip_sample_transfer.jpg';
+                const previewImg = document.getElementById('ticket-slip-preview-img');
+                const previewName = document.getElementById('ticket-slip-preview-name');
+                this.state.newTicketSlipPreview = (targetJob && targetJob.slip_url) ? targetJob.slip_url : 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80';
+                this.state.newTicketSlipName = (targetJob && targetJob.slip_name) ? targetJob.slip_name : 'slip_sample_transfer.jpg';
+                if (previewContainer && previewImg) {
+                    previewImg.src = this.state.newTicketSlipPreview;
+                    if (previewName) previewName.innerText = `📎 ${this.state.newTicketSlipName}`;
+                    previewContainer.classList.remove('hidden');
+                }
 
-                // Contract preview reset
+                // Contract preview initialize & display
                 const ctrPreviewContainer = document.getElementById('ticket-contract-preview-container');
-                if (ctrPreviewContainer) ctrPreviewContainer.classList.add('hidden');
-                this.state.newTicketContractPreview = 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80';
-                this.state.newTicketContractName = 'contract_service_vfix.pdf';
+                const ctrPreviewImg = document.getElementById('ticket-contract-preview-img');
+                const ctrPreviewName = document.getElementById('ticket-contract-preview-name');
+                this.state.newTicketContractPreview = (targetJob && targetJob.contract_url) ? targetJob.contract_url : 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80';
+                this.state.newTicketContractName = (targetJob && targetJob.contract_name) ? targetJob.contract_name : 'contract_service_vfix.pdf';
+                if (ctrPreviewContainer && ctrPreviewImg) {
+                    ctrPreviewImg.src = this.state.newTicketContractPreview;
+                    if (ctrPreviewName) ctrPreviewName.innerText = `📄 ${this.state.newTicketContractName}`;
+                    ctrPreviewContainer.classList.remove('hidden');
+                }
 
                 const notesInput = document.getElementById('create-ticket-notes');
                 if (notesInput) notesInput.value = '';
@@ -14695,8 +14730,31 @@ const app = {
                     if (infoEl) {
                         const ts = job.step_timestamps || {};
                         const enterIso = ts.step2_ticket_at || ts.step4_ticket_at || ts.step1_accepted_at || ts.step1_order_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
-                        const enterStr = enterIso ? this.formatDateTimeDMY(enterIso, false, true) : '-';
                         infoEl.innerHTML = `<span class="inline-flex items-center gap-1 text-[11px] text-muted-foreground"><i class="ph ph-clock text-emerald-600 dark:text-emerald-400"></i> วันเวลาที่เข้าสู่ Step 2: <strong class="text-foreground">${enterStr}</strong></span>`;
+                    }
+                    if (job.slip_url) {
+                        this.state.newTicketSlipPreview = job.slip_url;
+                        this.state.newTicketSlipName = job.slip_name || 'slip_vfix.jpg';
+                        const previewContainer = document.getElementById('ticket-slip-preview-container');
+                        const previewImg = document.getElementById('ticket-slip-preview-img');
+                        const previewName = document.getElementById('ticket-slip-preview-name');
+                        if (previewContainer && previewImg) {
+                            previewImg.src = job.slip_url;
+                            if (previewName) previewName.innerText = `📎 ${this.state.newTicketSlipName}`;
+                            previewContainer.classList.remove('hidden');
+                        }
+                    }
+                    if (job.contract_url) {
+                        this.state.newTicketContractPreview = job.contract_url;
+                        this.state.newTicketContractName = job.contract_name || 'contract_vfix.pdf';
+                        const ctrPreviewContainer = document.getElementById('ticket-contract-preview-container');
+                        const ctrPreviewImg = document.getElementById('ticket-contract-preview-img');
+                        const ctrPreviewName = document.getElementById('ticket-contract-preview-name');
+                        if (ctrPreviewContainer && ctrPreviewImg) {
+                            ctrPreviewImg.src = job.contract_url;
+                            if (ctrPreviewName) ctrPreviewName.innerText = `📄 ${this.state.newTicketContractName}`;
+                            ctrPreviewContainer.classList.remove('hidden');
+                        }
                     }
                 }
             },
@@ -14890,9 +14948,35 @@ const app = {
             },
 
             openTicketSlipLightbox(ticketId, defaultTab = 'slip') {
-                const t = (DB.tickets || []).find(x => x.id === ticketId);
+                let t = (DB.tickets || []).find(x => x.id === ticketId || x.ticket_no === ticketId || (x.job_id || x.jobId) === ticketId);
+                if (!t) {
+                    const job = (DB.jobs || []).find(j => j.id === ticketId || j.job_no === ticketId || j.ticket_id === ticketId || j.ticket_no === ticketId);
+                    if (job) {
+                        const tktNo = job.ticket_no || `TKT-202609-${String(job.id).replace(/\D/g, '').slice(-3) || '001'}`;
+                        const rcNo = job.receipt_no || `RC-VFIX-260901-${String(job.id).replace(/\D/g, '').slice(-3) || '001'}`;
+                        const ctrNo = job.contract_no || `CTR-202609-${String(job.id).replace(/\D/g, '').slice(-3) || '001'}`;
+                        t = {
+                            id: job.ticket_id || tktNo,
+                            ticket_no: tktNo,
+                            receipt_no: rcNo,
+                            contract_no: ctrNo,
+                            job_id: job.id,
+                            customer_name: job.customer,
+                            service: job.service,
+                            amount: job.ticket_amount || job.boq_grand_total || 25000,
+                            payment_date: job.payment_date || job.date || '2026-09-08',
+                            payment_method: job.payment_method || 'โอนเงินผ่านธนาคาร (Bank Transfer)',
+                            slip_url: job.slip_url || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80',
+                            slip_name: job.slip_name || 'slip_kbank_transfer_001.jpg',
+                            contract_url: job.contract_url || 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80',
+                            contract_name: job.contract_name || 'contract_service_vfix.pdf',
+                            status: 'VERIFIED',
+                            notes: job.ticket_notes || 'ชำระเงินและแนบหลักฐานเรียบร้อย'
+                        };
+                    }
+                }
                 if (!t) return;
-                this.state.currentLightboxTicketId = ticketId;
+                this.state.currentLightboxTicketId = t.id || ticketId;
 
                 const slipImg = document.getElementById('receipt-lightbox-img');
                 const slipName = document.getElementById('receipt-lightbox-slip-name');
