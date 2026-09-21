@@ -3820,17 +3820,29 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
             if (formattedQuestions.length > 0)
                 targetJob.qc_subtasks = formattedQuestions;
         }
-        // Forward to external STK Webhook if configured
+        // Forward to external Webhook (e.g. STK / vwds.online) if configured
         if (process.env.STK_OUTBOUND_WEBHOOK_URL) {
             try {
-                await fetch(process.env.STK_OUTBOUND_WEBHOOK_URL, {
+                const webhookHeaders = {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'PMT-Flow-Outbound-Webhook/1.0'
+                };
+                if (process.env.STK_OUTBOUND_WEBHOOK_API_KEY) {
+                    webhookHeaders['x-api-key'] = process.env.STK_OUTBOUND_WEBHOOK_API_KEY;
+                }
+                if (process.env.STK_OUTBOUND_WEBHOOK_TOKEN) {
+                    webhookHeaders['Authorization'] = `Bearer ${process.env.STK_OUTBOUND_WEBHOOK_TOKEN}`;
+                }
+                const webhookRes = await fetch(process.env.STK_OUTBOUND_WEBHOOK_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: webhookHeaders,
                     body: JSON.stringify(formattedOutboundPayload)
                 });
+                const statusOk = webhookRes.ok;
+                console.log(`[OUTBOUND WEBHOOK] Dispatched QC payload to ${process.env.STK_OUTBOUND_WEBHOOK_URL} | Status: ${webhookRes.status} (${statusOk ? 'SUCCESS' : 'FAILED'})`);
             }
             catch (webhookErr) {
-                console.warn('[STK WEBHOOK] Failed to forward payload to STK webhook endpoint:', webhookErr.message);
+                console.warn('[OUTBOUND WEBHOOK] Failed to dispatch payload to external webhook endpoint:', webhookErr.message);
             }
         }
         return res.status(200).json({
