@@ -5272,6 +5272,27 @@
                                 </div>
                             </details>
 
+                            <!-- Q8C: QC Multi-Field Search & Filter System -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q8C:</span>
+                                        <span>หน้าจอคิวงานตรวจรับรองคุณภาพ QC (Step 5) สามารถค้นหาและกรองข้อมูลด้วยอะไรได้บ้าง และมีระบบช่วยเหลือการทำงานอย่างไร?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-2">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> หน้าจอ QC มีแถบค้นหาและตัวกรองข้อมูลอเนกประสงค์ (QC Search & Multi-Field Filter Toolbar) ที่ออกแบบตามพฤติกรรมการทำงานของทีม QC โดยรองรับการค้นหาและกรองดังนี้:</p>
+                                    <ul class="list-disc list-inside space-y-1.5 pl-1 text-[11px]">
+                                        <li><strong>ช่องค้นหาคำสำคัญอเนกประสงค์ (Global Search):</strong> พิมพ์คำค้นหาแบบ Real-time โดยค้นหาครอบคลุมทั้ง <em>เลขที่งาน (Job ID), เลขที่อ้างอิง Ref ID / STK Ref, เลขที่ Booking, เลขที่ Ticket, ชื่อ-นามสกุลลูกค้า, เบอร์โทรศัพท์ลูกค้า (พิมพ์ 3-4 ตัวท้ายก็ค้นเจอ), ชื่อช่าง / หัวหน้าช่าง QC, ประเภทบริการ, และหมายเหตุส่งแก้ไข</em></li>
+                                        <li><strong>ตัวกรองสถานะ QC (QC Status Filter):</strong> กรองงานตามสถานะ <em>รอตรวจ (Pending / Draft), ผ่านเกณฑ์แล้ว (Passed), หรือ มีประวัติส่งแก้ไข (Rework / Defect)</em></li>
+                                        <li><strong>ตัวกรองรอบการตรวจ (Inspection Round Filter):</strong> แยกงานตรวจรอบแรก <em>(Round 1 - First-time Pass)</em> ออกจากงานที่เคยส่งแก้ไข <em>(Round 2+ ล็อก 1.0 คะแนน)</em> ได้ทันที</li>
+                                        <li><strong>ตัวกรองช่วงวันที่ (Date Range Filter):</strong> เลือกช่วงวันที่นัดหมายหรือวันส่งมอบงานผ่าน Flatpickr ตามมาตรฐานรูปแบบวันที่ <code>DD/MM/YYYY</code></li>
+                                        <li><strong>ปุ่มล้างคำค้นหา [X] & ปุ่มรีเซ็ตทั้งหมด:</strong> สามารถกดเคลียร์คำค้นหาหรือรีเซ็ตเงื่อนไขตัวกรองทั้งหมดกลับสู่ค่าเริ่มต้นได้ในคลิกเดียว พร้อมป้ายแสดงจำนวนรายการที่พบแบบเรียลไทม์</li>
+                                    </ul>
+                                </div>
+                            </details>
+
                             <!-- Q9: Step 1 BOQ Required Before Moving to Step 3 -->
                             <details class="p-4 rounded-xl bg-muted/30 border border-border group">
                                 <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">

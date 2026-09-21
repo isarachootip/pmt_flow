@@ -3023,7 +3023,13 @@ const app = {
                     }
                     this.renderGantt();
                 }
-                if(view === 'qc') this.renderQC();
+                if(view === 'qc') {
+                    this.renderQC();
+                    setTimeout(() => {
+                        const pQc = document.getElementById('page-qc');
+                        if (pQc) this.initAllDatePickers(pQc);
+                    }, 50);
+                }
                 if(view === 'csat' || view === 'completed-jobs') this.renderCompletedJobsSTK();
                 if(view === 'ma-contracts') this.renderMAContracts();
                 if(view === 'report') this.renderReportPage();
