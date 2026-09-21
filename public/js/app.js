@@ -969,6 +969,14 @@ const app = {
                 this.openStepAuditReportModal(jobs[nextIndex].id, 'detail');
             },
 
+            openQCFromAudit(jobId) {
+                this.hideModal('modal-step-audit-report');
+                this.navigate('qc');
+                setTimeout(() => {
+                    this.openQCDetailModal(jobId);
+                }, 150);
+            },
+
             filterAuditAllTable(keyword) {
                 const q = (keyword || '').toLowerCase().trim();
                 const rows = document.querySelectorAll('.audit-all-row');
@@ -1152,10 +1160,15 @@ const app = {
                                             ${step1Formatted}
                                         </td>
                                         <td class="px-3.5 py-3 text-center" onclick="event.stopPropagation()">
-                                            <button type="button" onclick="app.openStepAuditReportModal('${j.id}', 'detail')" class="px-3 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 font-semibold text-xs flex items-center gap-1.5 mx-auto transition cursor-pointer shadow-2xs" title="ดูประวัติเวลาบันทึกทั้ง 6 ขั้นตอน">
-                                                <i class="ph ph-clock-counter-clockwise"></i>
-                                                <span>เจาะลึก Audit</span>
-                                            </button>
+                                            <div class="flex items-center justify-center gap-1.5">
+                                                <button type="button" onclick="app.openStepAuditReportModal('${j.id}', 'detail')" class="px-2.5 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 font-semibold text-xs flex items-center gap-1 transition cursor-pointer shadow-2xs" title="ดูประวัติเวลาบันทึกทั้ง 6 ขั้นตอน">
+                                                    <i class="ph ph-clock-counter-clockwise"></i>
+                                                    <span>เจาะลึก Audit</span>
+                                                </button>
+                                                <button type="button" onclick="app.openJobDetailModal('${j.id}')" class="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold flex items-center gap-1 transition cursor-pointer shadow-2xs" title="ดูข้อมูลงาน & ไฟล์รูปภาพที่บันทึกไว้">
+                                                    <i class="ph ph-images text-xs"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                     `;
@@ -1176,6 +1189,7 @@ const app = {
 
                 const job = data.job;
                 const steps = data.steps;
+                const isQuick = this.isQuickJob(job);
                 const latestActiveStep = data.latestActiveStep || steps[0];
                 const jobs = DB.jobs || [];
                 const totalJobs = jobs.length;
@@ -1268,6 +1282,21 @@ const app = {
                                     <span class="text-muted-foreground font-mono text-[10px]">(${this.formatTimestamp(jobUpdatedAt, false)})</span>
                                 </div>
                             </div>
+                            <!-- Direct Action Shortcuts: View Job Details, Photos, Daily Logs & QC -->
+                            <div class="pt-2 border-t border-border/60 flex flex-wrap items-center gap-2">
+                                <button type="button" onclick="app.openJobDetailModal('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 shadow-2xs cursor-pointer transition hover:scale-102" title="เปิดดูข้อมูลงาน แบบแปลน สลิป และรูปภาพสำรวจหน้างานทั้งหมด">
+                                    <i class="ph ph-images text-sm"></i>
+                                    <span>ดูข้อมูลงาน & รูปภาพ / ไฟล์แนบ</span>
+                                </button>
+                                <button type="button" onclick="app.openDailyWorkLogModalForJob('${job.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 border border-emerald-300 flex items-center gap-1.5 shadow-2xs cursor-pointer transition" title="เปิดดูบันทึกงานช่างประจำวันและรูปถ่ายหน้างาน 5 ช่อง">
+                                    <i class="ph ph-notebook text-sm"></i>
+                                    <span>บันทึกช่างประจำวัน (5 รูป)</span>
+                                </button>
+                                <button type="button" onclick="app.openQCFromAudit('${job.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border border-amber-300 flex items-center gap-1.5 shadow-2xs cursor-pointer transition" title="เปิดระบบตรวจรับรองคุณภาพ QC">
+                                    <i class="ph ph-seal-check text-sm"></i>
+                                    <span>ตรวจรับรอง QC (${isQuick ? 'Online' : 'On-site'})</span>
+                                </button>
+                            </div>
                         </div>
                         <div class="flex items-center gap-3 shrink-0">
                             <div class="text-right">
@@ -1301,6 +1330,17 @@ const app = {
                                     const statusPill = isDone
                                         ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/25 inline-flex items-center gap-1"><i class="ph ph-check-circle-bold"></i> บันทึกแล้ว</span>'
                                         : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 border border-amber-500/25 inline-flex items-center gap-1"><i class="ph ph-hourglass-bold"></i> รอดำเนินการ</span>';
+
+                                    let stepActionBtn = '';
+                                    if (s.stepNumber === 1) {
+                                        stepActionBtn = `<div class="mt-1.5"><button type="button" onclick="app.openJobDetailModal('${job.id}')" class="text-indigo-600 hover:text-indigo-800 hover:underline font-semibold text-[11px] inline-flex items-center gap-1 cursor-pointer" title="ดูข้อมูลคำสั่งซื้อและรูปถ่ายสำรวจหน้างาน INT"><i class="ph ph-images"></i> ดูภาพสำรวจ & ข้อมูล INT</button></div>`;
+                                    } else if (s.stepNumber === 2 && s.isDone) {
+                                        stepActionBtn = `<div class="mt-1.5"><button type="button" onclick="app.openJobDetailModal('${job.id}')" class="text-emerald-600 hover:text-emerald-800 hover:underline font-semibold text-[11px] inline-flex items-center gap-1 cursor-pointer" title="ดูสลิปใบเสร็จและสัญญา"><i class="ph ph-receipt"></i> ดู Ticket & สลิปโอนเงิน</button></div>`;
+                                    } else if (s.stepNumber === 4 && s.isDone && !isQuick) {
+                                        stepActionBtn = `<div class="mt-1.5"><button type="button" onclick="app.openDailyWorkLogModalForJob('${job.id}')" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold text-[11px] inline-flex items-center gap-1 cursor-pointer" title="ดูบันทึกงานช่างประจำวันและรูปถ่าย 5 รูป"><i class="ph ph-camera"></i> ดูบันทึกช่าง & ภาพหน้างาน 5 รูป</button></div>`;
+                                    } else if (s.stepNumber === 5) {
+                                        stepActionBtn = `<div class="mt-1.5"><button type="button" onclick="app.openQCFromAudit('${job.id}')" class="text-amber-700 hover:text-amber-900 hover:underline font-semibold text-[11px] inline-flex items-center gap-1 cursor-pointer" title="เปิดหน้าตรวจรับรองคุณภาพ QC"><i class="ph ph-seal-check"></i> ดูผลตรวจ QC / ตรวจรับรอง</button></div>`;
+                                    }
 
                                     return `
                                     <tr class="hover:bg-muted/30 transition ${isDone ? '' : 'opacity-70'} ${isLatestActive ? 'bg-amber-500/[0.04]' : ''}">
@@ -1349,6 +1389,7 @@ const app = {
                                         <td class="px-4 py-3.5">
                                             <div class="font-semibold text-foreground text-xs">${s.reference}</div>
                                             <div class="text-[10px] text-muted-foreground line-clamp-1" title="${s.detail}">${s.detail}</div>
+                                            ${stepActionBtn}
                                         </td>
                                     </tr>
                                     `;
@@ -9438,6 +9479,10 @@ const app = {
                 if (timeEl) timeEl.innerText = time || 'เมื่อสักครู่';
 
                 this.showModal('modal-photo-lightbox');
+            },
+
+            showPhotoLightbox(imgUrl, title, badge, desc, time) {
+                this.showLightbox(imgUrl, title, badge, desc, time);
             },
 
             viewQCPhotos(id) {

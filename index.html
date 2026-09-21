@@ -6566,14 +6566,14 @@
     </div>
 
     <!-- MODAL: TASK / JOB DETAILS QUICK PREVIEW (POP UP ข้อมูลที่เคยใส่ไปแล้ว) -->
-    <div id="modal-job-preview-detail" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-5 overflow-y-auto" onclick="if(event.target === this) app.hideModal('modal-job-preview-detail')">
+    <div id="modal-job-preview-detail" class="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-start justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-5 overflow-y-auto" style="z-index: 60 !important;" onclick="if(event.target === this) app.hideModal('modal-job-preview-detail')">
         <div class="artifact-card rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border my-auto" id="modal-job-preview-detail-content">
             <!-- Populated dynamically by app.openJobDetailModal(jobId) -->
         </div>
     </div>
 
     <!-- MODAL: QC JOB DETAIL & SUB-TASK EVALUATION WITH SCORING AND PHOTOS -->
-    <div id="modal-qc-job-detail" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-5 overflow-y-auto" onclick="if(event.target === this) app.hideModal('modal-qc-job-detail')">
+    <div id="modal-qc-job-detail" class="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-start justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-5 overflow-y-auto" style="z-index: 60 !important;" onclick="if(event.target === this) app.hideModal('modal-qc-job-detail')">
         <div class="artifact-card rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border my-auto" id="modal-qc-job-detail-content">
             <!-- Modal Header -->
             <div class="p-5 border-b border-border flex justify-between items-start bg-muted/40 shrink-0">
@@ -10095,7 +10095,7 @@
     <!-- ============================================================================= -->
     <!-- MODAL: DAILY TECHNICIAN WORK LOG (บันทึกงานช่างประจำวัน เชื่อมโยง GANTT)       -->
     <!-- ============================================================================= -->
-    <div id="modal-daily-work-log" onclick="if(event.target === this) app.closeDailyWorkLogModal()" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-4">
+    <div id="modal-daily-work-log" onclick="if(event.target === this) app.closeDailyWorkLogModal()" class="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-4" style="z-index: 60 !important;">
         <div class="artifact-card rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-daily-work-log-content">
             <!-- Modal Header -->
             <div class="p-4 sm:p-5 border-b border-border flex items-center justify-between gap-4 bg-muted/20 shrink-0">
