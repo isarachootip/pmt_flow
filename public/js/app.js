@@ -3788,19 +3788,20 @@ const app = {
                     const isTop3 = idx < 3;
                     return `
                     <tr class="hover:bg-muted/40 transition-colors cursor-pointer ${isTop3 ? 'bg-rose-500/[0.02]' : ''}" onclick="app.navigate('job-detail', '${j.id}')">
-                        <td class="py-3 font-mono font-semibold text-brand-500">
+                        <td class="py-3 font-mono whitespace-nowrap">
                             <div class="flex items-center gap-1.5 flex-wrap">
-                                <span>${j.id}</span>
+                                <span class="font-mono font-black text-sm sm:text-base text-gray-950">${j.id}</span>
+                                ${j.booking_no ? `<span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-black bg-purple-50 text-gray-950 border border-purple-300 shadow-2xs" title="เลขที่ Booking: ${j.booking_no}">BKG: ${j.booking_no}</span>` : ''}
                                 ${isTop3 ? `<span class="badge-new-item" title="3 รายการล่าสุดที่รับเข้า (NEW!)"><i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!</span>` : ''}
                             </div>
                         </td>
-                        <td class="py-3 font-medium text-foreground">
+                        <td class="py-3 font-black text-sm sm:text-base text-gray-950">
                             <div class="flex items-center gap-1.5">
                                 <span>${j.customer}</span>
                                 ${isTop3 ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" title="รายการใหม่ล่าสุด"></span>` : ''}
                             </div>
                         </td>
-                        <td class="py-3 text-muted-foreground">${j.service}</td>
+                        <td class="py-3 text-xs sm:text-sm font-bold text-gray-800">${j.service}</td>
                         <td class="py-3">${this.getStatusHtml(j.status)}</td>
                         <td class="py-3 text-right">
                             <div class="inline-flex items-center gap-2">
@@ -4684,7 +4685,7 @@ const app = {
                     <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTop3New ? 'bg-indigo-500/[0.02]' : ''}" onclick="app.openUnifiedOrderStudio('${safeId}')" title="คลิกเพื่อเปิด Studio จัดการ Order, Design & BOQ (${displayId})">
                         <td class="px-2.5 py-2 font-mono whitespace-nowrap">
                             <div class="flex items-center gap-1 flex-wrap">
-                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${safeId}')" class="font-mono font-extrabold text-xs sm:text-sm text-foreground hover:text-brand-600 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${displayId}">
+                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${safeId}')" class="font-mono font-black text-sm sm:text-base text-gray-950 hover:text-brand-600 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${displayId}">
                                     <span>${displayId}</span>
                                     <i class="ph ph-arrow-square-out text-xs text-muted-foreground"></i>
                                 </button>
@@ -4696,13 +4697,13 @@ const app = {
                             </div>
                         </td>
                         <td class="px-2 py-2 font-mono whitespace-nowrap">
-                            ${j.external_ref_id ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] sm:text-xs font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground text-xs">-</span>'}
+                            ${j.external_ref_id ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/60 text-gray-900 border border-border text-xs sm:text-sm font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-muted-foreground text-xs">-</span>'}
                         </td>
                         <td class="px-2 py-2 font-mono whitespace-nowrap">
-                            ${j.booking_no ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] sm:text-xs font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground text-xs">-</span>'}
+                            ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-gray-950 border border-purple-300 text-xs sm:text-sm font-mono font-black tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground text-xs">-</span>'}
                         </td>
                         <td class="px-2 py-2 font-mono whitespace-nowrap">
-                            ${j.ticket_no ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] sm:text-xs font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.ticket_no}</span>` : '<span class="text-muted-foreground text-xs">-</span>'}
+                            ${j.ticket_no ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/60 text-gray-900 border border-border text-xs sm:text-sm font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.ticket_no}</span>` : '<span class="text-muted-foreground text-xs">-</span>'}
                         </td>
                         <td class="px-2 py-2 whitespace-nowrap">
                             ${(j.plan_date || j.date) ? `
@@ -4713,11 +4714,11 @@ const app = {
                             ` : '<span class="text-muted-foreground text-xs">-</span>'}
                         </td>
                         <td class="px-2 py-2 min-w-[120px] max-w-[160px]">
-                            <div class="text-foreground font-bold text-xs sm:text-sm truncate group-hover:text-indigo-600 transition" title="${j.customer || ''}">
+                            <div class="text-gray-950 font-black text-sm sm:text-base truncate group-hover:text-indigo-600 transition" title="${j.customer || ''}">
                                 <span class="truncate">${j.customer}</span>
                             </div>
-                            <div class="text-[11px] text-muted-foreground font-mono flex items-center gap-1 mt-0.5 truncate">
-                                <i class="ph ph-phone text-[10px] shrink-0"></i>
+                            <div class="text-xs text-gray-800 font-mono font-semibold flex items-center gap-1 mt-0.5 truncate">
+                                <i class="ph ph-phone text-xs text-emerald-600 shrink-0"></i>
                                 <span class="truncate">${j.phone}</span>
                             </div>
                         </td>
@@ -5022,23 +5023,11 @@ const app = {
 
                 // Header info
                 const titleEl = document.getElementById('unified-modal-job-id');
-                if (titleEl) {
-                    if (isQuick) {
-                        titleEl.innerHTML = `${job.job_no || job.id}`;
-                    } else {
-                        const isVFix = (job.booking_no && job.booking_no.startsWith('VFIX')) || (job.id && job.id.startsWith('VFIX')) || (job.job_no && job.job_no.startsWith('VFIX'));
-                        let extraTags = '';
-                        if (job.external_ref_id) {
-                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-muted text-foreground border border-border font-sans font-mono whitespace-nowrap"><i class="ph ph-tag"></i> Ref: ${job.external_ref_id}</span>`;
-                        }
-                        if (job.booking_no) {
-                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-foreground border border-purple-300 font-sans font-mono whitespace-nowrap shadow-2xs"><i class="ph ph-bookmark-simple text-purple-600"></i> Booking: ${job.booking_no}</span>`;
-                        } else if (isVFix) {
-                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-foreground border border-purple-300 font-sans whitespace-nowrap shadow-2xs"><i class="ph ph-wrench text-purple-600"></i> vFIX: ${job.id}</span>`;
-                        }
-                        titleEl.innerHTML = `${job.job_no || job.id}${extraTags}`;
-                    }
-                }
+                if (titleEl) titleEl.innerText = job.job_no || job.id;
+                const bookingEl = document.getElementById('unified-modal-booking-no');
+                const bookingCont = document.getElementById('unified-modal-booking-container');
+                if (bookingEl) bookingEl.innerText = job.booking_no || '-';
+                if (bookingCont) bookingCont.style.display = job.booking_no ? 'inline-flex' : 'none';
                 const custEl = document.getElementById('unified-modal-customer');
                 if (custEl) custEl.innerText = job.customer || 'คุณลูกค้า';
 
@@ -5463,23 +5452,11 @@ const app = {
                     this.scrollUnifiedStudioTo('intake');
                 }
                 const titleEl = document.getElementById('unified-modal-job-id');
-                if (titleEl) {
-                    if (isQuick) {
-                        titleEl.innerHTML = `${job.job_no || job.id}`;
-                    } else {
-                        const isVFix = (job.booking_no && job.booking_no.startsWith('VFIX')) || (job.id && job.id.startsWith('VFIX')) || (job.job_no && job.job_no.startsWith('VFIX'));
-                        let extraTags = '';
-                        if (job.external_ref_id) {
-                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-muted text-foreground border border-border font-sans font-mono whitespace-nowrap"><i class="ph ph-tag"></i> Ref: ${job.external_ref_id}</span>`;
-                        }
-                        if (job.booking_no) {
-                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-foreground border border-purple-300 font-sans font-mono whitespace-nowrap shadow-2xs"><i class="ph ph-bookmark-simple text-purple-600"></i> Booking: ${job.booking_no}</span>`;
-                        } else if (isVFix) {
-                            extraTags += ` <span class="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-foreground border border-purple-300 font-sans whitespace-nowrap shadow-2xs"><i class="ph ph-wrench text-purple-600"></i> vFIX: ${job.id}</span>`;
-                        }
-                        titleEl.innerHTML = `${job.job_no || job.id}${extraTags}`;
-                    }
-                }
+                if (titleEl) titleEl.innerText = job.job_no || job.id;
+                const bookingEl = document.getElementById('unified-modal-booking-no');
+                const bookingCont = document.getElementById('unified-modal-booking-container');
+                if (bookingEl) bookingEl.innerText = job.booking_no || '-';
+                if (bookingCont) bookingCont.style.display = job.booking_no ? 'inline-flex' : 'none';
                 this.applyUnifiedJobTypeUI(isQuick);
                 this.updateUnifiedStudioTabs();
                 this.updateUnifiedStudioIndicators();
@@ -8346,70 +8323,90 @@ const app = {
 
                 modalContent.innerHTML = `
                     <!-- Modal Header -->
-                    <div class="p-5 border-b border-border flex justify-between items-start bg-muted/30 shrink-0">
-                        <div class="space-y-1.5">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-brand-500/10 text-brand-600 border border-brand-500/20 inline-flex items-center gap-1.5">
-                                    <i class="ph ph-hash"></i> ${job.job_no || job.id}
-                                    <button type="button" onclick="event.stopPropagation(); navigator.clipboard.writeText('${job.job_no || job.id}'); app.showToast('คัดลอกรหัสงานเรียบร้อย');" class="text-muted-foreground hover:text-foreground cursor-pointer" title="คัดลอกรหัสงาน">
+                    <div class="p-5 border-b border-border flex justify-between items-start bg-muted/40 shrink-0">
+                        <div class="space-y-2 w-full pr-3">
+                            <div class="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+                                <!-- Order No (เลขที่ Order) -->
+                                <span class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-950 border border-gray-300 font-mono text-xs sm:text-sm font-black inline-flex items-center gap-1.5 shadow-2xs" title="เลขที่ Order">
+                                    <i class="ph ph-receipt text-sm text-gray-700"></i>
+                                    <span>เลขที่ Order:</span>
+                                    <strong class="text-black font-black font-mono">${job.job_no || job.id}</strong>
+                                    <button type="button" onclick="event.stopPropagation(); navigator.clipboard.writeText('${job.job_no || job.id}'); app.showToast('คัดลอกรหัส Order เรียบร้อย');" class="text-gray-500 hover:text-black cursor-pointer ml-0.5" title="คัดลอกรหัสงาน">
                                         <i class="ph ph-copy text-xs"></i>
                                     </button>
                                 </span>
-                                ${job.external_ref_id ? `
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-muted text-foreground border border-border inline-flex items-center gap-1" title="เลขที่อ้างอิง (Ref ID)">
-                                        <i class="ph ph-tag text-[10px] text-muted-foreground"></i> Ref: ${job.external_ref_id}
+
+                                <!-- Booking No (เลขที่ Booking) -->
+                                ${job.booking_no ? `
+                                    <span class="px-2.5 py-1 rounded-lg bg-purple-50 text-gray-950 border border-purple-300 font-mono text-xs sm:text-sm font-black inline-flex items-center gap-1.5 shadow-2xs" title="เลขที่ Booking">
+                                        <i class="ph ph-bookmark-simple text-sm text-purple-700 font-bold"></i>
+                                        <span>เลขที่ Booking:</span>
+                                        <strong class="text-black font-black font-mono">${job.booking_no}</strong>
                                     </span>
                                 ` : ''}
-                                ${job.booking_no ? `
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-muted text-foreground border border-border inline-flex items-center gap-1" title="เลขที่ Booking">
-                                        <i class="ph ph-bookmark-simple text-[10px] text-muted-foreground"></i> Booking: ${job.booking_no}
+
+                                ${job.external_ref_id ? `
+                                    <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-muted text-gray-900 border border-border inline-flex items-center gap-1" title="เลขที่อ้างอิง (Ref ID)">
+                                        <i class="ph ph-tag text-xs text-muted-foreground"></i> Ref: <strong class="text-gray-950 font-bold">${job.external_ref_id}</strong>
                                     </span>
                                 ` : ''}
                                 ${job.ticket_no ? `
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-muted text-foreground border border-border inline-flex items-center gap-1" title="เลขที่ Ticket (Ticket No)">
-                                        <i class="ph ph-receipt text-[10px] text-muted-foreground"></i> Ticket: ${job.ticket_no}
+                                    <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-muted text-gray-900 border border-border inline-flex items-center gap-1" title="เลขที่ Ticket (Ticket No)">
+                                        <i class="ph ph-receipt text-xs text-muted-foreground"></i> Ticket: <strong class="text-gray-950 font-bold">${job.ticket_no}</strong>
                                     </span>
                                 ` : ''}
                                 ${(job.plan_date || job.date) ? `
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 inline-flex items-center gap-1" title="กำหนดวันนัด (Plan Date)">
-                                        <i class="ph ph-calendar-check text-[10px]"></i> นัด: ${this.formatDateDMY(job.plan_date || job.date)}
+                                    <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-indigo-500/10 text-indigo-800 border border-indigo-500/20 inline-flex items-center gap-1" title="กำหนดวันนัด (Plan Date)">
+                                        <i class="ph ph-calendar-check text-xs"></i> นัด: ${this.formatDateDMY(job.plan_date || job.date)}
                                     </span>
                                 ` : ''}
-                                <span class="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase ${isQuick ? 'bg-amber-500/10 text-amber-700 border border-amber-500/20' : (isRenovate ? 'bg-indigo-500/10 text-indigo-700 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20')}">
+                                <span class="px-2.5 py-1 rounded-md text-xs font-mono font-black uppercase ${isQuick ? 'bg-amber-50 text-amber-800 border border-amber-300' : (isRenovate ? 'bg-indigo-50 text-indigo-800 border border-indigo-300' : 'bg-emerald-50 text-emerald-800 border border-emerald-300')} shadow-2xs">
                                     ${job.job_type || (isQuick ? 'QUICK SERVICE' : 'RENOVATE')}
                                 </span>
                                 ${this.getStatusHtml(job.status)}
                             </div>
-                            <h3 class="font-display font-bold text-lg text-foreground flex items-center gap-2 flex-wrap">
+
+                            <!-- Title -->
+                            <h3 class="font-display font-black text-lg sm:text-xl text-gray-950 flex items-center gap-2 flex-wrap leading-snug">
                                 <span>${job.project_sub_type || job.service || 'ไม่ระบุประเภทงาน'}</span>
-                                ${job.project_sub_type && job.service && job.project_sub_type !== job.service ? `<span class="text-xs px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-700 font-normal">(${job.service})</span>` : ''}
+                                ${job.project_sub_type && job.service && job.project_sub_type !== job.service ? `<span class="text-xs px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">(${job.service})</span>` : ''}
                             </h3>
-                            <div class="text-xs text-muted-foreground flex items-center gap-2.5 flex-wrap">
-                                <span class="inline-flex items-center gap-1">
-                                    <i class="ph ph-user text-brand-600"></i> ลูกค้า: <strong class="text-foreground font-semibold">${job.customer || '-'}</strong>
+
+                            <!-- Customer & Contact Info Bar -->
+                            <div class="mt-2.5 pt-2.5 border-t border-border/80 text-sm sm:text-base text-gray-950 flex items-center gap-3 sm:gap-4 flex-wrap">
+                                <span class="inline-flex items-center gap-1.5">
+                                    <i class="ph ph-user text-brand-600 text-lg sm:text-xl shrink-0"></i>
+                                    <span class="text-gray-600 font-semibold text-xs sm:text-sm">ชื่อลูกค้า:</span>
+                                    <strong class="text-black font-black text-base sm:text-lg tracking-tight">${job.customer || '-'}</strong>
                                 </span>
-                                <span>•</span>
-                                <span class="inline-flex items-center gap-1 font-mono">
-                                    <i class="ph ph-phone text-emerald-600"></i> ${job.phone || '-'}
+                                <span class="text-gray-300 hidden sm:inline">•</span>
+                                <span class="inline-flex items-center gap-1.5 font-mono">
+                                    <i class="ph ph-phone text-emerald-600 text-base sm:text-lg shrink-0"></i>
+                                    <span class="text-gray-600 font-semibold text-xs sm:text-sm">เบอร์ติดต่อ:</span>
+                                    <strong class="text-black font-bold font-mono text-sm sm:text-base">${job.phone || '-'}</strong>
                                     ${job.phone ? `
                                         <a href="tel:${job.phone}" onclick="event.stopPropagation();" class="text-emerald-600 hover:underline inline-flex items-center gap-0.5 ml-1" title="โทรออก">
                                             <i class="ph ph-phone-call text-xs"></i>
                                         </a>
                                     ` : ''}
                                 </span>
-                                <span>•</span>
-                                <span class="inline-flex items-center gap-1">
-                                    <i class="ph ph-user-gear text-amber-600"></i> ช่าง: <strong class="text-foreground font-semibold">${job.tech || 'รอระบุช่าง'}</strong>
+                                <span class="text-gray-300 hidden sm:inline">•</span>
+                                <span class="inline-flex items-center gap-1.5">
+                                    <i class="ph ph-user-gear text-amber-600 text-base sm:text-lg shrink-0"></i>
+                                    <span class="text-gray-600 font-semibold text-xs sm:text-sm">ช่างหน้างาน:</span>
+                                    <strong class="text-black font-bold text-sm sm:text-base">${job.tech || 'รอระบุช่าง'}</strong>
                                 </span>
                                 ${(job.store_code || job.agent_name) ? `
-                                    <span>•</span>
-                                    <span class="inline-flex items-center gap-1">
-                                        <i class="ph ph-storefront text-indigo-600"></i> สาขา: <strong class="text-foreground font-semibold">${[job.store_code, job.agent_name].filter(Boolean).join(' - ')}</strong>
+                                    <span class="text-gray-300 hidden sm:inline">•</span>
+                                    <span class="inline-flex items-center gap-1.5">
+                                        <i class="ph ph-storefront text-indigo-600 text-base shrink-0"></i>
+                                        <span class="text-gray-600 font-semibold text-xs sm:text-sm">สาขา:</span>
+                                        <strong class="text-black font-bold text-sm sm:text-base">${[job.store_code, job.agent_name].filter(Boolean).join(' - ')}</strong>
                                     </span>
                                 ` : ''}
                             </div>
                         </div>
-                        <button type="button" onclick="app.hideModal('modal-job-preview-detail')" class="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition cursor-pointer" title="ปิดหน้าต่าง (Esc)">
+                        <button type="button" onclick="app.hideModal('modal-job-preview-detail')" class="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition cursor-pointer shrink-0" title="ปิดหน้าต่าง (Esc)">
                             <i class="ph ph-x text-lg"></i>
                         </button>
                     </div>
@@ -22036,6 +22033,22 @@ const app = {
                     return;
                 }
 
+                // Initialize datepickers for QC Search & Filter Toolbar if not already done
+                if (typeof flatpickr !== 'undefined') {
+                    const dFrom = document.getElementById('qc-filter-date-from');
+                    if (dFrom && !dFrom._flatpickr) {
+                        this.initDatePicker(dFrom, {
+                            onChange: () => this.filterQCTable()
+                        });
+                    }
+                    const dTo = document.getElementById('qc-filter-date-to');
+                    if (dTo && !dTo._flatpickr) {
+                        this.initDatePicker(dTo, {
+                            onChange: () => this.filterQCTable()
+                        });
+                    }
+                }
+
                 // Filter by segment
                 if (seg === 'quick') {
                     list = list.filter(j => this.isQuickJob(j));
@@ -22052,6 +22065,137 @@ const app = {
                     list = list.filter(j => (j.service || '').includes(serviceFilter));
                 }
 
+                // ── Advanced QC Multi-Field Keyword Search ──
+                const searchInputEl = document.getElementById('qc-table-search');
+                const rawQuery = (searchInputEl?.value || '').trim();
+                const query = rawQuery.toLowerCase();
+                const btnClearSearch = document.getElementById('btn-clear-qc-search');
+                if (btnClearSearch) {
+                    btnClearSearch.classList.toggle('hidden', !rawQuery);
+                }
+
+                if (query) {
+                    const queryDigits = query.replace(/\D/g, '');
+                    list = list.filter(j => {
+                        const jId = String(j.id || '').toLowerCase();
+                        const jobNo = String(j.job_no || '').toLowerCase();
+                        const refId = String(j.external_ref_id || j.refId || j.stk_ref || '').toLowerCase();
+                        const bookingNo = String(j.booking_no || j.bookingNo || '').toLowerCase();
+                        const ticketNo = String(j.ticket_no || j.ticketNo || '').toLowerCase();
+                        const customer = String(j.customer || `${j.firstName || ''} ${j.lastName || ''}`.trim() || '').toLowerCase();
+                        const phone = String(j.phone || j.customer_phone || '').replace(/\D/g, '');
+                        const phoneMatch = queryDigits.length >= 3 && phone.includes(queryDigits);
+                        const tech = String(j.technician || j.assigned_tech || j.qc_inspector || j.qc_booking?.qc_lead || '').toLowerCase();
+                        const service = String(j.service || '').toLowerCase();
+                        const store = String(j.store_code || j.store || j.address || '').toLowerCase();
+                        const note = String(j.qc_notes || j.qc_comment || j.qc_rework_note || '').toLowerCase();
+                        const subtaskMatch = (j.qc_subtasks || []).some(s => String(s.title || '').toLowerCase().includes(query));
+
+                        return jId.includes(query) ||
+                               jobNo.includes(query) ||
+                               refId.includes(query) ||
+                               bookingNo.includes(query) ||
+                               ticketNo.includes(query) ||
+                               customer.includes(query) ||
+                               phoneMatch ||
+                               tech.includes(query) ||
+                               service.includes(query) ||
+                               store.includes(query) ||
+                               note.includes(query) ||
+                               subtaskMatch;
+                    });
+                }
+
+                // ── Filter by QC Status ──
+                const statusFilterEl = document.getElementById('qc-filter-status');
+                const statusFilter = statusFilterEl ? statusFilterEl.value : 'all';
+                if (statusFilter !== 'all') {
+                    list = list.filter(j => {
+                        const history = Array.isArray(j.qc_history) ? j.qc_history : [];
+                        const reworkCount = history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (j.qc_rework_count || j.rework_count || 0);
+                        const isRework = j.status === 'QC_REWORK' || reworkCount > 0 || (j.rework_count && j.rework_count > 0) || !!j.has_rework || history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
+
+                        if (statusFilter === 'PENDING') {
+                            return (j.status === 'QC_PENDING' || j.status === 'DRAFT_QC' || j.qc_status === 'DRAFT_QC' || j.status === 'QC_CONFIRMED') && !isRework && j.status !== 'QC_PASSED';
+                        } else if (statusFilter === 'PASSED') {
+                            return j.status === 'QC_PASSED';
+                        } else if (statusFilter === 'REWORK') {
+                            return isRework;
+                        }
+                        return true;
+                    });
+                }
+
+                // ── Filter by Inspection Round ──
+                const roundFilterEl = document.getElementById('qc-filter-round');
+                const roundFilter = roundFilterEl ? roundFilterEl.value : 'all';
+                if (roundFilter !== 'all') {
+                    list = list.filter(j => {
+                        const history = Array.isArray(j.qc_history) ? j.qc_history : [];
+                        const reworkCount = history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (j.qc_rework_count || j.rework_count || 0);
+                        const isReworkJob = j.status === 'QC_REWORK' || reworkCount > 0 || (j.rework_count && j.rework_count > 0) || !!j.has_rework || history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
+                        const currentRound = history.length + (j.status === 'QC_PASSED' ? 0 : 1) || (isReworkJob ? (reworkCount + 1) : 1);
+                        const isRound2Plus = currentRound >= 2 || isReworkJob;
+
+                        if (roundFilter === 'round_1') {
+                            return !isRound2Plus;
+                        } else if (roundFilter === 'round_2_plus') {
+                            return isRound2Plus;
+                        }
+                        return true;
+                    });
+                }
+
+                // ── Filter by Date Range (DD/MM/YYYY) ──
+                const dateFromEl = document.getElementById('qc-filter-date-from');
+                const dateToEl = document.getElementById('qc-filter-date-to');
+                const dateFromStr = (dateFromEl?.value || '').trim();
+                const dateToStr = (dateToEl?.value || '').trim();
+
+                const parseDMY = (s) => {
+                    if (!s) return null;
+                    const parts = s.split('/');
+                    if (parts.length !== 3) return null;
+                    return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+                };
+                const dateFrom = parseDMY(dateFromStr);
+                const dateTo = parseDMY(dateToStr);
+
+                if (dateFrom || dateTo) {
+                    list = list.filter(j => {
+                        const datesToCheck = [
+                            j.qc_booking?.date,
+                            j.plan_date,
+                            j.date,
+                            j.step_timestamps?.qc_pending_at,
+                            j.created_at
+                        ].filter(Boolean);
+
+                        if (datesToCheck.length === 0) return false;
+
+                        return datesToCheck.some(raw => {
+                            let dObj = null;
+                            if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+                                const d = new Date(raw);
+                                dObj = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                            } else {
+                                dObj = parseDMY(raw);
+                            }
+                            if (!dObj || isNaN(dObj.getTime())) return false;
+
+                            if (dateFrom && dObj < dateFrom) return false;
+                            if (dateTo && dObj > dateTo) return false;
+                            return true;
+                        });
+                    });
+                }
+
+                // Update Result Counter Badge
+                const countBadge = document.getElementById('qc-search-count-badge');
+                if (countBadge) {
+                    countBadge.textContent = `พบ ${list.length} รายการ`;
+                }
+
                 // CRITICAL RULE: Sort jobs descending so newest incoming jobs are always on top!
                 list = this.sortJobsDescending(list);
 
@@ -22059,21 +22203,29 @@ const app = {
                 if (!tableBody) return;
 
                 if (list.length === 0) {
+                    const hasActiveFilter = !!(rawQuery || (statusFilter && statusFilter !== 'all') || (roundFilter && roundFilter !== 'all') || dateFromStr || dateToStr || (serviceFilter && serviceFilter !== 'all') || (seg && seg !== 'all'));
                     tableBody.innerHTML = `
                         <tr>
                             <td colspan="9" class="px-5 py-12 text-center text-muted-foreground">
                                 <div class="flex flex-col items-center justify-center gap-3">
                                     <div class="w-12 h-12 rounded-2xl bg-muted/60 border border-border flex items-center justify-center text-muted-foreground text-2xl">
-                                        <i class="ph ph-shield-check"></i>
+                                        <i class="ph ph-magnifying-glass"></i>
                                     </div>
                                     <div class="space-y-1">
-                                        <p class="font-medium text-foreground text-sm">ไม่มีรายการงานในคิว QC ตามเงื่อนไขที่เลือก</p>
-                                        <p class="text-xs text-muted-foreground">คุณสามารถกดปุ่ม "จำลองงานเข้า QC" เพื่อสร้างรายการตัวอย่างสำหรับทดสอบการประเมินและให้คะแนน</p>
+                                        <p class="font-medium text-foreground text-sm">${hasActiveFilter ? 'ไม่พบรายการงาน QC ที่ตรงกับเงื่อนไขการค้นหา/ตัวกรอง' : 'ไม่มีรายการงานในคิว QC ตามเงื่อนไขที่เลือก'}</p>
+                                        <p class="text-xs text-muted-foreground">${hasActiveFilter ? 'ลองปรับเปลี่ยนคำค้นหา หรือกดปุ่ม "รีเซ็ต" เพื่อดูงานทั้งหมดในคิว' : 'คุณสามารถกดปุ่ม "จำลองงานเข้า QC" เพื่อสร้างรายการตัวอย่างสำหรับทดสอบการประเมินและให้คะแนน'}</p>
                                     </div>
+                                    ${hasActiveFilter ? `
+                                    <button type="button" onclick="app.clearAllQCFilters()" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs mt-1 cursor-pointer">
+                                        <i class="ph ph-arrow-counter-clockwise"></i>
+                                        <span>รีเซ็ตตัวกรองทั้งหมด</span>
+                                    </button>
+                                    ` : `
                                     <button type="button" onclick="app.simulateMockQCJobs()" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs mt-1 cursor-pointer">
                                         <i class="ph ph-lightning text-amber-300"></i>
                                         <span>+ จำลองงานเข้า QC (Quick 2 งาน, Renovate 2 งาน)</span>
                                     </button>
+                                    `}
                                 </div>
                             </td>
                         </tr>
@@ -22177,9 +22329,9 @@ const app = {
 
                     return `
                     <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTopNew ? 'bg-emerald-500/[0.02] dark:bg-emerald-500/[0.03]' : ''}" onclick="app.openQCDetailModal('${j.id}')" title="คลิกเพื่อเปิดรายละเอียด QC: ${j.id}">
-                        <td class="px-3 py-2.5 font-mono font-semibold text-brand-500 whitespace-nowrap">
+                        <td class="px-3 py-2.5 font-mono whitespace-nowrap">
                             <div class="flex items-center gap-1.5 flex-wrap">
-                                <span>${j.job_no || j.id}</span>
+                                <span class="font-mono font-black text-sm sm:text-base text-gray-950">${j.job_no || j.id}</span>
                                 ${isTopNew ? `
                                     <span class="badge-new-item text-[9px] py-0 px-1.5 font-bold uppercase bg-gradient-to-r from-rose-500 to-amber-500 text-white shadow-xs" title="รายการใหม่ล่าสุด (NEW!)">
                                         <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
@@ -22192,24 +22344,24 @@ const app = {
                                 ` : ''}
                             </div>
                         </td>
-                        <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                            ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-gray-400">-</span>'}
+                        <td class="px-2.5 py-2.5 font-mono whitespace-nowrap">
+                            ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-gray-900 border border-border text-xs sm:text-sm font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-gray-400 text-xs">-</span>'}
                         </td>
-                        <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                            ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-gray-400">-</span>'}
+                        <td class="px-2.5 py-2.5 font-mono whitespace-nowrap">
+                            ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-gray-950 border border-purple-300 text-xs sm:text-sm font-mono font-black tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-gray-400 text-xs">-</span>'}
                         </td>
                         <td class="px-2.5 py-2.5 whitespace-nowrap">
-                            <div class="inline-flex items-center gap-1 font-mono text-[11px] text-foreground font-semibold whitespace-nowrap">
-                                <i class="ph ph-calendar-check text-amber-500 text-xs shrink-0"></i>
+                            <div class="inline-flex items-center gap-1 font-mono text-xs sm:text-sm text-foreground font-bold whitespace-nowrap">
+                                <i class="ph ph-calendar-check text-amber-500 text-sm shrink-0"></i>
                                 <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
                             </div>
                         </td>
                         <td class="px-3 py-2.5 min-w-[125px] max-w-[150px]">
-                            <div class="text-foreground font-semibold text-xs truncate group-hover:text-brand-500 transition flex items-center gap-1.5" title="${j.customer || ''}">
+                            <div class="text-gray-950 font-black text-sm sm:text-base truncate group-hover:text-brand-600 transition flex items-center gap-1.5" title="${j.customer || ''}">
                                 <span class="truncate">${j.customer}</span>
                                 ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-ping" title="รายการใหม่ล่าสุด"></span>` : ''}
                             </div>
-                            <div class="text-[11px] text-muted-foreground font-mono truncate">${j.phone || '-'}</div>
+                            <div class="text-xs text-gray-800 font-mono font-semibold truncate mt-0.5">${j.phone || '-'}</div>
                         </td>
                         <td class="px-2.5 py-2.5 min-w-[115px] max-w-[140px] text-muted-foreground">
                             <div class="flex items-center gap-1 flex-wrap">
@@ -22390,12 +22542,81 @@ const app = {
                 }
             },
 
+            _qcFilterDebounce: null,
+            filterQCTable() {
+                if (this._qcFilterDebounce) clearTimeout(this._qcFilterDebounce);
+                this._qcFilterDebounce = setTimeout(() => {
+                    this.renderQC();
+                }, 180);
+            },
+
+            clearQCSearch() {
+                const input = document.getElementById('qc-table-search');
+                if (input) input.value = '';
+                const btn = document.getElementById('btn-clear-qc-search');
+                if (btn) btn.classList.add('hidden');
+                this.renderQC();
+            },
+
+            clearQCDateFilter() {
+                const dFrom = document.getElementById('qc-filter-date-from');
+                const dTo = document.getElementById('qc-filter-date-to');
+                if (dFrom) dFrom.value = '';
+                if (dTo) dTo.value = '';
+                this.renderQC();
+            },
+
+            clearAllQCFilters() {
+                const input = document.getElementById('qc-table-search');
+                if (input) input.value = '';
+                const btn = document.getElementById('btn-clear-qc-search');
+                if (btn) btn.classList.add('hidden');
+
+                const statusSel = document.getElementById('qc-filter-status');
+                if (statusSel) statusSel.value = 'all';
+
+                const roundSel = document.getElementById('qc-filter-round');
+                if (roundSel) roundSel.value = 'all';
+
+                const serviceSel = document.getElementById('qc-filter-service');
+                if (serviceSel) serviceSel.value = 'all';
+
+                const dFrom = document.getElementById('qc-filter-date-from');
+                if (dFrom) dFrom.value = '';
+                const dTo = document.getElementById('qc-filter-date-to');
+                if (dTo) dTo.value = '';
+
+                this.state.qcSegmentFilter = 'all';
+                this.renderQC();
+                this.showToast('🔄 รีเซ็ตตัวกรองและการค้นหา QC ทั้งหมดแล้ว');
+            },
+
             filterQCBySegment(segment) {
                 this.state.qcSegmentFilter = segment;
                 this.renderQC();
             },
 
             filterQCByDashboard(type) {
+                const statusSel = document.getElementById('qc-filter-status');
+                if (type === 'PASSED') {
+                    if (statusSel) statusSel.value = 'PASSED';
+                    this.showToast('🔍 กรองเฉพาะงานที่ผ่านเกณฑ์ QC แล้ว');
+                } else if (type === 'REWORK') {
+                    if (statusSel) statusSel.value = 'REWORK';
+                    this.showToast('🔍 กรองเฉพาะงานที่แจ้งช่างแก้ไข');
+                } else if (type === 'REMAINING') {
+                    if (statusSel) statusSel.value = 'PENDING';
+                    this.showToast('🔍 กรองเฉพาะงานที่ยังรอตรวจ QC');
+                } else if (type === 'OVERDUE') {
+                    this.showToast('🔍 กรองงาน QC ที่เกินกำหนด SLA');
+                } else if (type === 'TODAY') {
+                    this.showToast('🔍 กรองเฉพาะงานที่เข้าสู่ QC วันนี้');
+                } else {
+                    if (statusSel) statusSel.value = 'all';
+                    this.state.qcSegmentFilter = 'all';
+                    this.showToast('📋 แสดงงาน QC ทั้งหมดในระบบ');
+                }
+
                 let list = (DB.jobs || []).filter(j => {
                     const isQuick = this.isQuickJob(j);
                     const isRenoInGantt = !isQuick && (
@@ -22427,25 +22648,17 @@ const app = {
                         return ts && ts.slice(0, 10) === todayStr;
                     });
                     if (list.length === 0) list = this.sortJobsDescending(list).slice(0, 3);
-                    this.showToast('🔍 กรองเฉพาะงานที่เข้าสู่ QC วันนี้');
                 } else if (type === 'REMAINING') {
                     list = list.filter(j => j.status !== 'QC_PASSED');
-                    this.showToast('🔍 กรองเฉพาะงานที่ยังรอตรวจ QC');
                 } else if (type === 'OVERDUE') {
                     list = list.filter(j => {
                         const sla = this.calculateJobSLA(j, 5);
                         return sla && sla.status === 'OVERDUE';
                     });
-                    this.showToast('🔍 กรองงาน QC ที่เกินกำหนด SLA');
                 } else if (type === 'PASSED') {
                     list = list.filter(j => j.status === 'QC_PASSED');
-                    this.showToast('🔍 กรองเฉพาะงานที่ผ่านเกณฑ์ QC แล้ว');
                 } else if (type === 'REWORK') {
                     list = list.filter(j => j.status === 'QC_REWORK');
-                    this.showToast('🔍 กรองเฉพาะงานที่แจ้งช่างแก้ไข');
-                } else {
-                    this.state.qcSegmentFilter = 'all';
-                    this.showToast('📋 แสดงงาน QC ทั้งหมดในระบบ');
                 }
 
                 this.renderQC(list);
@@ -22666,14 +22879,34 @@ const app = {
                 }
 
                 // Header elements
+                const orderNo = job.job_no || job.id || '-';
                 const elId = document.getElementById('qc-detail-job-id');
-                if (elId) elId.innerText = job.id;
+                if (elId) elId.innerText = orderNo;
+                const elOrder = document.getElementById('qc-detail-order-no');
+                if (elOrder) elOrder.innerText = orderNo;
+
+                const bookingNo = job.booking_no || job.vfix_no || (job.raw_payload && (job.raw_payload.booking_no || job.raw_payload.vfix_no)) || '';
+                const elBooking = document.getElementById('qc-detail-booking-no');
+                if (elBooking) elBooking.innerText = bookingNo || '-';
+                const elBookingContainer = document.getElementById('qc-detail-booking-container');
+                if (elBookingContainer) {
+                    elBookingContainer.style.display = bookingNo ? 'inline-flex' : 'none';
+                }
+
+                const refId = job.external_ref_id || (job.raw_payload && job.raw_payload.external_ref_id) || '';
+                const elRef = document.getElementById('qc-detail-ref-id');
+                if (elRef) elRef.innerText = refId || '-';
+                const elRefContainer = document.getElementById('qc-detail-ref-container');
+                if (elRefContainer) {
+                    elRefContainer.style.display = refId ? 'inline-flex' : 'none';
+                }
+
                 const elType = document.getElementById('qc-detail-type-badge');
                 if (elType) {
                     elType.innerText = isQuick ? 'QUICK SERVICE (QC ONLINE)' : 'RENOVATE PROJECT';
                     elType.className = isQuick 
-                        ? 'px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/10 text-amber-600 border border-amber-500/20'
-                        : 'px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-indigo-500/10 text-indigo-600 border border-indigo-500/20';
+                        ? 'px-2.5 py-1 rounded-md text-xs font-mono font-black uppercase bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs'
+                        : 'px-2.5 py-1 rounded-md text-xs font-mono font-black uppercase bg-indigo-50 text-indigo-800 border border-indigo-300 shadow-2xs';
                 }
                 const elStatus = document.getElementById('qc-detail-status-badge');
                 if (elStatus) {
@@ -22683,29 +22916,34 @@ const app = {
 
                     if (job.status === 'QC_PASSED') {
                         elStatus.innerText = job.stk_ref ? `ผ่านเกณฑ์แล้ว (ส่ง STK: ${job.stk_ref})` : 'ผ่านเกณฑ์แล้ว';
-                        elStatus.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30';
+                        elStatus.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/30';
                     } else if (job.status === 'QC_REWORK') {
                         elStatus.innerText = 'แจ้งแก้ไขงาน';
-                        elStatus.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30';
+                        elStatus.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-700 border border-rose-500/30';
                     } else if (isDraftQC) {
                         elStatus.innerText = 'Draft QC (รอ Confirm ช่าง)';
-                        elStatus.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30';
+                        elStatus.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 border border-amber-500/30';
                     } else if (isQCConfirmed) {
                         elStatus.innerText = 'Confirm คิวช่างแล้ว';
-                        elStatus.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30';
+                        elStatus.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-500/15 text-indigo-700 border border-indigo-500/30';
                     } else {
                         elStatus.innerText = isQuick ? 'รอตรวจ Online (ภาพถ่าย Visit Plan)' : 'รอตรวจ On-site';
-                        elStatus.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30';
+                        elStatus.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 border border-amber-500/30';
                     }
                 }
                 const elTitle = document.getElementById('qc-detail-job-title');
                 if (elTitle) elTitle.innerText = `แบบฟอร์มตรวจรับรองมาตรฐาน QC & บันทึกปิดงานโครงการ: ${job.service}`;
                 const elCust = document.getElementById('qc-detail-customer');
-                if (elCust) elCust.innerText = job.customer;
+                if (elCust) elCust.innerText = job.customer || '-';
                 const elPhone = document.getElementById('qc-detail-phone');
                 if (elPhone) elPhone.innerText = job.phone || '-';
                 const elTech = document.getElementById('qc-detail-tech');
                 if (elTech) elTech.innerText = job.tech || '-';
+                const elStore = document.getElementById('qc-detail-store');
+                const elStoreContainer = document.getElementById('qc-detail-store-container');
+                const storeInfo = [job.store_code, job.agent_name].filter(Boolean).join(' - ');
+                if (elStore) elStore.innerText = storeInfo || '-';
+                if (elStoreContainer) elStoreContainer.style.display = storeInfo ? 'inline-flex' : 'none';
 
                 // Format inspection date in DD/MM/YYYY 24-hr (e.g. 08/09/2026 14:30 น.)
                 const elDate = document.getElementById('qc-modal-date');

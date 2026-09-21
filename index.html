@@ -3116,8 +3116,74 @@
                         <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold shrink-0">QC State Queue</span>
                     </div>
 
-                    <!-- Jobs Table (Matching Step 1 exactly) -->
+                    <!-- Jobs Table Container with Advanced Search & Multi-Field Filters -->
                     <div class="artifact-card overflow-hidden shadow-sm">
+                        <!-- QC Search & Multi-Field Filter Toolbar -->
+                        <div class="p-3.5 bg-muted/30 border-b border-border/70 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between text-xs">
+                            <div class="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+                                <!-- Main Search Keyword Input -->
+                                <div class="relative flex-1 min-w-[220px] max-w-md">
+                                    <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs pointer-events-none"></i>
+                                    <input type="text" 
+                                           id="qc-table-search" 
+                                           oninput="app.filterQCTable()" 
+                                           placeholder="ค้นหาตาม Job ID, Ref ID, Booking, Ticket, ชื่อลูกค้า, เบอร์โทร, ช่าง..." 
+                                           class="w-full bg-card border border-border rounded-lg pl-8 pr-8 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-teal-500 shadow-2xs">
+                                    <button type="button" 
+                                            id="btn-clear-qc-search" 
+                                            onclick="app.clearQCSearch()" 
+                                            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground hidden text-xs cursor-pointer" 
+                                            title="ล้างคำค้นหา">
+                                        <i class="ph ph-x-circle"></i>
+                                    </button>
+                                </div>
+
+                                <!-- QC Status Filter Dropdown -->
+                                <select id="qc-filter-status" onchange="app.filterQCTable()" class="bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-teal-500 cursor-pointer shadow-2xs">
+                                    <option value="all">สถานะ QC: ทั้งหมด</option>
+                                    <option value="PENDING">รอตรวจ (Pending / Draft)</option>
+                                    <option value="PASSED">ผ่านเกณฑ์แล้ว (Passed)</option>
+                                    <option value="REWORK">ส่งแก้ไข (Rework / Defect)</option>
+                                </select>
+
+                                <!-- Inspection Round Filter Dropdown -->
+                                <select id="qc-filter-round" onchange="app.filterQCTable()" class="bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-teal-500 cursor-pointer shadow-2xs">
+                                    <option value="all">รอบการตรวจ: ทั้งหมด</option>
+                                    <option value="round_1">ตรวจรอบแรก (Round 1)</option>
+                                    <option value="round_2_plus">ตรวจรอบแก้ไข (Round 2+ ล็อก 1.0)</option>
+                                </select>
+
+                                <!-- Date Filter (DD/MM/YYYY) with Flatpickr -->
+                                <div class="flex items-center gap-1 bg-muted/50 p-0.5 rounded-lg border border-border/80">
+                                    <div class="relative">
+                                        <i class="ph ph-calendar absolute left-2 top-1/2 -translate-y-1/2 text-teal-600 text-xs pointer-events-none"></i>
+                                        <input type="text" id="qc-filter-date-from" data-datepicker="true" placeholder="DD/MM/YYYY" readonly
+                                            class="pl-6 pr-2 py-1 text-xs bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-teal-500 w-28 cursor-pointer shadow-2xs">
+                                    </div>
+                                    <span class="text-muted-foreground text-[11px] px-0.5">ถึง</span>
+                                    <div class="relative">
+                                        <i class="ph ph-calendar absolute left-2 top-1/2 -translate-y-1/2 text-teal-600 text-xs pointer-events-none"></i>
+                                        <input type="text" id="qc-filter-date-to" data-datepicker="true" placeholder="DD/MM/YYYY" readonly
+                                            class="pl-6 pr-2 py-1 text-xs bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-teal-500 w-28 cursor-pointer shadow-2xs">
+                                    </div>
+                                    <button type="button" onclick="app.clearQCDateFilter()" title="ล้างตัวกรองวันที่" class="px-1.5 py-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border text-xs cursor-pointer">
+                                        <i class="ph ph-x-circle text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Right Status: Counter Badge & Reset All -->
+                            <div class="flex items-center gap-2 self-end lg:self-auto shrink-0">
+                                <span id="qc-search-count-badge" class="px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/20">
+                                    พบ 0 รายการ
+                                </span>
+                                <button type="button" id="btn-qc-reset-filters" onclick="app.clearAllQCFilters()" class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground border border-border" title="ล้างเงื่อนไขการค้นหาและตัวกรองทั้งหมด">
+                                    <i class="ph ph-arrow-counter-clockwise text-xs"></i>
+                                    <span>รีเซ็ต</span>
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="overflow-x-auto">
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase text-[11px]">
@@ -6371,22 +6437,71 @@
         <div class="artifact-card rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border my-auto" id="modal-qc-job-detail-content">
             <!-- Modal Header -->
             <div class="p-5 border-b border-border flex justify-between items-start bg-muted/40 shrink-0">
-                <div class="space-y-1">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span id="qc-detail-job-id" class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">JOB26090900001</span>
-                        <span id="qc-detail-type-badge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/10 text-amber-600 border border-amber-500/20">QUICK SERVICE</span>
-                        <span id="qc-detail-status-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">รอตรวจ QC</span>
+                <div class="space-y-2 w-full pr-3">
+                    <div class="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+                        <!-- Order No (เลขที่ Order) -->
+                        <span class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-950 border border-gray-300 font-mono text-xs sm:text-sm font-black inline-flex items-center gap-1.5 shadow-2xs" title="เลขที่ Order">
+                            <i class="ph ph-receipt text-sm text-gray-700"></i>
+                            <span>เลขที่ Order:</span>
+                            <strong id="qc-detail-order-no" class="text-black font-black font-mono">JOB26090900001</strong>
+                            <span id="qc-detail-job-id" class="hidden">JOB26090900001</span>
+                            <button type="button" onclick="event.stopPropagation(); navigator.clipboard.writeText(document.getElementById('qc-detail-order-no').innerText); app.showToast('คัดลอกเลขที่ Order เรียบร้อย');" class="text-gray-500 hover:text-black cursor-pointer ml-0.5" title="คัดลอกเลขที่ Order">
+                                <i class="ph ph-copy text-xs"></i>
+                            </button>
+                        </span>
+
+                        <!-- Booking No (เลขที่ Booking) -->
+                        <span id="qc-detail-booking-container" class="px-2.5 py-1 rounded-lg bg-purple-50 text-gray-950 border border-purple-300 font-mono text-xs sm:text-sm font-black inline-flex items-center gap-1.5 shadow-2xs" title="เลขที่ Booking">
+                            <i class="ph ph-bookmark-simple text-sm text-purple-700 font-bold"></i>
+                            <span>เลขที่ Booking:</span>
+                            <strong id="qc-detail-booking-no" class="text-black font-black font-mono">-</strong>
+                        </span>
+
+                        <!-- External Ref ID (Ref) -->
+                        <span id="qc-detail-ref-container" class="hidden px-2 py-0.5 rounded text-xs font-mono font-bold bg-muted text-gray-900 border border-border items-center gap-1" title="เลขที่อ้างอิงภายนอก (Ref ID)">
+                            <i class="ph ph-tag text-xs text-muted-foreground"></i>
+                            <span>Ref:</span>
+                            <strong id="qc-detail-ref-id" class="font-mono text-gray-950 font-bold">-</strong>
+                        </span>
+
+                        <!-- Type Badge -->
+                        <span id="qc-detail-type-badge" class="px-2.5 py-1 rounded-md text-xs font-mono font-black uppercase bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs">QUICK SERVICE</span>
+
+                        <!-- Status Badge -->
+                        <span id="qc-detail-status-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 border border-amber-500/30">รอตรวจ QC</span>
                     </div>
-                    <h3 id="qc-detail-job-title" class="font-display font-bold text-lg text-foreground">รายละเอียดการตรวจรับรองคุณภาพ QC</h3>
-                    <p class="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
-                        <span>ลูกค้า: <strong id="qc-detail-customer" class="text-foreground">-</strong></span>
-                        <span>•</span>
-                        <span>เบอร์ติดต่อ: <span id="qc-detail-phone" class="font-mono">-</span></span>
-                        <span>•</span>
-                        <span>ช่างหน้างาน: <strong id="qc-detail-tech" class="text-foreground">-</strong></span>
-                    </p>
+
+                    <!-- Job Title / Service -->
+                    <h3 id="qc-detail-job-title" class="font-display font-black text-lg sm:text-xl text-gray-950 leading-snug">รายละเอียดการตรวจรับรองคุณภาพ QC</h3>
+
+                    <!-- Customer & Contact Info Bar -->
+                    <div class="mt-2.5 pt-2.5 border-t border-border/80 flex items-center gap-3 sm:gap-4 flex-wrap text-sm sm:text-base text-gray-950">
+                        <div class="inline-flex items-center gap-1.5">
+                            <i class="ph ph-user text-brand-600 text-lg sm:text-xl shrink-0"></i>
+                            <span class="text-gray-600 font-semibold text-xs sm:text-sm">ชื่อลูกค้า:</span>
+                            <strong id="qc-detail-customer" class="font-black text-black text-base sm:text-lg tracking-tight">-</strong>
+                        </div>
+                        <span class="text-gray-300 hidden sm:inline">•</span>
+                        <div class="inline-flex items-center gap-1.5">
+                            <i class="ph ph-phone text-emerald-600 text-base sm:text-lg shrink-0"></i>
+                            <span class="text-gray-600 font-semibold text-xs sm:text-sm">เบอร์ติดต่อ:</span>
+                            <strong id="qc-detail-phone" class="font-mono font-bold text-black text-sm sm:text-base">-</strong>
+                        </div>
+                        <span class="text-gray-300 hidden sm:inline">•</span>
+                        <div class="inline-flex items-center gap-1.5">
+                            <i class="ph ph-user-gear text-amber-600 text-base sm:text-lg shrink-0"></i>
+                            <span class="text-gray-600 font-semibold text-xs sm:text-sm">ช่างหน้างาน:</span>
+                            <strong id="qc-detail-tech" class="font-bold text-black text-sm sm:text-base">-</strong>
+                        </div>
+                        <div id="qc-detail-store-container" class="hidden items-center gap-1.5">
+                            <span class="text-gray-300 hidden sm:inline">•</span>
+                            <i class="ph ph-storefront text-indigo-600 text-base shrink-0"></i>
+                            <span class="text-gray-600 font-semibold text-xs sm:text-sm">สาขา:</span>
+                            <strong id="qc-detail-store" class="font-bold text-black text-sm sm:text-base">-</strong>
+                        </div>
+                    </div>
                 </div>
-                <button onclick="app.hideModal('modal-qc-job-detail')" class="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition cursor-pointer">
+                <button onclick="app.hideModal('modal-qc-job-detail')" class="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition cursor-pointer shrink-0" title="ปิดหน้าต่าง (Esc)">
                     <i class="ph ph-x text-lg"></i>
                 </button>
             </div>
@@ -7421,17 +7536,33 @@
                             </span>
                             <h3 class="font-display font-bold text-base sm:text-lg text-foreground" id="unified-modal-title">ศูนย์จัดการคำสั่งซื้อ • แบบแปลน Design • BOQ (PM & SA Studio)</h3>
                         </div>
-                        <p class="text-xs text-muted-foreground mt-0.5 flex items-center flex-wrap gap-y-1" id="unified-modal-subtitle">
-                            <span>รหัสงาน: <span class="font-mono font-bold text-foreground" id="unified-modal-job-id">JOB-XXXX</span></span>
-                            <span id="unified-modal-subtype-container" class="inline-flex items-center">
-                                <span class="mx-1.5 text-border">•</span>
-                                <span>งาน: <span class="font-bold text-foreground" id="unified-modal-project-sub-type">-</span></span>
+                        <div class="mt-1.5 flex items-center flex-wrap gap-2 sm:gap-3 text-sm text-gray-950" id="unified-modal-subtitle">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-gray-100 border border-gray-300 font-mono font-black text-xs sm:text-sm text-black shadow-2xs">
+                                <i class="ph ph-receipt text-gray-700"></i>
+                                <span>เลขที่ Order:</span>
+                                <span id="unified-modal-job-id" class="font-black text-black">JOB-XXXX</span>
                             </span>
-                            <span id="unified-modal-store-container" class="inline-flex items-center">
-                                <span class="mx-1.5 text-border">•</span>
-                                <span>สาขา: <span class="font-bold text-foreground" id="unified-modal-store-info">-</span></span>
+                            <span id="unified-modal-booking-container" class="hidden items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-purple-50 border border-purple-300 font-mono font-black text-xs sm:text-sm text-black shadow-2xs">
+                                <i class="ph ph-bookmark-simple text-purple-700 font-bold"></i>
+                                <span>เลขที่ Booking:</span>
+                                <span id="unified-modal-booking-no" class="font-black text-black">-</span>
                             </span>
-                        </p>
+                            <span class="inline-flex items-center gap-1.5 text-sm sm:text-base">
+                                <i class="ph ph-user text-brand-600 text-base sm:text-lg"></i>
+                                <span class="text-gray-600 font-semibold text-xs sm:text-sm">ชื่อลูกค้า:</span>
+                                <strong id="unified-modal-customer" class="font-black text-black text-base sm:text-lg tracking-tight">-</strong>
+                            </span>
+                            <span id="unified-modal-subtype-container" class="inline-flex items-center text-xs sm:text-sm">
+                                <span class="mx-1 text-gray-300">•</span>
+                                <span class="text-gray-600 font-semibold">งาน:</span>
+                                <span class="font-bold text-gray-950 ml-1" id="unified-modal-project-sub-type">-</span>
+                            </span>
+                            <span id="unified-modal-store-container" class="inline-flex items-center text-xs sm:text-sm">
+                                <span class="mx-1 text-gray-300">•</span>
+                                <span class="text-gray-600 font-semibold">สาขา:</span>
+                                <span class="font-bold text-gray-950 ml-1" id="unified-modal-store-info">-</span>
+                            </span>
+                        </div>
                     </div>
                 </div>
 
