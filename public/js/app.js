@@ -13950,43 +13950,24 @@ const app = {
                                 ${t.days || 1} วัน
                             </span>
                         </td>
-                        <!-- ผู้รับผิดชอบ (Key ชื่อช่าง / จองจาก INT) -->
+                        <!-- ผู้รับผิดชอบ (Key ชื่อช่าง / เลือกช่างจาก INT) -->
                         <td class="py-2.5 px-3 min-w-[280px]">
-                            <div class="space-y-1.5">
-                                <div class="flex items-center gap-1.5">
-                                    <div class="relative flex-1">
-                                        <i class="ph ph-user text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 text-xs pointer-events-none"></i>
-                                        <input type="text"
-                                               list="int-tech-suggestions"
-                                               value="${(techName || '').replace(/"/g, '&quot;')}"
-                                               oninput="app.updateConvertTaskField(${idx}, 'tech', this.value)"
-                                               placeholder="Key ระบุชื่อช่าง..."
-                                               class="w-full bg-card hover:bg-muted/40 focus:bg-card border border-border focus:border-purple-500 rounded-lg pl-8 pr-2 py-1.5 text-xs text-foreground font-semibold focus:outline-none shadow-2xs transition">
-                                    </div>
-                                    <button type="button"
-                                            onclick="app.openIntTechBookingModal(${idx})"
-                                            class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1 text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-300 cursor-pointer shadow-2xs shrink-0 whitespace-nowrap transition"
-                                            title="จองช่างจากระบบ INT (ทำไว้ รอเชื่อมต่อ API)">
-                                        <i class="ph ph-calendar-check text-xs text-purple-600"></i>
-                                        <span>จองช่างจาก INT</span>
-                                    </button>
+                            <div class="flex items-center gap-1.5">
+                                <div class="relative flex-1">
+                                    <i class="ph ph-user text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 text-xs pointer-events-none"></i>
+                                    <input type="text"
+                                           value="${(techName || '').replace(/"/g, '&quot;')}"
+                                           oninput="app.updateConvertTaskField(${idx}, 'tech', this.value)"
+                                           placeholder="Key ระบุชื่อช่าง..."
+                                           class="w-full bg-card hover:bg-muted/40 focus:bg-card border border-border focus:border-purple-500 rounded-lg pl-8 pr-2 py-1.5 text-xs text-foreground font-semibold focus:outline-none shadow-2xs transition">
                                 </div>
-                                ${t.int_booked ? `
-                                    <div class="flex items-center gap-1.5 text-[10px]">
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
-                                            <i class="ph-fill ph-check-circle text-emerald-600 text-[10px]"></i>
-                                            <span>INT: ${t.int_booking_ref || 'จองสำเร็จ'}</span>
-                                        </span>
-                                        <span class="text-[9px] text-amber-700 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 font-medium">รอเชื่อมต่อจริง</span>
-                                    </div>
-                                ` : `
-                                    <div class="flex items-center gap-1 text-[10px] text-muted-foreground flex-wrap">
-                                        <span class="text-muted-foreground/60">ด่วน:</span>
-                                        <button type="button" onclick="app.setQuickTech(${idx}, 'สมชาย ใจดี')" class="px-1.5 py-0.2 rounded bg-muted hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 border border-border transition text-[10px] cursor-pointer">สมชาย (★4.9)</button>
-                                        <button type="button" onclick="app.setQuickTech(${idx}, 'อนุรักษ์ มีสุข')" class="px-1.5 py-0.2 rounded bg-muted hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 border border-border transition text-[10px] cursor-pointer">อนุรักษ์ (★4.8)</button>
-                                        <button type="button" onclick="app.setQuickTech(${idx}, 'กมลวรรณ')" class="px-1.5 py-0.2 rounded bg-muted hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 border border-border transition text-[10px] cursor-pointer">กมลวรรณ (★4.7)</button>
-                                    </div>
-                                `}
+                                <button type="button"
+                                        onclick="app.openIntTechBookingModal(${idx})"
+                                        class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1 text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-300 cursor-pointer shadow-2xs shrink-0 whitespace-nowrap transition"
+                                        title="เลือกช่างจากระบบ INT">
+                                    <i class="ph ph-calendar-check text-xs text-purple-600"></i>
+                                    <span>เลือกช่างจาก INT</span>
+                                </button>
                             </div>
                         </td>
                         <td class="py-2.5 px-2 text-center">
@@ -14324,7 +14305,7 @@ const app = {
                 this.renderConvertTasksRows();
                 this.showToast(isManual
                     ? `👤 มอบหมายช่าง "${finalTechName}" (กรอกมือ) เรียบร้อย`
-                    : `✅ จองช่าง ${finalTechName} จากระบบ INT สำเร็จ (Ref: ${task.int_booking_ref})`
+                    : `✅ เลือกช่าง ${finalTechName} จากระบบ INT สำเร็จ (Ref: ${task.int_booking_ref})`
                 );
             },
 
@@ -14429,7 +14410,7 @@ const app = {
                 });
 
                 this.renderConvertTasksRows();
-                this.showToast(`⚡ จัดสรรและดึงคิวจองช่างจากระบบ INT ให้ทั้ง ${tasks.length} งานเรียบร้อยแล้ว (ทำไว้รอเชื่อมต่อ API)`);
+                this.showToast(`⚡ จัดสรรและเลือกช่างจากระบบ INT ให้ทั้ง ${tasks.length} งานเรียบร้อยแล้ว (ทำไว้รอเชื่อมต่อ API)`);
             },
 
             setQuickTech(idx, techName) {

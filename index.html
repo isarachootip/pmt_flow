@@ -5581,17 +5581,17 @@
                                 <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
                                     <span class="flex items-center gap-2">
                                         <span class="text-brand-500 font-bold">Q18:</span>
-                                        <span>การเปิดให้ Key ชื่อช่างอิสระ และปุ่ม "จองช่างจาก INT" (ทำไว้รอเชื่อมต่อ API) ในหน้าจอแปลง BOQ มีการทำงานอย่างไร?</span>
+                                        <span>การระบุช่างในหน้าจอ Convert Project กำหนดให้มีเฉพาะการ Key ชื่อช่าง และปุ่ม "เลือกช่างจาก INT" มีข้อดีและรูปแบบการใช้งานอย่างไร?</span>
                                     </span>
                                     <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
                                 </summary>
                                 <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
-                                    <p><strong class="text-foreground">คำตอบ:</strong> ในหน้าต่าง <strong>"นำเข้า BOQ สู่ Project Tasks & แผนงาน Gantt"</strong> (`modal-convert-boq-tasks`) คอลัมน์ <strong>"ผู้รับผิดชอบ (ช่าง/Crew)"</strong> ได้รับการพัฒนาให้รองรับการทำงาน 2 รูปแบบอย่างยืดหยุ่น:</p>
+                                    <p><strong class="text-foreground">คำตอบ:</strong> ในหน้าต่าง <strong>"นำเข้า BOQ สู่ Project Tasks & แผนงาน Gantt"</strong> (`modal-convert-boq-tasks`) คอลัมน์ <strong>"ผู้รับผิดชอบ (Key ชื่อช่าง / เลือกช่างจาก INT)"</strong> ถูกปรับให้กระชับ ชัดเจน และมีเฉพาะองค์ประกอบที่จำเป็นต่อการปฏิบัติงานจริงเท่านั้น:</p>
                                     <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
-                                        <li><strong>เปิดให้ Key ชื่อช่างได้โดยตรง (Free Text Keying):</strong> เจ้าหน้าที่สามารถพิมพ์ชื่อช่าง ทีมช่าง หรือเบอร์ติดต่อลงในช่อง Input ได้อย่างอิสระ พร้อมระบบ Autocomplete ดึงชื่อช่างที่คุ้นเคยมาช่วยแนะนำ</li>
-                                        <li><strong>ปุ่ม "จองช่างจาก INT" (INT Booking Integration):</strong> แต่ละแถวมีปุ่ม <code class="bg-purple-500/10 text-purple-700 font-bold px-1.5 py-0.2 rounded text-[10px]">จองช่างจาก INT</code> เมื่อคลิกจะเปิดหน้าต่างดึงรายชื่อช่างจากระบบ INT พร้อมคะแนนดาวรีวิว (เช่น สมชาย ใจดี ★ 4.9, อนุรักษ์ มีสุข ★ 4.8, กมลวรรณ ★ 4.7) และปุ่มยืนยันการจองช่าง (Confirm) เพื่อออกเลขรหัสการจอง <code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">INT-BOOK-XXXX</code></li>
-                                        <li><strong>ปุ่ม "จองช่างจาก INT ทั้งหมด":</strong> แถบเครื่องมือด้านบนมีปุ่มลัดสำหรับดึงและจัดสรรคิวช่าง INT ให้ทุกงานพร้อมกันในคลิกเดียว</li>
-                                        <li><strong>ทำระบบรอเชื่อมต่อ API จริง:</strong> เมื่อกดจองช่าง ระบบจะจำลอง Request และบันทึกลงใน API Logs เพื่อให้ทีมพัฒนาระบบ INT สามารถเชื่อมต่อ Endpoint จริงได้ทันทีโดยไม่ต้องแก้โค้ดหน้าบ้านใหม่</li>
+                                        <li><strong>ช่อง Key ชื่อช่างโดยตรง (Free Text Input):</strong> เจ้าหน้าที่สามารถพิมพ์ (Key in) ชื่อช่าง ทีมช่าง หรือเบอร์ติดต่อลงในช่อง Input ได้อย่างอิสระโดยตรง ไม่ซับซ้อน</li>
+                                        <li><strong>ปุ่ม "เลือกช่างจาก INT" (INT Selection Integration):</strong> แต่ละแถวมีปุ่ม <code class="bg-purple-500/10 text-purple-700 font-bold px-1.5 py-0.2 rounded text-[10px]">เลือกช่างจาก INT</code> เมื่อคลิกจะเปิดหน้าต่างเลือกรายชื่อช่างจากระบบ INT พร้อมคะแนนดาวรีวิว และปุ่มยืนยันเลือกช่าง (Confirm) เพื่อนำชื่อช่างมาใส่ในช่อง Key ทันที</li>
+                                        <li><strong>ตัดปุ่มด่วนลัดที่ไม่จำเป็นออก:</strong> เพื่อให้ตารางมีความสะอาดตา อ่านข้อมูลง่าย บรรทัดไม่ซ้อนทับกัน และคงไว้เฉพาะการ Key ชื่อช่างกับปุ่มเลือกช่างจาก INT เท่านั้น</li>
+                                        <li><strong>ปุ่ม "เลือกช่างจาก INT ทั้งหมด":</strong> ที่แถบเครื่องมือด้านบน มีปุ่มลัดสำหรับดึงและจัดสรรช่าง INT ให้ทุกงานพร้อมกันในคลิกเดียว</li>
                                     </ul>
                                 </div>
                             </details>
@@ -9022,9 +9022,9 @@
                             <button type="button" onclick="app.insertConvertTaskAt(-1)" class="text-[11px] bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 px-2.5 py-1 rounded-lg border border-purple-500/30 flex items-center gap-1 cursor-pointer font-medium">
                                 <i class="ph ph-plus"></i> + แทรกงานใหม่
                             </button>
-                            <button type="button" onclick="app.batchBookAllTechsFromINT()" class="text-[11px] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-500/30 flex items-center gap-1 cursor-pointer font-medium" title="ดึงคิวจองช่างจากระบบ INT ให้ทุกงาน (ทำไว้ รอเชื่อมต่อ)">
+                            <button type="button" onclick="app.batchBookAllTechsFromINT()" class="text-[11px] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-500/30 flex items-center gap-1 cursor-pointer font-medium" title="ดึงคิวเลือกช่างจากระบบ INT ให้ทุกงาน (ทำไว้ รอเชื่อมต่อ)">
                                 <i class="ph ph-calendar-check text-indigo-600"></i>
-                                <span>จองช่างจาก INT ทั้งหมด (รอเชื่อมต่อ)</span>
+                                <span>เลือกช่างจาก INT ทั้งหมด (รอเชื่อมต่อ)</span>
                             </button>
                             <button type="button" onclick="app.sortConvertTasksByStartDate(true)" class="text-[11px] bg-muted hover:bg-muted/80 text-foreground px-2.5 py-1 rounded-lg border border-border flex items-center gap-1 cursor-pointer" title="จัดเรียงรายการ Task ตามวันเริ่มต้น">
                                 <i class="ph ph-arrows-down-up"></i> จัดเรียงตามวันเริ่มงาน
@@ -9045,7 +9045,7 @@
                                     <th class="py-2.5 px-3 w-36">วันเริ่มต้น (Start Date)</th>
                                     <th class="py-2.5 px-3 w-36">วันสิ้นสุด (End Date)</th>
                                     <th class="py-2.5 px-3 w-20 text-center">ระยะเวลา</th>
-                                    <th class="py-2.5 px-3 min-w-[280px]">ผู้รับผิดชอบ (Key ชื่อช่าง / จองจาก INT)</th>
+                                    <th class="py-2.5 px-3 min-w-[280px]">ผู้รับผิดชอบ (Key ชื่อช่าง / เลือกช่างจาก INT)</th>
                                     <th class="py-2.5 px-2 w-28 text-center">การแทรก / ลบ</th>
                                 </tr>
                             </thead>
@@ -9112,7 +9112,7 @@
                     </div>
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <h3 class="font-display font-bold text-sm sm:text-base text-foreground">จองช่างจากระบบ INT</h3>
+                            <h3 class="font-display font-bold text-sm sm:text-base text-foreground">เลือกช่างจากระบบ INT</h3>
                             <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/15 text-amber-700 border border-amber-500/30">⚡ ทำไว้รอเชื่อมต่อ API</span>
                         </div>
                         <p class="text-xs text-muted-foreground mt-0.5">จัดสรรคิวและผูกรหัสช่างจากฐานข้อมูล INT โดยตรง (INT Tech Dispatching Integration)</p>
@@ -9206,7 +9206,7 @@
                 </button>
                 <button type="button" onclick="app.confirmIntTechBooking()" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-xs cursor-pointer flex items-center gap-1.5 transition hover:scale-[1.02]">
                     <i class="ph ph-check-circle-fill text-sm"></i>
-                    <span>ยืนยันการจองช่าง (Confirm)</span>
+                    <span>ยืนยันเลือกช่าง (Confirm)</span>
                 </button>
             </div>
         </div>
