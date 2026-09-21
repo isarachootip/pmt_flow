@@ -7214,12 +7214,14 @@ const app = {
                 ).length;
 
                 const convertedJobIds = new Set((DB.tasks || []).map(t => t.jobId));
-                const conversionPendingCount = allJobs.filter(j => 
-                    !this.isQuickJob(j) &&
-                    ((j.boq_items && j.boq_items.length > 0) || (j.boq_count && Number(j.boq_count) > 0)) &&
-                    !convertedJobIds.has(j.id) &&
-                    j.status !== 'CANCELLED'
-                ).length;
+                const conversionPendingCount = allJobs.filter(j => {
+                    if (this.isQuickJob(j)) return false;
+                    if (convertedJobIds.has(j.id)) return false;
+                    if (j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost) return false;
+                    const hasBOQ = (j.boq_items && j.boq_items.length > 0) || (j.boq_count && Number(j.boq_count) > 0) || (j.boq_grand_total && Number(j.boq_grand_total) > 0);
+                    const hasTicket = this.isJobPaymentRecorded(j) || (DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id) || (j.ticket_count && Number(j.ticket_count) > 0);
+                    return hasBOQ && hasTicket;
+                }).length;
 
                 if (sidebarTicket) {
                     sidebarTicket.innerText = step2QueueCount > 0 ? step2QueueCount : (DB.tickets || []).length;
@@ -7759,8 +7761,10 @@ const app = {
                 const now = new Date();
                 const todayStr = now.toLocaleDateString('en-CA');
 
-                // Step 5 eligible: Renovate/Non-quick jobs with BOQ or Step 5 timestamps (Quick jobs skip Step 5 directly to QC Online)
-                const step5Eligible = allJobs.filter(j => !this.isQuickJob(j) && ((j.boq_items && j.boq_items.length > 0) || (j.step_timestamps && (j.step_timestamps.step5_project_at || j.step_timestamps.step3_conversion_at))));
+                // Step 5 eligible: โครงการ Renovate/Non-quick ที่ไม่ถูกยกเลิก และต้องมี BOQ + ผ่าน Ticket เรียบร้อยแล้ว
+                const hasBOQ = (j) => (j.boq_items && j.boq_items.length > 0) || (j.boq_count && Number(j.boq_count) > 0) || (j.boq_grand_total && Number(j.boq_grand_total) > 0);
+                const hasTicket = (j) => this.isJobPaymentRecorded(j) || (DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id) || (j.ticket_count && Number(j.ticket_count) > 0);
+                const step5Eligible = allJobs.filter(j => !this.isQuickJob(j) && j.status !== 'CANCELLED' && j.status !== 'CLOSED_LOST' && !j.is_closed_lost && hasBOQ(j) && hasTicket(j));
                 const totalStep5 = step5Eligible.length;
 
                 // Remaining in Step 5: Renovate jobs not yet converted into tasks
@@ -17451,8 +17455,36 @@ const app = {
                            n.includes('งาน') || n.includes('แรง') || n.includes('ล้าง');
                 };
 
+                // Helper: ต้องมีรายการ BOQ
+                const hasBOQ = (j) => {
+                    return (Array.isArray(j.boq_items) && j.boq_items.length > 0) ||
+                           (j.boq_count && Number(j.boq_count) > 0) ||
+                           (j.boq_grand_total && Number(j.boq_grand_total) > 0);
+                };
+
+                // Helper: ต้องผ่านการบันทึก Ticket / ชำระเงิน
+                const hasTicket = (j) => {
+                    return this.isJobPaymentRecorded(j) ||
+                           (DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id) ||
+                           (j.ticket_count && Number(j.ticket_count) > 0) ||
+                           (j.step_timestamps && (j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at || j.step_timestamps.step3_conversion_at || j.step_timestamps.step5_project_at));
+                };
+
+                // เงื่อนไขบังคับสำหรับคิวรอแปลงเข้า Project:
+                // 1. ไม่ใช่ Quick Job
+                // 2. ยังไม่เคยแปลงเข้า Gantt
+                // 3. ไม่ถูกยกเลิก (Not Cancelled / Close Lost)
+                // 4. ต้องมีรายการ BOQ (Step 1)
+                // 5. ต้องผ่านการบันทึก Ticket / ชำระเงิน (Step 2)
+                const isConversionPending = (j) => {
+                    if (this.isQuickJob(j)) return false;
+                    if (convertedJobIds.has(j.id)) return false;
+                    if (j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost) return false;
+                    return hasBOQ(j) && hasTicket(j);
+                };
+
                 // Badge counters (unfiltered total counts)
-                const totalPendingCount = allJobs.filter(j => !this.isQuickJob(j) && !convertedJobIds.has(j.id)).length;
+                const totalPendingCount = allJobs.filter(isConversionPending).length;
                 const totalConvertedCount = allJobs.filter(j => convertedJobIds.has(j.id)).length;
                 const badgePending = document.getElementById('tab-conversion-pending-badge');
                 const badgeLibrary = document.getElementById('tab-conversion-library-badge');
@@ -17465,7 +17497,7 @@ const app = {
                 const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
                 const sFilter = serviceFilterEl ? serviceFilterEl.value : 'all';
 
-                let pendingJobs = sourceJobs.filter(j => !this.isQuickJob(j) && !convertedJobIds.has(j.id));
+                let pendingJobs = sourceJobs.filter(isConversionPending);
                 let convertedJobs = sourceJobs.filter(j => convertedJobIds.has(j.id));
 
                 if (q) {
@@ -17512,7 +17544,7 @@ const app = {
                             <div class="col-span-full artifact-card p-10 text-center text-muted-foreground border border-dashed border-border">
                                 <i class="ph ph-check-circle text-4xl mb-2 text-emerald-500/60"></i>
                                 <h4 class="font-display font-medium text-foreground text-sm">ไม่มีโครงการรอแปลงเข้า Project ในขณะนี้</h4>
-                                <p class="text-xs text-muted-foreground mt-1">โครงการทั้งหมดถูกแปลงเข้าสู่แผนงาน Gantt Timeline เรียบร้อยแล้ว</p>
+                                <p class="text-xs text-muted-foreground mt-1">โครงการที่จะเข้าสู่คิวนี้ต้องผ่านการบันทึก BOQ (Step 1) และออก Ticket ชำระเงิน (Step 2) เรียบร้อยแล้ว (หรือถูกแปลงเข้าสู่แผนงาน Gantt เรียบร้อยแล้ว)</p>
                             </div>
                         `;
                     } else if (isList) {
@@ -17786,21 +17818,26 @@ const app = {
                     this.switchConversionTab(this.state.conversionTab);
                 }
 
-                const targetJobId = jobId || this.state.selectedConversionJobId || this.state.selectedGanttJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
+                const eligibleJobs = (DB.jobs || []).filter(j => !this.isQuickJob(j) && j.status !== 'CANCELLED' && j.status !== 'CLOSED_LOST' && !j.is_closed_lost && hasBOQ(j) && hasTicket(j));
+                const targetJobId = jobId || this.state.selectedConversionJobId || (pendingJobs[0] ? pendingJobs[0].id : (eligibleJobs[0] ? eligibleJobs[0].id : (convertedJobs[0] ? convertedJobs[0].id : '')));
                 this.state.selectedConversionJobId = targetJobId;
                 this.state.selectedGanttJobId = targetJobId;
 
                 const job = (DB.jobs || []).find(j => j.id === targetJobId);
 
-                // Populate conversion-job-select
+                // Populate conversion-job-select (only non-quick, non-cancelled jobs that have BOQ & Ticket)
                 const sel = document.getElementById('conversion-job-select');
                 if (sel) {
-                    sel.innerHTML = (DB.jobs || []).map(j => {
-                        const cust = j.customer || `${j.firstName || ''} ${j.lastName || ''}`.trim() || 'ลูกค้า';
-                        const boqCount = (j.boq_items || []).length;
-                        const taskCount = (DB.tasks || []).filter(t => t.jobId === j.id).length;
-                        return `<option value="${j.id}" ${j.id === targetJobId ? 'selected' : ''}>${j.id} - ${cust} (BOQ: ${boqCount} | Tasks: ${taskCount})</option>`;
-                    }).join('');
+                    if (eligibleJobs.length === 0) {
+                        sel.innerHTML = '<option value="">-- ไม่มีโครงการที่ผ่าน BOQ & Ticket --</option>';
+                    } else {
+                        sel.innerHTML = eligibleJobs.map(j => {
+                            const cust = j.customer || `${j.firstName || ''} ${j.lastName || ''}`.trim() || 'ลูกค้า';
+                            const boqCount = (j.boq_items || []).length;
+                            const taskCount = (DB.tasks || []).filter(t => t.jobId === j.id).length;
+                            return `<option value="${j.id}" ${j.id === targetJobId ? 'selected' : ''}>${j.id} - ${cust} (BOQ: ${boqCount} | Tasks: ${taskCount})</option>`;
+                        }).join('');
+                    }
                     sel.value = targetJobId;
                 }
 
@@ -17810,7 +17847,22 @@ const app = {
 
                 const banner = document.getElementById('conversion-status-banner');
                 if (banner) {
-                    if (boqItems.length === 0) {
+                    if (eligibleJobs.length === 0 || !job) {
+                        banner.innerHTML = `
+                            <div class="flex items-center gap-3 text-xs">
+                                <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center text-base shrink-0">
+                                    <i class="ph ph-info"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-foreground">ยังไม่มีโครงการที่พร้อมแปลงเข้า Project</h4>
+                                    <p class="text-muted-foreground text-[11px]">โครงการต้องผ่านการบันทึก BOQ (Step 1) และออก Ticket ชำระเงิน (Step 2) ครบถ้วนก่อน จึงจะเข้าสู่คิวแปลงเป็นแผนงานได้</p>
+                                </div>
+                            </div>
+                            <button onclick="app.navigate('tickets')" class="btn-artifact-secondary px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer shrink-0">
+                                ➔ ไปหน้าบันทึก Ticket & ใบเสร็จ
+                            </button>
+                        `;
+                    } else if (boqItems.length === 0) {
                         banner.innerHTML = `
                             <div class="flex items-center gap-3 text-xs">
                                 <div class="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center text-base shrink-0">
@@ -17867,12 +17919,26 @@ const app = {
                 // Render tasks table
                 const taskTitle = document.getElementById('conversion-tasks-title');
                 if (taskTitle) {
-                    taskTitle.innerText = `รายการ Task ในโครงการ ${targetJobId} (${jobTasks.length} งาน)`;
+                    taskTitle.innerText = (!job || eligibleJobs.length === 0)
+                        ? 'รายการ Task ในโครงการ (ไม่มีโครงการที่ผ่าน BOQ & Ticket)'
+                        : `รายการ Task ในโครงการ ${targetJobId} (${jobTasks.length} งาน)`;
                 }
 
                 const tbody = document.getElementById('conversion-tasks-tbody');
                 if (tbody) {
-                    if (jobTasks.length === 0) {
+                    if (!job || eligibleJobs.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="6" class="py-10 text-center text-muted-foreground">
+                                    <div class="flex flex-col items-center justify-center gap-1.5">
+                                        <i class="ph ph-calendar-x text-3xl text-muted-foreground/40"></i>
+                                        <p class="text-xs font-semibold text-foreground">ยังไม่มีโครงการที่พร้อมแปลงเข้าสู่แผนงาน</p>
+                                        <p class="text-[11px] text-muted-foreground">โครงการต้องผ่านการบันทึก BOQ (Step 1) และออก Ticket ชำระเงิน (Step 2) ครบถ้วนก่อน</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    } else if (jobTasks.length === 0) {
                         tbody.innerHTML = `
                             <tr>
                                 <td colspan="6" class="py-10 text-center text-muted-foreground">
