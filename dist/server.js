@@ -3672,18 +3672,60 @@ app.post('/api/v1/jobs/:id/close-and-export-bmt', requireAuth, async (req, res) 
     }
 });
 // =============================================================================
-// 7. STK OUTBOUND REST INTEGRATION API (QC Results Export: Job No, Questions, Scores)
+// 7. STK OUTBOUND REST INTEGRATION API (QC Results Export to STK Partner System)
 // =============================================================================
 app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'], async (req, res) => {
     try {
         const param = req.params.id;
         const numId = Number(param);
         const payload = req.body || {};
-        const jobNo = payload.job_no || (String(param).startsWith('JOB') ? param : `JOB2609090000${param}`);
+        // 1. Locate target job in in-memory store or DB
+        let targetJob = exports.coreJobStore.find(j => j.id === numId ||
+            j.job_no === param ||
+            j.ticket_no === param ||
+            j.booking_no === param ||
+            j.external_ref_id === param);
+        let dbJob = null;
+        if (!targetJob && database_1.isDatabaseConnected) {
+            dbJob = await (0, database_1.dbGetJob)(param);
+            if (!dbJob && !isNaN(numId)) {
+                dbJob = await (0, database_1.dbGetJob)(numId);
+            }
+        }
+        const currentJob = targetJob || dbJob;
+        // 2. Prevent duplicate submission if already QC_PASSED (Gating rule!)
+        const isForce = req.query.force === 'true' || payload.force === true;
+        if (!isForce && currentJob && (currentJob.status === JobStatus.QC_PASSED || currentJob.qc_status === 'QC_PASSED')) {
+            const existingPayload = currentJob.stk_payload || {
+                ref_no: currentJob.external_ref_id || '-',
+                ticket: currentJob.ticket_no || currentJob.job_no || param,
+                booking_no: currentJob.booking_no || '-',
+                qc_date: currentJob.qc_passed_at || null,
+                customer_name: currentJob.customer_name || currentJob.customer || 'ลูกค้า',
+                customer_phone: currentJob.customer_phone || currentJob.phone || '-',
+                qc_round: currentJob.qc_history?.length || 1,
+                qc_result: 'ผ่านเกณฑ์',
+                qc_score: currentJob.qc_score || 1.0,
+                stk_ref: currentJob.stk_ref || '-'
+            };
+            return res.status(409).json({
+                success: false,
+                error: {
+                    code: 'ALREADY_QC_PASSED',
+                    message: 'ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC และบันทึกส่งข้อมูลไป STK เรียบร้อยแล้ว ไม่อนุญาตให้บันทึกใหม่หรือส่งซ้ำ'
+                },
+                data: existingPayload
+            });
+        }
+        const jobNo = payload.job_no || (currentJob ? currentJob.job_no : (String(param).startsWith('JOB') ? param : `JOB2609090000${param}`));
         const questions = Array.isArray(payload.questions) ? payload.questions : [];
-        const qcScore = payload.qc_score != null ? Number(payload.qc_score) : 5.0;
+        const qcScore = payload.qc_score != null ? Number(payload.qc_score) : (currentJob?.qc_score ? Number(currentJob.qc_score) : 1.0);
         const stkRef = payload.stk_ref || `STK-QC-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
         const exportedAt = new Date().toISOString();
+        // Format QC Date in 24-hr DD/MM/YYYY HH:mm:ss น. (PMT Flow Mandatory Standard)
+        const nowD = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const thaiDateFormatted = `${pad(nowD.getDate())}/${pad(nowD.getMonth() + 1)}/${nowD.getFullYear()} ${pad(nowD.getHours())}:${pad(nowD.getMinutes())}:${pad(nowD.getSeconds())} น.`;
         const formattedQuestions = questions.map((q, idx) => {
             const isPass = q.result === 'PASS' || q.answer === 'YES';
             const scoreVal = q.score != null ? Number(q.score) : (isPass ? 5 : 1);
@@ -3700,21 +3742,55 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
                 photos_count: q.photos_count || (Array.isArray(q.photos) ? q.photos.length : 0)
             };
         });
+        // Resolve customer and project metadata
+        const refNo = payload.ref_no || payload.external_ref_id || currentJob?.external_ref_id || currentJob?.raw_payload?.external_ref_id || '-';
+        const ticketNo = payload.ticket || payload.ticket_no || currentJob?.ticket_no || jobNo;
+        const bookingNo = payload.booking_no || currentJob?.booking_no || currentJob?.raw_payload?.booking_no || '-';
+        const customerName = payload.customer_name || (typeof payload.customer === 'object' ? payload.customer?.name : payload.customer) || currentJob?.customer_name || currentJob?.customer || 'ลูกค้า';
+        const customerPhone = payload.customer_phone || (typeof payload.customer === 'object' ? payload.customer?.phone : payload.customer_phone) || currentJob?.customer_phone || currentJob?.phone || '-';
+        const history = Array.isArray(payload.qc_history) ? payload.qc_history : (currentJob?.qc_history || []);
+        const qcRound = payload.qc_round != null ? Number(payload.qc_round) : (history.length > 0 ? history.length : 1);
+        const qcRoundText = payload.qc_round_text || (qcRound >= 2 ? `ตรวจครั้งที่ ${qcRound} (ผ่านเกณฑ์รอบแก้ไข)` : `ตรวจครั้งที่ 1 (ผ่านเกณฑ์รอบแรก)`);
+        const qcResult = payload.qc_result || 'ผ่านเกณฑ์';
+        const qcScoreText = payload.qc_score_text || `${Number(qcScore).toFixed(1)} / 5.0 คะแนน`;
+        // Format Outbound STK Payload with the 8 requested fields at root + system details
         const formattedOutboundPayload = {
-            job_no: jobNo,
+            // === 8 ข้อมูลสำคัญสำหรับส่งให้ระบบ STK (STK Notification Fields) ===
+            ref_no: refNo, // 1. เลขที่ Ref
+            ticket: ticketNo, // 2. ticket
+            booking_no: bookingNo, // 3. booking_no
+            qc_date: payload.qc_date || thaiDateFormatted, // 4. วันที่ บันทึก Qc (DD/MM/YYYY 24-hr)
+            qc_recorded_at: exportedAt, // 4.1 วันที่บันทึก QC (ISO Timestamp)
+            customer_name: customerName, // 5. ชื่อลูกค้า นามสกุล
+            customer_phone: customerPhone, // 6. เบอร์โทร
+            qc_round: qcRound, // 7. ผลการทดสอบ QC ครั้งที่ x (ตัวเลขรอบ)
+            qc_round_text: qcRoundText, // 7.1 ข้อความผลการทดสอบ QC ครั้งที่ x
+            qc_result: qcResult, // 7.2 ผลการตรวจ (ผ่านเกณฑ์)
+            qc_score: qcScore, // 8. คะแนน ประเมิน (เช่น 1.0 หรือ 5.0)
+            qc_score_text: qcScoreText, // 8.1 ข้อความคะแนนประเมิน
+            // === ข้อมูลประกอบการส่งมอบระบบ (System Metadata) ===
+            stk_ref: stkRef,
             stk_export_ref: stkRef,
             exported_at: exportedAt,
-            customer: payload.customer || { name: 'คุณสมชาย ใจดี', phone: '081-234-5678' },
-            service: payload.service || 'ติดตั้งเครื่องทำน้ำอุ่น',
-            tech_team: payload.tech_team || 'ทีมช่าง สมศักดิ์ (Team A)',
-            qc_inspector: payload.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
-            qc_score: qcScore,
+            job_no: jobNo,
+            ticket_no: ticketNo,
+            external_ref_id: refNo,
+            customer: {
+                name: customerName,
+                phone: customerPhone
+            },
+            service: payload.service || currentJob?.project_type || 'บริการติดตั้ง',
+            tech_team: payload.tech_team || currentJob?.assigned_tech || '-',
+            store_code: payload.store_code || currentJob?.store_code || '-',
+            agent_name: payload.agent_name || currentJob?.agent_name || '-',
+            qc_inspector: payload.qc_inspector || currentJob?.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
+            qc_remarks: payload.qc_remarks || 'งานติดตั้งเรียบร้อยตามมาตรฐาน',
             total_score_obtained: payload.total_score_obtained ?? formattedQuestions.reduce((acc, q) => acc + Number(q.score || 0), 0),
             max_possible_score: payload.max_possible_score ?? (formattedQuestions.length * 5),
             total_questions: formattedQuestions.length,
             passed_questions: payload.passed_questions ?? formattedQuestions.filter((q) => q.result === 'PASS' || q.answer === 'YES').length,
             questions: formattedQuestions,
-            qc_remarks: payload.qc_remarks || 'งานติดตั้งเรียบร้อยตามมาตรฐาน'
+            qc_history: history
         };
         // Persist to PostgreSQL database
         await (0, database_1.dbUpdateJob)(param, {
@@ -3724,10 +3800,13 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
             qc_passed_at: exportedAt,
             qc_remarks: payload.qc_remarks || 'งานติดตั้งเรียบร้อยตามมาตรฐาน',
             qc_inspector: payload.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
+            stk_ref: stkRef,
+            stk_status: 'DELIVERED',
+            stk_payload: formattedOutboundPayload,
+            stk_exported_at: exportedAt,
             ...(Array.isArray(payload.qc_history) ? { qc_history: payload.qc_history } : {}),
             ...(formattedQuestions.length > 0 ? { qc_subtasks: formattedQuestions } : {})
         });
-        const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
         if (targetJob) {
             targetJob.status = JobStatus.QC_PASSED;
             targetJob.overall_progress = 100;
@@ -3741,19 +3820,24 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
             if (formattedQuestions.length > 0)
                 targetJob.qc_subtasks = formattedQuestions;
         }
+        // Forward to external STK Webhook if configured
+        if (process.env.STK_OUTBOUND_WEBHOOK_URL) {
+            try {
+                await fetch(process.env.STK_OUTBOUND_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formattedOutboundPayload)
+                });
+            }
+            catch (webhookErr) {
+                console.warn('[STK WEBHOOK] Failed to forward payload to STK webhook endpoint:', webhookErr.message);
+            }
+        }
         return res.status(200).json({
             success: true,
-            data: {
-                job_no: jobNo,
-                stk_ref: stkRef,
-                stk_status: 'DELIVERED',
-                exported_at: exportedAt,
-                questions_count: formattedQuestions.length,
-                qc_score: qcScore,
-                exported_payload: formattedOutboundPayload
-            },
+            data: formattedOutboundPayload,
             meta: {
-                message: 'ส่งผลการตรวจ QC (เลขที่, คำถาม, คะแนน) ไปยังระบบ STK เรียบร้อยแล้ว (STK Outbound REST API Successful)'
+                message: 'ส่งผลการตรวจ QC (เลขที่ Ref, ticket, booking_no, วันที่บันทึก QC, ข้อมูลลูกค้า, ผลการตรวจ และคะแนนประเมิน) ไปยังระบบ STK เรียบร้อยแล้ว (STK Outbound REST API Successful)'
             }
         });
     }
@@ -3761,6 +3845,90 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
         return res.status(500).json({
             success: false,
             error: { code: 'STK_EXPORT_FAILED', message: err.message }
+        });
+    }
+});
+// GET STK Payload (Query API for STK and Client Systems)
+app.get(['/api/v1/jobs/:id/stk-payload', '/api/v1/integrations/stk/qc-results/:id'], async (req, res) => {
+    try {
+        const param = req.params.id;
+        const numId = Number(param);
+        let targetJob = exports.coreJobStore.find(j => j.id === numId ||
+            j.job_no === param ||
+            j.ticket_no === param ||
+            j.booking_no === param ||
+            j.external_ref_id === param);
+        let dbJob = null;
+        if (!targetJob && database_1.isDatabaseConnected) {
+            dbJob = await (0, database_1.dbGetJob)(param);
+            if (!dbJob && !isNaN(numId)) {
+                dbJob = await (0, database_1.dbGetJob)(numId);
+            }
+        }
+        const job = targetJob || dbJob;
+        if (!job) {
+            return res.status(404).json({
+                success: false,
+                error: { code: 'JOB_NOT_FOUND', message: `ไม่พบข้อมูลใบงาน '${param}' ในระบบ` }
+            });
+        }
+        if (job.stk_payload) {
+            return res.status(200).json({
+                success: true,
+                data: job.stk_payload,
+                meta: {
+                    is_qc_passed: job.status === JobStatus.QC_PASSED,
+                    source: 'persisted_stk_payload'
+                }
+            });
+        }
+        // Format from existing job data if passed or preview
+        const nowD = job.qc_passed_at ? new Date(job.qc_passed_at) : new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const thaiDateFormatted = `${pad(nowD.getDate())}/${pad(nowD.getMonth() + 1)}/${nowD.getFullYear()} ${pad(nowD.getHours())}:${pad(nowD.getMinutes())}:${pad(nowD.getSeconds())} น.`;
+        const history = Array.isArray(job.qc_history) ? job.qc_history : [];
+        const lastPassed = history.find((h) => h.result === 'PASSED' || h.action === 'PASSED');
+        const qcRound = lastPassed ? lastPassed.round : (history.length || 1);
+        const qcScore = job.qc_score != null ? Number(job.qc_score) : (lastPassed ? Number(lastPassed.score) : 1.0);
+        const isPassed = job.status === JobStatus.QC_PASSED || !!lastPassed;
+        const constructedPayload = {
+            ref_no: job.external_ref_id || job.raw_payload?.external_ref_id || '-',
+            ticket: job.ticket_no || job.job_no || String(job.id),
+            booking_no: job.booking_no || job.raw_payload?.booking_no || '-',
+            qc_date: thaiDateFormatted,
+            qc_recorded_at: job.qc_passed_at || nowD.toISOString(),
+            customer_name: job.customer_name || job.customer || 'ลูกค้า',
+            customer_phone: job.customer_phone || job.phone || '-',
+            qc_round: qcRound,
+            qc_round_text: qcRound >= 2 ? `ตรวจครั้งที่ ${qcRound} (ผ่านเกณฑ์รอบแก้ไข)` : `ตรวจครั้งที่ 1 (ผ่านเกณฑ์รอบแรก)`,
+            qc_result: isPassed ? 'ผ่านเกณฑ์' : 'รอตรวจรับรอง',
+            qc_score: qcScore,
+            qc_score_text: `${Number(qcScore).toFixed(1)} / 5.0 คะแนน`,
+            stk_ref: job.stk_ref || `STK-QC-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`,
+            stk_status: job.stk_status || (isPassed ? 'DELIVERED' : 'PENDING'),
+            job_no: job.job_no || String(job.id),
+            service: job.project_type || job.service || 'บริการติดตั้ง',
+            tech_team: job.assigned_tech || job.tech || '-',
+            store_code: job.store_code || '-',
+            agent_name: job.agent_name || '-',
+            qc_inspector: job.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
+            qc_remarks: job.qc_remarks || 'งานติดตั้งเรียบร้อยตามมาตรฐาน',
+            qc_history: history,
+            questions: job.qc_subtasks || []
+        };
+        return res.status(200).json({
+            success: true,
+            data: constructedPayload,
+            meta: {
+                is_qc_passed: isPassed,
+                source: 'constructed_from_job'
+            }
+        });
+    }
+    catch (err) {
+        return res.status(500).json({
+            success: false,
+            error: { code: 'GET_STK_PAYLOAD_FAILED', message: err.message }
         });
     }
 });

@@ -303,6 +303,10 @@ async function initDatabase() {
         ADD COLUMN IF NOT EXISTS has_rework BOOLEAN DEFAULT FALSE,
         ADD COLUMN IF NOT EXISTS qc_remarks TEXT,
         ADD COLUMN IF NOT EXISTS qc_inspector VARCHAR(150),
+        ADD COLUMN IF NOT EXISTS stk_ref VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS stk_status VARCHAR(50),
+        ADD COLUMN IF NOT EXISTS stk_payload JSONB DEFAULT '{}'::jsonb,
+        ADD COLUMN IF NOT EXISTS stk_exported_at TIMESTAMP WITH TIME ZONE,
         ADD COLUMN IF NOT EXISTS raw_payload JSONB DEFAULT '{}'::jsonb;
 
       ALTER TABLE core_daily_work_logs
@@ -573,6 +577,10 @@ function mapDbJobRow(row) {
         csat_photos: Array.isArray(row.csat_photos) ? row.csat_photos : [],
         csat_surveyor: row.csat_surveyor || '',
         csat_evaluated_at: row.csat_evaluated_at || null,
+        stk_ref: row.stk_ref || row.raw_payload?.stk_ref || '',
+        stk_status: row.stk_status || row.raw_payload?.stk_status || '',
+        stk_payload: row.stk_payload || row.raw_payload?.stk_payload || null,
+        stk_exported_at: row.stk_exported_at || row.raw_payload?.stk_exported_at || null,
         job_type: row.job_type || 'quick',
         step_timestamps: row.step_timestamps || {},
         created_at: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
@@ -622,6 +630,10 @@ exports.LEAN_JOB_COLUMNS = `
   csat_remarks,
   csat_surveyor,
   csat_evaluated_at,
+  stk_ref,
+  stk_status,
+  stk_payload,
+  stk_exported_at,
   created_at,
   updated_at,
   CASE 
@@ -1049,18 +1061,19 @@ async function dbUpdateJob(jobNoOrId, updates) {
         const jsonbFields = [
             'step_timestamps', 'services', 'customer_data', 'tasks', 'photos', 'boq_items', 'csat_photos',
             'job_details', 'agent_data', 'store_data', 'schedule_plan', 'checkin_data', 'checkout_data',
-            'approval_data', 'visit_results', 'remarks_data', 'raw_payload', 'qc_history', 'qc_subtasks'
+            'approval_data', 'visit_results', 'remarks_data', 'raw_payload', 'qc_history', 'qc_subtasks',
+            'stk_payload'
         ];
         const stringFields = [
             'external_ref_id', 'booking_no', 'ticket_no', 'status', 'job_type',
             'property_type', 'project_type', 'project_sub_type', 'store_code',
             'agent_name', 'assigned_tech', 'plan_date', 'special_instructions',
             'additional_notes', 'qc_inspection_type', 'csat_remarks', 'csat_surveyor', 'file_int_image',
-            'qc_remarks', 'qc_inspector'
+            'qc_remarks', 'qc_inspector', 'stk_ref', 'stk_status'
         ];
         const numFields = ['customer_id', 'overall_progress', 'boq_discount', 'boq_subtotal', 'boq_grand_total', 'qc_score', 'csat_score', 'rework_count', 'qc_rework_count'];
         const boolFields = ['pmt_accepted', 'step3_confirmed', 'has_rework'];
-        const dateFields = ['pmt_accepted_at', 'qc_passed_at', 'csat_evaluated_at'];
+        const dateFields = ['pmt_accepted_at', 'qc_passed_at', 'csat_evaluated_at', 'stk_exported_at'];
         for (const [key, val] of Object.entries(updates)) {
             if (val === undefined)
                 continue;

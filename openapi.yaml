@@ -601,44 +601,75 @@ paths:
   /jobs/{id}/export-stk:
     post:
       summary: Export QC Evaluation Results to STK System (Outbound REST API)
-      description: Sends job number, checklist questions, scores obtained, and overall QC score to STK external system.
+      description: |
+        Exports QC inspection results to STK system featuring 8 mandatory core fields.
+        Strictly prevents duplicate submissions if the job has already passed QC (returns 409 Conflict unless ?force=true).
       parameters:
         - in: path
           name: id
           required: true
           schema:
             type: string
+        - in: query
+          name: force
+          required: false
+          schema:
+            type: boolean
+          description: Set to true to override 409 Conflict if re-export is explicitly needed
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required: [ref_no, ticket, booking_no, qc_date, customer_name, customer_phone, qc_round, qc_score]
               properties:
-                job_no:
-                  type: string
+                ref_no: { type: string, example: "STK-QC-2026-894120" }
+                ticket: { type: string, example: "TCK-202609-0881" }
+                booking_no: { type: string, example: "VFIX-BKG-202609-0941" }
+                qc_date: { type: string, example: "21/09/2026 23:45:10 น." }
+                qc_recorded_at: { type: string, format: date-time }
+                customer_name: { type: string, example: "คุณสมชาย ใจดี" }
+                customer_phone: { type: string, example: "081-234-5678" }
+                qc_round: { type: integer, example: 1 }
+                qc_round_text: { type: string, example: "ตรวจครั้งที่ 1 (ผ่านเกณฑ์รอบแรก)" }
+                qc_result: { type: string, enum: [PASSED, REWORK], example: "PASSED" }
+                qc_score: { type: number, example: 5.0 }
+                qc_score_text: { type: string, example: "5.0 / 5.0 (ผ่านเกณฑ์รอบแรก)" }
+                job_no: { type: string, example: "JOB26092116464" }
                 questions:
                   type: array
                   items:
                     type: object
                     properties:
-                      question_no:
-                        type: integer
-                      question_title:
-                        type: string
-                      category:
-                        type: string
-                      answer:
-                        type: string
-                      score:
-                        type: number
-                      result:
-                        type: string
-                qc_score:
-                  type: number
+                      question_no: { type: integer }
+                      question_title: { type: string }
+                      category: { type: string }
+                      answer: { type: string }
+                      score: { type: number }
+                      result: { type: string }
       responses:
         '200':
           description: QC results exported to STK successfully
+        '409':
+          description: Conflict - Job has already passed QC and is locked (duplicate submission blocked)
+
+  /jobs/{id}/stk-payload:
+    get:
+      summary: Query STK Payload for Job
+      description: Retrieve the structured STK payload (8 core fields + metadata) by job_no, ticket, booking_no, or stk_ref.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Job ID, Job No, Ticket No, Booking No, or External Ref
+      responses:
+        '200':
+          description: STK payload retrieved successfully
+        '404':
+          description: Job not found
 
   /system/api-logs:
     get:

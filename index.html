@@ -5372,6 +5372,36 @@
                                 </div>
                             </details>
 
+                            <!-- Q8D: QC Pass Strict Lock (Zero Re-submission) & 8 Mandatory STK Fields -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q8D:</span>
+                                        <span>เมื่อผ่านเกณฑ์ QC แล้ว ทำไมระบบจึงห้ามบันทึกผลใหม่ (กฎล็อกถาวร Zero Re-submission) และชุดข้อมูล 8 ฟิลด์ที่ส่งไปบอกระบบ STK มีอะไรบ้าง?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-2">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> เพื่อรักษาความถูกต้องตามหลักธรรมาภิบาลข้อมูล (Data Integrity & Audit Standard) เมื่อโครงการได้รับการอนุมัติ <strong>ผ่านเกณฑ์ QC (QC_PASSED)</strong> เรียบร้อยแล้ว ระบบจะบังคับใช้ 2 มาตรการสำคัญทันที:</p>
+                                    <ul class="list-disc list-inside space-y-1.5 pl-1 text-[11px]">
+                                        <li><strong>🚨 กฎล็อกผลตรวจถาวร (Zero Re-submission Rule):</strong> ทันทีที่งานผ่านเกณฑ์ QC ระบบจะล็อกผลตรวจเป็น Read-only 100% ห้ามบันทึกผลตรวจใหม่หรือกดอนุมัติซ้ำ โดยปุ่มบันทึกแบบร่างและปุ่มแจ้งแก้ไขงาน (Rework) จะถูกซ่อนอัตโนมัติ ปุ่มอนุมัติจะถูก Disable และระบบ API หลังบ้านจะปฏิเสธคำขอบันทึกซ้ำด้วยรหัส <code>409 Conflict: Job has already passed QC</code> ทันที</li>
+                                        <li><strong>📦 8 ฟิลด์ข้อมูลสำคัญที่ส่งไปบอกระบบ STK (STK Direct Payload Fields):</strong> ระบบส่งข้อมูลผลตรวจออก API ไปยัง STK ประกอบด้วย:
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-1.5 font-mono text-[10px] pl-3">
+                                                <div class="bg-card p-1.5 rounded border"><strong>1. ref_no:</strong> เลขที่ Ref เอกสารอ้างอิง</div>
+                                                <div class="bg-card p-1.5 rounded border"><strong>2. ticket:</strong> เลขที่ Ticket / Job ID</div>
+                                                <div class="bg-card p-1.5 rounded border"><strong>3. booking_no:</strong> เลขที่การจองคิว / นัดหมาย</div>
+                                                <div class="bg-card p-1.5 rounded border"><strong>4. qc_date:</strong> วันที่บันทึก QC (24 ชม. DD/MM/YYYY)</div>
+                                                <div class="bg-card p-1.5 rounded border"><strong>5. customer_name:</strong> ชื่อลูกค้า นามสกุล</div>
+                                                <div class="bg-card p-1.5 rounded border"><strong>6. customer_phone:</strong> หมายเลขโทรศัพท์ลูกค้า</div>
+                                                <div class="bg-card p-1.5 rounded border"><strong>7. qc_round & qc_result:</strong> ผลการทดสอบ QC ครั้งที่ x (PASSED)</div>
+                                                <div class="bg-card p-1.5 rounded border"><strong>8. qc_score:</strong> คะแนนประเมิน (5.0 หรือ 1.0)</div>
+                                            </div>
+                                        </li>
+                                        <li><strong>🔍 การดูข้อมูลและคัดลอก JSON (STK Modal View):</strong> ผู้ใช้งานสามารถกดปุ่ม <code>[ดูข้อมูล STK API / คัดลอก]</code> ในหน้าต่างผลตรวจ หรือปุ่ม <code>[STK API]</code> ในตารางคิวงาน เพื่อเปิดหน้าต่างสรุป 8 ฟิลด์และกดปุ่มคัดลอก JSON Payload ไปใช้งานได้ทันที</li>
+                                    </ul>
+                                </div>
+                            </details>
+
                             <!-- Q9: Step 1 BOQ Required Before Moving to Step 3 -->
                             <details class="p-4 rounded-xl bg-muted/30 border border-border group">
                                 <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
@@ -6648,6 +6678,28 @@
 
             <!-- Modal Body (Scrollable) -->
             <div class="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+                <!-- QC Passed & Locked Banner (ห้ามบันทึกผลตรวจใหม่เมื่อผ่านแล้ว) -->
+                <div id="qc-passed-locked-banner" class="hidden p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-500/40 text-emerald-950 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div class="flex items-start sm:items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs font-bold text-lg">
+                            <i class="ph ph-check-circle"></i>
+                        </div>
+                        <div class="space-y-0.5">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-display font-black text-sm text-emerald-900">✓ งานนี้ผ่านเกณฑ์การตรวจรับรองคุณภาพ QC เรียบร้อยแล้ว (ปิดงานสมบูรณ์)</span>
+                                <span id="qc-passed-stk-badge" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">STK Ref: -</span>
+                            </div>
+                            <p class="text-emerald-800 text-[11px]">
+                                บันทึกผลตรวจและส่งข้อมูลไปยังระบบ STK เรียบร้อยแล้ว เมื่อ <strong id="qc-passed-date-text">-</strong> | <span class="font-bold text-emerald-900">ระบบล็อกสถานะถาวร ห้ามแก้ไขหรือบันทึกผลตรวจซ้ำ</span>
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="app.showSTKPayloadModal(app.state.currentQCModalJobId)" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-emerald-800 border border-emerald-400 hover:bg-emerald-50 flex items-center gap-1.5 shrink-0 shadow-xs cursor-pointer transition-all">
+                        <i class="ph ph-code text-sm"></i>
+                        <span>ดูข้อมูล STK API / คัดลอก</span>
+                    </button>
+                </div>
+
                 <!-- Informational Banner for Renovate Draft QC -->
                 <div id="qc-renovate-draft-banner" class="hidden p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 items-start gap-2.5 text-xs">
                     <i class="ph ph-calendar-star text-amber-500 text-base mt-0.5 shrink-0"></i>
@@ -6862,13 +6914,13 @@
                     <button type="button" onclick="app.hideModal('modal-qc-job-detail')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer">
                         ปิดหน้าต่าง
                     </button>
-                    <button type="button" onclick="app.saveCurrentQCSubtasksDraft()" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer" title="บันทึกคะแนน รูปภาพ และหมายเหตุแบบร่าง">
+                    <button type="button" id="btn-qc-save-draft" onclick="app.saveCurrentQCSubtasksDraft()" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer" title="บันทึกคะแนน รูปภาพ และหมายเหตุแบบร่าง">
                         <i class="ph ph-floppy-disk"></i>
                         <span>บันทึกแบบร่าง</span>
                     </button>
                 </div>
                 <div class="flex items-center gap-2.5">
-                    <button type="button" onclick="app.failCurrentQCJob()" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 border-rose-500/30 flex items-center gap-1.5 cursor-pointer">
+                    <button type="button" id="btn-qc-fail-rework" onclick="app.failCurrentQCJob()" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 border-rose-500/30 flex items-center gap-1.5 cursor-pointer">
                         <i class="ph ph-arrow-u-down-left"></i>
                         <span>❌ แจ้งช่างแก้ไขงาน (Rework)</span>
                     </button>
@@ -6877,6 +6929,113 @@
                         <span id="btn-qc-approve-csat-label">✓ อนุมัติผ่านเกณฑ์ QC & ส่งข้อมูลไป STK</span>
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: STK PAYLOAD & API DETAILS (VIEW & COPY JSON) -->
+    <div id="modal-stk-payload-view" class="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm flex items-start justify-center hidden-view opacity-0 transition-all duration-200 p-3 sm:p-5 overflow-y-auto" style="z-index: 70 !important;" onclick="if(event.target === this) app.hideModal('modal-stk-payload-view')">
+        <div class="artifact-card rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border my-auto" id="modal-stk-payload-view-content">
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-border flex justify-between items-center bg-muted/40 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-purple-600/15 text-purple-700 flex items-center justify-center font-bold text-base">
+                        <i class="ph ph-cube"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-black text-base text-foreground">STK Integration API Payload (ข้อมูลสำหรับส่งให้ระบบ STK)</h3>
+                        <p class="text-[11px] text-muted-foreground">สรุปชุดข้อมูลผลตรวจ QC และ API สเปกสำหรับส่งเชื่อมต่อไปยังระบบ STK</p>
+                    </div>
+                </div>
+                <button onclick="app.hideModal('modal-stk-payload-view')" class="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition cursor-pointer shrink-0" title="ปิดหน้าต่าง">
+                    <i class="ph ph-x text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-5 overflow-y-auto space-y-4 flex-1 text-xs">
+                <!-- 8 Mandatory Fields Summary Grid -->
+                <div class="bg-gradient-to-br from-purple-500/5 via-card to-card p-4 rounded-xl border border-purple-300/40 space-y-3 shadow-2xs">
+                    <div class="flex items-center justify-between border-b border-border/80 pb-2">
+                        <span class="font-display font-bold text-xs text-foreground flex items-center gap-1.5">
+                            <i class="ph ph-list-checks text-purple-600"></i>
+                            <span>8 ฟิลด์ข้อมูลสำคัญที่ส่งไปบอกระบบ STK (STK Direct Payload Fields)</span>
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-100 text-purple-800 border border-purple-300">Ready for STK</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                        <div class="p-2.5 rounded-lg bg-muted/40 border border-border">
+                            <span class="text-muted-foreground text-[10px] block">1. เลขที่ Ref (ref_no):</span>
+                            <strong id="stk-view-ref-no" class="font-mono text-sm text-foreground font-black">-</strong>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-muted/40 border border-border">
+                            <span class="text-muted-foreground text-[10px] block">2. Ticket / Job No (ticket):</span>
+                            <strong id="stk-view-ticket" class="font-mono text-sm text-brand-600 font-black">-</strong>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-muted/40 border border-border">
+                            <span class="text-muted-foreground text-[10px] block">3. Booking No (booking_no):</span>
+                            <strong id="stk-view-booking-no" class="font-mono text-sm text-purple-700 font-black">-</strong>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-muted/40 border border-border">
+                            <span class="text-muted-foreground text-[10px] block">4. วันที่บันทึก QC (qc_date):</span>
+                            <strong id="stk-view-qc-date" class="font-mono text-sm text-foreground font-bold">-</strong>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-muted/40 border border-border">
+                            <span class="text-muted-foreground text-[10px] block">5. ชื่อลูกค้า นามสกุล (customer_name):</span>
+                            <strong id="stk-view-customer-name" class="text-sm text-foreground font-black">-</strong>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-muted/40 border border-border">
+                            <span class="text-muted-foreground text-[10px] block">6. เบอร์โทร (customer_phone):</span>
+                            <strong id="stk-view-customer-phone" class="font-mono text-sm text-foreground font-bold">-</strong>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-muted/40 border border-border">
+                            <span class="text-muted-foreground text-[10px] block">7. ผลการทดสอบ QC (qc_round / qc_result):</span>
+                            <strong id="stk-view-qc-round" class="text-sm text-emerald-700 font-black">-</strong>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-muted/40 border border-border">
+                            <span class="text-muted-foreground text-[10px] block">8. คะแนนประเมิน (qc_score):</span>
+                            <strong id="stk-view-qc-score" class="font-mono text-sm text-amber-700 font-black">-</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Endpoints Info -->
+                <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1.5 text-[11px]">
+                    <div class="font-bold text-foreground flex items-center gap-1.5">
+                        <i class="ph ph-plugs-connected text-indigo-600"></i>
+                        <span>ช่องทางเชื่อมต่อ API สำหรับระบบ STK:</span>
+                    </div>
+                    <div class="font-mono text-[10px] space-y-1 text-muted-foreground">
+                        <div>• <strong>Outbound Trigger:</strong> <code class="px-1.5 py-0.5 rounded bg-card border text-foreground">POST /api/v1/jobs/{job_no}/export-stk</code></div>
+                        <div>• <strong>Query / Polling API:</strong> <code class="px-1.5 py-0.5 rounded bg-card border text-foreground">GET /api/v1/jobs/{ticket_or_booking_or_ref}/stk-payload</code></div>
+                    </div>
+                </div>
+
+                <!-- Raw JSON Code Viewer -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <label class="font-bold text-foreground text-[11px] flex items-center gap-1">
+                            <i class="ph ph-code"></i>
+                            <span>Outbound JSON Payload:</span>
+                        </label>
+                        <button type="button" onclick="app.copySTKPayloadJson()" class="btn-artifact-secondary px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 bg-white hover:bg-muted border border-border shadow-2xs cursor-pointer">
+                            <i class="ph ph-copy"></i>
+                            <span>คัดลอก JSON</span>
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <pre id="stk-view-json" class="p-3.5 rounded-xl bg-slate-950 text-emerald-400 font-mono text-[11px] max-h-60 overflow-y-auto overflow-x-auto border border-slate-800 leading-relaxed"></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-border flex items-center justify-between bg-muted/40 shrink-0">
+                <span id="stk-view-ref-badge" class="font-mono text-[11px] text-muted-foreground">STK Reference: -</span>
+                <button type="button" onclick="app.hideModal('modal-stk-payload-view')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer">
+                    ปิดหน้าต่าง
+                </button>
             </div>
         </div>
     </div>

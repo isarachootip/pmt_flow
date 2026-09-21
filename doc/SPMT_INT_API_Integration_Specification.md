@@ -236,3 +236,31 @@
 - **Live Inbound API Monitor (มอนิเตอร์ Traffic สดแยกหน้าต่าง):** [https://vibepmt.online/apimonitor](https://vibepmt.online/apimonitor)
 - **Postman Collection:** สามารถ Import ไฟล์ `PMT_INT_Integration_Postman_Collection.json`
 - **ทีมผู้ประสานงาน SPMT:** ทีมพัฒนาระบบ SPMT / System Architect
+
+---
+
+## 7. ระบบส่งผลการตรวจรับรองคุณภาพ QC ไปยังระบบ STK (STK QC Result Export API)
+
+เมื่อใบงานผ่านการตรวจรับรองคุณภาพจากเจ้าหน้าที่ QC (`QC_PASSED`) ระบบ PMT Flow จะส่งชุดข้อมูลผลการตรวจไปยังระบบภายนอก **STK** แบบ Real-time พร้อมทั้งล็อกผลตรวจถาวร (Immutable Record) เพื่อป้องกันการบันทึกหรือส่งผลตรวจซ้ำซ้อน
+
+### 7.1 กฎการล็อกผลตรวจ (Strict 409 Conflict Prevention)
+- หากใบงานอยู่ในสถานะ `QC_PASSED` อยู่แล้ว ระบบจะ **ปฏิเสธคำขอบันทึกใหม่ทันที (HTTP 409 Conflict)** เว้นแต่จะระบุ Query Parameter `?force=true`
+- ทุกองค์ประกอบในหน้า UI จะถูกล็อกเป็น Read-only ทันทีเมื่อผ่านเกณฑ์
+
+### 7.2 รายการ 8 ฟิลด์ข้อมูลหลักที่ส่งออกไปบอกระบบ STK (8 Core Payload Fields)
+1. **`ref_no` (เลขที่ Ref):** หมายเลขอ้างอิงเอกสาร เช่น `STK-QC-2026-894120` หรือ External Ref
+2. **`ticket` (Ticket No):** รหัส Ticket หรือ Job ID เช่น `TCK-202609-0881`
+3. **`booking_no` (Booking No):** รหัสการจองคิวงานหรือนัดหมาย เช่น `VFIX-BKG-202609-0941`
+4. **`qc_date` (วันที่ บันทึก Qc):** วันและเวลาที่บันทึกผลตรวจ ในรูปแบบ **DD/MM/YYYY ระบบ 24 ชั่วโมง (24-Hour Format: `00:00 - 23:59 น.`)** เช่น `21/09/2026 23:45:10 น.` พร้อมฟิลด์ `qc_recorded_at` (ISO-8601)
+5. **`customer_name` (ชื่อลูกค้า นามสกุล):** ชื่อ-นามสกุลลูกค้า เช่น `คุณสมชาย ใจดี`
+6. **`customer_phone` (เบอร์โทร):** เบอร์โทรศัพท์ติดต่อ เช่น `081-234-5678`
+7. **`qc_round` & `qc_result` (ผลการทดสอบ QC ครั้งที่ x):** รอบการตรวจและผลลัพธ์ เช่น `qc_round: 1`, `qc_round_text: "ตรวจครั้งที่ 1 (ผ่านเกณฑ์รอบแรก)"`, `qc_result: "PASSED"`
+8. **`qc_score` (คะแนน ประเมิน):** คะแนนที่ได้รับ เช่น `5.0` (ผ่านรอบแรก) หรือ `1.0` (ผ่านรอบแก้ไข Round >= 2 ตามกฎ First-time Pass Penalty)
+
+### 7.3 STK Endpoints
+- **Export Outbound Trigger:**  
+  `POST /api/v1/jobs/:id/export-stk` หรือ `POST /api/v1/integrations/stk/qc-results`
+- **Query QC Payload by Reference:**  
+  `GET /api/v1/jobs/:id/stk-payload` หรือ `GET /api/v1/integrations/stk/qc-results/:identifier`  
+  (พารามิเตอร์รองรับ: `job_no`, `ticket`, `booking_no`, หรือ `stk_ref`)
+
