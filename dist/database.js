@@ -296,6 +296,13 @@ async function initDatabase() {
         ADD COLUMN IF NOT EXISTS customer_name VARCHAR(150),
         ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(50),
         ADD COLUMN IF NOT EXISTS customer_address TEXT,
+        ADD COLUMN IF NOT EXISTS qc_history JSONB DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS qc_subtasks JSONB DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS rework_count INT DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS qc_rework_count INT DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS has_rework BOOLEAN DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS qc_remarks TEXT,
+        ADD COLUMN IF NOT EXISTS qc_inspector VARCHAR(150),
         ADD COLUMN IF NOT EXISTS raw_payload JSONB DEFAULT '{}'::jsonb;
 
       ALTER TABLE core_daily_work_logs
@@ -554,6 +561,13 @@ function mapDbJobRow(row) {
         qc_inspection_type: row.qc_inspection_type || null,
         qc_passed_at: row.qc_passed_at || null,
         qc_score: row.qc_score !== null && row.qc_score !== undefined ? Number(row.qc_score) : null,
+        qc_history: Array.isArray(row.qc_history) ? row.qc_history : (Array.isArray(row.raw_payload?.qc_history) ? row.raw_payload.qc_history : []),
+        qc_subtasks: Array.isArray(row.qc_subtasks) ? row.qc_subtasks : (Array.isArray(row.raw_payload?.qc_subtasks) ? row.raw_payload.qc_subtasks : []),
+        rework_count: row.rework_count !== undefined && row.rework_count !== null ? Number(row.rework_count) : (Number(row.raw_payload?.rework_count) || 0),
+        qc_rework_count: row.qc_rework_count !== undefined && row.qc_rework_count !== null ? Number(row.qc_rework_count) : (Number(row.raw_payload?.qc_rework_count) || 0),
+        has_rework: Boolean(row.has_rework || row.raw_payload?.has_rework),
+        qc_remarks: row.qc_remarks || row.raw_payload?.qc_remarks || '',
+        qc_inspector: row.qc_inspector || row.raw_payload?.qc_inspector || '',
         csat_score: row.csat_score !== null && row.csat_score !== undefined ? Number(row.csat_score) : null,
         csat_remarks: row.csat_remarks || '',
         csat_photos: Array.isArray(row.csat_photos) ? row.csat_photos : [],
@@ -597,6 +611,13 @@ exports.LEAN_JOB_COLUMNS = `
   qc_inspection_type,
   qc_passed_at,
   qc_score,
+  qc_history,
+  qc_subtasks,
+  rework_count,
+  qc_rework_count,
+  has_rework,
+  qc_remarks,
+  qc_inspector,
   csat_score,
   csat_remarks,
   csat_surveyor,
@@ -872,7 +893,16 @@ async function dbSaveJob(job) {
         const visitResults = job.visit_results || job.visit_result || [];
         const remarksData = job.remarks_data || job.remarks || {};
         const jobDetails = job.job_details || job.job_detail || [];
-        const rawPayload = job.raw_payload || {};
+        const rawPayload = {
+            ...(job.raw_payload || {}),
+            qc_history: job.qc_history || [],
+            qc_subtasks: job.qc_subtasks || [],
+            rework_count: job.rework_count || 0,
+            qc_rework_count: job.qc_rework_count || 0,
+            has_rework: !!job.has_rework,
+            qc_remarks: job.qc_remarks || '',
+            qc_inspector: job.qc_inspector || ''
+        };
         const customerName = job.customer_name || customerData.name || customerData.first_name || 'ลูกค้าทั่วไป';
         const customerPhone = job.customer_phone || customerData.phone || customerData.mobile_no || '';
         const customerAddress = job.customer_address || customerData.address || customerData.location?.address || '';
@@ -993,16 +1023,17 @@ async function dbUpdateJob(jobNoOrId, updates) {
         const jsonbFields = [
             'step_timestamps', 'services', 'customer_data', 'tasks', 'photos', 'boq_items', 'csat_photos',
             'job_details', 'agent_data', 'store_data', 'schedule_plan', 'checkin_data', 'checkout_data',
-            'approval_data', 'visit_results', 'remarks_data', 'raw_payload'
+            'approval_data', 'visit_results', 'remarks_data', 'raw_payload', 'qc_history', 'qc_subtasks'
         ];
         const stringFields = [
             'external_ref_id', 'booking_no', 'ticket_no', 'status', 'job_type',
             'property_type', 'project_type', 'project_sub_type', 'store_code',
             'agent_name', 'assigned_tech', 'plan_date', 'special_instructions',
-            'additional_notes', 'qc_inspection_type', 'csat_remarks', 'csat_surveyor', 'file_int_image'
+            'additional_notes', 'qc_inspection_type', 'csat_remarks', 'csat_surveyor', 'file_int_image',
+            'qc_remarks', 'qc_inspector'
         ];
-        const numFields = ['customer_id', 'overall_progress', 'boq_discount', 'boq_subtotal', 'boq_grand_total', 'qc_score', 'csat_score'];
-        const boolFields = ['pmt_accepted', 'step3_confirmed'];
+        const numFields = ['customer_id', 'overall_progress', 'boq_discount', 'boq_subtotal', 'boq_grand_total', 'qc_score', 'csat_score', 'rework_count', 'qc_rework_count'];
+        const boolFields = ['pmt_accepted', 'step3_confirmed', 'has_rework'];
         const dateFields = ['pmt_accepted_at', 'qc_passed_at', 'csat_evaluated_at'];
         for (const [key, val] of Object.entries(updates)) {
             if (val === undefined)

@@ -22094,6 +22094,18 @@ const app = {
                     const isQCConfirmed = !isQuick && (j.qc_status === 'QC_CONFIRMED' || booking.status === 'CONFIRMED') && (j.status !== 'QC_PASSED' && j.status !== 'QC_REWORK');
 
                     // Status Badge
+                    const history = Array.isArray(j.qc_history) ? j.qc_history : [];
+                    const reworkCount = history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (j.qc_rework_count || j.rework_count || 0);
+                    const isReworkJob = j.status === 'QC_REWORK' || reworkCount > 0 || (j.rework_count && j.rework_count > 0) || !!j.has_rework || history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
+                    const currentRound = history.length + (j.status === 'QC_PASSED' ? 0 : 1) || (isReworkJob ? (reworkCount + 1) : 1);
+                    const isRound2Plus = currentRound >= 2 || isReworkJob;
+
+                    const roundBadge = isRound2Plus ? `
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold ${j.status === 'QC_PASSED' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30' : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'} inline-flex items-center gap-1" title="ตรวจครั้งที่ ${currentRound} (รอบแก้ไขได้ 1.0 คะแนนอัตโนมัติ)">
+                            <i class="ph ph-arrow-counter-clockwise"></i> ครั้งที่ ${currentRound} (แก้ ${reworkCount || (currentRound - 1)} ครั้ง)
+                        </span>
+                    ` : '';
+
                     let statusBadge = '';
                     if (j.status === 'QC_PASSED') {
                         statusBadge = `
@@ -22101,6 +22113,7 @@ const app = {
                                 <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1">
                                     <i class="ph ph-check-circle"></i> ผ่านเกณฑ์แล้ว
                                 </span>
+                                ${roundBadge}
                                 ${j.stk_ref ? `
                                     <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-purple-500/10 text-purple-600 border border-purple-500/20 inline-flex items-center gap-1" title="ส่ง API ไปยังระบบ STK แล้ว (Ref: ${j.stk_ref})">
                                         <i class="ph ph-paper-plane-tilt"></i> STK ส่งแล้ว
@@ -22109,7 +22122,12 @@ const app = {
                             </div>
                         `;
                     } else if (j.status === 'QC_REWORK') {
-                        statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 inline-flex items-center gap-1"><i class="ph ph-warning"></i> แจ้งแก้ไขงาน</span>`;
+                        statusBadge = `
+                            <div class="flex flex-col gap-1 items-start">
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 inline-flex items-center gap-1"><i class="ph ph-warning"></i> แจ้งแก้ไขงาน</span>
+                                ${roundBadge}
+                            </div>
+                        `;
                     } else if (isDraftQC) {
                         statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 inline-flex items-center gap-1 animate-pulse"><i class="ph ph-calendar-plus"></i> Draft QC (รอ Confirm ช่าง)</span>`;
                     } else if (isQCConfirmed) {
@@ -22117,9 +22135,19 @@ const app = {
                         statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 inline-flex items-center gap-1"><i class="ph ph-check-circle"></i> Confirm ช่างแล้ว ${bDateStr ? `(${bDateStr})` : ''}</span>`;
                     } else {
                         if (isQuick) {
-                            statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 inline-flex items-center gap-1"><i class="ph ph-globe"></i> ตรวจ Online</span>`;
+                            statusBadge = `
+                                <div class="flex flex-col gap-1 items-start">
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 inline-flex items-center gap-1"><i class="ph ph-globe"></i> ตรวจ Online</span>
+                                    ${roundBadge}
+                                </div>
+                            `;
                         } else {
-                            statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 inline-flex items-center gap-1"><i class="ph ph-clock"></i> รอตรวจ On-site</span>`;
+                            statusBadge = `
+                                <div class="flex flex-col gap-1 items-start">
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 inline-flex items-center gap-1"><i class="ph ph-clock"></i> รอตรวจ On-site</span>
+                                    ${roundBadge}
+                                </div>
+                            `;
                         }
                     }
 
@@ -22427,14 +22455,16 @@ const app = {
                 if (!job) return [];
 
                 const isQuick = this.isQuickJob(job);
-                const isJobRework = job.status === 'QC_REWORK' || (job.qc_rework_count && job.qc_rework_count > 0) || (job.rework_count && job.rework_count > 0) || !!job.has_rework;
+                const history = Array.isArray(job.qc_history) ? job.qc_history : [];
+                const reworkCount = history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (job.qc_rework_count || job.rework_count || 0);
+                const isJobRework = job.status === 'QC_REWORK' || reworkCount > 0 || (job.rework_count && job.rework_count > 0) || !!job.has_rework || history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
 
-                // ── Quick Job: 1 คำถามเดียว ──────────────────────────────────
+                // ── Quick Job: 1 คำถามเดียวจบกระบวนการ ───────────────────────
                 if (isQuick) {
                     const QUICK_Q = {
                         id: 'qq1', num: 1,
                         title: 'ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด',
-                        category: 'มาตรฐานการทำงาน', mandatory: true
+                        category: 'มาตรฐานการทำงาน Quick Service', mandatory: true
                     };
                     // Return existing if already initialised for Quick
                     if (Array.isArray(job.qc_subtasks) && job.qc_subtasks.length === 1 && job.qc_subtasks[0].id === 'qq1') {
@@ -22443,10 +22473,21 @@ const app = {
                             sub.failed_once = true;
                             sub.has_rework = true;
                         }
-                        if ((sub.answer === 'YES' || sub.status === 'PASSED') && (sub.failed_once || sub.has_rework || isJobRework || sub.is_rework_pass)) {
+                        if (sub.answer === 'YES' || sub.status === 'PASSED') {
+                            if (isJobRework || sub.failed_once || sub.has_rework || sub.is_rework_pass) {
+                                sub.score = 1;
+                                sub.status = 'PASSED';
+                                sub.is_rework_pass = true;
+                                sub.failed_once = true;
+                                sub.has_rework = true;
+                            } else {
+                                sub.score = 5;
+                                sub.status = 'PASSED';
+                                sub.is_rework_pass = false;
+                            }
+                        } else if (sub.answer === 'NO' || sub.status === 'DEFECT') {
                             sub.score = 1;
-                            sub.status = 'PASSED';
-                            sub.is_rework_pass = true;
+                            sub.status = 'DEFECT';
                             sub.failed_once = true;
                             sub.has_rework = true;
                         }
@@ -22494,7 +22535,7 @@ const app = {
                             sub.failed_once = true;
                             sub.has_rework = true;
                         }
-                        if ((sub.answer === 'YES' || sub.status === 'PASSED') && (sub.failed_once || sub.has_rework || sub.is_rework_pass)) {
+                        if ((sub.answer === 'YES' || sub.status === 'PASSED') && (sub.failed_once || sub.has_rework || sub.is_rework_pass || isJobRework)) {
                             sub.score = 1;
                             sub.status = 'PASSED';
                             sub.is_rework_pass = true;
@@ -22539,8 +22580,6 @@ const app = {
                     };
                 });
 
-                // ไม่ inject Demo photos — ใช้เฉพาะรูปจริงจาก API
-
                 // If job has photos from earlier stages, distribute them into subtasks
                 if (Array.isArray(job.photos) && job.photos.length > 0) {
                     job.photos.forEach((p, pIdx) => {
@@ -22568,14 +22607,16 @@ const app = {
                 const passed = subtasks.filter(s => s.answer === 'YES' || s.status === 'PASSED').length;
                 const defect = subtasks.filter(s => s.answer === 'NO' || s.status === 'DEFECT').length;
 
-                const isJobRework = job.status === 'QC_REWORK' || (job.qc_rework_count && job.qc_rework_count > 0) || (job.rework_count && job.rework_count > 0) || !!job.has_rework;
+                const history = Array.isArray(job.qc_history) ? job.qc_history : [];
+                const reworkCount = history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (job.qc_rework_count || job.rework_count || 0);
+                const isJobRework = job.status === 'QC_REWORK' || reworkCount > 0 || (job.rework_count && job.rework_count > 0) || !!job.has_rework || history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
                 const isQuick = this.isQuickJob(job);
 
                 let totalScore = 0;
                 let scoredCount = 0;
                 subtasks.forEach(s => {
                     if (s.answer === 'YES' || s.status === 'PASSED') {
-                        const isRework = s.is_rework_pass || s.failed_once || s.has_rework || (isQuick && isJobRework);
+                        const isRework = s.is_rework_pass || s.failed_once || s.has_rework || (isQuick && isJobRework) || isJobRework;
                         const sc = isRework ? 1 : (Number(s.score) > 0 ? Number(s.score) : 5);
                         s.score = sc;
                         if (isRework) {
@@ -22685,6 +22726,7 @@ const app = {
                     elInspector.value = (job.qc_booking && job.qc_booking.assignedQCTech) ? job.qc_booking.assignedQCTech : (job.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)');
                 }
 
+                this.renderQCHistorySection(job);
                 this.renderQCSubtasks(job);
                 this.renderQCIntPhotos(job);
 
@@ -22693,20 +22735,28 @@ const app = {
                 const elProgressTitle = document.getElementById('qc-progress-card-title');
                 if (elProgressTitle) {
                     const badge = elProgressTitle.querySelector('#qc-detail-completion-badge');
-                    elProgressTitle.childNodes[0].textContent = `ความคืบหน้าการประเมินมาตรฐานคุณภาพ QC (${numQ} ข้อคำถาม${isQuick ? '' : 'มาตรฐาน'})`;
+                    elProgressTitle.childNodes[0].textContent = isQuick
+                        ? 'ความคืบหน้าการประเมินมาตรฐานคุณภาพ QC (1 ข้อคำถามจบกระบวนการ)'
+                        : `ความคืบหน้าการประเมินมาตรฐานคุณภาพ QC (${numQ} ข้อคำถามมาตรฐาน)`;
                     if (badge) elProgressTitle.appendChild(badge);
                 }
                 const elProgressDesc = document.getElementById('qc-progress-card-desc');
                 if (elProgressDesc) {
                     elProgressDesc.textContent = isQuick
-                        ? 'ตอบ ผ่าน/ไม่ผ่าน เพียง 1 ข้อ จึงจะสามารถส่งมอบต่อไปยังขั้นตอน CSAT (Step 6)'
+                        ? 'ตอบ ผ่าน/ไม่ผ่าน เพียง 1 ข้อคำถาม จึงจะสามารถส่งมอบต่อไปยังขั้นตอน CSAT (Step 6)'
                         : 'ต้องประเมินและตอบ Yes/No (Yes=5, No=1) พร้อมแนบรูปภาพให้ครบ 5 ข้อ จึงจะสามารถส่งมอบต่อไปยังขั้นตอน CSAT (Step 6)';
                 }
                 const elSecTitle = document.getElementById('qc-subtasks-section-title');
                 if (elSecTitle) {
                     elSecTitle.textContent = isQuick
-                        ? '1 ข้อคำถามประเมินคุณภาพ QC (Quick Service)'
+                        ? 'แบบประเมินมาตรฐานงาน Quick Service (1 ข้อคำถาม)'
                         : '5 ข้อคำถามมาตรฐานการประเมินคุณภาพ QC (Isara Chootip Standard)';
+                }
+                const elSecSub = document.getElementById('qc-subtasks-section-subtitle');
+                if (elSecSub) {
+                    elSecSub.textContent = isQuick
+                        ? '(ประเมิน 1 ข้อจบ | รอบแรกผ่านได้ 5.0 คะแนน, หากเป็นรอบแก้ไขครั้งที่ 2, 3, 4 จะได้ 1.0 คะแนนอัตโนมัติ)'
+                        : '(Yes = 5 คะแนน [รอบแก้ได้ 1 คะแนน], No = 1 คะแนน | แนบรูปภาพและบันทึกหมายเหตุรายข้อ)';
                 }
 
                 this.showModal('modal-qc-job-detail');
@@ -22798,6 +22848,136 @@ const app = {
                         </div>
                     </div>
                 `;
+            },
+
+            renderQCHistorySection(job) {
+                const section = document.getElementById('qc-history-section');
+                if (!section) return;
+
+                const isQuick = this.isQuickJob(job);
+                const history = Array.isArray(job.qc_history) ? job.qc_history : [];
+                const reworkCount = history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (job.qc_rework_count || job.rework_count || 0);
+                const isJobRework = job.status === 'QC_REWORK' || reworkCount > 0 || (job.rework_count && job.rework_count > 0) || !!job.has_rework || history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
+                const currentRound = history.length + (job.status === 'QC_PASSED' ? 0 : 1) || (isJobRework ? (reworkCount + 1) : 1);
+                const isRound2Plus = currentRound >= 2 || isJobRework;
+
+                let html = '';
+
+                // 1. Current Round Notice Banner
+                if (isRound2Plus) {
+                    html += `
+                        <div class="p-3.5 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-card space-y-2 shadow-2xs">
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center font-mono font-bold text-sm shrink-0 border border-amber-500/30">
+                                        <i class="ph ph-arrow-counter-clockwise"></i>
+                                    </span>
+                                    <div>
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="font-display font-bold text-xs text-foreground">รอบการตรวจปัจจุบัน:</span>
+                                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 animate-pulse">
+                                                🔄 ครั้งที่ ${currentRound} (รอบแก้ไขครั้งที่ ${reworkCount || (currentRound - 1)})
+                                            </span>
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                                                🚨 บังคับล็อกคะแนน 1.0 อัตโนมัติ
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[11px] font-mono font-bold text-amber-700 dark:text-amber-300">คะแนนเมื่อตรวจผ่าน: 1.0 / 5.0 คะแนน</span>
+                                </div>
+                            </div>
+                            <p class="text-[11px] text-amber-800 dark:text-amber-200 pl-9 leading-relaxed">
+                                <strong>⚠️ กฎมาตรฐานคะแนน QC (First-time Pass Penalty):</strong> โครงการนี้ผ่านการแจ้งส่งกลับแก้ไขงาน (Rework) มาแล้ว ในการตรวจครั้งที่ ${currentRound} นี้ แม้เจ้าหน้าที่ QC จะประเมินให้ <strong>"ผ่านเกณฑ์ (Yes)"</strong> ระบบจะบันทึกผลคะแนนให้ที่ <strong>1.0 คะแนนอัตโนมัติ</strong> เพื่อความโปร่งใสและสะท้อนประวัติคุณภาพงานตามเกณฑ์มาตรฐาน
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="p-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between gap-3 shadow-2xs">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-600 flex items-center justify-center text-sm shrink-0 border border-emerald-500/30">
+                                    <i class="ph ph-check-circle"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-display font-bold text-xs text-foreground">รอบการตรวจปัจจุบัน:</span>
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                            🟢 ครั้งที่ 1 (ตรวจครั้งแรก — First Round)
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-muted-foreground mt-0.5">
+                                        งานตรวจรอบแรก หากผ่านเกณฑ์มาตรฐานจะได้รับคะแนนเต็ม <strong>5.0 คะแนน</strong> (หากพบข้อบกพร่องและส่งแก้ไข รอบถัดไปจะได้ 1.0 คะแนนอัตโนมัติ)
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="hidden sm:block text-right shrink-0">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                                    สิทธิ์คะแนนเต็ม 5.0
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // 2. Inspection History Timeline
+                if (history.length > 0) {
+                    html += `
+                        <div class="p-4 rounded-2xl border border-border bg-card space-y-3 shadow-2xs">
+                            <div class="flex items-center justify-between border-b border-border/70 pb-2.5">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded-lg bg-brand-500/15 text-brand-600 flex items-center justify-center text-xs">
+                                        <i class="ph ph-clock-counter-clockwise"></i>
+                                    </div>
+                                    <h5 class="font-display font-bold text-xs text-foreground">ประวัติการตรวจรับรอง & ส่งแก้ไขงาน (Inspection & Rework History)</h5>
+                                </div>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted text-foreground border border-border">
+                                    บันทึกแล้ว ${history.length} ครั้ง
+                                </span>
+                            </div>
+                            <div class="space-y-2.5">
+                                ${history.map((h, hIdx) => {
+                                    const isPass = h.result === 'PASSED' || h.action === 'PASSED';
+                                    const isRew = h.result === 'REWORK' || h.action === 'REWORK';
+                                    const dateStr = h.date_display || (h.timestamp ? this.formatDateTimeDMY(h.timestamp, false, true) : '-');
+                                    const scoreBadge = isPass 
+                                        ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${h.score >= 5 ? 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'} border inline-flex items-center gap-1"><i class="ph ph-check-circle"></i> ได้ ${Number(h.score).toFixed(1)} คะแนน</span>`
+                                        : `<span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 inline-flex items-center gap-1"><i class="ph ph-warning"></i> ได้ ${Number(h.score || 1).toFixed(1)} คะแนน</span>`;
+
+                                    return `
+                                        <div class="p-3 rounded-xl border ${isPass ? 'border-emerald-500/20 bg-emerald-500/[0.02]' : 'border-rose-500/20 bg-rose-500/[0.02]'} flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
+                                            <div class="space-y-1 flex-1">
+                                                <div class="flex items-center gap-2 flex-wrap">
+                                                    <span class="font-mono font-bold text-xs text-foreground px-2 py-0.5 rounded bg-muted border border-border">
+                                                        ครั้งที่ ${h.round || (hIdx + 1)}
+                                                    </span>
+                                                    <span class="font-semibold text-xs text-foreground">
+                                                        ${h.round_label || (isPass ? (h.round === 1 ? 'ผ่านเกณฑ์รอบแรก' : 'ผ่านเกณฑ์รอบแก้ไข') : 'แจ้งส่งกลับแก้ไขงาน (Rework)')}
+                                                    </span>
+                                                    ${scoreBadge}
+                                                </div>
+                                                <div class="text-[11px] text-muted-foreground flex items-center gap-3 flex-wrap">
+                                                    <span class="flex items-center gap-1"><i class="ph ph-calendar text-brand-500"></i> ${dateStr}</span>
+                                                    <span>•</span>
+                                                    <span class="flex items-center gap-1"><i class="ph ph-user-check text-brand-500"></i> ผู้ตรวจ: ${h.inspector || 'ช่าง QC'}</span>
+                                                </div>
+                                                ${h.remarks ? `
+                                                    <div class="mt-1.5 p-2 rounded-lg bg-muted/40 border border-border/70 text-xs text-foreground font-sans">
+                                                        <strong class="text-muted-foreground text-[10px] uppercase block mb-0.5">เหตุผล / ข้อคิดเห็น:</strong>
+                                                        ${h.remarks}
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                section.innerHTML = html;
             },
 
             setQCBookingDatePreset(preset) {
@@ -23106,8 +23286,121 @@ const app = {
                 const container = document.getElementById('qc-subtasks-list');
                 if (!container) return;
 
-                const isJobRework = job.status === 'QC_REWORK' || (job.qc_rework_count && job.qc_rework_count > 0) || (job.rework_count && job.rework_count > 0) || !!job.has_rework;
+                const history = Array.isArray(job.qc_history) ? job.qc_history : [];
+                const reworkCount = history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (job.qc_rework_count || job.rework_count || 0);
+                const isJobRework = job.status === 'QC_REWORK' || reworkCount > 0 || (job.rework_count && job.rework_count > 0) || !!job.has_rework || history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
                 const isQuick = this.isQuickJob(job);
+                const currentRound = history.length + (job.status === 'QC_PASSED' ? 0 : 1) || (isJobRework ? (reworkCount + 1) : 1);
+                const isRound2Plus = currentRound >= 2 || isJobRework;
+
+                // ── Quick Service: ประเมิน 1 ข้อคำถามเดียวจบกระบวนการ ──────────
+                if (isQuick) {
+                    const s = subtasks[0] || { id: 'qq1', num: 1, title: 'ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด', category: 'มาตรฐานการทำงาน Quick Service', answer: null, score: 0, photos: [], remarks: '' };
+                    const isYes = s.answer === 'YES' || s.status === 'PASSED';
+                    const isNo = s.answer === 'NO' || s.status === 'DEFECT';
+                    const photos = Array.isArray(s.photos) ? s.photos : [];
+
+                    let photosListHtml = '';
+                    if (photos.length > 0) {
+                        photosListHtml = photos.map((p, pIdx) => `
+                            <div class="relative group rounded-xl overflow-hidden border border-border bg-muted/40 w-24 h-24 shrink-0 shadow-xs">
+                                <img src="${p.url}" alt="${p.title}" onclick="app.showLightbox('${p.url}', '${p.title}', 'รูปประกอบการตรวจ QC Quick Service', '${p.uploaded_at ? app.formatDateDMY(p.uploaded_at) : ''}', 'QC Inspector')" class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition">
+                                <button type="button" onclick="app.removeSubtaskPhoto('${job.id}', '${s.id}', '${p.id}')" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white hover:bg-rose-600 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition cursor-pointer" title="ลบรูปนี้">
+                                    <i class="ph ph-trash"></i>
+                                </button>
+                                <span class="absolute bottom-1 left-1 px-1 py-0.2 rounded text-[8px] font-mono bg-black/60 text-white backdrop-blur-xs">#${pIdx + 1}</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        photosListHtml = `<div class="text-[11px] text-muted-foreground italic py-2 flex items-center gap-1.5"><i class="ph ph-image"></i> ยังไม่มีรูปภาพประกอบ (สามารถกดแนบรูปด้านล่าง หรือตรวจสอบภาพจาก INT ด้านบน)</div>`;
+                    }
+
+                    container.innerHTML = `
+                        <div class="p-5 rounded-2xl bg-card border ${isYes ? (isRound2Plus ? 'border-amber-500/50 ring-2 ring-amber-500/20' : 'border-emerald-500/50 ring-2 ring-emerald-500/20') : (isNo ? 'border-rose-500/50 ring-2 ring-rose-500/20' : 'border-border')} shadow-sm space-y-4 transition-all">
+                            <!-- Header -->
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/70 pb-3">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-8 h-8 rounded-xl ${isYes ? (isRound2Plus ? 'bg-amber-500/20 text-amber-700' : 'bg-emerald-500/20 text-emerald-600') : (isNo ? 'bg-rose-500/20 text-rose-600' : 'bg-brand-500/15 text-brand-600')} flex items-center justify-center font-bold text-sm">
+                                        <i class="ph ph-check-square-offset"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-display font-bold text-sm text-foreground">
+                                            1. ${s.title}
+                                        </h4>
+                                        <span class="text-[11px] text-muted-foreground">ข้อคำถามประเมินรับรองมาตรฐาน Quick Service (ตอบ 1 ข้อจบกระบวนการ)</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    ${isYes ? (isRound2Plus ? `
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1.5">
+                                            <i class="ph ph-check-circle-fill text-amber-600"></i> ผ่านเกณฑ์รอบแก้ไข (ได้ 1.0 คะแนนอัตโนมัติ)
+                                        </span>
+                                    ` : `
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+                                            <i class="ph ph-check-circle-fill text-emerald-500"></i> ผ่านเกณฑ์มาตรฐานรอบแรก (ได้ 5.0 คะแนนเต็ม)
+                                        </span>
+                                    `) : (isNo ? `
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1.5">
+                                            <i class="ph ph-warning-fill text-rose-500"></i> พบข้อบกพร่อง / ต้องแก้ไข (ได้ 1.0 คะแนน)
+                                        </span>
+                                    ` : `
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-muted text-muted-foreground border border-border">
+                                            รอประเมิน
+                                        </span>
+                                    `)}
+                                </div>
+                            </div>
+
+                            <!-- Single Question Decision Buttons -->
+                            <div class="bg-muted/20 p-4 rounded-xl border border-border/70 space-y-2.5">
+                                <div class="flex items-center justify-between text-xs font-semibold">
+                                    <span class="text-foreground flex items-center gap-1.5">
+                                        <i class="ph ph-scales text-brand-500"></i>
+                                        <span>ผลการประเมิน (คลิกเลือกผลการตรวจ):</span>
+                                    </span>
+                                    <span class="font-mono font-bold ${isYes ? (isRound2Plus ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600') : (isNo ? 'text-rose-600' : 'text-muted-foreground')}">
+                                        ${isYes ? (isRound2Plus ? '✓ ผ่านเกณฑ์รอบแก้ไข (1.0 คะแนนอัตโนมัติ)' : '✓ ผ่านเกณฑ์รอบแรก (5.0 คะแนน)') : (isNo ? '✕ ไม่ผ่าน / ข้อบกพร่อง (1.0 คะแนน)' : 'ยังไม่ได้ประเมิน')}
+                                    </span>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <button type="button" onclick="app.setQCSubtaskAnswer('${job.id}', '${s.id}', 'YES')" class="py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${isYes ? (isRound2Plus ? 'bg-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-500/30 scale-[1.01]' : 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500/30 scale-[1.01]') : (isRound2Plus ? 'bg-card text-amber-700 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10' : 'bg-card text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10')}">
+                                        <i class="ph ${isYes ? 'ph-check-circle-fill' : 'ph-check-circle'} text-lg"></i>
+                                        <span>✓ Yes — ${isRound2Plus ? 'ผ่านเกณฑ์รอบแก้ไข (1.0 คะแนนอัตโนมัติ)' : 'ผ่านเกณฑ์ (5.0 คะแนนเต็ม)'}</span>
+                                    </button>
+                                    <button type="button" onclick="app.setQCSubtaskAnswer('${job.id}', '${s.id}', 'NO')" class="py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${isNo ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-500/30 scale-[1.01]' : 'bg-card text-rose-700 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10'}">
+                                        <i class="ph ${isNo ? 'ph-x-circle-fill' : 'ph-x-circle'} text-lg"></i>
+                                        <span>✕ No — ${isRound2Plus ? 'ต้องแก้ไขซ้ำ / Rework (1.0 คะแนน)' : 'ต้องแก้ไข / Rework (1.0 คะแนน)'}</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Dedicated Photos for this Question -->
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
+                                        <i class="ph ph-camera text-brand-500"></i>
+                                        <span>รูปถ่ายประกอบการตรวจข้อนี้ (${photos.length} รูป)</span>
+                                    </div>
+                                    <label class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 cursor-pointer bg-card hover:bg-muted shadow-2xs">
+                                        <i class="ph ph-camera-plus text-brand-500 text-xs"></i>
+                                        <span>+ แนบรูปข้อนี้</span>
+                                        <input type="file" accept="image/*" class="hidden" onchange="app.handleSubtaskPhotoUpload(event, '${job.id}', '${s.id}')">
+                                    </label>
+                                </div>
+                                <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5">
+                                    ${photosListHtml}
+                                </div>
+                            </div>
+
+                            <!-- Subtask Remarks Input -->
+                            <div>
+                                <input type="text" value="${s.remarks || ''}" onchange="app.saveSubtaskRemarks('${job.id}', '${s.id}', this.value)" placeholder="ระบุข้อสังเกต หรือรายละเอียดการตรวจรับรองงานด่วน Quick Service..." class="w-full bg-muted/30 border border-border focus:border-brand-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none transition">
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
                 const hasAnyRework = subtasks.some(s => s.failed_once || s.has_rework || s.is_rework_pass) || isJobRework;
 
                 // Action Controls Header above questions
@@ -23249,10 +23542,15 @@ const app = {
                 const sub = subtasks.find(s => s.id === subtaskId);
                 if (sub) {
                     const isQuick = this.isQuickJob(job);
-                    const isJobRework = job.status === 'QC_REWORK' || (job.qc_rework_count && job.qc_rework_count > 0) || (job.rework_count && job.rework_count > 0) || !!job.has_rework;
+                    const history = Array.isArray(job.qc_history) ? job.qc_history : [];
+                    const reworkCount = history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (job.qc_rework_count || job.rework_count || 0);
+                    const isJobRework = job.status === 'QC_REWORK' || reworkCount > 0 || (job.rework_count && job.rework_count > 0) || !!job.has_rework || history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
+                    const currentRound = history.length + (job.status === 'QC_PASSED' ? 0 : 1) || (isJobRework ? (reworkCount + 1) : 1);
+                    const isRound2Plus = currentRound >= 2 || isJobRework;
+
                     sub.answer = answer;
                     if (answer === 'YES') {
-                        const isRework = sub.failed_once || sub.has_rework || sub.is_rework_pass || (isQuick && isJobRework) || (isJobRework && (sub.status === 'DEFECT' || sub.answer === 'NO'));
+                        const isRework = isRound2Plus || sub.failed_once || sub.has_rework || sub.is_rework_pass || (isQuick && isJobRework);
                         if (isRework) {
                             sub.score = 1;
                             sub.status = 'PASSED';
@@ -23285,10 +23583,15 @@ const app = {
                 const job = (DB.jobs || []).find(j => j.id === targetJobId);
                 if (!job) return;
                 const isQuick = this.isQuickJob(job);
-                const isJobRework = job.status === 'QC_REWORK' || (job.qc_rework_count && job.qc_rework_count > 0) || (job.rework_count && job.rework_count > 0) || !!job.has_rework;
+                const history = Array.isArray(job.qc_history) ? job.qc_history : [];
+                const reworkCount = history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (job.qc_rework_count || job.rework_count || 0);
+                const isJobRework = job.status === 'QC_REWORK' || reworkCount > 0 || (job.rework_count && job.rework_count > 0) || !!job.has_rework || history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
+                const currentRound = history.length + (job.status === 'QC_PASSED' ? 0 : 1) || (isJobRework ? (reworkCount + 1) : 1);
+                const isRound2Plus = currentRound >= 2 || isJobRework;
+
                 const subtasks = this.getJobQCSubtasks(job);
                 subtasks.forEach(s => {
-                    const isRework = s.failed_once || s.has_rework || s.is_rework_pass || (isQuick && isJobRework);
+                    const isRework = isRound2Plus || s.failed_once || s.has_rework || s.is_rework_pass || (isQuick && isJobRework);
                     s.answer = 'YES';
                     s.status = 'PASSED';
                     if (isRework) {
@@ -23423,13 +23726,37 @@ const app = {
 
                 const remarksEl = document.getElementById('qc-modal-overall-remarks');
                 const remark = remarksEl && remarksEl.value.trim() ? remarksEl.value.trim() : 'พบข้อบกพร่อง ต้องดำเนินการแก้ไขก่อนส่งตรวจใหม่';
+                const inspectorEl = document.getElementById('qc-modal-inspector');
+                const inspector = (inspectorEl && inspectorEl.value) ? inspectorEl.value : (job.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)');
+
+                if (!Array.isArray(job.qc_history)) job.qc_history = [];
+                const reworkCount = (job.rework_count || job.qc_rework_count || 0) + 1;
+                const currentRound = job.qc_history.length + 1;
+
+                const nowIso = new Date().toISOString();
+                const nowDmy = this.formatDateTimeDMY(nowIso, false, true);
+
+                const historyEntry = {
+                    round: currentRound,
+                    round_label: `ตรวจครั้งที่ ${currentRound} (แจ้งแก้ไขงานครั้งที่ ${reworkCount})`,
+                    action: 'REWORK',
+                    result: 'REWORK',
+                    score: 1.0,
+                    score_display: '1.0',
+                    inspector: inspector,
+                    timestamp: nowIso,
+                    date_display: nowDmy,
+                    remarks: remark
+                };
+                job.qc_history.push(historyEntry);
 
                 job.status = 'QC_REWORK';
                 job.qc_status = 'QC_REWORK';
                 job.qc_remarks = remark;
+                job.qc_inspector = inspector;
                 job.has_rework = true;
-                job.qc_rework_count = (job.qc_rework_count || 0) + 1;
-                job.rework_count = (job.rework_count || 0) + 1;
+                job.qc_rework_count = reworkCount;
+                job.rework_count = reworkCount;
 
                 const isQuick = this.isQuickJob(job);
                 const subtasks = this.getJobQCSubtasks(job);
@@ -23438,20 +23765,43 @@ const app = {
                         s.failed_once = true;
                         s.has_rework = true;
                         s.is_rework_pass = false;
-                        if (s.answer !== 'NO') {
-                            s.answer = 'NO';
-                            s.score = 1;
-                            s.status = 'DEFECT';
-                        }
+                        s.answer = 'NO';
+                        s.score = 1;
+                        s.status = 'DEFECT';
                     }
                 });
 
-                this.recordStepTimestamp(job.id, 'qc_rework_at', new Date().toISOString(), `แจ้งช่างแก้ไขงาน (Rework): ${remark}`);
+                if (!job.step_timestamps) job.step_timestamps = {};
+                job.step_timestamps.qc_rework_at = nowIso;
+
+                this.recordStepTimestamp(job.id, 'qc_rework_at', nowIso, `แจ้งช่างแก้ไขงาน (Rework ครั้งที่ ${reworkCount}): ${remark}`);
                 this.persistJobs();
                 this.updateQCDashboard();
                 this.renderQC();
+
+                // Call backend PATCH to persist rework state and history
+                const token = sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                fetch(`/api/v1/jobs/${job.id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    },
+                    body: JSON.stringify({
+                        status: 'QC_REWORK',
+                        has_rework: true,
+                        rework_count: job.rework_count,
+                        qc_rework_count: job.qc_rework_count,
+                        qc_remarks: job.qc_remarks,
+                        qc_inspector: job.qc_inspector,
+                        qc_history: job.qc_history,
+                        qc_subtasks: job.qc_subtasks,
+                        step_timestamps: job.step_timestamps
+                    })
+                }).catch(err => console.warn('PATCH QC_REWORK error:', err));
+
                 this.hideModal('modal-qc-job-detail');
-                this.showToast(`⚠️ บันทึกสถานะส่งกลับแก้ไขงาน (Rework) สำหรับโครงการ ${job.id} เรียบร้อย (รอบแก้จะได้ 1 คะแนนเมื่อตรวจผ่าน)`);
+                this.showToast(`⚠️ บันทึกส่งกลับแก้ไขงาน (Rework ครั้งที่ ${reworkCount}) ใบงาน ${job.job_no || job.id} เรียบร้อย (รอบถัดไปคะแนนล็อก 1.0 อัตโนมัติเมื่อตรวจผ่าน)`);
             },
 
             approveCurrentJobToSTK() {
@@ -23472,10 +23822,19 @@ const app = {
 
                 const subtasks = this.getJobQCSubtasks(job);
                 const isQuick = this.isQuickJob(job);
-                const isJobRework = job.status === 'QC_REWORK' || (job.qc_rework_count && job.qc_rework_count > 0) || (job.rework_count && job.rework_count > 0) || !!job.has_rework;
+
+                if (!Array.isArray(job.qc_history)) job.qc_history = [];
+                const reworkCount = job.qc_history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (job.qc_rework_count || job.rework_count || 0);
+                const isJobRework = job.status === 'QC_REWORK' || reworkCount > 0 || (job.rework_count && job.rework_count > 0) || !!job.has_rework || job.qc_history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
+                const currentRound = job.qc_history.length + 1;
+                const isRound2Plus = currentRound >= 2 || isJobRework;
+
+                // Strict 1.0 Score Lock for Round >= 2
+                const calculatedAvg = Number(progress.averageScore);
+                const finalAvgScore = isRound2Plus ? 1.0 : (calculatedAvg > 0 ? calculatedAvg : 5.0);
 
                 const questionsPayload = subtasks.map((s, idx) => {
-                    const isRework = s.is_rework_pass || s.failed_once || s.has_rework || (isQuick && isJobRework);
+                    const isRework = isRound2Plus || s.is_rework_pass || s.failed_once || s.has_rework || (isQuick && isJobRework);
                     const finalScore = (s.answer === 'YES' || s.status === 'PASSED') 
                         ? (isRework ? 1 : (Number(s.score) > 0 ? Number(s.score) : 5))
                         : 1;
@@ -23501,13 +23860,31 @@ const app = {
 
                 const stkRef = `STK-QC-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
                 const nowIso = new Date().toISOString();
+                const nowDmy = this.formatDateTimeDMY(nowIso, false, true);
 
-                // Format Outbound STK API Payload (เลขที่, คำถาม, คะแนนที่ได้)
+                // Record passed entry into qc_history
+                const passedHistoryEntry = {
+                    round: currentRound,
+                    round_label: isRound2Plus ? `ตรวจครั้งที่ ${currentRound} (ผ่านเกณฑ์รอบแก้ไข)` : `ตรวจครั้งที่ 1 (ผ่านเกณฑ์รอบแรก)`,
+                    action: 'PASSED',
+                    result: 'PASSED',
+                    score: finalAvgScore,
+                    score_display: Number(finalAvgScore).toFixed(1),
+                    inspector: job.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
+                    timestamp: nowIso,
+                    date_display: nowDmy,
+                    remarks: job.qc_remarks || 'งานติดตั้งเรียบร้อยตามมาตรฐาน'
+                };
+                job.qc_history.push(passedHistoryEntry);
+
+                // Format Outbound STK API Payload (เลขที่, คำถาม, คะแนนที่ได้, ประวัติ)
                 const stkPayload = {
                     job_no: job.job_no || job.id,
                     job_id: job.id,
                     stk_ref: stkRef,
                     inspection_date: nowIso,
+                    inspection_round: currentRound,
+                    rework_count: reworkCount,
                     customer: {
                         name: job.customer || job.customer_name || 'ลูกค้า',
                         phone: job.phone || job.customer_phone || '-'
@@ -23515,18 +23892,19 @@ const app = {
                     service: job.service || job.service_type || 'บริการติดตั้ง',
                     tech_team: job.tech || job.assigned_team || '-',
                     qc_inspector: job.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
-                    qc_score: Number(progress.averageScore),
+                    qc_score: finalAvgScore,
                     total_score_obtained: questionsPayload.reduce((sum, q) => sum + q.score, 0),
                     max_possible_score: questionsPayload.length * 5,
                     total_questions: questionsPayload.length,
                     passed_questions: questionsPayload.filter(q => q.result === 'PASS').length,
                     questions: questionsPayload,
+                    qc_history: job.qc_history,
                     qc_remarks: job.qc_remarks || 'งานติดตั้งเรียบร้อยตามมาตรฐาน'
                 };
 
                 job.status = 'QC_PASSED';
                 job.qc_status = 'QC_PASSED';
-                job.qc_score = Number(progress.averageScore);
+                job.qc_score = finalAvgScore;
                 job.qc_passed_at = nowIso;
                 job.progress = 100;
                 job.stk_status = 'DELIVERED';
@@ -23542,7 +23920,7 @@ const app = {
                     job.id, 
                     'stk_exported_at', 
                     nowIso, 
-                    `อนุมัติผ่านเกณฑ์ QC (${progress.averageScore} คะแนน) และส่งข้อมูลผลตรวจออก API ไปยังระบบ STK (Ref: ${stkRef})`
+                    `อนุมัติผ่านเกณฑ์ QC ครั้งที่ ${currentRound} (${finalAvgScore} คะแนน) และส่งข้อมูลผลตรวจออก API ไปยังระบบ STK (Ref: ${stkRef})`
                 );
                 this.persistJobs();
                 this.updateStepBadges();
@@ -23578,13 +23956,18 @@ const app = {
                         overall_progress: 100,
                         qc_score: job.qc_score,
                         qc_passed_at: job.qc_passed_at,
+                        qc_inspector: job.qc_inspector,
+                        qc_remarks: job.qc_remarks,
+                        qc_history: job.qc_history,
+                        qc_subtasks: job.qc_subtasks,
                         step_timestamps: job.step_timestamps
                     })
                 }).catch(() => {});
 
                 this.hideModal('modal-qc-job-detail');
                 this.renderQC();
-                this.showToast(`🚀 อนุมัติผ่านเกณฑ์ QC ใบงาน ${job.job_no || job.id} (${progress.averageScore} คะแนน) และส่งข้อมูลผลตรวจ (เลขที่, คำถาม, คะแนน) ไปยังระบบ STK สำเร็จ (Ref: ${stkRef})`);
+                const roundText = isRound2Plus ? `ผ่านเกณฑ์รอบแก้ไขครั้งที่ ${currentRound} (ได้ 1.0 คะแนนอัตโนมัติ)` : `ผ่านเกณฑ์รอบแรก (ได้ 5.0 คะแนนเต็ม)`;
+                this.showToast(`🚀 อนุมัติผ่านเกณฑ์ QC ใบงาน ${job.job_no || job.id} [${roundText}] และส่งข้อมูลไปยังระบบ STK สำเร็จ (Ref: ${stkRef})`);
             },
 
             approveCurrentJobToCSAT() {
@@ -23615,12 +23998,9 @@ const app = {
                         step_timestamps: { qc_pending_at: new Date().toISOString() },
                         boq_items: [],
                         photos: [],
+                        qc_history: [],
                         qc_subtasks: [
-                            { id: 'q1', num: 1, title: 'ช่างทำงานตาม BOQ/มาตรฐานการติดตั้งที่กำหนด', category: 'มาตรฐาน & BOQ', mandatory: true, status: 'PASSED', answer: 'YES', score: 5, photos: [], remarks: 'เดินสายเมน THW และติดตั้งท่อร้อยสายไฟถูกต้องตามมาตรฐาน' },
-                            { id: 'q2', num: 2, title: 'ความเรียบร้อยของงานติดตั้ง', category: 'คุณภาพงานติดตั้ง', mandatory: true, status: 'PASSED', answer: 'YES', score: 5, photos: [], remarks: 'ติดตั้งกล่องเบรกเกอร์แนบสนิท เก็บสายเรียบร้อย' },
-                            { id: 'q3', num: 3, title: 'ช่างเข้าปฏิบัติงานตรงตามเวลาที่นัดหมายกับลูกค้า', category: 'การตรงต่อเวลา', mandatory: true, status: 'PASSED', answer: 'YES', score: 5, photos: [], remarks: 'เข้าถึงหน้างานตรงเวลา 09:00 น.' },
-                            { id: 'q4', num: 4, title: 'ส่งมอบงานได้ตามกำหนดเวลา', category: 'กำหนดเวลาส่งมอบ', mandatory: true, status: 'PENDING', answer: null, score: 0, photos: [], remarks: '' },
-                            { id: 'q5', num: 5, title: 'ช่างป้องกันพื้นที่ติดตั้งและส่งมอบพื้นที่คืนโดยไม่เกิดความเสียหาย', category: 'การป้องกัน & คืนพื้นที่', mandatory: true, status: 'PENDING', answer: null, score: 0, photos: [], remarks: '' }
+                            { id: 'qq1', num: 1, title: 'ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด', category: 'มาตรฐานการทำงาน Quick Service', mandatory: true, status: 'PENDING', answer: null, score: 0, photos: [], remarks: '' }
                         ]
                     },
                     {
@@ -23711,11 +24091,48 @@ const app = {
                         job_type: 'quick',
                         tech: 'Team B (ประเสริฐ)',
                         qc_inspector: 'ช่างสมชาย (QC มาตรฐานทั่วไป)',
-                        status: 'QC_PENDING',
+                        status: 'QC_REWORK',
+                        qc_status: 'QC_REWORK',
+                        has_rework: true,
+                        rework_count: 1,
+                        qc_rework_count: 1,
+                        qc_remarks: 'พบรอยขีดข่วนบริเวณแผงสแกนใบหน้า และการเก็บสายสัญญาณยังไม่เรียบร้อย ช่างต้องแก้ไขก่อนส่งตรวจซ้ำ',
                         date: new Date().toISOString(),
-                        step_timestamps: { qc_pending_at: new Date().toISOString() },
+                        step_timestamps: { 
+                            qc_pending_at: '2026-09-09T10:00:00.000Z',
+                            qc_rework_at: '2026-09-09T14:30:00.000Z'
+                        },
                         photos: [],
-                        qc_subtasks: standardQCQuestions()
+                        qc_history: [
+                            {
+                                round: 1,
+                                round_label: 'ตรวจครั้งที่ 1 (พบข้อบกพร่อง)',
+                                action: 'REWORK',
+                                result: 'REWORK',
+                                score: 1.0,
+                                score_display: '1.0',
+                                inspector: 'ช่างสมชาย (QC มาตรฐานทั่วไป)',
+                                timestamp: '2026-09-09T14:30:00.000Z',
+                                date_display: '09/09/2026 14:30 น.',
+                                remarks: 'พบรอยขีดข่วนบริเวณแผงสแกนใบหน้า และการเก็บสายสัญญาณยังไม่เรียบร้อย ช่างต้องแก้ไขก่อนส่งตรวจซ้ำ'
+                            }
+                        ],
+                        qc_subtasks: [
+                            { 
+                                id: 'qq1', num: 1, 
+                                title: 'ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด', 
+                                category: 'มาตรฐานการทำงาน Quick Service', 
+                                mandatory: true, 
+                                status: 'DEFECT', 
+                                answer: 'NO', 
+                                score: 1, 
+                                photos: [], 
+                                remarks: 'พบรอยขีดข่วนบริเวณแผงสแกน ช่างต้องแก้ไข', 
+                                failed_once: true, 
+                                has_rework: true, 
+                                is_rework_pass: false 
+                            }
+                        ]
                     }
                 ];
 

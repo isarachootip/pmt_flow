@@ -3709,7 +3709,11 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
             status: JobStatus.QC_PASSED,
             overall_progress: 100,
             qc_score: qcScore,
-            qc_passed_at: exportedAt
+            qc_passed_at: exportedAt,
+            qc_remarks: payload.qc_remarks || 'งานติดตั้งเรียบร้อยตามมาตรฐาน',
+            qc_inspector: payload.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
+            ...(Array.isArray(payload.qc_history) ? { qc_history: payload.qc_history } : {}),
+            ...(formattedQuestions.length > 0 ? { qc_subtasks: formattedQuestions } : {})
         });
         const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
         if (targetJob) {
@@ -3720,6 +3724,10 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
             targetJob.stk_status = 'DELIVERED';
             targetJob.stk_exported_at = exportedAt;
             targetJob.stk_payload = formattedOutboundPayload;
+            if (Array.isArray(payload.qc_history))
+                targetJob.qc_history = payload.qc_history;
+            if (formattedQuestions.length > 0)
+                targetJob.qc_subtasks = formattedQuestions;
         }
         return res.status(200).json({
             success: true,
