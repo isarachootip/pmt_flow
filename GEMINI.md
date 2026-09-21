@@ -70,5 +70,11 @@ PostgreSQL database. They are NOT the same machine and NOT the same data.
 ## 📊 DEFAULT VIEW STANDARD: STRICTLY LIST VIEW (NO DEFAULT CARD VIEW)
 - **Mandatory Default List View**: ทุกหน้าจอที่มีปุ่มสลับมุมมอง (Step 2 Design, Step 3 BOQ, Step 4 Tickets & Receipts, Step 5 Conversion, Gantt Projects) **ต้องเริ่มต้นการแสดงผลเป็น "แบบตารางรายการ (List View)" 100% เสมอ** ห้ามตั้งค่าเริ่มต้นเป็น Card View เพื่อให้เจ้าหน้าที่ (SA / Admin / AE / QC) สแกนข้อมูล, รหัสคำสั่งซื้อ, วันที่, และป้ายสถานะได้อย่างรวดเร็วในบรรทัดเดียว (Card View คงไว้เฉพาะการกดสลับด้วยความสมัครใจของผู้ใช้เท่านั้น).
 
+## 🖤 BLACK FONT STANDARD: STRICTLY BLACK TEXT ACROSS ALL SCREENS (100% PURE BLACK TEXT)
+- **Mandatory Pure Black Text**: ทุกหน้าจอ (All Screens, Tables, Modals, Forms & Cards) ต้องแสดงผลตัวหนังสือ (Font/Text) เป็น **สีดำบริสุทธิ์ (`#000000` หรือ Pure Black)** 100% เพื่อให้อ่านง่าย คมชัดสูงสุดบนพื้นหลัง Light Theme (High Contrast & Maximum Legibility).
+- **Prohibited Washed-Out Grays**: ห้ามใช้ตัวอักษรสีเทาจาง (เช่น `text-gray-400`, `text-slate-400`, หรือ `--muted-foreground: #71717a`) สำหรับข้อมูลสำคัญ.
+- **CSS Variable Standard**: ตัวแปรระบบ `--foreground`, `--card-foreground`, `--popover-foreground`, `--muted-foreground`, `--secondary-foreground`, `--accent-foreground` ใน `public/css/app.css` ต้องตั้งเป็น `#000000` เสมอ.
+- **Form Controls & Tables**: ส่วนหัวตาราง (`th`), เนื้อหาตาราง (`td`), หัวข้อ (`h1`-`h6`), ป้ายกำกับ (`label`), ข้อมูลในอินพุต (`input`, `select`, `textarea` ทั้งปกติและ readonly/disabled) ต้องแสดงผลเป็นสีดำคมชัด 100%.
+
 
 

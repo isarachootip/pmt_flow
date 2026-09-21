@@ -1,41 +1,41 @@
 :root {
             --background: #f8fafc;
-            --foreground: #09090b;
+            --foreground: #000000;
             --card: #ffffff;
-            --card-foreground: #09090b;
+            --card-foreground: #000000;
             --popover: #ffffff;
-            --popover-foreground: #09090b;
+            --popover-foreground: #000000;
             --primary: #7c3aed;
             --primary-foreground: #ffffff;
             --secondary: #f4f4f5;
-            --secondary-foreground: #18181b;
+            --secondary-foreground: #000000;
             --muted: #f4f4f5;
-            --muted-foreground: #71717a;
+            --muted-foreground: #000000;
             --accent: #f4f4f5;
-            --accent-foreground: #18181b;
-            --border: #e4e4e7;
-            --input: #e4e4e7;
+            --accent-foreground: #000000;
+            --border: #cbd5e1;
+            --input: #cbd5e1;
             --ring: #7c3aed;
         }
 
         /* Light Theme Standard — Dark Mode Permanently Retired */
         .dark {
             --background: #f8fafc;
-            --foreground: #09090b;
+            --foreground: #000000;
             --card: #ffffff;
-            --card-foreground: #09090b;
+            --card-foreground: #000000;
             --popover: #ffffff;
-            --popover-foreground: #09090b;
+            --popover-foreground: #000000;
             --primary: #7c3aed;
             --primary-foreground: #ffffff;
             --secondary: #f4f4f5;
-            --secondary-foreground: #18181b;
+            --secondary-foreground: #000000;
             --muted: #f4f4f5;
-            --muted-foreground: #71717a;
+            --muted-foreground: #000000;
             --accent: #f4f4f5;
-            --accent-foreground: #18181b;
-            --border: #e4e4e7;
-            --input: #e4e4e7;
+            --accent-foreground: #000000;
+            --border: #cbd5e1;
+            --input: #cbd5e1;
             --ring: #7c3aed;
         }
 
@@ -74,7 +74,7 @@
 
         body {
             background-color: var(--background);
-            color: var(--foreground);
+            color: #000000 !important;
             font-family: 'Inter', 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-feature-settings: "cv02", "cv03", "cv04", "cv11";
         }
@@ -364,17 +364,53 @@
         }
 
         /* ============================================================================= */
-        /* HIGH-CONTRAST CLEAR TEXT STANDARD (FORM INPUTS, BADGES & FRAMED FIELDS)      */
+        /* STRICT BLACK FONT STANDARD ACROSS ALL SCREENS (100% PURE BLACK TEXT)          */
         /* ============================================================================= */
+        /* Default pure black text for typography, headings, labels, paragraphs, and tables */
+        h1, h2, h3, h4, h5, h6,
+        label,
+        .text-foreground,
+        .text-muted-foreground,
+        .text-slate-600,
+        .text-slate-700,
+        .text-gray-600,
+        .text-gray-700,
+        .text-gray-800,
+        .text-zinc-600,
+        table th,
+        table td,
+        .data-table th,
+        .data-table td {
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+        }
+
+        /* All form inputs, selects, textareas must display pure black text */
+        input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+        select,
+        textarea {
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+        }
+
+        /* Distinct and readable placeholder styling */
+        input::placeholder,
+        textarea::placeholder {
+            color: #64748b !important;
+            -webkit-text-fill-color: #64748b !important;
+            opacity: 0.85 !important;
+        }
+
+        /* High-contrast crisp black text for readonly and disabled inputs */
         input[readonly],
         textarea[readonly],
         select:disabled,
         input:disabled,
         textarea:disabled {
-            color: var(--foreground) !important;
-            -webkit-text-fill-color: var(--foreground) !important;
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
             opacity: 1 !important;
-            font-weight: 500;
+            font-weight: 500 !important;
         }
 
         /* Standardized high-contrast bordered badge & field text */
@@ -382,7 +418,40 @@
         .studio-badge,
         .badge-framed {
             border: 1px solid var(--border);
-            color: var(--foreground) !important;
-            -webkit-text-fill-color: var(--foreground) !important;
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
             font-weight: 700 !important;
         }
+
+        /* Sidebar navigation links, labels, and icons in inactive state must be pure black */
+        .nav-link:not(.nav-item-active) {
+            color: #000000 !important;
+        }
+        .nav-link:not(.nav-item-active) span,
+        .nav-link:not(.nav-item-active) div {
+            color: #000000 !important;
+        }
+        .step2-sub-link:not(.nav-item-active) {
+            color: #000000 !important;
+        }
+
+        /* Protect white text on solid colored buttons, chips, and badges */
+        .text-white,
+        [class*="text-white"],
+        .btn-artifact-primary,
+        .btn-artifact-primary *,
+        .badge-new-item,
+        .badge-new-item * {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+
+        /* Preserve semantic badge text colors */
+        .status-pill.status-draft { color: #71717a !important; -webkit-text-fill-color: #71717a !important; }
+        .status-pill.status-new { color: #e11d48 !important; -webkit-text-fill-color: #e11d48 !important; }
+        .status-pill.status-in-progress { color: #d97706 !important; -webkit-text-fill-color: #d97706 !important; }
+        .status-pill.status-qc-pending { color: #7c3aed !important; -webkit-text-fill-color: #7c3aed !important; }
+        .status-pill.status-qc-passed { color: #059669 !important; -webkit-text-fill-color: #059669 !important; }
+        .status-pill.status-after-sale { color: #0284c7 !important; -webkit-text-fill-color: #0284c7 !important; }
+        .status-pill.status-closed { color: #047857 !important; -webkit-text-fill-color: #047857 !important; }
+        .status-cancelled, .status-closed-lost { color: #dc2626 !important; -webkit-text-fill-color: #dc2626 !important; }

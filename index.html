@@ -196,7 +196,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="/public/css/app.css?v=1.7.0">
+    <link rel="stylesheet" href="/public/css/app.css?v=1.8.0">
 </head>
 <body class="h-screen flex overflow-hidden font-sans select-none antialiased">
 
@@ -5289,6 +5289,21 @@
                                 <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
                                     <p><strong class="text-foreground">คำตอบ:</strong> เพื่อให้การอ่านข้อมูลหน้างาน ตาราง Gantt แผนผังแบบแปลน และข้อมูลตัวเลข BOQ มีความคมชัดสูงสุด ไม่กลืนกับพื้นหลัง ระบบ PMT Flow จึงกำหนดมาตรฐานเป็น <strong>ธีมสว่าง (Light Theme) 100%</strong> และยกเลิกการสลับโหมดมืด เพื่อตัดปัญหาความขัดแย้งของสีและคอนทราสต์อย่างถาวร</p>
                                     <p>สำหรับระบบ Log-on / Log-out ได้รับการยกระดับด้วยกลไก <strong>In-Memory Fast Auth (0ms response)</strong>, การตั้งเวลา Timeout ป้องกันการค้าง, และระบบ <strong>Hard Reload Redirect</strong> เมื่อออกจากระบบ เพื่อล้างหน่วยความจำและตัวจับเวลาในเบื้องหลังอย่างสมบูรณ์ ป้องกันปัญหาหน้าจอค้าง 100%</p>
+                                </div>
+                            </details>
+
+                            <!-- Q6B: Strict Black Font Standard -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q6B:</span>
+                                        <span>ทำไมทุกหน้าจอในระบบจึงกำหนดให้สีตัวอักษรเป็นสีดำ 100% (Strict Black Font Standard)?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> ระบบกำหนดมาตรฐาน <strong>Strict Black Font Standard (100% Pure Black Text: #000000)</strong> สำหรับทุกหน้าจอ เพื่อให้เจ้าหน้าที่ (Admin, AE, QC, Contact Center) สามารถอ่านรหัสคำสั่งซื้อ, วันที่, ป้ายกำกับ, เนื้อหาตาราง, แผนงาน Gantt, และแบบแปลนได้อย่างคมชัดสูงสุดในสภาพแวดล้อมใช้งานจริง</p>
+                                    <p>ระบบตัดปัญหาตัวหนังสือสีเทาจาง (Zero Washed-Out Text) โดยกำหนดตัวแปรสีระบบและคลาสของตาราง หัวข้อ ป้ายกำกับ และช่องกรอกข้อมูลให้เป็นสีดำบริสุทธิ์ (#000000) ทั้งหมด พร้อมทั้งคงสีสถานะเฉพาะของป้ายกำกับ (Badges) และข้อความสีขาวบนปุ่มสีเข้มไว้อย่างถูกต้องสมบูรณ์</p>
                                 </div>
                             </details>
 
