@@ -5209,26 +5209,31 @@
                                 </div>
                             </details>
 
-                            <!-- Q11: Unified Order Studio & Survey Intake Flow -->
-                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
-                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
-                                    <span class="flex items-center gap-2">
-                                        <span class="text-brand-500 font-bold">Q11:</span>
-                                        <span>สถาปัตยกรรม One-Stop Order Studio (Step 1) และการนำเข้าสถานะ Survey (25%) จาก API ทำงานอย่างไร?</span>
-                                    </span>
-                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
-                                </summary>
-                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
-                                    <p><strong class="text-foreground">คำตอบ:</strong> คำสั่งซื้อที่เชื่อมโยงผ่าน Inbound API จะเข้าสู่ระบบด้วยสถานะ <strong>"Survey" (`SURVEYED` / ความคืบหน้า 25%)</strong> โดยทันที เพื่อสะท้อนว่าผ่านการสำรวจพื้นที่หน้างานและถ่ายรูปเบื้องต้นแล้ว โดยมีจุดเด่นของสถาปัตยกรรมดังนี้:</p>
-                                    <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
-                                        <li><strong>Ultra-Wide Executive Workspace:</strong> หน้าต่าง Modal ขนาดใหญ่พิเศษ (<code class="bg-muted px-1.5 py-0.5 rounded text-[11px]">w-[96vw] max-w-7xl h-[96vh]</code>) ออกแบบเฉพาะสำหรับ Project Manager (PM) และ Solutions Architect (SA) เลื่อนดูข้อมูลแบบต่อเนื่อง (Continuous Vertical Scrolling) ครบ 3 ส่วนในหน้าเดียว</li>
-                                        <li><strong>คลังรูปถ่ายสำรวจหน้างาน (Section 1):</strong> แสดงภาพถ่ายสำรวจหน้างานจริง พร้อมปุ่ม <code class="bg-muted px-1.5 py-0.5 rounded text-[11px] font-bold text-teal-600">+ 📷 เพิ่มรูปถ่ายหน้างาน</code> ให้อัปโหลดภาพเพิ่มเติมได้ทันทีก่อนเริ่มงาน พร้อม Lightbox ซูมดูรูปใหญ่และปุ่มลบภาพ</li>
-                                        <li><strong>แบบแปลนติดตั้ง CAD/PDF (Section 2):</strong> คลังจัดเก็บแบบแปลนแยกตามโซนห้อง พร้อม Drag & Drop Uploader และพรีวิวไฟล์แบบแปลน</li>
-                                        <li><strong>ประมาณการราคา BOQ (Section 3):</strong> ตารางคิดราคาพร้อมปุ่ม <strong>Quick Service Preset Chips</strong> (+ค่าแรงติดตั้ง, +ท่อน้ำยา, +รางครอบท่อ ฯลฯ) ช่วยให้เพิ่มรายการได้ในคลิกเดียว พร้อมคำนวณราคาสุทธิ (Grand Total / No VAT) อัตโนมัติ</li>
-                                        <li><strong>Live Metrics & Sticky Quick Jump:</strong> แถบ Header แสดงจำนวนรูปถ่าย แบบแปลน และยอดรวม BOQ สด และมีปุ่มทางลัดช่วยเลื่อนสกรอลล์ไปยังแต่ละส่วนได้อย่างรวดเร็ว</li>
-                                    </ul>
-                                </div>
-                            </details>
+                                    <!-- Q11: Unified Order Studio & Survey Intake Flow -->
+                                    <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                        <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                            <span class="flex items-center gap-2">
+                                                <span class="text-brand-500 font-bold">Q11:</span>
+                                                <span>สถาปัตยกรรม One-Stop Order Studio (Step 1) และการจัดการรูปถ่ายสำรวจหน้างาน (Survey Photos Hub & Lightbox) ทำงานอย่างไร?</span>
+                                            </span>
+                                            <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                        </summary>
+                                        <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
+                                            <p><strong class="text-foreground">คำตอบ:</strong> คำสั่งซื้อที่เชื่อมโยงผ่าน Inbound API จะเข้าสู่ระบบด้วยสถานะ <strong>"Survey" (`SURVEYED` / ความคืบหน้า 25%)</strong> โดยทันที เพื่อสะท้อนว่าผ่านการสำรวจพื้นที่หน้างานและถ่ายรูปเบื้องต้นแล้ว โดยมีจุดเด่นของสถาปัตยกรรมดังนี้:</p>
+                                            <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
+                                                <li><strong>Executive Order Studio:</strong> หน้าต่างจัดการคำสั่งซื้อขนาดใหญ่ รองรับการทำงานทั้งงานบริการด่วน (Quick Services) และงานโครงการปรับปรุง (Renovate) เลื่อนดูข้อมูลแบบต่อเนื่อง (Vertical Scrolling) ครบทุกส่วนในหน้าเดียว</li>
+                                                <li><strong>คลังรูปถ่ายสำรวจหน้างาน & ถ่ายภาพสด (Survey Photos Hub):</strong> แสดงรูปถ่ายที่ซิงค์ตรงมาจาก INT (รูปสำรวจ, รูป Check-in, รูป Check-out, รูปหน้างาน) พร้อมระบบเพิ่มรูปถ่ายได้ทันทีเช่นเดียวกับหน้าจอ QC โดยมีช่องทางอัปโหลด 4 รูปแบบ:
+                                                    <span class="block mt-0.5 pl-2 text-foreground font-medium">• <strong>⚡ เลือกรูปด่วน (Multi-select):</strong> เลือกไฟล์ภาพจากเครื่องได้หลายรูปพร้อมกันและบีบอัดอัตโนมัติ</span>
+                                                    <span class="block pl-2 text-foreground font-medium">• <strong>📸 ถ่ายภาพสด (Camera Input):</strong> เปิดกล้องอุปกรณ์มือถือหรือแท็บเล็ตเพื่อถ่ายรูปหน้างานและเพิ่มเข้าระบบทันที</span>
+                                                    <span class="block pl-2 text-foreground font-medium">• <strong>➕ การ์ดเพิ่มรูปถ่ายในแกลเลอรี:</strong> คลิกที่การ์ดเส้นประ "+ เพิ่มรูปถ่าย" ท้ายตารางรูปภาพเพื่อเลือกรูปได้สะดวกรวดเร็ว</span>
+                                                    <span class="block pl-2 text-foreground font-medium">• <strong>🖼️ Lightbox ซูมดูรูปใหญ่ (Full Preview):</strong> คลิกที่รูปภาพใดๆ เพื่อเปิดหน้าต่างดูรูปขยายใหญ่เต็มหน้าจอพร้อมข้อมูลกำกับ</span>
+                                                </li>
+                                                <li><strong>แบบแปลนติดตั้ง CAD/PDF (สำหรับงาน Renovate):</strong> คลังจัดเก็บแบบแปลนแยกตามโซนห้อง พร้อม Drag & Drop Uploader และพรีวิวไฟล์แบบแปลน</li>
+                                                <li><strong>ประมาณการราคา BOQ (สำหรับงาน Renovate):</strong> ตารางคิดราคาและนำเข้าไฟล์ vFIX / Excel พร้อมคำนวณราคาสุทธิอัตโนมัติ</li>
+                                                <li><strong>ส่งต่องาน 1-Click Hand-off:</strong> สำหรับงาน Quick Services สามารถกด <code class="bg-amber-500/10 text-amber-700 px-1.5 py-0.5 rounded font-bold">⚡ บันทึก & วิ่งไปหน้า QC ทันที</code> เพื่อส่งตรงเข้าสู่ Step 5 QC Online และสำหรับ Renovate สามารถกดส่งต่อไปยัง Step 2 หรือ Step 3 ได้ทันที</li>
+                                            </ul>
+                                        </div>
+                                    </details>
                             <!-- Q12: Real-time Gantt Daily Timeline & 3-Day Retroactive Policy -->
                             <details class="p-4 rounded-xl bg-muted/30 border border-border group">
                                 <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
@@ -7720,9 +7725,14 @@
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span id="unified-survey-photos-count" class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-teal-50 text-foreground border border-teal-300 shadow-2xs">0 รูป</span>
                                 <input type="file" id="unified-quick-photo-input" accept="image/*" multiple class="hidden" onchange="app.handleUnifiedQuickPhotoUpload(event)">
+                                <input type="file" id="unified-camera-photo-input" accept="image/*" capture="environment" class="hidden" onchange="app.handleUnifiedQuickPhotoUpload(event)">
                                 <button type="button" onclick="document.getElementById('unified-quick-photo-input').click()" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-bold border border-teal-300 bg-teal-50/70 hover:bg-teal-100 text-foreground cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="เลือกรูปถ่ายหลายไฟล์พร้อมกันจากเครื่องโดยตรง">
                                     <i class="ph ph-images-square text-teal-600 text-sm"></i>
                                     <span class="text-foreground font-bold">เลือกรูปด่วน</span>
+                                </button>
+                                <button type="button" onclick="document.getElementById('unified-camera-photo-input').click()" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-bold border border-teal-300 bg-teal-50/70 hover:bg-teal-100 text-foreground cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="ถ่ายภาพหน้างานจากกล้องมือถือ/แท็บเล็ตทันที">
+                                    <i class="ph ph-camera text-teal-600 text-sm"></i>
+                                    <span class="text-foreground font-bold">ถ่ายภาพ</span>
                                 </button>
                                 <button type="button" onclick="app.openUnifiedPhotoUpload()" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white cursor-pointer shadow-xs flex items-center gap-1.5 transition" title="เปิดฟอร์มระบุรายละเอียดรูปถ่าย">
                                     <i class="ph ph-plus-circle text-sm"></i>

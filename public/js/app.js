@@ -5242,10 +5242,10 @@ const app = {
                 if (bannerQuick) bannerQuick.classList.add('hidden');
 
                 if (isQuick) {
-                    // Modal sizing: compact and clean for 2 cards
+                    // Modal sizing: compact and clean for 2 cards + photos gallery
                     if (modalContent) {
-                        modalContent.classList.remove('max-w-7xl', 'h-[96vh]');
-                        modalContent.classList.add('max-w-5xl', 'h-auto');
+                        modalContent.classList.remove('max-w-7xl', 'h-auto');
+                        modalContent.classList.add('max-w-5xl', 'h-[92vh]', 'max-h-[92vh]');
                     }
 
                     // Modal title
@@ -5264,8 +5264,8 @@ const app = {
                     // Hide Section 1 header (number badge, surveyed status, save survey button)
                     if (sec1Header) sec1Header.classList.add('hidden');
 
-                    // Hide photo gallery in Step 1
-                    if (secPhotos) secPhotos.classList.add('hidden');
+                    // Show photo gallery in Step 1 (MANDATORY per user request: "หน้า จอ รับงาน จาก int ต้อง add รูป เพิ่มเติมได้นะ เช่นเดียวกับหน้าจอ QC มันหายไป พร้อมกับต้อง preview ได้นะครับ")
+                    if (secPhotos) secPhotos.classList.remove('hidden');
 
                     // Hide Section 2 (Design) and Section 3 (BOQ)
                     if (secDesign) secDesign.classList.add('hidden');
@@ -5291,7 +5291,7 @@ const app = {
                 } else {
                     // Restore Renovate Project Full Studio Layout
                     if (modalContent) {
-                        modalContent.classList.remove('max-w-5xl', 'h-auto');
+                        modalContent.classList.remove('max-w-5xl', 'h-[92vh]', 'max-h-[92vh]', 'h-auto');
                         modalContent.classList.add('max-w-7xl', 'h-[96vh]');
                     }
 
@@ -5831,14 +5831,22 @@ const app = {
             },
 
             renderUnifiedSurveyPhotos() {
-                const jobId = this.state.unifiedStudioJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getUnifiedStudioJob() || (DB.jobs || []).find(j => 
+                    j.id === this.state.unifiedStudioJobId || 
+                    String(j.id) === String(this.state.unifiedStudioJobId) || 
+                    j.job_no === String(this.state.unifiedStudioJobId) ||
+                    (j.id == this.state.unifiedStudioJobId)
+                );
                 const grid = document.getElementById('unified-survey-photos-grid');
                 const countEl = document.getElementById('unified-survey-photos-count');
                 const metricEl = document.getElementById('unified-metric-photos');
                 if (!grid || !job) return;
 
+                const jobId = job.id;
+
                 let photos = Array.isArray(job.photos) ? [...job.photos] : [];
+
+                // รวมรูปภาพจากระบบ INT (file_int_image)
                 if (job.file_int_image && !photos.some(p => p.url === job.file_int_image || p.dataUrl === job.file_int_image)) {
                     photos.unshift({
                         id: 'INT_IMAGE_' + job.id,
@@ -5850,44 +5858,92 @@ const app = {
                     });
                 }
 
+                // รวมรูปภาพจาก Check-in / Check-out ของระบบ INT ถ้ามี
+                if (job.checkin_data && job.checkin_data.image && !photos.some(p => p.url === job.checkin_data.image)) {
+                    photos.push({
+                        id: 'INT_CHECKIN_' + job.id,
+                        url: job.checkin_data.image,
+                        title: 'ภาพ Check-in หน้างาน (INT)',
+                        category: 'Check-in',
+                        tag: 'Check-in',
+                        uploaded_at: job.checkin_data.date || job.created_at
+                    });
+                }
+                if (job.checkout_data && job.checkout_data.image && !photos.some(p => p.url === job.checkout_data.image)) {
+                    photos.push({
+                        id: 'INT_CHECKOUT_' + job.id,
+                        url: job.checkout_data.image,
+                        title: 'ภาพ Check-out หน้างาน (INT)',
+                        category: 'Check-out',
+                        tag: 'Check-out',
+                        uploaded_at: job.checkout_data.date || job.created_at
+                    });
+                }
+
+                // รวมรูปภาพจาก raw_payload.site_photos ถ้ามี
+                if (job.raw_payload && Array.isArray(job.raw_payload.site_photos)) {
+                    job.raw_payload.site_photos.forEach((spUrl, spIdx) => {
+                        if (spUrl && !photos.some(p => p.url === spUrl)) {
+                            photos.push({
+                                id: `INT_SITE_${job.id}_${spIdx}`,
+                                url: spUrl,
+                                title: `ภาพสำรวจหน้างาน INT #${spIdx + 1}`,
+                                category: 'INT Site',
+                                tag: 'Site Photo',
+                                uploaded_at: job.created_at
+                            });
+                        }
+                    });
+                }
+
                 if (countEl) countEl.innerText = `${photos.length} รูป`;
                 if (metricEl) metricEl.innerText = `${photos.length} รูปถ่าย`;
 
                 if (photos.length === 0) {
-                    const jobId2 = this.state.unifiedStudioJobId || job.id;
                     grid.innerHTML = `
                         <div class="col-span-full">
-                            <div class="flex flex-col items-center justify-center gap-4 py-10 px-6 rounded-2xl border-2 border-dashed border-teal-400/50 bg-teal-50/60 text-center">
-                                <div class="w-16 h-16 rounded-2xl bg-teal-100 flex items-center justify-center text-teal-500">
-                                    <i class="ph ph-camera-plus text-4xl"></i>
+                            <div class="flex flex-col items-center justify-center gap-4 py-8 px-6 rounded-2xl border-2 border-dashed border-teal-400/50 bg-teal-50/60 text-center">
+                                <div class="w-14 h-14 rounded-2xl bg-teal-100 flex items-center justify-center text-teal-600">
+                                    <i class="ph ph-camera-plus text-3xl"></i>
                                 </div>
                                 <div class="space-y-1">
-                                    <p class="font-display font-bold text-sm text-foreground">ยังไม่มีรูปถ่ายหน้างาน</p>
-                                    <p class="text-xs text-muted-foreground">กรุณาเพิ่มรูป Check-in, สำรวจหน้างาน และ Check-out<br>อย่างน้อย 1 รูป เพื่อบันทึกสภาพหน้างานจริง</p>
+                                    <p class="font-display font-bold text-sm text-foreground">ยังไม่มีรูปถ่ายหน้างานสำหรับคำสั่งซื้อนี้</p>
+                                    <p class="text-xs text-muted-foreground">สามารถเลือกรูปถ่ายจากเครื่อง, ถ่ายภาพจากหน้างาน, หรือกดปุ่มวางรูปภาพ (Ctrl+V)</p>
                                 </div>
-                                <button type="button"
-                                    onclick="app.openUnifiedPhotoUpload()"
-                                    class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all hover:scale-105 cursor-pointer">
-                                    <i class="ph ph-camera-plus text-sm"></i>
-                                    <span>เพิ่มรูปภาพหน้างาน</span>
-                                </button>
-                                <p class="text-[10px] text-muted-foreground/70">รองรับ JPG, PNG — ขนาดไม่เกิน 10MB ต่อรูป</p>
+                                <div class="flex items-center gap-2 flex-wrap justify-center pt-1">
+                                    <button type="button" onclick="document.getElementById('unified-quick-photo-input').click()" class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-md hover:shadow-lg transition cursor-pointer">
+                                        <i class="ph ph-images-square text-sm"></i>
+                                        <span>เลือกรูปด่วน (หลายรูป)</span>
+                                    </button>
+                                    <button type="button" onclick="document.getElementById('unified-camera-photo-input').click()" class="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-teal-300 bg-card hover:bg-teal-50 text-foreground text-xs font-bold shadow-xs transition cursor-pointer">
+                                        <i class="ph ph-camera text-teal-600 text-sm"></i>
+                                        <span>ถ่ายภาพหน้างาน</span>
+                                    </button>
+                                    <button type="button" onclick="app.openUnifiedPhotoUpload()" class="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-teal-300 bg-card hover:bg-teal-50 text-foreground text-xs font-bold shadow-xs transition cursor-pointer">
+                                        <i class="ph ph-plus-circle text-teal-600 text-sm"></i>
+                                        <span>ฟอร์มระบุรายละเอียด</span>
+                                    </button>
+                                </div>
+                                <p class="text-[10px] text-muted-foreground/80">รองรับ JPG, PNG, WEBP — ปรับลดขนาดและจัดเก็บอัตโนมัติ</p>
                             </div>
                         </div>
                     `;
                     return;
                 }
 
-                grid.innerHTML = photos.map((p, idx) => {
+                const photosCardsHtml = photos.map((p, idx) => {
                     const photoUrl = p.url || p.dataUrl || '';
+                    const safeUrl = (photoUrl || '').replace(/'/g, "\\'");
                     const photoTitle = p.title || p.name || `ภาพสำรวจหน้างาน #${idx + 1}`;
+                    const safeTitle = photoTitle.replace(/'/g, "\\'");
                     const photoTag = p.tag || p.category || (idx === 0 ? 'Check-in' : (idx === photos.length - 1 ? 'Check-out' : 'Survey Site'));
                     const photoDate = p.uploaded_at ? this.formatDateDMY(p.uploaded_at) : this.formatDateDMY(new Date());
+                    const safePhotoId = (p.id || idx);
 
                     return `
                         <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs hover:border-teal-500/50 hover:shadow-md transition flex flex-col">
-                            <div class="relative aspect-4/3 overflow-hidden bg-muted/50 cursor-pointer" onclick="app.previewJobPhotoLightbox('${jobId}', '${p.id || idx}')" title="คลิกเพื่อขยายดูรูปภาพเต็มตา">
-                                <img src="${photoUrl}" alt="${photoTitle}" class="w-full h-full object-cover group-hover:scale-105 transition duration-200" loading="lazy">
+                            <div class="relative aspect-4/3 overflow-hidden bg-muted/50 cursor-pointer" onclick="app.previewJobPhotoLightbox('${jobId}', '${safePhotoId}', '${safeUrl}', '${safeTitle}')" title="คลิกเพื่อขยายดูรูปภาพเต็มตา (Preview)">
+                                <img src="${photoUrl}" alt="${photoTitle}" class="w-full h-full object-cover group-hover:scale-105 transition duration-200" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23e2e8f0%22 width=%22100%22 height=%22100%22/><text y=%2250%22 x=%2250%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22 fill=%22%2394a3b8%22 font-size=%2212%22>No Img</text></svg>'">
                                 <div class="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
                                     <span class="w-8 h-8 rounded-full bg-white/90 text-foreground flex items-center justify-center text-sm shadow-md">
                                         <i class="ph ph-magnifying-glass-plus"></i>
@@ -5902,20 +5958,41 @@ const app = {
                                 <div class="flex items-center justify-between text-[10px] text-muted-foreground mt-1">
                                     <span>📅 ${photoDate}</span>
                                     <div class="flex items-center gap-2">
-                                        <button type="button" onclick="app.previewJobPhotoLightbox('${jobId}', '${p.id || idx}')" class="text-teal-600 hover:underline font-semibold cursor-pointer">
+                                        <button type="button" onclick="app.previewJobPhotoLightbox('${jobId}', '${safePhotoId}', '${safeUrl}', '${safeTitle}')" class="text-teal-600 hover:underline font-semibold cursor-pointer">
                                             ขยายดู
                                         </button>
-                                        ${p.id ? `<button type="button" onclick="app.deletePhoto('${jobId}', '${p.id}')" class="text-rose-500 hover:text-rose-700 transition cursor-pointer" title="ลบรูปภาพนี้"><i class="ph ph-trash"></i></button>` : ''}
+                                        ${p.id ? `<button type="button" onclick="app.deletePhoto('${jobId}', '${safePhotoId}')" class="text-rose-500 hover:text-rose-700 transition cursor-pointer" title="ลบรูปภาพนี้"><i class="ph ph-trash"></i></button>` : ''}
                                     </div>
                                 </div>
                             </div>
                         </div>
                     `;
                 }).join('');
+
+                // เพิ่มการ์ด + เพิ่มรูปถ่าย ปิดท้ายใน Grid เสมอ เพื่อความสะดวกในการกดเพิ่มรูปได้โดยตรง
+                const addMoreCardHtml = `
+                    <div class="rounded-xl border-2 border-dashed border-teal-300/80 hover:border-teal-500 bg-teal-50/40 hover:bg-teal-50/80 transition p-4 flex flex-col items-center justify-center gap-2 text-center cursor-pointer min-h-[140px]" onclick="document.getElementById('unified-quick-photo-input').click()" title="คลิกเพื่อเลือกไฟล์รูปภาพเพิ่ม">
+                        <div class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center shadow-2xs">
+                            <i class="ph ph-plus-circle text-2xl font-bold"></i>
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold text-teal-800 block">+ เพิ่มรูปถ่าย</span>
+                            <span class="text-[10px] text-muted-foreground">คลิกเลือกไฟล์ / กล้อง</span>
+                        </div>
+                    </div>
+                `;
+
+                grid.innerHTML = photosCardsHtml + addMoreCardHtml;
             },
 
             openUnifiedPhotoUpload() {
-                const jobId = this.state.unifiedStudioJobId || document.getElementById('unified-modal-job-id')?.innerText.trim() || this.state.currentJobId;
+                const job = this.getUnifiedStudioJob() || (DB.jobs || []).find(j => 
+                    j.id === this.state.unifiedStudioJobId || 
+                    String(j.id) === String(this.state.unifiedStudioJobId) || 
+                    j.job_no === String(this.state.unifiedStudioJobId) ||
+                    (j.id == this.state.unifiedStudioJobId)
+                );
+                const jobId = job ? job.id : (this.state.unifiedStudioJobId || this.state.currentJobId);
                 if (!jobId) {
                     this.showToast('⚠️ ไม่พบรหัสคำสั่งซื้อ');
                     return;
@@ -5931,17 +6008,17 @@ const app = {
             },
 
             async handleUnifiedQuickPhotoFiles(files) {
-                const jobId = this.state.unifiedStudioJobId || document.getElementById('unified-modal-job-id')?.innerText.trim() || this.state.currentJobId;
-                let job = (DB.jobs || []).find(j => j.id === jobId || String(j.id) === String(jobId));
-                if (!job && jobId) {
-                    job = { id: jobId, photos: [] };
-                    if (!DB.jobs) DB.jobs = [];
-                    DB.jobs.push(job);
-                }
+                const job = this.getUnifiedStudioJob() || (DB.jobs || []).find(j => 
+                    j.id === this.state.unifiedStudioJobId || 
+                    String(j.id) === String(this.state.unifiedStudioJobId) || 
+                    j.job_no === String(this.state.unifiedStudioJobId) ||
+                    (j.id == this.state.unifiedStudioJobId)
+                );
                 if (!job) {
-                    this.showToast('⚠️ ไม่พบรหัสคำสั่งซื้อ', 'error');
+                    this.showToast('⚠️ ไม่พบข้อมูลคำสั่งซื้อที่จะบันทึกรูปภาพ', 'error');
                     return;
                 }
+                const jobId = job.id;
                 if (!job.photos) job.photos = [];
 
                 let addedCount = 0;
@@ -6006,22 +6083,64 @@ const app = {
                 }
             },
 
-            previewJobPhotoLightbox(jobId, photoId) {
-                const job = (DB.jobs || []).find(j => j.id === jobId || String(j.id) === String(jobId));
-                if (!job || !job.photos) return;
-                let photo = job.photos.find(p => p.id === photoId);
-                if (!photo && typeof photoId === 'string' && !isNaN(Number(photoId))) {
-                    photo = job.photos[Number(photoId)];
-                }
-                if (!photo) return;
-                const timeStr = photo.uploaded_at ? this.formatDateDMY(photo.uploaded_at) : this.formatDateDMY(new Date());
-                this.showLightbox(
-                    photo.url || photo.dataUrl,
-                    photo.title || photo.name || 'ภาพถ่ายสำรวจหน้างาน',
-                    photo.tag || 'สำรวจหน้างาน',
-                    photo.note || photo.remark || 'ภาพถ่ายสำรวจพื้นที่หน้างานและตำแหน่งติดตั้งจริง',
-                    timeStr
+            previewJobPhotoLightbox(jobId, photoId, fallbackUrl = '', fallbackTitle = '') {
+                const job = this.getUnifiedStudioJob() || (DB.jobs || []).find(j => 
+                    j.id === jobId || 
+                    String(j.id) === String(jobId) || 
+                    j.job_no === String(jobId) || 
+                    (j.id == jobId)
                 );
+                let photo = null;
+                if (job && Array.isArray(job.photos)) {
+                    photo = job.photos.find(p => p.id === photoId || p.url === photoId);
+                    if (!photo && typeof photoId === 'string' && !isNaN(Number(photoId))) {
+                        photo = job.photos[Number(photoId)];
+                    }
+                }
+                if (!photo && job) {
+                    if (photoId === 'INT_IMAGE_' + job.id || photoId === 'int_single' || (job.file_int_image && (photoId === job.file_int_image || String(photoId).startsWith('INT_IMAGE_')))) {
+                        photo = {
+                            url: job.file_int_image,
+                            title: 'ภาพสำรวจจากระบบ INT',
+                            tag: 'INT Photo',
+                            note: 'ภาพถ่ายหน้างานที่ STAMP ส่งมาจากระบบภายนอก (INT)',
+                            uploaded_at: job.created_at
+                        };
+                    } else if (photoId === 'INT_CHECKIN_' + job.id && job.checkin_data) {
+                        photo = {
+                            url: job.checkin_data.image,
+                            title: 'ภาพ Check-in หน้างาน (INT)',
+                            tag: 'Check-in',
+                            note: 'ภาพถ่ายขณะเช็คอินเข้าพื้นที่หน้างาน',
+                            uploaded_at: job.checkin_data.date || job.created_at
+                        };
+                    } else if (photoId === 'INT_CHECKOUT_' + job.id && job.checkout_data) {
+                        photo = {
+                            url: job.checkout_data.image,
+                            title: 'ภาพ Check-out หน้างาน (INT)',
+                            tag: 'Check-out',
+                            note: 'ภาพถ่ายขณะเช็คเอาต์ส่งมอบงาน',
+                            uploaded_at: job.checkout_data.date || job.created_at
+                        };
+                    } else if (job.raw_payload && Array.isArray(job.raw_payload.site_photos)) {
+                        const raw = job.raw_payload;
+                        const sp = raw.site_photos.find((u, idx) => `INT_SITE_${job.id}_${idx}` === photoId || `INT_SITE_${idx}` === photoId || u === photoId);
+                        if (sp) {
+                            photo = { url: sp, title: 'ภาพถ่ายไซต์งาน (INT Site Photo)', tag: 'Site Photo', note: 'ภาพถ่ายสำรวจพื้นที่จากระบบ INT', uploaded_at: job.created_at };
+                        }
+                    }
+                }
+                const finalUrl = (photo && (photo.url || photo.dataUrl)) || fallbackUrl;
+                const finalTitle = (photo && (photo.title || photo.name)) || fallbackTitle || 'ภาพถ่ายสำรวจหน้างาน';
+                const finalTag = (photo && (photo.tag || photo.category)) || 'สำรวจหน้างาน';
+                const finalNote = (photo && (photo.note || photo.remark)) || 'ภาพถ่ายสำรวจพื้นที่หน้างานและตำแหน่งติดตั้งจริง';
+                const timeStr = (photo && photo.uploaded_at) ? this.formatDateDMY(photo.uploaded_at) : this.formatDateDMY(new Date());
+
+                if (!finalUrl) {
+                    this.showToast('⚠️ ไม่พบที่อยู่ไฟล์รูปภาพสำหรับ Preview', 'error');
+                    return;
+                }
+                this.showLightbox(finalUrl, finalTitle, finalTag, finalNote, timeStr);
             },
 
             addQuickBOQPreset(name, type, qty, unit, price) {
@@ -8679,7 +8798,12 @@ const app = {
             async submitUploadPhoto(event) {
                 event.preventDefault();
                 const jobId = this.state.uploadTargetJobId || this.state.unifiedStudioJobId || document.getElementById('unified-modal-job-id')?.innerText.trim() || this.state.currentJobId;
-                let job = (DB.jobs || []).find(j => j.id === jobId || String(j.id) === String(jobId));
+                let job = (this.getUnifiedStudioJob && this.getUnifiedStudioJob()) || (DB.jobs || []).find(j => 
+                    j.id === jobId || 
+                    String(j.id) === String(jobId) || 
+                    j.job_no === String(jobId) ||
+                    (j.id == jobId)
+                );
                 if (!job && jobId) {
                     job = { id: jobId, photos: [] };
                     if (!DB.jobs) DB.jobs = [];
@@ -8746,27 +8870,37 @@ const app = {
 
             deletePhoto(jobId, photoId) {
                 if (!confirm('ต้องการลบรูปภาพนี้ออกจากงานใช่หรือไม่?')) return;
-                const job = (DB.jobs || []).find(j => j.id === jobId || String(j.id) === String(jobId));
-                if (!job || !job.photos) return;
+                const job = (this.getUnifiedStudioJob && this.getUnifiedStudioJob()) || (DB.jobs || []).find(j => 
+                    j.id === jobId || 
+                    String(j.id) === String(jobId) || 
+                    j.job_no === String(jobId) || 
+                    (j.id == jobId)
+                );
+                if (!job) return;
 
-                job.photos = job.photos.filter(p => p.id !== photoId);
+                if (photoId === 'INT_IMAGE_' + job.id || photoId === 'int_single' || (job.file_int_image && photoId === job.file_int_image)) {
+                    job.file_int_image = '';
+                } else if (Array.isArray(job.photos)) {
+                    job.photos = job.photos.filter(p => p.id !== photoId && p.url !== photoId);
+                }
+
                 this.persistJobs();
 
                 // Sync with server
-                fetch(`/api/v1/jobs/${jobId}/photos/${photoId}`, {
+                fetch(`/api/v1/jobs/${job.id}/photos/${photoId}`, {
                     method: 'DELETE'
                 }).catch(() => {
-                    fetch(`/api/v1/jobs/${jobId}`, {
+                    fetch(`/api/v1/jobs/${job.id}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ photos: job.photos })
+                        body: JSON.stringify({ photos: job.photos, file_int_image: job.file_int_image })
                     }).catch(() => {});
                 });
 
                 this.showToast('🗑️ ลบรูปภาพเรียบร้อยแล้ว');
-                this.addJobActivityLog(jobId, 1, 'ลบรูปภาพหน้างาน', 'ลบรูปภาพเพิ่มเติมออกจากโครงการ');
+                this.addJobActivityLog(job.id, 1, 'ลบรูปภาพหน้างาน', 'ลบรูปภาพเพิ่มเติมออกจากโครงการ');
                 this.renderJobDetail();
-                if (this.state.unifiedStudioJobId == jobId || String(this.state.unifiedStudioJobId) === String(jobId)) {
+                if (this.state.unifiedStudioJobId == job.id || String(this.state.unifiedStudioJobId) === String(job.id) || this.state.unifiedStudioJobId === job.job_no) {
                     this.renderUnifiedSurveyPhotos();
                     this.updateUnifiedStudioIndicators();
                 }
@@ -8975,7 +9109,8 @@ const app = {
             },
 
             goToQC(id) {
-                const job = (DB.jobs || []).find(j => j.id === id);
+                const job = (DB.jobs || []).find(j => j.id === id || String(j.id) === String(id) || j.job_no === String(id) || (j.id == id));
+                const targetId = job ? job.id : id;
                 if (job && this.isQuickJob(job)) {
                     this.state.qcSegmentFilter = 'quick';
                     if (job.status !== 'QC_PENDING' && job.status !== 'QC_PASSED' && job.status !== 'QC_REWORK' && job.status !== 'COMPLETED') {
@@ -8988,9 +9123,9 @@ const app = {
                         if (!job.step_timestamps.qc_pending_at) job.step_timestamps.qc_pending_at = now;
                         if (!job.step_timestamps.step5_skipped_at) job.step_timestamps.step5_skipped_at = now;
                         // ไม่ inject Demo photos — ใช้เฉพาะรูปจริงจาก API
-                        this.recordStepTimestamp(id, 'qc_pending_at', now, 'ย้ายงาน Quick Service เข้าสู่คิวรอตรวจ QC Online (Step 5)');
+                        this.recordStepTimestamp(targetId, 'qc_pending_at', now, 'ย้ายงาน Quick Service เข้าสู่คิวรอตรวจ QC Online (Step 5)');
                         this.persistJobs();
-                        fetch(`/api/v1/jobs/${id}`, {
+                        fetch(`/api/v1/jobs/${targetId}`, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -9011,7 +9146,7 @@ const app = {
                     this.filterQCBySegment('quick');
                 }
                 setTimeout(() => {
-                    this.selectQCJob(id);
+                    this.selectQCJob(targetId);
                 }, 80);
             },
 
