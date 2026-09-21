@@ -76,6 +76,9 @@ CREATE TABLE IF NOT EXISTS core_jobs (
     booking_no            VARCHAR(100),
     ticket_no             VARCHAR(100),
     customer_id           INT DEFAULT 1,
+    customer_name         VARCHAR(150),
+    customer_phone        VARCHAR(50),
+    customer_address      TEXT,
     status                VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
     job_type              VARCHAR(50) DEFAULT 'quick',
     step_timestamps       JSONB DEFAULT '{}'::jsonb,
@@ -122,11 +125,20 @@ CREATE TABLE IF NOT EXISTS core_jobs (
     updated_at            TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_core_jobs_status     ON core_jobs(status);
-CREATE INDEX IF NOT EXISTS idx_core_jobs_job_no     ON core_jobs(job_no);
-CREATE INDEX IF NOT EXISTS idx_core_jobs_plan_date  ON core_jobs(plan_date);
-CREATE INDEX IF NOT EXISTS idx_core_jobs_created_at ON core_jobs(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_core_jobs_customer   ON core_jobs USING GIN (customer_data);
+CREATE INDEX IF NOT EXISTS idx_core_jobs_status          ON core_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_core_jobs_job_no          ON core_jobs(job_no);
+CREATE INDEX IF NOT EXISTS idx_core_jobs_plan_date       ON core_jobs(plan_date);
+CREATE INDEX IF NOT EXISTS idx_core_jobs_created_at      ON core_jobs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_core_jobs_customer        ON core_jobs USING GIN (customer_data);
+CREATE INDEX IF NOT EXISTS idx_core_jobs_external_ref_id ON core_jobs(external_ref_id);
+CREATE INDEX IF NOT EXISTS idx_core_jobs_booking_no      ON core_jobs(booking_no);
+CREATE INDEX IF NOT EXISTS idx_core_jobs_ticket_no       ON core_jobs(ticket_no);
+CREATE INDEX IF NOT EXISTS idx_core_jobs_customer_name   ON core_jobs(customer_name);
+CREATE INDEX IF NOT EXISTS idx_core_jobs_customer_phone  ON core_jobs(customer_phone);
+CREATE INDEX IF NOT EXISTS idx_core_jobs_job_type        ON core_jobs(job_type);
+CREATE INDEX IF NOT EXISTS idx_core_jobs_lower_status    ON core_jobs(LOWER(status));
+CREATE INDEX IF NOT EXISTS idx_core_jobs_lower_job_type  ON core_jobs(LOWER(job_type));
+CREATE INDEX IF NOT EXISTS idx_core_jobs_created_id      ON core_jobs(created_at DESC, id DESC);
 
 -- Technician Daily Work Reports (24-Hour Format, 5 Site Photos, Daily Progress)
 CREATE TABLE IF NOT EXISTS core_daily_work_logs (

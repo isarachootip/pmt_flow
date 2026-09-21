@@ -61,7 +61,15 @@ const app = {
                 completedJobsScoreFilter: 'all',
                 completedJobsServiceFilter: 'all',
                 completedJobsTimeFilter: 'all',
-                jobCloseModalTab: 'overview'
+                jobCloseModalTab: 'overview',
+                jobsPage: 1,
+                jobsLimit: 50,
+                jobsTotal: 0,
+                jobsTotalPages: 1,
+                jobsSearch: '',
+                jobsFilterService: 'all',
+                jobsFilterStatus: 'all',
+                metrics: null
             },
 
             logout() {
@@ -84,46 +92,32 @@ const app = {
                 try {
                     if (Array.isArray(DB.jobs)) {
                         DB.jobs = this.deDuplicateJobs(DB.jobs);
+                        // Safe storage: Cap stored jobs in localStorage to at most 30 lightweight recent job summaries
+                        // to completely eliminate QuotaExceededError and main-thread synchronous freezing
+                        const safeRecent = DB.jobs.slice(0, 30).map(j => ({
+                            id: j.id,
+                            job_no: j.job_no,
+                            external_ref_id: j.external_ref_id,
+                            booking_no: j.booking_no,
+                            ticket_no: j.ticket_no,
+                            customer: j.customer || j.customer_name,
+                            customer_name: j.customer_name || j.customer,
+                            phone: j.phone || j.customer_phone,
+                            service: j.service,
+                            job_type: j.job_type,
+                            status: j.status,
+                            plan_date: j.plan_date,
+                            created_at: j.created_at,
+                            step_timestamps: j.step_timestamps
+                        }));
+                        localStorage.setItem('pmt_jobs', JSON.stringify(safeRecent));
                     }
-                    localStorage.setItem('pmt_jobs', JSON.stringify(DB.jobs));
-                    localStorage.setItem('pmt_tasks', JSON.stringify(DB.tasks || []));
-                    localStorage.setItem('pmt_qc_bookings', JSON.stringify(DB.qcBookings || []));
-                    localStorage.setItem('pmt_tickets', JSON.stringify(DB.tickets || []));
-                    localStorage.setItem('pmt_daily_work_logs', JSON.stringify(DB.dailyWorkLogs || []));
+                    localStorage.setItem('pmt_tasks', JSON.stringify((DB.tasks || []).slice(0, 50)));
+                    localStorage.setItem('pmt_qc_bookings', JSON.stringify((DB.qcBookings || []).slice(0, 50)));
+                    localStorage.setItem('pmt_tickets', JSON.stringify((DB.tickets || []).slice(0, 50)));
+                    localStorage.setItem('pmt_daily_work_logs', JSON.stringify((DB.dailyWorkLogs || []).slice(0, 50)));
                 } catch (e) {
-                    console.warn('localStorage quota reached in persistJobs, pruning activity logs...');
-                    try {
-                        if (Array.isArray(DB.jobs)) {
-                            // Tier 1: Prune activity logs to max 15 per job
-                            DB.jobs.forEach(j => {
-                                if (j.activity_logs && j.activity_logs.length > 15) {
-                                    j.activity_logs = j.activity_logs.slice(0, 15);
-                                }
-                            });
-                            localStorage.setItem('pmt_jobs', JSON.stringify(DB.jobs));
-                        }
-                    } catch (err1) {
-                        try {
-                            // Tier 2: Strip large base64 thumbnails from older activity logs
-                            if (Array.isArray(DB.jobs)) {
-                                DB.jobs.forEach(j => {
-                                    if (j.activity_logs) {
-                                        j.activity_logs.forEach((log, idx) => {
-                                            if (idx > 3 && log.thumbnail && log.thumbnail.startsWith('data:')) {
-                                                log.thumbnail = '';
-                                            }
-                                        });
-                                    }
-                                    if (j.photos && j.photos.length > 8) {
-                                        j.photos = j.photos.slice(0, 8);
-                                    }
-                                });
-                                localStorage.setItem('pmt_jobs', JSON.stringify(DB.jobs));
-                            }
-                        } catch (err2) {
-                            console.error('Failed to persist jobs after multi-tier pruning:', err2);
-                        }
-                    }
+                    console.warn('[STORAGE] Safe localStorage persist skipped quota error:', e.message);
                 }
             },
 
@@ -2752,11 +2746,27 @@ const app = {
                 });
             },
 
-            async fetchJobsFromApi() {
+            async fetchJobsFromApi(page = null) {
                 try {
                     const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
                     if (!token) return;
-                    const res = await fetch('/api/v1/jobs', {
+
+                    const targetPage = page !== null ? page : (this.state.jobsPage || 1);
+                    const limit = this.state.jobsLimit || 50;
+
+                    const svcEl = document.getElementById('filter-service');
+                    const serviceFilter = svcEl ? svcEl.value : (this.state.jobsFilterService || 'all');
+                    const searchEl = document.getElementById('jobs-table-search');
+                    const query = (searchEl && searchEl.value) ? searchEl.value.trim() : (this.state.jobsSearch || '');
+
+                    const params = new URLSearchParams();
+                    params.append('page', String(targetPage));
+                    params.append('limit', String(limit));
+                    if (serviceFilter && serviceFilter !== 'all') params.append('service', serviceFilter);
+                    if (query) params.append('search', query);
+                    if (this.state.jobsFilterStatus && this.state.jobsFilterStatus !== 'all') params.append('status', this.state.jobsFilterStatus);
+
+                    const res = await fetch(`/api/v1/jobs?${params.toString()}`, {
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
@@ -2769,53 +2779,47 @@ const app = {
                     if (res.ok) {
                         const json = await res.json();
                         if (json.success && Array.isArray(json.data)) {
-                            if (json.data.length === 0) {
+                            this.state.jobsLimit = json.limit || limit;
+                            this.state.jobsTotal = json.total !== undefined ? json.total : json.data.length;
+                            this.state.jobsTotalPages = json.total_pages || Math.max(1, Math.ceil(this.state.jobsTotal / limit));
+                            this.state.jobsPage = Math.min(Math.max(1, json.page || targetPage), this.state.jobsTotalPages);
+                            if (json.metrics) {
+                                this.state.metrics = json.metrics;
+                            }
+
+                            if (json.data.length === 0 && this.state.jobsTotal === 0) {
                                 DB.jobs = [];
-                                DB.tasks = [];
-                                DB.blueprints = [];
-                                DB.tickets = [];
-                                DB.qcBookings = [];
-                                DB.dailyWorkLogs = [];
                                 this.persistJobs();
-                                this.persistBlueprints();
-                                this.persistTickets();
-                                this.persistDailyWorkLogs();
                                 this.updateStepBadges();
-                                if (this.state.currentView === 'jobs') this.renderJobs();
+                                if (this.state.currentView === 'jobs') {
+                                    this.renderJobs([]);
+                                    this.renderJobsPagination();
+                                }
                                 if (this.state.currentView === 'dashboard') this.renderDashboard();
-                                if (this.state.currentView === 'gantt') this.renderGantt();
-                                if (this.state.currentView === 'qc') this.renderQC();
-                                if (this.state.currentView === 'csat') this.renderCSAT();
-                                if (this.state.currentView === 'blueprints') this.renderBlueprints();
-                                if (this.state.currentView === 'tickets') this.renderTickets();
                                 const countEl = document.getElementById('sidebar-job-count');
                                 if (countEl) countEl.innerText = '0';
                                 return;
                             }
-                            const remoteJobs = json.data;
-                            if (remoteJobs.length > 0) {
-                                DB.jobs = this.sortJobsDescending(remoteJobs);
-                                this.persistJobs();
-                                
-                                const tblSearch = document.getElementById('jobs-table-search');
-                                const glbSearch = document.getElementById('global-search-input');
-                                const currentSearch = (tblSearch && tblSearch.value) || (glbSearch && glbSearch.value) || '';
-                                if (currentSearch && typeof this.filterJobsTable === 'function') {
-                                    this.filterJobsTable();
-                                } else {
-                                    if (this.state.currentView === 'jobs') this.renderJobs();
-                                }
-                                if (this.state.currentView === 'dashboard') this.renderDashboard();
-                                
-                                const activeEl = document.activeElement;
-                                const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
-                                if (this.state.currentView === 'job-detail' && !isEditing) this.renderJobDetail();
-                                
-                                if (this.state.currentView === 'gantt') this.renderGantt();
-                                if (this.state.currentView === 'qc') this.renderQC();
-                                if (this.state.currentView === 'csat') this.renderCSAT();
-                                this.updateStepBadges();
+
+                            DB.jobs = this.sortJobsDescending(json.data);
+                            this.persistJobs();
+
+                            if (this.state.currentView === 'jobs') {
+                                this.renderJobs();
+                                this.renderJobsPagination();
                             }
+                            if (this.state.currentView === 'dashboard') this.renderDashboard();
+
+                            const activeEl = document.activeElement;
+                            const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+                            if (this.state.currentView === 'job-detail' && !isEditing) this.renderJobDetail();
+
+                            if (this.state.currentView === 'gantt') this.renderGantt();
+                            if (this.state.currentView === 'qc') this.renderQC();
+                            if (this.state.currentView === 'csat') this.renderCSAT();
+                            if (this.state.currentView === 'blueprints') this.renderBlueprints();
+                            if (this.state.currentView === 'tickets') this.renderTickets();
+                            this.updateStepBadges();
                         }
                     }
                 } catch (err) {
@@ -3727,13 +3731,14 @@ const app = {
 
             renderDashboard() {
                 const allJobs = DB.jobs || [];
+                const metrics = this.state.metrics;
                 const designedJobIds = new Set((DB.blueprints || []).map(b => b.jobId));
                 const now = new Date();
                 const todayStr = now.toLocaleDateString('en-CA');
 
                 // 1. Active Jobs
                 const elProg = document.getElementById('kpi-progress');
-                if (elProg) elProg.innerText = allJobs.filter(j => j.status === 'IN_PROGRESS').length;
+                if (elProg) elProg.innerText = (metrics && typeof metrics.in_progress === 'number') ? metrics.in_progress : allJobs.filter(j => j.status === 'IN_PROGRESS').length;
 
                 // 2. Overdue Jobs (คำนวณงานที่เกิน SLA ในระบบ)
                 const overdueJobs = allJobs.filter(j => {
@@ -3753,7 +3758,7 @@ const app = {
                     const ts = (j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date;
                     return ts && ts.slice(0, 10) === todayStr;
                 });
-                if (todayList.length === 0 && allJobs.length > 0) {
+                if (todayList.length === 0 && allJobs.length > 0 && !(metrics && typeof metrics.today === 'number')) {
                     const latestDate = allJobs.reduce((max, j) => {
                         const d = ((j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date || '').slice(0, 10);
                         return d > max ? d : max;
@@ -3766,16 +3771,16 @@ const app = {
                     }
                 }
                 const elToday = document.getElementById('kpi-today');
-                if (elToday) elToday.innerText = todayList.length;
+                if (elToday) elToday.innerText = (metrics && typeof metrics.today === 'number') ? metrics.today : todayList.length;
 
                 // 4. Close Lost Jobs (โครงการที่บันทึกยกเลิก / Close Lost)
                 const closeLostJobs = allJobs.filter(j => j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost);
                 const elCloseLost = document.getElementById('kpi-closelost');
-                if (elCloseLost) elCloseLost.innerText = closeLostJobs.length;
+                if (elCloseLost) elCloseLost.innerText = (metrics && typeof metrics.cancelled === 'number') ? metrics.cancelled : closeLostJobs.length;
 
                 // Backward compatibility if old id exists
                 const elQc = document.getElementById('kpi-qc');
-                if (elQc) elQc.innerText = allJobs.filter(j => j.status === 'QC_PASSED' || j.status === 'AFTER_SALE' || j.status === 'CLOSED').length;
+                if (elQc) elQc.innerText = (metrics && typeof metrics.completed === 'number') ? metrics.completed : allJobs.filter(j => j.status === 'QC_PASSED' || j.status === 'AFTER_SALE' || j.status === 'CLOSED').length;
                 
                 // Recent Jobs Table (Sorted descending so newest jobs are at the top)
                 const sortedJobs = this.sortJobsDescending(DB.jobs || []);
@@ -3902,12 +3907,13 @@ const app = {
                         let chartStatus = Chart.getChart("dashboardChart");
                         if (chartStatus) chartStatus.destroy();
 
-                        const draftCount = (DB.jobs || []).filter(j => j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'SURVEYED').length;
-                        const progressCount = (DB.jobs || []).filter(j => j.status === 'IN_PROGRESS').length;
-                        const qcPendingCount = (DB.jobs || []).filter(j => j.status === 'QC_PENDING').length;
-                        const qcPassedCount = (DB.jobs || []).filter(j => j.status === 'QC_PASSED').length;
-                        const afterSaleCount = (DB.jobs || []).filter(j => j.status === 'AFTER_SALE' || j.status === 'CLOSED').length;
-                        const closeLostCount = (DB.jobs || []).filter(j => j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost).length;
+                        const m = this.state.metrics;
+                        const draftCount = (m && typeof m.step1 === 'number') ? m.step1 : (DB.jobs || []).filter(j => j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'SURVEYED').length;
+                        const progressCount = (m && typeof m.in_progress === 'number') ? m.in_progress : (DB.jobs || []).filter(j => j.status === 'IN_PROGRESS').length;
+                        const qcPendingCount = (m && typeof m.qc_pending === 'number') ? m.qc_pending : (DB.jobs || []).filter(j => j.status === 'QC_PENDING').length;
+                        const qcPassedCount = (m && typeof m.qc_passed === 'number') ? m.qc_passed : ((m && typeof m.completed === 'number') ? m.completed : (DB.jobs || []).filter(j => j.status === 'QC_PASSED').length);
+                        const afterSaleCount = (m && typeof m.after_sale === 'number') ? m.after_sale : (DB.jobs || []).filter(j => j.status === 'AFTER_SALE' || j.status === 'CLOSED').length;
+                        const closeLostCount = (m && typeof m.cancelled === 'number') ? m.cancelled : (DB.jobs || []).filter(j => j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost).length;
 
                         // Update Legend DOM elements
                         const elLegProg = document.getElementById('legend-progress');
@@ -4453,95 +4459,66 @@ const app = {
                 }
             },
 
+            _jobsFilterDebounce: null,
             filterJobsTable() {
-                const searchInput = document.getElementById('jobs-table-search');
-                const query = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : '';
-                const serviceFilter = document.getElementById('filter-service') ? document.getElementById('filter-service').value : 'all';
+                if (this._jobsFilterDebounce) clearTimeout(this._jobsFilterDebounce);
+                this._jobsFilterDebounce = setTimeout(async () => {
+                    const searchInput = document.getElementById('jobs-table-search');
+                    const query = (searchInput && searchInput.value) ? searchInput.value.trim() : '';
+                    const serviceFilter = document.getElementById('filter-service') ? document.getElementById('filter-service').value : 'all';
 
-                // Date range filter for กำหนดวันนัด
-                const dateFromEl = document.getElementById('filter-appt-date-from');
-                const dateToEl = document.getElementById('filter-appt-date-to');
-                const dateFromStr = (dateFromEl && dateFromEl.value) ? dateFromEl.value.trim() : '';
-                const dateToStr = (dateToEl && dateToEl.value) ? dateToEl.value.trim() : '';
+                    this.state.jobsSearch = query;
+                    this.state.jobsFilterService = serviceFilter;
+                    this.state.jobsPage = 1;
 
-                // Parse DD/MM/YYYY to Date object for comparison
-                const parseDMY = (s) => {
-                    if (!s) return null;
-                    const parts = s.split('/');
-                    if (parts.length !== 3) return null;
-                    return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-                };
-                const dateFrom = parseDMY(dateFromStr);
-                const dateTo = parseDMY(dateToStr);
-                const hasDateFilter = dateFrom || dateTo;
+                    // Fetch from server using query params (page=1, limit=50, search, service)
+                    await this.fetchJobsFromApi(1);
 
-                let list = DB.jobs || [];
-                if (serviceFilter !== 'all') {
-                    if (serviceFilter === 'quick') {
-                        list = list.filter(j => this.isQuickJob(j) || (j.job_type || '').toLowerCase() === 'quick');
-                    } else if (serviceFilter === 'renovate') {
-                        list = list.filter(j => !this.isQuickJob(j) && ((j.job_type || '').toLowerCase() === 'renovate' || (j.service || '').toLowerCase().includes('renovate')));
-                    } else if (serviceFilter === 'ma') {
-                        list = list.filter(j => (j.job_type || '').toLowerCase() === 'ma' || (j.service || '').toLowerCase().includes('ma'));
-                    } else {
-                        list = list.filter(j => j.service === serviceFilter);
+                    // Date range filter for กำหนดวันนัด (if user selected date range)
+                    const dateFromEl = document.getElementById('filter-appt-date-from');
+                    const dateToEl = document.getElementById('filter-appt-date-to');
+                    const dateFromStr = (dateFromEl && dateFromEl.value) ? dateFromEl.value.trim() : '';
+                    const dateToStr = (dateToEl && dateToEl.value) ? dateToEl.value.trim() : '';
+
+                    const parseDMY = (s) => {
+                        if (!s) return null;
+                        const parts = s.split('/');
+                        if (parts.length !== 3) return null;
+                        return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+                    };
+                    const dateFrom = parseDMY(dateFromStr);
+                    const dateTo = parseDMY(dateToStr);
+                    const hasDateFilter = dateFrom || dateTo;
+
+                    if (hasDateFilter && Array.isArray(DB.jobs)) {
+                        const filtered = DB.jobs.filter(j => {
+                            const rawDate = j.plan_date || j.date || '';
+                            if (!rawDate) return false;
+                            let apptDate;
+                            if (/^\d{4}-\d{2}-\d{2}/.test(rawDate)) {
+                                const d = new Date(rawDate);
+                                apptDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                            } else {
+                                apptDate = parseDMY(rawDate);
+                            }
+                            if (!apptDate) return false;
+                            if (dateFrom && apptDate < dateFrom) return false;
+                            if (dateTo && apptDate > dateTo) return false;
+                            return true;
+                        });
+                        this.renderJobs(filtered);
                     }
-                }
 
-                if (hasDateFilter) {
-                    list = list.filter(j => {
-                        const rawDate = j.plan_date || j.date || '';
-                        if (!rawDate) return false;
-                        // Normalize: rawDate may be ISO (YYYY-MM-DD) or DD/MM/YYYY
-                        let apptDate;
-                        if (/^\d{4}-\d{2}-\d{2}/.test(rawDate)) {
-                            const d = new Date(rawDate);
-                            apptDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                    const countBadge = document.getElementById('appt-date-filter-count');
+                    if (countBadge) {
+                        if (hasDateFilter || serviceFilter !== 'all' || query) {
+                            countBadge.textContent = `พบ ${this.state.jobsTotal || 0} รายการ`;
+                            countBadge.classList.remove('hidden');
                         } else {
-                            apptDate = parseDMY(rawDate);
+                            countBadge.classList.add('hidden');
                         }
-                        if (!apptDate) return false;
-                        if (dateFrom && apptDate < dateFrom) return false;
-                        if (dateTo && apptDate > dateTo) return false;
-                        return true;
-                    });
-                }
-
-                if (query) {
-                    list = list.filter(j => {
-                        const idMatch = String(j.id || '').toLowerCase().includes(query);
-                        const noMatch = String(j.job_no || '').toLowerCase().includes(query);
-                        const refMatch = String(j.external_ref_id || '').toLowerCase().includes(query);
-                        const tktMatch = String(j.ticket_no || j.ticketNo || '').toLowerCase().includes(query) ||
-                            (DB.tickets || []).some(t => (t.job_id === j.id || t.jobId === j.id) && String(t.ticket_no || '').toLowerCase().includes(query));
-                        const bkgMatch = String(j.booking_no || j.bookingNo || '').toLowerCase().includes(query);
-                        const planDateStr = j.plan_date || j.date || '';
-                        const planDateFormatted = planDateStr ? this.formatDateDMY(planDateStr) : '';
-                        const dateMatch = String(planDateStr).toLowerCase().includes(query) || planDateFormatted.toLowerCase().includes(query);
-                        const custMatch = String(j.customer || '').toLowerCase().includes(query);
-                        const phoneMatch = String(j.phone || '').toLowerCase().includes(query);
-                        const srvMatch = String(j.service || '').toLowerCase().includes(query);
-                        const techMatch = String(j.tech || '').toLowerCase().includes(query);
-                        return idMatch || noMatch || refMatch || tktMatch || bkgMatch || dateMatch || custMatch || phoneMatch || srvMatch || techMatch;
-                    });
-                }
-
-                // Update filter count badge
-                const countBadge = document.getElementById('appt-date-filter-count');
-                if (countBadge) {
-                    if (hasDateFilter || serviceFilter !== 'all' || query) {
-                        countBadge.textContent = `พบ ${list.length} รายการ`;
-                        countBadge.classList.remove('hidden');
-                    } else {
-                        countBadge.classList.add('hidden');
                     }
-                }
-
-                if (query || hasDateFilter || serviceFilter !== 'all') {
-                    this.renderJobs(list);
-                } else {
-                    this.renderJobs();
-                }
+                }, 200);
             },
 
             handleApptQuickFilter(preset) {
@@ -4659,37 +4636,22 @@ const app = {
                 const serviceFilter = document.getElementById('filter-service') ? document.getElementById('filter-service').value : 'all';
 
                 const designedJobIds = new Set((DB.blueprints || []).map(b => b.jobId));
-                let list = jobList || DB.jobs || [];
+                let list;
 
-                if (!jobList) {
-                    if (serviceFilter !== 'all') {
-                        if (serviceFilter === 'quick') {
-                            list = list.filter(j => this.isQuickJob(j) || (j.job_type || '').toLowerCase() === 'quick');
-                        } else if (serviceFilter === 'renovate') {
-                            list = list.filter(j => !this.isQuickJob(j) && ((j.job_type || '').toLowerCase() === 'renovate' || (j.service || '').toLowerCase().includes('renovate')));
-                        } else if (serviceFilter === 'ma') {
-                            list = list.filter(j => (j.job_type || '').toLowerCase() === 'ma' || (j.service || '').toLowerCase().includes('ma'));
-                        } else {
-                            list = list.filter(j => j.service === serviceFilter);
-                        }
+                if (jobList) {
+                    this.state.jobsTotal = jobList.length;
+                    this.state.jobsTotalPages = Math.max(1, Math.ceil(jobList.length / (this.state.jobsLimit || 50)));
+                    this.state.jobsPage = Math.min(Math.max(1, this.state.jobsPage || 1), this.state.jobsTotalPages);
+                    list = this.sortJobsDescending(jobList);
+                    const p = this.state.jobsPage;
+                    const l = this.state.jobsLimit || 50;
+                    if (list.length > l) {
+                        list = list.slice((p - 1) * l, p * l);
                     }
-                    // Show Step 1 jobs: SURVEYED (survey jobs from INT) AND NEW/DRAFT (not yet accepted)
-                    list = list.filter(j => 
-                        (
-                            // Standard intake / Survey jobs: not accepted, status SURVEYED / DRAFT / NEW
-                            (!j.pmt_accepted && (j.status === 'SURVEYED' || j.status === 'Survey' || j.status === 'Surveyed' || j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New'))
-                            ||
-                            // Survey jobs from INT: SURVEYED status but not yet fully processed into pipeline
-                            (j.status === 'SURVEYED' && !j.step_timestamps?.step5_project_at && !(DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id))
-                        ) &&
-                        !designedJobIds.has(j.id) &&
-                        !(j.step_timestamps && (j.step_timestamps.step2_design_at || j.step_timestamps.step4_ticket_at || j.step_timestamps.step3_boq_at || j.step_timestamps.step5_project_at)) &&
-                        !(DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id)
-                    );
+                } else {
+                    list = DB.jobs || [];
+                    list = this.sortJobsDescending(list);
                 }
-
-                // CRITICAL RULE: Sort jobs descending so the 3 latest incoming jobs are always on top!
-                list = this.sortJobsDescending(list);
 
                 // Contextual banner display
                 const bannerEl = document.getElementById('step1-queue-banner');
@@ -4708,9 +4670,9 @@ const app = {
 
                     // BOQ status & calculation
                     const boqItems = j.boq_items || [];
-                    const itemsCount = boqItems.length;
-                    const grandTotal = j.boq_grand_total || (boqItems.reduce((acc, item) => acc + ((Number(item.qty) || 0) * (Number(item.price) || 0)), 0));
-                    const hasBOQ = itemsCount > 0;
+                    const itemsCount = j.boq_count !== undefined ? Number(j.boq_count) : boqItems.length;
+                    const grandTotal = (j.boq_grand_total !== undefined && Number(j.boq_grand_total) > 0) ? Number(j.boq_grand_total) : (boqItems.reduce((acc, item) => acc + ((Number(item.qty) || 0) * (Number(item.price) || 0)), 0));
+                    const hasBOQ = itemsCount > 0 || grandTotal > 0;
 
                     // Shorten job number (strip VFIX- or JOB-)
                     const rawId = String(j.id || '');
@@ -4745,13 +4707,13 @@ const app = {
                         <td class="px-2 py-2 whitespace-nowrap">
                             ${(j.plan_date || j.date) ? `
                                 <div class="inline-flex items-center gap-1 font-mono text-xs sm:text-sm text-foreground font-bold whitespace-nowrap">
-                                    <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-sm shrink-0"></i>
+                                    <i class="ph ph-calendar-check text-indigo-600 text-sm shrink-0"></i>
                                     <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
                                 </div>
                             ` : '<span class="text-muted-foreground text-xs">-</span>'}
                         </td>
                         <td class="px-2 py-2 min-w-[120px] max-w-[160px]">
-                            <div class="text-foreground font-bold text-xs sm:text-sm truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition" title="${j.customer || ''}">
+                            <div class="text-foreground font-bold text-xs sm:text-sm truncate group-hover:text-indigo-600 transition" title="${j.customer || ''}">
                                 <span class="truncate">${j.customer}</span>
                             </div>
                             <div class="text-[11px] text-muted-foreground font-mono flex items-center gap-1 mt-0.5 truncate">
@@ -4800,7 +4762,7 @@ const app = {
                                 }
                                 return `<div class="flex flex-col gap-0.5 leading-tight">
                                     <div class="font-mono text-xs text-foreground font-bold flex items-center gap-1">
-                                        <i class="ph ph-calendar text-xs text-indigo-600 dark:text-indigo-400 shrink-0"></i>
+                                        <i class="ph ph-calendar text-xs text-indigo-600 shrink-0"></i>
                                         <span>${datePart}</span>
                                     </div>
                                     ${timePart ? `
@@ -4863,11 +4825,13 @@ const app = {
                 }).join('');
 
                 const isIsaraUser = window.auth && window.auth.isIsaraChootip ? window.auth.isIsaraChootip() : false;
-                document.getElementById('jobs-table-body').innerHTML = html || `
+                const tbody = document.getElementById('jobs-table-body');
+                if (tbody) {
+                    tbody.innerHTML = html || `
                     <tr>
                         <td colspan="11" class="px-5 py-12 text-center">
                             <div class="max-w-md mx-auto space-y-3">
-                                <div class="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-2xl font-bold shadow-xs">
+                                <div class="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center text-2xl font-bold shadow-xs">
                                     <i class="ph ph-tray"></i>
                                 </div>
                                 <div>
@@ -4890,7 +4854,116 @@ const app = {
                         </td>
                     </tr>
                 `;
+                }
                 this.updateStepBadges();
+                this.renderJobsPagination();
+            },
+
+            renderJobsPagination() {
+                const summaryEl = document.getElementById('jobs-pagination-summary');
+                const controlsEl = document.getElementById('jobs-pagination-controls');
+                if (!summaryEl || !controlsEl) return;
+
+                const page = this.state.jobsPage || 1;
+                const limit = this.state.jobsLimit || 50;
+                const total = this.state.jobsTotal !== undefined ? this.state.jobsTotal : (Array.isArray(DB.jobs) ? DB.jobs.length : 0);
+                const totalPages = this.state.jobsTotalPages || Math.max(1, Math.ceil(total / limit));
+
+                if (total === 0) {
+                    summaryEl.textContent = 'แสดง 0 รายการ';
+                    controlsEl.innerHTML = '';
+                    return;
+                }
+
+                const to = Math.min(page * limit, total);
+                const from = Math.min((page - 1) * limit + 1, to);
+                summaryEl.innerHTML = `แสดง <span class="font-bold text-foreground">${from.toLocaleString()}</span> - <span class="font-bold text-foreground">${to.toLocaleString()}</span> จากทั้งหมด <span class="font-bold text-foreground">${total.toLocaleString()}</span> รายการ (หน้า ${page}/${totalPages})`;
+
+                let pagesHtml = `
+                    <div class="flex items-center gap-1.5 mr-2">
+                        <span class="text-xs text-muted-foreground whitespace-nowrap">แสดง:</span>
+                        <select onchange="app.changeJobsPageSize(this.value)" class="bg-card border border-border rounded px-2 py-0.5 text-xs text-foreground font-mono focus:outline-none focus:border-brand-500 shadow-2xs cursor-pointer">
+                            <option value="25"${limit === 25 ? ' selected' : ''}>25</option>
+                            <option value="50"${limit === 50 ? ' selected' : ''}>50</option>
+                            <option value="100"${limit === 100 ? ' selected' : ''}>100</option>
+                        </select>
+                        <span class="text-xs text-muted-foreground whitespace-nowrap">รายการ</span>
+                    </div>
+                `;
+
+                if (totalPages <= 1) {
+                    controlsEl.innerHTML = pagesHtml;
+                    return;
+                }
+
+                // Previous button
+                pagesHtml += `
+                    <button type="button" onclick="app.goToJobsPage(${page - 1})" ${page <= 1 ? 'disabled' : ''} class="px-2.5 py-1 rounded-md text-xs font-medium border border-border bg-card text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1 shadow-2xs cursor-pointer" title="หน้าก่อนหน้า">
+                        <i class="ph ph-caret-left text-xs"></i>
+                        <span>ก่อนหน้า</span>
+                    </button>
+                `;
+
+                // Calculate visible page range (e.g. 1 ... 4 5 6 ... 83)
+                const visiblePages = [];
+                if (totalPages <= 7) {
+                    for (let p = 1; p <= totalPages; p++) visiblePages.push(p);
+                } else {
+                    visiblePages.push(1);
+                    if (page > 3) visiblePages.push('...');
+                    const start = Math.max(2, page - 1);
+                    const end = Math.min(totalPages - 1, page + 1);
+                    for (let p = start; p <= end; p++) {
+                        if (!visiblePages.includes(p)) visiblePages.push(p);
+                    }
+                    if (page < totalPages - 2) visiblePages.push('...');
+                    if (!visiblePages.includes(totalPages)) visiblePages.push(totalPages);
+                }
+
+                visiblePages.forEach(p => {
+                    if (p === '...') {
+                        pagesHtml += `<span class="px-2 py-1 text-xs text-muted-foreground">...</span>`;
+                    } else if (p === page) {
+                        pagesHtml += `
+                            <button type="button" class="px-2.5 py-1 rounded-md text-xs font-bold bg-brand-500 text-white border border-brand-600 shadow-2xs cursor-default">
+                                ${p}
+                            </button>
+                        `;
+                    } else {
+                        pagesHtml += `
+                            <button type="button" onclick="app.goToJobsPage(${p})" class="px-2.5 py-1 rounded-md text-xs font-medium border border-border bg-card text-foreground hover:bg-muted transition shadow-2xs cursor-pointer">
+                                ${p}
+                            </button>
+                        `;
+                    }
+                });
+
+                // Next button
+                pagesHtml += `
+                    <button type="button" onclick="app.goToJobsPage(${page + 1})" ${page >= totalPages ? 'disabled' : ''} class="px-2.5 py-1 rounded-md text-xs font-medium border border-border bg-card text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1 shadow-2xs cursor-pointer" title="หน้าถัดไป">
+                        <span>ถัดไป</span>
+                        <i class="ph ph-caret-right text-xs"></i>
+                    </button>
+                `;
+
+                controlsEl.innerHTML = pagesHtml;
+            },
+
+            async changeJobsPageSize(newLimit) {
+                this.state.jobsLimit = Math.min(100, Math.max(1, Number(newLimit) || 50));
+                this.state.jobsPage = 1;
+                await this.fetchJobsFromApi(1);
+            },
+
+            async goToJobsPage(page) {
+                const totalPages = this.state.jobsTotalPages || 1;
+                if (page < 1 || page > totalPages) return;
+                this.state.jobsPage = page;
+                await this.fetchJobsFromApi(page);
+                const tableContainer = document.getElementById('page-jobs');
+                if (tableContainer) {
+                    tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             },
 
             // =========================================================================
@@ -4908,10 +4981,37 @@ const app = {
                 );
             },
 
-            openUnifiedOrderStudio(jobId, initialTab = 'intake') {
+            async openUnifiedOrderStudio(jobId, initialTab = 'intake') {
                 try {
                     this.state.unifiedStudioJobId = jobId;
-                    const job = this.getUnifiedStudioJob();
+                    let job = this.getUnifiedStudioJob();
+
+                    // If job is missing full details, load from GET /api/v1/jobs/:id
+                    if (!job || !job._fullLoaded) {
+                        try {
+                            const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                            const res = await fetch(`/api/v1/jobs/${encodeURIComponent(jobId)}`, {
+                                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                            });
+                            if (res.ok) {
+                                const json = await res.json();
+                                if (json.success && json.data) {
+                                    const fullJob = json.data;
+                                    fullJob._fullLoaded = true;
+                                    if (job) {
+                                        Object.assign(job, fullJob);
+                                    } else {
+                                        DB.jobs = DB.jobs || [];
+                                        DB.jobs.unshift(fullJob);
+                                        job = fullJob;
+                                    }
+                                }
+                            }
+                        } catch (err) {
+                            console.warn('[STUDIO] Error loading full job payload:', err);
+                        }
+                    }
+
                     if (!job) {
                         this.showToast('ไม่พบข้อมูลคำสั่งซื้อ');
                         return;
@@ -6982,9 +7082,10 @@ const app = {
 
             updateStepBadges() {
                 const allJobs = DB.jobs || [];
+                const metrics = this.state.metrics;
 
                 // Step 1: Count only jobs waiting in Step 1 (not yet accepted into PMT)
-                const step1Count = allJobs.filter(j => 
+                const step1Count = (metrics && typeof metrics.step1 === 'number') ? metrics.step1 : allJobs.filter(j => 
                     !j.pmt_accepted &&
                     (j.status === 'SURVEYED' || j.status === 'Survey' || j.status === 'Surveyed' || j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
                     !(j.step_timestamps && (j.step_timestamps.step1_accepted_at || j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at || j.step_timestamps.step3_conversion_at || j.step_timestamps.step5_project_at)) &&
@@ -7005,6 +7106,7 @@ const app = {
                     !ticketJobIds.has(j.id) &&
                     (
                         (j.boq_items && j.boq_items.length > 0) ||
+                        (j.boq_count && Number(j.boq_count) > 0) ||
                         (j.step_timestamps && (j.step_timestamps.step2_ticket_at || j.step_timestamps.step4_ticket_at))
                     )
                 ).length;
@@ -7012,7 +7114,7 @@ const app = {
                 const convertedJobIds = new Set((DB.tasks || []).map(t => t.jobId));
                 const conversionPendingCount = allJobs.filter(j => 
                     !this.isQuickJob(j) &&
-                    j.boq_items && j.boq_items.length > 0 &&
+                    ((j.boq_items && j.boq_items.length > 0) || (j.boq_count && Number(j.boq_count) > 0)) &&
                     !convertedJobIds.has(j.id) &&
                     j.status !== 'CANCELLED'
                 ).length;
@@ -7033,14 +7135,14 @@ const app = {
                 // Step 4: Gantt Timeline & Daily Work Logs
                 const sidebarGantt = document.getElementById('sidebar-gantt-count');
                 if (sidebarGantt) {
-                    const ganttActive = allJobs.filter(j => !this.isQuickJob(j) && (j.status === 'IN_PROGRESS' || j.status === 'CONVERTED' || (j.step_timestamps && j.step_timestamps.step4_gantt_at))).length;
+                    const ganttActive = (metrics && typeof metrics.in_progress === 'number') ? metrics.in_progress : allJobs.filter(j => !this.isQuickJob(j) && (j.status === 'IN_PROGRESS' || j.status === 'CONVERTED' || (j.step_timestamps && j.step_timestamps.step4_gantt_at))).length;
                     sidebarGantt.innerText = ganttActive > 0 ? ganttActive : (DB.tasks || []).length;
                 }
 
                 // Step 5: QC
                 const sidebarQc = document.getElementById('sidebar-qc-count');
                 if (sidebarQc) {
-                    const qcPending = allJobs.filter(j => j.status === 'QC_PENDING' || (j.step_timestamps && j.step_timestamps.qc_pending_at)).length;
+                    const qcPending = (metrics && typeof metrics.qc_pending === 'number') ? metrics.qc_pending : allJobs.filter(j => j.status === 'QC_PENDING' || (j.step_timestamps && j.step_timestamps.qc_pending_at)).length;
                     sidebarQc.innerText = qcPending;
                 }
 
@@ -7048,7 +7150,8 @@ const app = {
                 const sidebarCsat = document.getElementById('sidebar-csat-count');
                 const completedList = this.getCompletedJobsList ? this.getCompletedJobsList() : [];
                 if (sidebarCsat) {
-                    sidebarCsat.innerText = completedList.length;
+                    const completedCount = (metrics && typeof metrics.completed === 'number') ? metrics.completed : completedList.length;
+                    sidebarCsat.innerText = completedCount;
                 }
 
                 // Central Blueprints Repository Count
@@ -7059,7 +7162,8 @@ const app = {
                 const sidebarBoq = document.getElementById('sidebar-boq-count');
                 if (sidebarBoq) {
                     const boqJobsCount = allJobs.filter(j => 
-                        j.boq_items && j.boq_items.length > 0
+                        (j.boq_items && j.boq_items.length > 0) ||
+                        (j.boq_count && Number(j.boq_count) > 0)
                     ).length;
                     sidebarBoq.innerText = boqJobsCount;
                 }
@@ -7102,10 +7206,11 @@ const app = {
 
             updateStep1Dashboard() {
                 const allJobs = DB.jobs || [];
+                const metrics = this.state.metrics;
                 const designedJobIds = new Set((DB.blueprints || []).map(b => b.jobId));
 
                 // 1. ยอดงานเข้า ทั้งหมด
-                const totalCount = allJobs.length;
+                const totalCount = (metrics && typeof metrics.total === 'number') ? metrics.total : (this.state.jobsTotal || allJobs.length);
 
                 // 2. รอรับเข้า PMT (คิว Step 1 ที่ยังไม่ได้กดรับเข้าระบบ PMT)
                 const remainingJobs = allJobs.filter(j => 
@@ -7115,17 +7220,17 @@ const app = {
                     !(j.step_timestamps && (j.step_timestamps.step2_design_at || j.step_timestamps.step4_ticket_at || j.step_timestamps.step3_boq_at || j.step_timestamps.step5_project_at)) &&
                     !(DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id)
                 );
-                const remainingCount = remainingJobs.length;
+                const remainingCount = (metrics && typeof metrics.step1 === 'number') ? metrics.step1 : remainingJobs.length;
 
                 // 3. ยอดเข้าวันนี้ (งานที่รับเข้าในวันนี้)
                 const now = new Date();
                 const todayStr = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
-                let todayCount = allJobs.filter(j => {
+                let todayCount = (metrics && typeof metrics.today === 'number') ? metrics.today : allJobs.filter(j => {
                     const ts = (j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date;
                     return ts && ts.slice(0, 10) === todayStr;
                 }).length;
 
-                if (todayCount === 0 && allJobs.length > 0) {
+                if (todayCount === 0 && allJobs.length > 0 && !(metrics && typeof metrics.today === 'number')) {
                     const latestDate = allJobs.reduce((max, j) => {
                         const d = ((j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date || '').slice(0, 10);
                         return d > max ? d : max;
@@ -7150,9 +7255,9 @@ const app = {
                 });
 
                 // 4. สัดส่วนประเภทงาน (Segment Distribution)
-                const quickCount = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'quick').length;
-                const renovateCount = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'renovate').length;
-                const maCount = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'ma').length;
+                const quickCount = (metrics && typeof metrics.quick === 'number') ? metrics.quick : allJobs.filter(j => (j.job_type || '').toLowerCase() === 'quick').length;
+                const renovateCount = (metrics && typeof metrics.renovate === 'number') ? metrics.renovate : allJobs.filter(j => (j.job_type || '').toLowerCase() === 'renovate').length;
+                const maCount = (metrics && typeof metrics.ma === 'number') ? metrics.ma : allJobs.filter(j => (j.job_type || '').toLowerCase() === 'ma').length;
                 const transferredCount = allJobs.filter(j => 
                     j.pmt_accepted ||
                     designedJobIds.has(j.id) || 
@@ -7175,7 +7280,7 @@ const app = {
                 if (elRemaining) elRemaining.innerText = remainingCount;
 
                 // Close Lost / Cancelled
-                const closeLostCountS1 = allJobs.filter(j => j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost).length;
+                const closeLostCountS1 = (metrics && typeof metrics.cancelled === 'number') ? metrics.cancelled : allJobs.filter(j => j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost).length;
                 const elCloseLostS1 = document.getElementById('dash-stat-closelost');
                 if (elCloseLostS1) elCloseLostS1.innerText = closeLostCountS1;
 
@@ -7668,12 +7773,18 @@ const app = {
                 const todayStr = now.toLocaleDateString('en-CA');
 
                 if (type === 'CLOSE_LOST') {
-                    const closeLostList = allJobs.filter(j => j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost);
                     if (stepNumber === 1) {
                         const svcSel = document.getElementById('filter-service');
                         if (svcSel) svcSel.value = 'all';
-                        this.renderJobs(closeLostList);
-                    } else if (stepNumber === 2 && this.state && this.state.currentPage === 'blueprints') {
+                        this.state.jobsFilterService = 'all';
+                        this.state.jobsFilterStatus = 'CANCELLED';
+                        this.state.jobsPage = 1;
+                        this.fetchJobsFromApi(1);
+                        this.showToast('🚫 แสดงรายการที่บันทึก Close Lost / ยกเลิกโครงการ');
+                        return;
+                    }
+                    const closeLostList = allJobs.filter(j => j.status === 'CANCELLED' || j.status === 'CLOSED_LOST' || j.is_closed_lost);
+                    if (stepNumber === 2 && this.state && this.state.currentPage === 'blueprints') {
                         this.renderBlueprints('', 'all', closeLostList);
                     } else if (stepNumber === 4 || (stepNumber === 2 && this.state && this.state.currentPage === 'tickets')) {
                         this.renderTickets(closeLostList);
@@ -7693,10 +7804,14 @@ const app = {
 
                     if (type === 'ALL') {
                         if (svcSel) svcSel.value = 'all';
-                        this.renderJobs(allJobs);
-                        this.showToast(`📊 แสดงคำสั่งซื้อทั้งหมดในระบบ (${allJobs.length} รายการ)`);
+                        this.state.jobsFilterService = 'all';
+                        this.state.jobsFilterStatus = 'all';
+                        this.state.jobsPage = 1;
+                        this.fetchJobsFromApi(1);
+                        this.showToast('📊 แสดงคำสั่งซื้อทั้งหมดในระบบ');
                     } else if (type === 'TODAY') {
                         if (svcSel) svcSel.value = 'all';
+                        this.state.jobsPage = 1;
                         let todayList = allJobs.filter(j => {
                             const ts = (j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date;
                             return ts && ts.slice(0, 10) === todayStr;
@@ -7717,9 +7832,13 @@ const app = {
                         this.showToast(`📅 แสดงคำสั่งซื้อที่รับเข้าวันนี้ (${todayList.length} รายการ)`);
                     } else if (type === 'STEP1_QUEUE' || type === 'REMAINING') {
                         if (svcSel) svcSel.value = 'all';
-                        this.renderJobs();
+                        this.state.jobsFilterService = 'all';
+                        this.state.jobsFilterStatus = 'DRAFT';
+                        this.state.jobsPage = 1;
+                        this.fetchJobsFromApi(1);
                         this.showToast('📥 แสดงเฉพาะคิวงานที่ยังคงเหลือใน Step 1 (รอส่งต่อ)');
                     } else if (type === 'OVERDUE') {
+                        this.state.jobsPage = 1;
                         const overdueList = allJobs.filter(j => {
                             const isStep1 = (j.status === 'DRAFT' || j.status === 'NEW' || j.status === 'Draft' || j.status === 'New') &&
                                 !designedJobIds.has(j.id) &&
@@ -7732,18 +7851,28 @@ const app = {
                         this.renderJobs(overdueList);
                         this.showToast(`⚠️ กรองเฉพาะงานที่เกินกำหนด SLA (${overdueList.length} รายการ)`);
                     } else if (type === 'quick') {
-                        const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'quick');
-                        this.renderJobs(list);
-                        this.showToast(`⚡ กรองเฉพาะงาน Quick Services (${list.length} รายการ)`);
+                        if (svcSel) svcSel.value = 'quick';
+                        this.state.jobsFilterService = 'quick';
+                        this.state.jobsFilterStatus = 'all';
+                        this.state.jobsPage = 1;
+                        this.fetchJobsFromApi(1);
+                        this.showToast('⚡ กรองเฉพาะงาน Quick Services');
                     } else if (type === 'renovate') {
-                        const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'renovate');
-                        this.renderJobs(list);
-                        this.showToast(`🔨 กรองเฉพาะงาน Renovate (${list.length} รายการ)`);
+                        if (svcSel) svcSel.value = 'renovate';
+                        this.state.jobsFilterService = 'renovate';
+                        this.state.jobsFilterStatus = 'all';
+                        this.state.jobsPage = 1;
+                        this.fetchJobsFromApi(1);
+                        this.showToast('🔨 กรองเฉพาะงาน Renovate');
                     } else if (type === 'ma') {
-                        const list = allJobs.filter(j => (j.job_type || '').toLowerCase() === 'ma');
-                        this.renderJobs(list);
-                        this.showToast(`🔧 กรองเฉพาะงาน MA & Maintenance (${list.length} รายการ)`);
+                        if (svcSel) svcSel.value = 'ma';
+                        this.state.jobsFilterService = 'ma';
+                        this.state.jobsFilterStatus = 'all';
+                        this.state.jobsPage = 1;
+                        this.fetchJobsFromApi(1);
+                        this.showToast('🔧 กรองเฉพาะงาน MA & Maintenance');
                     } else if (type === 'transferred') {
+                        this.state.jobsPage = 1;
                         const list = allJobs.filter(j => 
                             designedJobIds.has(j.id) || 
                             (j.step_timestamps && (j.step_timestamps.step2_design_at || j.step_timestamps.step4_ticket_at)) ||
@@ -8101,9 +8230,33 @@ const app = {
                 this.openJobDetailModal(jobId);
             },
 
-            openJobDetailModal(jobId) {
+            async openJobDetailModal(jobId) {
                 try {
-                    const job = (DB.jobs || []).find(j => j.id === jobId || j.job_no === jobId || String(j.id) === String(jobId));
+                    let job = (DB.jobs || []).find(j => j.id === jobId || j.job_no === jobId || String(j.id) === String(jobId));
+                    if (!job || !job._fullLoaded) {
+                        try {
+                            const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                            const res = await fetch(`/api/v1/jobs/${encodeURIComponent(jobId)}`, {
+                                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                            });
+                            if (res.ok) {
+                                const json = await res.json();
+                                if (json && json.success && json.data) {
+                                    const fullJob = json.data;
+                                    fullJob._fullLoaded = true;
+                                    if (job) {
+                                        Object.assign(job, fullJob);
+                                    } else {
+                                        job = fullJob;
+                                        DB.jobs = DB.jobs || [];
+                                        DB.jobs.unshift(job);
+                                    }
+                                }
+                            }
+                        } catch (err) {
+                            console.warn('[MODAL] Error loading full job detail:', err);
+                        }
+                    }
                     if (!job) {
                         this.showToast('⚠️ ไม่พบข้อมูลงาน ' + jobId);
                         return;
@@ -9793,6 +9946,41 @@ const app = {
                     job = DB.jobs[0];
                     this.state.currentJobId = job.id;
                 }
+
+                // If job is loaded but full payloads (raw_payload, photos, etc.) not loaded yet, fetch on-demand
+                if (job && !job._fullLoaded && this._fetchingFullJobDetail !== job.id) {
+                    this._fetchingFullJobDetail = job.id;
+                    const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                    fetch(`/api/v1/jobs/${encodeURIComponent(job.id)}`, {
+                        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                    }).then(r => r.json()).then(res => {
+                        if (res && res.success && res.data) {
+                            res.data._fullLoaded = true;
+                            Object.assign(job, res.data);
+                            if (this.state.currentView === 'job-detail' && this.state.currentJobId === job.id) {
+                                this.renderJobDetail();
+                            }
+                        }
+                    }).catch(e => console.warn('[JOB DETAIL] Error fetching full job payload:', e))
+                      .finally(() => { this._fetchingFullJobDetail = null; });
+                } else if (!job && this.state.currentJobId && this._fetchingFullJobDetail !== this.state.currentJobId) {
+                    this._fetchingFullJobDetail = this.state.currentJobId;
+                    const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                    fetch(`/api/v1/jobs/${encodeURIComponent(this.state.currentJobId)}`, {
+                        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                    }).then(r => r.json()).then(res => {
+                        if (res && res.success && res.data) {
+                            res.data._fullLoaded = true;
+                            DB.jobs = DB.jobs || [];
+                            DB.jobs.unshift(res.data);
+                            if (this.state.currentView === 'job-detail') {
+                                this.renderJobDetail();
+                            }
+                        }
+                    }).catch(e => console.warn('[JOB DETAIL] Error fetching missing job:', e))
+                      .finally(() => { this._fetchingFullJobDetail = null; });
+                }
+
                 if (this._lastRenderedJobId !== this.state.currentJobId) {
                     this.state.jobDetailPendingBP = null;
                     this._lastRenderedJobId = this.state.currentJobId;

@@ -25,6 +25,8 @@ import {
   dbSaveLoginLog,
   dbLoadLoginLogs,
   dbLoadJobs,
+  dbLoadJobsPaginated,
+  dbGetJobMetrics,
   dbGetJob,
   dbSaveJob,
   dbUpdateJob,
@@ -2828,53 +2830,204 @@ app.post('/api/v1/staging/seed', requireAuth, async (req: Request, res: Response
 // =============================================================================
 // 1.2 CORE JOBS APIS (List, Get, Create for Web Dashboard & Automation)
 app.get('/api/v1/jobs', requireAuth, async (req: Request, res: Response) => {
-  const { status, service, search } = req.query;
-  try {
-    const results = await dbLoadJobs({
-      status: typeof status === 'string' ? status : undefined,
-      service: typeof service === 'string' ? service : undefined,
-      search: typeof search === 'string' ? search : undefined
-    });
+  const { status, service, search, page: pageQuery, limit: limitQuery } = req.query;
+  const page = Math.max(1, parseInt(String(pageQuery || '1'), 10) || 1);
+  const rawLimit = parseInt(String(limitQuery || '50'), 10) || 50;
+  const limit = Math.min(100, Math.max(1, rawLimit)); // default 50, max 100
 
-    // Helper to extract maximum timestamp across all workflow steps and status changes
-    const getJobLatestTime = (job: any): number => {
-      let maxTime = 0;
-      if (job.step_timestamps && typeof job.step_timestamps === 'object') {
-        for (const val of Object.values(job.step_timestamps)) {
-          if (val) {
-            const t = new Date(String(val)).getTime();
-            if (!isNaN(t) && t > maxTime) maxTime = t;
-          }
+  try {
+    const statusStr = typeof status === 'string' ? status : undefined;
+    const serviceStr = typeof service === 'string' ? service : undefined;
+    const searchStr = typeof search === 'string' ? search : undefined;
+
+    let pagedResult;
+    let metrics;
+
+    if (isDatabaseConnected) {
+      pagedResult = await dbLoadJobsPaginated({
+        page,
+        limit,
+        status: statusStr,
+        service: serviceStr,
+        search: searchStr,
+        lean: true
+      });
+      metrics = await dbGetJobMetrics();
+    } else {
+      // In-memory fallback
+      let list = [...coreJobStore];
+      if (statusStr && statusStr !== 'all') {
+        list = list.filter((j: any) => (j.status || '').toLowerCase() === statusStr.toLowerCase());
+      }
+      if (serviceStr && serviceStr !== 'all') {
+        const s = serviceStr.toLowerCase();
+        if (s === 'quick') {
+          list = list.filter((j: any) => (j.job_type || '').toLowerCase() === 'quick' || String(j.services || '').toLowerCase().includes('quick'));
+        } else if (s === 'renovate') {
+          list = list.filter((j: any) => (j.job_type || '').toLowerCase() === 'renovate' || String(j.project_sub_type || '').toLowerCase().includes('renovate'));
+        } else if (s === 'ma') {
+          list = list.filter((j: any) => (j.job_type || '').toLowerCase() === 'ma' || String(j.project_sub_type || '').toLowerCase().includes('ma'));
+        } else {
+          list = list.filter((j: any) => (j as any).service === serviceStr || (Array.isArray(j.services) && j.services.includes(serviceStr)) || (j as any).project_sub_type === serviceStr);
         }
       }
-      if (job.updated_at) {
-        const t = new Date(job.updated_at).getTime();
-        if (!isNaN(t) && t > maxTime) maxTime = t;
+      if (searchStr && searchStr.trim()) {
+        const q = searchStr.trim().toLowerCase();
+        list = list.filter((j: any) =>
+          (j.id && String(j.id).toLowerCase().includes(q)) ||
+          (j.job_no && String(j.job_no).toLowerCase().includes(q)) ||
+          (j.external_ref_id && String(j.external_ref_id).toLowerCase().includes(q)) ||
+          (j.booking_no && String(j.booking_no).toLowerCase().includes(q)) ||
+          (j.ticket_no && String(j.ticket_no).toLowerCase().includes(q)) ||
+          (j.plan_date && String(j.plan_date).toLowerCase().includes(q)) ||
+          ((j as any).customer && String((j as any).customer).toLowerCase().includes(q)) ||
+          (j.customer_name && String(j.customer_name).toLowerCase().includes(q)) ||
+          ((j.customer_data as any)?.name && String((j.customer_data as any).name).toLowerCase().includes(q)) ||
+          ((j as any).phone && String((j as any).phone).includes(q)) ||
+          (j.customer_phone && String(j.customer_phone).includes(q)) ||
+          ((j.customer_data as any)?.phone && String((j.customer_data as any).phone).includes(q)) ||
+          ((j as any).service && String((j as any).service).toLowerCase().includes(q)) ||
+          (j.project_sub_type && String(j.project_sub_type).toLowerCase().includes(q)) ||
+          (j.assigned_tech && String(j.assigned_tech).toLowerCase().includes(q)) ||
+          (j.store_code && String(j.store_code).toLowerCase().includes(q)) ||
+          (j.agent_name && String(j.agent_name).toLowerCase().includes(q))
+        );
       }
-      if (job.created_at) {
-        const t = new Date(job.created_at).getTime();
-        if (!isNaN(t) && t > maxTime) maxTime = t;
-      }
-      // Only fallback to job.date if no actual workflow or creation timestamp exists
-      if (maxTime === 0 && job.date) {
-        const t = new Date(job.date).getTime();
-        if (!isNaN(t)) maxTime = t;
-      }
-      return maxTime;
-    };
 
-    // Sort descending so latest updated / latest status jobs are always on top
-    results.sort((a, b) => {
-      const timeA = getJobLatestTime(a);
-      const timeB = getJobLatestTime(b);
-      if (timeB !== timeA) return timeB - timeA;
-      return String(b.job_no || b.id || '').localeCompare(String(a.job_no || a.id || ''));
-    });
+      // Sort descending so latest jobs are always on top
+      list.sort((a: any, b: any) => {
+        const timeA = new Date(a.created_at || 0).getTime();
+        const timeB = new Date(b.created_at || 0).getTime();
+        if (timeB !== timeA) return timeB - timeA;
+        return String(b.job_no || b.id || '').localeCompare(String(a.job_no || a.id || ''));
+      });
+
+      const total = list.length;
+      const totalPages = Math.max(1, Math.ceil(total / limit));
+      const offset = (page - 1) * limit;
+      const pageRows = list.slice(offset, offset + limit).map(toLeanJob);
+
+      pagedResult = {
+        jobs: pageRows,
+        total,
+        page,
+        limit,
+        totalPages
+      };
+      metrics = getInMemoryJobMetrics(coreJobStore);
+    }
+
+    const pagination = {
+      page: pagedResult.page,
+      limit: pagedResult.limit,
+      total: pagedResult.total,
+      totalPages: pagedResult.totalPages,
+      hasNext: pagedResult.page < pagedResult.totalPages,
+      hasPrev: pagedResult.page > 1
+    };
 
     return res.json({
       success: true,
-      total: results.length,
-      data: results
+      total: pagedResult.total,
+      page: pagedResult.page,
+      limit: pagedResult.limit,
+      total_pages: pagedResult.totalPages,
+      pagination,
+      data: pagedResult.jobs,
+      metrics
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+function getInMemoryJobMetrics(jobsList: any[]) {
+  const list = jobsList || [];
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  let step1 = 0;
+  let qc_pending = 0;
+  let in_progress = 0;
+  let completed = 0;
+  let cancelled = 0;
+  let quick = 0;
+  let renovate = 0;
+  let ma = 0;
+  let today = 0;
+  let qc_passed = 0;
+  let after_sale = 0;
+
+  for (const j of list) {
+    const st = String(j.status || '').toUpperCase();
+    const jt = String(j.job_type || '').toLowerCase();
+    const isStep1 = ['SURVEYED', 'DRAFT', 'NEW'].includes(st) && (!j.pmt_accepted);
+    if (isStep1) step1++;
+    if (st === 'QC_PENDING') qc_pending++;
+    if (['IN_PROGRESS', 'CONVERTED'].includes(st)) in_progress++;
+    if (['QC_PASSED', 'CLOSED', 'AFTER_SALE'].includes(st)) completed++;
+    if (st === 'QC_PASSED') qc_passed++;
+    if (['AFTER_SALE', 'CLOSED'].includes(st)) after_sale++;
+    if (['CANCELLED', 'CLOSED_LOST'].includes(st)) cancelled++;
+
+    if (jt === 'quick') quick++;
+    else if (jt === 'renovate') renovate++;
+    else if (jt === 'ma') ma++;
+
+    const d = String((j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date || '').slice(0, 10);
+    if (d === todayStr) today++;
+  }
+
+  return {
+    total: list.length,
+    step1,
+    qc_pending,
+    in_progress,
+    completed,
+    cancelled,
+    quick,
+    renovate,
+    ma,
+    today,
+    qc_passed,
+    after_sale
+  };
+}
+
+export function toLeanJob(j: any) {
+  if (!j) return j;
+  const copy = { ...j };
+  delete copy.raw_payload;
+  if (Array.isArray(copy.photos)) {
+    copy.photo_count = copy.photos.length;
+    copy.photos = [];
+  }
+  if (Array.isArray(copy.boq_items)) {
+    copy.boq_count = copy.boq_items.length;
+    copy.boq_grand_total = Number(copy.boq_grand_total) || 0;
+    copy.boq_items = [];
+  }
+  if (Array.isArray(copy.tasks)) {
+    copy.task_count = copy.tasks.length;
+    copy.tasks = [];
+  }
+  if (Array.isArray(copy.csat_photos)) copy.csat_photos = [];
+  if (Array.isArray(copy.job_details)) copy.job_details = [];
+  if (Array.isArray(copy.visit_results)) copy.visit_results = [];
+  return copy;
+}
+
+// Fast summary metrics endpoint for badges and dashboard KPI cards
+app.get('/api/v1/jobs/summary', requireAuth, async (req: Request, res: Response) => {
+  try {
+    let metrics;
+    if (isDatabaseConnected) {
+      metrics = await dbGetJobMetrics();
+    } else {
+      metrics = getInMemoryJobMetrics(coreJobStore);
+    }
+    return res.json({
+      success: true,
+      metrics
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
@@ -2883,7 +3036,21 @@ app.get('/api/v1/jobs', requireAuth, async (req: Request, res: Response) => {
 
 app.get('/api/v1/jobs/:id', requireAuth, async (req: Request, res: Response) => {
   const param = req.params.id;
-  const job = await dbGetJob(param);
+  let job = await dbGetJob(param);
+
+  if (!job) {
+    const found = coreJobStore.find(
+      (j: any) =>
+        String(j.id) === String(param) ||
+        String(j.job_no) === String(param) ||
+        String(j.external_ref_id) === String(param) ||
+        String(j.booking_no) === String(param) ||
+        String(j.ticket_no) === String(param)
+    );
+    if (found) {
+      job = found;
+    }
+  }
 
   if (!job) {
     return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found in database' } });
@@ -2898,7 +3065,23 @@ app.get('/api/v1/jobs/:id', requireAuth, async (req: Request, res: Response) => 
 // Update Job Details (Special Instructions, Additional Notes, Tech, etc.)
 app.patch('/api/v1/jobs/:id', requireAuth, async (req: Request, res: Response) => {
   const param = req.params.id;
-  const updatedJob = await dbUpdateJob(param, req.body);
+  let updatedJob = await dbUpdateJob(param, req.body);
+
+  if (!updatedJob) {
+    const idx = coreJobStore.findIndex(
+      (j: any) =>
+        String(j.id) === String(param) ||
+        String(j.job_no) === String(param)
+    );
+    if (idx !== -1) {
+      coreJobStore[idx] = { ...coreJobStore[idx], ...req.body, updated_at: new Date().toISOString() };
+      updatedJob = coreJobStore[idx];
+    }
+  }
+
+  if (!updatedJob) {
+    return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found in database or update failed' } });
+  }
 
   if (!updatedJob) {
     return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found in database or update failed' } });

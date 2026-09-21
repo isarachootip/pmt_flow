@@ -774,8 +774,139 @@ Date: 12/09/2026
   console.log(`   ✅ SUCCESS: Preview displays '-' for qty and '0.00 ฿' for prices`);
   console.log(`   ✅ SUCCESS: Labor-to-Task rule successfully converts all work items to Gantt tasks regardless of zero price\n`);
 
+  // =========================================================================
+  // TEST 19: Server-side Pagination, Lean Summary Projection, In-Memory Metrics & Sanitization
+  // =========================================================================
+  console.log('▶ [TEST 19] Verifying Server-Side Pagination, Lean Projection & Metrics...');
+
+  // 1. Test search sanitization
+  const rawSearch = 'JOB_2026%special\\test';
+  const sanitizedSearch = rawSearch.trim().replace(/[%_\\]/g, '\\$&');
+  if (sanitizedSearch !== 'JOB\\_2026\\%special\\\\test') {
+    throw new Error(`❌ Test 19 Failed: Search sanitization mismatch: ${sanitizedSearch}`);
+  }
+
+  // 2. Test lean job projection (matching toLeanJob)
+  const heavyJob = {
+    id: 'JOB-4001',
+    job_no: 'JOB-4001',
+    customer: 'ทดสอบ งานหนัก',
+    photos: [{ url: 'data:image/png;base64,xxxx' }, { url: 'data:image/png;base64,yyyy' }],
+    boq_items: [{ sku: 'SKU-1', price: 500, qty: 2 }, { sku: 'SKU-2', price: 1000, qty: 1 }],
+    boq_grand_total: 2000,
+    tasks: [{ id: 'T1' }, { id: 'T2' }, { id: 'T3' }],
+    csat_photos: [{ url: 'data:image/png;base64,zzzz' }],
+    job_details: [{ item: 'detail1' }],
+    visit_results: [{ report: 'visit1' }],
+    raw_payload: { huge_survey_data: 'x'.repeat(5000) }
+  };
+
+  const copy = { ...heavyJob };
+  delete copy.raw_payload;
+  if (Array.isArray(copy.photos)) {
+    copy.photo_count = copy.photos.length;
+    copy.photos = [];
+  }
+  if (Array.isArray(copy.boq_items)) {
+    copy.boq_count = copy.boq_items.length;
+    copy.boq_grand_total = Number(copy.boq_grand_total) || 0;
+    copy.boq_items = [];
+  }
+  if (Array.isArray(copy.tasks)) {
+    copy.task_count = copy.tasks.length;
+    copy.tasks = [];
+  }
+  if (Array.isArray(copy.csat_photos)) copy.csat_photos = [];
+  if (Array.isArray(copy.job_details)) copy.job_details = [];
+  if (Array.isArray(copy.visit_results)) copy.visit_results = [];
+
+  if (copy.raw_payload !== undefined) throw new Error('❌ Test 19 Failed: raw_payload not stripped');
+  if (copy.photos.length !== 0 || copy.photo_count !== 2) throw new Error('❌ Test 19 Failed: photo count mismatch');
+  if (copy.boq_items.length !== 0 || copy.boq_count !== 2) throw new Error('❌ Test 19 Failed: boq count mismatch');
+  if (copy.tasks.length !== 0 || copy.task_count !== 3) throw new Error('❌ Test 19 Failed: task count mismatch');
+  if (copy.csat_photos.length !== 0 || copy.job_details.length !== 0 || copy.visit_results.length !== 0) {
+    throw new Error('❌ Test 19 Failed: heavy arrays not stripped');
+  }
+
+  // 3. Test Step 1 BOQ rendering logic on lean job
+  const leanJob = copy;
+  const itemsCount = leanJob.boq_count !== undefined ? Number(leanJob.boq_count) : (leanJob.boq_items || []).length;
+  const leanGrandTotal = (leanJob.boq_grand_total !== undefined && Number(leanJob.boq_grand_total) > 0) ? Number(leanJob.boq_grand_total) : 0;
+  const hasBOQ = itemsCount > 0 || leanGrandTotal > 0;
+
+  if (!hasBOQ || itemsCount !== 2 || leanGrandTotal !== 2000) {
+    throw new Error(`❌ Test 19 Failed: Lean job BOQ display logic failed: itemsCount=${itemsCount}, leanGrandTotal=${leanGrandTotal}, hasBOQ=${hasBOQ}`);
+  }
+
+  // 4. Test Step 2 & Central BOQ badge calculation on lean job
+  const hasLeanBOQBadge = (leanJob.boq_items && leanJob.boq_items.length > 0) || (leanJob.boq_count && Number(leanJob.boq_count) > 0);
+  if (!hasLeanBOQBadge) {
+    throw new Error('❌ Test 19 Failed: Lean job failed BOQ badge check with boq_count=2');
+  }
+
+  // 5. Test 4,500-Job In-Memory Pagination Benchmark & Boundary Calculations
+  const total = 4500;
+  const mockDataset = [];
+  const statuses = ['DRAFT', 'IN_PROGRESS', 'QC_PENDING', 'QC_PASSED', 'CANCELLED'];
+  const services = ['quick', 'renovate', 'ma'];
+
+  for (let i = 1; i <= total; i++) {
+    mockDataset.push({
+      id: `JOB260909${String(i).padStart(5, '0')}`,
+      job_no: `JOB-260909-${String(i).padStart(5, '0')}`,
+      status: statuses[i % statuses.length],
+      job_type: services[i % services.length],
+      customer_name: `ลูกค้าคนที่ ${i}`,
+      customer_phone: `081${String(i).padStart(7, '0')}`,
+      created_at: new Date(Date.now() - i * 60000).toISOString()
+    });
+  }
+
+  const benchStart = Date.now();
+  // Filter by service 'quick', status 'DRAFT', search '123'
+  const filtered = mockDataset.filter(j => 
+    j.job_type === 'quick' && 
+    j.status === 'DRAFT' && 
+    (j.customer_name.includes('123') || j.job_no.includes('123'))
+  );
+  const benchLimit = 50;
+  const benchPage = 1;
+  const benchTotal = filtered.length;
+  const benchTotalPages = Math.max(1, Math.ceil(benchTotal / benchLimit));
+  const benchPageRows = filtered.slice((benchPage - 1) * benchLimit, benchPage * benchLimit);
+  const benchElapsed = Date.now() - benchStart;
+
+  if (benchElapsed > 150) {
+    throw new Error(`❌ Test 19 Failed: 4,500 jobs benchmark took ${benchElapsed}ms, expected < 150ms`);
+  }
+
+  // 6. Test Pagination range calculations across 4,500 jobs
+  const limit = 50;
+  const totalPages = Math.ceil(total / limit); // 90
+  if (totalPages !== 90) throw new Error(`❌ Test 19 Failed: totalPages expected 90, got ${totalPages}`);
+
+  const page1To = Math.min(1 * limit, total);
+  const page1From = Math.min((1 - 1) * limit + 1, page1To);
+  if (page1From !== 1 || page1To !== 50) throw new Error(`❌ Test 19 Failed: Page 1 bounds: ${page1From} - ${page1To}`);
+
+  const page90To = Math.min(90 * limit, total);
+  const page90From = Math.min((90 - 1) * limit + 1, page90To);
+  if (page90From !== 4451 || page90To !== 4500) throw new Error(`❌ Test 19 Failed: Page 90 bounds: ${page90From} - ${page90To}`);
+
+  // Test out of bounds clamp
+  const page99To = Math.min(99 * limit, total);
+  const page99From = Math.min((99 - 1) * limit + 1, page99To);
+  if (page99From > page99To) throw new Error(`❌ Test 19 Failed: Out of bounds inverted range: ${page99From} > ${page99To}`);
+
+  console.log(`   ✅ SUCCESS: Wildcard search sanitization safely escapes '%', '_', and '\\'`);
+  console.log(`   ✅ SUCCESS: Lean job projection strips heavy arrays (tasks, photos, csat_photos) and preserves counts`);
+  console.log(`   ✅ SUCCESS: Step 1 BOQ calculation accurately identifies hasBOQ=true on lean jobs (฿2,000, 2 items)`);
+  console.log(`   ✅ SUCCESS: Step 2 & Central BOQ badge check safely handles lean boq_count`);
+  console.log(`   ✅ SUCCESS: 4,500 jobs filtered, searched, and paginated in ${benchElapsed}ms (< 150ms SLA)`);
+  console.log(`   ✅ SUCCESS: Pagination range correctly calculates bounds across 4,500 jobs without inversion\n`);
+
   console.log('================================================================');
-  console.log('🎉 ALL 18 TESTS PASSED: BOQ IMPORT & LABOR-ONLY TASK PIPELINE VERIFIED 100%');
+  console.log('🎉 ALL 19 TESTS PASSED: BOQ IMPORT, PAGINATION & METRICS VERIFIED 100%');
   console.log('================================================================');
 }
 

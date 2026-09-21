@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isDatabaseConnected = exports.pool = void 0;
+exports.LEAN_JOB_COLUMNS = exports.isDatabaseConnected = exports.pool = void 0;
 exports.initDatabase = initDatabase;
 exports.dbLoadUsers = dbLoadUsers;
 exports.dbGetUser = dbGetUser;
@@ -13,6 +13,8 @@ exports.dbDeleteUser = dbDeleteUser;
 exports.dbSaveLoginLog = dbSaveLoginLog;
 exports.dbLoadLoginLogs = dbLoadLoginLogs;
 exports.mapDbJobRow = mapDbJobRow;
+exports.dbGetJobMetrics = dbGetJobMetrics;
+exports.dbLoadJobsPaginated = dbLoadJobsPaginated;
 exports.dbLoadJobs = dbLoadJobs;
 exports.dbGetJob = dbGetJob;
 exports.dbSaveJob = dbSaveJob;
@@ -109,6 +111,9 @@ async function initDatabase() {
         booking_no VARCHAR(100),
         ticket_no VARCHAR(100),
         customer_id BIGINT,
+        customer_name VARCHAR(150),
+        customer_phone VARCHAR(50),
+        customer_address TEXT,
         status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
         job_type VARCHAR(50) DEFAULT 'quick',
         step_timestamps JSONB DEFAULT '{}'::jsonb,
@@ -317,6 +322,21 @@ async function initDatabase() {
         customer_phone = COALESCE(NULLIF(customer_phone, ''), customer_data->>'phone', customer_data->>'mobile_no', ''),
         customer_address = COALESCE(NULLIF(customer_address, ''), customer_data->>'address', customer_data->'location'->>'address', '')
       WHERE customer_name IS NULL OR customer_phone IS NULL OR customer_address IS NULL;
+
+      -- High-frequency query indexes on core_jobs
+      CREATE INDEX IF NOT EXISTS idx_core_jobs_status          ON core_jobs(status);
+      CREATE INDEX IF NOT EXISTS idx_core_jobs_created_at      ON core_jobs(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_core_jobs_job_no          ON core_jobs(job_no);
+      CREATE INDEX IF NOT EXISTS idx_core_jobs_external_ref_id ON core_jobs(external_ref_id);
+      CREATE INDEX IF NOT EXISTS idx_core_jobs_booking_no      ON core_jobs(booking_no);
+      CREATE INDEX IF NOT EXISTS idx_core_jobs_ticket_no       ON core_jobs(ticket_no);
+      CREATE INDEX IF NOT EXISTS idx_core_jobs_plan_date       ON core_jobs(plan_date);
+      CREATE INDEX IF NOT EXISTS idx_core_jobs_customer_name   ON core_jobs(customer_name);
+      CREATE INDEX IF NOT EXISTS idx_core_jobs_customer_phone  ON core_jobs(customer_phone);
+      CREATE INDEX IF NOT EXISTS idx_core_jobs_job_type        ON core_jobs(job_type);
+      CREATE INDEX IF NOT EXISTS idx_core_jobs_lower_status    ON core_jobs(LOWER(status));
+      CREATE INDEX IF NOT EXISTS idx_core_jobs_lower_job_type  ON core_jobs(LOWER(job_type));
+      CREATE INDEX IF NOT EXISTS idx_core_jobs_created_id      ON core_jobs(created_at DESC, id DESC);
     `);
         // 2. Ensure default users exist in sys_users
         await client.query(`
@@ -520,8 +540,11 @@ function mapDbJobRow(row) {
         special_instructions: row.special_instructions || '',
         additional_notes: row.additional_notes || '',
         photos: Array.isArray(row.photos) ? row.photos : [],
+        photo_count: row.photo_count !== undefined ? Number(row.photo_count) : (Array.isArray(row.photos) ? row.photos.length : 0),
         tasks: Array.isArray(row.tasks) ? row.tasks : [],
+        task_count: row.task_count !== undefined ? Number(row.task_count) : (Array.isArray(row.tasks) ? row.tasks.length : 0),
         boq_items: Array.isArray(row.boq_items) ? row.boq_items : [],
+        boq_count: row.boq_count !== undefined ? Number(row.boq_count) : (Array.isArray(row.boq_items) ? row.boq_items.length : 0),
         boq_discount: Number(row.boq_discount) || 0,
         boq_subtotal: Number(row.boq_subtotal) || 0,
         boq_grand_total: Number(row.boq_grand_total) || 0,
@@ -541,33 +564,279 @@ function mapDbJobRow(row) {
         created_at: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
     };
 }
+exports.LEAN_JOB_COLUMNS = `
+  id,
+  job_no,
+  external_ref_id,
+  booking_no,
+  ticket_no,
+  customer_id,
+  customer_name,
+  customer_phone,
+  customer_address,
+  status,
+  job_type,
+  step_timestamps,
+  property_type,
+  project_type,
+  project_sub_type,
+  store_code,
+  agent_name,
+  assigned_tech,
+  plan_date,
+  services,
+  overall_progress,
+  special_instructions,
+  additional_notes,
+  boq_discount,
+  boq_subtotal,
+  boq_grand_total,
+  pmt_accepted,
+  pmt_accepted_at,
+  step3_confirmed,
+  qc_inspection_type,
+  qc_passed_at,
+  qc_score,
+  csat_score,
+  csat_remarks,
+  csat_surveyor,
+  csat_evaluated_at,
+  created_at,
+  updated_at,
+  CASE 
+    WHEN photos IS NOT NULL AND jsonb_typeof(photos) = 'array' THEN jsonb_array_length(photos)
+    ELSE 0 
+  END AS photo_count,
+  CASE 
+    WHEN boq_items IS NOT NULL AND jsonb_typeof(boq_items) = 'array' THEN jsonb_array_length(boq_items)
+    ELSE 0 
+  END AS boq_count,
+  CASE 
+    WHEN tasks IS NOT NULL AND jsonb_typeof(tasks) = 'array' THEN jsonb_array_length(tasks)
+    ELSE 0 
+  END AS task_count
+`;
+async function dbGetJobMetrics() {
+    if (!exports.isDatabaseConnected) {
+        return {
+            total: 0,
+            step1: 0,
+            qc_pending: 0,
+            in_progress: 0,
+            completed: 0,
+            cancelled: 0,
+            quick: 0,
+            renovate: 0,
+            ma: 0,
+            today: 0,
+            qc_passed: 0,
+            after_sale: 0
+        };
+    }
+    try {
+        const res = await exports.pool.query(`
+      SELECT 
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE UPPER(status) IN ('SURVEYED', 'DRAFT', 'NEW') AND (pmt_accepted IS FALSE OR pmt_accepted IS NULL))::int AS step1,
+        COUNT(*) FILTER (WHERE UPPER(status) = 'QC_PENDING')::int AS qc_pending,
+        COUNT(*) FILTER (WHERE UPPER(status) IN ('IN_PROGRESS', 'CONVERTED'))::int AS in_progress,
+        COUNT(*) FILTER (WHERE UPPER(status) IN ('QC_PASSED', 'CLOSED', 'AFTER_SALE'))::int AS completed,
+        COUNT(*) FILTER (WHERE UPPER(status) = 'QC_PASSED')::int AS qc_passed,
+        COUNT(*) FILTER (WHERE UPPER(status) IN ('AFTER_SALE', 'CLOSED'))::int AS after_sale,
+        COUNT(*) FILTER (WHERE UPPER(status) IN ('CANCELLED', 'CLOSED_LOST'))::int AS cancelled,
+        COUNT(*) FILTER (WHERE LOWER(job_type) = 'quick')::int AS quick,
+        COUNT(*) FILTER (WHERE LOWER(job_type) = 'renovate')::int AS renovate,
+        COUNT(*) FILTER (WHERE LOWER(job_type) = 'ma')::int AS ma,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE)::int AS today
+      FROM core_jobs
+    `);
+        const row = res.rows[0] || {};
+        return {
+            total: Number(row.total) || 0,
+            step1: Number(row.step1) || 0,
+            qc_pending: Number(row.qc_pending) || 0,
+            in_progress: Number(row.in_progress) || 0,
+            completed: Number(row.completed) || 0,
+            cancelled: Number(row.cancelled) || 0,
+            quick: Number(row.quick) || 0,
+            renovate: Number(row.renovate) || 0,
+            ma: Number(row.ma) || 0,
+            today: Number(row.today) || 0,
+            qc_passed: Number(row.qc_passed) || 0,
+            after_sale: Number(row.after_sale) || 0
+        };
+    }
+    catch (err) {
+        console.error('[DB] Error getting job metrics:', err.message);
+        return {
+            total: 0,
+            step1: 0,
+            qc_pending: 0,
+            in_progress: 0,
+            completed: 0,
+            cancelled: 0,
+            quick: 0,
+            renovate: 0,
+            ma: 0,
+            today: 0,
+            qc_passed: 0,
+            after_sale: 0
+        };
+    }
+}
+async function dbLoadJobsPaginated(options = {}) {
+    const page = Math.max(1, Number(options.page) || 1);
+    const rawLimit = Number(options.limit) || 50;
+    const limit = Math.min(100, Math.max(1, rawLimit));
+    if (!exports.isDatabaseConnected) {
+        return {
+            jobs: [],
+            total: 0,
+            page,
+            limit,
+            totalPages: 1
+        };
+    }
+    try {
+        const whereClauses = [];
+        const params = [];
+        let paramIdx = 1;
+        if (options.status && options.status !== 'all') {
+            whereClauses.push(`LOWER(status) = LOWER($${paramIdx++})`);
+            params.push(options.status);
+        }
+        if (options.service && options.service !== 'all') {
+            const s = options.service.toLowerCase();
+            if (s === 'quick') {
+                whereClauses.push(`(LOWER(job_type) = 'quick' OR services::text ILIKE '%quick%')`);
+            }
+            else if (s === 'renovate') {
+                whereClauses.push(`(LOWER(job_type) = 'renovate' OR services::text ILIKE '%renovate%' OR project_sub_type ILIKE '%renovate%')`);
+            }
+            else if (s === 'ma') {
+                whereClauses.push(`(LOWER(job_type) = 'ma' OR services::text ILIKE '%ma%' OR project_sub_type ILIKE '%ma%')`);
+            }
+            else {
+                whereClauses.push(`(project_sub_type = $${paramIdx} OR services::text ILIKE $${paramIdx + 1})`);
+                params.push(options.service, `%${options.service}%`);
+                paramIdx += 2;
+            }
+        }
+        if (options.search && options.search.trim()) {
+            const sanitized = options.search.trim().replace(/[%_\\]/g, '\\$&');
+            const q = `%${sanitized}%`;
+            whereClauses.push(`(
+        job_no ILIKE $${paramIdx} OR
+        external_ref_id ILIKE $${paramIdx} OR
+        booking_no ILIKE $${paramIdx} OR
+        ticket_no ILIKE $${paramIdx} OR
+        customer_name ILIKE $${paramIdx} OR
+        customer_phone ILIKE $${paramIdx} OR
+        plan_date ILIKE $${paramIdx} OR
+        assigned_tech ILIKE $${paramIdx} OR
+        store_code ILIKE $${paramIdx} OR
+        agent_name ILIKE $${paramIdx}
+      )`);
+            params.push(q);
+            paramIdx++;
+        }
+        const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+        // 1. Fast count query using indexes
+        const countSql = `SELECT COUNT(*)::int AS total FROM core_jobs ${whereSql}`;
+        const countRes = await exports.pool.query(countSql, params);
+        const total = Number(countRes.rows[0]?.total) || 0;
+        const totalPages = Math.max(1, Math.ceil(total / limit));
+        // 2. Fast lean list query using indexes
+        const selectCols = options.lean === false ? '*' : exports.LEAN_JOB_COLUMNS;
+        const offset = (page - 1) * limit;
+        const querySql = `
+      SELECT ${selectCols}
+      FROM core_jobs
+      ${whereSql}
+      ORDER BY created_at DESC, id DESC
+      LIMIT $${paramIdx++} OFFSET $${paramIdx++}
+    `;
+        const rowsRes = await exports.pool.query(querySql, [...params, limit, offset]);
+        const mapped = rowsRes.rows.map(mapDbJobRow);
+        return {
+            jobs: mapped,
+            total,
+            page,
+            limit,
+            totalPages
+        };
+    }
+    catch (err) {
+        console.error('[DB] Error in dbLoadJobsPaginated:', err.message);
+        return {
+            jobs: [],
+            total: 0,
+            page,
+            limit,
+            totalPages: 1
+        };
+    }
+}
 async function dbLoadJobs(filters) {
+    if (filters && (filters.page !== undefined || filters.limit !== undefined)) {
+        const paged = await dbLoadJobsPaginated(filters);
+        return paged.jobs;
+    }
     if (!exports.isDatabaseConnected)
         return [];
     try {
-        const res = await exports.pool.query('SELECT * FROM core_jobs ORDER BY created_at DESC, id DESC');
-        let list = res.rows.map(mapDbJobRow);
-        if (filters) {
-            if (filters.status && filters.status !== 'all') {
-                list = list.filter(j => j.status === filters.status);
+        const whereClauses = [];
+        const params = [];
+        let paramIdx = 1;
+        if (filters?.status && filters.status !== 'all') {
+            whereClauses.push(`LOWER(status) = LOWER($${paramIdx++})`);
+            params.push(filters.status);
+        }
+        if (filters?.service && filters.service !== 'all') {
+            const s = filters.service.toLowerCase();
+            if (s === 'quick') {
+                whereClauses.push(`(LOWER(job_type) = 'quick' OR services::text ILIKE '%quick%')`);
             }
-            if (filters.service && filters.service !== 'all') {
-                list = list.filter(j => j.service === filters.service || (j.services && j.services.includes(filters.service)));
+            else if (s === 'renovate') {
+                whereClauses.push(`(LOWER(job_type) = 'renovate' OR services::text ILIKE '%renovate%' OR project_sub_type ILIKE '%renovate%')`);
             }
-            if (filters.search) {
-                const q = String(filters.search).toLowerCase();
-                list = list.filter(j => (j.id && String(j.id).toLowerCase().includes(q)) ||
-                    (j.job_no && String(j.job_no).toLowerCase().includes(q)) ||
-                    (j.external_ref_id && String(j.external_ref_id).toLowerCase().includes(q)) ||
-                    (j.booking_no && String(j.booking_no).toLowerCase().includes(q)) ||
-                    (j.ticket_no && String(j.ticket_no).toLowerCase().includes(q)) ||
-                    (j.plan_date && String(j.plan_date).toLowerCase().includes(q)) ||
-                    (j.customer && String(j.customer).toLowerCase().includes(q)) ||
-                    (j.phone && String(j.phone).includes(q)) ||
-                    (j.service && String(j.service).toLowerCase().includes(q)));
+            else if (s === 'ma') {
+                whereClauses.push(`(LOWER(job_type) = 'ma' OR services::text ILIKE '%ma%' OR project_sub_type ILIKE '%ma%')`);
+            }
+            else {
+                whereClauses.push(`(project_sub_type = $${paramIdx} OR services::text ILIKE $${paramIdx + 1})`);
+                params.push(filters.service, `%${filters.service}%`);
+                paramIdx += 2;
             }
         }
-        return list;
+        if (filters?.search && filters.search.trim()) {
+            const sanitized = filters.search.trim().replace(/[%_\\]/g, '\\$&');
+            const q = `%${sanitized}%`;
+            whereClauses.push(`(
+        job_no ILIKE $${paramIdx} OR
+        external_ref_id ILIKE $${paramIdx} OR
+        booking_no ILIKE $${paramIdx} OR
+        ticket_no ILIKE $${paramIdx} OR
+        customer_name ILIKE $${paramIdx} OR
+        customer_phone ILIKE $${paramIdx} OR
+        plan_date ILIKE $${paramIdx} OR
+        assigned_tech ILIKE $${paramIdx} OR
+        store_code ILIKE $${paramIdx} OR
+        agent_name ILIKE $${paramIdx}
+      )`);
+            params.push(q);
+            paramIdx++;
+        }
+        const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+        const selectCols = filters?.lean === false ? '*' : exports.LEAN_JOB_COLUMNS;
+        const querySql = `
+      SELECT ${selectCols}
+      FROM core_jobs
+      ${whereSql}
+      ORDER BY created_at DESC, id DESC
+    `;
+        const res = await exports.pool.query(querySql, params);
+        return res.rows.map(mapDbJobRow);
     }
     catch (err) {
         console.error('[DB] Error loading jobs:', err.message);
