@@ -729,8 +729,17 @@ export async function dbLoadJobsPaginated(options: DbLoadJobsPaginatedOptions = 
     let paramIdx = 1;
 
     if (options.status && options.status !== 'all') {
-      whereClauses.push(`LOWER(status) = LOWER($${paramIdx++})`);
-      params.push(options.status);
+      const st = options.status.toLowerCase();
+      if (st === 'new') {
+        whereClauses.push(`(LOWER(status) IN ('new', 'draft', 'new_order') AND (assigned_tech IS NULL OR assigned_tech = '' OR assigned_tech = 'รอระบุช่าง'))`);
+      } else if (st === 'assigned') {
+        whereClauses.push(`(assigned_tech IS NOT NULL AND assigned_tech != '' AND assigned_tech != 'รอระบุช่าง' AND LOWER(status) NOT IN ('surveyed', 'cancelled', 'closed_lost'))`);
+      } else if (st === 'surveyed') {
+        whereClauses.push(`(LOWER(status) = 'surveyed' OR (step_timestamps->>'step1_survey_at') IS NOT NULL OR (photos IS NOT NULL AND jsonb_typeof(photos) = 'array' AND jsonb_array_length(photos) > 0))`);
+      } else {
+        whereClauses.push(`LOWER(status) = LOWER($${paramIdx++})`);
+        params.push(options.status);
+      }
     }
 
     if (options.service && options.service !== 'all') {
@@ -761,7 +770,8 @@ export async function dbLoadJobsPaginated(options: DbLoadJobsPaginatedOptions = 
         plan_date ILIKE $${paramIdx} OR
         assigned_tech ILIKE $${paramIdx} OR
         store_code ILIKE $${paramIdx} OR
-        agent_name ILIKE $${paramIdx}
+        agent_name ILIKE $${paramIdx} OR
+        project_sub_type ILIKE $${paramIdx}
       )`);
       params.push(q);
       paramIdx++;
@@ -828,8 +838,17 @@ export async function dbLoadJobs(filters?: {
     let paramIdx = 1;
 
     if (filters?.status && filters.status !== 'all') {
-      whereClauses.push(`LOWER(status) = LOWER($${paramIdx++})`);
-      params.push(filters.status);
+      const st = filters.status.toLowerCase();
+      if (st === 'new') {
+        whereClauses.push(`(LOWER(status) IN ('new', 'draft', 'new_order') AND (assigned_tech IS NULL OR assigned_tech = '' OR assigned_tech = 'รอระบุช่าง'))`);
+      } else if (st === 'assigned') {
+        whereClauses.push(`(assigned_tech IS NOT NULL AND assigned_tech != '' AND assigned_tech != 'รอระบุช่าง' AND LOWER(status) NOT IN ('surveyed', 'cancelled', 'closed_lost'))`);
+      } else if (st === 'surveyed') {
+        whereClauses.push(`(LOWER(status) = 'surveyed' OR (step_timestamps->>'step1_survey_at') IS NOT NULL OR (photos IS NOT NULL AND jsonb_typeof(photos) = 'array' AND jsonb_array_length(photos) > 0))`);
+      } else {
+        whereClauses.push(`LOWER(status) = LOWER($${paramIdx++})`);
+        params.push(filters.status);
+      }
     }
 
     if (filters?.service && filters.service !== 'all') {
@@ -860,7 +879,8 @@ export async function dbLoadJobs(filters?: {
         plan_date ILIKE $${paramIdx} OR
         assigned_tech ILIKE $${paramIdx} OR
         store_code ILIKE $${paramIdx} OR
-        agent_name ILIKE $${paramIdx}
+        agent_name ILIKE $${paramIdx} OR
+        project_sub_type ILIKE $${paramIdx}
       )`);
       params.push(q);
       paramIdx++;

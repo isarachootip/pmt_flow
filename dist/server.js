@@ -2288,7 +2288,19 @@ app.get('/api/v1/jobs', requireAuth, async (req, res) => {
             // In-memory fallback
             let list = [...exports.coreJobStore];
             if (statusStr && statusStr !== 'all') {
-                list = list.filter((j) => (j.status || '').toLowerCase() === statusStr.toLowerCase());
+                const st = statusStr.toLowerCase();
+                if (st === 'new') {
+                    list = list.filter((j) => ['new', 'draft', 'new_order'].includes((j.status || '').toLowerCase()) && (!j.assigned_tech || j.assigned_tech === 'รอระบุช่าง'));
+                }
+                else if (st === 'assigned') {
+                    list = list.filter((j) => j.assigned_tech && j.assigned_tech !== 'รอระบุช่าง' && !['surveyed', 'cancelled', 'closed_lost'].includes((j.status || '').toLowerCase()));
+                }
+                else if (st === 'surveyed') {
+                    list = list.filter((j) => (j.status || '').toLowerCase() === 'surveyed' || (j.step_timestamps && j.step_timestamps.step1_survey_at) || (Array.isArray(j.photos) && j.photos.length > 0));
+                }
+                else {
+                    list = list.filter((j) => (j.status || '').toLowerCase() === statusStr.toLowerCase());
+                }
             }
             if (serviceStr && serviceStr !== 'all') {
                 const s = serviceStr.toLowerCase();

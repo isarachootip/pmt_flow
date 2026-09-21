@@ -762,8 +762,8 @@
                         </div>
                         <div class="flex flex-wrap items-center gap-2.5">
                             <div class="relative w-64 sm:w-72">
-                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
-                                <input type="text" id="jobs-table-search" oninput="app.filterJobsTable()" placeholder="ค้นหาเลขที่งาน, Ref ID, Booking, Ticket No, วันนัด, ลูกค้า..." class="w-full bg-card border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-brand-500 shadow-2xs">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs pointer-events-none"></i>
+                                <input type="text" id="jobs-header-search" oninput="app.syncJobsSearch(this.value)" placeholder="ค้นหา Job ID, Ref ID, Booking..." class="w-full bg-card border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-brand-500 shadow-2xs">
                             </div>
 
                             <button id="btn-dev-reset-draft" onclick="app.resetAllJobStatuses()" class="btn-artifact-secondary isara-only text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg text-xs items-center gap-1.5 cursor-pointer" title="ถอยสถานะทุกโครงการกลับเป็น Survey (25% พร้อมทำแบบ/BOQ) [เฉพาะ Isara Chootip]">
@@ -1000,29 +1000,108 @@
                     </div>
                     
                     <div class="artifact-card overflow-hidden shadow-sm">
-                        <!-- Date Filter Bar สำหรับกรองตามวันนัด -->
-                        <div class="flex flex-wrap items-center gap-2 px-3 py-2.5 bg-muted/30 border-b border-border/60">
-                            <div class="flex items-center gap-1.5 text-xs text-muted-foreground font-medium shrink-0">
-                                <i class="ph ph-calendar-blank text-indigo-500"></i>
-                                <span>กรองวันนัด:</span>
+                        <!-- STEP 1 UNIFIED SEARCH & QUICK FILTER COMMAND BAR -->
+                        <div class="p-3.5 bg-muted/30 border-b border-border/70 space-y-3 text-xs">
+                            <!-- Row 1: Global Keyword Search Input with Clear Button -->
+                            <div class="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
+                                <div class="relative flex-1 max-w-2xl">
+                                    <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none"></i>
+                                    <input type="text" 
+                                           id="jobs-table-search" 
+                                           oninput="app.filterJobsTable()" 
+                                           placeholder="🔍 ค้นหาตาม Job ID, Ref ID, Booking No, ชื่อลูกค้า, เบอร์โทร, ช่างผู้รับผิดชอบ, สาขา..." 
+                                           class="w-full bg-card border border-border rounded-xl pl-10 pr-9 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 shadow-2xs transition">
+                                    <button type="button" 
+                                            id="btn-clear-jobs-search" 
+                                            onclick="app.clearJobsSearch()" 
+                                            class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground hidden text-sm cursor-pointer" 
+                                            title="ล้างคำค้นหา">
+                                        <i class="ph ph-x-circle"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Result Counter Badge & Reset All -->
+                                <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                                    <span id="appt-date-filter-count" class="px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-brand-500/10 text-brand-700 dark:text-brand-300 border border-brand-500/20">
+                                        พบ 0 รายการ
+                                    </span>
+                                    <button type="button" onclick="app.clearAllStep1Filters()" class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground border border-border" title="ล้างการค้นหาและตัวกรองทั้งหมด">
+                                        <i class="ph ph-arrow-counter-clockwise text-xs"></i>
+                                        <span>รีเซ็ตทั้งหมด</span>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="relative">
-                                <i class="ph ph-calendar-check absolute left-2.5 top-1/2 -translate-y-1/2 text-indigo-400 text-xs pointer-events-none"></i>
-                                <input type="text" id="filter-appt-date-from" data-datepicker="true" placeholder="DD/MM/YYYY" readonly
-                                    class="pl-7 pr-2.5 py-1 text-xs bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-indigo-400 w-32 cursor-pointer shadow-2xs">
+
+                            <!-- Row 2: Status Tabs, Service Segments, and Date Range -->
+                            <div class="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-border/50">
+                                <!-- Status Tabs: All, New, Assigned, Surveyed -->
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mr-1">สถานะ:</span>
+                                    <div class="inline-flex p-1 bg-card border border-border rounded-xl shadow-2xs gap-1">
+                                        <button type="button" id="tab-jobs-status-all" onclick="app.filterJobsByStatusTab('all')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer bg-brand-500 text-white shadow-xs">
+                                            <span>ทั้งหมด</span>
+                                        </button>
+                                        <button type="button" id="tab-jobs-status-new" onclick="app.filterJobsByStatusTab('new')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                            <span>งานใหม่ (New)</span>
+                                        </button>
+                                        <button type="button" id="tab-jobs-status-assigned" onclick="app.filterJobsByStatusTab('assigned')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                            <span>มอบหมายแล้ว (Assigned)</span>
+                                        </button>
+                                        <button type="button" id="tab-jobs-status-surveyed" onclick="app.filterJobsByStatusTab('surveyed')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            <span>สำรวจแล้ว (Surveyed)</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Service Segment Tabs: All, Quick, Renovate -->
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mr-1">กลุ่มบริการ:</span>
+                                    <div class="inline-flex p-1 bg-card border border-border rounded-xl shadow-2xs gap-1">
+                                        <button type="button" id="tab-jobs-service-all" onclick="app.filterJobsByServiceTab('all')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer bg-brand-500 text-white shadow-xs">
+                                            <span>ทั้งหมด</span>
+                                        </button>
+                                        <button type="button" id="tab-jobs-service-quick" onclick="app.filterJobsByServiceTab('quick')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground">
+                                            <i class="ph ph-lightning text-amber-500 text-xs"></i>
+                                            <span>Quick Services</span>
+                                        </button>
+                                        <button type="button" id="tab-jobs-service-renovate" onclick="app.filterJobsByServiceTab('renovate')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground">
+                                            <i class="ph ph-hammer text-indigo-500 text-xs"></i>
+                                            <span>Renovate</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Date Range Filter (DD/MM/YYYY) with Flatpickr & Presets -->
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mr-1">วันนัดหมาย:</span>
+                                    <div class="flex items-center gap-1 bg-card p-1 rounded-xl border border-border shadow-2xs">
+                                        <div class="relative">
+                                            <i class="ph ph-calendar absolute left-2 top-1/2 -translate-y-1/2 text-indigo-500 text-xs pointer-events-none"></i>
+                                            <input type="text" id="filter-appt-date-from" data-datepicker="true" placeholder="DD/MM/YYYY" readonly
+                                                class="pl-6 pr-1.5 py-0.5 text-xs bg-transparent border-0 text-foreground placeholder:text-muted-foreground/60 focus:outline-none w-24 cursor-pointer">
+                                        </div>
+                                        <span class="text-muted-foreground text-[11px] px-0.5">ถึง</span>
+                                        <div class="relative">
+                                            <i class="ph ph-calendar absolute left-2 top-1/2 -translate-y-1/2 text-indigo-500 text-xs pointer-events-none"></i>
+                                            <input type="text" id="filter-appt-date-to" data-datepicker="true" placeholder="DD/MM/YYYY" readonly
+                                                class="pl-6 pr-1.5 py-0.5 text-xs bg-transparent border-0 text-foreground placeholder:text-muted-foreground/60 focus:outline-none w-24 cursor-pointer">
+                                        </div>
+                                        <button type="button" onclick="app.clearApptDateFilter()" title="ล้างตัวกรองวันนัด" class="px-1.5 py-0.5 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-xs cursor-pointer">
+                                            <i class="ph ph-x-circle text-xs"></i>
+                                        </button>
+                                    </div>
+
+                                    <select id="filter-appt-quick" onchange="app.handleApptQuickFilter(this.value)" class="bg-card border border-border rounded-xl px-2.5 py-1 text-xs text-foreground font-normal cursor-pointer focus:outline-none focus:border-brand-500 shadow-2xs" title="กรองด่วนตามกำหนดวันนัด">
+                                        <option value="all">ทุกวันนัด</option>
+                                        <option value="today">นัดวันนี้</option>
+                                        <option value="upcoming">นัดข้างหน้า (30 วัน)</option>
+                                        <option value="overdue">เกินกำหนดนัด (Overdue)</option>
+                                    </select>
+                                </div>
                             </div>
-                            <span class="text-muted-foreground text-xs">ถึง</span>
-                            <div class="relative">
-                                <i class="ph ph-calendar-check absolute left-2.5 top-1/2 -translate-y-1/2 text-indigo-400 text-xs pointer-events-none"></i>
-                                <input type="text" id="filter-appt-date-to" data-datepicker="true" placeholder="DD/MM/YYYY" readonly
-                                    class="pl-7 pr-2.5 py-1 text-xs bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-indigo-400 w-32 cursor-pointer shadow-2xs">
-                            </div>
-                            <button onclick="app.clearApptDateFilter()" title="ล้างตัวกรองวันนัด"
-                                class="flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border transition-colors cursor-pointer">
-                                <i class="ph ph-x-circle text-xs"></i>
-                                <span>ล้าง</span>
-                            </button>
-                            <span id="appt-date-filter-count" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 hidden"></span>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left">
@@ -1035,7 +1114,7 @@
                                         <th class="px-2 py-2.5 whitespace-nowrap">
                                             <div class="flex items-center gap-1.5">
                                                 <span>กำหนดวันนัด</span>
-                                                <select id="filter-appt-quick" onchange="app.handleApptQuickFilter(this.value)" class="text-[11px] bg-card border border-border rounded px-1.5 py-0.5 text-foreground font-normal cursor-pointer focus:outline-none focus:border-brand-500 shadow-2xs" title="กรองด่วนตามกำหนดวันนัด">
+                                                <select id="filter-appt-quick-col" onchange="app.handleApptQuickFilter(this.value)" class="text-[11px] bg-card border border-border rounded px-1.5 py-0.5 text-foreground font-normal cursor-pointer focus:outline-none focus:border-brand-500 shadow-2xs" title="กรองด่วนตามกำหนดวันนัด">
                                                     <option value="all">ทั้งหมด</option>
                                                     <option value="today">นัดวันนี้</option>
                                                     <option value="upcoming">นัดข้างหน้า</option>
@@ -5651,6 +5730,46 @@
                                         <li><strong>2. Lean Summary Columns:</strong> ตัดข้อมูลฟิลด์ขนาดใหญ่ (Heavy Payloads) เช่น <code class="font-mono">raw_payload</code>, รูปถ่าย <code class="font-mono">photos</code> แบบเต็ม, รูป Base64 ออกจากคำขอตารางรายการ โดยโหลดเฉพาะข้อมูลสรุปย่อที่จำเป็น และใช้ On-demand Full Payload Fetch (<code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">GET /api/v1/jobs/:id</code>) เมื่อผู้ใช้คลิกเปิดดูรายละเอียดงานหรือสตูดิโอเท่านั้น ลดขนาด Response จาก 50MB เหลือเพียง ~15KB ต่อหน้า</li>
                                         <li><strong>3. PostgreSQL High-Frequency Indexing:</strong> สร้าง B-Tree Indexes ครบทุกคอลัมน์ที่มีการสืบค้นและจัดเรียงบ่อยบนตาราง <code class="font-mono">core_jobs</code> ได้แก่ <code class="font-mono">status</code>, <code class="font-mono">created_at DESC</code>, <code class="font-mono">job_no</code>, <code class="font-mono">external_ref_id</code>, <code class="font-mono">booking_no</code>, <code class="font-mono">ticket_no</code>, <code class="font-mono">plan_date</code>, <code class="font-mono">customer_name</code>, <code class="font-mono">customer_phone</code> และ <code class="font-mono">job_type</code> ทำให้คำสั่ง SQL กรองข้อมูลและนับจำนวน (<code class="font-mono">COUNT(*)</code>) ทำงานเสร็จในเวลาไม่เกิน 10ms</li>
                                         <li><strong>4. Safe Storage & Non-blocking Polling:</strong> ยกเลิกการบันทึกงานทั้งหมดลง <code class="font-mono">localStorage</code> แบบ synchronous เพื่อตัดปัญหา <code class="font-mono">QuotaExceededError</code> และอาการ Freeze ของ UI Thread โดยจัดเก็บเฉพาะ Snapshot ล่าสุดไม่เกิน 30 รายการ และการ Polling อัตโนมัติจะดึงเฉพาะหน้าปัจจุบันเท่านั้น</li>
+                                    </ul>
+                                </div>
+                            </details>
+
+                            <!-- Q26: Step 1 Unified Search & Quick Filter Command Bar -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q26:</span>
+                                        <span>แถบค้นหาหลัก (Primary Search) และตัวกรองด่วน (Quick Filters) ในหน้าจอหลัก Step 1 รองรับการค้นหาด้วยอะไรได้บ้าง และมีปุ่มลัดอะไรช่วยอำนวยความสะดวก?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> หน้าจอหลัก Step 1 (ศูนย์รับคำสั่งซื้อใหม่ - Order Management) ได้รับการติดตั้ง <strong>Unified Search &amp; Quick Filter Command Bar</strong> เหนือตารางคิวงาน เพื่อให้เจ้าหน้าที่ (Intake Officer, AE, PM, QC) สแกนและเข้าถึงงานได้ทันทีโดยไม่ต้องเปิดดูทีละแถว:</p>
+                                    <ul class="list-disc list-inside mt-1 space-y-1.5 pl-1 text-[11px]">
+                                        <li><strong>1. ช่องค้นหาหลักช่องเดียว (Primary Unified Search):</strong> รองรับการพิมพ์ค้นหาแบบ Real-time ครอบคลุม 4 มิติสำคัญ:
+                                            <span class="block mt-0.5 pl-3 text-foreground font-medium">• <strong>เลขที่งาน (Job ID)</strong> เช่น <code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">260916-002</code> หรือ <code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">VFIX-2609...</code></span>
+                                            <span class="block pl-3 text-foreground font-medium">• <strong>เลขที่อ้างอิงภายนอก &amp; เลขที่จอง</strong> เช่น <code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">REQ-RA2-...</code> (Ref ID) หรือ <code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">BKG-...</code> (Booking No)</span>
+                                            <span class="block pl-3 text-foreground font-medium">• <strong>ชื่อ-เบอร์โทรลูกค้า</strong> เช่น พิมพ์ชื่อลูกค้า หรือพิมพ์เบอร์โทรติดต่อ 3-4 หลัก</span>
+                                            <span class="block pl-3 text-foreground font-medium">• <strong>ช่างผู้รับผิดชอบ / สาขา</strong> เช่น ชื่อช่างสำรวจ/ช่างติดตั้ง, รหัสสาขา (<code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">store_code</code>) หรือชื่อผู้เปิดงาน (<code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">agent_name</code>)</span>
+                                            <span class="block pl-3 text-muted-foreground">• มีปุ่มล้างคำค้น <code class="bg-muted px-1 rounded">[X]</code> ปรากฏอัตโนมัติเมื่อมีการพิมพ์คำค้นหา เพื่อให้ล้างคำค้นได้ใน 1 คลิก</span>
+                                        </li>
+                                        <li><strong>2. แท็บสถานะงานด่วน (Status Tabs):</strong> สลับกรองงานตามขั้นตอนใน Step 1 ได้ในคลิกเดียว:
+                                            <span class="block mt-0.5 pl-3">• <strong class="text-brand-600">ทั้งหมด (All):</strong> แสดงคำสั่งซื้อทั้งหมด</span>
+                                            <span class="block pl-3">• <strong class="text-blue-600">🆕 งานใหม่ (New):</strong> กรองเฉพาะงานที่ยังไม่มีการมอบหมายช่าง</span>
+                                            <span class="block pl-3">• <strong class="text-amber-600">👷 มอบหมายแล้ว (Assigned):</strong> กรองเฉพาะงานที่ระบุช่างผู้รับผิดชอบแล้ว</span>
+                                            <span class="block pl-3">• <strong class="text-emerald-600">📐 สำรวจแล้ว (Surveyed):</strong> กรองเฉพาะงานที่ผ่านการสำรวจหน้างานและมีภาพถ่ายหรือผลสำรวจแล้ว</span>
+                                        </li>
+                                        <li><strong>3. แท็บสลับกลุ่มบริการ (Service Segment Switcher):</strong> กรองแยกประเภทงานบริการ:
+                                            <span class="block mt-0.5 pl-3">• <strong>ทั้งหมด</strong> | <strong>⚡ Quick Services</strong> (งานบริการด่วน) | <strong>🔨 Renovate</strong> (งานโครงการปรับปรุง)</span>
+                                        </li>
+                                        <li><strong>4. ช่วงวันที่นัดหมาย (Appointment Date Range):</strong> 
+                                            <span class="block mt-0.5 pl-3">• เลือกช่วงวันที่เริ่มต้น ถึง วันที่สิ้นสุด ด้วย Custom Flatpickr ในรูปแบบ <strong>DD/MM/YYYY</strong> พร้อมปุ่มล้างวันที่</span>
+                                            <span class="block pl-3">• เมนูลัดเลือกวันนัดด่วน: <em>"นัดวันนี้"</em>, <em>"นัดข้างหน้า (30 วัน)"</em>, และ <em>"เกินกำหนดนัด (Overdue)"</em></span>
+                                        </li>
+                                        <li><strong>5. ตัวนับจำนวนและปุ่มรีเซ็ตทั้งหมด (Result Counter &amp; Master Reset):</strong>
+                                            <span class="block mt-0.5 pl-3">• ป้าย Badge แสดง <code class="bg-brand-500/10 text-brand-700 font-bold px-1.5 py-0.2 rounded text-[10px]">พบ X รายการ</code> แสดงผลสดตามเงื่อนไขที่กรอง</span>
+                                            <span class="block pl-3">• ปุ่ม <code class="bg-muted px-1.5 py-0.2 rounded text-foreground font-semibold text-[10px]">[🔄 รีเซ็ตทั้งหมด]</code> ล้างค่าการค้นหาและรีเซ็ตทุกตัวกรองกลับสู่ค่าเริ่มต้นทันที</span>
+                                        </li>
                                     </ul>
                                 </div>
                             </details>

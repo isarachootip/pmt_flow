@@ -4466,19 +4466,131 @@ const app = {
                 }
             },
 
+            filterJobsByStatusTab(status = 'all') {
+                this.state.jobsFilterStatus = status;
+                this.state.jobsPage = 1;
+
+                // Update Status Tabs Styling
+                const statusList = ['all', 'new', 'assigned', 'surveyed'];
+                statusList.forEach(st => {
+                    const btn = document.getElementById(`tab-jobs-status-${st}`);
+                    if (!btn) return;
+                    if (st === status) {
+                        btn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer bg-brand-500 text-white shadow-xs';
+                    } else {
+                        btn.className = 'px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground';
+                    }
+                });
+
+                this.fetchJobsFromApi(1);
+            },
+
+            filterJobsByServiceTab(service = 'all') {
+                this.state.jobsFilterService = service;
+                this.state.jobsPage = 1;
+
+                const svcEl = document.getElementById('filter-service');
+                if (svcEl) svcEl.value = service;
+
+                // Update Service Segment Tabs Styling
+                const serviceList = ['all', 'quick', 'renovate'];
+                serviceList.forEach(s => {
+                    const btn = document.getElementById(`tab-jobs-service-${s}`);
+                    if (!btn) return;
+                    if (s === service) {
+                        btn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer bg-brand-500 text-white shadow-xs';
+                    } else {
+                        btn.className = 'px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground';
+                    }
+                });
+
+                this.fetchJobsFromApi(1);
+            },
+
+            clearJobsSearch() {
+                const searchInput = document.getElementById('jobs-table-search');
+                if (searchInput) searchInput.value = '';
+                const clearBtn = document.getElementById('btn-clear-jobs-search');
+                if (clearBtn) clearBtn.classList.add('hidden');
+                this.state.jobsSearch = '';
+                this.filterJobsTable();
+            },
+
+            clearAllStep1Filters() {
+                // 1. Clear search input & hide clear button
+                const searchInput = document.getElementById('jobs-table-search');
+                if (searchInput) searchInput.value = '';
+                const clearBtn = document.getElementById('btn-clear-jobs-search');
+                if (clearBtn) clearBtn.classList.add('hidden');
+                this.state.jobsSearch = '';
+
+                // 2. Reset Status tabs to 'all'
+                this.state.jobsFilterStatus = 'all';
+                ['all', 'new', 'assigned', 'surveyed'].forEach(st => {
+                    const btn = document.getElementById(`tab-jobs-status-${st}`);
+                    if (!btn) return;
+                    if (st === 'all') {
+                        btn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer bg-brand-500 text-white shadow-xs';
+                    } else {
+                        btn.className = 'px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground';
+                    }
+                });
+
+                // 3. Reset Service tabs to 'all'
+                this.state.jobsFilterService = 'all';
+                const svcEl = document.getElementById('filter-service');
+                if (svcEl) svcEl.value = 'all';
+                ['all', 'quick', 'renovate'].forEach(s => {
+                    const btn = document.getElementById(`tab-jobs-service-${s}`);
+                    if (!btn) return;
+                    if (s === 'all') {
+                        btn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer bg-brand-500 text-white shadow-xs';
+                    } else {
+                        btn.className = 'px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground';
+                    }
+                });
+
+                // 4. Reset date pickers & presets
+                const dateFromEl = document.getElementById('filter-appt-date-from');
+                const dateToEl = document.getElementById('filter-appt-date-to');
+                if (dateFromEl) {
+                    if (dateFromEl._flatpickr) dateFromEl._flatpickr.clear();
+                    else dateFromEl.value = '';
+                }
+                if (dateToEl) {
+                    if (dateToEl._flatpickr) dateToEl._flatpickr.clear();
+                    else dateToEl.value = '';
+                }
+                const quickEl = document.getElementById('filter-appt-quick');
+                if (quickEl) quickEl.value = 'all';
+                const colQuickEl = document.getElementById('filter-appt-quick-col');
+                if (colQuickEl) colQuickEl.value = 'all';
+
+                // 5. Fetch fresh data & notify
+                this.state.jobsPage = 1;
+                this.fetchJobsFromApi(1);
+                this.showToast('🔄 รีเซ็ตการค้นหาและตัวกรอง Step 1 ทั้งหมดเรียบร้อย');
+            },
+
             _jobsFilterDebounce: null,
             filterJobsTable() {
+                const searchInput = document.getElementById('jobs-table-search');
+                const query = (searchInput && searchInput.value) ? searchInput.value.trim() : '';
+                const clearBtn = document.getElementById('btn-clear-jobs-search');
+                if (clearBtn) {
+                    if (query) clearBtn.classList.remove('hidden');
+                    else clearBtn.classList.add('hidden');
+                }
+
                 if (this._jobsFilterDebounce) clearTimeout(this._jobsFilterDebounce);
                 this._jobsFilterDebounce = setTimeout(async () => {
-                    const searchInput = document.getElementById('jobs-table-search');
-                    const query = (searchInput && searchInput.value) ? searchInput.value.trim() : '';
-                    const serviceFilter = document.getElementById('filter-service') ? document.getElementById('filter-service').value : 'all';
+                    const serviceFilter = this.state.jobsFilterService || 'all';
 
                     this.state.jobsSearch = query;
                     this.state.jobsFilterService = serviceFilter;
                     this.state.jobsPage = 1;
 
-                    // Fetch from server using query params (page=1, limit=50, search, service)
+                    // Fetch from server using query params (page=1, limit=50, search, service, status)
                     await this.fetchJobsFromApi(1);
 
                     // Date range filter for กำหนดวันนัด (if user selected date range)
@@ -4518,12 +4630,9 @@ const app = {
 
                     const countBadge = document.getElementById('appt-date-filter-count');
                     if (countBadge) {
-                        if (hasDateFilter || serviceFilter !== 'all' || query) {
-                            countBadge.textContent = `พบ ${this.state.jobsTotal || 0} รายการ`;
-                            countBadge.classList.remove('hidden');
-                        } else {
-                            countBadge.classList.add('hidden');
-                        }
+                        const count = this.state.jobsTotal !== undefined ? this.state.jobsTotal : (Array.isArray(DB.jobs) ? DB.jobs.length : 0);
+                        countBadge.textContent = `พบ ${count} รายการ`;
+                        countBadge.classList.remove('hidden');
                     }
                 }, 200);
             },
@@ -4533,6 +4642,11 @@ const app = {
                 const dateToEl = document.getElementById('filter-appt-date-to');
                 const now = new Date();
                 const todayStr = this.formatDateDMY(now);
+
+                const quickEl = document.getElementById('filter-appt-quick');
+                if (quickEl) quickEl.value = preset;
+                const colQuickEl = document.getElementById('filter-appt-quick-col');
+                if (colQuickEl) colQuickEl.value = preset;
 
                 if (preset === 'today') {
                     if (dateFromEl) {
@@ -4594,9 +4708,9 @@ const app = {
                 }
                 const quickEl = document.getElementById('filter-appt-quick');
                 if (quickEl) quickEl.value = 'all';
-                const countBadge = document.getElementById('appt-date-filter-count');
-                if (countBadge) countBadge.classList.add('hidden');
-                this.renderJobs();
+                const colQuickEl = document.getElementById('filter-appt-quick-col');
+                if (colQuickEl) colQuickEl.value = 'all';
+                this.filterJobsTable();
             },
 
             handleGlobalSearch(event) {
@@ -4864,6 +4978,11 @@ const app = {
                 }
                 this.updateStepBadges();
                 this.renderJobsPagination();
+                const countBadge = document.getElementById('appt-date-filter-count');
+                if (countBadge) {
+                    const totalCount = this.state.jobsTotal !== undefined ? this.state.jobsTotal : (Array.isArray(DB.jobs) ? DB.jobs.length : 0);
+                    countBadge.textContent = `พบ ${totalCount} รายการ`;
+                }
             },
 
             renderJobsPagination() {
