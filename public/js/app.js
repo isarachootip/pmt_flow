@@ -2882,7 +2882,42 @@ const app = {
                                         if (existing.qc_inspection_type) incoming.qc_inspection_type = existing.qc_inspection_type;
                                         if (existing.qc_type) incoming.qc_type = existing.qc_type;
                                     }
-                                    existingJobsMap.set(key, { ...existing, ...incoming });
+
+                                    // Protect child arrays (boq_items, photos, tasks) from being overwritten with empty arrays by lean list responses
+                                    const preservedBoqItems = (existing.boq_items && existing.boq_items.length > 0 && (!incoming.boq_items || incoming.boq_items.length === 0))
+                                        ? existing.boq_items
+                                        : (incoming.boq_items || existing.boq_items || []);
+                                    const preservedPhotos = (existing.photos && existing.photos.length > 0 && (!incoming.photos || incoming.photos.length === 0))
+                                        ? existing.photos
+                                        : (incoming.photos || existing.photos || []);
+                                    const preservedTasks = (existing.tasks && existing.tasks.length > 0 && (!incoming.tasks || incoming.tasks.length === 0))
+                                        ? existing.tasks
+                                        : (incoming.tasks || existing.tasks || []);
+
+                                    const merged = {
+                                        ...existing,
+                                        ...incoming,
+                                        boq_items: preservedBoqItems,
+                                        photos: preservedPhotos,
+                                        tasks: preservedTasks,
+                                        // Protect key identifier fields from being overwritten by empty/null from lean API responses
+                                        booking_no: incoming.booking_no || existing.booking_no || '',
+                                        external_ref_id: incoming.external_ref_id || existing.external_ref_id || '',
+                                        ticket_no: incoming.ticket_no || existing.ticket_no || '',
+                                        plan_date: incoming.plan_date || existing.plan_date || '',
+                                        date: incoming.plan_date || incoming.date || existing.plan_date || existing.date || ''
+                                    };
+
+                                    // If user is currently editing this job in Studio modal, preserve in-memory draft fields
+                                    const activeStudioId = this.state.unifiedStudioJobId;
+                                    if (activeStudioId && (String(activeStudioId) === key || String(activeStudioId) === String(existing.job_no))) {
+                                        merged.boq_items = existing.boq_items || preservedBoqItems;
+                                        if (existing.step1_passed !== undefined) merged.step1_passed = existing.step1_passed;
+                                        if (existing.step2_passed !== undefined) merged.step2_passed = existing.step2_passed;
+                                        if (existing.step3_passed !== undefined) merged.step3_passed = existing.step3_passed;
+                                    }
+
+                                    existingJobsMap.set(key, merged);
                                 } else {
                                     existingJobsMap.set(key, incoming);
                                 }
@@ -6051,9 +6086,9 @@ const app = {
             },
 
             updateUnifiedStudioTabs() {
-                const jobId = this.state.unifiedStudioJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getUnifiedStudioJob();
                 if (!job) return;
+                const jobId = job.id;
 
                 const activeSec = this.state.unifiedActiveSec || 'intake';
                 const bps = (DB.blueprints || []).filter(b => b.jobId === jobId || String(b.jobId) === String(jobId));
@@ -6179,9 +6214,9 @@ const app = {
             },
 
             saveUnifiedStep(stepNum) {
-                const jobId = this.state.unifiedStudioJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getUnifiedStudioJob();
                 if (!job) return;
+                const jobId = job.id;
 
                 const now = new Date();
                 if (!job.step_timestamps) job.step_timestamps = {};
@@ -6281,6 +6316,21 @@ const app = {
                     this.updateUnifiedStudioTabs();
                     this.updateUnifiedStudioIndicators();
                     const itemsCount = (job.boq_items || []).length;
+
+                    // Persist BOQ items to PostgreSQL database via PATCH /api/v1/jobs/:id
+                    fetch(`/api/v1/jobs/${jobId}`, {
+                        method: 'PATCH',
+                        headers: this.getAuthHeaders(),
+                        body: JSON.stringify({
+                            boq_items: job.boq_items,
+                            boq_subtotal: job.boq_subtotal || 0,
+                            boq_discount: job.boq_discount || 0,
+                            boq_grand_total: job.boq_grand_total || 0,
+                            step3_confirmed: true,
+                            step_timestamps: job.step_timestamps
+                        })
+                    }).catch(err => console.warn('[STUDIO] Error saving BOQ to server:', err));
+
                     this.showToast(`✅ บันทึกประมาณการราคา BOQ เรียบร้อยแล้ว (${itemsCount} รายการ - Passed)`, 'success');
                 }
             },
@@ -7499,25 +7549,37 @@ const app = {
                             const textInputs = row.querySelectorAll('input[type="text"]');
                             const numInputs = row.querySelectorAll('input[type="number"]');
 
-                            if (job.boq_items[idx]) {
-                                if (typeSelect) job.boq_items[idx].type = typeSelect.value;
-                                if (textInputs.length >= 1 && textInputs[0].value !== undefined) job.boq_items[idx].name = textInputs[0].value;
-                                if (numInputs.length >= 1 && numInputs[0].value !== '') job.boq_items[idx].qty = Number(numInputs[0].value) || 0;
-                                if (textInputs.length >= 2 && textInputs[1].value !== undefined) job.boq_items[idx].unit = textInputs[1].value;
-                                if (numInputs.length >= 2 && numInputs[1].value !== '') {
-                                    job.boq_items[idx].price = Number(numInputs[1].value) || 0;
-                                    job.boq_items[idx].unit_price = Number(numInputs[1].value) || 0;
-                                }
+                            if (!job.boq_items[idx]) {
+                                job.boq_items[idx] = {
+                                    id: idx + 1,
+                                    type: (typeSelect && typeSelect.value) ? typeSelect.value : 'MATERIAL',
+                                    name: '',
+                                    qty: 1,
+                                    unit: 'ชุด',
+                                    price: 0
+                                };
+                            }
 
-                                const rowQty = Number(job.boq_items[idx].qty) || 0;
-                                const rowPrice = this.getItemUnitPrice(job.boq_items[idx]);
-                                const rowTotal = rowQty * rowPrice;
-                                const rowTotalEl = document.getElementById(`unified-boq-row-total-${idx}`);
-                                if (rowTotalEl) {
-                                    rowTotalEl.innerText = rowTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                                }
+                            if (typeSelect && typeSelect.value) job.boq_items[idx].type = typeSelect.value;
+                            if (textInputs.length >= 1 && textInputs[0].value !== undefined) job.boq_items[idx].name = textInputs[0].value.trim();
+                            if (numInputs.length >= 1 && numInputs[0].value !== '') job.boq_items[idx].qty = Number(numInputs[0].value) || 0;
+                            if (textInputs.length >= 2 && textInputs[1].value !== undefined) job.boq_items[idx].unit = textInputs[1].value.trim() || 'ชุด';
+                            if (numInputs.length >= 2 && numInputs[1].value !== '') {
+                                job.boq_items[idx].price = Number(numInputs[1].value) || 0;
+                                job.boq_items[idx].unit_price = Number(numInputs[1].value) || 0;
+                            }
+
+                            const rowQty = Number(job.boq_items[idx].qty) || 0;
+                            const rowPrice = this.getItemUnitPrice(job.boq_items[idx]);
+                            const rowTotal = rowQty * rowPrice;
+                            const rowTotalEl = document.getElementById(`unified-boq-row-total-${idx}`);
+                            if (rowTotalEl) {
+                                rowTotalEl.innerText = rowTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                             }
                         });
+                        if (job.boq_items.length > rows.length) {
+                            job.boq_items = job.boq_items.slice(0, rows.length);
+                        }
                     }
                 }
 
@@ -7927,7 +7989,12 @@ const app = {
                         status: job.status,
                         overall_progress: job.progress,
                         assigned_tech: job.tech,
-                        step_timestamps: job.step_timestamps
+                        step_timestamps: job.step_timestamps,
+                        boq_items: job.boq_items || [],
+                        boq_subtotal: job.boq_subtotal || 0,
+                        boq_discount: job.boq_discount || 0,
+                        boq_grand_total: job.boq_grand_total || 0,
+                        step3_confirmed: !!(job.boq_items && job.boq_items.length > 0)
                     })
                 }).catch(() => {});
 
@@ -7952,14 +8019,23 @@ const app = {
                     return;
                 }
 
-                const boqItems = job.boq_items || [];
+                // First, ensure all DOM inputs in BOQ table are synchronized into job.boq_items!
+                this.calculateUnifiedBOQSummary();
+
+                const boqItems = (job.boq_items || []).filter(item => {
+                    const hasName = item.name && String(item.name).trim().length > 0;
+                    const hasQty = item.qty !== undefined && item.qty !== null && Number(item.qty) > 0;
+                    return hasName || hasQty;
+                });
+
                 if (boqItems.length === 0) {
                     this.showToast('⚠️ กรุณาจัดทำรายการ BOQ อย่างน้อย 1 รายการก่อนส่งต่อ');
                     this.scrollUnifiedStudioTo('boq');
                     return;
                 }
 
-                this.saveUnifiedOrderStudio();
+                job.boq_items = boqItems;
+                job.step3_passed = true;
                 job.pmt_accepted = true;
                 job.status = 'IN_PROGRESS';
                 job.progress = Math.max(job.progress || 0, 45);
@@ -7969,7 +8045,9 @@ const app = {
                 job.step_timestamps.step1_accepted_at = now.toISOString();
                 job.step_timestamps.step1_intake_at = now.toISOString();
                 job.step_timestamps.step2_ticket_at = now.toISOString();
+                if (!job.step_timestamps.step3_boq_at) job.step_timestamps.step3_boq_at = now.toISOString();
 
+                this.saveUnifiedOrderStudio();
                 this.persistJobs();
                 this.hideModal('modal-unified-order-studio');
 
@@ -7981,7 +8059,12 @@ const app = {
                         overall_progress: job.progress,
                         pmt_accepted: true,
                         pmt_accepted_at: now.toISOString(),
-                        step_timestamps: job.step_timestamps
+                        step_timestamps: job.step_timestamps,
+                        boq_items: job.boq_items || [],
+                        boq_subtotal: job.boq_subtotal || 0,
+                        boq_discount: job.boq_discount || 0,
+                        boq_grand_total: job.boq_grand_total || 0,
+                        step3_confirmed: true
                     })
                 }).catch(() => {});
 
@@ -23424,12 +23507,12 @@ const app = {
                             ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-gray-900 border border-border text-xs sm:text-sm font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs select-text cursor-text hover:bg-muted transition" title="ลากเมาส์หรือดับเบิลคลิกเพื่อคัดลอก Ref ID (แก้ไขไม่ได้)">${j.external_ref_id}</span>` : '<span class="text-gray-400 text-xs">-</span>'}
                         </td>
                         <td class="px-2.5 py-2.5 font-mono whitespace-nowrap" onclick="event.stopPropagation()">
-                            ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-gray-950 border border-purple-300 text-xs sm:text-sm font-mono font-black tracking-tight whitespace-nowrap shadow-2xs select-text cursor-text hover:bg-purple-100/70 transition" title="ลากเมาส์หรือดับเบิลคลิกเพื่อคัดลอกเลขที่ Booking (แก้ไขไม่ได้)">${j.booking_no}</span>` : '<span class="text-gray-400 text-xs">-</span>'}
+                            ${(() => { const bno = j.booking_no || j.vfix_no || j.bookingNo || (j.raw_payload && (j.raw_payload.booking_no || j.raw_payload.vfix_no)) || (j.job_info && j.job_info.booking_no) || ''; return bno ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-gray-950 border border-purple-300 text-xs sm:text-sm font-mono font-black tracking-tight whitespace-nowrap shadow-2xs select-text cursor-text hover:bg-purple-100/70 transition" title="ลากเมาส์หรือดับเบิลคลิกเพื่อคัดลอกเลขที่ Booking (แก้ไขไม่ได้)">${bno}</span>` : '<span class="text-gray-400 text-xs">-</span>'; })()}
                         </td>
                         <td class="px-2.5 py-2.5 whitespace-nowrap" onclick="event.stopPropagation()">
                             <div class="inline-flex items-center gap-1 font-mono text-xs sm:text-sm text-foreground font-bold whitespace-nowrap select-text cursor-text" title="ลากเมาส์เพื่อคัดลอกวันนัด (แก้ไขไม่ได้)">
                                 <i class="ph ph-calendar-check text-amber-500 text-sm shrink-0"></i>
-                                <span class="select-text cursor-text">${this.formatDateDMY(j.plan_date || j.date)}</span>
+                                <span class="select-text cursor-text">${this.formatDateDMY(j.plan_date || j.date || (j.qc_booking && j.qc_booking.bookingDate) || (j.schedule_plan && j.schedule_plan.visit_date) || (j.step_timestamps && j.step_timestamps.qc_pending_at) || j.created_at)}</span>
                             </div>
                         </td>
                         <td class="px-3 py-2.5 min-w-[125px] max-w-[150px]" onclick="event.stopPropagation()">
