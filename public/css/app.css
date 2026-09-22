@@ -455,3 +455,18 @@
         .status-pill.status-after-sale { color: #0284c7 !important; -webkit-text-fill-color: #0284c7 !important; }
         .status-pill.status-closed { color: #047857 !important; -webkit-text-fill-color: #047857 !important; }
         .status-cancelled, .status-closed-lost { color: #dc2626 !important; -webkit-text-fill-color: #dc2626 !important; }
+
+        /* Text selection enablement across tables & copyable elements (คัดลอกอย่างเดียวแบบ ลาก mouse) */
+        table tbody td,
+        table tbody td *,
+        .select-text,
+        .select-text *,
+        .copyable-text,
+        .copyable-text * {
+            -webkit-user-select: text !important;
+            user-select: text !important;
+        }
+
+        .cursor-text {
+            cursor: text !important;
+        }
