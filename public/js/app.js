@@ -2937,7 +2937,7 @@ const app = {
                     'faq': 'คลังความรู้ & คู่มือระบบ (KM Portal & System Guide)',
                     'users': 'จัดการผู้ใช้งาน',
                     'report': 'Report (ภาพรวมผลการดำเนินงาน)',
-                    'master-orders': 'สรุปคำสั่งซื้อทั้งหมดในระบบ (Master All-Orders Tracking)',
+                    'master-orders': 'Report > สรุปคำสั่งซื้อทั้งหมดในระบบ (Master All-Orders Tracking)',
                     'project-pricing': 'ราคาโครงการ (งานที่ปิดแล้ว รอใส่ราคา)'
                 };
                 document.getElementById('topbar-breadcrumb').innerText = breadcrumbMap[view] || view;
@@ -2963,11 +2963,20 @@ const app = {
 
                 // Submenu active state in Report
                 const subReportOverview = document.getElementById('subnav-report-overview');
+                const subReportMaster = document.getElementById('subnav-report-master-orders');
+                const navReport = document.getElementById('nav-report');
                 if (subReportOverview) {
                     if (view === 'report') {
                         subReportOverview.className = "report-sub-link flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-brand-600 bg-brand-500/10 transition-all cursor-pointer";
+                        if (subReportMaster) subReportMaster.className = "report-sub-link flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer";
+                        if (navReport) navReport.classList.add('nav-item-active');
+                    } else if (view === 'master-orders') {
+                        subReportOverview.className = "report-sub-link flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer";
+                        if (subReportMaster) subReportMaster.className = "report-sub-link flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold text-indigo-600 bg-indigo-500/10 transition-all cursor-pointer";
+                        if (navReport) navReport.classList.add('nav-item-active');
                     } else {
                         subReportOverview.className = "report-sub-link flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer";
+                        if (subReportMaster) subReportMaster.className = "report-sub-link flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer";
                     }
                 }
 

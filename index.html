@@ -291,15 +291,6 @@
                             </div>
                             <span class="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-500 font-mono font-bold">Live</span>
                         </a>
-                        <a href="#" onclick="app.navigate('master-orders')" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer" id="nav-master-orders" title="ค้นหาและติดตามสถานะคำสั่งซื้อทั้งหมดในระบบ">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-6 h-6 rounded-lg bg-indigo-500/15 text-indigo-600 flex items-center justify-center text-sm">
-                                    <i class="ph ph-list-dashes text-base"></i>
-                                </div>
-                                <span class="font-display font-bold text-xs truncate">สรุปคำสั่งซื้อทั้งหมด</span>
-                            </div>
-                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 font-mono font-bold" id="sidebar-master-orders-count">0</span>
-                        </a>
                     </nav>
                 </div>
 
@@ -404,6 +395,13 @@
                             <a href="#" onclick="app.navigate('report')" class="report-sub-link flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-brand-600 bg-brand-500/10 transition-all cursor-pointer" id="subnav-report-overview">
                                 <i class="ph ph-chart-pie-slice text-sm text-brand-500"></i>
                                 <span>ภาพรวมผลการดำเนินงาน</span>
+                            </a>
+                            <a href="#" onclick="app.navigate('master-orders')" class="report-sub-link flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer" id="subnav-report-master-orders" title="สรุปคำสั่งซื้อทั้งหมดในระบบ (Master All-Orders Tracking)">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph ph-list-dashes text-sm text-indigo-500"></i>
+                                    <span>สรุปคำสั่งซื้อทั้งหมด</span>
+                                </div>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 font-mono font-bold" id="sidebar-master-orders-count">0</span>
                             </a>
                             <a href="#" onclick="app.openStepAuditReportModal()" class="report-sub-link flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer" id="subnav-report-audit">
                                 <i class="ph ph-clock-counter-clockwise text-sm text-muted-foreground"></i>
@@ -782,6 +780,10 @@
                                 <span class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
                                 Master Live Tracker
                             </span>
+                            <button onclick="app.navigate('report')" class="btn-artifact-secondary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-xs cursor-pointer" title="ดูภาพรวม Report">
+                                <i class="ph ph-chart-pie-slice"></i>
+                                <span>ดูภาพรวม Report</span>
+                            </button>
                             <button onclick="app.showModal('modal-create-job')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-xs cursor-pointer" title="สร้างงานใหม่ (Manual Order)">
                                 <i class="ph ph-plus-bold"></i>
                                 <span>+ Manual Order</span>
@@ -4183,6 +4185,12 @@
                                 <button type="button" onclick="app.setReportTimeRange('Custom', this)" class="report-range-btn px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer">Custom</button>
                             </div>
 
+                            <!-- Link to Master Orders -->
+                            <button type="button" onclick="app.navigate('master-orders')" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 border border-indigo-500/30 shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer" title="ดูสรุปคำสั่งซื้อทั้งหมดในระบบ (3,726 รายการ)">
+                                <i class="ph ph-list-dashes text-sm"></i>
+                                <span>สรุปคำสั่งซื้อทั้งหมด</span>
+                            </button>
+
                             <!-- Export Action Button -->
                             <button type="button" onclick="app.exportReportData()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white shadow-sm flex items-center gap-1.5 transition-all cursor-pointer">
                                 <i class="ph ph-download-simple text-sm"></i>
@@ -6048,7 +6056,7 @@
                                     <p><strong class="text-foreground">คำตอบ:</strong> เพื่อให้การบริหารจัดการคิวงานในแต่ละขั้นตอนมีความชัดเจนและไม่สับสน ระบบ PMT Flow ได้แยกมุมมองการทำงานออกเป็น 2 หน้าจออย่างเด็ดขาด:</p>
                                     <ul class="list-disc list-inside space-y-1.5 pl-1 text-[11px]">
                                         <li><strong>1. หน้าจอ Step 1 (ศูนย์รับคำสั่งซื้อใหม่):</strong> แสดงเฉพาะ <strong>"คิวงานที่ยังค้างอยู่ใน Step 1"</strong> (สถานะเริ่มต้น: <code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">step1_queue</code>) เท่านั้น เมื่องานใดได้รับการส่งต่อ (Handover) เช่น งาน Quick Services ที่ส่งตรงเข้า Step 5 (QC) หรือ Renovate ที่ส่งต่อไป Step 2 หรือ Step 3 แล้ว งานนั้นจะหลุดออกจากคิวงาน Step 1 ทันที เพื่อไม่ให้เกิดความสับสนและทำให้เจ้าหน้าที่โฟกัสเฉพาะงานที่ต้องจัดการในด่านแรกจริง (หากต้องการดูงานที่ส่งต่อไปแล้วใน Step 1 สามารถคลิกแท็บ <em>"↗️ ส่งต่อไปแล้ว (Transferred)"</em> หรือคลิกการ์ด <em>"รับเข้า PMT แล้ว"</em> ได้)</li>
-                                        <li><strong>2. หน้าจอใหม่ "สรุปคำสั่งซื้อทั้งหมด (Master All-Orders)":</strong> อยู่ที่เมนูด้านข้างใต้แดชบอร์ด (<code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">nav-master-orders</code>) ออกแบบมาเป็น <strong>"ศูนย์รวมและติดตามสถานะคำสั่งซื้อทั้งหมดในระบบแบบ Single View"</strong> รวมทุกโครงการตั้งแต่ Step 1 ถึง Step 7 (3,726+ รายการ)</li>
+                                        <li><strong>2. หน้าจอใหม่ "สรุปคำสั่งซื้อทั้งหมด (Master All-Orders)":</strong> อยู่ที่แถบเมนูด้านข้างในหมวด **Report** (<code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">subnav-report-master-orders</code>) และมีปุ่มทางลัดบนหน้า Report ออกแบบมาเป็น <strong>"ศูนย์รวมและติดตามสถานะคำสั่งซื้อทั้งหมดในระบบแบบ Single View"</strong> รวมทุกโครงการตั้งแต่ Step 1 ถึง Step 7 (3,726+ รายการ)</li>
                                         <li><strong>3. ฟังก์ชันในหน้าสรุปคำสั่งซื้อทั้งหมด (Master Orders):</strong>
                                             <span class="block mt-0.5 pl-3 text-foreground font-medium">• มีแถบ <strong>"ขั้นตอนปัจจุบัน (Current Pipeline Step)"</strong> บ่งบอกชัดเจนว่าแต่ละ Order กำลังอยู่ในขั้นตอนใด (Step 1 Studio, Step 2 Tickets, Step 3 Dispatch, Step 4 Gantt, Step 5 QC, Step 6 STK Sync หรือ Step 7 Closed)</span>
                                             <span class="block pl-3 text-foreground font-medium">• มีการ์ด KPI สรุปภาพรวม 4 มิติ (คำสั่งซื้อทั้งหมด, ค้างใน Step 1, กำลังดำเนินการในระบบ, และงานเสร็จสิ้น/ส่งมอบ)</span>
@@ -10810,11 +10818,11 @@
 
     <!-- APPLICATION JAVASCRIPT LOGIC -->
     <!-- APPLICATION SCRIPTS -->
-    <script src="./public/js/db.js?v=1.7.3"></script>
-    <script src="./public/js/auth.js?v=1.7.3"></script>
-    <script src="./public/js/app.js?v=1.7.3"></script>
-    <script src="./public/js/userMgmt.js?v=1.7.3"></script>
-    <script src="./public/js/app.hooks.js?v=1.7.3"></script>
+    <script src="./public/js/db.js?v=1.7.4"></script>
+    <script src="./public/js/auth.js?v=1.7.4"></script>
+    <script src="./public/js/app.js?v=1.7.4"></script>
+    <script src="./public/js/userMgmt.js?v=1.7.4"></script>
+    <script src="./public/js/app.hooks.js?v=1.7.4"></script>
 
 </body>
 </html>
