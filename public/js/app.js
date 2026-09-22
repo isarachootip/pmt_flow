@@ -2991,8 +2991,9 @@ const app = {
                 try {
                     const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
                     if (!token) return;
-                    // ดึง jobs ที่มีสถานะ QC ทุกประเภท (pending, inspecting, rework, passed, confirmed)
-                    const params = new URLSearchParams({ limit: '200', status: 'qc' });
+                    // ดึง jobs ที่มีสถานะ QC ทุกประเภท (QC_PENDING, QC_REWORK, QC_PASSED)
+                    // ใช้ step=qc เพราะ server จะ filter WHERE status IN ('QC_PENDING','QC_INSPECTING','QC_REWORK','QC_PASSED')
+                    const params = new URLSearchParams({ limit: '100', step: 'qc' });
                     const res = await fetch(`/api/v1/jobs?${params.toString()}`, {
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
                     });
@@ -23560,7 +23561,7 @@ const app = {
                         `;
                     } else {
                         actionButtonHtml = `
-                            <button onclick="event.stopPropagation(); app.openQCDetailModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer shadow-xs transition hover:scale-105" title="เปิดแบบฟอร์มประเมินและให้คะแนน QC">
+                            <button type="button" onclick="event.stopPropagation(); app.openQCDetailModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer shadow-xs transition hover:scale-105" title="เปิดแบบฟอร์มประเมินและให้คะแนน QC">
                                 <i class="ph ph-clipboard-text"></i>
                                 <span>ตรวจประเมิน QC</span>
                             </button>
@@ -24388,12 +24389,15 @@ const app = {
                 const history = Array.isArray(job.qc_history) ? job.qc_history : [];
                 const reworkCount = history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (job.qc_rework_count || job.rework_count || 0);
                 const isJobRework = job.status === 'QC_REWORK' || reworkCount > 0 || (job.rework_count && job.rework_count > 0) || !!job.has_rework || history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
+                const currentRound = history.length + (job.status === 'QC_PASSED' ? 0 : 1) || (isJobRework ? (reworkCount + 1) : 1);
+                const isRound2Plus = currentRound >= 2 || isJobRework;
                 const isPassed = job.status === 'QC_PASSED' || job.qc_status === 'QC_PASSED' || history.some(h => h.result === 'PASSED' || h.action === 'PASSED');
                 const lastPassed = history.find(h => h.result === 'PASSED' || h.action === 'PASSED');
                 const passedScore = (lastPassed && lastPassed.score != null) ? Number(lastPassed.score).toFixed(1) : (job.qc_score != null ? Number(job.qc_score).toFixed(1) : '1.0');
                 const passedRoundNo = lastPassed ? (lastPassed.round || history.length) : (history.length || 1);
 
                 let html = '';
+
 
                 // 1. Current Round Notice Banner
                 if (isPassed) {
