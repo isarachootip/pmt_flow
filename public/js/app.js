@@ -10291,10 +10291,17 @@ const app = {
                 }).catch(() => {});
 
                 this.updateStepBadges();
-                this.addJobActivityLog(id, 1, 'บันทึกรับ Order เข้าสู่ระบบ PMT', isQuick ? 'ข้ามขั้นตอน Design & BOQ ย้ายเข้าสู่ Step 2 (Quick Service)' : 'ส่งเข้าขั้นตอนจัดทำแบบและ BOQ');
-                
+                this.addJobActivityLog(id, 1, 'บันทึกรับ Order เข้าสู่ระบบ PMT', isQuick ? 'Quick Service — ข้ามขั้นตอน Design & BOQ ส่งตรงเข้าสู่ QC Online (Step 5)' : 'ส่งเข้าขั้นตอนจัดทำแบบและ BOQ');
+
                 if (isQuick) {
-                    this.showToast(`⚡ ย้าย Order [${id}] (Quick Service) เข้าสู่ Step 2 (บันทึก Ticket & ใบเสร็จ) เรียบร้อยแล้ว <button onclick="app.navigate('tickets')" class="ml-2 font-bold text-emerald-400 hover:underline cursor-pointer">เปิดดูใน Step 2 →</button>`);
+                    // Quick Service: navigate straight to QC (Step 5) — ไม่ต้องผ่าน Step 2-4
+                    this.showToast(`⚡ บันทึกรับ Order [${id}] (Quick Service) เรียบร้อย! วิ่งตรงไปหน้า QC Online เพื่อปิดงานทันที...`, 'success');
+                    this.updateStepBadges();
+                    this.updateQCBadges();
+                    setTimeout(() => {
+                        this.goToQC(id);
+                    }, 350);
+                    return;
                 } else {
                     this.showToast(`🎉 บันทึกรับ Order [${id}] เข้าสู่ระบบ PMT สำเร็จ! เข้าสู่ขั้นตอนจัดทำข้อเสนอ <button onclick="app.openUnifiedOrderStudio('${id}')" class="ml-2 font-bold text-indigo-400 hover:underline cursor-pointer">เปิด Studio →</button>`);
                 }
@@ -11130,9 +11137,9 @@ const app = {
                 if (!isAccepted) {
                     actionButtons = `
                         ${checkinBadge}
-                        <button class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-xs cursor-pointer ${isQuick ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}" onclick="app.acceptJobToPMT('${job.id}')" title="${isQuick ? 'บันทึกรับ Order นี้เข้าสู่ระบบ PMT' : 'บันทึกรับ Order นี้เข้าสู่ระบบ PMT'}">
-                            <i class="ph ${isQuick ? 'ph-lightning-bold text-amber-300' : 'ph-check-circle'} text-sm"></i>
-                            <span>${isQuick ? 'รับเข้า (ไป Step 2)' : 'รับเข้าระบบ PMT'}</span>
+                        <button class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-xs cursor-pointer ${isQuick ? 'bg-cyan-600 hover:bg-cyan-700 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}" onclick="app.acceptJobToPMT('${job.id}')" title="${isQuick ? 'บันทึกรับ Order Quick นี้ → ส่งตรงเข้าหน้า QC Online (Step 5)' : 'บันทึกรับ Order นี้เข้าสู่ระบบ PMT'}">
+                            <i class="ph ${isQuick ? 'ph-lightning-bold text-yellow-200' : 'ph-check-circle'} text-sm"></i>
+                            <span>${isQuick ? 'รับเข้า → QC Online' : 'รับเข้าระบบ PMT'}</span>
                             <i class="ph ph-arrow-right text-xs ml-0.5"></i>
                         </button>
                     `;
