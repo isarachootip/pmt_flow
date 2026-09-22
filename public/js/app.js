@@ -7629,15 +7629,24 @@ const app = {
                         if (proceedBtn) {
                             proceedBtn.disabled = true;
                             proceedBtn.className = 'flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-bold bg-muted text-muted-foreground cursor-not-allowed border border-border flex items-center justify-center gap-2 opacity-70';
-                            proceedBtn.title = 'ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design';
+                            proceedBtn.title = 'ยังไม่สามารถส่งต่อได้ – ต้องผ่าน Design v2.0 Final ก่อน';
                         }
                         if (proceedBtnText) {
-                            proceedBtnText.innerHTML = '<i class="ph ph-lock-key text-sm font-bold"></i> รอ Design v2.0 Final';
+                            proceedBtnText.innerHTML = '<i class="ph ph-lock-key text-sm font-bold"></i> 🔒 รอ Design v2.0 Final (ยังส่งต่อไม่ได้)';
                         }
                         if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse';
                         if (validationMsg) {
-                            validationMsg.innerHTML = '<span class="text-amber-700 font-bold">⚠️ ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design</span>';
+                            validationMsg.innerHTML = '<span class="text-amber-700 font-bold flex items-center gap-1.5"><i class="ph ph-lock-key"></i> ยังไม่ผ่าน Design v2.0 Final – ปุ่ม "อนุมัติ &amp; ส่งต่อไปเปิด Ticket" จากหน้าจอนี้ยังไม่ได้ • กรุณาอัปเดต Design ใน Step 2 ก่อน</span>';
                         }
+                        // Disable Step 3 BOQ action buttons (gate: ต้องผ่าน v2.0 ก่อน)
+                        const boqImportBtn = document.getElementById('btn-unified-boq-import');
+                        const boqAddBtn = document.getElementById('btn-unified-boq-add');
+                        const boqSaveBtn = document.getElementById('btn-unified-boq-save');
+                        const disabledCls = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted text-muted-foreground cursor-not-allowed border border-border flex items-center gap-1 opacity-60';
+                        const disabledSecCls = 'px-3 py-1.5 rounded-lg text-xs font-bold text-muted-foreground border border-border bg-muted cursor-not-allowed flex items-center gap-1 opacity-60';
+                        if (boqImportBtn) { boqImportBtn.disabled = true; boqImportBtn.className = disabledCls; boqImportBtn.title = 'ต้องผ่าน Design v2.0 Final ก่อนจึงจะนำเข้า BOQ ได้'; }
+                        if (boqAddBtn) { boqAddBtn.disabled = true; boqAddBtn.className = disabledSecCls; boqAddBtn.title = 'ต้องผ่าน Design v2.0 Final ก่อนจึงจะเพิ่มรายการ BOQ ได้'; }
+                        if (boqSaveBtn) { boqSaveBtn.disabled = true; boqSaveBtn.className = disabledCls + ' shadow-xs'; boqSaveBtn.title = 'ต้องผ่าน Design v2.0 Final ก่อน'; }
                     } else if (!hasBOQ) {
                         if (proceedBtn) {
                             proceedBtn.disabled = true;
@@ -7651,6 +7660,13 @@ const app = {
                         if (validationMsg) {
                             validationMsg.innerHTML = '<span class="text-rose-700 font-bold">❌ ยังไม่มีรายการ BOQ (กรุณาเพิ่มรายการ BOQ ก่อนส่งต่อ)</span>';
                         }
+                        // Re-enable Step 3 BOQ buttons (Design v2.0 passed, BOQ section unlocked)
+                        const boqImportBtn = document.getElementById('btn-unified-boq-import');
+                        const boqAddBtn = document.getElementById('btn-unified-boq-add');
+                        const boqSaveBtn = document.getElementById('btn-unified-boq-save');
+                        if (boqImportBtn) { boqImportBtn.disabled = false; boqImportBtn.className = 'btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs flex items-center gap-1'; boqImportBtn.title = ''; }
+                        if (boqAddBtn) { boqAddBtn.disabled = false; boqAddBtn.className = 'btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-bold text-foreground border border-purple-300 bg-purple-50/70 hover:bg-purple-100 cursor-pointer flex items-center gap-1 shadow-2xs'; boqAddBtn.title = ''; }
+                        if (boqSaveBtn) { boqSaveBtn.disabled = false; boqSaveBtn.className = 'btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs flex items-center gap-1 transition'; boqSaveBtn.title = 'บันทึกรายการ BOQ (Step 3)'; }
                     } else {
                         if (proceedBtn) {
                             proceedBtn.disabled = false;
@@ -7664,6 +7680,13 @@ const app = {
                         if (validationMsg) {
                             validationMsg.innerHTML = '<span class="text-emerald-700 font-bold">✓ บันทึก BOQ เรียบร้อย พร้อมส่งต่อ Step 2 (บันทึก Ticket)</span>';
                         }
+                        // Re-enable Step 3 BOQ buttons (all gates passed)
+                        const boqImportBtn2 = document.getElementById('btn-unified-boq-import');
+                        const boqAddBtn2 = document.getElementById('btn-unified-boq-add');
+                        const boqSaveBtn2 = document.getElementById('btn-unified-boq-save');
+                        if (boqImportBtn2) { boqImportBtn2.disabled = false; boqImportBtn2.className = 'btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs flex items-center gap-1'; boqImportBtn2.title = ''; }
+                        if (boqAddBtn2) { boqAddBtn2.disabled = false; boqAddBtn2.className = 'btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-bold text-foreground border border-purple-300 bg-purple-50/70 hover:bg-purple-100 cursor-pointer flex items-center gap-1 shadow-2xs'; boqAddBtn2.title = ''; }
+                        if (boqSaveBtn2) { boqSaveBtn2.disabled = false; boqSaveBtn2.className = 'btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs flex items-center gap-1 transition'; boqSaveBtn2.title = 'บันทึกรายการ BOQ (Step 3)'; }
                     }
                 }
                 this.updateUnifiedStudioTabs();

@@ -8602,15 +8602,15 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <button type="button" onclick="app.openImportBOQModal(app.state.unifiedStudioJobId)" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs flex items-center gap-1">
+                            <button type="button" id="btn-unified-boq-import" onclick="app.openImportBOQModal(app.state.unifiedStudioJobId)" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs flex items-center gap-1">
                                 <i class="ph ph-file-arrow-up text-sm"></i>
                                 <span>📥 นำเข้า Excel / vFIX</span>
                             </button>
-                            <button type="button" onclick="app.addUnifiedBOQItem()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-bold text-foreground border border-purple-300 bg-purple-50/70 hover:bg-purple-100 cursor-pointer flex items-center gap-1 shadow-2xs">
+                            <button type="button" id="btn-unified-boq-add" onclick="app.addUnifiedBOQItem()" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs font-bold text-foreground border border-purple-300 bg-purple-50/70 hover:bg-purple-100 cursor-pointer flex items-center gap-1 shadow-2xs">
                                 <i class="ph ph-plus-circle text-purple-600 text-sm font-bold"></i>
                                 <span class="text-foreground font-bold">+ เพิ่มรายการ</span>
                             </button>
-                            <button type="button" onclick="app.saveUnifiedStep(3)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs flex items-center gap-1 transition" title="บันทึกรายการ BOQ (Step 3)">
+                            <button type="button" id="btn-unified-boq-save" onclick="app.saveUnifiedStep(3)" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs flex items-center gap-1 transition" title="บันทึกรายการ BOQ (Step 3)">
                                 <i class="ph ph-floppy-disk text-sm"></i>
                                 <span>บันทึกรายการ BOQ</span>
                             </button>
