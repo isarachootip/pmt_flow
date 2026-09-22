@@ -13974,8 +13974,8 @@ const app = {
 
                 const calc = this.recalculateJobBOQ(job);
                 job.boq_file = this.generateBOQFileObject(job, job.boq_items, calc.grandTotal);
-                // บันทึกไฟล์ต้นฉบับที่ user upload ไว้ใน boq_original_file
-                if (this.state.pendingBOQOriginalFileMeta && this.state.pendingBOQOriginalFileMeta.dataUrl) {
+                // บันทึก metadata ของไฟล์ต้นฉบับที่ user upload (ถ้ามี)
+                if (this.state.pendingBOQOriginalFileMeta) {
                     job.boq_original_file = JSON.parse(JSON.stringify(this.state.pendingBOQOriginalFileMeta));
                 }
                 if (this.state.modalBOQJobId === targetJobId) {
@@ -14021,12 +14021,28 @@ const app = {
 
                 this.showToast(`✅ นำเข้าเฉพาะรายการ BOQ ${newItems.length} รายการ เรียบร้อย (ไม่ใส่เงินและจำนวน • คงข้อมูลลูกค้า: ${customerDisplayName})`);
 
-                // Only open Convert BOQ to Tasks modal if user is explicitly on Step 2 (Project Conversion) or Gantt view
-                if (this.state.currentView === 'project-conversion' || this.state.currentView === 'gantt') {
-                    setTimeout(() => {
-                        this.openConvertBOQToTasksModal(targetJobId);
-                    }, 300);
+                // Upload ไฟล์ต้นฉบับไปที่ server (fire-and-forget) ถ้ามีไฟล์ที่ user เลือก
+                if (this.state.pendingBOQOriginalFile) {
+                    const fileToUpload = this.state.pendingBOQOriginalFile;
+                    this.uploadBOQFileToServer(targetJobId, fileToUpload).then((fileMeta) => {
+                        if (fileMeta && fileMeta.url) {
+                            const j = DB.jobs.find(jj => jj.id === targetJobId);
+                            if (j) {
+                                j.boq_original_file = fileMeta;
+                                this.persistJobs();
+                            }
+                            this.showToast(`📎 บันทึกไฟล์ BOQ ต้นฉบับ (${fileMeta.name}) สำเร็จ`);
+                        }
+                    }).catch((err) => {
+                        console.warn('[BOQ UPLOAD] Background upload failed:', err);
+                    });
+                    this.state.pendingBOQOriginalFile = null;
                 }
+
+                // เปิด modal Convert BOQ to Tasks เสมอหลังนำเข้า BOQ สำเร็จ
+                setTimeout(() => {
+                    this.openConvertBOQToTasksModal(targetJobId);
+                }, 350);
             },
 
             downloadVFixBOQTemplate() {
