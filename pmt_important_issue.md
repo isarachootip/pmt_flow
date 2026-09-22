@@ -118,3 +118,87 @@ npm run build
 | **ทดสอบเรียก API Jobs จากเซิร์ฟเวอร์ Dev** | `node -e "fetch('https://vibepmt.online/api/v1/jobs').then(r => r.json()).then(console.log)"` |
 | **ตรวจสอบ Header แคชของ app.js** | `node -e "fetch('https://vibepmt.online/public/js/app.js').then(r => console.log('Last-Modified:', r.headers.get('last-modified')))"` |
 | **ตรวจสอบผู้ใช้ใน PostgreSQL** | `node -e "const {Pool}=require('pg'); const p=new Pool({connectionString:'postgresql://postgres:EsQShpeaGvSr21I5ieQGJRmCELp78GSlQn6hQHAIjbTnY4c1aWw56JleGierEk2t@187.77.147.16:5432/spmt_db',ssl:false}); p.query('SELECT id,username,email,password_hash FROM sys_users').then(r=>{console.log(r.rows);p.end();});"` |
+
+---
+
+## 🟣 Issue #4: ปุ่ม QC (ตรวจประเมิน QC) ไม่ตอบสนองเมื่อกด — พบ 3 สาเหตุพร้อมกัน (2026-09-22)
+
+> **อาการ:** ปุ่มสีม่วง "ตรวจประเมิน QC" ในหน้า Step 5 (QC) แสดง tooltip เมื่อ hover ได้ปกติ แต่เมื่อคลิกแล้ว modal ไม่เปิด ไม่มี toast ปรากฏ ไม่มี error แสดง
+
+### สาเหตุที่ 1 (หลัก): `fetchQCJobsFromApi` ใช้ parameter ผิด — ดึง job มาได้ 0 records
+
+**ตำแหน่ง:** [`public/js/app.js`](file:///c:/atgv/pmt_flow/public/js/app.js) — ฟังก์ชัน `fetchQCJobsFromApi()`
+
+**โค้ดผิด (เดิม):**
+```javascript
+const params = new URLSearchParams({ limit: '200', status: 'qc' });
+```
+
+**ปัญหา:** ค่า `status: 'qc'` จะถูกส่งไปยัง `GET /api/v1/jobs?status=qc` และ server จะค้นหา job ที่มี `status = 'qc'` ตัวอักษรตรงๆ ซึ่ง **ไม่มีอยู่จริงในฐานข้อมูล** (job จริงมีสถานะเป็น `QC_PENDING`, `QC_REWORK`, `QC_PASSED` — ไม่ใช่ `qc`)
+
+Server มี path พิเศษสำหรับกรอง QC คือ `step=qc` (ดูที่ [`database.ts`](file:///c:/atgv/pmt_flow/database.ts) `dbLoadJobsPaginated`) ซึ่งจะ filter ด้วย `WHERE status IN ('QC_PENDING','QC_INSPECTING','QC_REWORK','QC_PASSED')` อย่างถูกต้อง
+
+**ผลกระทบ:**
+- `DB.jobs` ไม่มี QC jobs จาก server เลย (นอกจาก mock/localStorage)
+- เมื่อกดปุ่ม → `openQCDetailModal(id)` → `getJob(id)` ไม่พบ → fallback fetch `/api/v1/jobs/{id}` → อาจ 404 → แสดง toast → modal ไม่เปิด
+- ตัวเลข KPI dashboard QC จะเป็น 0 เสมอแม้มีงานจริงในระบบ
+
+**แก้ไขแล้ว (Commit `fb83738`):**
+```javascript
+// ใช้ step=qc เพราะ server จะ filter WHERE status IN ('QC_PENDING','QC_INSPECTING','QC_REWORK','QC_PASSED')
+const params = new URLSearchParams({ limit: '100', step: 'qc' });
+```
+
+---
+
+### สาเหตุที่ 2: `renderQCHistorySection` ขาด variable declaration — ทำให้ error ก่อนถึง `showModal()`
+
+**ตำแหน่ง:** [`public/js/app.js`](file:///c:/atgv/pmt_flow/public/js/app.js) — ฟังก์ชัน `renderQCHistorySection(job)`
+
+**ปัญหา:** ฟังก์ชันนี้ใช้ตัวแปร `currentRound` และ `isRound2Plus` ในส่วน `else if (isRound2Plus)` และ template string `ครั้งที่ ${currentRound}` แต่ **ไม่ได้ประกาศตัวแปรเหล่านี้ภายในฟังก์ชัน** ในขณะที่ `renderQCSubtasks` ซึ่งเป็นคนละฟังก์ชันกัน ประกาศถูกต้อง
+
+**กฎสำคัญ:** ทุก helper render function ที่ถูกเรียกภายใน `openQCDetailModal` (บรรทัด 24249–24251) ต้องไม่มี uncaught error เพราะ `openQCDetailModal` มี single try-catch ที่ครอบทุก render step — หากใน render ใดเกิด error จะถูก catch ก่อนถึง `this.showModal()` ทำให้ modal ไม่เปิด
+
+**แก้ไขแล้ว:** เพิ่ม declaration 2 บรรทัดใน `renderQCHistorySection` หลัง `isJobRework`:
+```javascript
+const currentRound = history.length + (job.status === 'QC_PASSED' ? 0 : 1) || (isJobRework ? (reworkCount + 1) : 1);
+const isRound2Plus = currentRound >= 2 || isJobRework;
+```
+
+---
+
+### สาเหตุที่ 3: ปุ่ม "ตรวจประเมิน QC" ขาด `type="button"`
+
+**ตำแหน่ง:** [`public/js/app.js`](file:///c:/atgv/pmt_flow/public/js/app.js) — ฟังก์ชัน `renderQC()` ส่วน `actionButtonHtml` (else branch / non-passed state)
+
+**ปัญหา:** ปุ่มที่มีสถานะยังไม่ผ่าน (`else` branch) ไม่มี `type="button"` ในขณะที่ปุ่มสถานะผ่าน (`QC_PASSED`) มีถูกต้อง เบราว์เซอร์บางตัว/บาง context จะถือปุ่มนี้เป็น `type="submit"` ซึ่งอาจ trigger form behavior แทน click handler
+
+**แก้ไขแล้ว:** เพิ่ม `type="button"` ให้ครบ
+
+---
+
+### 🔎 วิธีตรวจสอบเร็วเมื่อพบ "ปุ่มกดแล้วไม่ทำงาน" ในอนาคต
+
+```powershell
+# 1. ตรวจสอบว่า fetchQCJobsFromApi ใช้ parameter ถูกต้องไหม
+Select-String -Path "public\js\app.js" -Pattern "fetchQCJobsFromApi" | Select-Object -First 5
+
+# 2. ตรวจสอบว่า render functions ที่ถูกเรียกใน openQCDetailModal มี variable ครบ
+Select-String -Path "public\js\app.js" -Pattern "renderQCHistorySection|renderQCSubtasks|renderQCIntPhotos" | Select-Object -First 5
+
+# 3. ตรวจสอบว่าทุก action button ใน renderQC() มี type="button"
+Select-String -Path "public\js\app.js" -Pattern "openQCDetailModal" | Select-Object -First 10
+```
+
+**กฎทอง QC Modal:** ทุกฟังก์ชันที่ถูกเรียกจาก `openQCDetailModal` ต้องมี try-catch ของตัวเอง หรือออกแบบไม่ให้ throw exception เนื่องจาก `openQCDetailModal` มี single outer try-catch ที่จะดักจับ error ทุกอย่างและ `return` โดยไม่เรียก `showModal()`
+
+---
+
+## 🛑 ข้อผิดพลาดที่พบบ่อยเกี่ยวกับ API Parameter Mismatch
+
+| API Parameter | ✅ ถูกต้อง | ❌ ผิดพลาด | Server Behavior |
+|---|---|---|---|
+| กรอง QC jobs | `step=qc` | `status=qc` | `step=qc` → `WHERE status IN ('QC_PENDING',...)` |
+| กรอง Step 1 | `step=step1` หรือ `status=step1_queue` | `status=new` (อาจไม่ครบ) | ดู `database.ts:dbLoadJobsPaginated` |
+| กรอง Step 6 | `step=step6` | `status=closed` (ไม่ครบ) | `step=step6` → `WHERE status IN ('QC_PASSED','CLOSED')` |
+| limit สูงสุด | `limit=100` | `limit=200` (server cap ที่ 100) | Server บังคับ `Math.min(100, rawLimit)` |
