@@ -2937,6 +2937,7 @@ const app = {
                     'faq': 'คลังความรู้ & คู่มือระบบ (KM Portal & System Guide)',
                     'users': 'จัดการผู้ใช้งาน',
                     'report': 'Report (ภาพรวมผลการดำเนินงาน)',
+                    'master-orders': 'สรุปคำสั่งซื้อทั้งหมดในระบบ (Master All-Orders Tracking)',
                     'project-pricing': 'ราคาโครงการ (งานที่ปิดแล้ว รอใส่ราคา)'
                 };
                 document.getElementById('topbar-breadcrumb').innerText = breadcrumbMap[view] || view;
@@ -2981,7 +2982,13 @@ const app = {
                 this.state.currentView = view;
 
                 // Page specific renders
+                if (view === 'master-orders') {
+                    this.initMasterOrders();
+                }
                 if(view === 'jobs') {
+                    if (!this.state.jobsFilterStatus || this.state.jobsFilterStatus === 'all') {
+                        this.state.jobsFilterStatus = 'step1_queue';
+                    }
                     this.renderJobs();
                     this.fetchJobsFromApi();
                     // Init appointment date filter pickers
@@ -4507,12 +4514,12 @@ const app = {
                 }
             },
 
-            filterJobsByStatusTab(status = 'all') {
+            filterJobsByStatusTab(status = 'step1_queue') {
                 this.state.jobsFilterStatus = status;
                 this.state.jobsPage = 1;
 
                 // Update Status Tabs Styling
-                const statusList = ['all', 'new', 'assigned', 'surveyed'];
+                const statusList = ['step1_queue', 'new', 'assigned', 'surveyed', 'transferred', 'all'];
                 statusList.forEach(st => {
                     const btn = document.getElementById(`tab-jobs-status-${st}`);
                     if (!btn) return;
@@ -4565,12 +4572,12 @@ const app = {
                 if (clearBtn) clearBtn.classList.add('hidden');
                 this.state.jobsSearch = '';
 
-                // 2. Reset Status tabs to 'all'
-                this.state.jobsFilterStatus = 'all';
-                ['all', 'new', 'assigned', 'surveyed'].forEach(st => {
+                // 2. Reset Status tabs to 'step1_queue'
+                this.state.jobsFilterStatus = 'step1_queue';
+                ['step1_queue', 'new', 'assigned', 'surveyed', 'transferred', 'all'].forEach(st => {
                     const btn = document.getElementById(`tab-jobs-status-${st}`);
                     if (!btn) return;
-                    if (st === 'all') {
+                    if (st === 'step1_queue') {
                         btn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer bg-brand-500 text-white shadow-xs';
                     } else {
                         btn.className = 'px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground';
@@ -4791,6 +4798,283 @@ const app = {
                     this.navigate('jobs');
                     setTimeout(() => this.renderJobs(filtered), 50);
                 }
+            },
+
+            // ─── MASTER ALL-ORDERS TRACKING ENGINE ─────────────────────────
+            getJobCurrentStep(j) {
+                if (!j) return { stepNum: 1, stepName: 'Step 1: รับ Order', colorClass: 'bg-amber-500/15 text-amber-800 border-amber-500/30' };
+                const st = (j.status || '').toUpperCase();
+
+                // Step 7: MA / After Sale
+                if (st === 'AFTER_SALE' || (j.job_type || '').toLowerCase() === 'ma') {
+                    return { stepNum: 7, stepName: 'Step 7: หลังการขาย & MA', colorClass: 'bg-purple-500/15 text-purple-800 border-purple-500/30' };
+                }
+                // Step 6: Completed / STK Exported
+                if (st === 'CLOSED' || st === 'QC_PASSED' || j.stk_exported_at || (j.step_timestamps && j.step_timestamps.step6_stk_at)) {
+                    return { stepNum: 6, stepName: 'Step 6: ส่งต่อ STK (ปิดงาน)', colorClass: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30' };
+                }
+                // Step 5: QC Inspection
+                if (st === 'QC_PENDING' || st === 'QC_INSPECTING' || st === 'QC_REWORK' || (j.qc_bookings && j.qc_bookings.length > 0)) {
+                    return { stepNum: 5, stepName: 'Step 5: ตรวจคุณภาพ (QC)', colorClass: 'bg-teal-500/15 text-teal-800 border-teal-500/30' };
+                }
+                // Step 4: Gantt / Installation
+                if (st === 'IN_PROGRESS' || (j.tasks && j.tasks.length > 0) || (j.step_timestamps && j.step_timestamps.step4_gantt_at)) {
+                    return { stepNum: 4, stepName: 'Step 4: แผนงาน Gantt (ติดตั้ง)', colorClass: 'bg-blue-500/15 text-blue-800 border-blue-500/30' };
+                }
+                // Step 2-3: Ticket & Convert
+                if (j.pmt_accepted || st === 'CONVERTED' || (j.ticket_no && String(j.ticket_no).trim()) || (j.step_timestamps && (j.step_timestamps.step2_ticket_at || j.step_timestamps.step3_conversion_at))) {
+                    return { stepNum: 2, stepName: 'Step 2: Ticket & Convert', colorClass: 'bg-indigo-500/15 text-indigo-800 border-indigo-500/30' };
+                }
+                // Step 1: Intake / Survey
+                return { stepNum: 1, stepName: 'Step 1: รับ Order (คิวใหม่)', colorClass: 'bg-amber-500/15 text-amber-800 border-amber-500/30' };
+            },
+
+            async initMasterOrders() {
+                this.state.masterOrdersPage = this.state.masterOrdersPage || 1;
+                this.state.masterOrdersLimit = 50;
+                await this.fetchMasterOrdersFromApi();
+            },
+
+            _masterOrdersDebounce: null,
+            filterMasterOrders() {
+                if (this._masterOrdersDebounce) clearTimeout(this._masterOrdersDebounce);
+                this._masterOrdersDebounce = setTimeout(async () => {
+                    const searchInput = document.getElementById('master-orders-search');
+                    this.state.masterOrdersSearch = (searchInput && searchInput.value) ? searchInput.value.trim() : '';
+
+                    const clearBtn = document.getElementById('btn-clear-master-search');
+                    if (clearBtn) {
+                        if (this.state.masterOrdersSearch) clearBtn.classList.remove('hidden');
+                        else clearBtn.classList.add('hidden');
+                    }
+
+                    const stepSel = document.getElementById('filter-master-step');
+                    this.state.masterOrdersFilterStep = stepSel ? stepSel.value : 'all';
+
+                    const serviceSel = document.getElementById('filter-master-service');
+                    this.state.masterOrdersFilterService = serviceSel ? serviceSel.value : 'all';
+
+                    this.state.masterOrdersPage = 1;
+                    await this.fetchMasterOrdersFromApi(1);
+                }, 200);
+            },
+
+            clearMasterOrdersSearch() {
+                const searchInput = document.getElementById('master-orders-search');
+                if (searchInput) searchInput.value = '';
+                const clearBtn = document.getElementById('btn-clear-master-search');
+                if (clearBtn) clearBtn.classList.add('hidden');
+                this.state.masterOrdersSearch = '';
+                this.filterMasterOrders();
+            },
+
+            clearAllMasterOrdersFilters() {
+                const searchInput = document.getElementById('master-orders-search');
+                if (searchInput) searchInput.value = '';
+                const clearBtn = document.getElementById('btn-clear-master-search');
+                if (clearBtn) clearBtn.classList.add('hidden');
+
+                const stepSel = document.getElementById('filter-master-step');
+                if (stepSel) stepSel.value = 'all';
+
+                const serviceSel = document.getElementById('filter-master-service');
+                if (serviceSel) serviceSel.value = 'all';
+
+                this.state.masterOrdersSearch = '';
+                this.state.masterOrdersFilterStep = 'all';
+                this.state.masterOrdersFilterService = 'all';
+                this.state.masterOrdersPage = 1;
+                this.fetchMasterOrdersFromApi(1);
+            },
+
+            async fetchMasterOrdersFromApi(page = null) {
+                try {
+                    const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                    if (!token) return;
+
+                    const targetPage = page !== null ? page : (this.state.masterOrdersPage || 1);
+                    const limit = this.state.masterOrdersLimit || 50;
+
+                    const params = new URLSearchParams();
+                    params.append('page', String(targetPage));
+                    params.append('limit', String(limit));
+
+                    const step = this.state.masterOrdersFilterStep || 'all';
+                    if (step && step !== 'all') params.append('step', step);
+
+                    const service = this.state.masterOrdersFilterService || 'all';
+                    if (service && service !== 'all') params.append('service', service);
+
+                    const query = this.state.masterOrdersSearch || '';
+                    if (query) params.append('search', query);
+
+                    const res = await fetch(`/api/v1/jobs?${params.toString()}`, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json.success && Array.isArray(json.data)) {
+                            this.state.masterOrdersLimit = json.limit || limit;
+                            this.state.masterOrdersTotal = json.total !== undefined ? json.total : json.data.length;
+                            this.state.masterOrdersTotalPages = json.total_pages || Math.max(1, Math.ceil(this.state.masterOrdersTotal / limit));
+                            this.state.masterOrdersPage = Math.min(Math.max(1, json.page || targetPage), this.state.masterOrdersTotalPages);
+
+                            this.renderMasterOrders(json.data);
+                            this.renderMasterOrdersPagination();
+
+                            // Update Master Stats Cards
+                            const metrics = json.metrics || this.state.metrics || {};
+                            const elTotal = document.getElementById('master-stat-total');
+                            if (elTotal) elTotal.innerText = (metrics.total !== undefined) ? metrics.total : this.state.masterOrdersTotal;
+                            const elStep1 = document.getElementById('master-stat-step1');
+                            if (elStep1) elStep1.innerText = metrics.step1 || 0;
+                            const elProgress = document.getElementById('master-stat-progress');
+                            if (elProgress) elProgress.innerText = metrics.in_progress || 0;
+                            const elCompleted = document.getElementById('master-stat-completed');
+                            if (elCompleted) elCompleted.innerText = (Number(metrics.qc_pending || 0) + Number(metrics.completed || 0));
+
+                            const badgeCount = document.getElementById('master-orders-count-badge');
+                            if (badgeCount) badgeCount.innerText = `พบ ${this.state.masterOrdersTotal} รายการ`;
+
+                            const sidebarMaster = document.getElementById('sidebar-master-orders-count');
+                            if (sidebarMaster) sidebarMaster.innerText = (metrics.total !== undefined) ? metrics.total : this.state.masterOrdersTotal;
+                        }
+                    }
+                } catch (err) {
+                    console.error('[MASTER ORDERS] Error fetching master orders:', err);
+                }
+            },
+
+            renderMasterOrders(list) {
+                const tbody = document.getElementById('master-orders-table-body');
+                if (!tbody) return;
+
+                if (!list || list.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="9" class="text-center py-12 text-muted-foreground">
+                                <div class="flex flex-col items-center justify-center gap-2">
+                                    <i class="ph ph-folder-open text-3xl text-muted-foreground/60"></i>
+                                    <span class="text-sm font-semibold">ไม่พบคำสั่งซื้อที่ตรงกับเงื่อนไขการค้นหา</span>
+                                    <button type="button" onclick="app.clearAllMasterOrdersFilters()" class="text-xs text-brand-600 hover:underline cursor-pointer">ล้างตัวกรองทั้งหมด</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                const html = list.map(j => {
+                    const rawId = String(j.id || '');
+                    const shortId = rawId.replace(/^(VFIX|JOB)-?/i, '');
+                    const displayId = shortId || rawId;
+                    const safeId = rawId.replace(/'/g, "\\'");
+                    const stepInfo = this.getJobCurrentStep(j);
+
+                    return `
+                    <tr class="hover:bg-muted/40 transition-colors cursor-pointer group" onclick="app.openJobDetailModal('${safeId}')" title="คลิกเพื่อดูรายละเอียดงาน ${displayId}">
+                        <td class="px-3 py-2.5 font-mono whitespace-nowrap" onclick="event.stopPropagation()">
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-mono font-black text-sm text-foreground select-text cursor-text">${displayId}</span>
+                                <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${safeId}')" class="text-muted-foreground hover:text-brand-600 p-0.5 cursor-pointer" title="ดูข้อมูลงาน ${displayId}">
+                                    <i class="ph ph-arrow-square-out text-xs"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="px-2 py-2.5 font-mono whitespace-nowrap" onclick="event.stopPropagation()">
+                            ${j.external_ref_id ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-xs font-mono font-bold select-text">${j.external_ref_id}</span>` : '<span class="text-muted-foreground text-xs">-</span>'}
+                        </td>
+                        <td class="px-2 py-2.5 font-mono whitespace-nowrap" onclick="event.stopPropagation()">
+                            <div class="flex flex-col gap-0.5">
+                                ${j.booking_no ? `<span class="text-xs font-mono font-bold text-foreground select-text">${j.booking_no}</span>` : ''}
+                                ${j.ticket_no ? `<span class="text-[11px] font-mono text-muted-foreground select-text">T: ${j.ticket_no}</span>` : ''}
+                                ${!j.booking_no && !j.ticket_no ? '<span class="text-muted-foreground text-xs">-</span>' : ''}
+                            </div>
+                        </td>
+                        <td class="px-2 py-2.5 whitespace-nowrap" onclick="event.stopPropagation()">
+                            ${(j.plan_date || j.date) ? `
+                                <div class="inline-flex items-center gap-1 font-mono text-xs text-foreground font-bold">
+                                    <i class="ph ph-calendar-check text-indigo-600 text-xs shrink-0"></i>
+                                    <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
+                                </div>
+                            ` : '<span class="text-muted-foreground text-xs">-</span>'}
+                        </td>
+                        <td class="px-2.5 py-2.5 min-w-[130px] max-w-[170px]" onclick="event.stopPropagation()">
+                            <div class="text-foreground font-bold text-xs truncate select-text" title="${j.customer || j.customer_name || ''}">
+                                ${j.customer || j.customer_name || '-'}
+                            </div>
+                            <div class="text-[11px] text-muted-foreground font-mono select-text">
+                                ${j.phone || j.customer_phone || ''}
+                            </div>
+                        </td>
+                        <td class="px-2 py-2.5 min-w-[140px]" onclick="event.stopPropagation()">
+                            <div class="flex items-center gap-1.5">
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase font-mono ${this.isQuickJob(j) ? 'bg-amber-500/15 text-amber-800 border border-amber-400/40' : 'bg-indigo-500/15 text-indigo-800 border border-indigo-400/40'}">
+                                    ${this.isQuickJob(j) ? 'Quick' : 'Renovate'}
+                                </span>
+                                <span class="text-xs text-foreground truncate max-w-[140px]" title="${j.service || ''}">${j.service || '-'}</span>
+                            </div>
+                        </td>
+                        <td class="px-2.5 py-2.5 whitespace-nowrap text-center" onclick="event.stopPropagation()">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border shadow-2xs ${stepInfo.colorClass}">
+                                ${stepInfo.stepName}
+                            </span>
+                        </td>
+                        <td class="px-2 py-2.5 whitespace-nowrap" onclick="event.stopPropagation()">
+                            <div class="text-xs font-mono text-foreground">${this.formatDateDMY(j.created_at || j.date)}</div>
+                            <div class="text-[11px] font-mono text-muted-foreground">${this.formatTime24(j.created_at || j.date)}</div>
+                        </td>
+                        <td class="px-3 py-2.5 text-right whitespace-nowrap" onclick="event.stopPropagation()">
+                            <button type="button" onclick="app.openJobDetailModal('${safeId}')" class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-xs font-semibold inline-flex items-center gap-1 cursor-pointer">
+                                <i class="ph ph-eye text-xs"></i>
+                                <span>ดูงาน</span>
+                            </button>
+                        </td>
+                    </tr>
+                    `;
+                }).join('');
+
+                tbody.innerHTML = html;
+            },
+
+            renderMasterOrdersPagination() {
+                const container = document.getElementById('master-orders-pagination-container');
+                if (!container) return;
+
+                const page = this.state.masterOrdersPage || 1;
+                const totalPages = this.state.masterOrdersTotalPages || 1;
+                const total = this.state.masterOrdersTotal || 0;
+                const limit = this.state.masterOrdersLimit || 50;
+
+                const start = total > 0 ? (page - 1) * limit + 1 : 0;
+                const end = Math.min(page * limit, total);
+
+                container.innerHTML = `
+                    <div class="text-xs text-muted-foreground font-mono">
+                        แสดง <span class="font-bold text-foreground">${start.toLocaleString()}</span> - <span class="font-bold text-foreground">${end.toLocaleString()}</span> จากทั้งหมด <span class="font-bold text-foreground">${total.toLocaleString()}</span> รายการ
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" onclick="app.fetchMasterOrdersFromApi(1)" ${page <= 1 ? 'disabled class="opacity-40 cursor-not-allowed"' : 'class="cursor-pointer hover:bg-muted"'} class="px-2.5 py-1 rounded-lg border border-border text-xs font-medium">
+                            « แรกสุด
+                        </button>
+                        <button type="button" onclick="app.fetchMasterOrdersFromApi(${page - 1})" ${page <= 1 ? 'disabled class="opacity-40 cursor-not-allowed"' : 'class="cursor-pointer hover:bg-muted"'} class="px-2.5 py-1 rounded-lg border border-border text-xs font-medium">
+                            ‹ ก่อนหน้า
+                        </button>
+                        <span class="px-3 py-1 rounded-lg bg-brand-500/10 text-brand-700 font-mono text-xs font-bold border border-brand-500/20">
+                            หน้า ${page} / ${totalPages}
+                        </span>
+                        <button type="button" onclick="app.fetchMasterOrdersFromApi(${page + 1})" ${page >= totalPages ? 'disabled class="opacity-40 cursor-not-allowed"' : 'class="cursor-pointer hover:bg-muted"'} class="px-2.5 py-1 rounded-lg border border-border text-xs font-medium">
+                            ถัดไป ›
+                        </button>
+                        <button type="button" onclick="app.fetchMasterOrdersFromApi(${totalPages})" ${page >= totalPages ? 'disabled class="opacity-40 cursor-not-allowed"' : 'class="cursor-pointer hover:bg-muted"'} class="px-2.5 py-1 rounded-lg border border-border text-xs font-medium">
+                            ท้ายสุด »
+                        </button>
+                    </div>
+                `;
             },
 
             renderJobs(jobList = null) {
@@ -7315,6 +7599,13 @@ const app = {
                     sidebarCsat.innerText = completedCount;
                 }
 
+                // Master All-Orders Count
+                const sidebarMaster = document.getElementById('sidebar-master-orders-count');
+                if (sidebarMaster) {
+                    const totalOrders = (metrics && typeof metrics.total === 'number') ? metrics.total : (this.state.masterOrdersTotal || allJobs.length);
+                    sidebarMaster.innerText = totalOrders;
+                }
+
                 // Central Blueprints Repository Count
                 const sidebarBp = document.getElementById('sidebar-blueprint-count');
                 if (sidebarBp) sidebarBp.innerText = (DB.blueprints || []).length;
@@ -7968,9 +8259,7 @@ const app = {
                     if (type === 'ALL') {
                         if (svcSel) svcSel.value = 'all';
                         this.state.jobsFilterService = 'all';
-                        this.state.jobsFilterStatus = 'all';
-                        this.state.jobsPage = 1;
-                        this.fetchJobsFromApi(1);
+                        this.filterJobsByStatusTab('all');
                         this.showToast('📊 แสดงคำสั่งซื้อทั้งหมดในระบบ');
                     } else if (type === 'TODAY') {
                         if (svcSel) svcSel.value = 'all';
@@ -7996,9 +8285,7 @@ const app = {
                     } else if (type === 'STEP1_QUEUE' || type === 'REMAINING') {
                         if (svcSel) svcSel.value = 'all';
                         this.state.jobsFilterService = 'all';
-                        this.state.jobsFilterStatus = 'DRAFT';
-                        this.state.jobsPage = 1;
-                        this.fetchJobsFromApi(1);
+                        this.filterJobsByStatusTab('step1_queue');
                         this.showToast('📥 แสดงเฉพาะคิวงานที่ยังคงเหลือใน Step 1 (รอส่งต่อ)');
                     } else if (type === 'OVERDUE') {
                         this.state.jobsPage = 1;
@@ -8016,34 +8303,29 @@ const app = {
                     } else if (type === 'quick') {
                         if (svcSel) svcSel.value = 'quick';
                         this.state.jobsFilterService = 'quick';
-                        this.state.jobsFilterStatus = 'all';
+                        this.state.jobsFilterStatus = 'step1_queue';
                         this.state.jobsPage = 1;
                         this.fetchJobsFromApi(1);
-                        this.showToast('⚡ กรองเฉพาะงาน Quick Services');
+                        this.showToast('⚡ กรองเฉพาะงาน Quick Services ใน Step 1');
                     } else if (type === 'renovate') {
                         if (svcSel) svcSel.value = 'renovate';
                         this.state.jobsFilterService = 'renovate';
-                        this.state.jobsFilterStatus = 'all';
+                        this.state.jobsFilterStatus = 'step1_queue';
                         this.state.jobsPage = 1;
                         this.fetchJobsFromApi(1);
-                        this.showToast('🔨 กรองเฉพาะงาน Renovate');
+                        this.showToast('🔨 กรองเฉพาะงาน Renovate ใน Step 1');
                     } else if (type === 'ma') {
                         if (svcSel) svcSel.value = 'ma';
                         this.state.jobsFilterService = 'ma';
-                        this.state.jobsFilterStatus = 'all';
+                        this.state.jobsFilterStatus = 'step1_queue';
                         this.state.jobsPage = 1;
                         this.fetchJobsFromApi(1);
-                        this.showToast('🔧 กรองเฉพาะงาน MA & Maintenance');
+                        this.showToast('🔧 กรองเฉพาะงาน MA & Maintenance ใน Step 1');
                     } else if (type === 'transferred') {
-                        this.state.jobsPage = 1;
-                        const list = allJobs.filter(j => 
-                            designedJobIds.has(j.id) || 
-                            (j.step_timestamps && (j.step_timestamps.step2_design_at || j.step_timestamps.step4_ticket_at)) ||
-                            (DB.tickets || []).some(t => (t.job_id || t.jobId) === j.id) ||
-                            (j.status !== 'DRAFT' && j.status !== 'NEW' && j.status !== 'Draft' && j.status !== 'New')
-                        );
-                        this.renderJobs(list);
-                        this.showToast(`🚀 แสดงงานที่ส่งต่อไป Step 2+ / Step 4 แล้ว (${list.length} รายการ)`);
+                        if (svcSel) svcSel.value = 'all';
+                        this.state.jobsFilterService = 'all';
+                        this.filterJobsByStatusTab('transferred');
+                        this.showToast('🚀 แสดงงานที่ส่งต่อไป Step 2+ / QC แล้ว');
                     }
                 } else if (stepNumber === 2 && this.state && this.state.currentPage === 'blueprints') {
                     const svcSel = document.getElementById('filter-blueprints-service');

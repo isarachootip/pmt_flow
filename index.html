@@ -291,6 +291,15 @@
                             </div>
                             <span class="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-500 font-mono font-bold">Live</span>
                         </a>
+                        <a href="#" onclick="app.navigate('master-orders')" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer" id="nav-master-orders" title="ค้นหาและติดตามสถานะคำสั่งซื้อทั้งหมดในระบบ">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-6 h-6 rounded-lg bg-indigo-500/15 text-indigo-600 flex items-center justify-center text-sm">
+                                    <i class="ph ph-list-dashes text-base"></i>
+                                </div>
+                                <span class="font-display font-bold text-xs truncate">สรุปคำสั่งซื้อทั้งหมด</span>
+                            </div>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 font-mono font-bold" id="sidebar-master-orders-count">0</span>
+                        </a>
                     </nav>
                 </div>
 
@@ -754,6 +763,175 @@
                     </div>
                 </div>
 
+                <!-- 1.5 MASTER ALL-ORDERS TRACKING VIEW -->
+                <div id="page-master-orders" class="page-view hidden-view space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-600 flex items-center justify-center text-xl shrink-0 border border-indigo-500/30">
+                                    <i class="ph ph-list-dashes"></i>
+                                </div>
+                                <div>
+                                    <h2 class="font-display text-2xl font-bold text-foreground tracking-tight">สรุปคำสั่งซื้อทั้งหมดในระบบ</h2>
+                                    <p class="text-xs text-muted-foreground mt-0.5">ศูนย์รวมค้นหาและติดตามสถานะคำสั่งซื้อทั้งหมดในระบบ ตั้งแต่รับ Order จนถึงปิดงาน STK (Master Tracking)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-700 border border-indigo-500/20 font-mono">
+                                <span class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+                                Master Live Tracker
+                            </span>
+                            <button onclick="app.showModal('modal-create-job')" class="btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 font-medium shadow-xs cursor-pointer" title="สร้างงานใหม่ (Manual Order)">
+                                <i class="ph ph-plus-bold"></i>
+                                <span>+ Manual Order</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 4 Summary KPI Cards -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+                        <div class="p-4 rounded-xl bg-card border border-border flex items-center gap-3 shadow-2xs">
+                            <div class="w-11 h-11 rounded-xl bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 flex items-center justify-center text-2xl shrink-0">
+                                <i class="ph ph-files"></i>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">คำสั่งซื้อทั้งหมด</p>
+                                <div class="flex items-baseline gap-1 mt-0.5">
+                                    <span id="master-stat-total" class="text-2xl font-extrabold font-display text-foreground">0</span>
+                                    <span class="text-[11px] text-muted-foreground">รายการ</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-card border border-border flex items-center gap-3 shadow-2xs">
+                            <div class="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0">
+                                <i class="ph ph-tray-arrow-down"></i>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Step 1: รอรับเรื่อง/ทำแบบ</p>
+                                <div class="flex items-baseline gap-1 mt-0.5">
+                                    <span id="master-stat-step1" class="text-2xl font-extrabold font-display text-amber-600">0</span>
+                                    <span class="text-[11px] text-muted-foreground">รายการ</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-card border border-border flex items-center gap-3 shadow-2xs">
+                            <div class="w-11 h-11 rounded-xl bg-blue-500/10 text-blue-600 border border-blue-500/20 flex items-center justify-center text-2xl shrink-0">
+                                <i class="ph ph-wrench"></i>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Step 2-4: กำลังดำเนินงาน</p>
+                                <div class="flex items-baseline gap-1 mt-0.5">
+                                    <span id="master-stat-progress" class="text-2xl font-extrabold font-display text-blue-600">0</span>
+                                    <span class="text-[11px] text-muted-foreground">รายการ</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-card border border-border flex items-center gap-3 shadow-2xs">
+                            <div class="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0">
+                                <i class="ph ph-check-circle"></i>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Step 5-6: QC & ปิดงาน</p>
+                                <div class="flex items-baseline gap-1 mt-0.5">
+                                    <span id="master-stat-completed" class="text-2xl font-extrabold font-display text-emerald-600">0</span>
+                                    <span class="text-[11px] text-muted-foreground">รายการ</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Master Orders Table Card -->
+                    <div class="artifact-card overflow-hidden shadow-sm">
+                        <!-- Command Bar: Search & Filters -->
+                        <div class="p-3.5 bg-muted/30 border-b border-border/70 space-y-3 text-xs">
+                            <div class="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
+                                <div class="relative flex-1 max-w-2xl">
+                                    <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none"></i>
+                                    <input type="text" 
+                                           id="master-orders-search" 
+                                           oninput="app.filterMasterOrders()" 
+                                           placeholder="🔍 ค้นหาคำสั่งซื้อตาม Job ID, Ref ID, Booking, Ticket, ชื่อลูกค้า, เบอร์โทร..." 
+                                           class="w-full bg-card border border-border rounded-xl pl-10 pr-9 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 shadow-2xs transition">
+                                    <button type="button" 
+                                            id="btn-clear-master-search" 
+                                            onclick="app.clearMasterOrdersSearch()" 
+                                            class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground hidden text-sm cursor-pointer" 
+                                            title="ล้างคำค้นหา">
+                                        <i class="ph ph-x-circle"></i>
+                                    </button>
+                                </div>
+
+                                <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                                    <span id="master-orders-count-badge" class="px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-indigo-500/10 text-indigo-700 border border-indigo-500/20">
+                                        พบ 0 รายการ
+                                    </span>
+                                    <button type="button" onclick="app.clearAllMasterOrdersFilters()" class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground border border-border" title="ล้างตัวกรองทั้งหมด">
+                                        <i class="ph ph-arrow-counter-clockwise text-xs"></i>
+                                        <span>รีเซ็ต</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Filter Row: Step Filter & Service Segment -->
+                            <div class="flex flex-wrap items-center gap-3 pt-1 border-t border-border/50">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-bold text-muted-foreground uppercase">ขั้นตอน:</span>
+                                    <select id="filter-master-step" onchange="app.filterMasterOrders()" class="bg-card border border-border rounded-xl px-2.5 py-1 text-xs text-foreground font-normal cursor-pointer focus:outline-none focus:border-brand-500 shadow-2xs">
+                                        <option value="all">ทุกขั้นตอน (All Steps)</option>
+                                        <option value="step1">Step 1: รับ Order & แบบ/BOQ</option>
+                                        <option value="step2">Step 2: บันทึก Ticket & แปลง Project</option>
+                                        <option value="step4">Step 4: แผนงาน Gantt & ติดตั้ง</option>
+                                        <option value="step5">Step 5: ตรวจรับรองคุณภาพ (QC)</option>
+                                        <option value="step6">Step 6: ส่งต่อ STK (ปิดงาน)</option>
+                                        <option value="step7">Step 7: บริการหลังการขาย & MA</option>
+                                    </select>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-bold text-muted-foreground uppercase">กลุ่มบริการ:</span>
+                                    <select id="filter-master-service" onchange="app.filterMasterOrders()" class="bg-card border border-border rounded-xl px-2.5 py-1 text-xs text-foreground font-normal cursor-pointer focus:outline-none focus:border-brand-500 shadow-2xs">
+                                        <option value="all">ทุกกลุ่มบริการ</option>
+                                        <option value="quick">Quick Services (ติดตั้งด่วน)</option>
+                                        <option value="renovate">Renovate (ปรับปรุงต่อเติม)</option>
+                                        <option value="ma">MA & Maintenance</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Table -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-muted/60 border-b border-border text-foreground font-bold text-sm">
+                                    <tr>
+                                        <th class="px-3 py-2.5 whitespace-nowrap">เลขที่งาน</th>
+                                        <th class="px-2 py-2.5 whitespace-nowrap">เลขที่อ้างอิง (Ref ID)</th>
+                                        <th class="px-2 py-2.5 whitespace-nowrap">Booking / Ticket</th>
+                                        <th class="px-2 py-2.5 whitespace-nowrap">กำหนดวันนัด</th>
+                                        <th class="px-2.5 py-2.5 min-w-[130px] max-w-[170px]">ลูกค้า &amp; เบอร์ติดต่อ</th>
+                                        <th class="px-2 py-2.5 min-w-[140px]">ประเภทบริการ</th>
+                                        <th class="px-2.5 py-2.5 text-center whitespace-nowrap">ขั้นตอนปัจจุบัน</th>
+                                        <th class="px-2 py-2.5 whitespace-nowrap">วันที่รับ Order</th>
+                                        <th class="px-3 py-2.5 text-right whitespace-nowrap">การจัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border" id="master-orders-table-body">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination Controls -->
+                        <div id="master-orders-pagination-container" class="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-muted/20 border-t border-border/60">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 2. JOBS LIST VIEW (STEP 1) -->
                 <div id="page-jobs" class="page-view hidden-view space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1034,24 +1212,32 @@
 
                             <!-- Row 2: Status Tabs, Service Segments, and Date Range -->
                             <div class="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-border/50">
-                                <!-- Status Tabs: All, New, Assigned, Surveyed -->
+                                <!-- Status Tabs: Step 1 Queue, New, Assigned, Surveyed, Transferred, All -->
                                 <div class="flex items-center gap-1.5 flex-wrap">
                                     <span class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mr-1">สถานะ:</span>
                                     <div class="inline-flex p-1 bg-card border border-border rounded-xl shadow-2xs gap-1">
-                                        <button type="button" id="tab-jobs-status-all" onclick="app.filterJobsByStatusTab('all')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer bg-brand-500 text-white shadow-xs">
-                                            <span>ทั้งหมด</span>
+                                        <button type="button" id="tab-jobs-status-step1_queue" onclick="app.filterJobsByStatusTab('step1_queue')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer bg-brand-500 text-white shadow-xs" title="คิวงานที่ยังค้างอยู่ใน Step 1 รอรับเรื่อง/ทำแบบ">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                            <span>คิวรอรับ Order (Step 1)</span>
                                         </button>
-                                        <button type="button" id="tab-jobs-status-new" onclick="app.filterJobsByStatusTab('new')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground">
+                                        <button type="button" id="tab-jobs-status-new" onclick="app.filterJobsByStatusTab('new')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground" title="งานใหม่ที่ยังไม่ระบุช่าง">
                                             <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                                             <span>งานใหม่ (New)</span>
                                         </button>
-                                        <button type="button" id="tab-jobs-status-assigned" onclick="app.filterJobsByStatusTab('assigned')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground">
+                                        <button type="button" id="tab-jobs-status-assigned" onclick="app.filterJobsByStatusTab('assigned')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground" title="งานที่มอบหมายช่างแล้ว">
                                             <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                                             <span>มอบหมายแล้ว (Assigned)</span>
                                         </button>
-                                        <button type="button" id="tab-jobs-status-surveyed" onclick="app.filterJobsByStatusTab('surveyed')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground">
+                                        <button type="button" id="tab-jobs-status-surveyed" onclick="app.filterJobsByStatusTab('surveyed')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground" title="งานที่สำรวจหน้างานแล้ว">
                                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                             <span>สำรวจแล้ว (Surveyed)</span>
+                                        </button>
+                                        <button type="button" id="tab-jobs-status-transferred" onclick="app.filterJobsByStatusTab('transferred')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground" title="งานที่อนุมัติส่งต่อไปยัง Step 2+ หรือ QC แล้ว">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                                            <span>ส่งต่อไปแล้ว (Transferred)</span>
+                                        </button>
+                                        <button type="button" id="tab-jobs-status-all" onclick="app.filterJobsByStatusTab('all')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground" title="แสดงคำสั่งซื้อทั้งหมด">
+                                            <span>ทั้งหมด</span>
                                         </button>
                                     </div>
                                 </div>
@@ -5799,10 +5985,12 @@
                                             <span class="block pl-3 text-muted-foreground">• มีปุ่มล้างคำค้น <code class="bg-muted px-1 rounded">[X]</code> ปรากฏอัตโนมัติเมื่อมีการพิมพ์คำค้นหา เพื่อให้ล้างคำค้นได้ใน 1 คลิก</span>
                                         </li>
                                         <li><strong>2. แท็บสถานะงานด่วน (Status Tabs):</strong> สลับกรองงานตามขั้นตอนใน Step 1 ได้ในคลิกเดียว:
-                                            <span class="block mt-0.5 pl-3">• <strong class="text-brand-600">ทั้งหมด (All):</strong> แสดงคำสั่งซื้อทั้งหมด</span>
+                                            <span class="block mt-0.5 pl-3">• <strong class="text-brand-600">📥 คิวงาน Step 1 (ค่าเริ่มต้น):</strong> กรองเฉพาะคำสั่งซื้อที่ค้างรอดำเนินการใน Step 1 (ไม่รวมงานที่ส่งต่อไปแล้ว)</span>
                                             <span class="block pl-3">• <strong class="text-blue-600">🆕 งานใหม่ (New):</strong> กรองเฉพาะงานที่ยังไม่มีการมอบหมายช่าง</span>
                                             <span class="block pl-3">• <strong class="text-amber-600">👷 มอบหมายแล้ว (Assigned):</strong> กรองเฉพาะงานที่ระบุช่างผู้รับผิดชอบแล้ว</span>
                                             <span class="block pl-3">• <strong class="text-emerald-600">📐 สำรวจแล้ว (Surveyed):</strong> กรองเฉพาะงานที่ผ่านการสำรวจหน้างานและมีภาพถ่ายหรือผลสำรวจแล้ว</span>
+                                            <span class="block pl-3">• <strong class="text-purple-600">↗️ ส่งต่อไปแล้ว (Transferred):</strong> คำสั่งซื้อที่ส่งต่อไปเปิด Ticket หรือส่งไป QC แล้ว</span>
+                                            <span class="block pl-3">• <strong class="text-zinc-600">📋 ทั้งหมด (All):</strong> แสดงคำสั่งซื้อทั้งหมดในฐานข้อมูล</span>
                                         </li>
                                         <li><strong>3. แท็บสลับกลุ่มบริการ (Service Segment Switcher):</strong> กรองแยกประเภทงานบริการ:
                                             <span class="block mt-0.5 pl-3">• <strong>ทั้งหมด</strong> | <strong>⚡ Quick Services</strong> (งานบริการด่วน) | <strong>🔨 Renovate</strong> (งานโครงการปรับปรุง)</span>
@@ -5843,6 +6031,30 @@
                                             <span class="block pl-3">• <strong class="text-indigo-600 dark:text-indigo-400">[🚀 อนุมัติ &amp; ส่งต่อไปเปิด Ticket]:</strong> ปุ่มสีม่วงสำหรับส่งมอบงาน (Handover) เพื่อจบกระบวนการ Step 1 โดยระบบจะสแตมป์เวลา <code class="bg-muted px-1 rounded font-mono text-[10px]">step1_accepted_at</code>, ปรับสถานะเป็น <code class="bg-purple-500/10 text-purple-600 px-1 rounded font-bold font-mono">IN_PROGRESS</code> (45%), ตั้งค่า <code class="bg-muted px-1 rounded font-mono text-[10px]">pmt_accepted = true</code> และนำทางส่งต่องานไปยัง <strong>Step 2 (บันทึก Ticket &amp; ใบเสร็จ)</strong> ทันที</span>
                                         </li>
                                         <li><strong>4. กรณีงานบริการด่วน (⚡ Quick Services):</strong> ระบบจะ Fast-track ข้ามขั้นตอนแบบแปลนและ BOQ อัตโนมัติ โดยมีปุ่มสีส้ม <code class="bg-amber-500/15 text-amber-800 dark:text-amber-200 px-1.5 py-0.2 rounded font-bold">⚡ บันทึก &amp; วิ่งไปหน้า QC ทันที</code> ซึ่งจะข้ามหน้า Ticket และส่งตรงเข้าสู่ <strong>Step 5 (QC Online)</strong> เพื่อตรวจรับงานและปิดงานได้ทันทีในคลิกเดียว</li>
+                                    </ul>
+                                </div>
+                            </details>
+
+                            <!-- Q28: Separation of Step 1 Intake Queue vs Master All-Orders Tracking View -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q28:</span>
+                                        <span>ทำไมงานที่ส่งต่อไปยังขั้นตอนถัดไปแล้ว (เช่น ย้ายไป QC หรือเปิด Ticket แล้ว) จึงไม่แสดงในคิวงาน Step 1 อีก และหากต้องการดูสรุปคำสั่งซื้อทั้งหมดในระบบ (3,700+ งาน) ต้องไปที่หน้าจอใด?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-2">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> เพื่อให้การบริหารจัดการคิวงานในแต่ละขั้นตอนมีความชัดเจนและไม่สับสน ระบบ PMT Flow ได้แยกมุมมองการทำงานออกเป็น 2 หน้าจออย่างเด็ดขาด:</p>
+                                    <ul class="list-disc list-inside space-y-1.5 pl-1 text-[11px]">
+                                        <li><strong>1. หน้าจอ Step 1 (ศูนย์รับคำสั่งซื้อใหม่):</strong> แสดงเฉพาะ <strong>"คิวงานที่ยังค้างอยู่ใน Step 1"</strong> (สถานะเริ่มต้น: <code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">step1_queue</code>) เท่านั้น เมื่องานใดได้รับการส่งต่อ (Handover) เช่น งาน Quick Services ที่ส่งตรงเข้า Step 5 (QC) หรือ Renovate ที่ส่งต่อไป Step 2 หรือ Step 3 แล้ว งานนั้นจะหลุดออกจากคิวงาน Step 1 ทันที เพื่อไม่ให้เกิดความสับสนและทำให้เจ้าหน้าที่โฟกัสเฉพาะงานที่ต้องจัดการในด่านแรกจริง (หากต้องการดูงานที่ส่งต่อไปแล้วใน Step 1 สามารถคลิกแท็บ <em>"↗️ ส่งต่อไปแล้ว (Transferred)"</em> หรือคลิกการ์ด <em>"รับเข้า PMT แล้ว"</em> ได้)</li>
+                                        <li><strong>2. หน้าจอใหม่ "สรุปคำสั่งซื้อทั้งหมด (Master All-Orders)":</strong> อยู่ที่เมนูด้านข้างใต้แดชบอร์ด (<code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">nav-master-orders</code>) ออกแบบมาเป็น <strong>"ศูนย์รวมและติดตามสถานะคำสั่งซื้อทั้งหมดในระบบแบบ Single View"</strong> รวมทุกโครงการตั้งแต่ Step 1 ถึง Step 7 (3,726+ รายการ)</li>
+                                        <li><strong>3. ฟังก์ชันในหน้าสรุปคำสั่งซื้อทั้งหมด (Master Orders):</strong>
+                                            <span class="block mt-0.5 pl-3 text-foreground font-medium">• มีแถบ <strong>"ขั้นตอนปัจจุบัน (Current Pipeline Step)"</strong> บ่งบอกชัดเจนว่าแต่ละ Order กำลังอยู่ในขั้นตอนใด (Step 1 Studio, Step 2 Tickets, Step 3 Dispatch, Step 4 Gantt, Step 5 QC, Step 6 STK Sync หรือ Step 7 Closed)</span>
+                                            <span class="block pl-3 text-foreground font-medium">• มีการ์ด KPI สรุปภาพรวม 4 มิติ (คำสั่งซื้อทั้งหมด, ค้างใน Step 1, กำลังดำเนินการในระบบ, และงานเสร็จสิ้น/ส่งมอบ)</span>
+                                            <span class="block pl-3 text-foreground font-medium">• แถบค้นหาอเนกประสงค์ (Global Search) พร้อมตัวกรองขั้นตอน (Pipeline Step Filter) และตัวกรองกลุ่มบริการ (Quick / Renovate)</span>
+                                            <span class="block pl-3 text-foreground font-medium">• ปุ่มเปิดดูข้อมูลหรือกระโดดไปยังหน้าจองานนั้นๆ ได้ทันทีใน 1 คลิก</span>
+                                        </li>
                                     </ul>
                                 </div>
                             </details>
@@ -10598,11 +10810,11 @@
 
     <!-- APPLICATION JAVASCRIPT LOGIC -->
     <!-- APPLICATION SCRIPTS -->
-    <script src="./public/js/db.js?v=1.7.2"></script>
-    <script src="./public/js/auth.js?v=1.7.2"></script>
-    <script src="./public/js/app.js?v=1.7.2"></script>
-    <script src="./public/js/userMgmt.js?v=1.7.2"></script>
-    <script src="./public/js/app.hooks.js?v=1.7.2"></script>
+    <script src="./public/js/db.js?v=1.7.3"></script>
+    <script src="./public/js/auth.js?v=1.7.3"></script>
+    <script src="./public/js/app.js?v=1.7.3"></script>
+    <script src="./public/js/userMgmt.js?v=1.7.3"></script>
+    <script src="./public/js/app.hooks.js?v=1.7.3"></script>
 
 </body>
 </html>

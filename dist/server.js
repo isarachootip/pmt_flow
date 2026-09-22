@@ -2284,12 +2284,13 @@ app.post('/api/v1/staging/seed', requireAuth, async (req, res) => {
 // =============================================================================
 // 1.2 CORE JOBS APIS (List, Get, Create for Web Dashboard & Automation)
 app.get('/api/v1/jobs', requireAuth, async (req, res) => {
-    const { status, service, search, page: pageQuery, limit: limitQuery } = req.query;
+    const { status, step, service, search, page: pageQuery, limit: limitQuery } = req.query;
     const page = Math.max(1, parseInt(String(pageQuery || '1'), 10) || 1);
     const rawLimit = parseInt(String(limitQuery || '50'), 10) || 50;
     const limit = Math.min(100, Math.max(1, rawLimit)); // default 50, max 100
     try {
         const statusStr = typeof status === 'string' ? status : undefined;
+        const stepStr = typeof step === 'string' ? step : undefined;
         const serviceStr = typeof service === 'string' ? service : undefined;
         const searchStr = typeof search === 'string' ? search : undefined;
         let pagedResult;
@@ -2299,6 +2300,7 @@ app.get('/api/v1/jobs', requireAuth, async (req, res) => {
                 page,
                 limit,
                 status: statusStr,
+                step: stepStr,
                 service: serviceStr,
                 search: searchStr,
                 lean: true
@@ -2310,17 +2312,41 @@ app.get('/api/v1/jobs', requireAuth, async (req, res) => {
             let list = [...exports.coreJobStore];
             if (statusStr && statusStr !== 'all') {
                 const st = statusStr.toLowerCase();
-                if (st === 'new') {
-                    list = list.filter((j) => ['new', 'draft', 'new_order'].includes((j.status || '').toLowerCase()) && (!j.assigned_tech || j.assigned_tech === 'รอระบุช่าง'));
+                if (st === 'step1_queue') {
+                    list = list.filter((j) => !j.pmt_accepted && ['new', 'draft', 'new_order', 'surveyed', 'survey'].includes((j.status || '').toLowerCase()));
+                }
+                else if (st === 'transferred') {
+                    list = list.filter((j) => j.pmt_accepted || !['new', 'draft', 'new_order', 'surveyed', 'survey'].includes((j.status || '').toLowerCase()));
+                }
+                else if (st === 'new') {
+                    list = list.filter((j) => !j.pmt_accepted && ['new', 'draft', 'new_order'].includes((j.status || '').toLowerCase()) && (!j.assigned_tech || j.assigned_tech === 'รอระบุช่าง'));
                 }
                 else if (st === 'assigned') {
-                    list = list.filter((j) => j.assigned_tech && j.assigned_tech !== 'รอระบุช่าง' && !['surveyed', 'cancelled', 'closed_lost'].includes((j.status || '').toLowerCase()));
+                    list = list.filter((j) => !j.pmt_accepted && j.assigned_tech && j.assigned_tech !== 'รอระบุช่าง' && !['surveyed', 'cancelled', 'closed_lost'].includes((j.status || '').toLowerCase()));
                 }
                 else if (st === 'surveyed') {
-                    list = list.filter((j) => (j.status || '').toLowerCase() === 'surveyed' || (j.step_timestamps && j.step_timestamps.step1_survey_at) || (Array.isArray(j.photos) && j.photos.length > 0));
+                    list = list.filter((j) => !j.pmt_accepted && ((j.status || '').toLowerCase() === 'surveyed' || (j.step_timestamps && j.step_timestamps.step1_survey_at) || (Array.isArray(j.photos) && j.photos.length > 0)));
                 }
                 else {
                     list = list.filter((j) => (j.status || '').toLowerCase() === statusStr.toLowerCase());
+                }
+            }
+            if (stepStr && stepStr !== 'all') {
+                const stp = stepStr.toLowerCase();
+                if (stp === 'step1') {
+                    list = list.filter((j) => !j.pmt_accepted && ['new', 'draft', 'new_order', 'surveyed', 'survey'].includes((j.status || '').toLowerCase()));
+                }
+                else if (stp === 'step2') {
+                    list = list.filter((j) => j.pmt_accepted && ['in_progress', 'pending_ticket', 'ticket_issued', 'designed'].includes((j.status || '').toLowerCase()));
+                }
+                else if (stp === 'step5' || stp === 'qc') {
+                    list = list.filter((j) => ['qc_pending', 'qc_inspecting', 'qc_rework'].includes((j.status || '').toLowerCase()));
+                }
+                else if (stp === 'step6' || stp === 'closed') {
+                    list = list.filter((j) => ['qc_passed', 'closed'].includes((j.status || '').toLowerCase()));
+                }
+                else if (stp === 'step7' || stp === 'ma') {
+                    list = list.filter((j) => (j.status || '').toLowerCase() === 'after_sale' || (j.job_type || '').toLowerCase() === 'ma');
                 }
             }
             if (serviceStr && serviceStr !== 'all') {

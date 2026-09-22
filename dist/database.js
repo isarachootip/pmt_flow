@@ -736,18 +736,45 @@ async function dbLoadJobsPaginated(options = {}) {
         let paramIdx = 1;
         if (options.status && options.status !== 'all') {
             const st = options.status.toLowerCase();
-            if (st === 'new') {
-                whereClauses.push(`(LOWER(status) IN ('new', 'draft', 'new_order') AND (assigned_tech IS NULL OR assigned_tech = '' OR assigned_tech = 'รอระบุช่าง'))`);
+            if (st === 'step1_queue') {
+                whereClauses.push(`(UPPER(status) IN ('SURVEYED', 'DRAFT', 'NEW', 'NEW_ORDER') AND (pmt_accepted IS FALSE OR pmt_accepted IS NULL))`);
+            }
+            else if (st === 'transferred') {
+                whereClauses.push(`(pmt_accepted IS TRUE OR UPPER(status) NOT IN ('SURVEYED', 'DRAFT', 'NEW', 'NEW_ORDER'))`);
+            }
+            else if (st === 'new') {
+                whereClauses.push(`(LOWER(status) IN ('new', 'draft', 'new_order') AND (assigned_tech IS NULL OR assigned_tech = '' OR assigned_tech = 'รอระบุช่าง') AND (pmt_accepted IS FALSE OR pmt_accepted IS NULL))`);
             }
             else if (st === 'assigned') {
-                whereClauses.push(`(assigned_tech IS NOT NULL AND assigned_tech != '' AND assigned_tech != 'รอระบุช่าง' AND LOWER(status) NOT IN ('surveyed', 'cancelled', 'closed_lost'))`);
+                whereClauses.push(`(assigned_tech IS NOT NULL AND assigned_tech != '' AND assigned_tech != 'รอระบุช่าง' AND LOWER(status) NOT IN ('surveyed', 'cancelled', 'closed_lost') AND (pmt_accepted IS FALSE OR pmt_accepted IS NULL))`);
             }
             else if (st === 'surveyed') {
-                whereClauses.push(`(LOWER(status) = 'surveyed' OR (step_timestamps->>'step1_survey_at') IS NOT NULL OR (photos IS NOT NULL AND jsonb_typeof(photos) = 'array' AND jsonb_array_length(photos) > 0))`);
+                whereClauses.push(`((LOWER(status) = 'surveyed' OR (step_timestamps->>'step1_survey_at') IS NOT NULL OR (photos IS NOT NULL AND jsonb_typeof(photos) = 'array' AND jsonb_array_length(photos) > 0)) AND (pmt_accepted IS FALSE OR pmt_accepted IS NULL))`);
             }
             else {
                 whereClauses.push(`LOWER(status) = LOWER($${paramIdx++})`);
                 params.push(options.status);
+            }
+        }
+        if (options.step && options.step !== 'all') {
+            const stp = options.step.toLowerCase();
+            if (stp === 'step1') {
+                whereClauses.push(`(UPPER(status) IN ('SURVEYED', 'DRAFT', 'NEW', 'NEW_ORDER') AND (pmt_accepted IS FALSE OR pmt_accepted IS NULL))`);
+            }
+            else if (stp === 'step2') {
+                whereClauses.push(`(pmt_accepted IS TRUE AND UPPER(status) IN ('IN_PROGRESS', 'PENDING_TICKET', 'TICKET_ISSUED', 'DESIGNED'))`);
+            }
+            else if (stp === 'step4') {
+                whereClauses.push(`(UPPER(status) IN ('IN_PROGRESS', 'INSTALLING', 'GANTT_ACTIVE'))`);
+            }
+            else if (stp === 'step5' || stp === 'qc') {
+                whereClauses.push(`(UPPER(status) IN ('QC_PENDING', 'QC_INSPECTING', 'QC_REWORK'))`);
+            }
+            else if (stp === 'step6' || stp === 'closed') {
+                whereClauses.push(`(UPPER(status) IN ('QC_PASSED', 'CLOSED'))`);
+            }
+            else if (stp === 'step7' || stp === 'ma') {
+                whereClauses.push(`(UPPER(status) = 'AFTER_SALE' OR LOWER(job_type) = 'ma')`);
             }
         }
         if (options.service && options.service !== 'all') {
