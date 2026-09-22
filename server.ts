@@ -4509,38 +4509,56 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
       if (formattedQuestions.length > 0) (targetJob as any).qc_subtasks = formattedQuestions;
     }
 
-    // Forward to external Webhook (e.g. STK / vwds.online) if configured
-    if (process.env.STK_OUTBOUND_WEBHOOK_URL) {
+    // Forward to external Webhook (e.g. STK / vwds.online)
+    const targetWebhookUrl = process.env.STK_OUTBOUND_WEBHOOK_URL || 'https://vwds.online/api/webhooks/pmt-qc';
+    const targetApiKey = process.env.STK_OUTBOUND_WEBHOOK_API_KEY || 'wds_pmt_secure_key_2026';
+
+    let webhookDispatchResult: any = null;
+    if (targetWebhookUrl) {
       try {
         const webhookHeaders: Record<string, string> = {
           'Content-Type': 'application/json',
           'User-Agent': 'PMT-Flow-Outbound-Webhook/1.0'
         };
-        if (process.env.STK_OUTBOUND_WEBHOOK_API_KEY) {
-          webhookHeaders['x-api-key'] = process.env.STK_OUTBOUND_WEBHOOK_API_KEY;
+        if (targetApiKey) {
+          webhookHeaders['x-api-key'] = targetApiKey;
         }
         if (process.env.STK_OUTBOUND_WEBHOOK_TOKEN) {
           webhookHeaders['Authorization'] = `Bearer ${process.env.STK_OUTBOUND_WEBHOOK_TOKEN}`;
         }
 
-        const webhookRes = await fetch(process.env.STK_OUTBOUND_WEBHOOK_URL, {
+        const webhookRes = await fetch(targetWebhookUrl, {
           method: 'POST',
           headers: webhookHeaders,
           body: JSON.stringify(formattedOutboundPayload)
         });
 
         const statusOk = webhookRes.ok;
-        console.log(`[OUTBOUND WEBHOOK] Dispatched QC payload to ${process.env.STK_OUTBOUND_WEBHOOK_URL} | Status: ${webhookRes.status} (${statusOk ? 'SUCCESS' : 'FAILED'})`);
+        let responseBody = null;
+        try { responseBody = await webhookRes.json(); } catch {}
+        webhookDispatchResult = {
+          target: targetWebhookUrl,
+          status: webhookRes.status,
+          ok: statusOk,
+          response: responseBody
+        };
+        console.log(`[OUTBOUND WEBHOOK] Dispatched QC payload to ${targetWebhookUrl} | Status: ${webhookRes.status} (${statusOk ? 'SUCCESS' : 'FAILED'})`);
       } catch (webhookErr: any) {
         console.warn('[OUTBOUND WEBHOOK] Failed to dispatch payload to external webhook endpoint:', webhookErr.message);
+        webhookDispatchResult = {
+          target: targetWebhookUrl,
+          error: webhookErr.message,
+          ok: false
+        };
       }
     }
 
     return res.status(200).json({
       success: true,
       data: formattedOutboundPayload,
+      webhook: webhookDispatchResult,
       meta: {
-        message: 'ส่งผลการตรวจ QC (เลขที่ Ref, ticket, booking_no, วันที่บันทึก QC, ข้อมูลลูกค้า, ผลการตรวจ และคะแนนประเมิน) ไปยังระบบ STK เรียบร้อยแล้ว (STK Outbound REST API Successful)'
+        message: 'ส่งผลการตรวจ QC (เลขที่ Ref, ticket, booking_no, วันที่บันทึก QC, ข้อมูลลูกค้า, ผลการตรวจ และคะแนนประเมิน) ไปยังระบบ STK / WDS (https://vwds.online) เรียบร้อยแล้ว (STK Outbound REST API Successful)'
       }
     });
   } catch (err: any) {

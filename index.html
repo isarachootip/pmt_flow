@@ -5818,6 +5818,34 @@
                                     </ul>
                                 </div>
                             </details>
+
+                            <!-- Q27: Step 1 Partial Save vs Handover Proceed to Step 2 -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q27:</span>
+                                        <span>ทำไมคำสั่งซื้อ (Order) ที่มีการบันทึกข้อมูลไปบางส่วนแล้ว ถึงยังคงแสดงอยู่ในหน้าต่าง Step 1 และปุ่ม "บันทึกข้อมูล (Save)" แตกต่างจาก "อนุมัติ &amp; ส่งต่อไปเปิด Ticket" อย่างไร?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-2">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> การที่คำสั่งซื้อยังคงแสดงอยู่ในหน้าจอ <strong>Step 1: รับ Order, Design &amp; BOQ Studio</strong> เกิดจากกฎเกณฑ์ทางธุรกิจและการออกแบบสถาปัตยกรรมของระบบ PMT Flow ดังนี้:</p>
+                                    <ul class="list-disc list-inside space-y-1.5 pl-1 text-[11px]">
+                                        <li><strong>1. กฎเกณฑ์การบันทึกแบบร่าง (Draft Save Policy):</strong> ปุ่ม <code class="bg-muted px-1.5 py-0.2 rounded font-semibold text-foreground border border-border">[💾 บันทึกข้อมูล (Save)]</code> มีหน้าที่บันทึกข้อมูลที่กรอกลงระบบฐานข้อมูล (เช่น รายละเอียดงาน, รูปถ่ายสำรวจ, หมายเหตุ, ผลสำรวจ) แต่ <strong>จะไม่เปลี่ยนสถานะของคำสั่งซื้อ และไม่ย้ายงานออกจาก Step 1</strong> เพื่อให้เจ้าหน้าที่ (SA / PM / AE) สามารถกลับมาทำงานต่อเนื่องหรือปรับปรุงแบบแปลนและ BOQ ให้เสร็จสมบูรณ์ได้</li>
+                                        <li><strong>2. โครงการประเภท Renovate มีกระบวนการ 3 ส่วน:</strong> งานโครงการปรับปรุง (Renovate) เช่น งานก่อ/ฉาบ/เทปูน หรือต่อเติม ประกอบด้วย 3 ส่วนหลัก:
+                                            <span class="block mt-0.5 pl-3">• <em>ส่วนที่ 1 (Intake &amp; Photos):</em> ข้อมูลคำสั่งซื้อและรูปถ่ายสำรวจหน้างาน (ผ่านเกณฑ์ <code class="bg-emerald-500/10 text-emerald-600 px-1 rounded font-bold">Passed</code>)</span>
+                                            <span class="block pl-3">• <em>ส่วนที่ 2 (Design &amp; CAD):</em> แนบแบบแปลนติดตั้ง (หากยังเป็น <code class="bg-indigo-500/10 text-indigo-600 px-1 rounded font-bold">0 แบบ</code> คอลัมน์ตารางจะขึ้นปุ่ม <code class="bg-muted px-1 rounded">+ แนบแบบ</code>)</span>
+                                            <span class="block pl-3">• <em>ส่วนที่ 3 (Pricing &amp; BOQ):</em> ประมาณการราคาและรายการงานช่าง (หากยังเป็น <code class="bg-purple-500/10 text-purple-600 px-1 rounded font-bold">Blank</code> คอลัมน์ตารางจะขึ้นปุ่ม <code class="bg-muted px-1 rounded">+ ลง BOQ</code>)</span>
+                                            <span class="block pl-3 text-foreground font-medium">หากงานบันทึกไปเพียงส่วนที่ 1 งานจึงถือว่า "บันทึกไปบางส่วน" และคงอยู่ในคิว Step 1 เพื่อรอการจัดการส่วนที่ 2 และ 3 ให้ครบถ้วน</span>
+                                        </li>
+                                        <li><strong>3. ความแตกต่างระหว่าง 2 ปุ่มควบคุม (Save vs Proceed):</strong>
+                                            <span class="block mt-0.5 pl-3">• <strong class="text-foreground">[💾 บันทึกข้อมูล (Save)]:</strong> เซฟข้อมูลลงฐานข้อมูล <code class="bg-muted px-1 rounded font-mono text-[10px]">core_jobs</code> แต่ไม่ขยับสถานะงาน</span>
+                                            <span class="block pl-3">• <strong class="text-indigo-600 dark:text-indigo-400">[🚀 อนุมัติ &amp; ส่งต่อไปเปิด Ticket]:</strong> ปุ่มสีม่วงสำหรับส่งมอบงาน (Handover) เพื่อจบกระบวนการ Step 1 โดยระบบจะสแตมป์เวลา <code class="bg-muted px-1 rounded font-mono text-[10px]">step1_accepted_at</code>, ปรับสถานะเป็น <code class="bg-purple-500/10 text-purple-600 px-1 rounded font-bold font-mono">IN_PROGRESS</code> (45%), ตั้งค่า <code class="bg-muted px-1 rounded font-mono text-[10px]">pmt_accepted = true</code> และนำทางส่งต่องานไปยัง <strong>Step 2 (บันทึก Ticket &amp; ใบเสร็จ)</strong> ทันที</span>
+                                        </li>
+                                        <li><strong>4. กรณีงานบริการด่วน (⚡ Quick Services):</strong> ระบบจะ Fast-track ข้ามขั้นตอนแบบแปลนและ BOQ อัตโนมัติ โดยมีปุ่มสีส้ม <code class="bg-amber-500/15 text-amber-800 dark:text-amber-200 px-1.5 py-0.2 rounded font-bold">⚡ บันทึก &amp; วิ่งไปหน้า QC ทันที</code> ซึ่งจะข้ามหน้า Ticket และส่งตรงเข้าสู่ <strong>Step 5 (QC Online)</strong> เพื่อตรวจรับงานและปิดงานได้ทันทีในคลิกเดียว</li>
+                                    </ul>
+                                </div>
+                            </details>
                         </div>
                     </div>
                 </div>
