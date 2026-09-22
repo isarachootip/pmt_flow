@@ -182,6 +182,18 @@ const app = {
                 return true;
             },
 
+            isDesignFinalV2(job) {
+                if (!job) return false;
+                if (this.isQuickJob(job)) return true; // Quick Services bypass Design & BOQ
+                const jobId = job.id || job.job_no;
+                const bps = (DB.blueprints || []).filter(b => b.jobId === jobId || String(b.jobId) === String(jobId));
+                if (!bps || bps.length === 0) return false;
+                return bps.some(b => {
+                    const v = String(b.version || '').toLowerCase().trim();
+                    return v.includes('v2.0') || v.includes('v2 final') || v.includes('v2 approved') || (v.includes('v2') && v.includes('final')) || v.includes('สมบูรณ์');
+                });
+            },
+
             calculateJobSLA(job, stepNumber) {
                 if (!job) return null;
                 const config = this.getSLAConfig();
@@ -5943,6 +5955,10 @@ const app = {
                     this.showToast('⚡ งาน Quick Service ข้ามขั้นตอน Design และ BOQ โดยตรง — วิ่งไปหน้า QC เลย');
                     return;
                 }
+                if (sec === 'boq' && job && !this.isDesignFinalV2(job)) {
+                    this.showToast('⚠️ ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design', 'error');
+                    sec = 'design';
+                }
                 const secEl = document.getElementById(`unified-sec-${sec}`);
                 const scrollBody = document.getElementById('unified-studio-scroll-body');
                 if (secEl && scrollBody) {
@@ -5962,18 +5978,44 @@ const app = {
                 if (!job) return;
 
                 const activeSec = this.state.unifiedActiveSec || 'intake';
-                const bps = (DB.blueprints || []).filter(b => b.jobId === jobId);
+                const bps = (DB.blueprints || []).filter(b => b.jobId === jobId || String(b.jobId) === String(jobId));
                 const boqItems = job.boq_items || [];
                 const isQuick = this.isQuickJob(job);
+                const isFinalV2 = this.isDesignFinalV2(job);
 
                 // Step 1: Passed if explicitly marked, or timestamp exists, or customer with survey info / photos
                 const step1Passed = !!(job.step1_passed || (job.step_timestamps && job.step_timestamps.step1_intake_at) || (job.customer && (job.phone || job.address || (job.photos && job.photos.length > 0) || job.survey_date)));
 
-                // Step 2: Passed if explicitly marked, or blueprints exist, or timestamp exists, or is quick job
-                const step2Passed = !!(job.step2_passed || bps.length > 0 || (job.step_timestamps && job.step_timestamps.step2_design_at) || (isQuick && (job.step1_passed || job.pmt_accepted)));
+                // Step 2: Passed ONLY if final v2.0 design exists (or quick job)
+                const step2Passed = isQuick ? (job.step1_passed || job.pmt_accepted) : isFinalV2;
 
-                // Step 3: Passed if explicitly marked, or boq items exist, or timestamp exists
-                const step3Passed = !!(job.step3_passed || boqItems.length > 0 || (job.step_timestamps && job.step_timestamps.step3_boq_at) || (job.boq_grand_total && job.boq_grand_total > 0));
+                // Step 3: Passed ONLY if Step 2 is final v2.0 AND has BOQ items
+                const step3Passed = isQuick ? true : (isFinalV2 && (boqItems.length > 0 || (job.boq_grand_total && job.boq_grand_total > 0)));
+
+                // Update Design Tab Badge
+                const tabDesignBadge = document.getElementById('tab-unified-design-badge');
+                if (tabDesignBadge && !isQuick) {
+                    if (bps.length > 0 && !isFinalV2) {
+                        tabDesignBadge.innerText = `${bps.length} (รอ v2.0 Final)`;
+                        tabDesignBadge.className = 'px-1.5 py-0.2 rounded-full text-[10px] bg-amber-50 text-foreground border border-amber-300 font-mono font-bold';
+                    } else {
+                        tabDesignBadge.innerText = bps.length;
+                        tabDesignBadge.className = 'px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-50 text-foreground border border-indigo-200 font-mono font-bold';
+                    }
+                }
+
+                // Update BOQ Tab Badge
+                const tabBoqBadge = document.getElementById('tab-unified-boq-badge');
+                if (tabBoqBadge && !isQuick) {
+                    if (!isFinalV2) {
+                        tabBoqBadge.innerText = '🔒 รอ Design v2.0';
+                        tabBoqBadge.className = 'px-1.5 py-0.2 rounded-full text-[10px] bg-amber-50 text-foreground border border-amber-300 font-mono font-bold';
+                    } else {
+                        const bCount = boqItems.length;
+                        tabBoqBadge.innerText = bCount === 0 ? 'Blank' : `${bCount} รายการ`;
+                        tabBoqBadge.className = 'px-1.5 py-0.2 rounded-full text-[10px] bg-purple-50 text-foreground border border-purple-200 font-mono font-bold';
+                    }
+                }
 
                 const stepsConfig = [
                     {
@@ -6130,16 +6172,28 @@ const app = {
 
                     this.showToast('✅ บันทึกข้อมูลสำรวจ & คลังรูปภาพ เรียบร้อยแล้ว (Passed)', 'success');
                 } else if (stepNum === 2) {
-                    const bps = (DB.blueprints || []).filter(b => b.jobId === jobId);
-                    job.step2_passed = true;
-                    job.step_timestamps.step2_design_at = now.toISOString();
+                    const bps = (DB.blueprints || []).filter(b => b.jobId === jobId || String(b.jobId) === String(jobId));
+                    const isFinalV2 = this.isDesignFinalV2(job);
+                    job.step2_passed = isFinalV2;
+                    if (isFinalV2 && !job.step_timestamps.step2_design_at) {
+                        job.step_timestamps.step2_design_at = now.toISOString();
+                    }
 
                     this.persistJobs();
                     this.updateUnifiedStudioTabs();
                     this.updateUnifiedStudioIndicators();
                     this.updateStepBadges();
-                    this.showToast(`✅ บันทึกแบบแปลนติดตั้ง (Design & CAD) เรียบร้อยแล้ว (${bps.length} ไฟล์ - Passed)`, 'success');
+                    if (isFinalV2) {
+                        this.showToast(`✅ บันทึกแบบแปลนติดตั้ง (Design v2.0 Final) เรียบร้อยแล้ว (${bps.length} ไฟล์ - ปลดล็อค BOQ)`, 'success');
+                    } else {
+                        this.showToast(`📝 บันทึกแบบแปลนเรียบร้อยแล้ว (${bps.length} ไฟล์) — ต้องอัปเดตเป็น v2.0 Final ก่อนจึงจะเริ่มทำ BOQ ได้`, 'info');
+                    }
                 } else if (stepNum === 3) {
+                    if (!this.isDesignFinalV2(job)) {
+                        this.showToast('⚠️ ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design', 'error');
+                        this.scrollUnifiedStudioTo('design');
+                        return;
+                    }
                     this.calculateUnifiedBOQSummary();
                     job.step3_passed = true;
                     job.step_timestamps.step3_boq_at = now.toISOString();
@@ -6698,6 +6752,11 @@ const app = {
             addQuickBOQPreset(name, type, qty, unit, price) {
                 const job = this.getUnifiedStudioJob();
                 if (!job) return;
+                if (!this.isDesignFinalV2(job)) {
+                    this.showToast('⚠️ ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design', 'error');
+                    this.scrollUnifiedStudioTo('design');
+                    return;
+                }
                 if (!job.boq_items) job.boq_items = [];
                 job.boq_items.push({
                     id: 'BOQ-' + Date.now() + Math.floor(Math.random() * 100),
@@ -6726,8 +6785,16 @@ const app = {
                 const metricBp = document.getElementById('unified-metric-blueprints');
                 if (!grid) return;
 
-                const bps = (DB.blueprints || []).filter(b => b.jobId === jobId);
-                if (pill) pill.innerText = `${bps.length} ไฟล์`;
+                const bps = (DB.blueprints || []).filter(b => b.jobId === jobId || String(b.jobId) === String(jobId));
+                const isFinalV2 = bps.some(b => {
+                    const v = String(b.version || '').toLowerCase().trim();
+                    return v.includes('v2.0') || v.includes('v2 final') || v.includes('v2 approved') || (v.includes('v2') && v.includes('final')) || v.includes('สมบูรณ์');
+                });
+
+                if (pill) {
+                    pill.innerText = `${bps.length} ไฟล์ ${isFinalV2 ? '(v2.0 Final ✓)' : (bps.length > 0 ? '(รอ v2.0 Final)' : '')}`;
+                    pill.className = `px-2.5 py-1 rounded-full text-xs font-mono font-bold ${isFinalV2 ? 'bg-emerald-50 text-foreground border border-emerald-300' : 'bg-indigo-50 text-foreground border border-indigo-300'} shadow-2xs`;
+                }
                 if (badge) badge.innerText = bps.length;
                 if (metricBp) metricBp.innerText = `${bps.length} แบบแปลน`;
 
@@ -6736,7 +6803,7 @@ const app = {
                     <div class="col-span-full p-8 text-center bg-card rounded-xl border border-dashed border-border text-muted-foreground space-y-2">
                         <i class="ph ph-blueprint text-3xl text-indigo-500/50"></i>
                         <p class="text-xs font-semibold text-foreground">ยังไม่มีแบบแปลนติดตั้งสำหรับคำสั่งซื้อนี้</p>
-                        <p class="text-[11px] text-muted-foreground">ท่านสามารถอัปโหลดไฟล์ CAD/DWG, PDF หรือกดโหลดแบบแปลนจำลองด้านล่าง</p>
+                        <p class="text-[11px] text-muted-foreground">ท่านสามารถอัปโหลดไฟล์ CAD/DWG, PDF หรือกดโหลดแบบแปลนจำลองด้านล่าง (ต้องเป็นเวอร์ชัน v2.0 Final ก่อนทำ BOQ)</p>
                     </div>
                     `;
                     return;
@@ -6748,7 +6815,13 @@ const app = {
                     const isImg = b.previewImg || (!isPdf && !isDwg);
                     const iconType = isDwg ? 'DWG' : (isPdf ? 'PDF' : 'IMG');
                     const iconColor = isDwg ? 'bg-indigo-50 text-foreground border border-indigo-300 shadow-2xs' : (isPdf ? 'bg-rose-50 text-foreground border border-rose-300 shadow-2xs' : 'bg-emerald-50 text-foreground border border-emerald-300 shadow-2xs');
-                    const formattedDate = b.uploadedAt ? this.formatDateDMY(b.uploadedAt) : this.formatDateDMY(new Date());
+
+                    const vStr = String(b.version || '').toLowerCase().trim();
+                    const isBpV2 = vStr.includes('v2.0') || vStr.includes('v2 final') || vStr.includes('v2 approved') || (vStr.includes('v2') && vStr.includes('final')) || vStr.includes('สมบูรณ์');
+
+                    // Format date and 24-hr time clearly
+                    const uploadIso = b.createdAt || b.recorded_at;
+                    const formattedDateTime = uploadIso ? this.formatDateTimeDMY(uploadIso, false, true) : (b.uploadedAt && b.uploadedAt.includes(':') ? b.uploadedAt : (b.uploadedAt ? `${this.formatDateDMY(b.uploadedAt)} 09:00 น.` : this.formatDateTimeDMY(new Date().toISOString(), false, true)));
 
                     // Thumbnail block: show image preview if available
                     const thumbnailHtml = b.previewImg
@@ -6757,8 +6830,24 @@ const app = {
                            </div>`
                         : '';
 
+                    // History logs HTML if exists
+                    const historyList = b.version_history || [];
+                    const historyHtml = historyList.length > 1 ? `
+                        <div class="mt-2 pt-2 border-t border-border/50 text-[10px] space-y-1">
+                            <span class="text-muted-foreground font-semibold flex items-center gap-1"><i class="ph ph-clock-counter-clockwise"></i> ประวัติการปรับปรุงเวอร์ชัน:</span>
+                            <div class="space-y-0.5 pl-2 border-l-2 border-indigo-200">
+                                ${historyList.map(h => `
+                                    <div class="flex items-center justify-between text-muted-foreground">
+                                        <span class="font-bold text-foreground">${h.version}</span>
+                                        <span class="font-mono text-[9px]">${h.formatted || (h.timestamp ? app.formatDateTimeDMY(h.timestamp, false, true) : '-')}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : '';
+
                     return `
-                    <div class="p-4 rounded-xl border border-border bg-card space-y-3 hover:border-indigo-500/40 hover:shadow-xs transition">
+                    <div class="p-4 rounded-xl border ${isBpV2 ? 'border-emerald-300 bg-emerald-50/20' : 'border-border bg-card'} space-y-3 hover:border-indigo-500/40 hover:shadow-xs transition">
                         ${thumbnailHtml}
                         <div class="flex items-start justify-between gap-2">
                             <div class="flex items-center gap-2.5">
@@ -6770,19 +6859,47 @@ const app = {
                                     <p class="text-[10px] text-muted-foreground font-mono truncate">โซน: <strong class="text-foreground font-bold">${b.zone || b.roomZone || 'ทั่วไป'}</strong> • ${b.fileSize || '2.4 MB'}</p>
                                 </div>
                             </div>
-                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-50 text-foreground border border-indigo-300 shrink-0 shadow-2xs">${b.version || 'v2.0 Approved'}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${isBpV2 ? 'bg-emerald-50 text-foreground border border-emerald-300' : 'bg-amber-50 text-foreground border border-amber-300'} shrink-0 shadow-2xs">
+                                ${isBpV2 ? '✓ ' + (b.version || 'v2.0 Final') : (b.version || 'v1.0 Draft')}
+                            </span>
                         </div>
                         ${b.notes ? `<p class="text-[11px] text-foreground bg-muted/30 p-2 rounded-lg border border-border/50 font-medium">${b.notes}</p>` : ''}
-                        <div class="flex items-center justify-between text-xs pt-1 border-t border-border/40">
-                            <span class="text-[10px] text-muted-foreground font-mono">📅 ${formattedDate}</span>
-                            <div class="flex items-center gap-1.5">
-                                <button type="button" onclick="app.previewBlueprintLightbox('${b.id || idx}')" class="text-[11px] font-bold text-foreground hover:underline cursor-pointer">
-                                    🔍 ขยายดูแบบ
-                                </button>
-                                <button type="button" onclick="app.deleteUnifiedBlueprint('${b.id || idx}')" class="p-1 text-muted-foreground hover:text-rose-500 rounded transition cursor-pointer" title="ลบแบบแปลนนี้">
-                                    <i class="ph ph-trash text-sm"></i>
+
+                        <!-- Date and Time Display (Strict DD/MM/YYYY and 24-hr time) -->
+                        <div class="bg-card p-2 rounded-lg border border-border text-[11px] space-y-1 font-mono">
+                            <div class="flex items-center justify-between">
+                                <span class="text-muted-foreground font-semibold">🕒 เวอร์ชัน:</span>
+                                <strong class="${isBpV2 ? 'text-emerald-700' : 'text-amber-700'} font-bold">${b.version || (isBpV2 ? 'v2.0 Final' : 'v1.0')}</strong>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-muted-foreground font-semibold">📅 วัน-เวลาบันทึก:</span>
+                                <strong class="text-foreground font-bold">${formattedDateTime}</strong>
+                            </div>
+                            ${historyHtml}
+                        </div>
+
+                        <!-- Version Upgrade Action Button if not yet v2.0 -->
+                        ${!isBpV2 ? `
+                            <div class="pt-1">
+                                <button type="button" onclick="app.upgradeBlueprintToV2('${b.id || idx}')" class="w-full py-1.5 px-3 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition" title="อนุมัติและอัปเดตแบบแปลนนี้เป็น v2.0 Final เพื่อปลดล็อคขั้นตอน BOQ">
+                                    <i class="ph ph-check-circle-bold"></i> อัปเดตเป็น v2.0 Final (ปลดล็อค BOQ)
                                 </button>
                             </div>
+                        ` : `
+                            <div class="pt-1">
+                                <div class="w-full py-1 px-2.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 flex items-center justify-center gap-1.5 shadow-2xs">
+                                    <i class="ph ph-seal-check-fill text-emerald-600"></i> v2.0 Final Approved (ปลดล็อค BOQ เรียบร้อย)
+                                </div>
+                            </div>
+                        `}
+
+                        <div class="flex items-center justify-between text-xs pt-1 border-t border-border/40">
+                            <button type="button" onclick="app.previewBlueprintLightbox('${b.id || idx}')" class="text-[11px] font-bold text-foreground hover:underline cursor-pointer flex items-center gap-1">
+                                <i class="ph ph-magnifying-glass"></i> ขยายดูแบบ
+                            </button>
+                            <button type="button" onclick="app.deleteUnifiedBlueprint('${b.id || idx}')" class="p-1 text-muted-foreground hover:text-rose-500 rounded transition cursor-pointer flex items-center gap-1 text-[11px]" title="ลบแบบแปลนนี้">
+                                <i class="ph ph-trash text-sm"></i> ลบ
+                            </button>
                         </div>
                     </div>
                     `;
@@ -6849,7 +6966,10 @@ const app = {
                 if (!DB.blueprints) DB.blueprints = [];
 
                 const now = new Date();
-                const formattedDate = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+                const nowIso = now.toISOString();
+                const formattedDateTime = this.formatDateTimeDMY(nowIso, false, true);
+                const prevDateIso = new Date(now.getTime() - 86400000).toISOString();
+                const prevFormattedDateTime = this.formatDateTimeDMY(prevDateIso, false, true);
 
                 const sample1 = {
                     id: 'BP-' + Date.now() + '-1',
@@ -6862,8 +6982,12 @@ const app = {
                     fileSize: '4.5 MB',
                     fileType: 'dwg',
                     notes: 'แบบ 3D ระบุตำแหน่งท็อปหิน, ซิงค์ล้างจาน, เตาแม่เหล็กไฟฟ้า และฮูดดูดควัน',
-                    uploadedAt: formattedDate,
-                    createdAt: now.toISOString()
+                    uploadedAt: formattedDateTime,
+                    createdAt: nowIso,
+                    version_history: [
+                        { version: 'v1.0 (แบบร่างเริ่มต้น)', timestamp: prevDateIso, formatted: prevFormattedDateTime },
+                        { version: 'v2.0 Approved (แบบสมบูรณ์)', timestamp: nowIso, formatted: formattedDateTime }
+                    ]
                 };
 
                 const sample2 = {
@@ -6873,25 +6997,30 @@ const app = {
                     fileName: `${job.id}_ระบบประปาและไฟฟ้า.pdf`,
                     zone: 'ระบบไฟ & ประปา',
                     roomZone: 'ระบบไฟ & ประปา',
-                    version: 'v1.1 Approved',
+                    version: 'v2.0 Approved',
                     fileSize: '1.8 MB',
                     fileType: 'pdf',
                     notes: 'ผังเดินท่อน้ำดี-น้ำทิ้ง และเบรกเกอร์แยก 32A',
-                    uploadedAt: formattedDate,
-                    createdAt: now.toISOString()
+                    uploadedAt: formattedDateTime,
+                    createdAt: nowIso,
+                    version_history: [
+                        { version: 'v1.1 (ปรับแก้ขนาด)', timestamp: prevDateIso, formatted: prevFormattedDateTime },
+                        { version: 'v2.0 Approved (แบบสมบูรณ์)', timestamp: nowIso, formatted: formattedDateTime }
+                    ]
                 };
 
                 DB.blueprints.push(sample1, sample2);
                 if (!job.step_timestamps) job.step_timestamps = {};
-                if (!job.step_timestamps.step2_design_at) job.step_timestamps.step2_design_at = now.toISOString();
-                job.step2_passed = true;
+                if (!job.step_timestamps.step2_design_at) job.step_timestamps.step2_design_at = nowIso;
+                job.step2_passed = this.isDesignFinalV2(job);
 
                 this.persistJobs();
                 this.renderUnifiedBlueprintsGrid();
+                this.renderUnifiedBOQTable();
                 this.updateUnifiedStudioTabs();
                 this.updateUnifiedStudioIndicators();
                 this.updateStepBadges();
-                this.showToast('✅ โหลดแบบแปลนจำลอง (DWG + PDF) เรียบร้อยแล้ว (Passed)');
+                this.showToast('✅ โหลดแบบแปลนจำลอง v2.0 Final เรียบร้อยแล้ว (ปลดล็อคขั้นตอน BOQ)');
             },
 
             submitUnifiedDesignBlueprint() {
@@ -6913,7 +7042,8 @@ const app = {
                 if (!DB.blueprints) DB.blueprints = [];
 
                 const now = new Date();
-                const formattedDate = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+                const nowIso = now.toISOString();
+                const formattedDateTime = this.formatDateTimeDMY(nowIso, false, true);
 
                 const newBp = {
                     id: 'BP-' + Date.now(),
@@ -6925,26 +7055,81 @@ const app = {
                     version: version,
                     fileSize: fileSize,
                     notes: title,
-                    uploadedAt: formattedDate,
-                    createdAt: now.toISOString(),
+                    uploadedAt: formattedDateTime,
+                    createdAt: nowIso,
+                    version_history: [
+                        { version: version, timestamp: nowIso, formatted: formattedDateTime }
+                    ],
                     previewImg: this.state._pendingDesignPreview || null
                 };
 
                 DB.blueprints.push(newBp);
                 if (!job.step_timestamps) job.step_timestamps = {};
-                if (!job.step_timestamps.step2_design_at) job.step_timestamps.step2_design_at = now.toISOString();
-                job.step2_passed = true;
+                if (!job.step_timestamps.step2_design_at) job.step_timestamps.step2_design_at = nowIso;
+                job.step2_passed = this.isDesignFinalV2(job);
 
                 // Clear pending preview
                 this.state._pendingDesignPreview = null;
 
                 this.persistJobs();
                 this.renderUnifiedBlueprintsGrid();
+                this.renderUnifiedBOQTable();
                 this.resetUnifiedDesignForm();
                 this.updateUnifiedStudioTabs();
                 this.updateUnifiedStudioIndicators();
                 this.updateStepBadges();
-                this.showToast(`📐 บันทึกแบบแปลน [${fileName}] สำเร็จแล้ว (Passed)!`);
+
+                if (job.step2_passed) {
+                    this.showToast(`📐 บันทึกแบบแปลน [${fileName}] เป็น ${version} สำเร็จแล้ว ปลดล็อคขั้นตอน BOQ เรียบร้อย!`);
+                } else {
+                    this.showToast(`⚠️ บันทึกแบบร่าง [${fileName}] (${version}) แล้ว (ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design)`);
+                }
+            },
+
+            upgradeBlueprintToV2(bpId) {
+                if (!DB.blueprints) return;
+                const bp = DB.blueprints.find(b => b.id === bpId || String(b.id) === String(bpId));
+                if (!bp) {
+                    this.showToast('❌ ไม่พบแบบแปลนที่ระบุ');
+                    return;
+                }
+                const now = new Date();
+                const nowIso = now.toISOString();
+                const formattedDateTime = this.formatDateTimeDMY(nowIso, false, true);
+                const prevVer = bp.version || 'v1.0 (แบบร่าง)';
+                bp.version = 'v2.0 Final (Approved)';
+                bp.uploadedAt = formattedDateTime;
+                if (!bp.version_history) {
+                    bp.version_history = [];
+                    if (bp.createdAt) {
+                        bp.version_history.push({
+                            version: prevVer,
+                            timestamp: bp.createdAt,
+                            formatted: this.formatDateTimeDMY(bp.createdAt, false, true)
+                        });
+                    }
+                }
+                bp.version_history.push({
+                    version: 'v2.0 Final (Approved)',
+                    timestamp: nowIso,
+                    formatted: formattedDateTime
+                });
+
+                const jobId = this.state.unifiedStudioJobId || bp.jobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (job) {
+                    if (!job.step_timestamps) job.step_timestamps = {};
+                    if (!job.step_timestamps.step2_design_at) job.step_timestamps.step2_design_at = nowIso;
+                    job.step2_passed = this.isDesignFinalV2(job);
+                }
+
+                this.persistJobs();
+                this.renderUnifiedBlueprintsGrid();
+                this.renderUnifiedBOQTable();
+                this.updateUnifiedStudioTabs();
+                this.updateUnifiedStudioIndicators();
+                this.updateStepBadges();
+                this.showToast(`⭐ อัปเดตแบบแปลน [${bp.fileName || bp.notes || bp.id}] เป็น v2.0 Final เรียบร้อย! ปลดล็อคขั้นตอน BOQ แล้ว`);
             },
 
             deleteUnifiedBlueprint(bpId) {
@@ -6954,12 +7139,12 @@ const app = {
                     DB.blueprints.splice(idx, 1);
                     const jobId = this.state.unifiedStudioJobId;
                     const job = (DB.jobs || []).find(j => j.id === jobId);
-                    const remainingBps = (DB.blueprints || []).filter(b => b.jobId === jobId);
-                    if (job && remainingBps.length === 0 && !this.isQuickJob(job)) {
-                        job.step2_passed = false;
+                    if (job) {
+                        job.step2_passed = this.isDesignFinalV2(job);
                     }
                     this.persistJobs();
                     this.renderUnifiedBlueprintsGrid();
+                    this.renderUnifiedBOQTable();
                     this.updateUnifiedStudioTabs();
                     this.updateUnifiedStudioIndicators();
                     this.updateStepBadges();
@@ -6992,9 +7177,47 @@ const app = {
 
                 if (!job.boq_items) job.boq_items = [];
 
+                const isFinalV2 = this.isDesignFinalV2(job);
                 const countBadge = document.getElementById('unified-boq-count-badge');
                 if (countBadge) {
-                    countBadge.textContent = job.boq_items.length === 0 ? 'Blank BOQ' : `${job.boq_items.length} รายการ`;
+                    if (!isFinalV2) {
+                        countBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-50 text-amber-900 border border-amber-300 shadow-2xs flex items-center gap-1';
+                        countBadge.innerHTML = '<i class="ph ph-lock-key text-amber-700"></i> รอ Design v2.0';
+                    } else {
+                        countBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-purple-50 text-foreground border border-purple-300 shadow-2xs';
+                        countBadge.textContent = job.boq_items.length === 0 ? 'Blank BOQ' : `${job.boq_items.length} รายการ`;
+                    }
+                }
+
+                // Manage locked banner container if present in DOM
+                const bannerContainer = document.getElementById('unified-boq-locked-banner-container');
+                if (bannerContainer) {
+                    if (!isFinalV2) {
+                        bannerContainer.className = 'p-4 rounded-xl border border-amber-300 bg-amber-50/95 text-foreground flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs';
+                        bannerContainer.innerHTML = `
+                            <div class="flex items-start gap-3">
+                                <div class="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0 text-lg border border-amber-400/40">
+                                    <i class="ph ph-warning-bold"></i>
+                                </div>
+                                <div class="space-y-0.5">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <h5 class="font-bold text-xs sm:text-sm text-amber-950">ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design</h5>
+                                        <span class="px-2 py-0.2 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900 font-mono">Design Draft Pending</span>
+                                    </div>
+                                    <p class="text-xs text-amber-900 leading-relaxed">
+                                        โครงการ Renovate จำเป็นต้องอัปเดตไฟล์แบบแปลน (Design) ใน Step 2 ให้เป็นเวอร์ชัน <strong>v2.0 (Final / Approved)</strong> ก่อน จึงจะสามารถเพิ่มหรือนำเข้ารายการ BOQ ได้
+                                    </p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="app.scrollUnifiedStudioTo('design')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shrink-0 cursor-pointer transition flex items-center gap-1.5 shadow-2xs">
+                                <i class="ph ph-arrow-up-right-bold"></i>
+                                <span>ไปที่แท็บ Design เพื่ออัปเดต</span>
+                            </button>
+                        `;
+                    } else {
+                        bannerContainer.className = 'hidden';
+                        bannerContainer.innerHTML = '';
+                    }
                 }
 
                 if (job.boq_items.length === 0) {
@@ -7002,13 +7225,20 @@ const app = {
                     <tr>
                         <td colspan="6" class="py-10 px-4 text-center bg-card">
                             <div class="flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                                <div class="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center text-2xl mb-1 border border-purple-500/20 shadow-2xs">
-                                    <i class="ph ph-calculator"></i>
+                                <div class="w-12 h-12 rounded-2xl ${isFinalV2 ? 'bg-purple-500/10 text-purple-600 border border-purple-500/20' : 'bg-amber-500/10 text-amber-700 border border-amber-500/30'} flex items-center justify-center text-2xl mb-1 shadow-2xs">
+                                    <i class="ph ${isFinalV2 ? 'ph-calculator' : 'ph-lock-key'}"></i>
                                 </div>
-                                <span class="text-xs font-bold text-foreground">ยังไม่มีรายการประมาณการราคา BOQ (Blank BOQ)</span>
+                                <span class="text-xs font-bold text-foreground">${isFinalV2 ? 'ยังไม่มีรายการประมาณการราคา BOQ (Blank BOQ)' : 'ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design'}</span>
                                 <p class="text-[11px] text-muted-foreground max-w-md">
-                                    เริ่มต้นจัดทำ BOQ โดยกดปุ่ม <strong class="text-purple-600 font-semibold">+ เพิ่มรายการ</strong> หรือกด <strong class="text-purple-600 font-semibold">📥 นำเข้า Excel / vFIX</strong> ด้านบน
+                                    ${isFinalV2 
+                                        ? 'เริ่มต้นจัดทำ BOQ โดยกดปุ่ม <strong class="text-purple-600 font-semibold">+ เพิ่มรายการ</strong> หรือกด <strong class="text-purple-600 font-semibold">📥 นำเข้า Excel / vFIX</strong> ด้านบน'
+                                        : 'กรุณาไปที่ขั้นตอนที่ 2 (Design) เพื่ออัปเดตแบบแปลนเป็น <strong>v2.0 Approved (แบบสมบูรณ์)</strong> หรือกดปุ่ม <strong>⭐ อัปเดตเป็น v2.0 Final</strong> บนการ์ดแบบแปลนเพื่อปลดล็อคขั้นตอน BOQ'}
                                 </p>
+                                ${!isFinalV2 ? `
+                                    <button type="button" onclick="app.scrollUnifiedStudioTo('design')" class="mt-2 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white cursor-pointer transition flex items-center gap-1 shadow-xs">
+                                        <i class="ph ph-paint-brush"></i> ไปยังส่วนจัดการแบบแปลน (Design)
+                                    </button>
+                                ` : ''}
                             </div>
                         </td>
                     </tr>
@@ -7057,6 +7287,11 @@ const app = {
             addUnifiedBOQItem() {
                 const job = this.getUnifiedStudioJob();
                 if (!job) return;
+                if (!this.isDesignFinalV2(job)) {
+                    this.showToast('⚠️ ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design');
+                    this.scrollUnifiedStudioTo('design');
+                    return;
+                }
                 if (!job.boq_items) job.boq_items = [];
                 job.boq_items.push({
                     id: job.boq_items.length + 1,
@@ -7226,9 +7461,10 @@ const app = {
                 const badgeDesign = document.getElementById('unified-step-design-badge');
                 const titleDesign = document.getElementById('unified-step-design-title');
                 const descDesign = document.getElementById('unified-ind-design-desc');
+                const isFinalV2 = this.isDesignFinalV2(job);
                 if (descDesign) {
-                    if (bps.length > 0) {
-                        descDesign.innerText = `แนบแล้ว ${bps.length} แบบ (CAD/PDF)`;
+                    if (isFinalV2) {
+                        descDesign.innerText = `มีแบบ v2.0 Final แล้ว (${bps.length} แบบ)`;
                         if (indDesign) indDesign.className = 'flex items-center gap-2 p-2 rounded-xl bg-emerald-50 border border-emerald-300 text-foreground font-bold shadow-2xs';
                         if (badgeDesign) {
                             badgeDesign.className = 'w-6 h-6 rounded-lg bg-emerald-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0';
@@ -7241,8 +7477,15 @@ const app = {
                             badgeDesign.className = 'w-6 h-6 rounded-lg bg-muted text-foreground border border-border text-[11px] font-bold flex items-center justify-center shrink-0';
                             badgeDesign.innerText = '2';
                         }
+                    } else if (bps.length > 0) {
+                        descDesign.innerText = `แนบ ${bps.length} แบบ (รอ v2.0 Final)`;
+                        if (indDesign) indDesign.className = 'flex items-center gap-2 p-2 rounded-xl bg-amber-50 border border-amber-300 text-foreground font-bold shadow-2xs';
+                        if (badgeDesign) {
+                            badgeDesign.className = 'w-6 h-6 rounded-lg bg-amber-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0';
+                            badgeDesign.innerText = '!';
+                        }
                     } else {
-                        descDesign.innerText = 'ยังไม่มีแบบแนบ';
+                        descDesign.innerText = 'ยังไม่มีแบบแนบ (รอ v2.0)';
                         if (indDesign) indDesign.className = 'flex items-center gap-2 p-2 rounded-xl bg-indigo-50 border border-indigo-300 text-foreground font-bold shadow-2xs';
                         if (badgeDesign) {
                             badgeDesign.className = 'w-6 h-6 rounded-lg bg-indigo-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0';
@@ -7251,13 +7494,21 @@ const app = {
                     }
                 }
 
-                // Step 3: BOQ Indicator (Strict Status: ผ่าน vs ยังไม่ผ่าน)
+                // Step 3: BOQ Indicator (Strict Status: ผ่าน vs ยังไม่ผ่าน vs รอ Design v2.0)
                 const indBoq = document.getElementById('unified-step-boq-ind');
                 const badgeBoq = document.getElementById('unified-step-boq-badge');
                 const titleBoq = document.getElementById('unified-step-boq-title');
                 const descBoq = document.getElementById('unified-ind-boq-desc');
                 if (descBoq) {
-                    if (hasBOQ) {
+                    if (!isQuick && !isFinalV2) {
+                        descBoq.innerText = '🔒 ยังไม่สามารถทำ BOQ ได้ (รอ v2.0 Final)';
+                        if (indBoq) indBoq.className = 'flex items-center gap-2 p-2 rounded-xl bg-amber-50 border border-amber-300 text-foreground font-bold shadow-2xs';
+                        if (badgeBoq) {
+                            badgeBoq.className = 'w-6 h-6 rounded-lg bg-amber-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0';
+                            badgeBoq.innerHTML = '<i class="ph ph-lock-key"></i>';
+                        }
+                        if (titleBoq) titleBoq.innerHTML = '3. ประมาณการ BOQ <span class="text-[10px] text-amber-800 font-bold ml-1">(รอ Design v2.0 🔒)</span>';
+                    } else if (hasBOQ) {
                         descBoq.innerText = `${boqItems.length} รายการ (฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})`;
                         if (indBoq) indBoq.className = 'flex items-center gap-2 p-2 rounded-xl bg-emerald-50 border border-emerald-300 text-foreground font-bold shadow-2xs';
                         if (badgeBoq) {
@@ -7321,18 +7572,46 @@ const app = {
                     if (closeLostBtn) closeLostBtn.classList.remove('hidden');
                     if (saveBtn) saveBtn.classList.remove('hidden');
 
-                    // Renovate Projects: Allow proceeding to Step 2 (บันทึก Ticket)
-                    if (proceedBtn) {
-                        proceedBtn.disabled = false;
-                        proceedBtn.className = 'flex-1 sm:flex-none btn-artifact-primary px-6 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white cursor-pointer shadow-md transition flex items-center justify-center gap-2';
-                        proceedBtn.title = 'อนุมัติข้อเสนอคำสั่งซื้อและส่งต่อไปยัง Step 2 (บันทึก Ticket)';
-                    }
-                    if (proceedBtnText) {
-                        proceedBtnText.innerHTML = '<i class="ph ph-paper-plane-tilt text-sm font-bold"></i> อนุมัติ & ส่งต่อไปเปิด Ticket';
-                    }
-                    if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
-                    if (validationMsg) {
-                        validationMsg.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ บันทึก BOQ เรียบร้อย พร้อมส่งต่อ Step 2 (บันทึก Ticket)</span>';
+                    // Renovate Projects: Check Design v2.0 Final gating first
+                    if (!isFinalV2) {
+                        if (proceedBtn) {
+                            proceedBtn.disabled = true;
+                            proceedBtn.className = 'flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-bold bg-muted text-muted-foreground cursor-not-allowed border border-border flex items-center justify-center gap-2 opacity-70';
+                            proceedBtn.title = 'ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design';
+                        }
+                        if (proceedBtnText) {
+                            proceedBtnText.innerHTML = '<i class="ph ph-lock-key text-sm font-bold"></i> รอ Design v2.0 Final';
+                        }
+                        if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse';
+                        if (validationMsg) {
+                            validationMsg.innerHTML = '<span class="text-amber-700 font-bold">⚠️ ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design</span>';
+                        }
+                    } else if (!hasBOQ) {
+                        if (proceedBtn) {
+                            proceedBtn.disabled = true;
+                            proceedBtn.className = 'flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-bold bg-muted text-muted-foreground cursor-not-allowed border border-border flex items-center justify-center gap-2 opacity-70';
+                            proceedBtn.title = 'กรุณากรอกรายการ BOQ อย่างน้อย 1 รายการก่อนส่งต่อ';
+                        }
+                        if (proceedBtnText) {
+                            proceedBtnText.innerHTML = '<i class="ph ph-lock-key text-sm font-bold"></i> รอจัดทำรายการ BOQ';
+                        }
+                        if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse';
+                        if (validationMsg) {
+                            validationMsg.innerHTML = '<span class="text-rose-700 font-bold">❌ ยังไม่มีรายการ BOQ (กรุณาเพิ่มรายการ BOQ ก่อนส่งต่อ)</span>';
+                        }
+                    } else {
+                        if (proceedBtn) {
+                            proceedBtn.disabled = false;
+                            proceedBtn.className = 'flex-1 sm:flex-none btn-artifact-primary px-6 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white cursor-pointer shadow-md transition flex items-center justify-center gap-2';
+                            proceedBtn.title = 'อนุมัติข้อเสนอคำสั่งซื้อและส่งต่อไปยัง Step 2 (บันทึก Ticket)';
+                        }
+                        if (proceedBtnText) {
+                            proceedBtnText.innerHTML = '<i class="ph ph-paper-plane-tilt text-sm font-bold"></i> อนุมัติ & ส่งต่อไปเปิด Ticket';
+                        }
+                        if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
+                        if (validationMsg) {
+                            validationMsg.innerHTML = '<span class="text-emerald-700 font-bold">✓ บันทึก BOQ เรียบร้อย พร้อมส่งต่อ Step 2 (บันทึก Ticket)</span>';
+                        }
                     }
                 }
                 this.updateUnifiedStudioTabs();
@@ -7509,6 +7788,19 @@ const app = {
                 // For Quick Service: Save and immediately fast-track to QC!
                 if (isQuick) {
                     this.saveUnifiedOrderStudio();
+                    return;
+                }
+
+                if (!this.isDesignFinalV2(job)) {
+                    this.showToast('⚠️ ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design');
+                    this.scrollUnifiedStudioTo('design');
+                    return;
+                }
+
+                const boqItems = job.boq_items || [];
+                if (boqItems.length === 0) {
+                    this.showToast('⚠️ กรุณาจัดทำรายการ BOQ อย่างน้อย 1 รายการก่อนส่งต่อ');
+                    this.scrollUnifiedStudioTo('boq');
                     return;
                 }
 
@@ -12935,6 +13227,14 @@ const app = {
 
             openImportBOQModal(jobId) {
                 const targetJobId = jobId || this.state.currentJobId;
+                const targetJob = (DB.jobs || []).find(j => j.id === targetJobId);
+                if (targetJob && !this.isDesignFinalV2(targetJob)) {
+                    this.showToast('⚠️ ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design');
+                    if (this.state.currentView === 'unified_studio' || (document.getElementById('modal-unified-order-studio') && document.getElementById('modal-unified-order-studio').classList.contains('active'))) {
+                        this.scrollUnifiedStudioTo('design');
+                    }
+                    return;
+                }
                 this.state.importBOQJobId = targetJobId;
                 
                 // Reset file input and preview
@@ -12958,7 +13258,6 @@ const app = {
                 this.switchBOQImportTab('file');
 
                 // Update Target Job info badge in modal to make customer protection obvious
-                const targetJob = DB.jobs.find(j => j.id === targetJobId);
                 const targetJobIdEl = document.getElementById('boq-target-job-id');
                 const targetJobCustEl = document.getElementById('boq-target-job-customer');
                 const targetJobServEl = document.getElementById('boq-target-job-service');
@@ -13634,6 +13933,11 @@ const app = {
                 const job = DB.jobs.find(j => j.id === targetJobId);
                 if (!job) {
                     this.showToast('⚠️ ไม่พบข้อมูล Job ที่ต้องการนำเข้า');
+                    return;
+                }
+
+                if (!this.isDesignFinalV2(job)) {
+                    this.showToast('⚠️ ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design');
                     return;
                 }
 
@@ -16862,6 +17166,11 @@ const app = {
                     return;
                 }
 
+                if (!this.isDesignFinalV2(job)) {
+                    this.showToast('⚠️ ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design');
+                    return;
+                }
+
                 // Populate modal job select
                 const selectEl = document.getElementById('modal-boq-job-select');
                 if (selectEl) {
@@ -17121,6 +17430,12 @@ const app = {
             },
 
             addModalBOQRow() {
+                const jobId = this.state.modalBOQJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (job && !this.isDesignFinalV2(job)) {
+                    this.showToast('⚠️ ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design');
+                    return;
+                }
                 if (!this.state.modalBOQItems) this.state.modalBOQItems = [];
                 this.state.modalBOQItems.push({
                     name: 'งานบริการติดตั้งเพิ่มเติม',
@@ -17136,6 +17451,12 @@ const app = {
             },
 
             addQuickBOQItem(name, isLabor, price, unit = 'ชุด') {
+                const jobId = this.state.modalBOQJobId;
+                const job = (DB.jobs || []).find(j => j.id === jobId);
+                if (job && !this.isDesignFinalV2(job)) {
+                    this.showToast('⚠️ ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design');
+                    return;
+                }
                 if (!this.state.modalBOQItems) this.state.modalBOQItems = [];
                 this.state.modalBOQItems.push({
                     name: name,
@@ -17685,6 +18006,12 @@ const app = {
             },
 
             addBOQItemToPage() {
+                const targetJobId = this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : null);
+                const job = (DB.jobs || []).find(j => j.id === targetJobId);
+                if (job && !this.isDesignFinalV2(job)) {
+                    this.showToast('⚠️ ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design');
+                    return;
+                }
                 this.openManageBOQModal(this.state.boqSelectedJobId);
                 this.addModalBOQRow();
             },

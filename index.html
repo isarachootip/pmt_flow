@@ -5630,6 +5630,27 @@
                                 </div>
                             </details>
 
+                            <!-- Q9B: Design v2.0 Final Gating Rule Before BOQ -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q9B:</span>
+                                        <span>ทำไมระบบจึงไม่อนุญาตให้เพิ่มหรือนำเข้า BOQ หากแบบแปลน Design ยังไม่เป็นเวอร์ชัน v2.0 (Final) และมีระบบบันทึกวัน-เวลาอย่างไร?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-2">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> เพื่อป้องกันข้อผิดพลาดในการถอดปริมาณงานและประมาณการราคา (BOQ) จากแบบร่างที่ยังไม่นิ่งหรือยังไม่ผ่านการอนุมัติขั้นสุดท้าย ระบบ PMT Flow จึงมีกฎเกณฑ์ตรวจสอบความปลอดภัย <strong>(Design v2.0 Final Gating Rule)</strong> ดังนี้:</p>
+                                    <ul class="list-disc list-inside space-y-1.5 pl-1 text-[11px]">
+                                        <li><strong>เกณฑ์บังคับก่อนเริ่มทำ BOQ (Renovate Gating):</strong> สำหรับโครงการปรับปรุง (Renovate) ผู้ใช้งานจะไม่สามารถเพิ่มรายการ BOQ (<code class="bg-muted px-1.5 py-0.5 rounded font-bold text-purple-700">+ เพิ่มรายการ</code>), นำเข้าไฟล์ (<code class="bg-muted px-1.5 py-0.5 rounded font-bold text-purple-700">📥 นำเข้า Excel / vFIX</code>), หรือสลับข้ามไปยังขั้นตอน BOQ ได้ จนกว่าจะมีไฟล์แบบแปลนในส่วน Step 2 (Design) ที่ได้รับการรับรองเป็นเวอร์ชัน <strong>v2.0 (Final / Approved)</strong> อย่างน้อย 1 ไฟล์</li>
+                                        <li><strong>การแจ้งเตือนอย่างชัดเจน:</strong> หากยังไม่ผ่านเกณฑ์ ระบบจะบล็อกการทำงานและแสดงข้อความแจ้งเตือนสีส้มชัดเจนว่า: <code class="bg-amber-50 text-amber-900 border border-amber-300 px-2 py-0.5 rounded font-bold text-[11px]">⚠️ ยังไม่สามารถทำ BOQ ได้เพราะยังไม่ final version v2.0 Design</code> พร้อมปุ่มทางลัดสลับกลับไปยังหน้าจอแบบแปลนทันที</li>
+                                        <li><strong>การบันทึกวันและเวลาอย่างละเอียด (Strict 24-Hour & History Tracking):</strong> ทุกแบบแปลนและทุกเวอร์ชัน (เช่น Draft v1.0, Revision v1.1, Final v2.0) ระบบจะบันทึกประวัติการปรับปรุง วันที่และเวลาในระบบ 24 ชั่วโมง (<code class="bg-muted px-1.5 py-0.5 rounded font-mono text-[10px]">DD/MM/YYYY HH:mm น.</code>) ไว้อย่างโปร่งใส สามารถตรวจสอบได้ว่าอัปเดตเมื่อใดและใครเป็นผู้อนุมัติ</li>
+                                        <li><strong>ปุ่มลัดอัปเกรด 1 คลิก (1-Click Upgrade to v2.0 Final):</strong> หากแบบร่างผ่านการตรวจสอบแล้ว สามารถกดปุ่ม <code class="bg-emerald-600 text-white px-2 py-0.5 rounded font-bold text-[10px]">⭐ อัปเดตเป็น v2.0 Final (ปลดล็อค BOQ)</code> บนการ์ดแบบแปลนได้ทันที เพื่อบันทึกประวัติและปลดล็อกการทำ BOQ ทันที</li>
+                                        <li><strong>ข้อยกเว้นสำหรับงานบริการด่วน (Quick Services Bypass):</strong> งานบริการด่วน (Quick Services เช่น ล้างแอร์, ติดตั้ง Digital Door Lock) ไม่ต้องใช้แบบแปลน CAD/3D จึงได้รับการยกเว้นและสามารถจัดทำ BOQ หรือเปิด Ticket ได้โดยไม่ต้องรอแบบแปลน v2.0</li>
+                                    </ul>
+                                </div>
+                            </details>
+
                             <!-- Q10: Date Format Standard DD/MM/YYYY & Flatpickr Engine -->
                             <details class="p-4 rounded-xl bg-muted/30 border border-border group">
                                 <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
@@ -8539,9 +8560,9 @@
                             <div>
                                 <label class="block text-xs font-semibold text-foreground mb-1">เวอร์ชันแบบ</label>
                                 <select id="unified-design-version-select" class="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500">
-                                    <option value="v1.0">v1.0 (แบบร่างเริ่มต้น)</option>
-                                    <option value="v1.1">v1.1 (ปรับแก้ขนาด)</option>
-                                    <option value="v2.0 Approved" selected>v2.0 Approved (แบบสมบูรณ์)</option>
+                                    <option value="v1.0">v1.0 (แบบร่างเริ่มต้น - Draft)</option>
+                                    <option value="v1.1">v1.1 (ปรับแก้ขนาด - Revision)</option>
+                                    <option value="v2.0 Approved" selected>v2.0 Approved (แบบสมบูรณ์ - Final Design)</option>
                                 </select>
                             </div>
                             <div class="sm:col-span-2">
@@ -8595,6 +8616,9 @@
                             </button>
                         </div>
                     </div>
+
+                    <!-- BOQ Locked Warning Banner Container (Controlled via JS) -->
+                    <div id="unified-boq-locked-banner-container" class="hidden"></div>
 
                     <!-- BOQ Items Table (Spacious Scrollable Table with Sticky Header & Scrollbar) -->
                     <div id="unified-boq-table-container" class="overflow-y-auto overflow-x-auto max-h-[460px] sm:max-h-[520px] rounded-xl border border-border bg-card shadow-xs custom-scrollbar relative">
