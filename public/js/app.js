@@ -15024,7 +15024,7 @@ const app = {
                 this.recordStepTimestamp(targetJobId, 'step3_conversion_at', new Date().toISOString(), `แปลง BOQ เป็นแผนงาน Task ${selectedTasks.length} รายการ`);
                 this.recordStepTimestamp(targetJobId, 'step5_project_at', new Date().toISOString(), `แปลง BOQ เป็นแผนงาน Task ${selectedTasks.length} รายการ`);
                 this.addJobActivityLog(targetJobId, 3, 'แปลง BOQ เป็นแผนงานโครงการ', `แปลงรายการ BOQ เป็นแผนงาน ${selectedTasks.length} รายการ กำหนดช่างและวันเวลาเรียบร้อย`);
-                this.ensureQCDraftForRenovate(targetJobId);
+                this.ensureQCPendingForRenovate(targetJobId);
                 this.persistJobs();
                 this.syncQCBookingsFromTasks();
                 this.updateQCDashboard();
@@ -19244,7 +19244,7 @@ const app = {
                 // Ensure every Renovate job that has tasks is initialized as Draft QC
                 const distinctJobIds = new Set(tasks.map(t => t.jobId).filter(Boolean));
                 distinctJobIds.forEach(jId => {
-                    this.ensureQCDraftForRenovate(jId);
+                    this.ensureQCPendingForRenovate(jId);
                 });
 
                 this.persistJobs();
@@ -23057,76 +23057,38 @@ const app = {
                 if (this.state.currentView === 'gantt') this.renderGantt();
             },
 
-            ensureQCDraftForRenovate(jobId) {
+            ensureQCPendingForRenovate(jobId) {
                 if (!jobId) return;
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return;
-                if (this.isQuickJob(job)) return; // Only Renovate projects qualify
+                if (this.isQuickJob(job)) return;
 
-                job.qc_draft = true;
-                if (!job.status || (job.status !== 'QC_PASSED' && job.status !== 'QC_REWORK' && job.status !== 'QC_CONFIRMED')) {
-                    job.status = 'DRAFT_QC';
-                }
-                if (!job.qc_status || (job.qc_status !== 'QC_PASSED' && job.qc_status !== 'QC_REWORK' && job.qc_status !== 'QC_CONFIRMED')) {
-                    job.qc_status = 'DRAFT_QC';
-                }
+                // Skip if already in a terminal or advanced QC state
+                const advancedStatuses = ['QC_PENDING','QC_PASSED','QC_REWORK','AFTER_SALE','COMPLETED','CLOSED'];
+                if (advancedStatuses.includes(job.status)) return;
+
+                // Transition Renovate job directly to QC_PENDING — no DRAFT step
+                job.status = 'QC_PENDING';
+                job.qc_draft = false;
+                delete job.qc_status;
 
                 if (!job.step_timestamps) job.step_timestamps = {};
-                if (!job.step_timestamps.qc_draft_at) {
-                    job.step_timestamps.qc_draft_at = new Date().toISOString();
+                if (!job.step_timestamps.qc_pending_at) {
+                    job.step_timestamps.qc_pending_at = new Date().toISOString();
                 }
 
-                const jobTasks = (DB.tasks || []).filter(t => String(t.jobId) === String(job.id));
-                let targetDate = job.date ? job.date.slice(0, 10) : '2026-09-15';
-                if (jobTasks.length > 0) {
-                    const sortedEnd = jobTasks.map(t => t.end || t.start).filter(Boolean).sort();
-                    if (sortedEnd.length > 0) targetDate = sortedEnd[sortedEnd.length - 1];
-                }
+                // Persist to DB immediately — do not rely on memory only
+                fetch(`/api/v1/jobs/${job.id}`, {
+                    method: 'PATCH',
+                    headers: this.getAuthHeaders(),
+                    body: JSON.stringify({
+                        status: 'QC_PENDING',
+                        step_timestamps: job.step_timestamps,
+                        overall_progress: Math.max(job.progress || 0, 85)
+                    })
+                }).catch(err => console.warn('[QC] ensureQCPendingForRenovate PATCH failed:', err));
 
-                if (!job.qc_booking) {
-                    job.qc_booking = {
-                        id: `QCB_${job.id}`,
-                        jobId: job.id,
-                        status: 'PENDING_CONFIRM',
-                        bookingDate: targetDate,
-                        bookingTime: '09:00',
-                        assignedQCTech: 'วิชัย ตรวจดี (ช่าง QC Lead)',
-                        daysBefore: 5,
-                        confirmedAt: null,
-                        confirmedBy: null,
-                        remarks: 'จองคิวช่าง QC อัตโนมัติเมื่อบันทึกโครงการเข้า Gantt Chart'
-                    };
-                }
-
-                // Sync to DB.qcBookings
-                if (!DB.qcBookings) DB.qcBookings = [];
-                let bookingEntry = DB.qcBookings.find(b => b.jobId === job.id);
-                if (bookingEntry) {
-                    bookingEntry.qcBookingDate = job.qc_booking.bookingDate;
-                    bookingEntry.bookingTime = job.qc_booking.bookingTime || '09:00';
-                    bookingEntry.assignedQCTech = job.qc_booking.assignedQCTech;
-                    bookingEntry.status = job.qc_booking.status;
-                    bookingEntry.confirmedAt = job.qc_booking.confirmedAt;
-                    bookingEntry.confirmedBy = job.qc_booking.confirmedBy;
-                } else {
-                    DB.qcBookings.push({
-                        id: `QCB_${job.id}`,
-                        taskId: jobTasks[0] ? jobTasks[0].id : `T_${job.id}_1`,
-                        jobId: job.id,
-                        taskName: `ตรวจรับรองคุณภาพ QC (${job.service})`,
-                        customerName: job.customer,
-                        qcBookingDate: job.qc_booking.bookingDate,
-                        bookingTime: job.qc_booking.bookingTime || '09:00',
-                        daysBefore: 5,
-                        assignedTech: job.tech || 'Team A (สมศักดิ์)',
-                        assignedQCTech: job.qc_booking.assignedQCTech,
-                        status: job.qc_booking.status,
-                        confirmedAt: job.qc_booking.confirmedAt,
-                        confirmedBy: job.qc_booking.confirmedBy,
-                        remarks: job.qc_booking.remarks || '',
-                        createdAt: new Date().toISOString()
-                    });
-                }
+                this.persistJobs();
             },
 
             renderQC(jobList = null) {
@@ -23157,37 +23119,33 @@ const app = {
                         : 'py-1.5 px-3 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground';
                 }
 
-                // Get all jobs that qualify for QC (including Renovate in Gantt created as Draft QC)
+                // Get all jobs that qualify for QC
                 let list = jobList || (DB.jobs || []).filter(j => {
                     const isQuick = this.isQuickJob(j);
                     const isRenoInGantt = !isQuick && (
                         (j.step_timestamps && j.step_timestamps.step5_project_at) ||
-                        (DB.tasks || []).some(t => t.jobId === j.id) ||
-                        j.qc_draft ||
-                        j.qc_status === 'DRAFT_QC' ||
-                        j.status === 'DRAFT_QC' ||
-                        j.status === 'QC_CONFIRMED' ||
-                        (DB.qcBookings || []).some(b => b.jobId === j.id)
+                        (DB.tasks || []).some(t => t.jobId === j.id)
                     );
 
-                    return j.status === 'QC_PENDING' || 
-                           j.status === 'QC_PASSED' || 
+                    return j.status === 'QC_PENDING' ||
+                           j.status === 'QC_PASSED' ||
                            j.status === 'QC_REWORK' ||
+                           // backward compat: old DRAFT_QC / QC_CONFIRMED jobs → treat as QC_PENDING
                            j.status === 'DRAFT_QC' ||
-                           j.qc_status === 'DRAFT_QC' ||
-                           j.qc_status === 'QC_CONFIRMED' ||
+                           j.status === 'QC_CONFIRMED' ||
                            isRenoInGantt ||
                            (j.step_timestamps && (j.step_timestamps.qc_pending_at || j.step_timestamps.qc_draft_at)) ||
                            (j.qc_subtasks && j.qc_subtasks.length > 0) ||
                            (j.progress >= 100 && j.status !== 'CLOSED' && j.status !== 'AFTER_SALE');
                 });
 
-                // Auto-ensure Renovate jobs have Draft QC setup
+                // Auto-migrate Renovate jobs to QC_PENDING and save to DB
                 list.forEach(j => {
                     if (!this.isQuickJob(j)) {
-                        this.ensureQCDraftForRenovate(j.id);
+                        this.ensureQCPendingForRenovate(j.id);
                     }
                 });
+
 
                 // Auto-seed mock jobs if empty on first load so users immediately see data
                 if (list.length === 0 && (!jobList)) {
@@ -23278,7 +23236,7 @@ const app = {
                         const isRework = j.status === 'QC_REWORK' || reworkCount > 0 || (j.rework_count && j.rework_count > 0) || !!j.has_rework || history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
 
                         if (statusFilter === 'PENDING') {
-                            return (j.status === 'QC_PENDING' || j.status === 'DRAFT_QC' || j.qc_status === 'DRAFT_QC' || j.status === 'QC_CONFIRMED') && !isRework && j.status !== 'QC_PASSED';
+                            return (j.status === 'QC_PENDING' || j.status === 'DRAFT_QC' || j.status === 'QC_CONFIRMED') && !isRework && j.status !== 'QC_PASSED';
                         } else if (statusFilter === 'PASSED') {
                             return j.status === 'QC_PASSED';
                         } else if (statusFilter === 'REWORK') {
@@ -23403,10 +23361,6 @@ const app = {
                     const completedCount = progress.completed;
                     const avgScore = progress.averageScore;
 
-                    const booking = j.qc_booking || {};
-                    const isDraftQC = !isQuick && (j.status === 'DRAFT_QC' || j.qc_status === 'DRAFT_QC' || booking.status !== 'CONFIRMED') && (j.status !== 'QC_PASSED' && j.status !== 'QC_REWORK');
-                    const isQCConfirmed = !isQuick && (j.qc_status === 'QC_CONFIRMED' || booking.status === 'CONFIRMED') && (j.status !== 'QC_PASSED' && j.status !== 'QC_REWORK');
-
                     // Status Badge
                     const history = Array.isArray(j.qc_history) ? j.qc_history : [];
                     const reworkCount = history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (j.qc_rework_count || j.rework_count || 0);
@@ -23442,11 +23396,6 @@ const app = {
                                 ${roundBadge}
                             </div>
                         `;
-                    } else if (isDraftQC) {
-                        statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 inline-flex items-center gap-1 animate-pulse"><i class="ph ph-calendar-plus"></i> Draft QC (รอ Confirm ช่าง)</span>`;
-                    } else if (isQCConfirmed) {
-                        const bDateStr = booking.bookingDate ? this.formatDateDMY(booking.bookingDate) : '';
-                        statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 inline-flex items-center gap-1"><i class="ph ph-check-circle"></i> Confirm ช่างแล้ว ${bDateStr ? `(${bDateStr})` : ''}</span>`;
                     } else {
                         if (isQuick) {
                             statusBadge = `
@@ -23469,9 +23418,7 @@ const app = {
                     const formattedDate = this.formatDateDMY(qcDateStr);
                     const slaCalc = this.calculateJobSLA(j, 5);
 
-                    const bookingTechDisplay = booking.assignedQCTech || j.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)';
-
-                    // Action Button
+                    // Action Button — all jobs: ตรวจประเมิน QC (no more จองช่าง step)
                     let actionButtonHtml = '';
                     if (j.status === 'QC_PASSED') {
                         actionButtonHtml = `
@@ -23485,13 +23432,6 @@ const app = {
                                     <span>STK API</span>
                                 </button>
                             </div>
-                        `;
-                    } else if (isDraftQC) {
-                        actionButtonHtml = `
-                            <button onclick="event.stopPropagation(); app.openQCDetailModal('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 bg-amber-600 hover:bg-amber-700 text-white cursor-pointer shadow-xs transition hover:scale-105" title="จองช่าง QC และยืนยันคิว">
-                                <i class="ph ph-calendar-check"></i>
-                                <span>จองช่าง & Confirm</span>
-                            </button>
                         `;
                     } else {
                         actionButtonHtml = `
@@ -23510,11 +23450,6 @@ const app = {
                                 ${isTopNew ? `
                                     <span class="badge-new-item text-[9px] py-0 px-1.5 font-bold uppercase bg-gradient-to-r from-rose-500 to-amber-500 text-white shadow-xs select-none" title="รายการใหม่ล่าสุด (NEW!)">
                                         <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
-                                    </span>
-                                ` : ''}
-                                ${isDraftQC ? `
-                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                                        DRAFT QC
                                     </span>
                                 ` : ''}
                             </div>
@@ -23571,10 +23506,10 @@ const app = {
                                     ${actionButtonHtml}
                                 </div>
                                 <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                                    <div class="${j.status === 'QC_PASSED' ? 'bg-emerald-500' : 'bg-gradient-to-r from-amber-500 to-emerald-500'} h-1.5 rounded-full transition-all" style="width: ${progress.percent || (isQCConfirmed ? 30 : 10)}%"></div>
+                                    <div class="${j.status === 'QC_PASSED' ? 'bg-emerald-500' : 'bg-gradient-to-r from-amber-500 to-emerald-500'} h-1.5 rounded-full transition-all" style="width: ${progress.percent || 10}%"></div>
                                 </div>
                                 <div class="text-[10px] font-mono text-muted-foreground flex items-center justify-between">
-                                    <span>${isDraftQC ? 'ตั้ง Draft:' : 'เข้า QC:'} ${formattedDate}</span>
+                                    <span>เข้า QC: ${formattedDate}</span>
                                     <span>${progress.percent}%</span>
                                 </div>
                             </div>
@@ -23592,30 +23527,20 @@ const app = {
                     const isQuick = this.isQuickJob(j);
                     const isRenoInGantt = !isQuick && (
                         (j.step_timestamps && j.step_timestamps.step5_project_at) ||
-                        (DB.tasks || []).some(t => t.jobId === j.id) ||
-                        j.qc_draft ||
-                        j.qc_status === 'DRAFT_QC' ||
-                        j.status === 'DRAFT_QC' ||
-                        j.status === 'QC_CONFIRMED' ||
-                        (DB.qcBookings || []).some(b => b.jobId === j.id)
+                        (DB.tasks || []).some(t => t.jobId === j.id)
                     );
 
-                    return j.status === 'QC_PENDING' || 
-                           j.status === 'QC_PASSED' || 
+                    return j.status === 'QC_PENDING' ||
+                           j.status === 'QC_PASSED' ||
                            j.status === 'QC_REWORK' ||
                            j.status === 'DRAFT_QC' ||
-                           j.qc_status === 'DRAFT_QC' ||
-                           j.qc_status === 'QC_CONFIRMED' ||
+                           j.status === 'QC_CONFIRMED' ||
                            isRenoInGantt ||
                            (j.step_timestamps && (j.step_timestamps.qc_pending_at || j.step_timestamps.qc_draft_at)) ||
                            (j.qc_subtasks && j.qc_subtasks.length > 0) ||
                            (j.progress >= 100 && j.status !== 'CLOSED' && j.status !== 'AFTER_SALE');
                 });
 
-                // Auto-ensure Renovate jobs have Draft QC
-                qcJobs.forEach(j => {
-                    if (!this.isQuickJob(j)) this.ensureQCDraftForRenovate(j.id);
-                });
 
                 const totalCount = qcJobs.length;
 
@@ -23796,20 +23721,14 @@ const app = {
                     const isQuick = this.isQuickJob(j);
                     const isRenoInGantt = !isQuick && (
                         (j.step_timestamps && j.step_timestamps.step5_project_at) ||
-                        (DB.tasks || []).some(t => t.jobId === j.id) ||
-                        j.qc_draft ||
-                        j.qc_status === 'DRAFT_QC' ||
-                        j.status === 'DRAFT_QC' ||
-                        j.status === 'QC_CONFIRMED' ||
-                        (DB.qcBookings || []).some(b => b.jobId === j.id)
+                        (DB.tasks || []).some(t => t.jobId === j.id)
                     );
 
-                    return j.status === 'QC_PENDING' || 
-                           j.status === 'QC_PASSED' || 
+                    return j.status === 'QC_PENDING' ||
+                           j.status === 'QC_PASSED' ||
                            j.status === 'QC_REWORK' ||
                            j.status === 'DRAFT_QC' ||
-                           j.qc_status === 'DRAFT_QC' ||
-                           j.qc_status === 'QC_CONFIRMED' ||
+                           j.status === 'QC_CONFIRMED' ||
                            isRenoInGantt ||
                            (j.step_timestamps && (j.step_timestamps.qc_pending_at || j.step_timestamps.qc_draft_at)) ||
                            (j.qc_subtasks && j.qc_subtasks.length > 0) ||
@@ -24047,7 +23966,7 @@ const app = {
 
                 const isQuick = this.isQuickJob(job);
                 if (!isQuick) {
-                    this.ensureQCDraftForRenovate(job.id);
+                    this.ensureQCPendingForRenovate(job.id);
                 }
 
                 // Render Renovate QC Booking & Dispatch Section
@@ -24097,22 +24016,12 @@ const app = {
                     : (job.qc_passed_at ? this.formatDateTimeDMY(job.qc_passed_at, false, true) : (job.stk_exported_at ? this.formatDateTimeDMY(job.stk_exported_at, false, true) : 'เรียบร้อยแล้ว'));
 
                 if (elStatus) {
-                    const booking = job.qc_booking || {};
-                    const isDraftQC = !isQuick && (job.status === 'DRAFT_QC' || job.qc_status === 'DRAFT_QC' || booking.status !== 'CONFIRMED') && !isPassed && job.status !== 'QC_REWORK';
-                    const isQCConfirmed = !isQuick && (job.qc_status === 'QC_CONFIRMED' || booking.status === 'CONFIRMED') && !isPassed && job.status !== 'QC_REWORK';
-
                     if (isPassed) {
                         elStatus.innerText = job.stk_ref ? `ผ่านเกณฑ์แล้ว (ส่ง STK: ${job.stk_ref})` : 'ผ่านเกณฑ์แล้ว';
                         elStatus.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/30';
                     } else if (job.status === 'QC_REWORK') {
                         elStatus.innerText = 'แจ้งแก้ไขงาน';
                         elStatus.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-700 border border-rose-500/30';
-                    } else if (isDraftQC) {
-                        elStatus.innerText = 'Draft QC (รอ Confirm ช่าง)';
-                        elStatus.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 border border-amber-500/30';
-                    } else if (isQCConfirmed) {
-                        elStatus.innerText = 'Confirm คิวช่างแล้ว';
-                        elStatus.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-500/15 text-indigo-700 border border-indigo-500/30';
                     } else {
                         elStatus.innerText = isQuick ? 'รอตรวจ Online (ภาพถ่าย Visit Plan)' : 'รอตรวจ On-site';
                         elStatus.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 border border-amber-500/30';
@@ -24517,7 +24426,7 @@ const app = {
                 }
                 if (remarksEl) job.qc_booking.remarks = remarksEl.value.trim();
 
-                this.ensureQCDraftForRenovate(targetJobId);
+                this.ensureQCPendingForRenovate(targetJobId);
                 this.persistJobs();
                 this.updateQCDashboard();
                 this.renderQC();
@@ -24526,191 +24435,19 @@ const app = {
             },
 
             confirmQCBooking(jobId) {
-                const targetJobId = jobId || this.state.currentQCModalJobId;
-                const job = (DB.jobs || []).find(j => j.id === targetJobId);
-                if (!job) return;
-
-                const dateEl = document.getElementById('qc-booking-date-input');
-                const timeEl = document.getElementById('qc-booking-time-select');
-                const techEl = document.getElementById('qc-booking-tech-select');
-                const remarksEl = document.getElementById('qc-booking-remarks-input');
-
-                const rawChosenDate = (dateEl && dateEl.value) ? dateEl.value : (job.qc_booking ? job.qc_booking.bookingDate : '2026-09-15');
-                const chosenDate = this.formatDateISO(rawChosenDate) || '2026-09-15';
-                const chosenTime = timeEl ? timeEl.value : '09:00';
-                const chosenTech = techEl ? techEl.value : 'วิชัย ตรวจดี (ช่าง QC Lead)';
-                const chosenRemarks = remarksEl ? remarksEl.value.trim() : '';
-
-                const currentUser = (typeof auth !== 'undefined' && auth.user ? auth.user.name : 'เจ้าหน้าที่ PMT');
-                const nowIso = new Date().toISOString();
-
-                if (!job.qc_booking) job.qc_booking = {};
-                job.qc_booking.status = 'CONFIRMED';
-                job.qc_booking.bookingDate = chosenDate;
-                job.qc_booking.bookingTime = chosenTime;
-                job.qc_booking.assignedQCTech = chosenTech;
-                job.qc_booking.confirmedAt = nowIso;
-                job.qc_booking.confirmedBy = currentUser;
-                job.qc_booking.remarks = chosenRemarks;
-
-                job.qc_inspector = chosenTech;
-                job.qc_status = 'QC_CONFIRMED';
-                if (job.status === 'DRAFT_QC') {
-                    job.status = 'QC_CONFIRMED';
-                }
-
-                // Sync with DB.qcBookings
-                if (!DB.qcBookings) DB.qcBookings = [];
-                let b = DB.qcBookings.find(x => x.jobId === job.id);
-                if (b) {
-                    b.status = 'CONFIRMED';
-                    b.qcBookingDate = chosenDate;
-                    b.bookingTime = chosenTime;
-                    b.assignedQCTech = chosenTech;
-                    b.confirmedAt = nowIso;
-                    b.confirmedBy = currentUser;
-                    b.remarks = chosenRemarks;
-                }
-
-                this.recordStepTimestamp(job.id, 'qc_confirmed_at', nowIso, `ยืนยันการจองช่าง QC (${chosenTech}) วันที่ ${this.formatDateDMY(chosenDate)} เวลา ${chosenTime} น.`);
-                this.persistJobs();
-                this.updateQCDashboard();
-                this.renderQC();
-                this.renderQCBookingSection(job);
-                if (this.state.currentView === 'gantt') this.renderGantt();
-
-                this.showToast(`✅ ยืนยันการจองช่าง QC (${chosenTech}) เรียบร้อยแล้ว`);
+                // QC booking feature removed — จองช่าง workflow ถูกยกเลิกแล้ว
             },
 
             unconfirmQCBooking(jobId) {
-                const targetJobId = jobId || this.state.currentQCModalJobId;
-                const job = (DB.jobs || []).find(j => j.id === targetJobId);
-                if (!job || !job.qc_booking) return;
-
-                job.qc_booking.status = 'PENDING_CONFIRM';
-                job.qc_booking.confirmedAt = null;
-                job.qc_booking.confirmedBy = null;
-                job.qc_status = 'DRAFT_QC';
-                if (job.status === 'QC_CONFIRMED') job.status = 'DRAFT_QC';
-
-                if (DB.qcBookings) {
-                    const b = DB.qcBookings.find(x => x.jobId === job.id);
-                    if (b) {
-                        b.status = 'PENDING_CONFIRM';
-                        b.confirmedAt = null;
-                        b.confirmedBy = null;
-                    }
-                }
-
-                this.persistJobs();
-                this.updateQCDashboard();
-                this.renderQC();
-                this.renderQCBookingSection(job);
-                if (this.state.currentView === 'gantt') this.renderGantt();
-                this.showToast('✏️ ปลดล็อกสถานะเพื่อเลื่อนนัดหรือเปลี่ยนช่าง QC เรียบร้อย');
+                // QC booking feature removed — จองช่าง workflow ถูกยกเลิกแล้ว
             },
 
             renderQCBookingSection(job) {
+                // QC booking feature removed — hide the card if it exists
                 const card = document.getElementById('qc-renovate-booking-card');
                 const banner = document.getElementById('qc-renovate-draft-banner');
-                if (!card) return;
-
-                const isQuick = this.isQuickJob(job);
-                // Quick jobs are QC Online only; Renovate projects show the on-site booking card
-                if (isQuick) {
-                    card.style.display = 'none';
-                    if (banner) banner.style.display = 'none';
-                    return;
-                }
-
-                card.style.display = 'block';
-                const booking = job.qc_booking || {};
-                const isConfirmed = booking.status === 'CONFIRMED';
-                const isDraft = !isConfirmed;
-
-                if (banner) {
-                    banner.style.display = isDraft ? 'flex' : 'none';
-                }
-
-                // Date input & preview (Strict DD/MM/YYYY)
-                const rawDate = booking.bookingDate || (job.date ? job.date.slice(0, 10) : '2026-09-15');
-                const dmyVal = this.formatDateDMY(rawDate);
-                const dateInput = document.getElementById('qc-booking-date-input');
-                if (dateInput) {
-                    dateInput.value = dmyVal;
-                    this.initDatePicker(dateInput, {
-                        defaultDate: dmyVal,
-                        onChange: (selectedDates, dateStr) => {
-                            this.handleQCBookingDateChange(dateStr);
-                        }
-                    });
-                }
-                const datePreview = document.getElementById('qc-booking-date-preview');
-                if (datePreview) datePreview.innerText = dmyVal;
-
-                // Time select
-                const timeSelect = document.getElementById('qc-booking-time-select');
-                if (timeSelect) timeSelect.value = booking.bookingTime || '09:00';
-
-                // Tech select
-                const techSelect = document.getElementById('qc-booking-tech-select');
-                if (techSelect && booking.assignedQCTech) techSelect.value = booking.assignedQCTech;
-
-                // Remarks input
-                const remarksInput = document.getElementById('qc-booking-remarks-input');
-                if (remarksInput) remarksInput.value = booking.remarks || '';
-
-                // Status badge
-                const badgeEl = document.getElementById('qc-booking-status-badge');
-                if (badgeEl) {
-                    if (isConfirmed) {
-                        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1';
-                        badgeEl.innerHTML = '<i class="ph ph-check-circle"></i> ยืนยันคิวช่างแล้ว (Confirmed)';
-                    } else {
-                        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1';
-                        badgeEl.innerHTML = '<i class="ph ph-clock"></i> รอการยืนยันคิวช่าง (Draft QC)';
-                    }
-                }
-
-                // Confirmed meta text
-                const metaEl = document.getElementById('qc-booking-confirmed-meta');
-                if (metaEl) {
-                    if (isConfirmed) {
-                        const confirmedDate = booking.confirmedAt ? this.formatDateDMY(booking.confirmedAt) : this.formatDateDMY(new Date());
-                        const confirmedTime = booking.confirmedAt ? new Date(booking.confirmedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }) : '09:00';
-                        metaEl.innerHTML = `<span class="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium"><i class="ph ph-check-circle-fill"></i> ยืนยันโดย ${booking.confirmedBy || 'เจ้าหน้าที่ PMT'} เมื่อ ${confirmedDate} ${confirmedTime} น.</span>`;
-                    } else {
-                        metaEl.innerHTML = '<span class="text-amber-600 dark:text-amber-400 flex items-center gap-1"><i class="ph ph-warning-circle"></i> ยังไม่ได้กดยืนยันคิวช่าง QC</span>';
-                    }
-                }
-
-                // Action buttons
-                const actContainer = document.getElementById('qc-booking-action-buttons');
-                if (actContainer) {
-                    if (isConfirmed) {
-                        actContainer.innerHTML = `
-                            <button type="button" onclick="app.saveQCBooking('${job.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer flex items-center gap-1">
-                                <i class="ph ph-floppy-disk"></i>
-                                <span>บันทึกแก้ไข</span>
-                            </button>
-                            <button type="button" onclick="app.unconfirmQCBooking('${job.id}')" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border border-amber-500/30 cursor-pointer flex items-center gap-1" title="แก้ไขการนัดหมายหรือเปลี่ยนช่าง">
-                                <i class="ph ph-pencil-simple"></i>
-                                <span>เลื่อนนัด/เปลี่ยนช่าง</span>
-                            </button>
-                        `;
-                    } else {
-                        actContainer.innerHTML = `
-                            <button type="button" onclick="app.saveQCBooking('${job.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer flex items-center gap-1" title="บันทึกข้อมูลวันที่และช่างไว้ก่อน">
-                                <i class="ph ph-floppy-disk"></i>
-                                <span>บันทึกร่าง</span>
-                            </button>
-                            <button type="button" onclick="app.confirmQCBooking('${job.id}')" class="btn-artifact-primary px-3.5 py-1.5 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition hover:scale-105" title="กดยืนยันการจองช่าง QC สำหรับโครงการนี้">
-                                <i class="ph ph-check-circle text-sm"></i>
-                                <span>✓ ยืนยันการจองช่าง (Confirm)</span>
-                            </button>
-                        `;
-                    }
-                }
+                if (card) card.style.display = 'none';
+                if (banner) banner.style.display = 'none';
             },
 
             renderQCSubtasks(job) {
@@ -25659,13 +25396,12 @@ const app = {
                         job_type: 'renovate',
                         tech: 'Team A (สมศักดิ์)',
                         qc_inspector: 'วิชัย ตรวจดี (ช่าง QC Lead)',
-                        status: 'DRAFT_QC',
-                        qc_status: 'DRAFT_QC',
-                        qc_draft: true,
+                        status: 'QC_PENDING',
+                        qc_status: 'QC_PENDING',
                         date: new Date().toISOString(),
                         step_timestamps: { 
                             step5_project_at: new Date().toISOString(),
-                            qc_draft_at: new Date().toISOString()
+                            qc_pending_at: new Date().toISOString()
                         },
                         qc_booking: {
                             id: 'QCB_JOB26090900012',
@@ -25809,7 +25545,7 @@ const app = {
 
                 this.syncQCBookingsFromTasks();
                 sampleJobs.forEach(sj => {
-                    if (!this.isQuickJob(sj)) this.ensureQCDraftForRenovate(sj.id);
+                    if (!this.isQuickJob(sj)) this.ensureQCPendingForRenovate(sj.id);
                 });
 
                 this.persistJobs();
