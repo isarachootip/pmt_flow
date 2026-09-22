@@ -23413,7 +23413,8 @@ const app = {
                 }
 
                 const html = list.map((j, idx) => {
-                    const isQuick = this.isQuickJob(j);
+                    try {
+                        const isQuick = this.isQuickJob(j);
                     const isTopNew = idx < 2; // Top 2 jobs get NEW! badge
                     const progress = this.calculateJobQCProgress(j);
                     const subtaskCount = progress.total;
@@ -23476,6 +23477,7 @@ const app = {
                     const qcDateStr = (j.step_timestamps && (j.step_timestamps.qc_pending_at || j.step_timestamps.qc_draft_at)) || j.created_at || j.date || new Date().toISOString();
                     const formattedDate = this.formatDateDMY(qcDateStr);
                     const slaCalc = this.calculateJobSLA(j, 5);
+                    const bookingTechDisplay = (j.qc_booking && j.qc_booking.assignedQCTech) || j.qc_inspector || (isQuick ? 'QC Online (ตรวจระบบ)' : 'วิชัย ตรวจดี (ช่าง QC Lead)');
 
                     // Action Button — all jobs: ตรวจประเมิน QC (no more จองช่าง step)
                     let actionButtonHtml = '';
@@ -23575,6 +23577,10 @@ const app = {
                         </td>
                     </tr>
                     `;
+                    } catch (rowErr) {
+                        console.error('[renderQC] Error rendering row for job:', j ? j.id : idx, rowErr);
+                        return '';
+                    }
                 }).join('');
 
                 tableBody.innerHTML = html;
