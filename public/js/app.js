@@ -16134,36 +16134,36 @@ const app = {
 
                             return `
                                 <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isSelected ? 'bg-purple-500/5' : (isTopNew ? 'bg-rose-500/[0.02]' : '')}" onclick="app.openManageBOQModal('${j.id}')">
-                                    <td class="px-3 py-2.5 font-mono font-semibold text-foreground whitespace-nowrap">
+                                    <td class="px-3 py-2.5 font-mono font-semibold text-foreground whitespace-nowrap" onclick="event.stopPropagation()">
                                         <div class="flex items-center gap-1.5 flex-wrap">
-                                            <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="font-mono font-bold text-xs text-foreground hover:text-purple-600 hover:underline cursor-pointer flex items-center gap-1" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
-                                                <span>${j.job_no || j.id}</span>
-                                                <i class="ph ph-arrow-square-out text-[11px] text-muted-foreground"></i>
+                                            <span class="font-mono font-bold text-xs text-foreground select-text cursor-text" title="ลากเมาส์เพื่อคัดลอกรหัสงาน (แก้ไขไม่ได้)">${j.job_no || j.id}</span>
+                                            <button type="button" onclick="event.stopPropagation(); app.openJobDetailModal('${j.id}')" class="text-muted-foreground hover:text-purple-600 cursor-pointer p-0.5" title="คลิกเพื่อดูข้อมูลงาน ${j.id}">
+                                                <i class="ph ph-arrow-square-out text-[11px]"></i>
                                             </button>
                                             ${isTopNew ? `
-                                                <span class="badge-new-item" title="สถานะล่าสุด (NEW!)">
+                                                <span class="badge-new-item select-none" title="สถานะล่าสุด (NEW!)">
                                                     <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
                                                 </span>
                                             ` : ''}
                                         </div>
                                     </td>
-                                    <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap">
-                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border text-[11px] font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
+                                    <td class="px-2.5 py-2.5 font-mono text-xs whitespace-nowrap" onclick="event.stopPropagation()">
+                                        ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-gray-950 border border-purple-300 text-[11px] font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs select-text cursor-text hover:bg-purple-100/70 transition" title="ลากเมาส์หรือดับเบิลคลิกเพื่อคัดลอกเลขที่ Booking (แก้ไขไม่ได้)">${j.booking_no}</span>` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
-                                    <td class="px-2.5 py-2.5 whitespace-nowrap">
+                                    <td class="px-2.5 py-2.5 whitespace-nowrap" onclick="event.stopPropagation()">
                                         ${(j.plan_date || j.date) ? `
-                                            <div class="inline-flex items-center gap-1 font-mono text-[11px] text-foreground font-semibold whitespace-nowrap">
+                                            <div class="inline-flex items-center gap-1 font-mono text-[11px] text-foreground font-semibold whitespace-nowrap select-text cursor-text" title="ลากเมาส์เพื่อคัดลอกวันนัด (แก้ไขไม่ได้)">
                                                 <i class="ph ph-calendar-check text-indigo-600 dark:text-indigo-400 text-xs shrink-0"></i>
-                                                <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
+                                                <span class="select-text cursor-text">${this.formatDateDMY(j.plan_date || j.date)}</span>
                                             </div>
                                         ` : '<span class="text-muted-foreground">-</span>'}
                                     </td>
-                                    <td class="px-3 py-2.5 min-w-[125px] max-w-[150px]">
-                                        <div class="text-foreground font-medium group-hover:text-purple-500 transition flex items-center gap-1.5" title="${j.customer || ''}">
-                                            <span class="truncate">${j.customer}</span>
+                                    <td class="px-3 py-2.5 min-w-[125px] max-w-[150px]" onclick="event.stopPropagation()">
+                                        <div class="text-foreground font-medium group-hover:text-purple-500 transition flex items-center gap-1.5 select-text cursor-text" title="ลากเมาส์เพื่อคัดลอกชื่อลูกค้า: ${j.customer || ''} (แก้ไขไม่ได้)">
+                                            <span class="truncate select-text cursor-text">${j.customer}</span>
                                             ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-ping" title="สถานะล่าสุด"></span>` : ''}
                                         </div>
-                                        <div class="text-[11px] text-muted-foreground font-mono truncate">${j.phone || '-'}</div>
+                                        <div class="text-[11px] text-muted-foreground font-mono truncate select-text cursor-text" title="ลากเมาส์เพื่อคัดลอกเบอร์โทร: ${j.phone || ''} (แก้ไขไม่ได้)">${j.phone || '-'}</div>
                                     </td>
                                     <td class="px-2.5 py-2.5 min-w-[115px] max-w-[140px] text-muted-foreground">
                                         <div class="flex items-center gap-1 flex-wrap">
@@ -16557,6 +16557,10 @@ const app = {
 
             // ─── MODAL POPUP: MANAGE / RECORD BOQ ────────────────────────
             openManageBOQModal(jobId = null) {
+                const activeSel = window.getSelection ? window.getSelection().toString().trim() : '';
+                if (activeSel.length > 0) {
+                    return;
+                }
                 const targetJobId = jobId || this.state.boqSelectedJobId || (DB.jobs[0] ? DB.jobs[0].id : 'JOB26090900001');
                 this.state.modalBOQJobId = targetJobId;
                 this.state.boqSelectedJobId = targetJobId;
@@ -22579,11 +22583,11 @@ const app = {
 
                     return `
                     <tr class="hover:bg-muted/40 transition-colors cursor-pointer group ${isTopNew ? 'bg-emerald-500/[0.02] dark:bg-emerald-500/[0.03]' : ''}" onclick="app.openQCDetailModal('${j.id}')" title="คลิกเพื่อเปิดรายละเอียด QC: ${j.id}">
-                        <td class="px-3 py-2.5 font-mono whitespace-nowrap">
+                        <td class="px-3 py-2.5 font-mono whitespace-nowrap" onclick="event.stopPropagation()">
                             <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="font-mono font-black text-sm sm:text-base text-gray-950">${j.job_no || j.id}</span>
+                                <span class="font-mono font-black text-sm sm:text-base text-gray-950 select-text cursor-text" title="ลากเมาส์เพื่อคัดลอกรหัสงาน (แก้ไขไม่ได้)">${j.job_no || j.id}</span>
                                 ${isTopNew ? `
-                                    <span class="badge-new-item text-[9px] py-0 px-1.5 font-bold uppercase bg-gradient-to-r from-rose-500 to-amber-500 text-white shadow-xs" title="รายการใหม่ล่าสุด (NEW!)">
+                                    <span class="badge-new-item text-[9px] py-0 px-1.5 font-bold uppercase bg-gradient-to-r from-rose-500 to-amber-500 text-white shadow-xs select-none" title="รายการใหม่ล่าสุด (NEW!)">
                                         <i class="ph ph-sparkle-fill text-yellow-200"></i> NEW!
                                     </span>
                                 ` : ''}
@@ -22594,24 +22598,24 @@ const app = {
                                 ` : ''}
                             </div>
                         </td>
-                        <td class="px-2.5 py-2.5 font-mono whitespace-nowrap">
-                            ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-gray-900 border border-border text-xs sm:text-sm font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs">${j.external_ref_id}</span>` : '<span class="text-gray-400 text-xs">-</span>'}
+                        <td class="px-2.5 py-2.5 font-mono whitespace-nowrap" onclick="event.stopPropagation()">
+                            ${j.external_ref_id ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-gray-900 border border-border text-xs sm:text-sm font-mono font-bold tracking-tight whitespace-nowrap shadow-2xs select-text cursor-text hover:bg-muted transition" title="ลากเมาส์หรือดับเบิลคลิกเพื่อคัดลอก Ref ID (แก้ไขไม่ได้)">${j.external_ref_id}</span>` : '<span class="text-gray-400 text-xs">-</span>'}
                         </td>
-                        <td class="px-2.5 py-2.5 font-mono whitespace-nowrap">
-                            ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-gray-950 border border-purple-300 text-xs sm:text-sm font-mono font-black tracking-tight whitespace-nowrap shadow-2xs">${j.booking_no}</span>` : '<span class="text-gray-400 text-xs">-</span>'}
+                        <td class="px-2.5 py-2.5 font-mono whitespace-nowrap" onclick="event.stopPropagation()">
+                            ${j.booking_no ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-gray-950 border border-purple-300 text-xs sm:text-sm font-mono font-black tracking-tight whitespace-nowrap shadow-2xs select-text cursor-text hover:bg-purple-100/70 transition" title="ลากเมาส์หรือดับเบิลคลิกเพื่อคัดลอกเลขที่ Booking (แก้ไขไม่ได้)">${j.booking_no}</span>` : '<span class="text-gray-400 text-xs">-</span>'}
                         </td>
-                        <td class="px-2.5 py-2.5 whitespace-nowrap">
-                            <div class="inline-flex items-center gap-1 font-mono text-xs sm:text-sm text-foreground font-bold whitespace-nowrap">
+                        <td class="px-2.5 py-2.5 whitespace-nowrap" onclick="event.stopPropagation()">
+                            <div class="inline-flex items-center gap-1 font-mono text-xs sm:text-sm text-foreground font-bold whitespace-nowrap select-text cursor-text" title="ลากเมาส์เพื่อคัดลอกวันนัด (แก้ไขไม่ได้)">
                                 <i class="ph ph-calendar-check text-amber-500 text-sm shrink-0"></i>
-                                <span>${this.formatDateDMY(j.plan_date || j.date)}</span>
+                                <span class="select-text cursor-text">${this.formatDateDMY(j.plan_date || j.date)}</span>
                             </div>
                         </td>
-                        <td class="px-3 py-2.5 min-w-[125px] max-w-[150px]">
-                            <div class="text-gray-950 font-black text-sm sm:text-base truncate group-hover:text-brand-600 transition flex items-center gap-1.5" title="${j.customer || ''}">
-                                <span class="truncate">${j.customer}</span>
+                        <td class="px-3 py-2.5 min-w-[125px] max-w-[150px]" onclick="event.stopPropagation()">
+                            <div class="text-gray-950 font-black text-sm sm:text-base truncate group-hover:text-brand-600 transition flex items-center gap-1.5 select-text cursor-text" title="ลากเมาส์เพื่อคัดลอกชื่อลูกค้า: ${j.customer || ''} (แก้ไขไม่ได้)">
+                                <span class="truncate select-text cursor-text">${j.customer}</span>
                                 ${isTopNew ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-ping" title="รายการใหม่ล่าสุด"></span>` : ''}
                             </div>
-                            <div class="text-xs text-gray-800 font-mono font-semibold truncate mt-0.5">${j.phone || '-'}</div>
+                            <div class="text-xs text-gray-800 font-mono font-semibold truncate mt-0.5 select-text cursor-text" title="ลากเมาส์เพื่อคัดลอกเบอร์โทร: ${j.phone || ''} (แก้ไขไม่ได้)">${j.phone || '-'}</div>
                         </td>
                         <td class="px-2.5 py-2.5 min-w-[115px] max-w-[140px] text-muted-foreground">
                             <div class="flex items-center gap-1 flex-wrap">

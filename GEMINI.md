@@ -76,5 +76,13 @@ PostgreSQL database. They are NOT the same machine and NOT the same data.
 - **CSS Variable Standard**: ตัวแปรระบบ `--foreground`, `--card-foreground`, `--popover-foreground`, `--muted-foreground`, `--secondary-foreground`, `--accent-foreground` ใน `public/css/app.css` ต้องตั้งเป็น `#000000` เสมอ.
 - **Form Controls & Tables**: ส่วนหัวตาราง (`th`), เนื้อหาตาราง (`td`), หัวข้อ (`h1`-`h6`), ป้ายกำกับ (`label`), ข้อมูลในอินพุต (`input`, `select`, `textarea` ทั้งปกติและ readonly/disabled) ต้องแสดงผลเป็นสีดำคมชัด 100%.
 
+## 🚨 MANDATORY FRONTEND SYNTAX VALIDATION & TROUBLESHOOTING (ANTI-BLANK / ZERO DATA BUG)
+- **Skill & Issue Manual Reference**: Always follow [pmt_important_issue.md](file:///c:/atgv/pmt_flow/pmt_important_issue.md) whenever frontend data fails to load, dashboard shows hardcoded zeros/defaults, or after any JS modifications.
+- **Mandatory Pre-Commit Syntax Validation**: Before committing and deploying, ALWAYS verify that `npm run build` succeeds (which automatically runs `node scripts/check-syntax.js && tsc`).
+  - **Zero Tolerance for Duplicate Identifiers**: Never declare duplicate `const` or `let` variables in the same scope in `public/js/app.js` (e.g. `const history = ...`).
+  - **Zero Tolerance for Unclosed Array Callbacks**: Ensure all `.map(...)` or template literals are properly terminated (e.g. `}).join('');`).
+  - **Authentication Integrity**: Protect PostgreSQL `sys_users` password hashes to match standard `Admin@1234` hashes. Never allow empty string hashes (`e3b0c4...`).
+
+
 
 

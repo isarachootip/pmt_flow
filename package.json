@@ -4,7 +4,8 @@
   "description": "PMT - Store Project Management Tool",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
+    "check:syntax": "node scripts/check-syntax.js",
+    "build": "node scripts/check-syntax.js && tsc",
     "start": "node dist/server.js",
     "dev": "ts-node server.ts",
     "test": "node test_boq_import_scenario.js"
