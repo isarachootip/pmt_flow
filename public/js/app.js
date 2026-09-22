@@ -3208,6 +3208,16 @@ const app = {
                 }
             },
 
+            showRenovateTrainingGuide() {
+                if (typeof window.openTrainingDoc === 'function') {
+                    window.openTrainingDoc('คู่มือการดำเนินงาน_โครงการRenovate.md', 'โมดูล 14: คู่มือและขั้นตอนการดำเนินงานโครงการ Renovate (Renovate Projects Master Guide)');
+                } else {
+                    this.state.currentFaqTab = 'training';
+                    this.navigate('faq');
+                    this.switchFaqTab('training');
+                }
+            },
+
             switchFaqTab(tabKey) {
                 this.state.currentFaqTab = tabKey;
                 const tabs = ['training', 'pipeline', 'faq'];
@@ -30102,3 +30112,4 @@ const app = {
         window.formatDateTimeDMY = (d, s) => app.formatDateTimeDMY(d, s);
         window.openJobDetailModal = (id) => app.openJobDetailModal(id);
         window.openUnifiedOrderStudio = (id, tab) => app.openUnifiedOrderStudio(id, tab);
+        window.showRenovateTrainingGuide = () => app.showRenovateTrainingGuide();
