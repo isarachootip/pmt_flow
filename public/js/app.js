@@ -7220,6 +7220,58 @@ const app = {
                     }
                 }
 
+                // Manage source file banner: show imported file if available
+                const sourceBanner = document.getElementById('unified-boq-source-file-banner');
+                if (sourceBanner) {
+                    const origFile = job.boq_original_file;
+                    const srcHeader = job.boq_source_header;
+                    if (origFile && origFile.name) {
+                        const importedAt = (srcHeader && srcHeader.imported_at) ? srcHeader.imported_at : (origFile.uploadedAt || null);
+                        const dateStr = importedAt ? this.formatDateTimeDMY(importedAt, false, true) : '';
+                        const ext = (origFile.name || '').split('.').pop().toLowerCase();
+                        const isExcel = ext === 'xlsx' || ext === 'xls';
+                        const isCsv = ext === 'csv' || ext === 'txt';
+                        const iconClass = isExcel ? 'ph-file-xls' : (isCsv ? 'ph-file-csv' : 'ph-file-arrow-up');
+                        const iconBg = isExcel ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : (isCsv ? 'bg-teal-100 text-teal-700 border-teal-300' : 'bg-purple-100 text-purple-700 border-purple-300');
+                        const srcCustomer = srcHeader && srcHeader.source_customer ? this.escapeHtml(srcHeader.source_customer) : '';
+                        const srcPhone = srcHeader && srcHeader.source_phone ? this.escapeHtml(srcHeader.source_phone) : '';
+                        const srcDate = srcHeader && srcHeader.source_date ? this.escapeHtml(srcHeader.source_date) : '';
+                        sourceBanner.className = 'p-3.5 rounded-xl border border-emerald-300 bg-emerald-50/60 space-y-2 shadow-2xs';
+                        sourceBanner.innerHTML = `
+                            <div class="flex items-center justify-between gap-3 flex-wrap">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-9 h-9 rounded-lg ${iconBg} flex items-center justify-center shrink-0 border text-lg">
+                                        <i class="ph ${iconClass}"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="text-xs font-bold text-foreground">${this.escapeHtml(origFile.name)}</span>
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">📎 ไฟล์ต้นฉบับ BOQ ที่นำเข้า</span>
+                                        </div>
+                                        ${dateStr ? `<div class="text-[10px] text-muted-foreground font-mono mt-0.5">นำเข้าเมื่อ: <strong class="text-foreground">${dateStr}</strong></div>` : ''}
+                                    </div>
+                                </div>
+                                <button type="button" onclick="app.downloadBOQOriginalFile('${job.id}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer flex items-center gap-1.5 shadow-xs transition shrink-0">
+                                    <i class="ph ph-download-simple text-sm"></i>
+                                    <span>ดาวน์โหลดไฟล์ต้นฉบับ</span>
+                                </button>
+                            </div>
+                            ${srcCustomer ? `
+                            <div class="flex items-center gap-3 flex-wrap pt-1.5 border-t border-emerald-200/60 text-[11px] text-muted-foreground">
+                                <span class="flex items-center gap-1"><i class="ph ph-user text-emerald-600"></i> <strong class="text-foreground">อ้างอิงต้นทาง: ${srcCustomer}</strong></span>
+                                ${srcPhone ? `<span class="flex items-center gap-1"><i class="ph ph-phone text-emerald-600"></i> ${srcPhone}</span>` : ''}
+                                ${srcDate ? `<span class="flex items-center gap-1"><i class="ph ph-calendar text-emerald-600"></i> ${srcDate}</span>` : ''}
+                                <span class="flex items-center gap-1 text-amber-700"><i class="ph ph-lock-key text-amber-600"></i> คงข้อมูลลูกค้า Job เดิมไว้ (ไม่เขียนทับ)</span>
+                            </div>
+                            ` : ''}
+                        `;
+                    } else {
+                        sourceBanner.className = 'hidden';
+                        sourceBanner.innerHTML = '';
+                    }
+                }
+
+
                 if (job.boq_items.length === 0) {
                     tbody.innerHTML = `
                     <tr>
