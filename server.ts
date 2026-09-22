@@ -2901,7 +2901,7 @@ app.get('/api/v1/jobs', requireAuth, async (req: Request, res: Response) => {
         } else if (stp === 'step2') {
           list = list.filter((j: any) => j.pmt_accepted && ['in_progress', 'pending_ticket', 'ticket_issued', 'designed'].includes((j.status || '').toLowerCase()));
         } else if (stp === 'step5' || stp === 'qc') {
-          list = list.filter((j: any) => ['qc_pending', 'qc_inspecting', 'qc_rework'].includes((j.status || '').toLowerCase()));
+          list = list.filter((j: any) => ['qc_pending', 'qc_inspecting', 'qc_rework', 'qc_passed', 'qc_confirmed', 'draft_qc'].includes((j.status || '').toLowerCase()));
         } else if (stp === 'step6' || stp === 'closed') {
           list = list.filter((j: any) => ['qc_passed', 'closed'].includes((j.status || '').toLowerCase()));
         } else if (stp === 'step7' || stp === 'ma') {

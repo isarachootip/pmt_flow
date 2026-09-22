@@ -2965,11 +2965,54 @@ const app = {
                 }
             },
 
+            // ✅ [Fix B] fetchQCJobsFromApi — ดึง jobs ที่อยู่ในคิว QC จาก server โดยตรง
+            // เรียกทุกครั้งที่ navigate ไปหน้า QC เพื่อให้ DB.jobs ใน memory sync กับ DB จริง
+            async fetchQCJobsFromApi() {
+                try {
+                    const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                    if (!token) return;
+                    // ดึง jobs ที่มีสถานะ QC ทุกประเภท (pending, inspecting, rework, passed, confirmed)
+                    const params = new URLSearchParams({ limit: '200', status: 'qc' });
+                    const res = await fetch(`/api/v1/jobs?${params.toString()}`, {
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!res.ok) return;
+                    const json = await res.json();
+                    if (!json.success || !Array.isArray(json.data)) return;
+
+                    // Merge QC jobs เข้า DB.jobs โดยไม่ลบ job อื่นที่มีอยู่
+                    const existingMap = new Map((DB.jobs || []).map(j => [String(j.id), j]));
+                    json.data.forEach(incoming => {
+                        const key = String(incoming.id);
+                        const existing = existingMap.get(key);
+                        if (existing) {
+                            // Merge แต่ protect status ที่สูงกว่า (เช่น ถ้า memory บอก QC_PASSED อย่า rollback เป็น QC_PENDING)
+                            const STATUS_ORDER = ['DRAFT','NEW','SURVEYED','Survey','IN_PROGRESS','DRAFT_QC','QC_CONFIRMED','QC_PENDING','QC_REWORK','QC_PASSED','AFTER_SALE','COMPLETED','CLOSED'];
+                            const existRank = STATUS_ORDER.indexOf(existing.status);
+                            const incomRank = STATUS_ORDER.indexOf(incoming.status);
+                            existingMap.set(key, {
+                                ...existing,
+                                ...incoming,
+                                status: (existRank > incomRank && existRank !== -1) ? existing.status : (incoming.status || existing.status),
+                                boq_items: (existing.boq_items && existing.boq_items.length > 0 && (!incoming.boq_items || incoming.boq_items.length === 0)) ? existing.boq_items : (incoming.boq_items || existing.boq_items || []),
+                                photos: (existing.photos && existing.photos.length > 0 && (!incoming.photos || incoming.photos.length === 0)) ? existing.photos : (incoming.photos || existing.photos || [])
+                            });
+                        } else {
+                            existingMap.set(key, incoming);
+                        }
+                    });
+                    DB.jobs = this.sortJobsDescending(Array.from(existingMap.values()));
+                    this.persistJobs();
+                } catch (err) {
+                    console.warn('[fetchQCJobsFromApi] Error:', err);
+                }
+            },
             toggleTheme() {
                 // Dark mode retired: Permanently Light Theme Only
                 document.documentElement.classList.remove('dark');
                 try { localStorage.setItem('pmt-theme', 'light'); } catch(e) {}
             },
+
 
             toggleSidebar() {
                 const sb = document.getElementById('app-sidebar');
@@ -3183,6 +3226,13 @@ const app = {
                         const pQc = document.getElementById('page-qc');
                         if (pQc) this.initAllDatePickers(pQc);
                     }, 50);
+                    // ✅ [Fix C] Sync QC jobs จาก server แล้ว re-render เพื่อให้แสดงงานที่เพิ่งถูก save ทันที
+                    this.fetchQCJobsFromApi().then(() => {
+                        if (this.state.currentView === 'qc') {
+                            this.renderQC();
+                            this.updateQCBadges();
+                        }
+                    }).catch(() => {});
                 }
                 if(view === 'csat' || view === 'completed-jobs') this.renderCompletedJobsSTK();
                 if(view === 'ma-contracts') this.renderMAContracts();
@@ -7848,7 +7898,7 @@ const app = {
                 this.updateUnifiedStudioTabs();
             },
 
-            saveUnifiedOrderStudio() {
+            async saveUnifiedOrderStudio() {
                 const job = this.getUnifiedStudioJob();
                 if (!job) return;
                 const jobId = job.id;
@@ -7934,37 +7984,44 @@ const app = {
                     this.renderJobs();
                     this.updateStepBadges();
                     this.hideModal('modal-unified-order-studio');
-                    this.showToast(`💾 บันทึกข้อมูลงาน Quick [${jobId}] เรียบร้อย! วิ่งตรงไปหน้า QC Online เพื่อปิดงานทันที...`, 'success');
-                    fetch(`/api/v1/jobs/${jobId}`, {
-                        method: 'PATCH',
-                        headers: this.getAuthHeaders(),
-                        body: JSON.stringify({
-                            project_sub_type: job.project_sub_type,
-                            service: job.service,
-                            services: job.services,
-                            customer: job.customer,
-                            phone: job.phone,
-                            address: job.address,
-                            scope_of_work: job.scope_of_work,
-                            internal_notes: job.internal_notes,
-                            job_details: job.job_details || job.job_detail || [],
-                            job_detail: job.job_details || job.job_detail || [],
-                            visit_results: job.visit_results,
-                            visit_result: job.visit_results,
-                            remarks_data: job.remarks_data,
-                            remarks: job.remarks_data,
-                            status: 'QC_PENDING',
-                            pmt_accepted: true,
-                            pmt_accepted_at: job.pmt_accepted_at || nowIso,
-                            overall_progress: job.progress,
-                            assigned_tech: job.tech,
-                            qc_inspection_type: 'ONLINE',
-                            step_timestamps: job.step_timestamps
-                        })
-                    }).catch(() => {});
-                    setTimeout(() => {
-                        this.goToQC(jobId);
-                    }, 350);
+                    this.showToast(`💾 บันทึกข้อมูลงาน Quick [${jobId}] กำลังส่งข้อมูลไปยัง QC Online...`, 'success');
+                    // ✅ await PATCH ก่อน navigate เพื่อให้ DB update เสร็จก่อน renderQC อ่านข้อมูล
+                    try {
+                        const patchRes = await fetch(`/api/v1/jobs/${jobId}`, {
+                            method: 'PATCH',
+                            headers: this.getAuthHeaders(),
+                            body: JSON.stringify({
+                                project_sub_type: job.project_sub_type,
+                                service: job.service,
+                                services: job.services,
+                                customer: job.customer,
+                                phone: job.phone,
+                                address: job.address,
+                                scope_of_work: job.scope_of_work,
+                                internal_notes: job.internal_notes,
+                                job_details: job.job_details || job.job_detail || [],
+                                job_detail: job.job_details || job.job_detail || [],
+                                visit_results: job.visit_results,
+                                visit_result: job.visit_results,
+                                remarks_data: job.remarks_data,
+                                remarks: job.remarks_data,
+                                status: 'QC_PENDING',
+                                pmt_accepted: true,
+                                pmt_accepted_at: job.pmt_accepted_at || nowIso,
+                                overall_progress: job.progress,
+                                assigned_tech: job.tech,
+                                qc_inspection_type: 'ONLINE',
+                                step_timestamps: job.step_timestamps
+                            })
+                        });
+                        if (!patchRes.ok) {
+                            console.warn(`[Quick QC PATCH] HTTP ${patchRes.status} for job ${jobId}`);
+                        }
+                    } catch (patchErr) {
+                        console.warn(`[Quick QC PATCH] Network error for job ${jobId}:`, patchErr);
+                    }
+                    // ✅ navigate หลัง PATCH เสร็จ — ไม่ต้อง setTimeout อีกต่อไป
+                    this.goToQC(jobId);
                     return;
                 }
 
@@ -10539,14 +10596,16 @@ const app = {
                             method: 'PATCH',
                             headers: this.getAuthHeaders(),
                             body: JSON.stringify({
-                                status: job.status,
+                                status: 'QC_PENDING',
                                 pmt_accepted: true,
                                 pmt_accepted_at: job.pmt_accepted_at,
                                 overall_progress: job.progress,
-                                qc_inspection_type: job.qc_inspection_type,
+                                qc_inspection_type: 'ONLINE',
                                 step_timestamps: job.step_timestamps
                             })
-                        }).catch(() => {});
+                        }).then(r => {
+                            if (!r.ok) console.warn(`[goToQC PATCH] HTTP ${r.status} for job ${targetId}`);
+                        }).catch(err => console.warn('[goToQC PATCH] Error:', err));
                     }
                 }
                 this.state.qcTab = 'inspection';
