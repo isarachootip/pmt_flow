@@ -166,6 +166,19 @@ const app = {
                 } catch(e) {}
                 this.updateAllStepDashboards();
             },
+            // Universal Job Finder: รองรับ id เป็น number, string, job_no, หรือ external_ref_id
+            getJob(id) {
+                if (id === null || id === undefined) return null;
+                const strId = String(id).trim();
+                return (DB.jobs || []).find(j => 
+                    j.id === id || 
+                    String(j.id) === strId || 
+                    j.job_no === strId || 
+                    j.id == id || 
+                    (j.job_no && String(j.job_no).toLowerCase() === strId.toLowerCase()) ||
+                    (j.external_ref_id && String(j.external_ref_id) === strId)
+                ) || null;
+            },
 
             isQuickJob(job) {
                 if (!job) return false;
@@ -23118,7 +23131,7 @@ const app = {
 
             ensureQCPendingForRenovate(jobId) {
                 if (!jobId) return;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getJob(jobId);
                 if (!job) return;
                 if (this.isQuickJob(job)) return;
 
@@ -24023,172 +24036,209 @@ const app = {
                 return job.status === 'QC_PASSED' || job.qc_status === 'QC_PASSED' || history.some(h => h.result === 'PASSED' || h.action === 'PASSED');
             },
 
-            openQCDetailModal(jobId) {
-                const job = (DB.jobs || []).find(j => j.id === jobId);
-                if (!job) return;
-
-                this.state.currentQCModalJobId = jobId;
-
-                const isQuick = this.isQuickJob(job);
-                if (!isQuick) {
-                    this.ensureQCPendingForRenovate(job.id);
-                }
-
-                // Render Renovate QC Booking & Dispatch Section
-                this.renderQCBookingSection(job);
-
-                // Quick Service Online Banner Toggle
-                const quickBanner = document.getElementById('qc-quick-online-banner');
-                if (quickBanner) {
-                    quickBanner.style.display = isQuick ? 'flex' : 'none';
-                }
-
-                // Header elements
-                const orderNo = job.job_no || job.id || '-';
-                const elId = document.getElementById('qc-detail-job-id');
-                if (elId) elId.innerText = orderNo;
-                const elOrder = document.getElementById('qc-detail-order-no');
-                if (elOrder) elOrder.innerText = orderNo;
-
-                const bookingNo = job.booking_no || job.vfix_no || (job.raw_payload && (job.raw_payload.booking_no || job.raw_payload.vfix_no)) || '';
-                const elBooking = document.getElementById('qc-detail-booking-no');
-                if (elBooking) elBooking.innerText = bookingNo || '-';
-                const elBookingContainer = document.getElementById('qc-detail-booking-container');
-                if (elBookingContainer) {
-                    elBookingContainer.style.display = bookingNo ? 'inline-flex' : 'none';
-                }
-
-                const refId = job.external_ref_id || (job.raw_payload && job.raw_payload.external_ref_id) || '';
-                const elRef = document.getElementById('qc-detail-ref-id');
-                if (elRef) elRef.innerText = refId || '-';
-                const elRefContainer = document.getElementById('qc-detail-ref-container');
-                if (elRefContainer) {
-                    elRefContainer.style.display = refId ? 'inline-flex' : 'none';
-                }
-
-                const elType = document.getElementById('qc-detail-type-badge');
-                if (elType) {
-                    elType.innerText = isQuick ? 'QUICK SERVICE (QC ONLINE)' : 'RENOVATE PROJECT';
-                    elType.className = isQuick 
-                        ? 'px-2.5 py-1 rounded-md text-xs font-mono font-black uppercase bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs'
-                        : 'px-2.5 py-1 rounded-md text-xs font-mono font-black uppercase bg-indigo-50 text-indigo-800 border border-indigo-300 shadow-2xs';
-                }
-                const elStatus = document.getElementById('qc-detail-status-badge');
-                const isPassed = job.status === 'QC_PASSED' || job.qc_status === 'QC_PASSED' || (Array.isArray(job.qc_history) && job.qc_history.some(h => h.result === 'PASSED' || h.action === 'PASSED'));
-                const lastPassed = (job.qc_history || []).find(h => h.result === 'PASSED' || h.action === 'PASSED');
-                const passedDate = (lastPassed && lastPassed.timestamp)
-                    ? (lastPassed.date_display || this.formatDateTimeDMY(lastPassed.timestamp, false, true))
-                    : (job.qc_passed_at ? this.formatDateTimeDMY(job.qc_passed_at, false, true) : (job.stk_exported_at ? this.formatDateTimeDMY(job.stk_exported_at, false, true) : 'เรียบร้อยแล้ว'));
-
-                if (elStatus) {
-                    if (isPassed) {
-                        elStatus.innerText = job.stk_ref ? `ผ่านเกณฑ์แล้ว (ส่ง STK: ${job.stk_ref})` : 'ผ่านเกณฑ์แล้ว';
-                        elStatus.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/30';
-                    } else if (job.status === 'QC_REWORK') {
-                        elStatus.innerText = 'แจ้งแก้ไขงาน';
-                        elStatus.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-700 border border-rose-500/30';
-                    } else {
-                        elStatus.innerText = isQuick ? 'รอตรวจ Online (ภาพถ่าย Visit Plan)' : 'รอตรวจ On-site';
-                        elStatus.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 border border-amber-500/30';
+            async openQCDetailModal(jobId) {
+                try {
+                    let job = this.getJob(jobId);
+                    if (!job) {
+                        // Fallback: ดึงจาก API หากยังไม่มีใน DB.jobs ใน memory
+                        try {
+                            const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                            const res = await fetch(`/api/v1/jobs/${encodeURIComponent(jobId)}`, {
+                                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                            });
+                            if (res.ok) {
+                                const json = await res.json();
+                                if (json && json.success && json.data) {
+                                    job = json.data;
+                                    DB.jobs = DB.jobs || [];
+                                    const idx = DB.jobs.findIndex(j => String(j.id) === String(job.id) || j.job_no === job.job_no);
+                                    if (idx >= 0) DB.jobs[idx] = job;
+                                    else DB.jobs.unshift(job);
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('[openQCDetailModal] fetch fallback failed:', e);
+                        }
                     }
-                }
-                const elTitle = document.getElementById('qc-detail-job-title');
-                if (elTitle) elTitle.innerText = `แบบฟอร์มตรวจรับรองมาตรฐาน QC & บันทึกปิดงานโครงการ: ${job.service}`;
-                const elCust = document.getElementById('qc-detail-customer');
-                if (elCust) elCust.innerText = job.customer || '-';
-                const elPhone = document.getElementById('qc-detail-phone');
-                if (elPhone) elPhone.innerText = job.phone || '-';
-                const elTech = document.getElementById('qc-detail-tech');
-                if (elTech) elTech.innerText = job.tech || '-';
-                const elStore = document.getElementById('qc-detail-store');
-                const elStoreContainer = document.getElementById('qc-detail-store-container');
-                const storeInfo = [job.store_code, job.agent_name].filter(Boolean).join(' - ');
-                if (elStore) elStore.innerText = storeInfo || '-';
-                if (elStoreContainer) elStoreContainer.style.display = storeInfo ? 'inline-flex' : 'none';
 
-                // Format inspection date in DD/MM/YYYY 24-hr (e.g. 08/09/2026 14:30 น.)
-                const elDate = document.getElementById('qc-modal-date');
-                if (elDate) {
-                    if (isPassed && (job.qc_passed_at || lastPassed)) {
-                        elDate.value = passedDate;
-                    } else {
-                        const now = new Date();
-                        const d = String(now.getDate()).padStart(2, '0');
-                        const m = String(now.getMonth() + 1).padStart(2, '0');
-                        const y = now.getFullYear();
-                        const hh = String(now.getHours()).padStart(2, '0');
-                        const mm = String(now.getMinutes()).padStart(2, '0');
-                        elDate.value = `${d}/${m}/${y} ${hh}:${mm} น.`;
+                    if (!job) {
+                        console.warn('[openQCDetailModal] Job not found for ID:', jobId);
+                        this.showToast(`⚠️ ไม่พบข้อมูลงาน [${jobId}] ในระบบ`, 'warning');
+                        return;
                     }
-                    elDate.disabled = isPassed;
-                }
 
-                const elRemarks = document.getElementById('qc-modal-overall-remarks');
-                if (elRemarks) {
-                    elRemarks.value = job.qc_remarks || '';
-                    elRemarks.disabled = isPassed;
-                    elRemarks.readOnly = isPassed;
-                }
-                const elInspector = document.getElementById('qc-modal-inspector');
-                if (elInspector) {
-                    elInspector.value = (job.qc_booking && job.qc_booking.assignedQCTech) ? job.qc_booking.assignedQCTech : (job.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)');
-                    elInspector.disabled = isPassed;
-                }
+                    this.state.currentQCModalJobId = job.id;
 
-                // Show/hide Locked Banner
-                const lockedBanner = document.getElementById('qc-passed-locked-banner');
-                if (lockedBanner) {
-                    if (isPassed) {
-                        lockedBanner.style.display = 'flex';
-                        const stkBadge = document.getElementById('qc-passed-stk-badge');
-                        if (stkBadge) stkBadge.innerText = job.stk_ref ? `STK Ref: ${job.stk_ref}` : 'STK Ref: พร้อมส่งมอบ';
-                        const dateText = document.getElementById('qc-passed-date-text');
-                        if (dateText) dateText.innerText = passedDate;
-                    } else {
-                        lockedBanner.style.display = 'none';
+                    const isQuick = this.isQuickJob(job);
+                    if (!isQuick) {
+                        this.ensureQCPendingForRenovate(job.id);
                     }
-                }
 
-                // Lock footer action buttons if already passed
-                const btnDraft = document.getElementById('btn-qc-save-draft');
-                if (btnDraft) btnDraft.style.display = isPassed ? 'none' : 'inline-flex';
-                const btnRework = document.getElementById('btn-qc-fail-rework');
-                if (btnRework) btnRework.style.display = isPassed ? 'none' : 'inline-flex';
+                    // Render Renovate QC Booking & Dispatch Section
+                    this.renderQCBookingSection(job);
 
-                this.renderQCHistorySection(job);
-                this.renderQCSubtasks(job);
-                this.renderQCIntPhotos(job);
+                    // Quick Service Online Banner Toggle
+                    const quickBanner = document.getElementById('qc-quick-online-banner');
+                    if (quickBanner) {
+                        quickBanner.style.display = isQuick ? 'flex' : 'none';
+                    }
 
-                // Update dynamic labels based on job type
-                const numQ = isQuick ? 1 : 5;
-                const elProgressTitle = document.getElementById('qc-progress-card-title');
-                if (elProgressTitle) {
-                    const badge = elProgressTitle.querySelector('#qc-detail-completion-badge');
-                    elProgressTitle.childNodes[0].textContent = isQuick
-                        ? 'ความคืบหน้าการประเมินมาตรฐานคุณภาพ QC (1 ข้อคำถามจบกระบวนการ)'
-                        : `ความคืบหน้าการประเมินมาตรฐานคุณภาพ QC (${numQ} ข้อคำถามมาตรฐาน)`;
-                    if (badge) elProgressTitle.appendChild(badge);
-                }
-                const elProgressDesc = document.getElementById('qc-progress-card-desc');
-                if (elProgressDesc) {
-                    elProgressDesc.textContent = isQuick
-                        ? 'ตอบ ผ่าน/ไม่ผ่าน เพียง 1 ข้อคำถาม จึงจะสามารถส่งมอบต่อไปยังขั้นตอน CSAT (Step 6)'
-                        : 'ต้องประเมินและตอบ Yes/No (Yes=5, No=1) พร้อมแนบรูปภาพให้ครบ 5 ข้อ จึงจะสามารถส่งมอบต่อไปยังขั้นตอน CSAT (Step 6)';
-                }
-                const elSecTitle = document.getElementById('qc-subtasks-section-title');
-                if (elSecTitle) {
-                    elSecTitle.textContent = isQuick
-                        ? 'แบบประเมินมาตรฐานงาน Quick Service (1 ข้อคำถาม)'
-                        : '5 ข้อคำถามมาตรฐานการประเมินคุณภาพ QC (Isara Chootip Standard)';
-                }
-                const elSecSub = document.getElementById('qc-subtasks-section-subtitle');
-                if (elSecSub) {
-                    elSecSub.textContent = isQuick
-                        ? '(ประเมิน 1 ข้อจบ | รอบแรกผ่านได้ 5.0 คะแนน, หากเป็นรอบแก้ไขครั้งที่ 2, 3, 4 จะได้ 1.0 คะแนนอัตโนมัติ)'
-                        : '(Yes = 5 คะแนน [รอบแก้ได้ 1 คะแนน], No = 1 คะแนน | แนบรูปภาพและบันทึกหมายเหตุรายข้อ)';
-                }
+                    // Header elements
+                    const orderNo = job.job_no || job.id || '-';
+                    const elId = document.getElementById('qc-detail-job-id');
+                    if (elId) elId.innerText = orderNo;
+                    const elOrder = document.getElementById('qc-detail-order-no');
+                    if (elOrder) elOrder.innerText = orderNo;
 
-                this.showModal('modal-qc-job-detail');
+                    const bookingNo = job.booking_no || job.vfix_no || (job.raw_payload && (job.raw_payload.booking_no || job.raw_payload.vfix_no)) || '';
+                    const elBooking = document.getElementById('qc-detail-booking-no');
+                    if (elBooking) elBooking.innerText = bookingNo || '-';
+                    const elBookingContainer = document.getElementById('qc-detail-booking-container');
+                    if (elBookingContainer) {
+                        elBookingContainer.style.display = bookingNo ? 'inline-flex' : 'none';
+                    }
+
+                    const refId = job.external_ref_id || (job.raw_payload && job.raw_payload.external_ref_id) || '';
+                    const elRef = document.getElementById('qc-detail-ref-id');
+                    if (elRef) elRef.innerText = refId || '-';
+                    const elRefContainer = document.getElementById('qc-detail-ref-container');
+                    if (elRefContainer) {
+                        elRefContainer.style.display = refId ? 'inline-flex' : 'none';
+                    }
+
+                    const elType = document.getElementById('qc-detail-type-badge');
+                    if (elType) {
+                        elType.innerText = isQuick ? 'QUICK SERVICE (QC ONLINE)' : 'RENOVATE PROJECT';
+                        elType.className = isQuick 
+                            ? 'px-2.5 py-1 rounded-md text-xs font-mono font-black uppercase bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs'
+                            : 'px-2.5 py-1 rounded-md text-xs font-mono font-black uppercase bg-indigo-50 text-indigo-800 border border-indigo-300 shadow-2xs';
+                    }
+                    const elStatus = document.getElementById('qc-detail-status-badge');
+                    const isPassed = job.status === 'QC_PASSED' || job.qc_status === 'QC_PASSED' || (Array.isArray(job.qc_history) && job.qc_history.some(h => h.result === 'PASSED' || h.action === 'PASSED'));
+                    const lastPassed = (job.qc_history || []).find(h => h.result === 'PASSED' || h.action === 'PASSED');
+                    const passedDate = (lastPassed && lastPassed.timestamp)
+                        ? (lastPassed.date_display || this.formatDateTimeDMY(lastPassed.timestamp, false, true))
+                        : (job.qc_passed_at ? this.formatDateTimeDMY(job.qc_passed_at, false, true) : (job.stk_exported_at ? this.formatDateTimeDMY(job.stk_exported_at, false, true) : 'เรียบร้อยแล้ว'));
+
+                    if (elStatus) {
+                        if (isPassed) {
+                            elStatus.innerText = job.stk_ref ? `ผ่านเกณฑ์แล้ว (ส่ง STK: ${job.stk_ref})` : 'ผ่านเกณฑ์แล้ว';
+                            elStatus.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/30';
+                        } else if (job.status === 'QC_REWORK') {
+                            elStatus.innerText = 'แจ้งแก้ไขงาน';
+                            elStatus.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-700 border border-rose-500/30';
+                        } else {
+                            elStatus.innerText = isQuick ? 'รอตรวจ Online (ภาพถ่าย Visit Plan)' : 'รอตรวจ On-site';
+                            elStatus.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 border border-amber-500/30';
+                        }
+                    }
+                    const elTitle = document.getElementById('qc-detail-job-title');
+                    if (elTitle) elTitle.innerText = `แบบฟอร์มตรวจรับรองมาตรฐาน QC & บันทึกปิดงานโครงการ: ${job.service}`;
+                    const elCust = document.getElementById('qc-detail-customer');
+                    if (elCust) elCust.innerText = job.customer || '-';
+                    const elPhone = document.getElementById('qc-detail-phone');
+                    if (elPhone) elPhone.innerText = job.phone || '-';
+                    const elTech = document.getElementById('qc-detail-tech');
+                    if (elTech) elTech.innerText = job.tech || '-';
+                    const elStore = document.getElementById('qc-detail-store');
+                    const elStoreContainer = document.getElementById('qc-detail-store-container');
+                    const storeInfo = [job.store_code, job.agent_name].filter(Boolean).join(' - ');
+                    if (elStore) elStore.innerText = storeInfo || '-';
+                    if (elStoreContainer) elStoreContainer.style.display = storeInfo ? 'inline-flex' : 'none';
+
+                    // Format inspection date in DD/MM/YYYY 24-hr (e.g. 08/09/2026 14:30 น.)
+                    const elDate = document.getElementById('qc-modal-date');
+                    if (elDate) {
+                        if (isPassed && (job.qc_passed_at || lastPassed)) {
+                            elDate.value = passedDate;
+                        } else {
+                            const now = new Date();
+                            const d = String(now.getDate()).padStart(2, '0');
+                            const m = String(now.getMonth() + 1).padStart(2, '0');
+                            const y = now.getFullYear();
+                            const hh = String(now.getHours()).padStart(2, '0');
+                            const mm = String(now.getMinutes()).padStart(2, '0');
+                            elDate.value = `${d}/${m}/${y} ${hh}:${mm} น.`;
+                        }
+                        elDate.disabled = isPassed;
+                    }
+
+                    const elRemarks = document.getElementById('qc-modal-overall-remarks');
+                    if (elRemarks) {
+                        elRemarks.value = job.qc_remarks || '';
+                        elRemarks.disabled = isPassed;
+                        elRemarks.readOnly = isPassed;
+                    }
+                    const elInspector = document.getElementById('qc-modal-inspector');
+                    if (elInspector) {
+                        elInspector.value = (job.qc_booking && job.qc_booking.assignedQCTech) ? job.qc_booking.assignedQCTech : (job.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)');
+                        elInspector.disabled = isPassed;
+                    }
+
+                    // Show/hide Locked Banner
+                    const lockedBanner = document.getElementById('qc-passed-locked-banner');
+                    if (lockedBanner) {
+                        if (isPassed) {
+                            lockedBanner.style.display = 'flex';
+                            const stkBadge = document.getElementById('qc-passed-stk-badge');
+                            if (stkBadge) stkBadge.innerText = job.stk_ref ? `STK Ref: ${job.stk_ref}` : 'STK Ref: พร้อมส่งมอบ';
+                            const dateText = document.getElementById('qc-passed-date-text');
+                            if (dateText) dateText.innerText = passedDate;
+                        } else {
+                            lockedBanner.style.display = 'none';
+                        }
+                    }
+
+                    // Lock footer action buttons if already passed
+                    const btnDraft = document.getElementById('btn-qc-save-draft');
+                    if (btnDraft) btnDraft.style.display = isPassed ? 'none' : 'inline-flex';
+                    const btnRework = document.getElementById('btn-qc-fail-rework');
+                    if (btnRework) btnRework.style.display = isPassed ? 'none' : 'inline-flex';
+
+                    this.renderQCHistorySection(job);
+                    this.renderQCSubtasks(job);
+                    this.renderQCIntPhotos(job);
+
+                    // Update dynamic labels based on job type
+                    const numQ = isQuick ? 1 : 5;
+                    const elProgressTitle = document.getElementById('qc-progress-card-title');
+                    if (elProgressTitle) {
+                        const badge = elProgressTitle.querySelector('#qc-detail-completion-badge');
+                        const titleText = isQuick
+                            ? 'ความคืบหน้าการประเมินมาตรฐานคุณภาพ QC (1 ข้อคำถามจบกระบวนการ)'
+                            : `ความคืบหน้าการประเมินมาตรฐานคุณภาพ QC (${numQ} ข้อคำถามมาตรฐาน)`;
+                        if (badge) {
+                            elProgressTitle.innerHTML = '';
+                            elProgressTitle.appendChild(document.createTextNode(titleText + ' '));
+                            elProgressTitle.appendChild(badge);
+                        } else {
+                            elProgressTitle.textContent = titleText;
+                        }
+                    }
+                    const elProgressDesc = document.getElementById('qc-progress-card-desc');
+                    if (elProgressDesc) {
+                        elProgressDesc.textContent = isQuick
+                            ? 'ตอบ ผ่าน/ไม่ผ่าน เพียง 1 ข้อคำถาม จึงจะสามารถส่งมอบต่อไปยังขั้นตอน CSAT (Step 6)'
+                            : 'ต้องประเมินและตอบ Yes/No (Yes=5, No=1) พร้อมแนบรูปภาพให้ครบ 5 ข้อ จึงจะสามารถส่งมอบต่อไปยังขั้นตอน CSAT (Step 6)';
+                    }
+                    const elSecTitle = document.getElementById('qc-subtasks-section-title');
+                    if (elSecTitle) {
+                        elSecTitle.textContent = isQuick
+                            ? 'แบบประเมินมาตรฐานงาน Quick Service (1 ข้อคำถาม)'
+                            : '5 ข้อคำถามมาตรฐานการประเมินคุณภาพ QC (Isara Chootip Standard)';
+                    }
+                    const elSecSub = document.getElementById('qc-subtasks-section-subtitle');
+                    if (elSecSub) {
+                        elSecSub.textContent = isQuick
+                            ? '(ประเมิน 1 ข้อจบ | รอบแรกผ่านได้ 5.0 คะแนน, หากเป็นรอบแก้ไขครั้งที่ 2, 3, 4 จะได้ 1.0 คะแนนอัตโนมัติ)'
+                            : '(Yes = 5 คะแนน [รอบแก้ได้ 1 คะแนน], No = 1 คะแนน | แนบรูปภาพและบันทึกหมายเหตุรายข้อ)';
+                    }
+
+                    this.showModal('modal-qc-job-detail');
+                } catch (err) {
+                    console.error('[openQCDetailModal] Error:', err);
+                    this.showToast('เกิดข้อผิดพลาดในการเปิดแบบฟอร์ม QC: ' + (err.message || err), 'error');
+                }
             },
 
             handleQCBookingDateChange(dateVal) {
@@ -24442,7 +24492,7 @@ const app = {
 
             setQCBookingDatePreset(preset) {
                 const jobId = this.state.currentQCModalJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getJob(jobId);
                 if (!job) return;
 
                 const jobTasks = (DB.tasks || []).filter(t => String(t.jobId) === String(job.id));
@@ -24474,7 +24524,7 @@ const app = {
 
             saveQCBooking(jobId) {
                 const targetJobId = jobId || this.state.currentQCModalJobId;
-                const job = (DB.jobs || []).find(j => j.id === targetJobId);
+                const job = this.getJob(targetJobId);
                 if (!job) return;
 
                 const dateEl = document.getElementById('qc-booking-date-input');
@@ -24844,7 +24894,7 @@ const app = {
             },
 
             setQCSubtaskAnswer(jobId, subtaskId, answer) {
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getJob(jobId);
                 if (!job) return;
                 if (this.isJobQCLocked(job)) {
                     this.showToast('⚠️ ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC แล้ว ระบบล็อกผลตรวจถาวร (ไม่อนุญาตให้แก้ไข)');
@@ -24892,7 +24942,7 @@ const app = {
 
             setAllQCSubtasksYes(jobId) {
                 const targetJobId = jobId || this.state.currentQCModalJobId;
-                const job = (DB.jobs || []).find(j => j.id === targetJobId);
+                const job = this.getJob(targetJobId);
                 if (!job) return;
                 if (this.isJobQCLocked(job)) {
                     this.showToast('⚠️ ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC แล้ว ระบบล็อกผลตรวจถาวร');
@@ -24929,7 +24979,7 @@ const app = {
 
             resetAllQCSubtasks(jobId) {
                 const targetJobId = jobId || this.state.currentQCModalJobId;
-                const job = (DB.jobs || []).find(j => j.id === targetJobId);
+                const job = this.getJob(targetJobId);
                 if (!job) return;
                 if (this.isJobQCLocked(job)) {
                     this.showToast('⚠️ ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC แล้ว ระบบล็อกผลตรวจถาวร');
@@ -24965,7 +25015,7 @@ const app = {
             },
 
             handleSubtaskPhotoUpload(event, jobId, subtaskId) {
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getJob(jobId);
                 if (!job) return;
                 if (this.isJobQCLocked(job)) {
                     this.showToast('⚠️ ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC แล้ว ไม่อนุญาตให้อัปโหลดรูปภาพ');
@@ -25004,7 +25054,7 @@ const app = {
             },
 
             removeSubtaskPhoto(jobId, subtaskId, photoId) {
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getJob(jobId);
                 if (!job) return;
                 if (this.isJobQCLocked(job)) {
                     this.showToast('⚠️ ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC แล้ว ไม่อนุญาตให้ลบรูปภาพ');
@@ -25021,7 +25071,7 @@ const app = {
             },
 
             saveSubtaskRemarks(jobId, subtaskId, remarks) {
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getJob(jobId);
                 if (!job || this.isJobQCLocked(job)) return;
                 const subtasks = this.getJobQCSubtasks(job);
                 const sub = subtasks.find(s => s.id === subtaskId);
@@ -25033,7 +25083,7 @@ const app = {
 
             saveCurrentQCSubtasksDraft() {
                 const jobId = this.state.currentQCModalJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getJob(jobId);
                 if (!job) return;
                 if (this.isJobQCLocked(job)) {
                     this.showToast('⚠️ ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC แล้ว ระบบล็อกผลตรวจถาวร');
@@ -25053,7 +25103,7 @@ const app = {
 
             failCurrentQCJob() {
                 const jobId = this.state.currentQCModalJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getJob(jobId);
                 if (!job) return;
                 if (this.isJobQCLocked(job)) {
                     this.showToast('⚠️ ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC แล้ว ไม่สามารถส่งกลับแก้ไขงานได้');
@@ -25138,7 +25188,7 @@ const app = {
 
             approveCurrentJobToSTK() {
                 const jobId = this.state.currentQCModalJobId;
-                const job = (DB.jobs || []).find(j => j.id === jobId);
+                const job = this.getJob(jobId);
                 if (!job) return;
 
                 if (this.isJobQCLocked(job)) {
@@ -25331,7 +25381,7 @@ const app = {
 
             showSTKPayloadModal(jobId) {
                 const targetJobId = jobId || this.state.currentQCModalJobId;
-                const job = (DB.jobs || []).find(j => j.id === targetJobId);
+                const job = this.getJob(targetJobId);
                 if (!job) {
                     this.showToast('⚠️ ไม่พบข้อมูลใบงาน');
                     return;
