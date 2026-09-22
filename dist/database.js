@@ -44,6 +44,14 @@ exports.dbSaveStagingReport = dbSaveStagingReport;
 exports.dbLoadStagingReports = dbLoadStagingReports;
 exports.dbGetStagingReport = dbGetStagingReport;
 exports.dbUpdateStagingReport = dbUpdateStagingReport;
+exports.dbLoadBlueprints = dbLoadBlueprints;
+exports.dbSaveBlueprint = dbSaveBlueprint;
+exports.dbUpdateBlueprint = dbUpdateBlueprint;
+exports.dbDeleteBlueprint = dbDeleteBlueprint;
+exports.dbLoadTickets = dbLoadTickets;
+exports.dbSaveTicket = dbSaveTicket;
+exports.dbUpdateTicket = dbUpdateTicket;
+exports.dbDeleteTicket = dbDeleteTicket;
 const pg_1 = require("pg");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
@@ -52,7 +60,7 @@ const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:EsQS
 exports.pool = new pg_1.Pool({
     connectionString,
     ssl: false,
-    max: 20,
+    max: 50,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
 });
@@ -264,6 +272,45 @@ async function initDatabase() {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
+      CREATE TABLE IF NOT EXISTS core_blueprints (
+        id VARCHAR(64) PRIMARY KEY,
+        job_id VARCHAR(50) NOT NULL,
+        customer_name VARCHAR(150),
+        file_name VARCHAR(255) NOT NULL,
+        zone VARCHAR(100),
+        room_zone VARCHAR(100),
+        version VARCHAR(50) NOT NULL,
+        file_size VARCHAR(50),
+        file_type VARCHAR(20),
+        notes TEXT,
+        preview_img TEXT,
+        version_history JSONB DEFAULT '[]'::jsonb,
+        uploaded_at VARCHAR(50),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS core_tickets (
+        id VARCHAR(64) PRIMARY KEY,
+        ticket_no VARCHAR(100) UNIQUE NOT NULL,
+        receipt_no VARCHAR(100),
+        contract_no VARCHAR(100),
+        job_id VARCHAR(50) NOT NULL,
+        customer_name VARCHAR(150),
+        service VARCHAR(100),
+        amount NUMERIC(14,2) DEFAULT 0.00,
+        payment_date VARCHAR(50),
+        payment_method VARCHAR(50),
+        slip_url TEXT,
+        slip_name VARCHAR(255),
+        contract_url TEXT,
+        contract_name VARCHAR(255),
+        status VARCHAR(50) DEFAULT 'VERIFIED',
+        notes TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
       ALTER TABLE core_jobs 
         ALTER COLUMN customer_id TYPE BIGINT,
         ALTER COLUMN project_sub_type TYPE TEXT,
@@ -348,6 +395,8 @@ async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_core_jobs_lower_status    ON core_jobs(LOWER(status));
       CREATE INDEX IF NOT EXISTS idx_core_jobs_lower_job_type  ON core_jobs(LOWER(job_type));
       CREATE INDEX IF NOT EXISTS idx_core_jobs_created_id      ON core_jobs(created_at DESC, id DESC);
+      CREATE INDEX IF NOT EXISTS idx_core_blueprints_job_id    ON core_blueprints(job_id);
+      CREATE INDEX IF NOT EXISTS idx_core_tickets_job_id       ON core_tickets(job_id);
     `);
         // 2. Ensure default users exist in sys_users
         await client.query(`
@@ -2222,5 +2271,266 @@ async function dbUpdateStagingReport(id, updates) {
     }
     catch (err) {
         console.error('[DB] Error updating staging report:', err.message);
+    }
+}
+// =============================================================================
+// CORE BLUEPRINTS (แบบแปลนโครงการ Step 2 Design)
+// =============================================================================
+async function dbLoadBlueprints(jobId) {
+    if (!exports.isDatabaseConnected)
+        return [];
+    try {
+        let query = 'SELECT * FROM core_blueprints';
+        const params = [];
+        if (jobId && jobId !== 'all') {
+            query += ' WHERE job_id = $1';
+            params.push(String(jobId));
+        }
+        query += ' ORDER BY created_at DESC';
+        const res = await exports.pool.query(query, params);
+        return res.rows.map(row => ({
+            id: row.id,
+            jobId: row.job_id,
+            job_id: row.job_id,
+            customerName: row.customer_name || '',
+            fileName: row.file_name,
+            zone: row.zone || '',
+            roomZone: row.room_zone || row.zone || '',
+            version: row.version,
+            fileSize: row.file_size || '',
+            fileType: row.file_type || '',
+            notes: row.notes || '',
+            previewImg: row.preview_img || null,
+            version_history: Array.isArray(row.version_history) ? row.version_history : [],
+            uploadedAt: row.uploaded_at || '',
+            createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+            created_at: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
+        }));
+    }
+    catch (err) {
+        console.error('[DB] Error loading blueprints:', err.message);
+        return [];
+    }
+}
+async function dbSaveBlueprint(bp) {
+    if (!exports.isDatabaseConnected)
+        return bp;
+    try {
+        const id = bp.id || `BP-${Date.now()}`;
+        const jobId = String(bp.jobId || bp.job_id || '');
+        const customerName = bp.customerName || bp.customer_name || '';
+        const fileName = bp.fileName || bp.file_name || 'blueprint.pdf';
+        const zone = bp.zone || bp.roomZone || '';
+        const roomZone = bp.roomZone || bp.zone || '';
+        const version = bp.version || 'v1.0 (แบบร่าง)';
+        const fileSize = bp.fileSize || bp.file_size || '';
+        const fileType = bp.fileType || bp.file_type || 'pdf';
+        const notes = bp.notes || '';
+        const previewImg = bp.previewImg || bp.preview_img || null;
+        const versionHistory = Array.isArray(bp.version_history) ? bp.version_history : [];
+        const uploadedAt = bp.uploadedAt || bp.uploaded_at || '';
+        await exports.pool.query(`INSERT INTO core_blueprints (
+        id, job_id, customer_name, file_name, zone, room_zone, version, file_size, file_type, notes, preview_img, version_history, uploaded_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
+      ON CONFLICT (id) DO UPDATE SET
+        job_id = EXCLUDED.job_id,
+        customer_name = EXCLUDED.customer_name,
+        file_name = EXCLUDED.file_name,
+        zone = EXCLUDED.zone,
+        room_zone = EXCLUDED.room_zone,
+        version = EXCLUDED.version,
+        file_size = EXCLUDED.file_size,
+        file_type = EXCLUDED.file_type,
+        notes = EXCLUDED.notes,
+        preview_img = EXCLUDED.preview_img,
+        version_history = EXCLUDED.version_history,
+        uploaded_at = EXCLUDED.uploaded_at,
+        updated_at = CURRENT_TIMESTAMP`, [
+            id, jobId, customerName, fileName, zone, roomZone, version, fileSize, fileType,
+            notes, previewImg, JSON.stringify(versionHistory), uploadedAt
+        ]);
+        return { ...bp, id };
+    }
+    catch (err) {
+        console.error('[DB] Error saving blueprint:', err.message);
+        throw err;
+    }
+}
+async function dbUpdateBlueprint(id, updates) {
+    if (!exports.isDatabaseConnected)
+        return null;
+    try {
+        const setClauses = [];
+        const values = [];
+        let idx = 1;
+        for (const [key, val] of Object.entries(updates)) {
+            if (['version', 'file_name', 'fileName', 'zone', 'room_zone', 'roomZone', 'notes', 'uploaded_at', 'uploadedAt', 'file_size', 'fileSize'].includes(key)) {
+                const col = key === 'fileName' ? 'file_name' : (key === 'roomZone' ? 'room_zone' : (key === 'uploadedAt' ? 'uploaded_at' : (key === 'fileSize' ? 'file_size' : key)));
+                setClauses.push(`${col} = $${idx++}`);
+                values.push(val);
+            }
+            else if (key === 'previewImg' || key === 'preview_img') {
+                setClauses.push(`preview_img = $${idx++}`);
+                values.push(val);
+            }
+            else if (key === 'version_history') {
+                setClauses.push(`version_history = $${idx++}`);
+                values.push(JSON.stringify(val));
+            }
+        }
+        if (setClauses.length === 0)
+            return null;
+        setClauses.push(`updated_at = CURRENT_TIMESTAMP`);
+        values.push(String(id));
+        const res = await exports.pool.query(`UPDATE core_blueprints SET ${setClauses.join(', ')} WHERE id = $${idx} RETURNING *`, values);
+        return res.rows[0] || null;
+    }
+    catch (err) {
+        console.error('[DB] Error updating blueprint:', err.message);
+        return null;
+    }
+}
+async function dbDeleteBlueprint(id) {
+    if (!exports.isDatabaseConnected)
+        return false;
+    try {
+        await exports.pool.query('DELETE FROM core_blueprints WHERE id = $1', [String(id)]);
+        return true;
+    }
+    catch (err) {
+        console.error('[DB] Error deleting blueprint:', err.message);
+        return false;
+    }
+}
+// =============================================================================
+// CORE TICKETS (ตั๋วใบเสร็จ & สัญญาโครงการ Step 2 & 4)
+// =============================================================================
+async function dbLoadTickets(jobId) {
+    if (!exports.isDatabaseConnected)
+        return [];
+    try {
+        let query = 'SELECT * FROM core_tickets';
+        const params = [];
+        if (jobId && jobId !== 'all') {
+            query += ' WHERE job_id = $1';
+            params.push(String(jobId));
+        }
+        query += ' ORDER BY created_at DESC';
+        const res = await exports.pool.query(query, params);
+        return res.rows.map(row => ({
+            id: row.id,
+            ticket_no: row.ticket_no,
+            receipt_no: row.receipt_no || '',
+            contract_no: row.contract_no || '',
+            job_id: row.job_id,
+            jobId: row.job_id,
+            customer_name: row.customer_name || '',
+            service: row.service || '',
+            amount: Number(row.amount) || 0,
+            payment_date: row.payment_date || '',
+            payment_method: row.payment_method || '',
+            slip_url: row.slip_url || '',
+            slip_name: row.slip_name || '',
+            contract_url: row.contract_url || '',
+            contract_name: row.contract_name || '',
+            status: row.status || 'VERIFIED',
+            notes: row.notes || '',
+            created_at: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
+        }));
+    }
+    catch (err) {
+        console.error('[DB] Error loading tickets:', err.message);
+        return [];
+    }
+}
+async function dbSaveTicket(tkt) {
+    if (!exports.isDatabaseConnected)
+        return tkt;
+    try {
+        const id = tkt.id || `TKT-${Date.now()}`;
+        const ticketNo = tkt.ticket_no || `TK-${Date.now()}`;
+        const receiptNo = tkt.receipt_no || '';
+        const contractNo = tkt.contract_no || '';
+        const jobId = String(tkt.job_id || tkt.jobId || '');
+        const customerName = tkt.customer_name || tkt.customer || '';
+        const service = tkt.service || '';
+        const amount = Number(tkt.amount) || 0;
+        const paymentDate = tkt.payment_date || '';
+        const paymentMethod = tkt.payment_method || '';
+        const slipUrl = tkt.slip_url || '';
+        const slipName = tkt.slip_name || '';
+        const contractUrl = tkt.contract_url || '';
+        const contractName = tkt.contract_name || '';
+        const status = tkt.status || 'VERIFIED';
+        const notes = tkt.notes || '';
+        await exports.pool.query(`INSERT INTO core_tickets (
+        id, ticket_no, receipt_no, contract_no, job_id, customer_name, service, amount, payment_date, payment_method, slip_url, slip_name, contract_url, contract_name, status, notes, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP)
+      ON CONFLICT (id) DO UPDATE SET
+        ticket_no = EXCLUDED.ticket_no,
+        receipt_no = EXCLUDED.receipt_no,
+        contract_no = EXCLUDED.contract_no,
+        job_id = EXCLUDED.job_id,
+        customer_name = EXCLUDED.customer_name,
+        service = EXCLUDED.service,
+        amount = EXCLUDED.amount,
+        payment_date = EXCLUDED.payment_date,
+        payment_method = EXCLUDED.payment_method,
+        slip_url = EXCLUDED.slip_url,
+        slip_name = EXCLUDED.slip_name,
+        contract_url = EXCLUDED.contract_url,
+        contract_name = EXCLUDED.contract_name,
+        status = EXCLUDED.status,
+        notes = EXCLUDED.notes,
+        updated_at = CURRENT_TIMESTAMP`, [
+            id, ticketNo, receiptNo, contractNo, jobId, customerName, service, amount,
+            paymentDate, paymentMethod, slipUrl, slipName, contractUrl, contractName, status, notes
+        ]);
+        return { ...tkt, id, ticket_no: ticketNo };
+    }
+    catch (err) {
+        console.error('[DB] Error saving ticket:', err.message);
+        throw err;
+    }
+}
+async function dbUpdateTicket(id, updates) {
+    if (!exports.isDatabaseConnected)
+        return null;
+    try {
+        const setClauses = [];
+        const values = [];
+        let idx = 1;
+        for (const [key, val] of Object.entries(updates)) {
+            if (['ticket_no', 'receipt_no', 'contract_no', 'customer_name', 'service', 'payment_date', 'payment_method', 'slip_url', 'slip_name', 'contract_url', 'contract_name', 'status', 'notes'].includes(key)) {
+                setClauses.push(`${key} = $${idx++}`);
+                values.push(val);
+            }
+            else if (key === 'amount') {
+                setClauses.push(`amount = $${idx++}`);
+                values.push(Number(val) || 0);
+            }
+        }
+        if (setClauses.length === 0)
+            return null;
+        setClauses.push(`updated_at = CURRENT_TIMESTAMP`);
+        values.push(String(id));
+        const res = await exports.pool.query(`UPDATE core_tickets SET ${setClauses.join(', ')} WHERE id = $${idx} RETURNING *`, values);
+        return res.rows[0] || null;
+    }
+    catch (err) {
+        console.error('[DB] Error updating ticket:', err.message);
+        return null;
+    }
+}
+async function dbDeleteTicket(id) {
+    if (!exports.isDatabaseConnected)
+        return false;
+    try {
+        await exports.pool.query('DELETE FROM core_tickets WHERE id = $1', [String(id)]);
+        return true;
+    }
+    catch (err) {
+        console.error('[DB] Error deleting ticket:', err.message);
+        return false;
     }
 }

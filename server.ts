@@ -54,7 +54,15 @@ import {
   dbSaveStagingReport,
   dbLoadStagingReports,
   dbGetStagingReport,
-  dbUpdateStagingReport
+  dbUpdateStagingReport,
+  dbLoadBlueprints,
+  dbSaveBlueprint,
+  dbUpdateBlueprint,
+  dbDeleteBlueprint,
+  dbLoadTickets,
+  dbSaveTicket,
+  dbUpdateTicket,
+  dbDeleteTicket
 } from './database';
 
 const app = express();
@@ -3946,6 +3954,114 @@ app.get('/api/v1/tasks/gantt', requireAuth, async (req: Request, res: Response) 
     total: sorted.length,
     data: sorted
   });
+});
+
+// =============================================================================
+// BLUEPRINTS API (แบบแปลนโครงการ Step 2 Design)
+// =============================================================================
+
+// GET /api/v1/blueprints — List all blueprints (filter by job_id)
+app.get('/api/v1/blueprints', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { job_id } = req.query;
+    const list = await dbLoadBlueprints(job_id && job_id !== 'all' ? String(job_id) : undefined);
+    return res.json({ success: true, total: list.length, data: list });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/v1/blueprints — Create or save blueprint
+app.post('/api/v1/blueprints', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const bp = req.body;
+    if (!bp || (!bp.fileName && !bp.file_name)) {
+      return res.status(400).json({ success: false, error: 'กรุณาระบุชื่อไฟล์แบบแปลน' });
+    }
+    const saved = await dbSaveBlueprint(bp);
+    return res.status(201).json({ success: true, data: saved });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// PATCH /api/v1/blueprints/:id — Update blueprint (e.g. upgrade to v2.0)
+app.patch('/api/v1/blueprints/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updated = await dbUpdateBlueprint(id, req.body);
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'ไม่พบแบบแปลนที่ต้องการแก้ไข' });
+    }
+    return res.json({ success: true, data: updated });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// DELETE /api/v1/blueprints/:id — Delete blueprint
+app.delete('/api/v1/blueprints/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const deleted = await dbDeleteBlueprint(id);
+    return res.json({ success: deleted });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// =============================================================================
+// TICKETS API (ตั๋วใบเสร็จ & สัญญาโครงการ Step 2 & 4)
+// =============================================================================
+
+// GET /api/v1/tickets — List all tickets (filter by job_id)
+app.get('/api/v1/tickets', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { job_id } = req.query;
+    const list = await dbLoadTickets(job_id && job_id !== 'all' ? String(job_id) : undefined);
+    return res.json({ success: true, total: list.length, data: list });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/v1/tickets — Create or save ticket
+app.post('/api/v1/tickets', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const tkt = req.body;
+    if (!tkt || !tkt.ticket_no) {
+      return res.status(400).json({ success: false, error: 'กรุณาระบุเลขที่ Ticket' });
+    }
+    const saved = await dbSaveTicket(tkt);
+    return res.status(201).json({ success: true, data: saved });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// PATCH /api/v1/tickets/:id — Update ticket
+app.patch('/api/v1/tickets/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updated = await dbUpdateTicket(id, req.body);
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'ไม่พบ Ticket ที่ต้องการแก้ไข' });
+    }
+    return res.json({ success: true, data: updated });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// DELETE /api/v1/tickets/:id — Delete ticket
+app.delete('/api/v1/tickets/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const deleted = await dbDeleteTicket(id);
+    return res.json({ success: deleted });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // =============================================================================

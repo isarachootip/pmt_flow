@@ -115,6 +115,7 @@ const app = {
                     localStorage.setItem('pmt_tasks', JSON.stringify((DB.tasks || []).slice(0, 50)));
                     localStorage.setItem('pmt_qc_bookings', JSON.stringify((DB.qcBookings || []).slice(0, 50)));
                     localStorage.setItem('pmt_tickets', JSON.stringify((DB.tickets || []).slice(0, 50)));
+                    localStorage.setItem('pmt_blueprints', JSON.stringify((DB.blueprints || []).slice(0, 50)));
                     localStorage.setItem('pmt_daily_work_logs', JSON.stringify((DB.dailyWorkLogs || []).slice(0, 50)));
                 } catch (e) {
                     console.warn('[STORAGE] Safe localStorage persist skipped quota error:', e.message);
@@ -2789,6 +2790,8 @@ const app = {
                     this.fetchJobsFromApi();
                     this.fetchMAFromApi();
                     this.fetchApiLogs();
+                    this.fetchBlueprintsFromApi();
+                    this.fetchTicketsFromApi();
                 }
                 // Polling sync for live updates. Runs only when logged in, only while the tab is
                 // visible, and never while the previous round is still in flight - GET /api/v1/jobs
@@ -2803,6 +2806,8 @@ const app = {
                     try {
                         await this.fetchJobsFromApi();
                         await this.fetchMAFromApi();
+                        await this.fetchBlueprintsFromApi();
+                        await this.fetchTicketsFromApi();
                     } finally {
                         this._syncPollInFlight = false;
                     }
@@ -2817,6 +2822,8 @@ const app = {
                     Promise.resolve()
                         .then(() => this.fetchJobsFromApi())
                         .then(() => this.fetchMAFromApi())
+                        .then(() => this.fetchBlueprintsFromApi())
+                        .then(() => this.fetchTicketsFromApi())
                         .finally(() => { this._syncPollInFlight = false; });
                 });
             },
@@ -3188,8 +3195,14 @@ const app = {
                         }
                     }, 100);
                 }
-                if(view === 'blueprints') this.renderBlueprints();
-                if(view === 'tickets') this.renderTickets();
+                if(view === 'blueprints') {
+                    this.fetchBlueprintsFromApi();
+                    this.renderBlueprints();
+                }
+                if(view === 'tickets') {
+                    this.fetchTicketsFromApi();
+                    this.renderTickets();
+                }
                 if(view === 'boq') this.renderBOQPage(param);
                 if(view === 'project-conversion') {
                     // BOQ Guard: ห้ามเข้าหน้านี้โดยไม่มี BOQ
@@ -5691,6 +5704,7 @@ const app = {
                             console.warn('[STUDIO] Error loading full job payload:', err);
                         }
                     }
+                    this.fetchBlueprintsFromApi(jobId);
 
                     if (!job) {
                         this.showToast('ไม่พบข้อมูลคำสั่งซื้อ');
@@ -7217,6 +7231,14 @@ const app = {
                 };
 
                 DB.blueprints.push(sample1, sample2);
+                this.persistBlueprints();
+                [sample1, sample2].forEach(s => {
+                    fetch('/api/v1/blueprints', {
+                        method: 'POST',
+                        headers: this.getAuthHeaders(),
+                        body: JSON.stringify(s)
+                    }).catch(() => {});
+                });
                 if (!job.step_timestamps) job.step_timestamps = {};
                 if (!job.step_timestamps.step2_design_at) job.step_timestamps.step2_design_at = nowIso;
                 job.step2_passed = this.isDesignFinalV2(job);
@@ -7271,6 +7293,13 @@ const app = {
                 };
 
                 DB.blueprints.push(newBp);
+                this.persistBlueprints();
+                fetch('/api/v1/blueprints', {
+                    method: 'POST',
+                    headers: this.getAuthHeaders(),
+                    body: JSON.stringify(newBp)
+                }).catch(err => console.warn('[BLUEPRINT API] Error saving to DB:', err));
+
                 if (!job.step_timestamps) job.step_timestamps = {};
                 if (!job.step_timestamps.step2_design_at) job.step_timestamps.step2_design_at = nowIso;
                 job.step2_passed = this.isDesignFinalV2(job);
@@ -7330,6 +7359,17 @@ const app = {
                     job.step2_passed = this.isDesignFinalV2(job);
                 }
 
+                this.persistBlueprints();
+                fetch(`/api/v1/blueprints/${encodeURIComponent(bpId)}`, {
+                    method: 'PATCH',
+                    headers: this.getAuthHeaders(),
+                    body: JSON.stringify({
+                        version: bp.version,
+                        uploadedAt: bp.uploadedAt,
+                        version_history: bp.version_history
+                    })
+                }).catch(err => console.warn('[BLUEPRINT API] Error upgrading in DB:', err));
+
                 this.persistJobs();
                 this.renderUnifiedBlueprintsGrid();
                 this.renderUnifiedBOQTable();
@@ -7344,6 +7384,12 @@ const app = {
                 const idx = DB.blueprints.findIndex(b => b.id === bpId || String(b.id) === String(bpId));
                 if (idx !== -1) {
                     DB.blueprints.splice(idx, 1);
+                    this.persistBlueprints();
+                    fetch(`/api/v1/blueprints/${encodeURIComponent(bpId)}`, {
+                        method: 'DELETE',
+                        headers: this.getAuthHeaders()
+                    }).catch(err => console.warn('[BLUEPRINT API] Error deleting from DB:', err));
+
                     const jobId = this.state.unifiedStudioJobId;
                     const job = (DB.jobs || []).find(j => j.id === jobId);
                     if (job) {
@@ -16662,6 +16708,11 @@ const app = {
                 if (!DB.tickets) DB.tickets = [];
                 DB.tickets.unshift(newTicket);
                 this.persistTickets();
+                fetch('/api/v1/tickets', {
+                    method: 'POST',
+                    headers: this.getAuthHeaders(),
+                    body: JSON.stringify(newTicket)
+                }).catch(err => console.warn('[TICKETS API] Error saving to DB:', err));
 
                 let isQuick = false;
                 if (job) {
@@ -26934,6 +26985,59 @@ const app = {
                     if (sidebarMa) sidebarMa.innerText = (DB.maContracts || []).length;
                 } catch (err) {
                     // local fallback
+                }
+            },
+
+            async fetchBlueprintsFromApi(jobId = null) {
+                try {
+                    const token = this.getAuthToken();
+                    if (!token) return;
+                    const url = jobId ? `/api/v1/blueprints?job_id=${encodeURIComponent(jobId)}` : '/api/v1/blueprints';
+                    const res = await fetch(url, { headers: this.getAuthHeaders() });
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json.success && Array.isArray(json.data)) {
+                            if (jobId) {
+                                const other = (DB.blueprints || []).filter(b => String(b.jobId || b.job_id) !== String(jobId));
+                                DB.blueprints = [...other, ...json.data];
+                            } else {
+                                DB.blueprints = json.data;
+                            }
+                            this.persistBlueprints();
+                            if (this.state.currentPage === 'blueprints' || this.state.currentView === 'blueprints') {
+                                this.renderBlueprints();
+                            }
+                            this.renderUnifiedBlueprintsGrid();
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[BLUEPRINTS API] Failed to fetch blueprints, using local cache:', e.message);
+                }
+            },
+
+            async fetchTicketsFromApi(jobId = null) {
+                try {
+                    const token = this.getAuthToken();
+                    if (!token) return;
+                    const url = jobId ? `/api/v1/tickets?job_id=${encodeURIComponent(jobId)}` : '/api/v1/tickets';
+                    const res = await fetch(url, { headers: this.getAuthHeaders() });
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json.success && Array.isArray(json.data)) {
+                            if (jobId) {
+                                const other = (DB.tickets || []).filter(t => String(t.job_id || t.jobId) !== String(jobId));
+                                DB.tickets = [...other, ...json.data];
+                            } else {
+                                DB.tickets = json.data;
+                            }
+                            this.persistTickets();
+                            if (this.state.currentPage === 'tickets' || this.state.currentView === 'tickets') {
+                                this.renderTickets();
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[TICKETS API] Failed to fetch tickets, using local cache:', e.message);
                 }
             },
 
