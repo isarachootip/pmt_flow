@@ -408,13 +408,9 @@ const app = {
                 this.persistJobs();
 
                 // Background API sync if available
-                const authToken = sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
                 fetch(`/api/v1/jobs/${jobId}`, {
                     method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
-                    },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         step_timestamps: job.step_timestamps,
                         step_users: job.step_users,
@@ -424,6 +420,19 @@ const app = {
                 }).catch(() => {});
 
                 return ts;
+            },
+
+            getAuthToken() {
+                return (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token') || '';
+            },
+
+            getAuthHeaders(extraHeaders = {}) {
+                const token = this.getAuthToken();
+                return {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                    ...extraHeaders
+                };
             },
 
             formatTimestamp(isoString, withSeconds = true) {
@@ -1600,7 +1609,7 @@ const app = {
                 } catch (e) {}
 
                 try {
-                    await fetch('/api/v1/jobs/reset-status', { method: 'POST' });
+                    await fetch('/api/v1/jobs/reset-status', { method: 'POST', headers: this.getAuthHeaders() });
                 } catch (e) {}
 
                 this.updateStepBadges();
@@ -1648,10 +1657,10 @@ const app = {
                 } catch (e) {}
 
                 try {
-                    await fetch('/api/v1/jobs', { method: 'DELETE' });
+                    await fetch('/api/v1/jobs', { method: 'DELETE', headers: this.getAuthHeaders() });
                 } catch (e) {}
                 try {
-                    await fetch('/api/v1/system/wipe-transactions', { method: 'POST' });
+                    await fetch('/api/v1/system/wipe-transactions', { method: 'POST', headers: this.getAuthHeaders() });
                 } catch (e) {}
 
                 this.persistJobs();
@@ -2854,7 +2863,32 @@ const app = {
                                 return;
                             }
 
-                            DB.jobs = this.sortJobsDescending(json.data);
+                            // Anti-Bounce & Multi-Step Merge:
+                            // Merge json.data into DB.jobs instead of blindly discarding jobs progressed to other steps
+                            const incomingJobs = json.data;
+                            const existingJobsMap = new Map((DB.jobs || []).map(j => [String(j.id), j]));
+
+                            incomingJobs.forEach(incoming => {
+                                const key = String(incoming.id);
+                                const existing = existingJobsMap.get(key);
+                                if (existing) {
+                                    // Protect jobs that have already been accepted or progressed locally
+                                    if (existing.pmt_accepted && !incoming.pmt_accepted) {
+                                        incoming.pmt_accepted = true;
+                                        incoming.pmt_accepted_at = existing.pmt_accepted_at || incoming.pmt_accepted_at;
+                                        if (existing.status && ['QC_PENDING', 'QC_PASSED', 'QC_REWORK', 'IN_PROGRESS'].includes(existing.status)) {
+                                            incoming.status = existing.status;
+                                        }
+                                        if (existing.qc_inspection_type) incoming.qc_inspection_type = existing.qc_inspection_type;
+                                        if (existing.qc_type) incoming.qc_type = existing.qc_type;
+                                    }
+                                    existingJobsMap.set(key, { ...existing, ...incoming });
+                                } else {
+                                    existingJobsMap.set(key, incoming);
+                                }
+                            });
+
+                            DB.jobs = this.sortJobsDescending(Array.from(existingJobsMap.values()));
                             this.persistJobs();
 
                             if (this.state.currentView === 'jobs') {
@@ -5126,8 +5160,42 @@ const app = {
                         list = list.slice((p - 1) * l, p * l);
                     }
                 } else {
-                    list = DB.jobs || [];
-                    list = this.sortJobsDescending(list);
+                    let source = DB.jobs || [];
+                    const statusFilter = this.state.jobsFilterStatus || 'step1_queue';
+                    if (statusFilter === 'step1_queue') {
+                        source = source.filter(j => {
+                            if (j.pmt_accepted) return false;
+                            const st = String(j.status || '').toUpperCase();
+                            if (['QC_PENDING', 'QC_PASSED', 'QC_REWORK', 'QC_INSPECTING', 'IN_PROGRESS', 'CLOSED', 'AFTER_SALE'].includes(st)) return false;
+                            return ['SURVEYED', 'DRAFT', 'NEW', 'NEW_ORDER', 'SURVEY'].includes(st) || !st;
+                        });
+                    } else if (statusFilter === 'new') {
+                        source = source.filter(j => !j.pmt_accepted && ['NEW', 'DRAFT', 'NEW_ORDER'].includes(String(j.status || '').toUpperCase()) && (!j.assigned_tech || j.assigned_tech === 'รอระบุช่าง'));
+                    } else if (statusFilter === 'assigned') {
+                        source = source.filter(j => !j.pmt_accepted && j.assigned_tech && j.assigned_tech !== 'รอระบุช่าง' && !['SURVEYED', 'CANCELLED', 'CLOSED_LOST'].includes(String(j.status || '').toUpperCase()));
+                    } else if (statusFilter === 'surveyed') {
+                        source = source.filter(j => !j.pmt_accepted && (String(j.status || '').toUpperCase() === 'SURVEYED' || j.step_timestamps?.step1_survey_at || (j.photos && j.photos.length > 0)));
+                    } else if (statusFilter === 'transferred') {
+                        source = source.filter(j => j.pmt_accepted === true || !['SURVEYED', 'DRAFT', 'NEW', 'NEW_ORDER'].includes(String(j.status || '').toUpperCase()));
+                    }
+
+                    if (this.state.jobsFilterService === 'quick') {
+                        source = source.filter(j => this.isQuickJob(j));
+                    } else if (this.state.jobsFilterService === 'renovate') {
+                        source = source.filter(j => !this.isQuickJob(j) && (j.job_type === 'renovate' || (j.services && JSON.stringify(j.services).toLowerCase().includes('renovate'))));
+                    } else if (this.state.jobsFilterService === 'ma') {
+                        source = source.filter(j => (j.job_type === 'ma' || (j.services && JSON.stringify(j.services).toLowerCase().includes('ma'))));
+                    }
+
+                    this.state.jobsTotal = source.length;
+                    this.state.jobsTotalPages = Math.max(1, Math.ceil(source.length / (this.state.jobsLimit || 50)));
+                    this.state.jobsPage = Math.min(Math.max(1, this.state.jobsPage || 1), this.state.jobsTotalPages);
+                    list = this.sortJobsDescending(source);
+                    const p = this.state.jobsPage;
+                    const l = this.state.jobsLimit || 50;
+                    if (list.length > l) {
+                        list = list.slice((p - 1) * l, p * l);
+                    }
                 }
 
                 // Contextual banner display
@@ -6163,7 +6231,7 @@ const app = {
 
                     fetch(`/api/v1/jobs/${jobId}`, {
                         method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: this.getAuthHeaders(),
                         body: JSON.stringify({
                             project_sub_type: job.project_sub_type,
                             service: job.service,
@@ -6677,7 +6745,7 @@ const app = {
                     // Sync with server in background
                     fetch(`/api/v1/jobs/${jobId}/photos`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: this.getAuthHeaders(),
                         body: JSON.stringify(newPhoto)
                     }).catch(() => {});
                 }
@@ -7791,7 +7859,7 @@ const app = {
                     this.showToast(`💾 บันทึกข้อมูลงาน Quick [${jobId}] เรียบร้อย! วิ่งตรงไปหน้า QC Online เพื่อปิดงานทันที...`, 'success');
                     fetch(`/api/v1/jobs/${jobId}`, {
                         method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: this.getAuthHeaders(),
                         body: JSON.stringify({
                             project_sub_type: job.project_sub_type,
                             service: job.service,
@@ -7807,10 +7875,12 @@ const app = {
                             visit_result: job.visit_results,
                             remarks_data: job.remarks_data,
                             remarks: job.remarks_data,
-                            status: job.status,
+                            status: 'QC_PENDING',
+                            pmt_accepted: true,
+                            pmt_accepted_at: job.pmt_accepted_at || nowIso,
                             overall_progress: job.progress,
                             assigned_tech: job.tech,
-                            qc_inspection_type: job.qc_inspection_type,
+                            qc_inspection_type: 'ONLINE',
                             step_timestamps: job.step_timestamps
                         })
                     }).catch(() => {});
@@ -7838,7 +7908,7 @@ const app = {
 
                 fetch(`/api/v1/jobs/${jobId}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         project_sub_type: job.project_sub_type,
                         service: job.service,
@@ -7902,6 +7972,18 @@ const app = {
 
                 this.persistJobs();
                 this.hideModal('modal-unified-order-studio');
+
+                fetch(`/api/v1/jobs/${jobId}`, {
+                    method: 'PATCH',
+                    headers: this.getAuthHeaders(),
+                    body: JSON.stringify({
+                        status: 'IN_PROGRESS',
+                        overall_progress: job.progress,
+                        pmt_accepted: true,
+                        pmt_accepted_at: now.toISOString(),
+                        step_timestamps: job.step_timestamps
+                    })
+                }).catch(() => {});
 
                 this.showToast(`🚀 อนุมัติคำสั่งซื้อ ${jobId} เรียบร้อย! ส่งต่องานไปยังขั้นตอนออก Ticket & สลิป...`);
                 setTimeout(() => {
@@ -8952,7 +9034,7 @@ const app = {
                 // Sync with backend server
                 fetch(`/api/v1/jobs/${targetJobId}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         overall_progress: job.progress,
                         step3_confirmed: true,
@@ -8994,7 +9076,7 @@ const app = {
                 // Sync with backend server
                 fetch(`/api/v1/jobs/${jobId}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         overall_progress: job.progress,
                         step_timestamps: job.step_timestamps
@@ -9039,7 +9121,7 @@ const app = {
                 // Sync with backend server
                 fetch(`/api/v1/jobs/${jobId}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         overall_progress: job.progress,
                         step_timestamps: job.step_timestamps
@@ -9905,7 +9987,7 @@ const app = {
                 // Sync with backend server
                 fetch(`/api/v1/jobs/${jobId}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({ special_instructions, additional_notes })
                 }).catch(() => {});
 
@@ -10061,7 +10143,7 @@ const app = {
                 // Call backend API in background
                 fetch(`/api/v1/jobs/${jobId}/photos`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         title: newPhoto.title,
                         name: newPhoto.name,
@@ -10104,11 +10186,12 @@ const app = {
 
                 // Sync with server
                 fetch(`/api/v1/jobs/${job.id}/photos/${photoId}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: this.getAuthHeaders()
                 }).catch(() => {
                     fetch(`/api/v1/jobs/${job.id}`, {
                         method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: this.getAuthHeaders(),
                         body: JSON.stringify({ photos: job.photos, file_int_image: job.file_int_image })
                     }).catch(() => {});
                 });
@@ -10215,7 +10298,7 @@ const app = {
                     // Async API call in background
                     fetch(`/api/v1/jobs/${id}/checkin`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: this.getAuthHeaders(),
                         body: JSON.stringify({
                             lat: lat,
                             lng: lng,
@@ -10256,46 +10339,45 @@ const app = {
                 if(!job) return;
 
                 const acceptNow = new Date().toISOString();
-                job.status = 'IN_PROGRESS';
+                const isQuick = this.isQuickJob(job);
                 job.pmt_accepted = true;
                 job.pmt_accepted_at = acceptNow;
 
                 if (!job.step_timestamps) job.step_timestamps = {};
-                this.recordStepTimestamp(id, 'step1_accepted_at', acceptNow, 'รับงานเข้าสู่ PMT (In Progress)');
+                this.recordStepTimestamp(id, 'step1_accepted_at', acceptNow, 'รับงานเข้าสู่ PMT');
                 if (!job.step_timestamps.step1_order_at) {
                     this.recordStepTimestamp(id, 'step1_order_at', acceptNow, 'รับ Order');
                 }
 
-                const isQuick = this.isQuickJob(job);
-
                 if (isQuick) {
-                    // Quick Services: Transition directly into Step 2 (Tickets & Receipts)
-                    job.progress = Math.max(job.progress || 0, 60);
-                    job.step_timestamps.step2_ticket_at = acceptNow;
-                    job.step_timestamps.step4_ticket_at = acceptNow;
-                    this.recordStepTimestamp(id, 'step2_ticket_at', acceptNow, 'รับเข้า PMT และย้ายเข้าสู่ Step 2 (บันทึก Ticket & ใบเสร็จ) อัตโนมัติ (Quick Service)');
+                    // Quick Services: Transition directly into Step 5 (QC Online)
+                    job.status = 'QC_PENDING';
+                    job.qc_inspection_type = 'ONLINE';
+                    job.qc_type = 'ONLINE';
+                    job.progress = Math.max(job.progress || 0, 85);
+                    job.step_timestamps.qc_pending_at = acceptNow;
+                    job.step_timestamps.step5_skipped_at = acceptNow;
+                    this.recordStepTimestamp(id, 'qc_pending_at', acceptNow, 'รับเข้า PMT และส่งตรงเข้าสู่ QC Online (Step 5) อัตโนมัติ (Quick Service)');
                 } else {
-                    // Non-quick jobs (Renovate, MA, etc.): Transition into Step 1 Design & BOQ
-                    job.progress = Math.max(job.progress || 0, 20);
-                    job.step_timestamps.step2_design_at = acceptNow;
-                    this.recordStepTimestamp(id, 'step2_design_at', acceptNow, 'บันทึกรับเข้า PMT (Step 1: Design & BOQ Studio)');
+                    // Non-quick jobs (Renovate, MA, etc.): Transition into Step 2 Ticket
+                    job.status = 'IN_PROGRESS';
+                    job.progress = Math.max(job.progress || 0, 45);
+                    job.step_timestamps.step2_ticket_at = acceptNow;
+                    this.recordStepTimestamp(id, 'step2_ticket_at', acceptNow, 'บันทึกรับเข้า PMT ส่งต่อไปยัง Step 2 (บันทึก Ticket & ใบเสร็จ)');
                 }
 
                 this.persistJobs();
 
                 // Sync with backend server
-                const syncToken = sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
                 fetch(`/api/v1/jobs/${id}`, {
                     method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(syncToken ? { 'Authorization': `Bearer ${syncToken}` } : {})
-                    },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
-                        status: 'IN_PROGRESS',
+                        status: isQuick ? 'QC_PENDING' : 'IN_PROGRESS',
                         overall_progress: job.progress,
                         pmt_accepted: true,
                         pmt_accepted_at: job.pmt_accepted_at,
+                        qc_inspection_type: isQuick ? 'ONLINE' : (job.qc_inspection_type || null),
                         step_timestamps: job.step_timestamps
                     })
                 }).catch(() => {});
@@ -10340,6 +10422,8 @@ const app = {
                 const targetId = job ? job.id : id;
                 if (job && this.isQuickJob(job)) {
                     this.state.qcSegmentFilter = 'quick';
+                    job.pmt_accepted = true;
+                    if (!job.pmt_accepted_at) job.pmt_accepted_at = new Date().toISOString();
                     if (job.status !== 'QC_PENDING' && job.status !== 'QC_PASSED' && job.status !== 'QC_REWORK' && job.status !== 'COMPLETED') {
                         job.status = 'QC_PENDING';
                         job.qc_inspection_type = 'ONLINE';
@@ -10354,9 +10438,11 @@ const app = {
                         this.persistJobs();
                         fetch(`/api/v1/jobs/${targetId}`, {
                             method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: this.getAuthHeaders(),
                             body: JSON.stringify({
                                 status: job.status,
+                                pmt_accepted: true,
+                                pmt_accepted_at: job.pmt_accepted_at,
                                 overall_progress: job.progress,
                                 qc_inspection_type: job.qc_inspection_type,
                                 step_timestamps: job.step_timestamps
@@ -10397,7 +10483,7 @@ const app = {
                 // Background API sync if available
                 fetch(`/api/v1/jobs/${id}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({ job_type: jobType })
                 }).catch(() => {});
 
@@ -12758,7 +12844,7 @@ const app = {
                 // Sync acceptance with backend
                 fetch(`/api/v1/jobs/${jobId}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         status: job ? job.status : 'IN_PROGRESS',
                         pmt_accepted: true,
@@ -13274,7 +13360,7 @@ const app = {
                 // Sync with backend API in background
                 fetch(`/api/v1/jobs/${data.jobId}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         start_date: job.date,
                         plan_start_date: job.date,
@@ -13289,7 +13375,7 @@ const app = {
 
                 fetch(`/api/v1/jobs/${data.jobId}/tasks/import-boq`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         items: tasksToSave.map(t => ({
                             name: t.name,
@@ -14823,7 +14909,7 @@ const app = {
                 // Sync with backend API in background
                 fetch(`/api/v1/jobs/${targetJobId}/tasks/import-boq`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         items: selectedTasks.map(t => ({
                             name: t.name,
@@ -16449,9 +16535,11 @@ const app = {
                 // Sync with backend
                 fetch(`/api/v1/jobs/${jobId}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         status: job ? job.status : 'IN_PROGRESS',
+                        pmt_accepted: true,
+                        pmt_accepted_at: (job && job.pmt_accepted_at) || new Date().toISOString(),
                         overall_progress: job ? job.progress : 80,
                         qc_inspection_type: job ? job.qc_inspection_type : undefined,
                         step_timestamps: job ? job.step_timestamps : undefined
@@ -18092,9 +18180,11 @@ const app = {
                 // Sync with backend server
                 fetch(`/api/v1/jobs/${job.id}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         overall_progress: job.progress,
+                        pmt_accepted: true,
+                        pmt_accepted_at: job.pmt_accepted_at || new Date().toISOString(),
                         step_timestamps: job.step_timestamps,
                         boq_grand_total: grandTotal,
                         boq_file: job.boq_file
@@ -19117,7 +19207,7 @@ const app = {
                 this.showToast(`👤 มอบหมายช่าง QC: ${newInspector} เรียบร้อย`);
                 fetch(`/api/v1/qc/bookings/${bookingId}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({ assigned_qc_tech: newInspector })
                 }).catch(() => {});
             },
@@ -19130,7 +19220,7 @@ const app = {
                 this.showToast(`📅 อัปเดตวันนัดตรวจ QC เป็น ${this.formatDateDMY(newDate)} เรียบร้อย`);
                 fetch(`/api/v1/qc/bookings/${bookingId}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({ qc_booking_date: newDate })
                 }).catch(() => {});
                 if (this.state.currentView === 'gantt') this.renderGantt();
@@ -19145,7 +19235,7 @@ const app = {
                 this.showToast('💾 บันทึกหมายเหตุการจอง QC เรียบร้อย');
                 fetch(`/api/v1/qc/bookings/${bookingId}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({ remarks: booking.remarks })
                 }).catch(() => {});
             },
@@ -19167,7 +19257,7 @@ const app = {
 
                 fetch(`/api/v1/qc/bookings/${bookingId}/confirm`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         qc_tech: booking.assignedQCTech,
                         confirmed_by: booking.confirmedBy,
@@ -20331,7 +20421,7 @@ const app = {
 
                 fetch(`/api/v1/jobs/${job.id}/tasks/import-boq`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         items: newTasks.map(t => ({
                             name: t.name,
@@ -20403,7 +20493,7 @@ const app = {
 
                 fetch(`/api/v1/jobs/${task.jobId}/tasks/${taskId}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         name: task.name,
                         start: task.start,
@@ -20458,7 +20548,10 @@ const app = {
                 this.persistJobs();
                 this.syncQCBookingsFromTasks();
                 if (jobId) {
-                    fetch(`/api/v1/jobs/${jobId}/tasks/${taskId}`, { method: 'DELETE' }).catch(() => {});
+                    fetch(`/api/v1/jobs/${jobId}/tasks/${taskId}`, {
+                        method: 'DELETE',
+                        headers: this.getAuthHeaders()
+                    }).catch(() => {});
                 }
                 this.showToast('🗑️ ลบ Task และยกเลิกการจอง QC เรียบร้อย');
                 this.renderGantt();
@@ -20807,7 +20900,7 @@ const app = {
                 if (!task || !task.jobId) return;
                 fetch(`/api/v1/jobs/${task.jobId}/tasks/${task.id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         name: task.name,
                         start: task.start,
@@ -22767,7 +22860,7 @@ const app = {
                     // Background API sync
                     fetch(`/api/v1/jobs/${jobId}/daily-logs`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: this.getAuthHeaders(),
                         body: JSON.stringify(newLog)
                     }).catch(() => {});
 
@@ -22802,7 +22895,7 @@ const app = {
                 // Normal background API sync
                 fetch(`/api/v1/jobs/${jobId}/daily-logs`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify(newLog)
                 }).catch(() => {});
 
@@ -22826,7 +22919,10 @@ const app = {
                 const targetLog = (DB.dailyWorkLogs || []).find(l => l.id === logId);
                 DB.dailyWorkLogs = (DB.dailyWorkLogs || []).filter(l => l.id !== logId);
                 this.persistDailyWorkLogs();
-                fetch(`/api/v1/daily-logs/${logId}`, { method: 'DELETE' }).catch(() => {});
+                fetch(`/api/v1/daily-logs/${logId}`, {
+                    method: 'DELETE',
+                    headers: this.getAuthHeaders()
+                }).catch(() => {});
 
                 // Auto Rollback Task and Job status if no completed logs remain
                 const remainingLogs = (DB.dailyWorkLogs || []).filter(l => String(l.taskId) === String(taskId));
@@ -25119,13 +25215,9 @@ const app = {
                 this.renderQC();
 
                 // Call backend PATCH to persist rework state and history
-                const token = sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
                 fetch(`/api/v1/jobs/${job.id}`, {
                     method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                    },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         status: 'QC_REWORK',
                         has_rework: true,
@@ -25296,13 +25388,9 @@ const app = {
                 this.updateQCDashboard();
 
                 // Outbound REST API call to backend & STK integration
-                const token = sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
                 fetch(`/api/v1/jobs/${job.id}/export-stk`, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                    },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify(stkPayload)
                 }).then(r => r.json()).then(resp => {
                     if (resp && resp.data && resp.data.stk_ref) {
@@ -25316,10 +25404,7 @@ const app = {
                 // Also update job record via standard PATCH
                 fetch(`/api/v1/jobs/${job.id}`, {
                     method: 'PATCH',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                    },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         status: 'QC_PASSED',
                         overall_progress: 100,
@@ -26567,7 +26652,7 @@ const app = {
                 // Background API sync
                 fetch(`/api/v1/jobs/${job.id}/after-sale/csat`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         csat_score: score,
                         customer_feedback: feedback,
@@ -26726,7 +26811,10 @@ const app = {
                     const bmtRef = `BMT-REF-2026-${Math.floor(100000 + Math.random() * 900000)}`;
                     job.bmt_ref = bmtRef;
                     // Background call to server if available
-                    fetch(`/api/v1/jobs/${id}/close-and-export-bmt`, { method: 'POST' }).catch(() => {});
+                    fetch(`/api/v1/jobs/${id}/close-and-export-bmt`, {
+                        method: 'POST',
+                        headers: this.getAuthHeaders()
+                    }).catch(() => {});
                     this.showToast(`✅ ปิดงาน ${id} สำเร็จ! อ้างอิง ${bmtRef} ส่งข้อมูลไประบบ BMT เรียบร้อยแล้ว`);
                     this.renderCSAT();
                     if(this.state.currentView === 'job-detail') this.renderJobDetail();
