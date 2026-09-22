@@ -2894,6 +2894,15 @@ const app = {
                                         ? existing.tasks
                                         : (incoming.tasks || existing.tasks || []);
 
+                                    // Determine whether existing status is more advanced than incoming
+                                    // to prevent polling from rolling back a job that was already sent to QC
+                                    const STATUS_ORDER = ['DRAFT', 'NEW', 'SURVEYED', 'Survey', 'IN_PROGRESS',
+                                        'DRAFT_QC', 'QC_CONFIRMED', 'QC_PENDING', 'QC_REWORK', 'QC_PASSED',
+                                        'AFTER_SALE', 'COMPLETED', 'CLOSED'];
+                                    const existingStatusRank = STATUS_ORDER.indexOf(existing.status);
+                                    const incomingStatusRank = STATUS_ORDER.indexOf(incoming.status);
+                                    const shouldProtectStatus = existingStatusRank > incomingStatusRank && existingStatusRank !== -1;
+
                                     const merged = {
                                         ...existing,
                                         ...incoming,
@@ -2905,7 +2914,14 @@ const app = {
                                         external_ref_id: incoming.external_ref_id || existing.external_ref_id || '',
                                         ticket_no: incoming.ticket_no || existing.ticket_no || '',
                                         plan_date: incoming.plan_date || existing.plan_date || '',
-                                        date: incoming.plan_date || incoming.date || existing.plan_date || existing.date || ''
+                                        date: incoming.plan_date || incoming.date || existing.plan_date || existing.date || '',
+                                        // CRITICAL: Never roll back status to an earlier step via polling
+                                        // e.g. QC_PENDING must not revert to SURVEYED due to stale API response
+                                        status: shouldProtectStatus ? existing.status : (incoming.status || existing.status),
+                                        pmt_accepted: existing.pmt_accepted || incoming.pmt_accepted,
+                                        pmt_accepted_at: existing.pmt_accepted_at || incoming.pmt_accepted_at,
+                                        qc_inspection_type: existing.qc_inspection_type || incoming.qc_inspection_type || '',
+                                        qc_type: existing.qc_type || incoming.qc_type || ''
                                     };
 
                                     // If user is currently editing this job in Studio modal, preserve in-memory draft fields
