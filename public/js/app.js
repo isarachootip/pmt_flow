@@ -24718,7 +24718,7 @@ const app = {
                     let photosListHtml = '';
                     if (photos.length > 0) {
                         photosListHtml = photos.map((p, pIdx) => `
-                            <div class="relative group rounded-xl overflow-hidden border border-border bg-muted/40 w-24 h-24 shrink-0 shadow-xs">
+                            <div class="relative group rounded-xl overflow-hidden border border-border bg-muted/40 w-28 h-28 shrink-0 shadow-xs">
                                 <img src="${p.url}" alt="${p.title}" onclick="app.showLightbox('${p.url}', '${p.title}', 'รูปประกอบการตรวจ QC Quick Service', '${p.uploaded_at ? app.formatDateDMY(p.uploaded_at) : ''}', 'QC Inspector')" class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition">
                                 ${isPassed ? '' : `
                                 <button type="button" onclick="app.removeSubtaskPhoto('${job.id}', '${s.id}', '${p.id}')" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white hover:bg-rose-600 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition cursor-pointer" title="ลบรูปนี้">
@@ -24729,7 +24729,7 @@ const app = {
                             </div>
                         `).join('');
                     } else {
-                        photosListHtml = `<div class="text-[11px] text-muted-foreground italic py-2 flex items-center gap-1.5"><i class="ph ph-image"></i> ยังไม่มีรูปภาพประกอบ (สามารถกดแนบรูปด้านล่าง หรือตรวจสอบภาพจาก INT ด้านบน)</div>`;
+                        photosListHtml = `<div class="text-[11px] text-muted-foreground italic py-2 flex items-center gap-1.5"><i class="ph ph-image"></i> ยังไม่มีรูปภาพประกอบ (สามารถกดปุ่มสีแดง <span class="font-black text-black bg-red-100 px-1.5 py-0.5 rounded border border-red-300">"+ แนบรูปข้อนี้"</span> ด้านบน หรือตรวจสอบภาพจาก INT ด้านบน)</div>`;
                     }
 
                     container.innerHTML = `
@@ -24799,9 +24799,9 @@ const app = {
                                         <span>รูปถ่ายประกอบการตรวจข้อนี้ (${photos.length} รูป)</span>
                                     </div>
                                     ${isPassed ? '' : `
-                                    <label class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 cursor-pointer bg-card hover:bg-muted shadow-2xs">
-                                        <i class="ph ph-camera-plus text-brand-500 text-xs"></i>
-                                        <span>+ แนบรูปข้อนี้</span>
+                                    <label class="px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-md transition hover:scale-105 active:scale-95 border-2 border-red-700 bg-red-500 hover:bg-red-600 text-black shrink-0" style="background-color: #ef4444 !important; color: #000000 !important; font-weight: 900 !important; border: 2px solid #b91c1c !important;" title="คลิกเพื่อเลือกไฟล์รูปภาพแนบในข้อนี้">
+                                        <i class="ph ph-camera-plus text-sm" style="color: #000000 !important; font-weight: 900 !important;"></i>
+                                        <span style="color: #000000 !important; font-weight: 900 !important; letter-spacing: 0.025em;">+ แนบรูปข้อนี้</span>
                                         <input type="file" accept="image/*" class="hidden" onchange="app.handleSubtaskPhotoUpload(event, '${job.id}', '${s.id}')">
                                     </label>
                                     `}
@@ -24858,7 +24858,7 @@ const app = {
                     let photosListHtml = '';
                     if (photos.length > 0) {
                         photosListHtml = photos.map((p, pIdx) => `
-                            <div class="relative group rounded-xl overflow-hidden border border-border bg-muted/40 w-24 h-24 shrink-0 shadow-xs">
+                            <div class="relative group rounded-xl overflow-hidden border border-border bg-muted/40 w-28 h-28 shrink-0 shadow-xs">
                                 <img src="${p.url}" alt="${p.title}" onclick="app.showLightbox('${p.url}', '${p.title}', 'รูปประกอบข้อที่ ${idx + 1}: ${s.title}', '${p.uploaded_at ? app.formatDateDMY(p.uploaded_at) : ''}', 'QC Inspector')" class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition">
                                 ${isPassed ? '' : `
                                 <button type="button" onclick="app.removeSubtaskPhoto('${job.id}', '${s.id}', '${p.id}')" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white hover:bg-rose-600 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition cursor-pointer" title="ลบรูปนี้">
@@ -24869,7 +24869,7 @@ const app = {
                             </div>
                         `).join('');
                     } else {
-                        photosListHtml = `<div class="text-[11px] text-muted-foreground italic py-2 flex items-center gap-1.5"><i class="ph ph-image"></i> ยังไม่มีรูปภาพประกอบข้อนี้ (สามารถกดแนบรูปด้านล่าง)</div>`;
+                        photosListHtml = `<div class="text-[11px] text-muted-foreground italic py-2 flex items-center gap-1.5"><i class="ph ph-image"></i> ยังไม่มีรูปภาพประกอบข้อนี้ (สามารถกดปุ่มสีแดง <span class="font-black text-black bg-red-100 px-1.5 py-0.5 rounded border border-red-300">"+ แนบรูปข้อนี้"</span> ด้านบน)</div>`;
                     }
 
                     return `
@@ -24935,9 +24935,9 @@ const app = {
                                     <span>รูปถ่ายประกอบข้อนี้ (${photos.length} รูป)</span>
                                 </div>
                                 ${isPassed ? '' : `
-                                <label class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 cursor-pointer bg-card hover:bg-muted shadow-2xs">
-                                    <i class="ph ph-camera-plus text-brand-500 text-xs"></i>
-                                    <span>+ แนบรูปข้อนี้</span>
+                                <label class="px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-md transition hover:scale-105 active:scale-95 border-2 border-red-700 bg-red-500 hover:bg-red-600 text-black shrink-0" style="background-color: #ef4444 !important; color: #000000 !important; font-weight: 900 !important; border: 2px solid #b91c1c !important;" title="คลิกเพื่อเลือกไฟล์รูปภาพแนบในข้อนี้">
+                                    <i class="ph ph-camera-plus text-sm" style="color: #000000 !important; font-weight: 900 !important;"></i>
+                                    <span style="color: #000000 !important; font-weight: 900 !important; letter-spacing: 0.025em;">+ แนบรูปข้อนี้</span>
                                     <input type="file" accept="image/*" class="hidden" onchange="app.handleSubtaskPhotoUpload(event, '${job.id}', '${s.id}')">
                                 </label>
                                 `}
