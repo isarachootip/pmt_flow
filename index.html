@@ -1235,13 +1235,6 @@
                                             <i class="ph ph-x-circle text-xs"></i>
                                         </button>
                                     </div>
-
-                                    <select id="filter-appt-quick" onchange="app.handleApptQuickFilter(this.value)" class="bg-card border border-border rounded-xl px-2.5 py-1 text-xs text-foreground font-normal cursor-pointer focus:outline-none focus:border-brand-500 shadow-2xs" title="กรองด่วนตามกำหนดวันนัด">
-                                        <option value="all">ทุกวันนัด</option>
-                                        <option value="today">นัดวันนี้</option>
-                                        <option value="upcoming">นัดข้างหน้า (30 วัน)</option>
-                                        <option value="overdue">เกินกำหนดนัด (Overdue)</option>
-                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -1254,31 +1247,13 @@
                                         <th class="px-2 py-2.5 whitespace-nowrap">เลขที่ Booking</th>
                                         <th class="px-2 py-2.5 whitespace-nowrap">เลขที่ Ticket</th>
                                         <th class="px-2 py-2.5 whitespace-nowrap">
-                                            <div class="flex items-center gap-1.5">
-                                                <button type="button" onclick="app.toggleJobsSort('plan_date')" class="inline-flex items-center gap-1 font-bold text-foreground hover:text-indigo-600 transition cursor-pointer select-none" title="คลิกเพื่อสลับการเรียงลำดับกำหนดวันนัด (น้อยไปมาก / มากไปน้อย)">
-                                                    <span>กำหนดวันนัด</span>
-                                                    <span id="sort-icon-plan-date" class="text-xs text-muted-foreground/60"><i class="ph ph-arrows-down-up"></i></span>
-                                                </button>
-                                                <select id="filter-appt-quick-col" onchange="app.handleApptQuickFilter(this.value)" class="text-[11px] bg-card border border-border rounded px-1.5 py-0.5 text-foreground font-normal cursor-pointer focus:outline-none focus:border-brand-500 shadow-2xs" title="กรองด่วนตามกำหนดวันนัด">
-                                                    <option value="all">ทั้งหมด</option>
-                                                    <option value="today">นัดวันนี้</option>
-                                                    <option value="upcoming">นัดข้างหน้า</option>
-                                                    <option value="overdue">เกินกำหนดนัด</option>
-                                                </select>
-                                            </div>
+                                            <button type="button" onclick="app.toggleJobsSort('plan_date')" class="inline-flex items-center gap-1.5 font-bold text-foreground hover:text-indigo-600 transition cursor-pointer select-none" title="คลิกเพื่อสลับการเรียงลำดับกำหนดวันนัด (น้อยไปมาก / มากไปน้อย)">
+                                                <span>กำหนดวันนัด</span>
+                                                <span id="sort-icon-plan-date" class="text-xs text-muted-foreground/60"><i class="ph ph-arrows-down-up"></i></span>
+                                            </button>
                                         </th>
                                         <th class="px-2 py-2.5 min-w-[120px] max-w-[160px]">ลูกค้า &amp; เบอร์ติดต่อ</th>
-                                        <th class="px-2 py-2.5 min-w-[130px]">
-                                            <div class="flex items-center gap-1.5">
-                                                <span>ประเภทบริการ</span>
-                                                <select id="filter-service" onchange="app.filterJobsTable()" class="text-[11px] bg-card border border-border rounded px-1.5 py-0.5 text-foreground font-normal cursor-pointer focus:outline-none focus:border-brand-500 shadow-2xs" title="กรองตามประเภทบริการ">
-                                                    <option value="all">ทั้งหมด</option>
-                                                    <option value="quick">Quick Services</option>
-                                                    <option value="renovate">Renovate</option>
-                                                    <option value="ma">MA & Maintenance</option>
-                                                </select>
-                                            </div>
-                                        </th>
+                                        <th class="px-2 py-2.5 min-w-[130px]">ประเภทบริการ</th>
                                         <th class="px-2 py-2.5 whitespace-nowrap">วันที่รับ Order</th>
                                         <th class="px-2 py-2.5 text-center whitespace-nowrap">แบบแปลน (Design)</th>
                                         <th class="px-2 py-2.5 text-center whitespace-nowrap">ประมาณการ (BOQ)</th>

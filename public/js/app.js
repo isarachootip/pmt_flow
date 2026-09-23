@@ -2876,11 +2876,17 @@ const app = {
                     if (dateFromISO) params.append('date_from', dateFromISO);
                     if (dateToISO) params.append('date_to', dateToISO);
 
-                    // Sorting: when appointment date filter is active, default sort to plan_date asc
-                    const quickEl = document.getElementById('filter-appt-quick');
-                    const hasApptFilter = !!(dateFromISO || dateToISO || (quickEl && quickEl.value && quickEl.value !== 'all'));
-                    const sortBy = this.state.jobsSortField || (hasApptFilter ? 'plan_date' : 'created_at');
-                    const sortOrder = this.state.jobsSortOrder || ((sortBy === 'plan_date') ? 'asc' : 'desc');
+                    // Sorting: when appointment date filter is active, ALWAYS sort by plan_date
+                    const hasApptFilter = !!(dateFromISO || dateToISO);
+                    let sortBy = 'created_at';
+                    let sortOrder = 'desc';
+                    if (hasApptFilter || this.state.jobsSortField === 'plan_date') {
+                        sortBy = 'plan_date';
+                        sortOrder = (this.state.jobsSortField === 'plan_date' && this.state.jobsSortOrder === 'desc') ? 'desc' : 'asc';
+                    } else if (this.state.jobsSortField && this.state.jobsSortField !== 'default') {
+                        sortBy = this.state.jobsSortField;
+                        sortOrder = this.state.jobsSortOrder || 'desc';
+                    }
                     params.append('sort_by', sortBy);
                     params.append('sort_order', sortOrder);
 
@@ -3016,7 +3022,7 @@ const app = {
                                 }
                             });
 
-                            DB.jobs = this.sortJobsDescending(Array.from(existingJobsMap.values()));
+                            DB.jobs = this.sortJobsByCriteria(Array.from(existingJobsMap.values()));
                             this.persistJobs();
 
                             if (this.state.currentView === 'jobs') {
@@ -4836,8 +4842,6 @@ const app = {
 
                 // 3. Reset Service tabs to 'all'
                 this.state.jobsFilterService = 'all';
-                const svcEl = document.getElementById('filter-service');
-                if (svcEl) svcEl.value = 'all';
                 ['all', 'quick', 'renovate'].forEach(s => {
                     const btn = document.getElementById(`tab-jobs-service-${s}`);
                     if (!btn) return;
@@ -4848,7 +4852,7 @@ const app = {
                     }
                 });
 
-                // 4. Reset date pickers & presets
+                // 4. Reset date pickers & sorting
                 const dateFromEl = document.getElementById('filter-appt-date-from');
                 const dateToEl = document.getElementById('filter-appt-date-to');
                 if (dateFromEl) {
@@ -4859,10 +4863,6 @@ const app = {
                     if (dateToEl._flatpickr) dateToEl._flatpickr.clear();
                     else dateToEl.value = '';
                 }
-                const quickEl = document.getElementById('filter-appt-quick');
-                if (quickEl) quickEl.value = 'all';
-                const colQuickEl = document.getElementById('filter-appt-quick-col');
-                if (colQuickEl) colQuickEl.value = 'all';
                 this.state.jobsSortField = 'created_at';
                 this.state.jobsSortOrder = 'desc';
                 this.updateJobsSortIcon();
@@ -4887,16 +4887,17 @@ const app = {
                 this._jobsFilterDebounce = setTimeout(async () => {
                     const serviceFilter = this.state.jobsFilterService || 'all';
 
-                    // Auto-adjust sort: if date range is filled or preset chosen, sort chronologically by appointment date
+                    // Auto-adjust sort: if date range is filled, sort chronologically by appointment date
                     const dateFromEl = document.getElementById('filter-appt-date-from');
                     const dateToEl = document.getElementById('filter-appt-date-to');
                     const hasDates = !!((dateFromEl && dateFromEl.value.trim()) || (dateToEl && dateToEl.value.trim()));
-                    const quickEl = document.getElementById('filter-appt-quick');
-                    const hasQuick = !!(quickEl && quickEl.value && quickEl.value !== 'all');
 
-                    if (hasDates || hasQuick) {
+                    if (hasDates) {
                         this.state.jobsSortField = 'plan_date';
                         this.state.jobsSortOrder = 'asc';
+                    } else {
+                        this.state.jobsSortField = 'created_at';
+                        this.state.jobsSortOrder = 'desc';
                     }
                     this.updateJobsSortIcon();
 
@@ -4910,73 +4911,6 @@ const app = {
                 }, 200);
             },
 
-            handleApptQuickFilter(preset) {
-                const dateFromEl = document.getElementById('filter-appt-date-from');
-                const dateToEl = document.getElementById('filter-appt-date-to');
-                const now = new Date();
-                const todayStr = this.formatDateDMY(now);
-
-                const quickEl = document.getElementById('filter-appt-quick');
-                if (quickEl) quickEl.value = preset;
-                const colQuickEl = document.getElementById('filter-appt-quick-col');
-                if (colQuickEl) colQuickEl.value = preset;
-
-                if (preset === 'today') {
-                    if (dateFromEl) {
-                        if (dateFromEl._flatpickr) dateFromEl._flatpickr.setDate(now, true, 'd/m/Y');
-                        else dateFromEl.value = todayStr;
-                    }
-                    if (dateToEl) {
-                        if (dateToEl._flatpickr) dateToEl._flatpickr.setDate(now, true, 'd/m/Y');
-                        else dateToEl.value = todayStr;
-                    }
-                    this.state.jobsSortField = 'plan_date';
-                    this.state.jobsSortOrder = 'asc';
-                } else if (preset === 'upcoming') {
-                    const nextMonth = new Date();
-                    nextMonth.setDate(now.getDate() + 30);
-                    if (dateFromEl) {
-                        if (dateFromEl._flatpickr) dateFromEl._flatpickr.setDate(now, true, 'd/m/Y');
-                        else dateFromEl.value = todayStr;
-                    }
-                    if (dateToEl) {
-                        if (dateToEl._flatpickr) dateToEl._flatpickr.setDate(nextMonth, true, 'd/m/Y');
-                        else dateToEl.value = this.formatDateDMY(nextMonth);
-                    }
-                    this.state.jobsSortField = 'plan_date';
-                    this.state.jobsSortOrder = 'asc';
-                } else if (preset === 'overdue') {
-                    const pastYear = new Date();
-                    pastYear.setFullYear(now.getFullYear() - 1);
-                    const yesterday = new Date();
-                    yesterday.setDate(now.getDate() - 1);
-                    if (dateFromEl) {
-                        if (dateFromEl._flatpickr) dateFromEl._flatpickr.setDate(pastYear, true, 'd/m/Y');
-                        else dateFromEl.value = this.formatDateDMY(pastYear);
-                    }
-                    if (dateToEl) {
-                        if (dateToEl._flatpickr) dateToEl._flatpickr.setDate(yesterday, true, 'd/m/Y');
-                        else dateToEl.value = this.formatDateDMY(yesterday);
-                    }
-                    this.state.jobsSortField = 'plan_date';
-                    this.state.jobsSortOrder = 'asc';
-                } else {
-                    // all
-                    if (dateFromEl) {
-                        if (dateFromEl._flatpickr) dateFromEl._flatpickr.clear();
-                        else dateFromEl.value = '';
-                    }
-                    if (dateToEl) {
-                        if (dateToEl._flatpickr) dateToEl._flatpickr.clear();
-                        else dateToEl.value = '';
-                    }
-                    this.state.jobsSortField = 'created_at';
-                    this.state.jobsSortOrder = 'desc';
-                }
-                this.updateJobsSortIcon();
-                this.filterJobsTable();
-            },
-
             clearApptDateFilter() {
                 const dateFromEl = document.getElementById('filter-appt-date-from');
                 const dateToEl = document.getElementById('filter-appt-date-to');
@@ -4988,10 +4922,6 @@ const app = {
                     if (dateToEl._flatpickr) dateToEl._flatpickr.clear();
                     else dateToEl.value = '';
                 }
-                const quickEl = document.getElementById('filter-appt-quick');
-                if (quickEl) quickEl.value = 'all';
-                const colQuickEl = document.getElementById('filter-appt-quick-col');
-                if (colQuickEl) colQuickEl.value = 'all';
                 this.state.jobsSortField = 'created_at';
                 this.state.jobsSortOrder = 'desc';
                 this.updateJobsSortIcon();
@@ -4999,15 +4929,22 @@ const app = {
             },
 
             toggleJobsSort(field = 'plan_date') {
+                const dateFromEl = document.getElementById('filter-appt-date-from');
+                const dateToEl = document.getElementById('filter-appt-date-to');
+                const hasDates = !!((dateFromEl && dateFromEl.value.trim()) || (dateToEl && dateToEl.value.trim()));
+
                 if (this.state.jobsSortField !== field) {
                     this.state.jobsSortField = field;
                     this.state.jobsSortOrder = 'asc';
                 } else if (this.state.jobsSortOrder === 'asc') {
                     this.state.jobsSortOrder = 'desc';
                 } else {
-                    // Reset to default latest first
-                    this.state.jobsSortField = 'created_at';
-                    this.state.jobsSortOrder = 'desc';
+                    if (hasDates) {
+                        this.state.jobsSortOrder = 'asc';
+                    } else {
+                        this.state.jobsSortField = 'created_at';
+                        this.state.jobsSortOrder = 'desc';
+                    }
                 }
                 this.updateJobsSortIcon();
                 this.state.jobsPage = 1;
@@ -5017,11 +4954,17 @@ const app = {
             updateJobsSortIcon() {
                 const iconEl = document.getElementById('sort-icon-plan-date');
                 if (!iconEl) return;
-                if (this.state.jobsSortField === 'plan_date') {
-                    if (this.state.jobsSortOrder === 'asc') {
-                        iconEl.innerHTML = '<i class="ph ph-sort-ascending text-indigo-600 font-bold text-sm" title="เรียงลำดับ: วันนัดหมายจากน้อยไปมาก (24 -> 25 -> 26)"></i>';
+                const dateFromEl = document.getElementById('filter-appt-date-from');
+                const dateToEl = document.getElementById('filter-appt-date-to');
+                const hasDates = !!((dateFromEl && dateFromEl.value.trim()) || (dateToEl && dateToEl.value.trim()));
+                const isPlanDateSort = (this.state.jobsSortField === 'plan_date') || hasDates;
+                const isDesc = (this.state.jobsSortField === 'plan_date' && this.state.jobsSortOrder === 'desc');
+
+                if (isPlanDateSort) {
+                    if (!isDesc) {
+                        iconEl.innerHTML = '<i class="ph ph-sort-ascending text-indigo-600 font-bold text-sm" title="เรียงลำดับ: วันนัดหมายจากน้อยไปมาก (เช่น 01 -> 02 -> 03)"></i>';
                     } else {
-                        iconEl.innerHTML = '<i class="ph ph-sort-descending text-indigo-600 font-bold text-sm" title="เรียงลำดับ: วันนัดหมายจากมากไปน้อย (26 -> 25 -> 24)"></i>';
+                        iconEl.innerHTML = '<i class="ph ph-sort-descending text-indigo-600 font-bold text-sm" title="เรียงลำดับ: วันนัดหมายจากมากไปน้อย (เช่น 03 -> 02 -> 01)"></i>';
                     }
                 } else {
                     iconEl.innerHTML = '<i class="ph ph-arrows-down-up text-muted-foreground/60 text-xs" title="คลิกเพื่อเรียงลำดับตามกำหนดวันนัด"></i>';
@@ -5034,11 +4977,17 @@ const app = {
                 const dateFromEl = document.getElementById('filter-appt-date-from');
                 const dateToEl = document.getElementById('filter-appt-date-to');
                 const hasDateRange = !!((dateFromEl && dateFromEl.value.trim()) || (dateToEl && dateToEl.value.trim()));
-                const quickEl = document.getElementById('filter-appt-quick');
-                const hasQuickAppt = !!(quickEl && quickEl.value && quickEl.value !== 'all');
 
-                const sortBy = this.state.jobsSortField || ((hasDateRange || hasQuickAppt) ? 'plan_date' : 'created_at');
-                const sortOrder = this.state.jobsSortOrder || ((sortBy === 'plan_date') ? 'asc' : 'desc');
+                let sortBy = 'created_at';
+                let sortOrder = 'desc';
+
+                if (hasDateRange || this.state.jobsSortField === 'plan_date') {
+                    sortBy = 'plan_date';
+                    sortOrder = (this.state.jobsSortField === 'plan_date' && this.state.jobsSortOrder === 'desc') ? 'desc' : 'asc';
+                } else if (this.state.jobsSortField && this.state.jobsSortField !== 'default') {
+                    sortBy = this.state.jobsSortField;
+                    sortOrder = this.state.jobsSortOrder || 'desc';
+                }
 
                 if (sortBy === 'plan_date') {
                     return deduped.sort((a, b) => {
