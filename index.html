@@ -5702,6 +5702,7 @@
                                         <li><strong>นำเข้าเฉพาะรายการ ไม่ใส่เงินและจำนวน:</strong> ระบบจะนำเข้าเฉพาะรหัสและชื่อรายการงาน โดยไม่ใส่ยอดเงิน (ค่าวัสดุ = 0, ค่าแรง = 0, รวมเงิน = 0) และไม่ใส่จำนวน (แสดงเป็น - หรือ 0) เพื่อความคล่องตัวในการเตรียมแปลงเป็นรายการ Task ใน Gantt Timeline โดยตรง</li>
                                         <li><strong>ล็อคข้อมูลลูกค้าเดิม 100% (Customer Name Protection Standard):</strong> ข้อมูลชื่อลูกค้า, เบอร์โทรศัพท์, ที่อยู่หน้างาน, สาขา และวันที่ของโครงการเดิม จะไม่ถูกจับคู่หรือเขียนทับโดยเด็ดขาด ไม่ว่าหัวเอกสารในไฟล์ Excel หรือ AI OCR จะระบุชื่อลูกค้าท่านใดก็ตาม</li>
                                         <li><strong>ข้อมูลหัวเอกสารเพื่อการอ้างอิงเท่านั้น:</strong> หากตรวจพบข้อมูลหัวเอกสารในไฟล์ vFIX ระบบจะจัดเก็บเป็น Metadata อ้างอิงแหล่งที่มาของเอกสารต้นทาง เพื่อใช้ในการตรวจสอบย้อนกลับ (Audit Trail) เท่านั้น โดยไม่กระทบข้อมูลหลักของโครงการ</li>
+                                        <li><strong>การจัดเก็บไฟล์ Excel ต้นฉบับและการดาวน์โหลดดูย้อนหลัง:</strong> ไฟล์ Excel/CSV ต้นฉบับที่ผู้ใช้นำเข้า จะถูกอัปโหลดจัดเก็บบนเซิร์ฟเวอร์ที่ <code class="bg-muted px-1.5 py-0.5 rounded text-[11px]">data/boq_files/&lt;jobId&gt;/</code> พร้อมผูกข้อมูลไว้ในโครงการ (<code class="bg-muted px-1.5 py-0.5 rounded text-[11px]">job.boq_original_file</code>) โดยในหน้าต่าง <strong>"⚡ นำเข้า BOQ สู่ Project Tasks & แผนงาน Gantt"</strong> จะมีการ์ดแสดงชื่อไฟล์ ขนาด วันเวลาที่นำเข้า พร้อมปุ่ม <strong>"📥 ดาวน์โหลดไฟล์"</strong> ให้สามารถเรียกดูและดาวน์โหลดไฟล์ต้นฉบับกลับมาได้ตลอดเวลา</li>
                                     </ul>
                                 </div>
                             </details>
@@ -9420,6 +9421,9 @@
                         ⚡ Labor Items Only
                     </span>
                 </div>
+
+                <!-- Attached BOQ Original File Display Banner -->
+                <div id="convert-boq-file-display"></div>
 
                 <!-- Hidden file input for uploading BOQ directly into task converter -->
                 <input type="file" id="task-boq-file-input" accept=".xlsx,.xls,.csv" class="hidden" onchange="app.handleBOQFileForTasks(event)">

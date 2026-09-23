@@ -14759,13 +14759,124 @@ const app = {
                 this.showToast('📥 ดาวน์โหลด Template Tasks สำหรับนำเข้าแผนงานเรียบร้อย');
             },
 
+            renderConvertBOQFileCard(job) {
+                const container = document.getElementById('convert-boq-file-display');
+                if (!container) return;
+
+                if (!job) {
+                    const targetJobId = this.state.convertJobId || this.state.currentJobId;
+                    job = DB.jobs.find(j => j.id === targetJobId);
+                }
+                if (!job) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                const origFile = job.boq_original_file || job.boq_file;
+                if (origFile && origFile.name) {
+                    const ext = (origFile.name || '').split('.').pop().toLowerCase();
+                    const isExcel = ext === 'xlsx' || ext === 'xls' || ext === 'xlsm';
+                    const isCsv = ext === 'csv' || ext === 'txt';
+                    const iconClass = isExcel ? 'ph-file-xls' : (isCsv ? 'ph-file-csv' : 'ph-file-arrow-up');
+                    const iconColor = isExcel ? 'text-emerald-700 bg-emerald-100 border-emerald-300' : 'text-purple-700 bg-purple-100 border-purple-300';
+
+                    const uploadTime = origFile.uploaded_at || origFile.uploadedAt;
+                    const uploadTimeStr = uploadTime ? this.formatDateTimeDMY(uploadTime, false, true) : '-';
+                    const sizeStr = origFile.size_formatted || (origFile.size ? `${(origFile.size / 1024).toFixed(1)} KB` : '-');
+
+                    container.innerHTML = `
+                        <div class="p-3.5 rounded-xl border border-emerald-300 bg-emerald-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-10 h-10 rounded-xl ${iconColor} flex items-center justify-center shrink-0 border text-xl font-bold">
+                                    <i class="ph ${iconClass}"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-xs font-bold text-foreground truncate max-w-xs sm:max-w-md" title="${this.escapeHtml(origFile.name)}">${this.escapeHtml(origFile.name)}</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0">
+                                            📎 ไฟล์ต้นฉบับ BOQ ที่จัดเก็บ
+                                        </span>
+                                    </div>
+                                    <div class="text-[11px] text-muted-foreground flex items-center gap-2 mt-1 flex-wrap font-mono">
+                                        <span>ขนาด: <strong class="text-foreground">${sizeStr}</strong></span>
+                                        <span>•</span>
+                                        <span>นำเข้าเมื่อ: <strong class="text-foreground">${uploadTimeStr}</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                                <button type="button" onclick="app.downloadBOQOriginalFile('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs flex items-center gap-1.5 transition">
+                                    <i class="ph ph-download-simple font-bold text-sm"></i>
+                                    <span>ดาวน์โหลดไฟล์</span>
+                                </button>
+                                <button type="button" onclick="document.getElementById('task-boq-file-input').click()" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium text-foreground hover:bg-muted border border-border cursor-pointer flex items-center gap-1 transition" title="นำเข้าไฟล์ BOQ ใหม่แทนที่">
+                                    <i class="ph ph-arrows-clockwise text-xs"></i>
+                                    <span>เปลี่ยนไฟล์</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="p-3 rounded-xl border border-dashed border-border bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                            <div class="flex items-center gap-2 text-muted-foreground">
+                                <i class="ph ph-info text-base text-purple-600 shrink-0"></i>
+                                <span>ยังไม่มีการจัดเก็บไฟล์ Excel BOQ ต้นฉบับสำหรับโครงการนี้ (สามารถกดปุ่ม <strong>"นำเข้าไฟล์ BOQ"</strong> เพื่อจัดเก็บไฟล์และแปลงเป็น Tasks)</span>
+                            </div>
+                            <button type="button" onclick="document.getElementById('task-boq-file-input').click()" class="text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-500/30 flex items-center gap-1 cursor-pointer font-medium shrink-0 self-start sm:self-auto">
+                                <i class="ph ph-file-arrow-up"></i> แนบและนำเข้าไฟล์ BOQ
+                            </button>
+                        </div>
+                    `;
+                }
+            },
+
             handleBOQFileForTasks(event) {
                 const file = event.target.files && event.target.files[0];
                 if (!file) return;
 
-                const job = DB.jobs.find(j => j.id === this.state.convertJobId);
+                const targetJobId = this.state.convertJobId || this.state.currentJobId;
+                const job = DB.jobs.find(j => j.id === targetJobId);
                 const baseDate = job ? (job.date || '2026-09-05') : new Date().toISOString().slice(0, 10);
                 const defaultTech = job ? (job.tech || 'Team A (สมศักดิ์)') : 'Team A (สมศักดิ์)';
+
+                const sizeFormatted = file.size ? `${(file.size / 1024).toFixed(1)} KB` : '1.0 KB';
+                const fileMeta = {
+                    name: file.name,
+                    size: file.size,
+                    size_formatted: sizeFormatted,
+                    type: file.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    uploaded_at: new Date().toISOString(),
+                    source: 'convert_tasks_upload'
+                };
+
+                // Read file as dataUrl for instant local download availability
+                const dataUrlReader = new FileReader();
+                dataUrlReader.onload = (duEvt) => {
+                    fileMeta.dataUrl = duEvt.target.result;
+                    if (job) {
+                        job.boq_original_file = Object.assign({}, job.boq_original_file || {}, fileMeta);
+                        this.persistJobs();
+                        this.renderConvertBOQFileCard(job);
+                    }
+                };
+                dataUrlReader.readAsDataURL(file);
+
+                // Upload to server storage in background
+                if (targetJobId) {
+                    this.uploadBOQFileToServer(targetJobId, file).then((serverMeta) => {
+                        if (serverMeta && serverMeta.url) {
+                            if (job) {
+                                job.boq_original_file = Object.assign({}, job.boq_original_file || {}, serverMeta, { dataUrl: fileMeta.dataUrl });
+                                this.persistJobs();
+                                this.renderConvertBOQFileCard(job);
+                            }
+                            console.log('[BOQ UPLOAD] File successfully stored to server:', serverMeta.url);
+                        }
+                    }).catch(err => {
+                        console.warn('[BOQ UPLOAD] Background server upload notice:', err.message);
+                    });
+                }
 
                 const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.xlsm') || (file.type && (file.type.includes('spreadsheet') || file.type.includes('excel')));
 
@@ -14816,7 +14927,8 @@ const app = {
                                 const ratioEl = document.getElementById('convert-labor-ratio');
                                 if (ratioEl) ratioEl.innerText = `${targetItems.length} จาก ${parsed.items.length} รายการ (Sheet: ${parsed.sheetName})`;
                                 this.sortConvertTasksByStartDate(false);
-                                this.showToast(`📥 แปลงรายการค่าแรงจาก Excel "${file.name}" เป็น ${targetItems.length} Tasks สำเร็จ`);
+                                if (job) this.renderConvertBOQFileCard(job);
+                                this.showToast(`📥 นำเข้าและจัดเก็บไฟล์ BOQ "${file.name}" พร้อมแปลงเป็น ${targetItems.length} Tasks สำเร็จ`);
                             } else {
                                 this.showToast('⚠️ ไม่พบข้อมูลตารางในไฟล์ Excel');
                             }
@@ -14910,7 +15022,8 @@ const app = {
                             const ratioEl = document.getElementById('convert-labor-ratio');
                             if (ratioEl) ratioEl.innerText = `${parsedTasks.length} รายการค่าแรงที่ดึงเข้าเป็น Tasks`;
                             this.sortConvertTasksByStartDate(false);
-                            this.showToast(`📥 นำเข้าเฉพาะรายการค่าแรง ${parsedTasks.length} รายการเป็น Project Tasks สำเร็จ`);
+                            if (job) this.renderConvertBOQFileCard(job);
+                            this.showToast(`📥 นำเข้าและจัดเก็บไฟล์ BOQ "${file.name}" พร้อมแปลงเป็น ${parsedTasks.length} Tasks สำเร็จ`);
                         } else {
                             this.showToast('⚠️ ไม่พบรายการค่าแรงในไฟล์ที่อัปโหลด');
                         }
@@ -14999,6 +15112,7 @@ const app = {
                 }
 
                 this.resetConvertTasksFromBOQ();
+                this.renderConvertBOQFileCard(job);
                 this.showModal('modal-convert-boq-tasks');
             },
 
@@ -18432,20 +18546,53 @@ const app = {
                 this.downloadModalBOQFile(jobId);
             },
 
-            downloadBOQOriginalFile(jobId) {
+            async downloadBOQOriginalFile(jobId) {
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 const file = job ? job.boq_original_file : null;
-                if (!file || !file.dataUrl) {
+                if (!file || (!file.dataUrl && !file.url)) {
+                    if (job && job.boq_file) {
+                        return this.downloadModalBOQFile(jobId);
+                    }
                     this.showToast('⚠️ ยังไม่มีไฟล์ต้นฉบับที่ upload ไว้ (มีเฉพาะ BOQ ที่ generate จากระบบ)');
                     return;
                 }
-                const a = document.createElement('a');
-                a.href = file.dataUrl;
-                a.download = file.name || `BOQ_Original_${jobId}.xlsx`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                this.showToast(`📥 กำลังดาวน์โหลดไฟล์ต้นฉบับ "${file.name}"...`);
+
+                const fileName = file.name || `BOQ_Original_${jobId}.xlsx`;
+
+                if (file.dataUrl) {
+                    const a = document.createElement('a');
+                    a.href = file.dataUrl;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    this.showToast(`📥 กำลังดาวน์โหลดไฟล์ต้นฉบับ "${fileName}"...`);
+                    return;
+                }
+
+                if (file.url) {
+                    try {
+                        const token = auth && auth.getToken ? auth.getToken() : (localStorage.getItem('pmt_token') || '');
+                        const resp = await fetch(file.url, {
+                            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                        });
+                        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                        const blob = await resp.blob();
+                        const blobUrl = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = blobUrl;
+                        a.download = fileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(blobUrl);
+                        this.showToast(`📥 กำลังดาวน์โหลดไฟล์ต้นฉบับ "${fileName}"...`);
+                    } catch (err) {
+                        console.error('Download error:', err);
+                        const token = auth && auth.getToken ? auth.getToken() : (localStorage.getItem('pmt_token') || '');
+                        window.open(`${file.url}?token=${encodeURIComponent(token)}`, '_blank');
+                    }
+                }
             },
 
             openBOQPreviewModal(jobId) {
@@ -18481,14 +18628,14 @@ const app = {
                         </tr>`;
                     }).join('');
 
-                const origFileHtml = originalFile && originalFile.dataUrl
+                const origFileHtml = originalFile && (originalFile.dataUrl || originalFile.url)
                     ? `<button onclick="app.downloadBOQOriginalFile('${job.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer text-purple-600 border-purple-500/30 hover:bg-purple-500/10">
                             <i class="ph ph-file-xls text-sm"></i>
                             <span>ดาวน์โหลดไฟล์ต้นฉบับ (${originalFile.name})</span>
                         </button>`
                     : `<span class="text-xs text-muted-foreground italic">ไม่มีไฟล์ต้นฉบับ (import ก่อนระบบอัปเดต)</span>`;
 
-                const genFileHtml = generatedFile && generatedFile.dataUrl
+                const genFileHtml = generatedFile && (generatedFile.dataUrl || generatedFile.url)
                     ? `<button onclick="app.downloadJobBOQFile('${job.id}')" class="btn-artifact-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10">
                             <i class="ph ph-download-simple text-sm"></i>
                             <span>ดาวน์โหลด BOQ (จากระบบ)</span>
