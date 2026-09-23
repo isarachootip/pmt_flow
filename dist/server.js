@@ -2284,7 +2284,7 @@ app.post('/api/v1/staging/seed', requireAuth, async (req, res) => {
 // =============================================================================
 // 1.2 CORE JOBS APIS (List, Get, Create for Web Dashboard & Automation)
 app.get('/api/v1/jobs', requireAuth, async (req, res) => {
-    const { status, step, service, search, page: pageQuery, limit: limitQuery } = req.query;
+    const { status, step, service, search, page: pageQuery, limit: limitQuery, date_from, date_to } = req.query;
     const page = Math.max(1, parseInt(String(pageQuery || '1'), 10) || 1);
     const rawLimit = parseInt(String(limitQuery || '50'), 10) || 50;
     const limit = Math.min(100, Math.max(1, rawLimit)); // default 50, max 100
@@ -2293,6 +2293,8 @@ app.get('/api/v1/jobs', requireAuth, async (req, res) => {
         const stepStr = typeof step === 'string' ? step : undefined;
         const serviceStr = typeof service === 'string' ? service : undefined;
         const searchStr = typeof search === 'string' ? search : undefined;
+        const dateFromStr = typeof date_from === 'string' && date_from.trim() ? date_from.trim() : undefined;
+        const dateToStr = typeof date_to === 'string' && date_to.trim() ? date_to.trim() : undefined;
         let pagedResult;
         let metrics;
         if (database_1.isDatabaseConnected) {
@@ -2303,6 +2305,8 @@ app.get('/api/v1/jobs', requireAuth, async (req, res) => {
                 step: stepStr,
                 service: serviceStr,
                 search: searchStr,
+                plan_date_from: dateFromStr,
+                plan_date_to: dateToStr,
                 lean: true
             });
             metrics = await (0, database_1.dbGetJobMetrics)();
@@ -2383,6 +2387,12 @@ app.get('/api/v1/jobs', requireAuth, async (req, res) => {
                     (j.assigned_tech && String(j.assigned_tech).toLowerCase().includes(q)) ||
                     (j.store_code && String(j.store_code).toLowerCase().includes(q)) ||
                     (j.agent_name && String(j.agent_name).toLowerCase().includes(q)));
+            }
+            if (dateFromStr) {
+                list = list.filter((j) => (j.plan_date || '') >= dateFromStr);
+            }
+            if (dateToStr) {
+                list = list.filter((j) => (j.plan_date || '') <= dateToStr);
             }
             // Sort descending so latest jobs are always on top
             list.sort((a, b) => {

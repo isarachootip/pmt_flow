@@ -862,6 +862,14 @@ async function dbLoadJobsPaginated(options = {}) {
             params.push(q);
             paramIdx++;
         }
+        if (options.plan_date_from) {
+            whereClauses.push(`plan_date >= $${paramIdx++}`);
+            params.push(options.plan_date_from);
+        }
+        if (options.plan_date_to) {
+            whereClauses.push(`plan_date <= $${paramIdx++}`);
+            params.push(options.plan_date_to);
+        }
         const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
         // 1. Fast count query using indexes
         const countSql = `SELECT COUNT(*)::int AS total FROM core_jobs ${whereSql}`;

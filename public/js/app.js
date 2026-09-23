@@ -2848,6 +2848,20 @@ const app = {
                     if (query) params.append('search', query);
                     if (this.state.jobsFilterStatus && this.state.jobsFilterStatus !== 'all') params.append('status', this.state.jobsFilterStatus);
 
+                    // Date range filter: convert DD/MM/YYYY → YYYY-MM-DD for API
+                    const _parseDMYtoISO = (s) => {
+                        if (!s) return '';
+                        const parts = s.split('/');
+                        if (parts.length !== 3) return '';
+                        return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+                    };
+                    const dateFromEl = document.getElementById('filter-appt-date-from');
+                    const dateToEl = document.getElementById('filter-appt-date-to');
+                    const dateFromISO = _parseDMYtoISO(dateFromEl ? dateFromEl.value.trim() : '');
+                    const dateToISO = _parseDMYtoISO(dateToEl ? dateToEl.value.trim() : '');
+                    if (dateFromISO) params.append('date_from', dateFromISO);
+                    if (dateToISO) params.append('date_to', dateToISO);
+
                     const res = await fetch(`/api/v1/jobs?${params.toString()}`, {
                         headers: {
                             'Content-Type': 'application/json',
@@ -4831,50 +4845,9 @@ const app = {
                     this.state.jobsFilterService = serviceFilter;
                     this.state.jobsPage = 1;
 
-                    // Fetch from server using query params (page=1, limit=50, search, service, status)
+                    // Fetch from server — date_from/date_to are now sent via fetchJobsFromApi params
                     await this.fetchJobsFromApi(1);
 
-                    // Date range filter for กำหนดวันนัด (if user selected date range)
-                    const dateFromEl = document.getElementById('filter-appt-date-from');
-                    const dateToEl = document.getElementById('filter-appt-date-to');
-                    const dateFromStr = (dateFromEl && dateFromEl.value) ? dateFromEl.value.trim() : '';
-                    const dateToStr = (dateToEl && dateToEl.value) ? dateToEl.value.trim() : '';
-
-                    const parseDMY = (s) => {
-                        if (!s) return null;
-                        const parts = s.split('/');
-                        if (parts.length !== 3) return null;
-                        return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-                    };
-                    const dateFrom = parseDMY(dateFromStr);
-                    const dateTo = parseDMY(dateToStr);
-                    const hasDateFilter = dateFrom || dateTo;
-
-                    if (hasDateFilter && Array.isArray(DB.jobs)) {
-                        const filtered = DB.jobs.filter(j => {
-                            const rawDate = j.plan_date || j.date || '';
-                            if (!rawDate) return false;
-                            let apptDate;
-                            if (/^\d{4}-\d{2}-\d{2}/.test(rawDate)) {
-                                const d = new Date(rawDate);
-                                apptDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                            } else {
-                                apptDate = parseDMY(rawDate);
-                            }
-                            if (!apptDate) return false;
-                            if (dateFrom && apptDate < dateFrom) return false;
-                            if (dateTo && apptDate > dateTo) return false;
-                            return true;
-                        });
-                        this.renderJobs(filtered);
-                    }
-
-                    const countBadge = document.getElementById('appt-date-filter-count');
-                    if (countBadge) {
-                        const count = this.state.jobsTotal !== undefined ? this.state.jobsTotal : (Array.isArray(DB.jobs) ? DB.jobs.length : 0);
-                        countBadge.textContent = `พบ ${count} รายการ`;
-                        countBadge.classList.remove('hidden');
-                    }
                 }, 200);
             },
 

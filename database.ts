@@ -752,6 +752,8 @@ export interface DbLoadJobsPaginatedOptions {
   service?: string;
   search?: string;
   lean?: boolean;
+  plan_date_from?: string; // YYYY-MM-DD
+  plan_date_to?: string;   // YYYY-MM-DD
 }
 
 export interface PaginatedJobsResult {
@@ -850,6 +852,15 @@ export async function dbLoadJobsPaginated(options: DbLoadJobsPaginatedOptions = 
       )`);
       params.push(q);
       paramIdx++;
+    }
+
+    if (options.plan_date_from) {
+      whereClauses.push(`plan_date >= $${paramIdx++}`);
+      params.push(options.plan_date_from);
+    }
+    if (options.plan_date_to) {
+      whereClauses.push(`plan_date <= $${paramIdx++}`);
+      params.push(options.plan_date_to);
     }
 
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
