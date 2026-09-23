@@ -2858,7 +2858,7 @@ app.post('/api/v1/staging/seed', requireAuth, async (req: Request, res: Response
 // =============================================================================
 // 1.2 CORE JOBS APIS (List, Get, Create for Web Dashboard & Automation)
 app.get('/api/v1/jobs', requireAuth, async (req: Request, res: Response) => {
-  const { status, step, service, search, page: pageQuery, limit: limitQuery, date_from, date_to } = req.query;
+  const { status, step, service, search, page: pageQuery, limit: limitQuery, date_from, date_to, sort_by, sort_order } = req.query;
   const page = Math.max(1, parseInt(String(pageQuery || '1'), 10) || 1);
   const rawLimit = parseInt(String(limitQuery || '50'), 10) || 50;
   const limit = Math.min(100, Math.max(1, rawLimit)); // default 50, max 100
@@ -2870,6 +2870,8 @@ app.get('/api/v1/jobs', requireAuth, async (req: Request, res: Response) => {
     const searchStr = typeof search === 'string' ? search : undefined;
     const dateFromStr = typeof date_from === 'string' && date_from.trim() ? date_from.trim() : undefined;
     const dateToStr = typeof date_to === 'string' && date_to.trim() ? date_to.trim() : undefined;
+    const sortByStr = typeof sort_by === 'string' && sort_by.trim() ? sort_by.trim() : undefined;
+    const sortOrderStr = (typeof sort_order === 'string' && sort_order.trim().toLowerCase() === 'desc') ? 'desc' : 'asc';
 
     let pagedResult;
     let metrics;
@@ -2884,6 +2886,8 @@ app.get('/api/v1/jobs', requireAuth, async (req: Request, res: Response) => {
         search: searchStr,
         plan_date_from: dateFromStr,
         plan_date_to: dateToStr,
+        sort_by: sortByStr,
+        sort_order: sortOrderStr as any,
         lean: true
       });
       metrics = await dbGetJobMetrics();
@@ -2962,13 +2966,36 @@ app.get('/api/v1/jobs', requireAuth, async (req: Request, res: Response) => {
         list = list.filter((j: any) => (j.plan_date || '') <= dateToStr);
       }
 
-      // Sort descending so latest jobs are always on top
-      list.sort((a: any, b: any) => {
-        const timeA = new Date(a.created_at || 0).getTime();
-        const timeB = new Date(b.created_at || 0).getTime();
-        if (timeB !== timeA) return timeB - timeA;
-        return String(b.job_no || b.id || '').localeCompare(String(a.job_no || a.id || ''));
-      });
+      // Sorting: if filtered by plan_date or specifically requested sort_by=plan_date, sort chronologically by plan_date
+      const shouldSortByPlanDate = (sortByStr === 'plan_date') || ((dateFromStr || dateToStr) && sortByStr !== 'created_at');
+      if (shouldSortByPlanDate) {
+        list.sort((a: any, b: any) => {
+          const dateA = a.plan_date || a.date || '';
+          const dateB = b.plan_date || b.date || '';
+          if (dateA !== dateB) {
+            if (!dateA) return 1;
+            if (!dateB) return -1;
+            return sortOrderStr === 'desc' ? dateB.localeCompare(dateA) : dateA.localeCompare(dateB);
+          }
+          const timeSlotA = String(a.plan_time || a.time_slot || a.survey_time || a.time || '').trim();
+          const timeSlotB = String(b.plan_time || b.time_slot || b.survey_time || b.time || '').trim();
+          if (timeSlotA && timeSlotB && timeSlotA !== timeSlotB) {
+            return sortOrderStr === 'desc' ? timeSlotB.localeCompare(timeSlotA) : timeSlotA.localeCompare(timeSlotB);
+          }
+          const timeA = new Date(a.created_at || 0).getTime();
+          const timeB = new Date(b.created_at || 0).getTime();
+          if (timeB !== timeA) return timeB - timeA;
+          return String(b.job_no || b.id || '').localeCompare(String(a.job_no || a.id || ''));
+        });
+      } else {
+        // Default: Sort descending so latest jobs are always on top
+        list.sort((a: any, b: any) => {
+          const timeA = new Date(a.created_at || 0).getTime();
+          const timeB = new Date(b.created_at || 0).getTime();
+          if (timeB !== timeA) return timeB - timeA;
+          return String(b.job_no || b.id || '').localeCompare(String(a.job_no || a.id || ''));
+        });
+      }
 
       const total = list.length;
       const totalPages = Math.max(1, Math.ceil(total / limit));

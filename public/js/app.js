@@ -69,6 +69,8 @@ const app = {
                 jobsSearch: '',
                 jobsFilterService: 'all',
                 jobsFilterStatus: 'all',
+                jobsSortField: 'created_at',
+                jobsSortOrder: 'desc',
                 metrics: null
             },
 
@@ -2874,6 +2876,14 @@ const app = {
                     if (dateFromISO) params.append('date_from', dateFromISO);
                     if (dateToISO) params.append('date_to', dateToISO);
 
+                    // Sorting: when appointment date filter is active, default sort to plan_date asc
+                    const quickEl = document.getElementById('filter-appt-quick');
+                    const hasApptFilter = !!(dateFromISO || dateToISO || (quickEl && quickEl.value && quickEl.value !== 'all'));
+                    const sortBy = this.state.jobsSortField || (hasApptFilter ? 'plan_date' : 'created_at');
+                    const sortOrder = this.state.jobsSortOrder || ((sortBy === 'plan_date') ? 'asc' : 'desc');
+                    params.append('sort_by', sortBy);
+                    params.append('sort_order', sortOrder);
+
                     const res = await fetch(`/api/v1/jobs?${params.toString()}`, {
                         headers: {
                             'Content-Type': 'application/json',
@@ -4853,6 +4863,9 @@ const app = {
                 if (quickEl) quickEl.value = 'all';
                 const colQuickEl = document.getElementById('filter-appt-quick-col');
                 if (colQuickEl) colQuickEl.value = 'all';
+                this.state.jobsSortField = 'created_at';
+                this.state.jobsSortOrder = 'desc';
+                this.updateJobsSortIcon();
 
                 // 5. Fetch fresh data & notify
                 this.state.jobsPage = 1;
@@ -4873,6 +4886,19 @@ const app = {
                 if (this._jobsFilterDebounce) clearTimeout(this._jobsFilterDebounce);
                 this._jobsFilterDebounce = setTimeout(async () => {
                     const serviceFilter = this.state.jobsFilterService || 'all';
+
+                    // Auto-adjust sort: if date range is filled or preset chosen, sort chronologically by appointment date
+                    const dateFromEl = document.getElementById('filter-appt-date-from');
+                    const dateToEl = document.getElementById('filter-appt-date-to');
+                    const hasDates = !!((dateFromEl && dateFromEl.value.trim()) || (dateToEl && dateToEl.value.trim()));
+                    const quickEl = document.getElementById('filter-appt-quick');
+                    const hasQuick = !!(quickEl && quickEl.value && quickEl.value !== 'all');
+
+                    if (hasDates || hasQuick) {
+                        this.state.jobsSortField = 'plan_date';
+                        this.state.jobsSortOrder = 'asc';
+                    }
+                    this.updateJobsSortIcon();
 
                     this.state.jobsSearch = query;
                     this.state.jobsFilterService = serviceFilter;
@@ -4904,6 +4930,8 @@ const app = {
                         if (dateToEl._flatpickr) dateToEl._flatpickr.setDate(now, true, 'd/m/Y');
                         else dateToEl.value = todayStr;
                     }
+                    this.state.jobsSortField = 'plan_date';
+                    this.state.jobsSortOrder = 'asc';
                 } else if (preset === 'upcoming') {
                     const nextMonth = new Date();
                     nextMonth.setDate(now.getDate() + 30);
@@ -4915,6 +4943,8 @@ const app = {
                         if (dateToEl._flatpickr) dateToEl._flatpickr.setDate(nextMonth, true, 'd/m/Y');
                         else dateToEl.value = this.formatDateDMY(nextMonth);
                     }
+                    this.state.jobsSortField = 'plan_date';
+                    this.state.jobsSortOrder = 'asc';
                 } else if (preset === 'overdue') {
                     const pastYear = new Date();
                     pastYear.setFullYear(now.getFullYear() - 1);
@@ -4928,6 +4958,8 @@ const app = {
                         if (dateToEl._flatpickr) dateToEl._flatpickr.setDate(yesterday, true, 'd/m/Y');
                         else dateToEl.value = this.formatDateDMY(yesterday);
                     }
+                    this.state.jobsSortField = 'plan_date';
+                    this.state.jobsSortOrder = 'asc';
                 } else {
                     // all
                     if (dateFromEl) {
@@ -4938,7 +4970,10 @@ const app = {
                         if (dateToEl._flatpickr) dateToEl._flatpickr.clear();
                         else dateToEl.value = '';
                     }
+                    this.state.jobsSortField = 'created_at';
+                    this.state.jobsSortOrder = 'desc';
                 }
+                this.updateJobsSortIcon();
                 this.filterJobsTable();
             },
 
@@ -4957,7 +4992,81 @@ const app = {
                 if (quickEl) quickEl.value = 'all';
                 const colQuickEl = document.getElementById('filter-appt-quick-col');
                 if (colQuickEl) colQuickEl.value = 'all';
+                this.state.jobsSortField = 'created_at';
+                this.state.jobsSortOrder = 'desc';
+                this.updateJobsSortIcon();
                 this.filterJobsTable();
+            },
+
+            toggleJobsSort(field = 'plan_date') {
+                if (this.state.jobsSortField !== field) {
+                    this.state.jobsSortField = field;
+                    this.state.jobsSortOrder = 'asc';
+                } else if (this.state.jobsSortOrder === 'asc') {
+                    this.state.jobsSortOrder = 'desc';
+                } else {
+                    // Reset to default latest first
+                    this.state.jobsSortField = 'created_at';
+                    this.state.jobsSortOrder = 'desc';
+                }
+                this.updateJobsSortIcon();
+                this.state.jobsPage = 1;
+                this.fetchJobsFromApi(1);
+            },
+
+            updateJobsSortIcon() {
+                const iconEl = document.getElementById('sort-icon-plan-date');
+                if (!iconEl) return;
+                if (this.state.jobsSortField === 'plan_date') {
+                    if (this.state.jobsSortOrder === 'asc') {
+                        iconEl.innerHTML = '<i class="ph ph-sort-ascending text-indigo-600 font-bold text-sm" title="เรียงลำดับ: วันนัดหมายจากน้อยไปมาก (24 -> 25 -> 26)"></i>';
+                    } else {
+                        iconEl.innerHTML = '<i class="ph ph-sort-descending text-indigo-600 font-bold text-sm" title="เรียงลำดับ: วันนัดหมายจากมากไปน้อย (26 -> 25 -> 24)"></i>';
+                    }
+                } else {
+                    iconEl.innerHTML = '<i class="ph ph-arrows-down-up text-muted-foreground/60 text-xs" title="คลิกเพื่อเรียงลำดับตามกำหนดวันนัด"></i>';
+                }
+            },
+
+            sortJobsByCriteria(jobList) {
+                if (!Array.isArray(jobList)) return [];
+                const deduped = this.deDuplicateJobs(jobList);
+                const dateFromEl = document.getElementById('filter-appt-date-from');
+                const dateToEl = document.getElementById('filter-appt-date-to');
+                const hasDateRange = !!((dateFromEl && dateFromEl.value.trim()) || (dateToEl && dateToEl.value.trim()));
+                const quickEl = document.getElementById('filter-appt-quick');
+                const hasQuickAppt = !!(quickEl && quickEl.value && quickEl.value !== 'all');
+
+                const sortBy = this.state.jobsSortField || ((hasDateRange || hasQuickAppt) ? 'plan_date' : 'created_at');
+                const sortOrder = this.state.jobsSortOrder || ((sortBy === 'plan_date') ? 'asc' : 'desc');
+
+                if (sortBy === 'plan_date') {
+                    return deduped.sort((a, b) => {
+                        const rawA = a.plan_date || a.date || '';
+                        const rawB = b.plan_date || b.date || '';
+                        const dateA = this.formatDateISO(rawA) || '';
+                        const dateB = this.formatDateISO(rawB) || '';
+                        if (dateA !== dateB) {
+                            if (!dateA) return 1;
+                            if (!dateB) return -1;
+                            return sortOrder === 'asc' ? dateA.localeCompare(dateB) : dateB.localeCompare(dateA);
+                        }
+                        // Secondary sort: Appointment time slot (e.g. 08:30 vs 13:00)
+                        const timeSlotA = String(a.plan_time || a.time_slot || a.survey_time || a.time || '').trim();
+                        const timeSlotB = String(b.plan_time || b.time_slot || b.survey_time || b.time || '').trim();
+                        if (timeSlotA && timeSlotB && timeSlotA !== timeSlotB) {
+                            return sortOrder === 'asc' ? timeSlotA.localeCompare(timeSlotB) : timeSlotB.localeCompare(timeSlotA);
+                        }
+                        // Tertiary sort: Latest intake/created_at timestamp
+                        const tsA = this.getJobLatestTimestamp(a);
+                        const tsB = this.getJobLatestTimestamp(b);
+                        if (tsB !== tsA) return tsB - tsA;
+                        return String(b.id || b.job_no || '').localeCompare(String(a.id || a.job_no || ''));
+                    });
+                }
+
+                // Default: created_at descending
+                return this.sortJobsDescending(deduped);
             },
 
             handleGlobalSearch(event) {
@@ -5278,6 +5387,7 @@ const app = {
 
             renderJobs(jobList = null) {
                 this.updateStep1Dashboard();
+                this.updateJobsSortIcon();
                 const serviceFilter = document.getElementById('filter-service') ? document.getElementById('filter-service').value : 'all';
 
                 const designedJobIds = new Set((DB.blueprints || []).map(b => b.jobId));
@@ -5287,7 +5397,7 @@ const app = {
                     this.state.jobsTotal = jobList.length;
                     this.state.jobsTotalPages = Math.max(1, Math.ceil(jobList.length / (this.state.jobsLimit || 50)));
                     this.state.jobsPage = Math.min(Math.max(1, this.state.jobsPage || 1), this.state.jobsTotalPages);
-                    list = this.sortJobsDescending(jobList);
+                    list = this.sortJobsByCriteria(jobList);
                     const p = this.state.jobsPage;
                     const l = this.state.jobsLimit || 50;
                     if (list.length > l) {
@@ -5358,7 +5468,7 @@ const app = {
                     this.state.jobsTotal = source.length;
                     this.state.jobsTotalPages = Math.max(1, Math.ceil(source.length / (this.state.jobsLimit || 50)));
                     this.state.jobsPage = Math.min(Math.max(1, this.state.jobsPage || 1), this.state.jobsTotalPages);
-                    list = this.sortJobsDescending(source);
+                    list = this.sortJobsByCriteria(source);
                     const p = this.state.jobsPage;
                     const l = this.state.jobsLimit || 50;
                     if (list.length > l) {
@@ -5373,7 +5483,7 @@ const app = {
                 }
 
                 const html = list.map((j, idx) => {
-                    const isTop3New = idx < 3;
+                    const isTop3New = this.isTop3LatestJob(j);
                     const isQuick = this.isQuickJob(j);
 
                     // Design / Blueprints status

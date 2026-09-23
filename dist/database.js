@@ -879,11 +879,22 @@ async function dbLoadJobsPaginated(options = {}) {
         // 2. Fast lean list query using indexes
         const selectCols = options.lean === false ? '*' : exports.LEAN_JOB_COLUMNS;
         const offset = (page - 1) * limit;
+        let orderBySql = 'ORDER BY created_at DESC, id DESC';
+        const sortBy = options.sort_by;
+        const sortOrder = (options.sort_order || '').toLowerCase();
+        if (sortBy === 'plan_date' || ((options.plan_date_from || options.plan_date_to) && sortBy !== 'created_at')) {
+            const dir = sortOrder === 'desc' ? 'DESC' : 'ASC';
+            orderBySql = `ORDER BY plan_date ${dir} NULLS LAST, created_at DESC, id DESC`;
+        }
+        else if (sortBy === 'created_at') {
+            const dir = sortOrder === 'asc' ? 'ASC' : 'DESC';
+            orderBySql = `ORDER BY created_at ${dir}, id DESC`;
+        }
         const querySql = `
       SELECT ${selectCols}
       FROM core_jobs
       ${whereSql}
-      ORDER BY created_at DESC, id DESC
+      ${orderBySql}
       LIMIT $${paramIdx++} OFFSET $${paramIdx++}
     `;
         const rowsRes = await exports.pool.query(querySql, [...params, limit, offset]);
