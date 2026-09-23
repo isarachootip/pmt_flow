@@ -1212,56 +1212,8 @@
                                 </div>
                             </div>
 
-                            <!-- Row 2: Status Tabs, Service Segments, and Date Range -->
+                            <!-- Row 2: Date Range Filter (DD/MM/YYYY) with Flatpickr & Presets -->
                             <div class="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-border/50">
-                                <!-- Status Tabs: Step 1 Queue, New, Assigned, Surveyed, Transferred, All -->
-                                <div class="flex items-center gap-1.5 flex-wrap">
-                                    <span class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mr-1">สถานะ:</span>
-                                    <div class="inline-flex p-1 bg-card border border-border rounded-xl shadow-2xs gap-1">
-                                        <button type="button" id="tab-jobs-status-step1_queue" onclick="app.filterJobsByStatusTab('step1_queue')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer bg-brand-500 text-white shadow-xs" title="คิวงานที่ยังค้างอยู่ใน Step 1 รอรับเรื่อง/ทำแบบ">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                                            <span>คิวรอรับ Order (Step 1)</span>
-                                        </button>
-                                        <button type="button" id="tab-jobs-status-new" onclick="app.filterJobsByStatusTab('new')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground" title="งานใหม่ที่ยังไม่ระบุช่าง">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                            <span>งานใหม่ (New)</span>
-                                        </button>
-                                        <button type="button" id="tab-jobs-status-assigned" onclick="app.filterJobsByStatusTab('assigned')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground" title="งานที่มอบหมายช่างแล้ว">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                            <span>มอบหมายแล้ว (Assigned)</span>
-                                        </button>
-                                        <button type="button" id="tab-jobs-status-surveyed" onclick="app.filterJobsByStatusTab('surveyed')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground" title="งานที่สำรวจหน้างานแล้ว">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                            <span>สำรวจแล้ว (Surveyed)</span>
-                                        </button>
-                                        <button type="button" id="tab-jobs-status-transferred" onclick="app.filterJobsByStatusTab('transferred')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground" title="งานที่อนุมัติส่งต่อไปยัง Step 2+ หรือ QC แล้ว">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                                            <span>ส่งต่อไปแล้ว (Transferred)</span>
-                                        </button>
-                                        <button type="button" id="tab-jobs-status-all" onclick="app.filterJobsByStatusTab('all')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground" title="แสดงคำสั่งซื้อทั้งหมด">
-                                            <span>ทั้งหมด</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Service Segment Tabs: All, Quick, Renovate -->
-                                <div class="flex items-center gap-1.5 flex-wrap">
-                                    <span class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mr-1">กลุ่มบริการ:</span>
-                                    <div class="inline-flex p-1 bg-card border border-border rounded-xl shadow-2xs gap-1">
-                                        <button type="button" id="tab-jobs-service-all" onclick="app.filterJobsByServiceTab('all')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer bg-brand-500 text-white shadow-xs">
-                                            <span>ทั้งหมด</span>
-                                        </button>
-                                        <button type="button" id="tab-jobs-service-quick" onclick="app.filterJobsByServiceTab('quick')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground">
-                                            <i class="ph ph-lightning text-amber-500 text-xs"></i>
-                                            <span>Quick Services</span>
-                                        </button>
-                                        <button type="button" id="tab-jobs-service-renovate" onclick="app.filterJobsByServiceTab('renovate')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground">
-                                            <i class="ph ph-hammer text-indigo-500 text-xs"></i>
-                                            <span>Renovate</span>
-                                        </button>
-                                    </div>
-                                </div>
-
                                 <!-- Date Range Filter (DD/MM/YYYY) with Flatpickr & Presets -->
                                 <div class="flex items-center gap-1.5 flex-wrap">
                                     <span class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mr-1">วันนัดหมาย:</span>
@@ -6035,22 +5987,12 @@
                                             <span class="block pl-3 text-foreground font-medium">• <strong>ช่างผู้รับผิดชอบ / สาขา</strong> เช่น ชื่อช่างสำรวจ/ช่างติดตั้ง, รหัสสาขา (<code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">store_code</code>) หรือชื่อผู้เปิดงาน (<code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">agent_name</code>)</span>
                                             <span class="block pl-3 text-muted-foreground">• มีปุ่มล้างคำค้น <code class="bg-muted px-1 rounded">[X]</code> ปรากฏอัตโนมัติเมื่อมีการพิมพ์คำค้นหา เพื่อให้ล้างคำค้นได้ใน 1 คลิก</span>
                                         </li>
-                                        <li><strong>2. แท็บสถานะงานด่วน (Status Tabs):</strong> สลับกรองงานตามขั้นตอนใน Step 1 ได้ในคลิกเดียว:
-                                            <span class="block mt-0.5 pl-3">• <strong class="text-brand-600">📥 คิวงาน Step 1 (ค่าเริ่มต้น):</strong> กรองเฉพาะคำสั่งซื้อที่ค้างรอดำเนินการใน Step 1 (ไม่รวมงานที่ส่งต่อไปแล้ว)</span>
-                                            <span class="block pl-3">• <strong class="text-blue-600">🆕 งานใหม่ (New):</strong> กรองเฉพาะงานที่ยังไม่มีการมอบหมายช่าง</span>
-                                            <span class="block pl-3">• <strong class="text-amber-600">👷 มอบหมายแล้ว (Assigned):</strong> กรองเฉพาะงานที่ระบุช่างผู้รับผิดชอบแล้ว</span>
-                                            <span class="block pl-3">• <strong class="text-emerald-600">📐 สำรวจแล้ว (Surveyed):</strong> กรองเฉพาะงานที่ผ่านการสำรวจหน้างานและมีภาพถ่ายหรือผลสำรวจแล้ว</span>
-                                            <span class="block pl-3">• <strong class="text-purple-600">↗️ ส่งต่อไปแล้ว (Transferred):</strong> คำสั่งซื้อที่ส่งต่อไปเปิด Ticket หรือส่งไป QC แล้ว</span>
-                                            <span class="block pl-3">• <strong class="text-zinc-600">📋 ทั้งหมด (All):</strong> แสดงคำสั่งซื้อทั้งหมดในฐานข้อมูล</span>
-                                        </li>
-                                        <li><strong>3. แท็บสลับกลุ่มบริการ (Service Segment Switcher):</strong> กรองแยกประเภทงานบริการ:
-                                            <span class="block mt-0.5 pl-3">• <strong>ทั้งหมด</strong> | <strong>⚡ Quick Services</strong> (งานบริการด่วน) | <strong>🔨 Renovate</strong> (งานโครงการปรับปรุง)</span>
-                                        </li>
-                                        <li><strong>4. ช่วงวันที่นัดหมาย (Appointment Date Range):</strong> 
+                                        <li><strong>2. คิวคำสั่งซื้อนำเข้า (Imported Orders Intake Focus):</strong> แสดงเฉพาะคำสั่งซื้อนำเข้าใหม่ที่รอรับเข้าสู่ระบบ PMT โดยระบบได้ตัดแท็บสถานะและกลุ่มบริการที่ซ้ำซ้อนออก เพื่อให้เจ้าหน้าที่โฟกัสเฉพาะงานนำเข้าด่านแรกอย่างรวดเร็ว (สำหรับการติดตามสถานะทุกขั้นตอนและแยกกลุ่มบริการแบบละเอียด สามารถดูได้ที่เมนู <em>"สรุปคำสั่งซื้อทั้งหมด"</em> ในหมวด Report)</li>
+                                        <li><strong>3. ช่วงวันที่นัดหมาย (Appointment Date Range):</strong> 
                                             <span class="block mt-0.5 pl-3">• เลือกช่วงวันที่เริ่มต้น ถึง วันที่สิ้นสุด ด้วย Custom Flatpickr ในรูปแบบ <strong>DD/MM/YYYY</strong> พร้อมปุ่มล้างวันที่</span>
                                             <span class="block pl-3">• เมนูลัดเลือกวันนัดด่วน: <em>"นัดวันนี้"</em>, <em>"นัดข้างหน้า (30 วัน)"</em>, และ <em>"เกินกำหนดนัด (Overdue)"</em></span>
                                         </li>
-                                        <li><strong>5. ตัวนับจำนวนและปุ่มรีเซ็ตทั้งหมด (Result Counter &amp; Master Reset):</strong>
+                                        <li><strong>4. ตัวนับจำนวนและปุ่มรีเซ็ตทั้งหมด (Result Counter &amp; Master Reset):</strong>
                                             <span class="block mt-0.5 pl-3">• ป้าย Badge แสดง <code class="bg-brand-500/10 text-brand-700 font-bold px-1.5 py-0.2 rounded text-[10px]">พบ X รายการ</code> แสดงผลสดตามเงื่อนไขที่กรอง</span>
                                             <span class="block pl-3">• ปุ่ม <code class="bg-muted px-1.5 py-0.2 rounded text-foreground font-semibold text-[10px]">[🔄 รีเซ็ตทั้งหมด]</code> ล้างค่าการค้นหาและรีเซ็ตทุกตัวกรองกลับสู่ค่าเริ่มต้นทันที</span>
                                         </li>
@@ -6098,7 +6040,7 @@
                                 <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-2">
                                     <p><strong class="text-foreground">คำตอบ:</strong> เพื่อให้การบริหารจัดการคิวงานในแต่ละขั้นตอนมีความชัดเจนและไม่สับสน ระบบ PMT Flow ได้แยกมุมมองการทำงานออกเป็น 2 หน้าจออย่างเด็ดขาด:</p>
                                     <ul class="list-disc list-inside space-y-1.5 pl-1 text-[11px]">
-                                        <li><strong>1. หน้าจอ Step 1 (ศูนย์รับคำสั่งซื้อใหม่):</strong> แสดงเฉพาะ <strong>"คิวงานที่ยังค้างอยู่ใน Step 1"</strong> (สถานะเริ่มต้น: <code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">step1_queue</code>) เท่านั้น เมื่องานใดได้รับการส่งต่อ (Handover) เช่น งาน Quick Services ที่ส่งตรงเข้า Step 5 (QC) หรือ Renovate ที่ส่งต่อไป Step 2 หรือ Step 3 แล้ว งานนั้นจะหลุดออกจากคิวงาน Step 1 ทันที เพื่อไม่ให้เกิดความสับสนและทำให้เจ้าหน้าที่โฟกัสเฉพาะงานที่ต้องจัดการในด่านแรกจริง (หากต้องการดูงานที่ส่งต่อไปแล้วใน Step 1 สามารถคลิกแท็บ <em>"↗️ ส่งต่อไปแล้ว (Transferred)"</em> หรือคลิกการ์ด <em>"รับเข้า PMT แล้ว"</em> ได้)</li>
+                                        <li><strong>1. หน้าจอ Step 1 (ศูนย์รับคำสั่งซื้อใหม่):</strong> แสดงเฉพาะ <strong>"คิวงานที่ยังค้างอยู่ใน Step 1"</strong> (สถานะเริ่มต้น: <code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">step1_queue</code>) เท่านั้น เมื่องานใดได้รับการส่งต่อ (Handover) เช่น งาน Quick Services ที่ส่งตรงเข้า Step 5 (QC) หรือ Renovate ที่ส่งต่อไป Step 2 หรือ Step 3 แล้ว งานนั้นจะหลุดออกจากคิวงาน Step 1 ทันที เพื่อไม่ให้เกิดความสับสนและทำให้เจ้าหน้าที่โฟกัสเฉพาะงานนำเข้าที่ต้องจัดการในด่านแรกจริง (หากต้องการดูภาพรวมทุกขั้นตอนสามารถไปที่หมวด Report &gt; <em>"สรุปคำสั่งซื้อทั้งหมด"</em> หรือคลิกการ์ดสถิติ <em>"รับเข้า PMT แล้ว"</em> ได้)</li>
                                         <li><strong>2. หน้าจอใหม่ "สรุปคำสั่งซื้อทั้งหมด (Master All-Orders)":</strong> อยู่ที่แถบเมนูด้านข้างในหมวด **Report** (<code class="bg-muted px-1.5 py-0.2 rounded font-mono text-[10px]">subnav-report-master-orders</code>) และมีปุ่มทางลัดบนหน้า Report ออกแบบมาเป็น <strong>"ศูนย์รวมและติดตามสถานะคำสั่งซื้อทั้งหมดในระบบแบบ Single View"</strong> รวมทุกโครงการตั้งแต่ Step 1 ถึง Step 7 (3,726+ รายการ)</li>
                                         <li><strong>3. ฟังก์ชันในหน้าสรุปคำสั่งซื้อทั้งหมด (Master Orders):</strong>
                                             <span class="block mt-0.5 pl-3 text-foreground font-medium">• มีแถบ <strong>"ขั้นตอนปัจจุบัน (Current Pipeline Step)"</strong> บ่งบอกชัดเจนว่าแต่ละ Order กำลังอยู่ในขั้นตอนใด (Step 1 Studio, Step 2 Tickets, Step 3 Dispatch, Step 4 Gantt, Step 5 QC, Step 6 STK Sync หรือ Step 7 Closed)</span>
@@ -10867,11 +10809,11 @@
 
     <!-- APPLICATION JAVASCRIPT LOGIC -->
     <!-- APPLICATION SCRIPTS -->
-    <script src="./public/js/db.js?v=1.7.5"></script>
-    <script src="./public/js/auth.js?v=1.7.5"></script>
-    <script src="./public/js/app.js?v=1.7.5"></script>
-    <script src="./public/js/userMgmt.js?v=1.7.5"></script>
-    <script src="./public/js/app.hooks.js?v=1.7.5"></script>
+    <script src="./public/js/db.js?v=1.7.6"></script>
+    <script src="./public/js/auth.js?v=1.7.6"></script>
+    <script src="./public/js/app.js?v=1.7.6"></script>
+    <script src="./public/js/userMgmt.js?v=1.7.6"></script>
+    <script src="./public/js/app.hooks.js?v=1.7.6"></script>
 
 </body>
 </html>
