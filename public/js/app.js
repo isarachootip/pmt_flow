@@ -23082,6 +23082,16 @@ const app = {
                                     </select>
                                 </td>
                                 <td class="py-2 px-3">
+                                    ${qcInspector
+                                        ? `<div class="flex items-center gap-1.5">
+                                               <i class="ph ph-user-check text-teal-600 text-xs shrink-0"></i>
+                                               <span class="text-xs font-semibold text-teal-700 truncate max-w-[140px]" title="${qcInspector}">${qcInspector}</span>
+                                           </div>
+                                           <div class="text-[9px] text-teal-600/70 mt-0.5">สืบทอดจากงานหลัก</div>`
+                                        : `<span class="text-[10px] text-muted-foreground italic">— ไม่มี QC —</span>`
+                                    }
+                                </td>
+                                <td class="py-2 px-3">
                                     <select onchange="app.updateGanttSubtaskField('${t.id}', '${sub.id}', 'status', this.value)" class="w-full bg-card border border-border/80 focus:border-brand-500 rounded-lg px-2 py-1 text-[11px] font-semibold focus:outline-none cursor-pointer">
                                         <option value="IN_PROGRESS" ${sub.status === 'IN_PROGRESS' ? 'selected' : ''}>กำลังทำ</option>
                                         <option value="DONE" ${sub.status === 'DONE' ? 'selected' : ''}>เสร็จสิ้น</option>
@@ -23502,6 +23512,16 @@ const app = {
                                     <select onchange="app.updateGanttSubtaskField('${t.id}', '${sub.id}', 'tech', this.value)" class="w-full bg-card border border-border/80 focus:border-brand-500 rounded-lg px-2 py-1 text-xs text-foreground focus:outline-none cursor-pointer">
                                         ${subTechOpts}
                                     </select>
+                                </td>
+                                <td class="py-2 px-3">
+                                    ${qcInspectorAll
+                                        ? `<div class="flex items-center gap-1.5">
+                                               <i class="ph ph-user-check text-teal-600 text-xs shrink-0"></i>
+                                               <span class="text-xs font-semibold text-teal-700 truncate max-w-[140px]" title="${qcInspectorAll}">${qcInspectorAll}</span>
+                                           </div>
+                                           <div class="text-[9px] text-teal-600/70 mt-0.5">สืบทอดจากงานหลัก</div>`
+                                        : `<span class="text-[10px] text-muted-foreground italic">— ไม่มี QC —</span>`
+                                    }
                                 </td>
                                 <td class="py-2 px-3">
                                     <select onchange="app.updateGanttSubtaskField('${t.id}', '${sub.id}', 'status', this.value)" class="w-full bg-card border border-border/80 focus:border-brand-500 rounded-lg px-2 py-1 text-[11px] font-semibold focus:outline-none cursor-pointer">
