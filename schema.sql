@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS core_jobs (
     boq_discount          NUMERIC DEFAULT 0,
     boq_subtotal          NUMERIC DEFAULT 0,
     boq_grand_total       NUMERIC DEFAULT 0,
+    boq_original_file     JSONB DEFAULT NULL,
     pmt_accepted          BOOLEAN DEFAULT FALSE,
     pmt_accepted_at       TIMESTAMP WITH TIME ZONE,
     step3_confirmed       BOOLEAN DEFAULT FALSE,

@@ -320,6 +320,7 @@ async function initDatabase() {
         ADD COLUMN IF NOT EXISTS boq_discount NUMERIC DEFAULT 0,
         ADD COLUMN IF NOT EXISTS boq_subtotal NUMERIC DEFAULT 0,
         ADD COLUMN IF NOT EXISTS boq_grand_total NUMERIC DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS boq_original_file JSONB DEFAULT NULL,
         ADD COLUMN IF NOT EXISTS pmt_accepted BOOLEAN DEFAULT FALSE,
         ADD COLUMN IF NOT EXISTS pmt_accepted_at TIMESTAMP WITH TIME ZONE,
         ADD COLUMN IF NOT EXISTS step3_confirmed BOOLEAN DEFAULT FALSE,
@@ -608,6 +609,7 @@ function mapDbJobRow(row) {
         boq_discount: Number(row.boq_discount) || 0,
         boq_subtotal: Number(row.boq_subtotal) || 0,
         boq_grand_total: Number(row.boq_grand_total) || 0,
+        boq_original_file: row.boq_original_file || row.raw_payload?.boq_original_file || null,
         pmt_accepted: row.pmt_accepted !== undefined && row.pmt_accepted !== null ? Boolean(row.pmt_accepted) : (row.status !== 'DRAFT' && row.status !== 'NEW' && row.status !== 'SURVEYED' && row.status !== 'Survey'),
         pmt_accepted_at: row.pmt_accepted_at || null,
         step3_confirmed: Boolean(row.step3_confirmed),
@@ -1157,7 +1159,7 @@ async function dbUpdateJob(jobNoOrId, updates) {
             'step_timestamps', 'services', 'customer_data', 'tasks', 'photos', 'boq_items', 'csat_photos',
             'job_details', 'agent_data', 'store_data', 'schedule_plan', 'checkin_data', 'checkout_data',
             'approval_data', 'visit_results', 'remarks_data', 'raw_payload', 'qc_history', 'qc_subtasks',
-            'stk_payload'
+            'stk_payload', 'boq_original_file'
         ];
         const stringFields = [
             'external_ref_id', 'booking_no', 'ticket_no', 'status', 'job_type',

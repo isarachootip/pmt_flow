@@ -3151,6 +3151,23 @@ app.get('/api/v1/jobs/:id', requireAuth, async (req: Request, res: Response) => 
     return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found in database' } });
   }
 
+  // Attach full auxiliary evidence & history (Daily work logs, QC bookings, Blueprints)
+  try {
+    const lookupJobId = String(job.id || job.job_no || param);
+    const [dailyLogs, qcBookings, blueprints] = await Promise.all([
+      dbLoadDailyWorkLogs(lookupJobId),
+      dbLoadQCBookings(lookupJobId),
+      dbLoadBlueprints(lookupJobId)
+    ]);
+    job.daily_logs = dailyLogs || [];
+    job.qc_bookings = qcBookings || [];
+    if (Array.isArray(blueprints) && blueprints.length > 0) {
+      job.blueprints_data = blueprints;
+    }
+  } catch (auxErr: any) {
+    console.warn('[JOBS API] Could not load auxiliary evidence for job:', auxErr?.message);
+  }
+
   return res.json({
     success: true,
     data: job

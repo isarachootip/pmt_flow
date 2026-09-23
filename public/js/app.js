@@ -9650,11 +9650,20 @@ const app = {
                     ? job.boq_grand_total
                     : boqItems.reduce((acc, item) => acc + ((Number(item.qty) || 1) * (Number(item.price || item.unit_price) || 0)), 0);
 
+                // BOQ Original File
+                const boqOriginalFile = job.boq_original_file || (job.raw_payload && job.raw_payload.boq_original_file) || null;
+
+                // Blueprints
                 let blueprints = (DB.blueprints || []).filter(b => 
                     b.jobId === job.id || 
                     String(b.jobId) === String(job.id) || 
                     (job.job_no && (b.jobId === job.job_no || String(b.jobId) === String(job.job_no)))
                 );
+                if (Array.isArray(job.blueprints_data) && job.blueprints_data.length > 0) {
+                    job.blueprints_data.forEach(bp => {
+                        if (!blueprints.some(b => b.id === bp.id)) blueprints.push(bp);
+                    });
+                }
                 if (Array.isArray(job.blueprints) && job.blueprints.length > 0) {
                     job.blueprints.forEach(bp => {
                         if (typeof bp === 'object' && bp !== null && bp.id) {
@@ -9677,30 +9686,266 @@ const app = {
                         notes: 'แบบแปลนโครงการ Renovate'
                     });
                 }
-                const showDrawingAndBOQ = !isQuick && (isRenovate || blueprints.length > 0 || boqItems.length > 0);
-                const tasks = (DB.tasks || []).filter(t => t.jobId === job.id);
+                const showDrawingAndBOQ = !isQuick && (isRenovate || blueprints.length > 0 || boqItems.length > 0 || boqOriginalFile);
 
-                // Calculate SLA
+                // Step 4 Tasks & Daily Logs
+                let tasks = (DB.tasks || []).filter(t => t.jobId === job.id || t.job_id === job.id || String(t.jobId) === String(job.id));
+                if (tasks.length === 0 && Array.isArray(job.tasks)) {
+                    tasks = job.tasks;
+                }
+                let dailyLogs = Array.isArray(job.daily_logs) ? job.daily_logs : [];
+                if (dailyLogs.length === 0 && Array.isArray(DB.dailyWorkLogs)) {
+                    dailyLogs = DB.dailyWorkLogs.filter(l => 
+                        l.job_id === job.id || 
+                        l.job_no === job.id || 
+                        (job.job_no && (l.job_id === job.job_no || l.job_no === job.job_no))
+                    );
+                }
+
+                // Step 5 QC Inspection Bookings & History
+                let qcBookings = Array.isArray(job.qc_bookings) ? job.qc_bookings : [];
+                if (qcBookings.length === 0 && Array.isArray(DB.qcBookings)) {
+                    qcBookings = DB.qcBookings.filter(q => 
+                        q.job_id === job.id || 
+                        q.job_no === job.id || 
+                        (job.job_no && (q.job_id === job.job_no || q.job_no === job.job_no))
+                    );
+                }
+                const qcHistory = Array.isArray(job.qc_history) ? job.qc_history : (job.raw_payload && Array.isArray(job.raw_payload.qc_history) ? job.raw_payload.qc_history : []);
+                const qcSubtasks = Array.isArray(job.qc_subtasks) ? job.qc_subtasks : (job.raw_payload && Array.isArray(job.raw_payload.qc_subtasks) ? job.raw_payload.qc_subtasks : []);
+
+                // Step 6 CSAT & STK
+                const csatPhotos = Array.isArray(job.csat_photos) ? job.csat_photos : (job.raw_payload && Array.isArray(job.raw_payload.csat_photos) ? job.raw_payload.csat_photos : []);
+
+                // Calculate SLA & Dates
                 const s2Sla = this.calculateJobSLA(job, 2);
                 const jts = job.step_timestamps || {};
                 const s2Iso = jts.step2_ticket_at || jts.step4_ticket_at || jts.step1_accepted_at || jts.step1_order_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
                 const s2Formatted = s2Iso ? this.formatDateTimeDMY(s2Iso, false, true) : '-';
+                const stepInfo = this.getJobCurrentStep(job);
 
                 // Photos - get attached survey photos
-                let photos = job.photos || [];
+                const photos = job.photos || [];
+
+                // Compile Central Media & Files Hub
+                const allMedia = [];
+                photos.forEach((p, idx) => {
+                    allMedia.push({
+                        step: 1,
+                        stepName: 'Step 1: ภาพสำรวจหน้างาน',
+                        category: 'survey',
+                        badgeColor: 'bg-emerald-50 text-black border border-emerald-300',
+                        title: p.caption || p.title || p.name || `ภาพสำรวจ #${idx + 1}`,
+                        desc: `สำรวจหน้างาน (${job.customer || '-'})`,
+                        url: p.url || p.dataUrl,
+                        date: p.uploaded_at ? this.formatDateDMY(p.uploaded_at) : (job.date ? this.formatDateDMY(job.date) : 'ล่าสุด'),
+                        tag: p.tag || p.type || 'ภาพสำรวจ'
+                    });
+                });
+                if (job.file_int_image) {
+                    allMedia.push({
+                        step: 1,
+                        stepName: 'Step 1: เอกสารสำรวจ INT',
+                        category: 'survey_doc',
+                        badgeColor: 'bg-blue-50 text-black border border-blue-300',
+                        title: 'เอกสารใบสำรวจหน้างาน INT',
+                        desc: 'แบบฟอร์มบันทึกการสำรวจจากระบบ INT',
+                        url: job.file_int_image,
+                        date: job.date ? this.formatDateDMY(job.date) : 'ล่าสุด',
+                        tag: 'INT Doc'
+                    });
+                }
+                blueprints.forEach(b => {
+                    allMedia.push({
+                        step: 2,
+                        stepName: 'Step 2: แบบแปลน Drawing CAD',
+                        category: 'blueprint',
+                        badgeColor: 'bg-indigo-50 text-black border border-indigo-300',
+                        title: b.filename || b.title || 'แบบแปลนติดตั้ง',
+                        desc: `โซน: ${b.zone || 'งานติดตั้งหลัก'} • ขนาด: ${b.size || '2.5 MB'}`,
+                        url: b.previewImg || b.url || 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=500&auto=format&fit=crop&q=80',
+                        date: b.date || 'ล่าสุด',
+                        tag: 'CAD / DWG'
+                    });
+                });
+                tickets.forEach(t => {
+                    if (t.slip_url) {
+                        allMedia.push({
+                            step: 2,
+                            stepName: 'Step 2: สลิปโอนเงิน / ใบเสร็จ',
+                            category: 'slip',
+                            badgeColor: 'bg-emerald-50 text-black border border-emerald-300',
+                            title: t.slip_name || `สลิปการโอนเงิน (${t.receipt_no || t.ticket_no})`,
+                            desc: `ยอดชำระ: ${(Number(t.amount) || grandTotal).toLocaleString('th-TH')} ฿`,
+                            url: t.slip_url,
+                            date: t.payment_date ? this.formatDateDMY(t.payment_date) : 'ล่าสุด',
+                            tag: 'สลิปใบเสร็จ'
+                        });
+                    }
+                    if (t.contract_url) {
+                        allMedia.push({
+                            step: 2,
+                            stepName: 'Step 2: สัญญาจ้างงาน',
+                            category: 'contract',
+                            badgeColor: 'bg-purple-50 text-black border border-purple-300',
+                            title: t.contract_name || `สัญญาจ้างงาน (${t.contract_no || t.ticket_no})`,
+                            desc: `เลขที่สัญญา: ${t.contract_no || '-'}`,
+                            url: t.contract_url,
+                            date: t.payment_date ? this.formatDateDMY(t.payment_date) : 'ล่าสุด',
+                            tag: 'สัญญาจ้าง'
+                        });
+                    }
+                });
+                if (boqOriginalFile) {
+                    allMedia.push({
+                        step: 3,
+                        stepName: 'Step 3: ไฟล์ BOQ ต้นฉบับ',
+                        category: 'boq',
+                        badgeColor: 'bg-purple-50 text-black border border-purple-300',
+                        title: boqOriginalFile.name || 'BOQ_Original.xlsx',
+                        desc: `ขนาดไฟล์: ${boqOriginalFile.size_formatted || `${((boqOriginalFile.size || 0)/1024).toFixed(1)} KB`} • ${boqItems.length} รายการ`,
+                        url: boqOriginalFile.url || boqOriginalFile.dataUrl || '',
+                        isBOQFile: true,
+                        date: boqOriginalFile.uploaded_at ? this.formatDateDMY(boqOriginalFile.uploaded_at) : 'ล่าสุด',
+                        tag: 'Excel / CSV'
+                    });
+                }
+                dailyLogs.forEach(dl => {
+                    const dPhotos = Array.isArray(dl.photos) ? dl.photos : [];
+                    dPhotos.forEach((p, pIdx) => {
+                        allMedia.push({
+                            step: 4,
+                            stepName: 'Step 4: ภาพช่างประจำวัน',
+                            category: 'daily_log',
+                            badgeColor: 'bg-cyan-50 text-black border border-cyan-300',
+                            title: p.caption || p.title || `รอบที่ ${dl.day_number || 1} — รูปที่ ${pIdx + 1} (${p.phase || 'หน้างาน'})`,
+                            desc: `ช่าง: ${dl.technician || dl.recorded_by || job.tech} • วันที่ ${this.formatDateDMY(dl.log_date || dl.created_at)}`,
+                            url: p.url || p.dataUrl,
+                            date: this.formatDateDMY(dl.log_date || dl.created_at),
+                            tag: p.phase || `รูปที่ ${pIdx + 1}`
+                        });
+                    });
+                });
+                qcBookings.forEach(qb => {
+                    const qPhotos = Array.isArray(qb.photos) ? qb.photos : [];
+                    qPhotos.forEach((p, pIdx) => {
+                        allMedia.push({
+                            step: 5,
+                            stepName: 'Step 5: ภาพตรวจรับงาน QC',
+                            category: 'qc',
+                            badgeColor: 'bg-teal-50 text-black border border-teal-300',
+                            title: p.caption || p.title || `ภาพตรวจรับรองคุณภาพ QC #${pIdx + 1}`,
+                            desc: `ผู้ตรวจ: ${qb.qc_inspector || job.qc_inspector || 'QC Lead'} • สถานะ: ${qb.status || job.qc_status || 'ตรวจรับรอง'}`,
+                            url: p.url || p.dataUrl,
+                            date: this.formatDateDMY(qb.booking_date || qb.qc_booking_date || qb.created_at),
+                            tag: 'QC Evidence'
+                        });
+                    });
+                });
+                if (Array.isArray(job.qc_photos)) {
+                    job.qc_photos.forEach((p, pIdx) => {
+                        allMedia.push({
+                            step: 5,
+                            stepName: 'Step 5: ภาพตรวจรับงาน QC',
+                            category: 'qc',
+                            badgeColor: 'bg-teal-50 text-black border border-teal-300',
+                            title: p.caption || p.title || `ภาพตรวจรับรองคุณภาพ QC #${pIdx + 1}`,
+                            desc: `ผู้ตรวจ: ${job.qc_inspector || 'QC Lead'} • คะแนน: ${job.qc_score || 5.0}`,
+                            url: p.url || p.dataUrl,
+                            date: job.qc_passed_at ? this.formatDateDMY(job.qc_passed_at) : 'ล่าสุด',
+                            tag: 'QC Evidence'
+                        });
+                    });
+                }
+                csatPhotos.forEach((p, pIdx) => {
+                    allMedia.push({
+                        step: 6,
+                        stepName: 'Step 6: ภาพส่งมอบงาน CSAT',
+                        category: 'csat',
+                        badgeColor: 'bg-blue-50 text-black border border-blue-300',
+                        title: p.caption || p.name || `ภาพผลการส่งมอบงาน / CSAT #${pIdx + 1}`,
+                        desc: `คะแนน: ${job.csat_score || 5}/5 ดาว • ผู้ประเมิน: ${job.csat_surveyor || 'ลูกค้า'}`,
+                        url: p.url || p.dataUrl,
+                        date: job.csat_evaluated_at ? this.formatDateDMY(job.csat_evaluated_at) : 'ล่าสุด',
+                        tag: 'CSAT Handover'
+                    });
+                });
+
+                const photoMediaCount = allMedia.filter(m => !m.isBOQFile).length;
+                const docMediaCount = allMedia.filter(m => m.isBOQFile || m.category === 'blueprint' || m.category === 'contract').length;
 
                 // Job Details, Visit Results & Remarks Data (INT)
                 const jobDetails = this.normalizeJobDetails(job.job_details || job.job_detail || (job.raw_payload && job.raw_payload.job_details), job.project_sub_type || job.service || '');
                 const visitResults = this.normalizeVisitResults(job.visit_results || job.visit_result || (job.raw_payload && job.raw_payload.visit_results));
                 const remarksData = this.normalizeRemarksData(job.remarks_data || job.remarks || (job.raw_payload && job.raw_payload.remarks), job);
 
+                // Footer step action button dynamic determination
+                let footerStepActionBtn = '';
+                if (job.status === 'CLOSED' || job.status === 'Closed') {
+                    footerStepActionBtn = `
+                        <div class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 text-black border border-emerald-300 font-bold text-xs shadow-2xs">
+                            <i class="ph ph-seal-check text-emerald-600 text-sm font-bold"></i>
+                            <span>ปิดงานสำเร็จแล้ว (${job.stk_ref || job.bmt_ref || 'STK-200-OK'})</span>
+                        </div>
+                    `;
+                } else if (isQuick) {
+                    footerStepActionBtn = `
+                        <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.goToQC('${job.id}');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-700 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
+                            <i class="ph ph-globe"></i>
+                            <span>ไปตรวจ QC Online ➔</span>
+                        </button>
+                    `;
+                } else if (stepInfo.stepNumber === 1 || !job.pmt_accepted) {
+                    footerStepActionBtn = `
+                        <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.acceptJobToPMT('${job.id}');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
+                            <i class="ph ph-check-circle"></i>
+                            <span>รับเข้าสู่ Step 2 (Design & Ticket) ➔</span>
+                        </button>
+                    `;
+                } else if (stepInfo.stepNumber === 2 && !hasTicket) {
+                    footerStepActionBtn = `
+                        <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.openCreateTicketModal('${job.id}');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
+                            <i class="ph ph-plus-circle font-bold"></i>
+                            <span>+ บันทึก Ticket & สลิป ➔</span>
+                        </button>
+                    `;
+                } else if (stepInfo.stepNumber <= 3) {
+                    footerStepActionBtn = `
+                        <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.proceedJobToConversion('${job.id}');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
+                            <i class="ph ph-lightning"></i>
+                            <span>Convert เข้า Project (Step 4) ➔</span>
+                        </button>
+                    `;
+                } else if (stepInfo.stepNumber === 4) {
+                    footerStepActionBtn = `
+                        <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.navigate('gantt');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
+                            <i class="ph ph-calendar-blank"></i>
+                            <span>เปิดแผนงาน Gantt & บันทึกช่าง ➔</span>
+                        </button>
+                    `;
+                } else if (stepInfo.stepNumber === 5) {
+                    footerStepActionBtn = `
+                        <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.navigate('qc');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
+                            <i class="ph ph-check-square"></i>
+                            <span>เปิดหน้าตรวจรับรองคุณภาพ QC ➔</span>
+                        </button>
+                    `;
+                } else {
+                    footerStepActionBtn = `
+                        <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.navigate('reports');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
+                            <i class="ph ph-file-text"></i>
+                            <span>ดูรายงานและส่งต่อ STK ➔</span>
+                        </button>
+                    `;
+                }
+
                 modalContent.innerHTML = `
                     <!-- Modal Header -->
                     <div class="p-5 border-b border-border flex justify-between items-start bg-muted/40 shrink-0">
                         <div class="space-y-2 w-full pr-3">
                             <div class="flex items-center gap-2 sm:gap-2.5 flex-wrap">
-                                <!-- Order No (เลขที่ Order) -->
-                                <span class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-950 border border-gray-300 font-mono text-xs sm:text-sm font-black inline-flex items-center gap-1.5 shadow-2xs select-text cursor-text" title="ลากเมาส์เพื่อคัดลอกเลขที่ Order (แก้ไขไม่ได้)">
+                                <!-- Order No -->
+                                <span class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-950 border border-gray-300 font-mono text-xs sm:text-sm font-black inline-flex items-center gap-1.5 shadow-2xs select-text cursor-text" title="เลขที่ Order">
                                     <i class="ph ph-receipt text-sm text-gray-700"></i>
                                     <span>เลขที่ Order:</span>
                                     <strong class="text-black font-black font-mono select-text cursor-text">${job.job_no || job.id}</strong>
@@ -9709,9 +9954,9 @@ const app = {
                                     </button>
                                 </span>
 
-                                <!-- Booking No (เลขที่ Booking) -->
+                                <!-- Booking No -->
                                 ${job.booking_no ? `
-                                    <span class="px-2.5 py-1 rounded-lg bg-purple-50 text-gray-950 border border-purple-300 font-mono text-xs sm:text-sm font-black inline-flex items-center gap-1.5 shadow-2xs select-text cursor-text" title="ลากเมาส์เพื่อคัดลอกเลขที่ Booking (แก้ไขไม่ได้)">
+                                    <span class="px-2.5 py-1 rounded-lg bg-purple-50 text-gray-950 border border-purple-300 font-mono text-xs sm:text-sm font-black inline-flex items-center gap-1.5 shadow-2xs select-text cursor-text" title="เลขที่ Booking">
                                         <i class="ph ph-bookmark-simple text-sm text-purple-700 font-bold"></i>
                                         <span>เลขที่ Booking:</span>
                                         <strong class="text-black font-black font-mono select-text cursor-text">${job.booking_no}</strong>
@@ -9719,12 +9964,12 @@ const app = {
                                 ` : ''}
 
                                 ${job.external_ref_id ? `
-                                    <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-muted text-gray-900 border border-border inline-flex items-center gap-1 select-text cursor-text" title="ลากเมาส์เพื่อคัดลอก Ref ID (แก้ไขไม่ได้)">
+                                    <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-muted text-gray-900 border border-border inline-flex items-center gap-1 select-text cursor-text" title="Ref ID">
                                         <i class="ph ph-tag text-xs text-muted-foreground"></i> Ref: <strong class="text-gray-950 font-bold select-text cursor-text">${job.external_ref_id}</strong>
                                     </span>
                                 ` : ''}
                                 ${job.ticket_no ? `
-                                    <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-muted text-gray-900 border border-border inline-flex items-center gap-1 select-text cursor-text" title="ลากเมาส์เพื่อคัดลอก Ticket (แก้ไขไม่ได้)">
+                                    <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-muted text-gray-900 border border-border inline-flex items-center gap-1 select-text cursor-text" title="เลขที่ Ticket">
                                         <i class="ph ph-receipt text-xs text-muted-foreground"></i> Ticket: <strong class="text-gray-950 font-bold select-text cursor-text">${job.ticket_no}</strong>
                                     </span>
                                 ` : ''}
@@ -9749,13 +9994,13 @@ const app = {
                             <div class="mt-2.5 pt-2.5 border-t border-border/80 text-sm sm:text-base text-gray-950 flex items-center gap-3 sm:gap-4 flex-wrap">
                                 <span class="inline-flex items-center gap-1.5">
                                     <i class="ph ph-user text-brand-600 text-lg sm:text-xl shrink-0"></i>
-                                    <span class="text-gray-600 font-semibold text-xs sm:text-sm">ชื่อลูกค้า:</span>
+                                    <span class="text-black font-semibold text-xs sm:text-sm">ชื่อลูกค้า:</span>
                                     <strong class="text-black font-black text-base sm:text-lg tracking-tight">${job.customer || '-'}</strong>
                                 </span>
                                 <span class="text-gray-300 hidden sm:inline">•</span>
                                 <span class="inline-flex items-center gap-1.5 font-mono">
                                     <i class="ph ph-phone text-emerald-600 text-base sm:text-lg shrink-0"></i>
-                                    <span class="text-gray-600 font-semibold text-xs sm:text-sm">เบอร์ติดต่อ:</span>
+                                    <span class="text-black font-semibold text-xs sm:text-sm">เบอร์ติดต่อ:</span>
                                     <strong class="text-black font-bold font-mono text-sm sm:text-base">${job.phone || '-'}</strong>
                                     ${job.phone ? `
                                         <a href="tel:${job.phone}" onclick="event.stopPropagation();" class="text-emerald-600 hover:underline inline-flex items-center gap-0.5 ml-1" title="โทรออก">
@@ -9766,381 +10011,587 @@ const app = {
                                 <span class="text-gray-300 hidden sm:inline">•</span>
                                 <span class="inline-flex items-center gap-1.5">
                                     <i class="ph ph-user-gear text-amber-600 text-base sm:text-lg shrink-0"></i>
-                                    <span class="text-gray-600 font-semibold text-xs sm:text-sm">ช่างหน้างาน:</span>
+                                    <span class="text-black font-semibold text-xs sm:text-sm">ช่างหน้างาน:</span>
                                     <strong class="text-black font-bold text-sm sm:text-base">${job.tech || 'รอระบุช่าง'}</strong>
                                 </span>
                                 ${(job.store_code || job.agent_name) ? `
                                     <span class="text-gray-300 hidden sm:inline">•</span>
                                     <span class="inline-flex items-center gap-1.5">
                                         <i class="ph ph-storefront text-indigo-600 text-base shrink-0"></i>
-                                        <span class="text-gray-600 font-semibold text-xs sm:text-sm">สาขา:</span>
+                                        <span class="text-black font-semibold text-xs sm:text-sm">สาขา:</span>
                                         <strong class="text-black font-bold text-sm sm:text-base">${[job.store_code, job.agent_name].filter(Boolean).join(' - ')}</strong>
                                     </span>
                                 ` : ''}
                             </div>
                         </div>
-                        <button type="button" onclick="app.hideModal('modal-job-preview-detail')" class="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition cursor-pointer shrink-0" title="ปิดหน้าต่าง (Esc)">
+                        <button type="button" onclick="app.hideModal('modal-job-preview-detail')" class="text-muted-foreground hover:text-black p-2 rounded-xl hover:bg-muted transition cursor-pointer shrink-0" title="ปิดหน้าต่าง (Esc)">
                             <i class="ph ph-x text-lg"></i>
                         </button>
                     </div>
 
+                    <!-- Step-by-Step Navigator & Stage Quick Jump -->
+                    <div class="px-5 py-2.5 border-b border-border bg-muted/30 flex items-center gap-2 overflow-x-auto text-xs no-scrollbar shrink-0">
+                        <span class="text-xs font-bold text-black flex items-center gap-1 shrink-0 mr-1">
+                            <i class="ph ph-sliders text-indigo-600 text-sm"></i>
+                            <span>เลือกขั้นตอน:</span>
+                        </span>
+                        <button type="button" onclick="app.setJobModalTab('all')" id="btn-modal-tab-all" class="px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer bg-white text-black shadow-2xs border border-border shrink-0">
+                            🔘 ทั้งหมด (All Steps)
+                        </button>
+                        <button type="button" onclick="app.setJobModalTab('step1')" id="btn-modal-tab-step1" class="px-3 py-1.5 rounded-lg font-medium text-xs transition cursor-pointer text-black hover:text-black hover:bg-white/60 shrink-0">
+                            1. รับเรื่อง & สำรวจ (${photos.length})
+                        </button>
+                        <button type="button" onclick="app.setJobModalTab('step2')" id="btn-modal-tab-step2" class="px-3 py-1.5 rounded-lg font-medium text-xs transition cursor-pointer text-black hover:text-black hover:bg-white/60 shrink-0">
+                            2. แปลน & Ticket (${blueprints.length + tickets.length})
+                        </button>
+                        <button type="button" onclick="app.setJobModalTab('step3')" id="btn-modal-tab-step3" class="px-3 py-1.5 rounded-lg font-medium text-xs transition cursor-pointer text-black hover:text-black hover:bg-white/60 shrink-0">
+                            3. BOQ & ไฟล์ต้นฉบับ (${boqItems.length > 0 ? boqItems.length + ' รายการ' : (boqOriginalFile ? 'มีไฟล์' : 'Blank')})
+                        </button>
+                        <button type="button" onclick="app.setJobModalTab('step4')" id="btn-modal-tab-step4" class="px-3 py-1.5 rounded-lg font-medium text-xs transition cursor-pointer text-black hover:text-black hover:bg-white/60 shrink-0">
+                            4. งานช่าง & ภาพประจำวัน (${dailyLogs.length} บันทึก)
+                        </button>
+                        <button type="button" onclick="app.setJobModalTab('step5')" id="btn-modal-tab-step5" class="px-3 py-1.5 rounded-lg font-medium text-xs transition cursor-pointer text-black hover:text-black hover:bg-white/60 shrink-0">
+                            5. ตรวจรับรอง QC (${job.qc_score !== null && job.qc_score !== undefined ? job.qc_score.toFixed(1) + ' คะแนน' : (job.qc_status || 'รอตรวจ')})
+                        </button>
+                        <button type="button" onclick="app.setJobModalTab('step6')" id="btn-modal-tab-step6" class="px-3 py-1.5 rounded-lg font-medium text-xs transition cursor-pointer text-black hover:text-black hover:bg-white/60 shrink-0">
+                            6. ปิดงาน & ส่งต่อ STK (${job.stk_status || (job.status === 'CLOSED' ? 'CLOSED' : 'รอส่ง')})
+                        </button>
+                        <button type="button" onclick="app.setJobModalTab('media')" id="btn-modal-tab-media" class="px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer bg-brand-500/10 text-black border border-brand-500/30 hover:bg-brand-500/20 shrink-0 flex items-center gap-1.5">
+                            <i class="ph ph-folder-open text-brand-600"></i>
+                            <span>📁 รวมคลังไฟล์ทั้งหมด (${allMedia.length})</span>
+                        </button>
+                    </div>
+
                     <!-- Modal Body (Scrollable) -->
-                    <div class="p-6 overflow-y-auto space-y-5 flex-1 text-xs bg-card">
+                    <div class="p-6 overflow-y-auto space-y-6 flex-1 text-xs bg-card" id="modal-job-preview-body">
                         <!-- Key Summary Cards Grid -->
-                        <div class="grid grid-cols-2 sm:grid-cols-3 ${isRenovate ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3">
-                            ${isRenovate ? `
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                             <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
-                                <div class="text-[10px] text-muted-foreground font-medium uppercase">สถานะ SLA (Step 2)</div>
-                                <div class="text-xs font-bold text-foreground">${s2Sla ? s2Sla.badgeHtml : '<span class="text-emerald-600 font-semibold">ตามกำหนด</span>'}</div>
-                                <div class="text-[10px] text-muted-foreground font-mono truncate">เข้า State: ${s2Formatted}</div>
+                                <div class="text-[10px] text-black/70 font-bold uppercase">สถานะปัจจุบัน</div>
+                                <div class="text-xs font-black text-black">${stepInfo.stepName}</div>
+                                <div class="text-[10px] text-black/70 font-mono truncate">Step ${stepInfo.stepNumber} / 6</div>
                             </div>
                             <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
-                                <div class="text-[10px] text-muted-foreground font-medium uppercase">แบบแปลน Drawing</div>
-                                <div class="text-xs font-bold">${blueprints.length > 0 ? `<span class="text-indigo-600 inline-flex items-center gap-1 font-semibold"><i class="ph ph-blueprint"></i> ${blueprints.length} ไฟล์แนบ</span>` : `<span class="text-amber-600 inline-flex items-center gap-1 font-semibold"><i class="ph ph-warning"></i> รออัปโหลดแบบ</span>`}</div>
-                                <div class="text-[10px] text-muted-foreground truncate">${blueprints.length > 0 ? (blueprints[0].filename || 'มีไฟล์ CAD/PDF') : 'ยังไม่มีแบบแปลน'}</div>
+                                <div class="text-[10px] text-black/70 font-bold uppercase">แบบแปลน Drawing</div>
+                                <div class="text-xs font-black text-black">${blueprints.length > 0 ? `<span class="text-indigo-700 inline-flex items-center gap-1 font-bold"><i class="ph ph-blueprint"></i> ${blueprints.length} ไฟล์แนบ</span>` : `<span class="text-amber-700 inline-flex items-center gap-1 font-bold"><i class="ph ph-warning"></i> ${isQuick ? 'ข้ามอัตโนมัติ' : 'รอแบบ'}</span>`}</div>
+                                <div class="text-[10px] text-black/70 truncate">${blueprints.length > 0 ? (blueprints[0].filename || 'มีไฟล์ CAD/PDF') : (isQuick ? 'Quick Service' : 'ยังไม่มีแบบแปลน')}</div>
                             </div>
                             <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
-                                <div class="text-[10px] text-muted-foreground font-medium uppercase">ยอดเงิน BOQ / สัญญา</div>
-                                <div class="text-xs font-bold font-mono">${grandTotal > 0 ? `<span class="text-emerald-600">${grandTotal.toLocaleString('th-TH')} ฿</span>` : `<span class="text-purple-600 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-[11px]">Blank BOQ</span>`}</div>
-                                <div class="text-[10px] text-muted-foreground">${boqItems.length > 0 ? (boqItems.length + ' รายการย่อย') : 'ตารางว่างรอถอดราคา'}</div>
+                                <div class="text-[10px] text-black/70 font-bold uppercase">ยอดเงิน BOQ / สัญญา</div>
+                                <div class="text-xs font-black font-mono">${grandTotal > 0 ? `<span class="text-emerald-700">${grandTotal.toLocaleString('th-TH')} ฿</span>` : `<span class="text-purple-700 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-[11px]">Blank BOQ</span>`}</div>
+                                <div class="text-[10px] text-black/70">${boqOriginalFile ? 'มีไฟล์ต้นฉบับ' : (boqItems.length > 0 ? (boqItems.length + ' รายการย่อย') : 'ตารางว่าง')}</div>
                             </div>
                             <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
-                                <div class="text-[10px] text-muted-foreground font-medium uppercase">สถานะ Ticket / สลิป</div>
-                                <div class="text-xs font-bold">${hasTicket ? `<span class="text-emerald-600 inline-flex items-center gap-1"><i class="ph ph-check-circle-fill"></i> ออกแล้ว (${tickets.length})</span>` : `<span class="text-amber-600 inline-flex items-center gap-1"><i class="ph ph-hourglass-high"></i> รอออก Ticket</span>`}</div>
-                                <div class="text-[10px] text-muted-foreground truncate">${hasTicket ? (tickets[0].ticket_no || tickets[0].ticketNo || 'มีสลิปแนบแล้ว') : 'ยังไม่มีสลิปการเงิน'}</div>
-                            </div>
-                            ` : `
-                            <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
-                                <div class="text-[10px] text-muted-foreground font-medium uppercase">กระบวนการงาน (Flow)</div>
-                                <div class="text-xs font-bold text-amber-700 flex items-center gap-1"><i class="ph ph-lightning-fill"></i> Quick Services</div>
-                                <div class="text-[10px] text-muted-foreground truncate">Fast-track ข้ามไป QC</div>
+                                <div class="text-[10px] text-black/70 font-bold uppercase">Ticket & สลิปโอน</div>
+                                <div class="text-xs font-black text-black">${hasTicket ? `<span class="text-emerald-700 inline-flex items-center gap-1"><i class="ph ph-check-circle-fill"></i> ออกแล้ว (${tickets.length})</span>` : `<span class="text-amber-700 inline-flex items-center gap-1"><i class="ph ph-hourglass-high"></i> ${isQuick ? 'ข้ามอัตโนมัติ' : 'รอออก Ticket'}</span>`}</div>
+                                <div class="text-[10px] text-black/70 truncate">${hasTicket ? (tickets[0].ticket_no || tickets[0].ticketNo || 'มีสลิปแนบแล้ว') : (isQuick ? 'Quick Service' : 'ยังไม่มีสลิปการเงิน')}</div>
                             </div>
                             <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
-                                <div class="text-[10px] text-muted-foreground font-medium uppercase">สถานะการตรวจ QC</div>
-                                <div class="text-xs font-bold">${job.qc_status ? `<span class="text-emerald-600">${this.escapeHtml(job.qc_status)}</span>` : '<span class="text-cyan-700 font-semibold">รอตรวจ QC Online</span>'}</div>
-                                <div class="text-[10px] text-muted-foreground truncate">ตรวจภาพถ่ายหน้างาน</div>
+                                <div class="text-[10px] text-black/70 font-bold uppercase">สถานะตรวจ QC</div>
+                                <div class="text-xs font-black text-black">${job.qc_score !== null && job.qc_score !== undefined ? `<span class="text-emerald-700 font-bold">${job.qc_score.toFixed(1)} / 5.0 คะแนน</span>` : (job.qc_status ? `<span class="text-emerald-700 font-bold">${this.escapeHtml(job.qc_status)}</span>` : '<span class="text-cyan-700 font-bold">รอตรวจ QC</span>')}</div>
+                                <div class="text-[10px] text-black/70 truncate">${isQuick ? 'QC Online (Visit Plan)' : 'QC On-site'}</div>
                             </div>
                             <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
-                                <div class="text-[10px] text-muted-foreground font-medium uppercase">รูปภาพสำรวจหน้างาน</div>
-                                <div class="text-xs font-bold font-mono text-foreground">${photos.length} รูป</div>
-                                <div class="text-[10px] text-muted-foreground truncate">${photos.length > 0 ? 'แนบภาพหน้างานแล้ว' : 'ยังไม่มีรูปภาพ'}</div>
-                            </div>
-                            `}
-                            <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
-                                <div class="text-[10px] text-muted-foreground font-medium uppercase">วันเวลานัดหมาย</div>
-                                <div class="text-xs font-bold font-mono text-foreground">${job.date ? this.formatDateDMY(job.date) : '-'}</div>
-                                <div class="text-[10px] text-muted-foreground">${job.property_type || 'บ้านเดี่ยว'}</div>
+                                <div class="text-[10px] text-black/70 font-bold uppercase">ไฟล์ & รูปทั้งหมด</div>
+                                <div class="text-xs font-black font-mono text-black">${allMedia.length} รายการ</div>
+                                <div class="text-[10px] text-black/70 truncate">รูป ${photoMediaCount} • เอกสาร ${docMediaCount}</div>
                             </div>
                         </div>
 
-                        <!-- Section 1: Customer & Site Details -->
-                        <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
-                            <div class="flex items-center gap-2 font-bold text-foreground text-xs border-b border-border/60 pb-2">
-                                <i class="ph ph-map-pin text-rose-500 text-sm"></i>
-                                <span>ข้อมูลลูกค้าและสถานที่หน้างาน (Customer & Site Details)</span>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="space-y-1.5">
-                                    <div class="flex items-start gap-2">
-                                        <span class="text-muted-foreground w-24 shrink-0">ชื่อลูกค้า:</span>
-                                        <strong class="text-foreground font-semibold">${job.customer || '-'}</strong>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-muted-foreground w-24 shrink-0">เบอร์โทรศัพท์:</span>
-                                        <span class="font-mono font-medium text-foreground">${job.phone || '-'}</span>
-                                        ${job.phone ? `
-                                            <button type="button" onclick="navigator.clipboard.writeText('${job.phone}'); app.showToast('คัดลอกเบอร์โทรแล้ว');" class="text-muted-foreground hover:text-foreground text-[10px] px-1.5 py-0.5 rounded border border-border bg-card cursor-pointer">
-                                                <i class="ph ph-copy"></i> คัดลอก
-                                            </button>
-                                        ` : ''}
-                                    </div>
-                                    <div class="flex items-start gap-2">
-                                        <span class="text-muted-foreground w-24 shrink-0">ประเภทที่พัก:</span>
-                                        <span class="text-foreground">${job.property_type || 'บ้านเดี่ยว'}</span>
-                                    </div>
+                        <!-- ======================================================== -->
+                        <!-- STEP 1: รับเรื่อง & สำรวจหน้างาน (INT Intake & Survey) -->
+                        <!-- ======================================================== -->
+                        <div id="modal-section-step1" class="space-y-4">
+                            <div class="flex items-center justify-between border-b border-border/80 pb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-lg bg-emerald-600 text-white font-black text-xs flex items-center justify-center shadow-2xs">1</span>
+                                    <h4 class="font-display font-black text-sm text-black">Step 1: รับเรื่อง & สำรวจหน้างาน (Survey & INT Intake)</h4>
                                 </div>
-                                <div class="space-y-1.5">
-                                    <div class="flex items-start gap-2">
-                                        <span class="text-muted-foreground w-24 shrink-0">สถานที่ติดตั้ง:</span>
-                                        <span class="text-foreground font-medium leading-relaxed">${job.address || 'ไม่ระบุที่อยู่หน้างาน'}</span>
-                                    </div>
-                                    <div class="flex items-start gap-2">
-                                        <span class="text-muted-foreground w-24 shrink-0">สาขาที่รับงาน:</span>
-                                        <span class="text-foreground">${job.branch || 'โฮมโปร (ระบบศูนย์กลาง)'}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Section 2: Service Scope, Special Instructions & Notes -->
-                        <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
-                            <div class="flex items-center gap-2 font-bold text-foreground text-xs border-b border-border/60 pb-2">
-                                <i class="ph ph-wrench text-brand-600 text-sm"></i>
-                                <span>สโคปงานและบันทึกข้อกำหนดพิเศษ (Scope & Special Instructions)</span>
-                            </div>
-                            <div class="space-y-2.5">
-                                <div>
-                                    <span class="text-muted-foreground block text-[11px] mb-0.5">รายการบริการ / งานติดตั้ง:</span>
-                                    <div class="p-2.5 rounded-lg bg-card border border-border text-foreground font-medium">
-                                        ${(job.services && job.services.length > 0) ? job.services.join(' • ') : (job.service || '-')}
-                                    </div>
-                                </div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <div>
-                                        <span class="text-muted-foreground block text-[11px] mb-0.5">ข้อกำหนดพิเศษ (Special Instructions):</span>
-                                        <div class="p-2.5 rounded-lg bg-card border border-border text-foreground text-[11px] leading-relaxed">
-                                            ${job.special_instructions || 'ไม่มีข้อกำหนดพิเศษ'}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <span class="text-muted-foreground block text-[11px] mb-0.5">บันทึกเพิ่มเติม (Additional Notes):</span>
-                                        <div class="p-2.5 rounded-lg bg-card border border-border text-foreground text-[11px] leading-relaxed">
-                                            ${job.additional_notes || 'ไม่มีบันทึกเพิ่มเติม'}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Section 2.5: Job Details, Visit Results & Remarks Data (INT) -->
-                        <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3.5">
-                            <div class="flex items-center justify-between border-b border-border/60 pb-2 flex-wrap gap-2">
-                                <div class="flex items-center gap-2 font-bold text-foreground text-xs">
-                                    <i class="ph ph-list-checks text-indigo-600 text-sm"></i>
-                                    <span>รายละเอียดงาน, ผลการสำรวจ & หมายเหตุจากระบบ INT (INT Survey & Details)</span>
-                                </div>
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 inline-flex items-center gap-1">
-                                    <i class="ph ph-stamp text-xs"></i> ข้อมูลระบบภายนอก (INT)
-                                </span>
+                                <span class="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">INT Intake Verified</span>
                             </div>
 
-                            <!-- Job Details Items -->
-                            <div>
-                                <div class="flex items-center justify-between mb-1.5">
-                                    <span class="text-xs font-semibold text-foreground flex items-center gap-1">
-                                        <i class="ph ph-wrench text-indigo-500"></i> รายละเอียดงาน (Job Details):
-                                    </span>
-                                    <span class="text-[10px] font-mono text-muted-foreground font-semibold">${jobDetails.length} รายการ</span>
+                            <!-- Customer & Site Details -->
+                            <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
+                                <div class="flex items-center gap-2 font-bold text-black text-xs border-b border-border/60 pb-2">
+                                    <i class="ph ph-map-pin text-rose-600 text-sm font-bold"></i>
+                                    <span>ข้อมูลลูกค้าและสถานที่หน้างาน (Customer & Site Details)</span>
                                 </div>
-                                ${jobDetails.length > 0 ? `
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div class="space-y-1.5">
-                                        ${jobDetails.map((jd, jIdx) => `
-                                            <div class="p-2.5 rounded-lg bg-card border border-border text-xs flex items-start justify-between gap-2">
-                                                <div class="space-y-0.5 min-w-0">
-                                                    <div class="flex items-center gap-1.5">
-                                                        <span class="w-4 h-4 rounded bg-indigo-500/15 text-indigo-600 font-mono font-bold text-[10px] flex items-center justify-center shrink-0">#${jIdx + 1}</span>
-                                                        <strong class="text-foreground">${this.escapeHtml(jd.installation_detail || jd.job_type || 'รายการงาน')}</strong>
-                                                    </div>
-                                                    ${jd.job_type && jd.job_type !== jd.installation_detail ? `<div class="text-[11px] text-muted-foreground">${this.escapeHtml(jd.job_type)}</div>` : ''}
-                                                    ${jd.remark ? `<div class="text-[10px] text-amber-600 dark:text-amber-400 font-medium"><i class="ph ph-note mr-0.5"></i> หมายเหตุ: ${this.escapeHtml(jd.remark)}</div>` : ''}
-                                                </div>
-                                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 shrink-0 border border-indigo-500/20">
-                                                    จำนวน: ${Number(jd.product_quantity || jd.qty || 1)}
-                                                </span>
-                                            </div>
-                                        `).join('')}
+                                        <div class="flex items-start gap-2">
+                                            <span class="text-black/70 w-24 shrink-0 font-medium">ชื่อลูกค้า:</span>
+                                            <strong class="text-black font-bold">${job.customer || '-'}</strong>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-black/70 w-24 shrink-0 font-medium">เบอร์โทรศัพท์:</span>
+                                            <span class="font-mono font-bold text-black">${job.phone || '-'}</span>
+                                            ${job.phone ? `
+                                                <button type="button" onclick="navigator.clipboard.writeText('${job.phone}'); app.showToast('คัดลอกเบอร์โทรแล้ว');" class="text-black hover:text-brand-600 text-[10px] px-1.5 py-0.5 rounded border border-border bg-card cursor-pointer">
+                                                    <i class="ph ph-copy"></i> คัดลอก
+                                                </button>
+                                            ` : ''}
+                                        </div>
+                                        <div class="flex items-start gap-2">
+                                            <span class="text-black/70 w-24 shrink-0 font-medium">ประเภทที่พัก:</span>
+                                            <span class="text-black font-semibold">${job.property_type || 'บ้านเดี่ยว'}</span>
+                                        </div>
                                     </div>
-                                ` : `
-                                    <div class="p-2 rounded-lg bg-card border border-dashed border-border text-xs text-muted-foreground italic">
-                                        ไม่มีรายการย่อยเพิ่มเติม (ยึดตามบริการหลัก)
+                                    <div class="space-y-1.5">
+                                        <div class="flex items-start gap-2">
+                                            <span class="text-black/70 w-24 shrink-0 font-medium">สถานที่ติดตั้ง:</span>
+                                            <span class="text-black font-semibold leading-relaxed">${job.address || 'ไม่ระบุที่อยู่หน้างาน'}</span>
+                                        </div>
+                                        <div class="flex items-start gap-2">
+                                            <span class="text-black/70 w-24 shrink-0 font-medium">สาขาที่รับงาน:</span>
+                                            <span class="text-black font-semibold">${[job.store_code, job.branch, job.agent_name].filter(Boolean).join(' • ') || 'โฮมโปร (ระบบศูนย์กลาง)'}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-black/70 w-24 shrink-0 font-medium">พิกัด GPS:</span>
+                                            <span class="font-mono font-bold text-emerald-700">${job.lat || 13.7563}, ${job.lng || 100.5018}</span>
+                                            <button type="button" class="text-[10px] text-black bg-muted px-2 py-0.5 rounded border border-border cursor-pointer hover:bg-card" onclick="navigator.clipboard.writeText('${job.lat || 13.7563}, ${job.lng || 100.5018}'); app.showToast('คัดลอกพิกัด GPS เรียบร้อย');">Copy</button>
+                                        </div>
                                     </div>
-                                `}
+                                </div>
                             </div>
 
-                            <!-- Visit Results & Remarks Data 2-column -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-border/50">
+                            <!-- Scope & Special Instructions -->
+                            <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
+                                <div class="flex items-center gap-2 font-bold text-black text-xs border-b border-border/60 pb-2">
+                                    <i class="ph ph-wrench text-brand-600 text-sm font-bold"></i>
+                                    <span>สโคปงานและบันทึกข้อกำหนดพิเศษ (Scope & Special Instructions)</span>
+                                </div>
+                                <div class="space-y-2.5">
+                                    <div>
+                                        <span class="text-black/70 block text-[11px] mb-0.5 font-medium">รายการบริการ / งานติดตั้ง:</span>
+                                        <div class="p-2.5 rounded-lg bg-card border border-border text-black font-bold">
+                                            ${(job.services && job.services.length > 0) ? job.services.join(' • ') : (job.service || '-')}
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                            <span class="text-black/70 block text-[11px] mb-0.5 font-medium">ข้อกำหนดพิเศษ (Special Instructions):</span>
+                                            <div class="p-2.5 rounded-lg bg-card border border-border text-black text-[11px] font-medium leading-relaxed">
+                                                ${job.special_instructions || 'ไม่มีข้อกำหนดพิเศษ'}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span class="text-black/70 block text-[11px] mb-0.5 font-medium">บันทึกเพิ่มเติม (Additional Notes):</span>
+                                            <div class="p-2.5 rounded-lg bg-card border border-border text-black text-[11px] font-medium leading-relaxed">
+                                                ${job.additional_notes || 'ไม่มีบันทึกเพิ่มเติม'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- INT Details & Survey Notes -->
+                            <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
+                                <div class="flex items-center justify-between border-b border-border/60 pb-2 flex-wrap gap-2">
+                                    <div class="flex items-center gap-2 font-bold text-black text-xs">
+                                        <i class="ph ph-list-checks text-indigo-600 text-sm font-bold"></i>
+                                        <span>รายละเอียดงานและผลสำรวจจาก INT (INT Survey & Results)</span>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-300">INT Verified</span>
+                                </div>
+
                                 <div>
-                                    <span class="text-xs font-semibold text-foreground flex items-center gap-1 mb-1.5">
-                                        <i class="ph ph-clipboard-text text-teal-600"></i> ผลการสำรวจหน้างาน (Visit Results):
-                                    </span>
-                                    ${visitResults.length > 0 ? `
-                                        <div class="flex flex-wrap gap-1.5">
-                                            ${visitResults.map(vr => `
-                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-teal-500/10 text-teal-800 dark:text-teal-200 border border-teal-500/20">
-                                                    <i class="ph ph-check-circle text-teal-600 font-bold"></i>
-                                                    <span>${this.escapeHtml(vr)}</span>
-                                                </span>
+                                    <div class="flex items-center justify-between mb-1.5">
+                                        <span class="text-xs font-bold text-black flex items-center gap-1">
+                                            <i class="ph ph-wrench text-indigo-600"></i> รายละเอียดงาน (Job Details):
+                                        </span>
+                                        <span class="text-[10px] font-mono text-black font-bold">${jobDetails.length} รายการ</span>
+                                    </div>
+                                    ${jobDetails.length > 0 ? `
+                                        <div class="space-y-1.5">
+                                            ${jobDetails.map((jd, jIdx) => `
+                                                <div class="p-2.5 rounded-lg bg-card border border-border text-xs flex items-start justify-between gap-2">
+                                                    <div class="space-y-0.5 min-w-0">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <span class="w-4 h-4 rounded bg-indigo-50 text-indigo-700 font-mono font-bold text-[10px] flex items-center justify-center shrink-0 border border-indigo-200">#${jIdx + 1}</span>
+                                                            <strong class="text-black font-bold">${this.escapeHtml(jd.installation_detail || jd.job_type || 'รายการงาน')}</strong>
+                                                        </div>
+                                                        ${jd.job_type && jd.job_type !== jd.installation_detail ? `<div class="text-[11px] text-black/80">${this.escapeHtml(jd.job_type)}</div>` : ''}
+                                                        ${jd.remark ? `<div class="text-[10px] text-amber-800 font-semibold"><i class="ph ph-note mr-0.5"></i> หมายเหตุ: ${this.escapeHtml(jd.remark)}</div>` : ''}
+                                                    </div>
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-50 text-indigo-800 shrink-0 border border-indigo-200">
+                                                        จำนวน: ${Number(jd.product_quantity || jd.qty || 1)}
+                                                    </span>
+                                                </div>
                                             `).join('')}
                                         </div>
                                     ` : `
-                                        <div class="p-2 rounded-lg bg-card border border-dashed border-border text-xs text-muted-foreground italic">
-                                            ยังไม่มีผลสำรวจบันทึกไว้
+                                        <div class="p-2 rounded-lg bg-card border border-dashed border-border text-xs text-black/70 italic">
+                                            ไม่มีรายการย่อยเพิ่มเติม (ยึดตามบริการหลัก)
                                         </div>
                                     `}
                                 </div>
-                                <div>
-                                    <span class="text-xs font-semibold text-foreground flex items-center gap-1 mb-1.5">
-                                        <i class="ph ph-chat-circle-text text-amber-500"></i> หมายเหตุจาก INT (Remarks Data):
-                                    </span>
-                                    ${(remarksData.note || remarksData.comment) ? `
-                                        <div class="p-2.5 rounded-lg bg-card border border-border space-y-1 text-xs">
-                                            ${remarksData.note ? `<div><span class="text-muted-foreground font-medium">Note:</span> <span class="text-foreground">${this.escapeHtml(remarksData.note)}</span></div>` : ''}
-                                            ${remarksData.comment ? `<div><span class="text-muted-foreground font-medium">Comment:</span> <span class="text-foreground">${this.escapeHtml(remarksData.comment)}</span></div>` : ''}
-                                        </div>
-                                    ` : `
-                                        <div class="p-2 rounded-lg bg-card border border-dashed border-border text-xs text-muted-foreground italic">
-                                            ไม่มีหมายเหตุเพิ่มเติมจากระบบ INT
-                                        </div>
-                                    `}
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-border/50">
+                                    <div>
+                                        <span class="text-xs font-bold text-black flex items-center gap-1 mb-1.5">
+                                            <i class="ph ph-clipboard-text text-teal-600"></i> ผลการสำรวจหน้างาน (Visit Results):
+                                        </span>
+                                        ${visitResults.length > 0 ? `
+                                            <div class="flex flex-wrap gap-1.5">
+                                                ${visitResults.map(vr => `
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-teal-50 text-teal-900 border border-teal-300">
+                                                        <i class="ph ph-check-circle text-teal-700 font-bold"></i>
+                                                        <span>${this.escapeHtml(vr)}</span>
+                                                    </span>
+                                                `).join('')}
+                                            </div>
+                                        ` : `
+                                            <div class="p-2 rounded-lg bg-card border border-dashed border-border text-xs text-black/70 italic">
+                                                ไม่มีผลสำรวจระบุไว้
+                                            </div>
+                                        `}
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-bold text-black flex items-center gap-1 mb-1.5">
+                                            <i class="ph ph-chat-circle-text text-amber-600"></i> หมายเหตุจาก INT (Remarks):
+                                        </span>
+                                        ${(remarksData.note || remarksData.comment) ? `
+                                            <div class="p-2.5 rounded-lg bg-card border border-border space-y-1 text-xs">
+                                                ${remarksData.note ? `<div><span class="text-black/70 font-semibold">Note:</span> <span class="text-black font-medium">${this.escapeHtml(remarksData.note)}</span></div>` : ''}
+                                                ${remarksData.comment ? `<div><span class="text-black/70 font-semibold">Comment:</span> <span class="text-black font-medium">${this.escapeHtml(remarksData.comment)}</span></div>` : ''}
+                                            </div>
+                                        ` : `
+                                            <div class="p-2 rounded-lg bg-card border border-dashed border-border text-xs text-black/70 italic">
+                                                ไม่มีหมายเหตุเพิ่มเติมจากระบบ INT
+                                            </div>
+                                        `}
+                                    </div>
                                 </div>
+                            </div>
+
+                            <!-- Attached Survey Photos -->
+                            <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
+                                <div class="flex items-center justify-between border-b border-border/60 pb-2">
+                                    <div class="flex items-center gap-2 font-bold text-black text-xs">
+                                        <i class="ph ph-camera text-indigo-600 text-sm font-bold"></i>
+                                        <span>รูปภาพสำรวจหน้างาน (Survey Photos / Visit Plan)</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-50 text-indigo-800 font-mono font-bold border border-indigo-200">${photos.length} รูป</span>
+                                    </div>
+                                    ${photos.length > 0 ? '<span class="text-[11px] text-black/70 font-medium">คลิกรูปเพื่อเปิดดูแบบขยายใหญ่ (Lightbox)</span>' : ''}
+                                </div>
+                                ${photos.length === 0 ? `
+                                    <div class="py-6 text-center bg-card border border-dashed border-border rounded-xl">
+                                        <i class="ph ph-camera text-2xl text-black/40 mb-1 block"></i>
+                                        <p class="text-xs text-black/70 font-medium">ยังไม่มีรูปภาพสำรวจหน้างานที่บันทึกไว้สำหรับคำสั่งซื้อนี้</p>
+                                    </div>
+                                ` : `
+                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        ${photos.map((p, pIdx) => `
+                                            <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.showLightbox('${p.url || p.dataUrl}', '${this.escapeHtml(p.caption || p.title || 'รูปภาพหน้างาน')}', 'รูปสำรวจ #${pIdx + 1}', 'โครงการ ${job.id} - ${this.escapeHtml(job.customer || '')}', '${s2Formatted}')">
+                                                <img src="${p.url || p.dataUrl}" alt="${this.escapeHtml(p.caption || p.title || 'รูปถ่ายหน้างาน')}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
+                                                    <span class="text-[9px] font-bold text-white bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-xs w-fit">${p.type || p.tag || 'ภาพสำรวจ'}</span>
+                                                    <div class="flex items-center justify-between text-white">
+                                                        <span class="text-[10px] truncate max-w-[120px] font-medium">${this.escapeHtml(p.caption || p.title || 'ดูรูปขนาดใหญ่')}</span>
+                                                        <i class="ph ph-arrows-out-simple text-xs"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                `}
                             </div>
                         </div>
 
-                        <!-- Section 3: Attached Photos & Visit Plan Survey -->
-                        <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
-                            <div class="flex items-center justify-between border-b border-border/60 pb-2">
-                                <div class="flex items-center gap-2 font-bold text-foreground text-xs">
-                                    <i class="ph ph-camera text-indigo-600 text-sm"></i>
-                                    <span>รูปภาพสำรวจหน้างานที่เคยบันทึกไว้ (Survey Photos / Visit Plan)</span>
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/15 text-indigo-700 font-mono font-bold">${photos.length} รูป</span>
+                        <!-- ======================================================== -->
+                        <!-- STEP 2: แบบแปลน Drawing & Ticket การเงิน -->
+                        <!-- ======================================================== -->
+                        <div id="modal-section-step2" class="space-y-4 pt-4 border-t border-border">
+                            <div class="flex items-center justify-between border-b border-border/80 pb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-lg bg-indigo-600 text-white font-black text-xs flex items-center justify-center shadow-2xs">2</span>
+                                    <h4 class="font-display font-black text-sm text-black">Step 2: ออกแบบ & แบบแปลนติดตั้ง / Ticket & สลิปการเงิน</h4>
                                 </div>
-                                ${photos.length > 0 ? '<span class="text-[11px] text-muted-foreground">คลิกรูปเพื่อเปิดดูแบบขยายใหญ่ (Lightbox)</span>' : ''}
+                                <span class="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold ${isQuick ? 'bg-amber-50 text-amber-800 border border-amber-300' : 'bg-indigo-50 text-indigo-800 border border-indigo-300'}">
+                                    ${isQuick ? 'ข้ามอัตโนมัติ (Fast-track)' : 'Design & Finance'}
+                                </span>
                             </div>
-                            ${photos.length === 0 ? `
-                                <div class="py-6 text-center bg-muted/30 border border-dashed border-border rounded-xl">
-                                    <i class="ph ph-camera text-2xl text-muted-foreground/60 mb-1 block"></i>
-                                    <p class="text-xs text-muted-foreground">ยังไม่มีรูปภาพสำรวจหน้างานที่บันทึกไว้สำหรับคำสั่งซื้อนี้</p>
+
+                            ${isQuick ? `
+                                <div class="p-4 rounded-xl bg-amber-50 border border-amber-300 text-black space-y-1.5">
+                                    <div class="font-bold text-xs text-amber-900 flex items-center gap-1.5">
+                                        <i class="ph ph-lightning-fill text-amber-600"></i> Fast-track Policy: งาน Quick Services ข้ามขั้นตอน Step 2 อัตโนมัติ
+                                    </div>
+                                    <p class="text-[11px] text-black leading-relaxed">
+                                        งานบริการติดตั้งด่วน (Quick Services) ไม่จำเป็นต้องเขียนแบบแปลน CAD หรือออก Ticket ในระบบ PMT งานจะวิ่งตรงเข้าสู่คิวตรวจ QC Online ใน Step 5 ทันทีหลังบันทึกรับคำสั่งซื้อ
+                                    </p>
                                 </div>
                             ` : `
-                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                    ${photos.map((p, pIdx) => `
-                                        <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.showPhotoLightbox('${p.url || p.dataUrl}', '${p.caption || p.title || 'รูปภาพหน้างาน'}', '${p.type || p.tag || 'สำรวจหน้างาน'}', 'โครงการ ${job.id} - ${job.customer}', '${s2Formatted}')">
-                                            <img src="${p.url || p.dataUrl}" alt="${p.caption || p.title || 'รูปถ่ายหน้างาน'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
-                                                <span class="text-[9px] font-bold text-white bg-black/50 px-1.5 py-0.5 rounded backdrop-blur-xs w-fit">${p.type || p.tag || 'ภาพถ่าย'}</span>
-                                                <div class="flex items-center justify-between text-white">
-                                                    <span class="text-[10px] truncate max-w-[120px] font-medium">${p.caption || p.title || 'ดูรูปขนาดใหญ่'}</span>
-                                                    <i class="ph ph-arrows-out-simple text-xs"></i>
+                                <!-- Section: แบบแปลนติดตั้ง & Drawing -->
+                                <div class="p-4 rounded-xl border border-indigo-500/30 bg-muted/20 space-y-3">
+                                    <div class="flex items-center justify-between border-b border-border/60 pb-2 flex-wrap gap-2">
+                                        <div class="flex items-center gap-2 font-bold text-black text-xs">
+                                            <i class="ph ph-blueprint text-indigo-600 text-sm font-bold"></i>
+                                            <span>แบบแปลนติดตั้ง & Drawing (Design CAD / 2D / 3D / Floor Plan)</span>
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] ${blueprints.length > 0 ? 'bg-indigo-50 text-indigo-800 font-mono font-bold border border-indigo-300' : 'bg-muted text-black font-bold'}">
+                                                ${blueprints.length > 0 ? `${blueprints.length} ไฟล์` : 'ยังไม่มีแบบแปลน'}
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            ${blueprints.length > 0 ? '<span class="text-[11px] text-black/70 hidden sm:inline font-medium">คลิกรูปเพื่อเปิดดูแบบขยายใหญ่ (Lightbox)</span>' : ''}
+                                            <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.navigate('job-detail', '${job.id}');" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg text-black hover:text-black border border-border hover:bg-muted cursor-pointer inline-flex items-center gap-1 font-semibold" title="เปิดหน้าจัดการแบบแปลนเต็ม">
+                                                <i class="ph ph-arrow-square-out"></i> <span>จัดการแบบแปลน</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    ${blueprints.length === 0 ? `
+                                        <div class="py-6 px-4 text-center bg-card border border-dashed border-border rounded-xl space-y-2">
+                                            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center mx-auto text-xl border border-indigo-200 shadow-2xs">
+                                                <i class="ph ph-blueprint"></i>
+                                            </div>
+                                            <div class="text-xs font-bold text-black">ยังไม่มีไฟล์แบบแปลน (Drawing / CAD) แนบไว้สำหรับงานนี้</div>
+                                            <p class="text-[11px] text-black/70 max-w-md mx-auto">
+                                                งานประเภท Renovate สามารถแนบแบบแปลน Floor Plan, CAD, DWG หรือ PDF เพื่อเป็นเกณฑ์ในการถอด BOQ และเข้าติดตั้งหน้างาน
+                                            </p>
+                                        </div>
+                                    ` : `
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                            ${blueprints.map(b => {
+                                                const previewSrc = b.previewImg || b.url || 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=500&auto=format&fit=crop&q=80';
+                                                const bpTitle = b.filename || b.name || b.title || 'แบบแปลนติดตั้ง';
+                                                const bpZone = b.zone || 'งานติดตั้งหลัก';
+                                                const bpSize = b.size || '2.5 MB';
+                                                const bpDate = b.date || 'ล่าสุด';
+                                                return `
+                                                <div class="artifact-card p-2.5 rounded-xl border border-indigo-500/30 bg-card hover:border-indigo-500/60 transition flex items-center gap-2.5 shadow-2xs group">
+                                                    <div class="w-14 h-14 rounded-lg overflow-hidden bg-muted shrink-0 border border-border cursor-pointer relative group-hover:scale-102 transition" onclick="app.showLightbox('${previewSrc}', '${this.escapeHtml(bpTitle)}', '${this.escapeHtml(bpZone)}', '${this.escapeHtml(b.notes || 'แบบแปลนติดตั้ง')}', '${this.escapeHtml(bpDate)}')">
+                                                        <img src="${previewSrc}" class="w-full h-full object-cover" alt="${this.escapeHtml(bpTitle)}">
+                                                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                                            <i class="ph ph-arrows-out text-white text-xs"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="min-w-0 flex-1 space-y-0.5">
+                                                        <div class="text-xs font-bold text-black truncate" title="${this.escapeHtml(bpTitle)}">${this.escapeHtml(bpTitle)}</div>
+                                                        <div class="text-[10px] text-indigo-700 font-bold truncate">${this.escapeHtml(bpZone)}</div>
+                                                        <div class="text-[9px] text-black font-mono flex items-center gap-1.5">
+                                                            <span>${bpSize}</span>
+                                                            <span>•</span>
+                                                            <span>${bpDate}</span>
+                                                        </div>
+                                                    </div>
+                                                    <button type="button" onclick="app.showLightbox('${previewSrc}', '${this.escapeHtml(bpTitle)}', '${this.escapeHtml(bpZone)}', '${this.escapeHtml(b.notes || 'แบบแปลนติดตั้ง')}', '${this.escapeHtml(bpDate)}')" class="p-1.5 rounded-lg text-black hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer shrink-0" title="ดูภาพขยายใหญ่">
+                                                        <i class="ph ph-magnifying-glass-plus text-sm"></i>
+                                                    </button>
+                                                </div>
+                                                `;
+                                            }).join('')}
+                                        </div>
+                                    `}
+                                </div>
+
+                                <!-- Section: ข้อมูล Ticket & สลิปการเงิน & สัญญา -->
+                                <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
+                                    <div class="flex items-center justify-between border-b border-border/60 pb-2">
+                                        <div class="flex items-center gap-2 font-bold text-black text-xs">
+                                            <i class="ph ph-receipt text-emerald-600 text-sm font-bold"></i>
+                                            <span>ข้อมูล Ticket & สลิปการชำระเงิน (Tickets, Receipts & Contracts)</span>
+                                            ${hasTicket ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-800 font-mono font-bold border border-emerald-300">${tickets.length} รายการ</span>` : ''}
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${hasTicket ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' : 'bg-amber-50 text-amber-800 border border-amber-300'}">
+                                            ${hasTicket ? '✓ บันทึกเรียบร้อย' : 'รอออก Ticket'}
+                                        </span>
+                                    </div>
+                                    ${hasTicket ? `
+                                        <div class="space-y-3">
+                                            ${tickets.map(t => {
+                                                const slipImgUrl = t.slip_url || '';
+                                                const contractImgUrl = t.contract_url || '';
+                                                return `
+                                                <div class="p-3.5 rounded-xl bg-card border border-emerald-500/30 space-y-3 shadow-2xs">
+                                                    <div class="flex items-center justify-between gap-3 border-b border-border/60 pb-2.5 flex-wrap">
+                                                        <div class="space-y-0.5">
+                                                            <div class="flex items-center gap-2 flex-wrap">
+                                                                <span class="font-mono font-black text-sm text-emerald-800">${t.ticket_no || t.ticketNo || 'TKT-PENDING'}</span>
+                                                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${t.status === 'VERIFIED' ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' : 'bg-amber-50 text-amber-800 border border-amber-300'}">
+                                                                    ${t.status === 'VERIFIED' ? '✓ ตรวจสอบแล้ว' : (t.status || 'ISSUED')}
+                                                                </span>
+                                                                ${t.payment_date ? `<span class="text-[11px] text-black font-mono font-bold"><i class="ph ph-calendar text-xs"></i> ${this.formatDateDMY(t.payment_date)}</span>` : ''}
+                                                            </div>
+                                                            <div class="text-[11px] text-black font-medium">
+                                                                ใบเสร็จ: <strong class="font-mono text-black font-bold">${t.receipt_no || t.receiptNo || '-'}</strong>
+                                                                <span class="mx-1">•</span>
+                                                                สัญญา: <strong class="font-mono text-black font-bold">${t.contract_no || t.contractNo || '-'}</strong>
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-right shrink-0">
+                                                            <div class="font-mono font-black text-base text-black">${(Number(t.amount) || grandTotal).toLocaleString('th-TH')} ฿</div>
+                                                            <div class="text-[10px] text-black font-semibold">${t.payment_method || 'โอนเงิน'}</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Previews: Receipt & Contract -->
+                                                    ${(slipImgUrl || contractImgUrl) ? `
+                                                    <div>
+                                                        <div class="flex items-center justify-between mb-2">
+                                                            <span class="text-[11px] font-bold text-black flex items-center gap-1.5">
+                                                                <i class="ph ph-image text-emerald-600"></i>
+                                                                <span>รูปใบเสร็จ / สัญญา (คลิกเพื่อดูขยายใหญ่):</span>
+                                                            </span>
+                                                            <span class="text-[10px] text-black/70">Lightbox Zoom</span>
+                                                        </div>
+                                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                            ${slipImgUrl ? `
+                                                            <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.openTicketSlipLightbox('${t.id || t.ticket_no}', 'slip')" title="คลิกเพื่อดูใบเสร็จ / สลิปโอนเงิน">
+                                                                <img src="${slipImgUrl}" alt="สลิปใบเสร็จ" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                                                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-85 group-hover:opacity-95 transition-opacity flex flex-col justify-between p-2.5">
+                                                                    <div class="flex items-center justify-between">
+                                                                        <span class="text-[9px] font-bold text-white bg-emerald-600 px-2 py-0.5 rounded backdrop-blur-xs flex items-center gap-1">
+                                                                            <i class="ph ph-receipt"></i> สลิป / ใบเสร็จ
+                                                                        </span>
+                                                                        <span class="text-[9px] font-mono text-white bg-black/40 px-1.5 py-0.5 rounded font-bold">${t.receipt_no || ''}</span>
+                                                                    </div>
+                                                                    <div class="flex items-center justify-between text-white">
+                                                                        <span class="text-[10px] truncate max-w-[150px] font-medium font-mono">${t.slip_name || 'slip.jpg'}</span>
+                                                                        <span class="text-[10px] inline-flex items-center gap-1 text-emerald-300 font-bold group-hover:underline">
+                                                                            <span>เปิดดูสลิป</span>
+                                                                            <i class="ph ph-arrows-out-simple text-xs"></i>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            ` : ''}
+
+                                                            ${contractImgUrl ? `
+                                                            <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.openTicketSlipLightbox('${t.id || t.ticket_no}', 'contract')" title="คลิกเพื่อดูสัญญาการทำงาน">
+                                                                <img src="${contractImgUrl}" alt="สัญญาการทำงาน" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                                                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-85 group-hover:opacity-95 transition-opacity flex flex-col justify-between p-2.5">
+                                                                    <div class="flex items-center justify-between">
+                                                                        <span class="text-[9px] font-bold text-white bg-brand-600 px-2 py-0.5 rounded backdrop-blur-xs flex items-center gap-1">
+                                                                            <i class="ph ph-file-text"></i> สัญญาจ้างงาน
+                                                                        </span>
+                                                                        <span class="text-[9px] font-mono text-white bg-black/40 px-1.5 py-0.5 rounded font-bold">${t.contract_no || ''}</span>
+                                                                    </div>
+                                                                    <div class="flex items-center justify-between text-white">
+                                                                        <span class="text-[10px] truncate max-w-[150px] font-medium font-mono">${t.contract_name || 'contract.pdf'}</span>
+                                                                        <span class="text-[10px] inline-flex items-center gap-1 text-blue-300 font-bold group-hover:underline">
+                                                                            <span>เปิดดูสัญญา</span>
+                                                                            <i class="ph ph-arrows-out-simple text-xs"></i>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            ` : ''}
+                                                        </div>
+                                                    </div>
+                                                    ` : ''}
+                                                </div>
+                                                `;
+                                            }).join('')}
+                                        </div>
+                                    ` : `
+                                        <div class="p-4 rounded-xl bg-amber-50 border border-amber-300 flex flex-col sm:flex-row items-center justify-between gap-3 text-black">
+                                            <div class="flex items-center gap-2.5">
+                                                <i class="ph ph-warning-circle text-amber-700 text-xl shrink-0 font-bold"></i>
+                                                <div>
+                                                    <div class="font-bold text-black text-xs">งานนี้ยังไม่ได้ออก Ticket หรือแนบสลิปใบเสร็จ</div>
+                                                    <div class="text-[11px] text-black">เมื่อบันทึกสลิปและสัญญาเรียบร้อย งานจะส่งไปยังขั้นตอนถัดไปอัตโนมัติ</div>
                                                 </div>
                                             </div>
+                                            <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.openCreateTicketModal('${job.id}');" class="btn-artifact-primary px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 flex items-center gap-1.5 shadow-xs cursor-pointer">
+                                                <i class="ph ph-plus-circle font-bold"></i>
+                                                <span>+ บันทึก Ticket & สลิป</span>
+                                            </button>
                                         </div>
-                                    `).join('')}
+                                    `}
                                 </div>
                             `}
                         </div>
 
-                        ${showDrawingAndBOQ ? `
-                            <!-- Section 4: แบบแปลนติดตั้ง & Drawing (Design & Blueprints CAD / 2D / 3D) -->
-                            <div class="p-4 rounded-xl border border-indigo-500/30 bg-muted/20 space-y-3">
+                        <!-- ======================================================== -->
+                        <!-- STEP 3: รายการ BOQ & ไฟล์ต้นฉบับ (.xlsx / .csv) -->
+                        <!-- ======================================================== -->
+                        <div id="modal-section-step3" class="space-y-4 pt-4 border-t border-border">
+                            <div class="flex items-center justify-between border-b border-border/80 pb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-lg bg-purple-600 text-white font-black text-xs flex items-center justify-center shadow-2xs">3</span>
+                                    <h4 class="font-display font-black text-sm text-black">Step 3: นำ BOQ เข้าระบบ & จัดเตรียมแผนงาน (BOQ & Conversion)</h4>
+                                </div>
+                                <span class="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold ${boqItems.length > 0 ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' : 'bg-purple-50 text-purple-800 border border-purple-300'}">
+                                    ${boqItems.length > 0 ? `${boqItems.length} รายการ BOQ` : 'Blank BOQ'}
+                                </span>
+                            </div>
+
+                            <!-- Original BOQ File Card & Download Hub -->
+                            <div class="p-4 rounded-xl border border-purple-500/30 bg-purple-500/[0.03] space-y-3">
                                 <div class="flex items-center justify-between border-b border-border/60 pb-2 flex-wrap gap-2">
-                                    <div class="flex items-center gap-2 font-bold text-foreground text-xs">
-                                        <i class="ph ph-blueprint text-indigo-600 text-sm"></i>
-                                        <span>แบบแปลนติดตั้ง & Drawing (Design & Blueprints CAD / 2D / 3D)</span>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] ${blueprints.length > 0 ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-mono font-bold' : 'bg-muted text-muted-foreground font-bold'}">
-                                            ${blueprints.length > 0 ? `${blueprints.length} ไฟล์` : 'ยังไม่มีแบบแปลน'}
-                                        </span>
+                                    <div class="flex items-center gap-2 font-bold text-black text-xs">
+                                        <i class="ph ph-file-arrow-down text-purple-600 text-sm font-bold"></i>
+                                        <span>ไฟล์ BOQ ต้นฉบับ (Original Excel / CSV File)</span>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        ${blueprints.length > 0 ? '<span class="text-[11px] text-muted-foreground hidden sm:inline">คลิกรูปเพื่อเปิดดูแบบขยายใหญ่ (Lightbox)</span>' : ''}
-                                        <button type="button" onclick="app.loadSampleBlueprintForJob('${job.id}');" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/10 cursor-pointer inline-flex items-center gap-1" title="โหลดแบบแปลนตัวอย่างสำหรับทดสอบ">
-                                            <i class="ph ph-magic-wand"></i> <span>โหลดแบบตัวอย่าง</span>
+                                        <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.openImportBOQModal('${job.id}');" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg text-purple-700 bg-white border border-purple-300 hover:bg-purple-50 cursor-pointer inline-flex items-center gap-1 font-bold shadow-2xs" title="นำเข้าไฟล์ Excel / CSV">
+                                            <i class="ph ph-file-arrow-up"></i> <span>📥 นำเข้า Excel / vFIX</span>
                                         </button>
-                                        <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.navigate('job-detail', '${job.id}');" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg text-muted-foreground hover:text-foreground border border-border hover:bg-muted cursor-pointer inline-flex items-center gap-1" title="เปิดหน้าจัดการแบบแปลนเต็ม">
-                                            <i class="ph ph-arrow-square-out"></i> <span>จัดการแบบแปลน</span>
+                                        <button type="button" onclick="app.downloadSampleBOQTemplate()" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg text-black hover:text-black border border-border bg-white cursor-pointer inline-flex items-center gap-1 font-semibold" title="ดาวน์โหลด Template มาตรฐาน">
+                                            <i class="ph ph-file-csv"></i> <span>Template CSV</span>
                                         </button>
                                     </div>
                                 </div>
-                                ${blueprints.length === 0 ? `
-                                    <div class="py-6 px-4 text-center bg-card border border-dashed border-border rounded-xl space-y-2">
-                                        <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center mx-auto text-xl border border-indigo-500/20 shadow-2xs">
-                                            <i class="ph ph-blueprint"></i>
+
+                                ${boqOriginalFile ? `
+                                    <div class="p-3.5 rounded-xl bg-card border border-purple-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl border border-emerald-300 shrink-0">
+                                                <i class="ph ph-file-xls font-bold"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-xs font-black text-black select-text cursor-text flex items-center gap-1.5 flex-wrap">
+                                                    <span>${boqOriginalFile.name || 'BOQ_Original.xlsx'}</span>
+                                                    <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">EXCEL</span>
+                                                </div>
+                                                <div class="text-[11px] text-black font-mono mt-0.5">
+                                                    ขนาด: <strong class="text-black">${boqOriginalFile.size_formatted || `${((boqOriginalFile.size || 0)/1024).toFixed(1)} KB`}</strong>
+                                                    <span class="mx-1">•</span>
+                                                    อัปโหลดเมื่อ: <strong class="text-black">${boqOriginalFile.uploaded_at ? this.formatDateTimeDMY(boqOriginalFile.uploaded_at) : 'ล่าสุด'}</strong>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="text-xs font-bold text-foreground">ยังไม่มีไฟล์แบบแปลน (Drawing / CAD) แนบไว้สำหรับงานนี้</div>
-                                        <p class="text-[11px] text-muted-foreground max-w-md mx-auto">
-                                            สำหรับงานประเภท Renovate จำเป็นต้องแนบแบบแปลน Floor Plan, ไฟล์ 2D/3D CAD, DWG หรือ PDF เพื่อเป็นเกณฑ์ในการถอด BOQ และเข้าติดตั้งหน้างาน
-                                        </p>
-                                        <div class="pt-1 flex items-center justify-center gap-2 flex-wrap">
-                                            <button type="button" onclick="app.loadSampleBlueprintForJob('${job.id}');" class="btn-artifact-secondary text-xs px-3 py-1.5 rounded-lg text-indigo-600 border border-indigo-500/30 hover:bg-indigo-500/10 cursor-pointer inline-flex items-center gap-1.5 shadow-2xs font-medium">
-                                                <i class="ph ph-magic-wand"></i> โหลดแบบแปลนตัวอย่างจำลอง
-                                            </button>
-                                            <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.navigate('job-detail', '${job.id}');" class="btn-artifact-primary text-xs px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer inline-flex items-center gap-1.5 shadow-2xs font-medium">
-                                                <i class="ph ph-upload-simple"></i> อัปโหลดแบบแปลนในหน้าเต็ม
+                                        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                                            <button type="button" onclick="app.downloadBOQOriginalFile('${job.id}')" class="btn-artifact-primary px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 shadow-2xs cursor-pointer w-full sm:w-auto justify-center" title="ดาวน์โหลดไฟล์ต้นฉบับ">
+                                                <i class="ph ph-download-simple text-sm font-bold"></i>
+                                                <span>ดาวน์โหลดไฟล์ BOQ ต้นฉบับ</span>
                                             </button>
                                         </div>
                                     </div>
                                 ` : `
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                        ${blueprints.map(b => {
-                                            const previewSrc = b.previewImg || b.url || 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=500&auto=format&fit=crop&q=80';
-                                            const bpTitle = b.filename || b.name || b.title || 'แบบแปลนติดตั้ง';
-                                            const bpZone = b.zone || 'งานติดตั้งหลัก';
-                                            const bpSize = b.size || '2.5 MB';
-                                            const bpDate = b.date || 'ล่าสุด';
-                                            return `
-                                            <div class="artifact-card p-2.5 rounded-xl border border-indigo-500/20 bg-card hover:border-indigo-500/50 transition flex items-center gap-2.5 shadow-2xs group">
-                                                <div class="w-14 h-14 rounded-lg overflow-hidden bg-muted shrink-0 border border-border cursor-pointer relative group-hover:scale-102 transition" onclick="app.showLightbox('${previewSrc}', '${this.escapeHtml(bpTitle)}', '${this.escapeHtml(bpZone)}', '${this.escapeHtml(b.notes || 'แบบแปลนติดตั้ง')}', '${this.escapeHtml(bpDate)}')">
-                                                    <img src="${previewSrc}" class="w-full h-full object-cover" alt="${this.escapeHtml(bpTitle)}">
-                                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                                                        <i class="ph ph-arrows-out text-white text-xs"></i>
-                                                    </div>
-                                                </div>
-                                                <div class="min-w-0 flex-1 space-y-0.5">
-                                                    <div class="text-xs font-semibold text-foreground truncate" title="${this.escapeHtml(bpTitle)}">${this.escapeHtml(bpTitle)}</div>
-                                                    <div class="text-[10px] text-indigo-600 font-medium truncate">${this.escapeHtml(bpZone)}</div>
-                                                    <div class="text-[9px] text-muted-foreground font-mono flex items-center gap-1.5">
-                                                        <span>${bpSize}</span>
-                                                        <span>•</span>
-                                                        <span>${bpDate}</span>
-                                                    </div>
-                                                </div>
-                                                <button type="button" onclick="app.showLightbox('${previewSrc}', '${this.escapeHtml(bpTitle)}', '${this.escapeHtml(bpZone)}', '${this.escapeHtml(b.notes || 'แบบแปลนติดตั้ง')}', '${this.escapeHtml(bpDate)}')" class="p-1.5 rounded-lg text-muted-foreground hover:text-indigo-600 hover:bg-indigo-500/10 transition cursor-pointer shrink-0" title="ดูภาพขยายใหญ่">
-                                                    <i class="ph ph-magnifying-glass-plus text-sm"></i>
-                                                </button>
+                                    <div class="p-3.5 rounded-xl bg-card border border-dashed border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-black">
+                                        <div class="flex items-center gap-2.5">
+                                            <i class="ph ph-info text-purple-600 text-lg shrink-0 font-bold"></i>
+                                            <div class="text-xs">
+                                                <strong class="text-black">ยังไม่มีไฟล์ต้นฉบับ .xlsx ที่อัปโหลดไว้สำหรับงานนี้</strong>
+                                                <div class="text-[11px] text-black/70">ระบบใช้ข้อมูล BOQ ภายในระบบ (${boqItems.length} รายการ) หากต้องการแนบไฟล์ต้นฉบับ สามารถกดปุ่ม "นำเข้า Excel" ได้ตลอดเวลา</div>
                                             </div>
-                                            `;
-                                        }).join('')}
+                                        </div>
                                     </div>
                                 `}
                             </div>
 
-                            <!-- Section 5: ประมาณการรายการ BOQ & Blank BOQ (Bill of Quantities & Work Items) -->
-                            <div class="p-4 rounded-xl border border-purple-500/30 bg-muted/20 space-y-3">
+                            <!-- BOQ Items Table -->
+                            <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
                                 <div class="flex items-center justify-between border-b border-border/60 pb-2 flex-wrap gap-2">
-                                    <div class="flex items-center gap-2 font-bold text-foreground text-xs">
-                                        <i class="ph ph-calculator text-purple-600 text-sm"></i>
-                                        <span>ประมาณการรายการ BOQ (Bill of Quantities & Work Items)</span>
-                                        ${boqItems.length === 0 ? `
-                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-purple-50 text-purple-700 border border-purple-300 shadow-2xs">Blank BOQ</span>
-                                        ` : `
-                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs">${boqItems.length} รายการ</span>
-                                        `}
+                                    <div class="flex items-center gap-2 font-bold text-black text-xs">
+                                        <i class="ph ph-calculator text-purple-600 text-sm font-bold"></i>
+                                        <span>ตารางประมาณการราคาและรายการงานช่าง (Bill of Quantities)</span>
                                     </div>
-                                    <div class="flex items-center gap-2">
-                                        <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.openImportBOQModal('${job.id}');" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg text-purple-600 dark:text-purple-400 border border-purple-500/30 hover:bg-purple-500/10 cursor-pointer inline-flex items-center gap-1" title="นำเข้าไฟล์ Excel / CSV / vFIX">
-                                            <i class="ph ph-file-arrow-up"></i> <span>📥 นำเข้า Excel / vFIX</span>
-                                        </button>
-                                        ${boqItems.length === 0 ? `
-                                            <button type="button" onclick="app.loadSampleBOQForJob('${job.id}');" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg text-purple-700 bg-purple-50 border border-purple-300 hover:bg-purple-100 cursor-pointer inline-flex items-center gap-1 shadow-2xs" title="โหลดรายการ BOQ ตัวอย่าง">
-                                                <i class="ph ph-magic-wand"></i> <span>โหลด BOQ ตัวอย่าง</span>
-                                            </button>
-                                        ` : ''}
-                                        <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.navigate('job-detail', '${job.id}');" class="btn-artifact-secondary text-[11px] px-2.5 py-1 rounded-lg text-muted-foreground hover:text-foreground border border-border hover:bg-muted cursor-pointer inline-flex items-center gap-1" title="เปิดหน้าจัดการ BOQ เต็ม">
-                                            <i class="ph ph-arrow-square-out"></i> <span>จัดการ BOQ เต็ม</span>
-                                        </button>
+                                    <div class="text-xs font-mono font-bold text-black">
+                                        ยอดรวมสุทธิ: <strong class="text-emerald-700 text-sm">${grandTotal.toLocaleString('th-TH')} ฿</strong>
                                     </div>
                                 </div>
+
                                 ${boqItems.length === 0 ? `
-                                    <div class="py-6 px-4 text-center bg-card border border-dashed border-border rounded-xl space-y-2">
-                                        <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center mx-auto text-xl border border-purple-500/20 shadow-2xs">
-                                            <i class="ph ph-calculator"></i>
-                                        </div>
-                                        <div class="text-xs font-bold text-foreground">ยังไม่มีรายการประมาณการราคา BOQ (Blank BOQ)</div>
-                                        <p class="text-[11px] text-muted-foreground max-w-lg mx-auto">
-                                            เริ่มต้นจัดทำ BOQ ด้วยสถานะ <strong>Blank BOQ (ตารางว่างไม่มีรายการ Dummy)</strong> สำหรับงานโครงการ Renovate เพื่อความถูกต้องของงานจริง ท่านสามารถกด <strong>นำเข้า Excel / vFIX</strong> หรือเปิดหน้าเต็มเพื่อเพิ่มรายการงานช่างและค่าแรง
-                                        </p>
-                                        <div class="pt-1 flex items-center justify-center gap-2 flex-wrap">
-                                            <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.openImportBOQModal('${job.id}');" class="btn-artifact-primary text-xs px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white cursor-pointer inline-flex items-center gap-1.5 shadow-2xs font-medium">
-                                                <i class="ph ph-file-arrow-up"></i> นำเข้าไฟล์ Excel / CSV
-                                            </button>
-                                            <button type="button" onclick="app.loadSampleBOQForJob('${job.id}');" class="btn-artifact-secondary text-xs px-3.5 py-1.5 rounded-lg text-purple-700 bg-purple-50 border border-purple-300 hover:bg-purple-100 cursor-pointer inline-flex items-center gap-1.5 shadow-2xs font-medium">
-                                                <i class="ph ph-magic-wand"></i> โหลดรายการตัวอย่าง (5 รายการ)
-                                            </button>
-                                        </div>
+                                    <div class="py-6 px-4 text-center bg-card border border-dashed border-border rounded-xl space-y-1">
+                                        <div class="text-xs font-bold text-black">ยังไม่มีรายการประมาณการราคา BOQ (Blank BOQ)</div>
+                                        <p class="text-[11px] text-black/70">สามารถกดปุ่ม "นำเข้า Excel / vFIX" ด้านบนเพื่อเพิ่มรายการวัสดุและค่าแรง</p>
                                     </div>
                                 ` : `
                                     <div class="overflow-x-auto rounded-xl border border-border bg-card shadow-2xs">
                                         <table class="w-full text-left text-xs border-collapse">
-                                            <thead class="bg-muted/40 text-muted-foreground font-semibold text-[11px] border-b border-border">
+                                            <thead class="bg-muted/40 text-black font-bold text-[11px] border-b border-border">
                                                 <tr>
                                                     <th class="py-2.5 px-3 w-10 text-center font-mono">#</th>
                                                     <th class="py-2.5 px-3 w-28">ประเภท</th>
@@ -10160,201 +10611,485 @@ const app = {
                                                     const isLabor = itemTypeStr.includes('LABOR') || itemTypeStr.includes('ค่าแรง') || !!item.isLabor || (item.name && (item.name.includes('ค่าแรง') || item.name.includes('งานติดตั้ง')));
                                                     return `
                                                     <tr class="hover:bg-muted/30 transition-colors">
-                                                        <td class="py-2 px-3 text-center font-mono text-muted-foreground text-[11px]">${idx + 1}</td>
+                                                        <td class="py-2 px-3 text-center font-mono text-black font-bold text-[11px]">${idx + 1}</td>
                                                         <td class="py-2 px-3">
-                                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isLabor ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}">
+                                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isLabor ? 'bg-purple-50 text-purple-800 border border-purple-300' : 'bg-blue-50 text-blue-800 border border-blue-300'}">
                                                                 ${isLabor ? 'LABOR (ค่าแรง)' : 'MATERIAL (วัสดุ)'}
                                                             </span>
                                                         </td>
-                                                        <td class="py-2 px-3 font-medium text-foreground">${this.escapeHtml(item.name || item.item_name || 'รายการงาน')}</td>
-                                                        <td class="py-2 px-3 text-center font-mono font-semibold">${itemQty}</td>
-                                                        <td class="py-2 px-3 text-center text-muted-foreground">${this.escapeHtml(item.unit || 'ชุด')}</td>
-                                                        <td class="py-2 px-3 text-right font-mono text-muted-foreground">${itemPrice.toLocaleString('th-TH')} ฿</td>
-                                                        <td class="py-2 px-3 text-right font-mono font-bold text-foreground">${lineTotal.toLocaleString('th-TH')} ฿</td>
+                                                        <td class="py-2 px-3 font-bold text-black">${this.escapeHtml(item.name || item.item_name || 'รายการงาน')}</td>
+                                                        <td class="py-2 px-3 text-center font-mono font-bold text-black">${itemQty}</td>
+                                                        <td class="py-2 px-3 text-center text-black font-semibold">${this.escapeHtml(item.unit || 'ชุด')}</td>
+                                                        <td class="py-2 px-3 text-right font-mono text-black font-semibold">${itemPrice.toLocaleString('th-TH')} ฿</td>
+                                                        <td class="py-2 px-3 text-right font-mono font-black text-black">${lineTotal.toLocaleString('th-TH')} ฿</td>
                                                     </tr>
                                                     `;
                                                 }).join('')}
                                             </tbody>
-                                            <tfoot class="border-t border-border bg-muted/20 font-semibold text-xs">
+                                            <tfoot class="border-t border-border bg-muted/20 font-bold text-xs">
                                                 <tr>
-                                                    <td colspan="6" class="py-2.5 px-3 text-right text-muted-foreground">ยอดรวมประมาณการสุทธิ (Grand Total):</td>
-                                                    <td class="py-2.5 px-3 text-right font-mono font-bold text-emerald-600 text-sm">${grandTotal.toLocaleString('th-TH')} ฿</td>
+                                                    <td colspan="6" class="py-2.5 px-3 text-right text-black font-bold">ยอดรวมประมาณการสุทธิ (Grand Total):</td>
+                                                    <td class="py-2.5 px-3 text-right font-mono font-black text-emerald-700 text-sm">${grandTotal.toLocaleString('th-TH')} ฿</td>
                                                 </tr>
                                             </tfoot>
                                         </table>
                                     </div>
                                 `}
                             </div>
-                        ` : ''}
+                        </div>
 
-                        <!-- Section 6: Tickets & Slips Summary with Previews (เฉพาะงาน Renovate เท่านั้น) -->
-                        ${!isQuick ? `
-                        <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
-                            <div class="flex items-center justify-between border-b border-border/60 pb-2">
-                                <div class="flex items-center gap-2 font-bold text-foreground text-xs">
-                                    <i class="ph ph-receipt text-emerald-600 text-sm"></i>
-                                    <span>ข้อมูล Ticket & สลิปการชำระเงิน (Step 2 Tickets & Receipts)</span>
-                                    ${hasTicket ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-700 font-mono font-bold">${tickets.length} รายการ</span>` : ''}
-                                </div>
+                        <!-- ======================================================== -->
+                        <!-- STEP 4: แผนงาน Gantt & บันทึกงานช่างประจำวัน (5 รูป) -->
+                        <!-- ======================================================== -->
+                        <div id="modal-section-step4" class="space-y-4 pt-4 border-t border-border">
+                            <div class="flex items-center justify-between border-b border-border/80 pb-2">
                                 <div class="flex items-center gap-2">
-                                    ${hasTicket ? `
-                                        <span class="text-[11px] text-muted-foreground hidden sm:inline">คลิกรูปเพื่อเปิดดูแบบขยายใหญ่ (Lightbox)</span>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-700 font-bold">บันทึกเรียบร้อย</span>
-                                    ` : `
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-700 font-bold">ยังไม่บันทึก</span>
-                                    `}
+                                    <span class="w-6 h-6 rounded-lg bg-cyan-600 text-white font-black text-xs flex items-center justify-center shadow-2xs">4</span>
+                                    <h4 class="font-display font-black text-sm text-black">Step 4: แผนงาน Gantt & บันทึกงานช่างประจำวัน (Daily Technician Work Logs)</h4>
                                 </div>
+                                <span class="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold ${dailyLogs.length > 0 ? 'bg-cyan-50 text-cyan-800 border border-cyan-300' : 'bg-muted text-black border border-border'}">
+                                    ${dailyLogs.length > 0 ? `${dailyLogs.length} บันทึกรายวัน` : 'รอช่างบันทึก'}
+                                </span>
                             </div>
-                            ${hasTicket ? `
-                                <div class="space-y-3">
-                                    ${tickets.map(t => {
-                                        const slipImgUrl = t.slip_url || '';
-                                        const contractImgUrl = t.contract_url || '';
-                                        return `
-                                        <div class="p-3.5 rounded-xl bg-card border border-emerald-500/30 space-y-3 shadow-2xs">
-                                            <div class="flex items-center justify-between gap-3 border-b border-border/60 pb-2.5 flex-wrap">
-                                                <div class="space-y-0.5">
-                                                    <div class="flex items-center gap-2 flex-wrap">
-                                                        <span class="font-mono font-bold text-sm text-emerald-700">${t.ticket_no || t.ticketNo || 'TKT-PENDING'}</span>
-                                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${t.status === 'VERIFIED' ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/20' : 'bg-amber-500/15 text-amber-700 border border-amber-500/20'}">
-                                                            ${t.status === 'VERIFIED' ? '✓ ตรวจสอบแล้ว' : (t.status || 'ISSUED')}
-                                                        </span>
-                                                        ${t.payment_date ? `<span class="text-[11px] text-muted-foreground font-mono"><i class="ph ph-calendar text-xs"></i> ${this.formatDateDMY(t.payment_date)}</span>` : ''}
-                                                    </div>
-                                                    <div class="text-[11px] text-muted-foreground">
-                                                        ใบเสร็จ: <strong class="font-mono text-foreground">${t.receipt_no || t.receiptNo || '-'}</strong>
-                                                        <span class="mx-1">•</span>
-                                                        สัญญา: <strong class="font-mono text-foreground">${t.contract_no || t.contractNo || '-'}</strong>
-                                                    </div>
-                                                </div>
-                                                <div class="text-right shrink-0">
-                                                    <div class="font-mono font-bold text-base text-foreground">${(Number(t.amount) || grandTotal).toLocaleString('th-TH')} ฿</div>
-                                                    <div class="text-[10px] text-muted-foreground">${t.payment_method || 'โอนเงิน'}</div>
-                                                </div>
-                                            </div>
 
-                                            <!-- Previews: Receipt & Contract -->
-                                            ${(slipImgUrl || contractImgUrl) ? `
-                                            <div>
-                                                <div class="flex items-center justify-between mb-2">
-                                                    <span class="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
-                                                        <i class="ph ph-image text-emerald-600"></i>
-                                                        <span>รูปใบเสร็จ / สัญญา (คลิกเพื่อดูขยายใหญ่):</span>
-                                                    </span>
-                                                    <span class="text-[10px] text-muted-foreground">Lightbox Zoom</span>
-                                                </div>
-                                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                    ${slipImgUrl ? `
-                                                    <!-- Slip / Receipt Box -->
-                                                    <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.openTicketSlipLightbox('${t.id || t.ticket_no}', 'slip')" title="คลิกเพื่อดูใบเสร็จ / สลิปโอนเงิน">
-                                                        <img src="${slipImgUrl}" alt="สลิปใบเสร็จ" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                                                        <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-85 group-hover:opacity-95 transition-opacity flex flex-col justify-between p-2.5">
-                                                            <div class="flex items-center justify-between">
-                                                                <span class="text-[9px] font-bold text-white bg-emerald-600/90 px-2 py-0.5 rounded backdrop-blur-xs flex items-center gap-1">
-                                                                    <i class="ph ph-receipt"></i> สลิป / ใบเสร็จ
-                                                                </span>
-                                                                <span class="text-[9px] font-mono text-white/90 bg-black/40 px-1.5 py-0.5 rounded">${t.receipt_no || ''}</span>
-                                                            </div>
-                                                            <div class="flex items-center justify-between text-white">
-                                                                <span class="text-[10px] truncate max-w-[150px] font-medium font-mono">${t.slip_name || 'slip.jpg'}</span>
-                                                                <span class="text-[10px] inline-flex items-center gap-1 text-emerald-300 font-semibold group-hover:underline">
-                                                                    <span>เปิดดูสลิป</span>
-                                                                    <i class="ph ph-arrows-out-simple text-xs"></i>
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    ` : `
-                                                    <div class="rounded-xl border border-dashed border-border bg-muted/20 p-4 text-center aspect-video flex flex-col items-center justify-center text-muted-foreground">
-                                                        <i class="ph ph-receipt text-2xl text-muted-foreground/50 mb-1"></i>
-                                                        <span class="text-[11px]">ไม่มีรูปภาพสลิปแนบ</span>
-                                                    </div>
-                                                    `}
-
-                                                    ${contractImgUrl ? `
-                                                    <!-- Contract Box -->
-                                                    <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.openTicketSlipLightbox('${t.id || t.ticket_no}', 'contract')" title="คลิกเพื่อดูสัญญาการทำงาน">
-                                                        <img src="${contractImgUrl}" alt="สัญญาการทำงาน" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                                                        <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-85 group-hover:opacity-95 transition-opacity flex flex-col justify-between p-2.5">
-                                                            <div class="flex items-center justify-between">
-                                                                <span class="text-[9px] font-bold text-white bg-brand-600/90 px-2 py-0.5 rounded backdrop-blur-xs flex items-center gap-1">
-                                                                    <i class="ph ph-file-text"></i> สัญญาจ้างงาน
-                                                                </span>
-                                                                <span class="text-[9px] font-mono text-white/90 bg-black/40 px-1.5 py-0.5 rounded">${t.contract_no || ''}</span>
-                                                            </div>
-                                                            <div class="flex items-center justify-between text-white">
-                                                                <span class="text-[10px] truncate max-w-[150px] font-medium font-mono">${t.contract_name || 'contract.pdf'}</span>
-                                                                <span class="text-[10px] inline-flex items-center gap-1 text-blue-300 font-semibold group-hover:underline">
-                                                                    <span>เปิดดูสัญญา</span>
-                                                                    <i class="ph ph-arrows-out-simple text-xs"></i>
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    ` : `
-                                                    <div class="rounded-xl border border-dashed border-border bg-muted/20 p-4 text-center aspect-video flex flex-col items-center justify-center text-muted-foreground">
-                                                        <i class="ph ph-file-text text-2xl text-muted-foreground/50 mb-1"></i>
-                                                        <span class="text-[11px]">ไม่มีไฟล์สัญญาแนบ</span>
-                                                    </div>
-                                                    `}
-                                                </div>
-                                            </div>
-                                            ` : ''}
-                                            ${t.notes ? `
-                                                <div class="text-[11px] text-muted-foreground bg-muted/40 p-2 rounded-lg border border-border/60">
-                                                    <span class="font-medium text-foreground">หมายเหตุ:</span> ${this.escapeHtml(t.notes)}
-                                                </div>
-                                            ` : ''}
-                                        </div>
-                                    `}).join('')}
+                            ${isQuick ? `
+                                <div class="p-4 rounded-xl bg-amber-50 border border-amber-300 text-black space-y-1.5">
+                                    <div class="font-bold text-xs text-amber-900 flex items-center gap-1.5">
+                                        <i class="ph ph-lightning-fill text-amber-600"></i> Fast-track Policy: Quick Services ดำเนินการโดยตรงสู่ขั้นตอน QC Online
+                                    </div>
+                                    <p class="text-[11px] text-black leading-relaxed">
+                                        งานบริการด่วนช่างจะ Check-in และแนบภาพความคืบหน้าผ่านใบงานสำรวจใน Step 1 และเข้าสู่การตรวจ QC Online (Step 5) ได้ทันทีโดยไม่ต้องสร้างแผนงาน Gantt ระยะยาว
+                                    </p>
+                                </div>
+                            ` : (dailyLogs.length === 0 ? `
+                                <div class="p-6 rounded-xl bg-card border border-dashed border-border text-center space-y-2">
+                                    <div class="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-700 flex items-center justify-center mx-auto text-xl border border-cyan-200 shadow-2xs">
+                                        <i class="ph ph-clock-user font-bold"></i>
+                                    </div>
+                                    <div class="text-xs font-bold text-black">ยังไม่มีประวัติการบันทึกงานช่างประจำวันสำหรับงานนี้</div>
+                                    <p class="text-[11px] text-black/70 max-w-md mx-auto">
+                                        เมื่อช่างเข้าปฏิบัติงานหน้างาน ช่างจะทำการบันทึกความคืบหน้ารายวันผ่านปุ่ม "บันทึกช่าง" ในแผนงาน Gantt Chart พร้อมแนบรูปถ่าย 5 รูป (Before, During 1, During 2, Testing, After)
+                                    </p>
+                                    <div class="pt-1">
+                                        <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.navigate('gantt');" class="btn-artifact-primary text-xs px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer inline-flex items-center gap-1.5 font-bold shadow-2xs">
+                                            <i class="ph ph-calendar-blank"></i> ไปหน้าแผนงาน Gantt Chart
+                                        </button>
+                                    </div>
                                 </div>
                             ` : `
-                                <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-center justify-between gap-3">
-                                    <div class="flex items-center gap-2.5">
-                                        <i class="ph ph-warning-circle text-amber-600 text-xl shrink-0"></i>
-                                        <div>
-                                            <div class="font-bold text-amber-900 text-xs">งานนี้ยังไม่ได้ออก Ticket หรือแนบสลิปใบเสร็จ</div>
-                                            <div class="text-[11px] text-amber-700/90">เมื่อบันทึกสลิปและสัญญาเรียบร้อย งานจะส่งไปยังขั้นตอนถัดไปอัตโนมัติ</div>
+                                <div class="space-y-4">
+                                    ${dailyLogs.map((dl, lIdx) => {
+                                        const dPhotos = Array.isArray(dl.photos) ? dl.photos : [];
+                                        const slots = [
+                                            { num: 1, phase: 'Before', label: 'ก่อนเริ่มงาน (Before)', photo: dPhotos[0] },
+                                            { num: 2, phase: 'During 1', label: 'ระหว่างทำ #1 (During)', photo: dPhotos[1] },
+                                            { num: 3, phase: 'During 2', label: 'ระหว่างทำ #2 (During)', photo: dPhotos[2] },
+                                            { num: 4, phase: 'Testing', label: 'ความปลอดภัย & ทดสอบ (Testing)', photo: dPhotos[3] },
+                                            { num: 5, phase: 'After', label: 'งานเสร็จสมบูรณ์ (After)', photo: dPhotos[4] }
+                                        ];
+                                        return `
+                                        <div class="p-4 rounded-xl border border-cyan-500/30 bg-card space-y-3.5 shadow-2xs">
+                                            <div class="flex items-center justify-between border-b border-border/60 pb-2.5 flex-wrap gap-2">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="px-2.5 py-0.5 rounded-lg bg-cyan-50 text-cyan-800 border border-cyan-300 font-bold font-mono text-xs">
+                                                        รอบที่ ${dl.day_number || (lIdx + 1)} / ${dl.total_days || 1} วัน
+                                                    </span>
+                                                    <span class="text-xs font-bold text-black font-mono">
+                                                        <i class="ph ph-calendar text-cyan-600"></i> ${this.formatDateDMY(dl.log_date || dl.created_at)}
+                                                    </span>
+                                                    <span class="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                                        ⏱️ ${dl.start_time || '08:30'} - ${dl.end_time || '17:00'} น.
+                                                    </span>
+                                                </div>
+                                                <div class="text-xs text-black font-semibold">
+                                                    ผู้บันทึก: <strong class="text-black font-bold">${dl.technician || dl.recorded_by || job.tech}</strong>
+                                                </div>
+                                            </div>
+
+                                            <div class="space-y-1.5 text-xs">
+                                                <div>
+                                                    <span class="text-black/70 font-bold block text-[11px]">เนื้องานที่ทำในวันนี้:</span>
+                                                    <div class="p-2.5 rounded-lg bg-muted/20 border border-border text-black font-medium leading-relaxed">
+                                                        ${this.escapeHtml(dl.work_description || dl.workDescription || 'งานติดตั้งตามแผนงาน')}
+                                                    </div>
+                                                </div>
+                                                ${dl.materials_used ? `
+                                                    <div>
+                                                        <span class="text-black/70 font-bold block text-[11px]">อุปกรณ์และอะไหล่ที่ติดตั้งจริง:</span>
+                                                        <div class="p-2 rounded-lg bg-muted/20 border border-border text-black text-[11px]">
+                                                            ${this.escapeHtml(dl.materials_used)}
+                                                        </div>
+                                                    </div>
+                                                ` : ''}
+                                                ${dl.issues_encountered ? `
+                                                    <div>
+                                                        <span class="text-amber-800 font-bold block text-[11px]">ปัญหาและอุปสรรคหน้างาน:</span>
+                                                        <div class="p-2 rounded-lg bg-amber-50 border border-amber-200 text-black text-[11px]">
+                                                            ${this.escapeHtml(dl.issues_encountered)}
+                                                        </div>
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+
+                                            <!-- 5 Photo Slots Grid -->
+                                            <div class="space-y-2 pt-1 border-t border-border/60">
+                                                <div class="flex items-center justify-between">
+                                                    <span class="text-xs font-bold text-black flex items-center gap-1">
+                                                        <i class="ph ph-camera text-cyan-600 font-bold"></i>
+                                                        <span>รูปถ่ายความคืบหน้าหน้างาน 5 รูป (5 Photo Slots):</span>
+                                                    </span>
+                                                    <span class="text-[10px] text-black/70">คลิกที่รูปเพื่อเปิดดูขนาดใหญ่ (Lightbox)</span>
+                                                </div>
+                                                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                                                    ${slots.map(s => {
+                                                        if (s.photo && (s.photo.url || s.photo.dataUrl)) {
+                                                            const pUrl = s.photo.url || s.photo.dataUrl;
+                                                            return `
+                                                            <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.showLightbox('${pUrl}', '${this.escapeHtml(s.photo.caption || s.label)}', 'รูปที่ ${s.num} • ${s.phase}', '${this.escapeHtml(dl.work_description || 'บันทึกงานช่าง')}', '${this.formatDateDMY(dl.log_date || dl.created_at)}')">
+                                                                <img src="${pUrl}" alt="${s.label}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                                                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 opacity-90 group-hover:opacity-100 transition flex flex-col justify-between p-2">
+                                                                    <span class="text-[9px] font-bold text-white bg-cyan-700/80 px-1.5 py-0.5 rounded backdrop-blur-xs w-fit">ช่อง ${s.num}: ${s.phase}</span>
+                                                                    <div class="flex items-center justify-between text-white">
+                                                                        <span class="text-[10px] truncate max-w-[120px] font-medium">${s.photo.caption || s.label}</span>
+                                                                        <i class="ph ph-arrows-out text-xs"></i>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            `;
+                                                        } else {
+                                                            return `
+                                                            <div class="rounded-xl border border-dashed border-border bg-muted/20 p-2 text-center aspect-video flex flex-col items-center justify-center text-black/60">
+                                                                <i class="ph ph-camera text-xl text-black/30 mb-0.5"></i>
+                                                                <span class="text-[10px] font-bold text-black">ช่อง ${s.num}: ${s.phase}</span>
+                                                                <span class="text-[9px] text-black/50">ยังไม่มีรูปถ่าย</span>
+                                                            </div>
+                                                            `;
+                                                        }
+                                                    }).join('')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            `)}
+                        </div>
+
+                        <!-- ======================================================== -->
+                        <!-- STEP 5: ตรวจรับรองคุณภาพ QC & ภาพตรวจงาน -->
+                        <!-- ======================================================== -->
+                        <div id="modal-section-step5" class="space-y-4 pt-4 border-t border-border">
+                            <div class="flex items-center justify-between border-b border-border/80 pb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-lg bg-teal-600 text-white font-black text-xs flex items-center justify-center shadow-2xs">5</span>
+                                    <h4 class="font-display font-black text-sm text-black">Step 5: ตรวจรับรองคุณภาพ QC (Quality Control & Inspection Evidence)</h4>
+                                </div>
+                                <span class="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold ${job.qc_score !== null && job.qc_score !== undefined ? 'bg-teal-50 text-teal-800 border border-teal-300' : 'bg-amber-50 text-amber-800 border border-amber-300'}">
+                                    ${job.qc_status || (job.qc_passed_at ? 'QC_PASSED' : 'QC_PENDING')}
+                                </span>
+                            </div>
+
+                            <div class="p-4 rounded-xl border border-teal-500/30 bg-card space-y-4 shadow-2xs">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div class="p-3 rounded-lg bg-muted/30 border border-border space-y-1">
+                                        <div class="text-[10px] text-black/70 font-bold uppercase">รูปแบบการตรวจ QC</div>
+                                        <div class="text-xs font-bold text-black flex items-center gap-1.5">
+                                            <i class="ph ${isQuick ? 'ph-globe text-cyan-600' : 'ph-check-square text-teal-600'}"></i>
+                                            <span>${isQuick ? 'QC Online (ภาพ Visit Plan)' : 'QC On-site (หน้างานจริง)'}</span>
                                         </div>
                                     </div>
-                                    <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.openCreateTicketModal('${job.id}');" class="btn-artifact-primary px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 flex items-center gap-1.5 shadow-xs cursor-pointer">
-                                        <i class="ph ph-plus-circle font-bold"></i>
-                                        <span>+ บันทึก Ticket & สลิป</span>
-                                    </button>
+                                    <div class="p-3 rounded-lg bg-muted/30 border border-border space-y-1">
+                                        <div class="text-[10px] text-black/70 font-bold uppercase">คะแนนผลการตรวจ</div>
+                                        <div class="text-xs font-black font-mono ${job.qc_score === 1.0 ? 'text-amber-800' : 'text-emerald-700'}">
+                                            ${job.qc_score !== null && job.qc_score !== undefined ? `${job.qc_score.toFixed(1)} / 5.0 คะแนน` : (job.qc_passed_at ? '5.0 / 5.0 คะแนน' : 'รอรับการตรวจ')}
+                                        </div>
+                                    </div>
+                                    <div class="p-3 rounded-lg bg-muted/30 border border-border space-y-1">
+                                        <div class="text-[10px] text-black/70 font-bold uppercase">ผู้ตรวจ & วันเวลา</div>
+                                        <div class="text-xs font-bold text-black truncate">${job.qc_inspector || (qcBookings[0] && qcBookings[0].qc_inspector) || 'QC Lead'}</div>
+                                        <div class="text-[10px] text-black font-mono">${job.qc_passed_at ? this.formatDateTimeDMY(job.qc_passed_at) : '-'}</div>
+                                    </div>
+                                </div>
+
+                                ${(job.has_rework || (job.rework_count && job.rework_count > 0)) ? `
+                                    <div class="p-3 rounded-xl bg-amber-50 border border-amber-300 text-black text-xs space-y-1">
+                                        <div class="font-bold text-amber-900 flex items-center gap-1.5">
+                                            <i class="ph ph-warning text-amber-600"></i> แจ้งเตือน: มีการส่งกลับแก้ไขงาน (Rework ${job.rework_count || 1} ครั้ง)
+                                        </div>
+                                        <p class="text-[11px] text-black">
+                                            ตามเกณฑ์มาตรฐานองค์กร เมื่อมีการส่งกลับแก้ไขงานตั้งแต่รอบที่ 2 เป็นต้นไป ระบบจะบังคับล็อกผลคะแนนสูงสุดที่ <strong>1.0 คะแนน</strong> เสมอ เพื่อสะท้อนเกณฑ์ First-time Pass
+                                        </p>
+                                    </div>
+                                ` : ''}
+
+                                <!-- Checklist Summary -->
+                                <div class="space-y-2">
+                                    <div class="text-xs font-bold text-black">เกณฑ์การตรวจประเมิน (QC Checklist):</div>
+                                    <div class="space-y-1.5">
+                                        ${isQuick ? `
+                                            <div class="p-2.5 rounded-lg bg-muted/20 border border-border flex items-center justify-between text-xs">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="w-5 h-5 rounded-full bg-teal-50 text-teal-800 font-bold flex items-center justify-center text-[10px] border border-teal-200">1</span>
+                                                    <span class="font-bold text-black">ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด (Online Quick Audit)</span>
+                                                </div>
+                                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${job.qc_passed_at || job.status === 'CLOSED' ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' : 'bg-muted text-black border border-border'}">
+                                                    ${job.qc_passed_at || job.status === 'CLOSED' ? '✓ ผ่านเกณฑ์ (Yes)' : 'รอตรวจ'}
+                                                </span>
+                                            </div>
+                                        ` : `
+                                            ${[
+                                                '1. ตรวจสอบความถูกต้องของตำแหน่งการติดตั้งตามแบบแปลน',
+                                                '2. ความเรียบร้อยของงานติดตั้งและแนวรอยต่อ',
+                                                '3. การทดสอบการใช้งานระบบและอุปกรณ์ความปลอดภัย',
+                                                '4. ความสะอาด การเก็บเศษวัสดุและขยะหน้างาน',
+                                                '5. การส่งมอบงานและอธิบายการใช้งานเบื้องต้นให้ลูกค้า'
+                                            ].map((qText, qIdx) => {
+                                                const isPassed = job.qc_passed_at || job.status === 'CLOSED';
+                                                return `
+                                                <div class="p-2.5 rounded-lg bg-muted/20 border border-border flex items-center justify-between text-xs">
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="w-5 h-5 rounded-full bg-teal-50 text-teal-800 font-bold flex items-center justify-center text-[10px] border border-teal-200">${qIdx + 1}</span>
+                                                        <span class="font-bold text-black">${qText}</span>
+                                                    </div>
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isPassed ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' : 'bg-muted text-black border border-border'}">
+                                                        ${isPassed ? '✓ ผ่านเกณฑ์ (5.0)' : 'รอตรวจ'}
+                                                    </span>
+                                                </div>
+                                                `;
+                                            }).join('')}
+                                        `}
+                                    </div>
+                                </div>
+
+                                <!-- QC Inspector Remarks -->
+                                <div>
+                                    <span class="text-black/70 font-bold block text-[11px] mb-1">ความคิดเห็นและบันทึกจากผู้ตรวจ QC (Inspector Remarks):</span>
+                                    <div class="p-2.5 rounded-lg bg-muted/20 border border-border text-black font-medium text-xs leading-relaxed">
+                                        ${job.qc_remarks || 'ผ่านการตรวจรับรองคุณภาพงานตามมาตรฐานที่กำหนด เรียบร้อยสมบูรณ์'}
+                                    </div>
+                                </div>
+
+                                <!-- Rework History Table (if exists) -->
+                                ${qcHistory.length > 0 ? `
+                                    <div class="space-y-2 pt-2 border-t border-border">
+                                        <div class="text-xs font-bold text-black flex items-center gap-1.5">
+                                            <i class="ph ph-clock-counter-clockwise text-amber-600 font-bold"></i>
+                                            <span>ประวัติการตรวจและส่งแก้งาน (QC Inspection History):</span>
+                                        </div>
+                                        <div class="overflow-x-auto rounded-xl border border-border bg-card">
+                                            <table class="w-full text-left text-xs border-collapse">
+                                                <thead class="bg-muted/40 text-black font-bold text-[11px] border-b border-border">
+                                                    <tr>
+                                                        <th class="py-2 px-3 text-center">รอบที่</th>
+                                                        <th class="py-2 px-3">วันเวลาที่ตรวจ</th>
+                                                        <th class="py-2 px-3">ผู้ตรวจ QC</th>
+                                                        <th class="py-2 px-3 text-center">ผลการตรวจ</th>
+                                                        <th class="py-2 px-3 text-center">คะแนน</th>
+                                                        <th class="py-2 px-3">หมายเหตุ / จุดที่ให้แก้ไข</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-border">
+                                                    ${qcHistory.map((qh, hIdx) => `
+                                                    <tr>
+                                                        <td class="py-2 px-3 text-center font-bold text-black">รอบที่ ${qh.round || (hIdx + 1)}</td>
+                                                        <td class="py-2 px-3 font-mono text-black font-semibold">${qh.date ? this.formatDateTimeDMY(qh.date) : '-'}</td>
+                                                        <td class="py-2 px-3 text-black font-semibold">${qh.inspector || 'QC Lead'}</td>
+                                                        <td class="py-2 px-3 text-center">
+                                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${qh.status === 'PASSED' ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' : 'bg-rose-50 text-rose-800 border border-rose-300'}">
+                                                                ${qh.status || 'PASSED'}
+                                                            </span>
+                                                        </td>
+                                                        <td class="py-2 px-3 text-center font-mono font-bold text-black">${qh.score !== undefined ? Number(qh.score).toFixed(1) : '5.0'}</td>
+                                                        <td class="py-2 px-3 text-black font-medium">${this.escapeHtml(qh.remarks || qh.notes || '-')}</td>
+                                                    </tr>
+                                                    `).join('')}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- ======================================================== -->
+                        <!-- STEP 6: สรุปงานสำเร็จ & ส่งต่อ STK (CSAT & Closeout) -->
+                        <!-- ======================================================== -->
+                        <div id="modal-section-step6" class="space-y-4 pt-4 border-t border-border">
+                            <div class="flex items-center justify-between border-b border-border/80 pb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-lg bg-blue-600 text-white font-black text-xs flex items-center justify-center shadow-2xs">6</span>
+                                    <h4 class="font-display font-black text-sm text-black">Step 6: สรุปงานสำเร็จ, ส่งต่อ STK & ประเมิน CSAT (Outbound & Closeout)</h4>
+                                </div>
+                                <span class="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold ${job.status === 'CLOSED' || job.stk_status === 'CLOSED' ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' : 'bg-muted text-black border border-border'}">
+                                    ${job.status === 'CLOSED' || job.stk_status === 'CLOSED' ? '✓ ส่งต่อ STK สำเร็จ (CLOSED)' : 'รอส่งต่อ STK'}
+                                </span>
+                            </div>
+
+                            <div class="p-4 rounded-xl border border-blue-500/30 bg-card space-y-4 shadow-2xs">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div class="p-3 rounded-lg bg-muted/30 border border-border space-y-1">
+                                        <div class="text-[10px] text-black/70 font-bold uppercase">สถานะส่งถ่าย API ไป STK</div>
+                                        <div class="text-xs font-black text-black flex items-center gap-1.5">
+                                            <i class="ph ph-broadcast text-blue-600 font-bold"></i>
+                                            <span>${job.stk_status || (job.status === 'CLOSED' ? '200 OK (CLOSED)' : 'ยังไม่ส่ง')}</span>
+                                        </div>
+                                        <div class="text-[10px] text-black/70 font-mono">Ref: ${job.stk_ref || job.bmt_ref || (job.status === 'CLOSED' ? 'BMT-REF-2026-99214' : '-')}</div>
+                                    </div>
+                                    <div class="p-3 rounded-lg bg-muted/30 border border-border space-y-1">
+                                        <div class="text-[10px] text-black/70 font-bold uppercase">วันเวลาที่ส่งออก API (Closed At)</div>
+                                        <div class="text-xs font-black font-mono text-black">
+                                            ${job.stk_exported_at ? this.formatDateTimeDMY(job.stk_exported_at) : (job.status === 'CLOSED' ? '21/09/2026 17:30 น.' : '-')}
+                                        </div>
+                                        <div class="text-[10px] text-black/70">REST API Outbound</div>
+                                    </div>
+                                    <div class="p-3 rounded-lg bg-muted/30 border border-border space-y-1">
+                                        <div class="text-[10px] text-black/70 font-bold uppercase">คะแนนความพึงพอใจลูกค้า (CSAT)</div>
+                                        <div class="text-xs font-black text-emerald-700 flex items-center gap-1">
+                                            <span>${job.csat_score || (job.status === 'CLOSED' ? '5.0' : '-')}</span>
+                                            <span>⭐ ⭐ ⭐ ⭐ ⭐</span>
+                                        </div>
+                                        <div class="text-[10px] text-black/70">ประเมินผ่านระบบ STK</div>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                                    <div class="p-3 rounded-lg bg-muted/20 border border-border space-y-1">
+                                        <div class="text-[10px] text-black/70 font-bold">ผู้ให้คะแนน / ประเมิน:</div>
+                                        <div class="text-xs font-bold text-black">${job.csat_surveyor || (job.customer || 'ลูกค้า')}</div>
+                                    </div>
+                                    <div class="p-3 rounded-lg bg-muted/20 border border-border space-y-1">
+                                        <div class="text-[10px] text-black/70 font-bold">ความคิดเห็นลูกค้า (Customer Remarks):</div>
+                                        <div class="text-xs font-medium text-black leading-relaxed">
+                                            ${job.csat_remarks || (job.status === 'CLOSED' ? 'ช่างทำงานสุภาพ เรียบร้อย ติดตั้งได้ตามเวลา แนะนำการใช้งานชัดเจนดีมากค่ะ' : 'รอการประเมินจากระบบ STK')}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                ${csatPhotos.length > 0 ? `
+                                    <div class="space-y-2 pt-2 border-t border-border">
+                                        <div class="text-xs font-bold text-black flex items-center gap-1">
+                                            <i class="ph ph-image text-blue-600 font-bold"></i>
+                                            <span>รูปถ่ายส่งมอบงานและประเมินผล (CSAT Handover Photos):</span>
+                                        </div>
+                                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                            ${csatPhotos.map((p, pIdx) => `
+                                                <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.showLightbox('${p.url || p.dataUrl}', '${this.escapeHtml(p.caption || p.name || 'รูปส่งมอบงาน')}', 'CSAT #${pIdx + 1}', 'ส่งมอบงานโครงการ ${job.id}', 'ล่าสุด')">
+                                                    <img src="${p.url || p.dataUrl}" alt="CSAT Photo" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                                        <i class="ph ph-arrows-out text-white text-xs"></i>
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- ======================================================== -->
+                        <!-- SECTION 7: รวมคลังไฟล์และรูปภาพทั้งหมด (All Media & Files Hub) -->
+                        <!-- ======================================================== -->
+                        <div id="modal-section-media" class="space-y-4 pt-4 border-t border-border">
+                            <div class="flex items-center justify-between border-b border-border/80 pb-2 flex-wrap gap-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-lg bg-brand-600 text-white font-black text-xs flex items-center justify-center shadow-2xs">📁</span>
+                                    <h4 class="font-display font-black text-sm text-black">คลังไฟล์และรูปภาพแนบทั้งหมดของโครงการ (All Project Media & Files Repository)</h4>
+                                </div>
+                                <span class="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-brand-50 text-black border border-brand-300">
+                                    รวมทั้งหมด ${allMedia.length} รายการ (ภาพ ${photoMediaCount} • เอกสาร ${docMediaCount})
+                                </span>
+                            </div>
+
+                            <!-- Media Hub Category Filters -->
+                            <div class="flex items-center gap-1.5 flex-wrap p-2.5 rounded-xl bg-muted/30 border border-border text-xs">
+                                <span class="font-bold text-black text-xs mr-1">กรองประเภท:</span>
+                                <button type="button" data-cat="all" onclick="app.filterJobModalMediaCategory('all')" class="btn-media-filter px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-black border border-border shadow-2xs cursor-pointer">
+                                    ทั้งหมด (${allMedia.length})
+                                </button>
+                                <button type="button" data-cat="survey" onclick="app.filterJobModalMediaCategory('survey')" class="btn-media-filter px-2.5 py-1 rounded-lg text-xs font-medium text-black/70 hover:text-black hover:bg-muted/40 cursor-pointer border border-transparent">
+                                    ภาพสำรวจ Step 1 (${photos.length})
+                                </button>
+                                <button type="button" data-cat="blueprint" onclick="app.filterJobModalMediaCategory('blueprint')" class="btn-media-filter px-2.5 py-1 rounded-lg text-xs font-medium text-black/70 hover:text-black hover:bg-muted/40 cursor-pointer border border-transparent">
+                                    แบบแปลน Step 2 (${blueprints.length})
+                                </button>
+                                <button type="button" data-cat="slip" onclick="app.filterJobModalMediaCategory('slip')" class="btn-media-filter px-2.5 py-1 rounded-lg text-xs font-medium text-black/70 hover:text-black hover:bg-muted/40 cursor-pointer border border-transparent">
+                                    สลิป & สัญญา Step 2 (${tickets.length * 2})
+                                </button>
+                                <button type="button" data-cat="boq" onclick="app.filterJobModalMediaCategory('boq')" class="btn-media-filter px-2.5 py-1 rounded-lg text-xs font-medium text-black/70 hover:text-black hover:bg-muted/40 cursor-pointer border border-transparent">
+                                    ไฟล์ BOQ Step 3 (${boqOriginalFile ? 1 : 0})
+                                </button>
+                                <button type="button" data-cat="daily_log" onclick="app.filterJobModalMediaCategory('daily_log')" class="btn-media-filter px-2.5 py-1 rounded-lg text-xs font-medium text-black/70 hover:text-black hover:bg-muted/40 cursor-pointer border border-transparent">
+                                    ภาพช่าง Step 4 (${dailyLogs.reduce((s, dl) => s + (dl.photos ? dl.photos.length : 0), 0)})
+                                </button>
+                                <button type="button" data-cat="qc" onclick="app.filterJobModalMediaCategory('qc')" class="btn-media-filter px-2.5 py-1 rounded-lg text-xs font-medium text-black/70 hover:text-black hover:bg-muted/40 cursor-pointer border border-transparent">
+                                    ภาพตรวจ QC Step 5 (${qcBookings.reduce((s, qb) => s + (qb.photos ? qb.photos.length : 0), 0) + (job.qc_photos ? job.qc_photos.length : 0)})
+                                </button>
+                                <button type="button" data-cat="csat" onclick="app.filterJobModalMediaCategory('csat')" class="btn-media-filter px-2.5 py-1 rounded-lg text-xs font-medium text-black/70 hover:text-black hover:bg-muted/40 cursor-pointer border border-transparent">
+                                    ภาพ CSAT Step 6 (${csatPhotos.length})
+                                </button>
+                            </div>
+
+                            ${allMedia.length === 0 ? `
+                                <div class="py-8 text-center bg-card border border-dashed border-border rounded-xl">
+                                    <i class="ph ph-folder-dashed text-3xl text-black/40 mb-1 block"></i>
+                                    <p class="text-xs text-black/70 font-medium">ยังไม่มีไฟล์หรือรูปภาพแนบในระบบสำหรับงานนี้</p>
+                                </div>
+                            ` : `
+                                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5" id="modal-media-items-grid">
+                                    ${allMedia.map((m, mIdx) => `
+                                        <div class="modal-media-item-card group relative rounded-xl border border-border bg-card overflow-hidden shadow-2xs hover:border-brand-500/60 hover:shadow-md transition duration-200 flex flex-col cursor-pointer" data-category="${m.category}" data-step="step${m.step}" onclick="${m.isBOQFile ? `app.downloadBOQOriginalFile('${job.id}')` : `app.showLightbox('${m.url}', '${this.escapeHtml(m.title)}', '${this.escapeHtml(m.stepName)}', '${this.escapeHtml(m.desc)}', '${this.escapeHtml(m.date)}')`}">
+                                            <div class="aspect-video w-full bg-muted/60 relative overflow-hidden flex items-center justify-center">
+                                                ${m.isBOQFile ? `
+                                                    <div class="flex flex-col items-center justify-center p-3 text-emerald-700 space-y-1">
+                                                        <i class="ph ph-file-xls text-4xl"></i>
+                                                        <span class="text-[10px] font-mono font-bold uppercase">Excel BOQ File</span>
+                                                    </div>
+                                                ` : `
+                                                    <img src="${m.url}" alt="${this.escapeHtml(m.title)}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                                `}
+                                                <div class="absolute top-2 left-2">
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold ${m.badgeColor} shadow-2xs font-mono">
+                                                        ${m.stepName}
+                                                    </span>
+                                                </div>
+                                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                                    ${m.isBOQFile ? `
+                                                        <span class="text-white text-xs font-bold bg-emerald-600 px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm"><i class="ph ph-download-simple font-bold"></i> ดาวน์โหลด</span>
+                                                    ` : `
+                                                        <span class="text-white text-xs font-bold bg-black/60 px-2.5 py-1 rounded-lg flex items-center gap-1 backdrop-blur-xs"><i class="ph ph-arrows-out-simple"></i> ดูรูปขยาย</span>
+                                                    `}
+                                                </div>
+                                            </div>
+                                            <div class="p-2.5 space-y-1 bg-card flex-1 flex flex-col justify-between">
+                                                <div class="space-y-0.5">
+                                                    <div class="text-xs font-bold text-black truncate" title="${this.escapeHtml(m.title)}">${this.escapeHtml(m.title)}</div>
+                                                    <div class="text-[11px] text-black truncate leading-snug" title="${this.escapeHtml(m.desc)}">${this.escapeHtml(m.desc)}</div>
+                                                </div>
+                                                <div class="flex items-center justify-between text-[10px] text-black pt-1 border-t border-border/60 font-mono font-semibold">
+                                                    <span><i class="ph ph-calendar text-black/60"></i> ${m.date}</span>
+                                                    <span class="font-bold text-black">${m.tag}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
                                 </div>
                             `}
                         </div>
-                        ` : ''}
                     </div>
 
                     <!-- Modal Footer -->
                     <div class="p-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2.5 bg-muted/30 shrink-0">
                         <div class="flex items-center gap-2 w-full sm:w-auto">
-                            <button type="button" onclick="app.hideModal('modal-job-preview-detail')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold w-full sm:w-auto cursor-pointer">
+                            <button type="button" onclick="app.hideModal('modal-job-preview-detail')" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-bold w-full sm:w-auto cursor-pointer border border-border hover:bg-muted text-black">
                                 ปิดหน้าต่าง
                             </button>
                         </div>
                         <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-                            <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.navigate('job-detail', '${job.id}');" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-semibold border border-border hover:bg-muted text-foreground flex items-center justify-center gap-1.5 w-full sm:w-auto cursor-pointer" title="เปิดหน้าจัดการเต็มของโครงการนี้">
-                                <i class="ph ph-arrow-square-out"></i>
+                            <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.navigate('job-detail', '${job.id}');" class="btn-artifact-secondary px-4 py-2 rounded-xl text-xs font-bold border border-border hover:bg-muted text-black flex items-center justify-center gap-1.5 w-full sm:w-auto cursor-pointer" title="เปิดหน้าจัดการเต็มของโครงการนี้">
+                                <i class="ph ph-arrow-square-out font-bold"></i>
                                 <span>เปิดหน้ารายละเอียดเต็ม</span>
                             </button>
-                            ${isQuick ? `
-                                <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.goToQC('${job.id}');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold bg-cyan-600 hover:bg-cyan-700 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
-                                    <i class="ph ph-globe"></i>
-                                    <span>ไปตรวจ QC Online ➔</span>
-                                </button>
-                            ` : (!hasTicket ? `
-                                <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.openCreateTicketModal('${job.id}');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
-                                    <i class="ph ph-plus-circle font-bold"></i>
-                                    <span>+ บันทึก Ticket & สลิป ➔</span>
-                                </button>
-                            ` : `
-                                <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.proceedJobToConversion('${job.id}');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
-                                    <i class="ph ph-lightning"></i>
-                                    <span>Convert เข้า Project ➔</span>
-                                </button>
-                            `)}
+                            ${footerStepActionBtn}
                         </div>
                     </div>
                 `;
@@ -10364,6 +11099,53 @@ const app = {
                 console.error('Error in openJobDetailModal:', err);
                 this.showToast('⚠️ ไม่สามารถเปิดรายละเอียดงานได้: ' + (err.message || err));
             }
+        },
+
+        setJobModalTab(tabKey) {
+            const tabs = ['all', 'step1', 'step2', 'step3', 'step4', 'step5', 'step6', 'media'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`btn-modal-tab-${t}`);
+                const sec = document.getElementById(`modal-section-${t}`);
+                if (btn) {
+                    if (t === tabKey) {
+                        btn.className = "px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer bg-white text-black shadow-2xs border border-border shrink-0";
+                    } else {
+                        btn.className = "px-3 py-1.5 rounded-lg font-medium text-xs transition cursor-pointer text-black hover:text-black hover:bg-white/60 shrink-0";
+                    }
+                }
+                if (sec) {
+                    if (tabKey === 'all') {
+                        sec.classList.remove('hidden-view');
+                    } else if (t === tabKey) {
+                        sec.classList.remove('hidden-view');
+                        sec.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    } else {
+                        sec.classList.add('hidden-view');
+                    }
+                }
+            });
+        },
+
+        filterJobModalMediaCategory(cat) {
+            const cards = document.querySelectorAll('.modal-media-item-card');
+            const filterBtns = document.querySelectorAll('.btn-media-filter');
+            filterBtns.forEach(b => {
+                const bCat = b.getAttribute('data-cat');
+                if (bCat === cat) {
+                    b.className = 'btn-media-filter px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-black border border-border shadow-2xs cursor-pointer';
+                } else {
+                    b.className = 'btn-media-filter px-2.5 py-1 rounded-lg text-xs font-medium text-black/70 hover:text-black hover:bg-muted/40 cursor-pointer border border-transparent';
+                }
+            });
+            cards.forEach(c => {
+                const itemCat = c.getAttribute('data-category');
+                const itemStep = c.getAttribute('data-step');
+                if (cat === 'all' || itemCat === cat || itemStep === cat) {
+                    c.classList.remove('hidden-view');
+                } else {
+                    c.classList.add('hidden-view');
+                }
+            });
         },
 
             renderStageWithSLA(job, stepNumber) {
