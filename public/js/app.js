@@ -10024,9 +10024,15 @@ const app = {
                                 ` : ''}
                             </div>
                         </div>
-                        <button type="button" onclick="app.hideModal('modal-job-preview-detail')" class="text-muted-foreground hover:text-black p-2 rounded-xl hover:bg-muted transition cursor-pointer shrink-0" title="ปิดหน้าต่าง (Esc)">
-                            <i class="ph ph-x text-lg"></i>
-                        </button>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button type="button" onclick="window.openTrainingDoc('คู่มือการใช้งาน_สรุปคำสั่งซื้อทั้งหมด_Job360Audit.md', 'โมดูล 16: คู่มือการใช้งานสรุปคำสั่งซื้อทั้งหมด และ Job 360° Retrospective Audit Hub')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition cursor-pointer shadow-2xs" title="เปิดคู่มือการดูรายละเอียดงาน 360°">
+                                <i class="ph ph-book-open text-sm"></i>
+                                <span class="hidden sm:inline">คู่มือ 360°</span>
+                            </button>
+                            <button type="button" onclick="app.hideModal('modal-job-preview-detail')" class="text-muted-foreground hover:text-black p-2 rounded-xl hover:bg-muted transition cursor-pointer shrink-0" title="ปิดหน้าต่าง (Esc)">
+                                <i class="ph ph-x text-lg"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Step-by-Step Navigator & Stage Quick Jump -->
