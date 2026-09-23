@@ -202,3 +202,25 @@ Select-String -Path "public\js\app.js" -Pattern "openQCDetailModal" | Select-Obj
 | กรอง Step 1 | `step=step1` หรือ `status=step1_queue` | `status=new` (อาจไม่ครบ) | ดู `database.ts:dbLoadJobsPaginated` |
 | กรอง Step 6 | `step=step6` | `status=closed` (ไม่ครบ) | `step=step6` → `WHERE status IN ('QC_PASSED','CLOSED')` |
 | limit สูงสุด | `limit=100` | `limit=200` (server cap ที่ 100) | Server บังคับ `Math.min(100, rawLimit)` |
+
+---
+
+## 🔴 Issue #5: บันทึกปิดงาน QC / บันทึกแบบร่างไม่ได้ ขึ้นแจ้งเตือน "คงเหลือ 1 ข้อ" ทั้งที่หน้าจอติ๊ก Yes 100% แล้ว (2026-09-23)
+
+> **เอกสารอ้างอิงฉบับเต็ม:** [`pmt_flow_issue_skill.md`](file:///c:/atgv/pmt_flow/pmt_flow_issue_skill.md)
+
+### อาการ
+- ในหน้าจอแบบฟอร์มตรวจรับรองมาตรฐาน QC (`#modal-qc-job-detail`) ผู้ใช้กดเลือก "✓ Yes — ผ่านเกณฑ์ (5.0 คะแนนเต็ม)" หน้าจอคำนวณคะแนนเป็น 100% (5.0 / 5.0) และปุ่ม "✓ บันทึกปิดงาน & อนุมัติผ่านเกณฑ์ QC & ส่งข้อมูลไป STK" เปิดใช้งาน
+- แต่เมื่อคลิกปุ่มบันทึกปิดงาน เกิดแจ้งเตือน:
+  `⚠️ ไม่สามารถส่งผลตรวจไป STK ได้: กรุณาประเมินและให้คะแนนงานย่อยให้ครบทุกข้อก่อน (คงเหลือ 1 ข้อ)`
+
+### สาเหตุที่แท้จริง (Root Cause)
+1. **ขาด Auto-save (PATCH):** เมื่อคลิกเลือกคำตอบใน `setQCSubtaskAnswer` หรือคลิก "บันทึกแบบร่าง" ในโค้ดเดิมบันทึกเฉพาะในหน่วยความจำ (`DB.jobs`) แต่ไม่ได้ยิง `PATCH /api/v1/jobs/:id` ไปยังฐานข้อมูลเซิร์ฟเวอร์
+2. **Background Polling ล้างทับข้อมูล (Race Condition):** ระบบ Polling ทุก 15 วิ หรือตอนสลับแท็บเบราว์เซอร์ (`visibilitychange`) ฟังก์ชัน `fetchJobsFromApi` ดึงข้อมูลจากฐานข้อมูลที่มี `qc_subtasks: []` มาทับตัวแปรในหน่วยความจำโดยไม่ได้ป้องกันฟิลด์ QC ไว้ แต่หน้าจอโมดอลไม่ได้ Re-render ผู้ใช้จึงยังเห็นปุ่มสีเขียวอยู่
+3. **การตรวจสอบใน `approveCurrentJobToSTK` ล้มเหลว:** เมื่อกดปุ่มบันทึกปิดงาน ฟังก์ชันตรวจพบว่าในหน่วยความจำไม่มีคำตอบ จึงขึ้นแจ้งเตือน "คงเหลือ 1 ข้อ" และบล็อกการบันทึก
+
+### การแก้ไขที่ดำเนินการแล้ว
+1. **Preserve QC State ใน `fetchJobsFromApi`:** ป้องกันไม่ให้ Background Sync นำค่าว่างมาทับ `qc_subtasks`, `qc_remarks`, `qc_inspector`, `qc_history` โดยเฉพาะใบงานที่กำลังเปิดหน้าฟอร์ม QC ตรวจอยู่ (`activeQCModalId`)
+2. **Auto-save ทันที (PATCH):** ทุกครั้งที่มีการเลือกผลการตรวจ Yes/No หรือกดบันทึกแบบร่าง ระบบจะส่งคำสั่ง PATCH บันทึกลงฐานข้อมูล PostgreSQL ทันที
+3. **Defensive DOM Fallback:** เพิ่มการตรวจสอบกู้คืนสำรองใน `approveCurrentJobToSTK()` หากหน่วยความจำสะดุดแต่บนหน้าจอผู้ใช้เลือก Yes/No ไว้อยู่แล้ว ระบบจะดึงค่าจากหน้าจอมาซิงค์ต่อให้อัตโนมัติและอนุมัติปิดงานส่ง STK ได้ทันที ไม่โดนบล็อก
+4. **บันทึกลง `localStorage`:** เพิ่มฟิลด์ QC ใน `safeRecent` ของ `persistJobs()`
