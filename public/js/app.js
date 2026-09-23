@@ -6480,6 +6480,10 @@ const app = {
                 } else if (stepNum === 2) {
                     const bps = (DB.blueprints || []).filter(b => b.jobId === jobId || String(b.jobId) === String(jobId));
                     const isFinalV2 = this.isDesignFinalV2(job);
+                    if (isFinalV2 && job.step2_passed) {
+                        this.showToast('🔒 แบบแปลนได้รับการอนุมัติเป็น v2.0 Final เรียบร้อยแล้ว (เข้าสู่ขั้นตอนที่ 3 BOQ แล้ว)', 'info');
+                        return;
+                    }
                     job.step2_passed = isFinalV2;
                     if (isFinalV2 && !job.step_timestamps.step2_design_at) {
                         job.step_timestamps.step2_design_at = now.toISOString();
@@ -7284,6 +7288,11 @@ const app = {
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return;
 
+                if (this.isDesignFinalV2(job)) {
+                    this.showToast('🔒 แบบแปลนได้รับการอนุมัติเป็น v2.0 Final เรียบร้อยแล้ว (เข้าสู่ขั้นตอนที่ 3 BOQ แล้ว)', 'info');
+                    return;
+                }
+
                 if (!DB.blueprints) DB.blueprints = [];
 
                 const now = new Date();
@@ -7356,6 +7365,11 @@ const app = {
                 const jobId = this.state.unifiedStudioJobId;
                 const job = (DB.jobs || []).find(j => j.id === jobId);
                 if (!job) return;
+
+                if (this.isDesignFinalV2(job)) {
+                    this.showToast('🔒 แบบแปลนได้รับการอนุมัติเป็น v2.0 Final เรียบร้อยแล้ว (เข้าสู่ขั้นตอนที่ 3 BOQ แล้ว ไม่สามารถบันทึกเพิ่มได้)', 'info');
+                    return;
+                }
 
                 const zoneInp = document.getElementById('unified-design-zone-input');
                 const titleInp = document.getElementById('unified-design-title-input');
@@ -8054,6 +8068,110 @@ const app = {
                         if (boqSaveBtn2) { boqSaveBtn2.disabled = false; boqSaveBtn2.className = 'btn-artifact-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-xs flex items-center gap-1 transition'; boqSaveBtn2.title = 'บันทึกรายการ BOQ (Step 3)'; }
                     }
                 }
+
+                // Step 2 Design UI State: When v2.0 Final is approved/saved, Step 3 BOQ is active,
+                // and the blueprint save buttons/form in Section 2 must be DISABLED because we have entered Step 3!
+                const designSaveBtn = document.getElementById('btn-unified-design-save');
+                const designSubmitBtn = document.getElementById('btn-unified-design-submit');
+                const designSampleBtn = document.getElementById('btn-unified-design-sample');
+                const designTitleInp = document.getElementById('unified-design-title-input');
+                const designVerSelect = document.getElementById('unified-design-version-select');
+                const designDropzone = document.getElementById('unified-design-dropzone');
+                const designFileInput = document.getElementById('unified-design-file-input');
+                const designLockedPill = document.getElementById('unified-design-locked-pill');
+
+                if (isFinalV2 && !isQuick) {
+                    // Section 2 Header "บันทึกแบบแปลน" Button -> Disabled
+                    if (designSaveBtn) {
+                        designSaveBtn.disabled = true;
+                        designSaveBtn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold border border-emerald-300 bg-emerald-50 text-foreground cursor-not-allowed flex items-center gap-1.5 opacity-80 shadow-2xs';
+                        designSaveBtn.title = 'แบบแปลน v2.0 Final ได้รับการอนุมัติแล้ว (เข้าสู่ Step 3 BOQ แล้ว)';
+                        designSaveBtn.innerHTML = '<i class="ph ph-check-circle-bold text-emerald-600 text-sm font-bold"></i> <span class="text-foreground font-bold">บันทึกแบบแปลนแล้ว (v2.0)</span>';
+                    }
+                    // Section 2 In-Place Form "บันทึกและแนบแบบแปลน" Button -> Disabled
+                    if (designSubmitBtn) {
+                        designSubmitBtn.disabled = true;
+                        designSubmitBtn.className = 'px-4 py-2 rounded-xl text-xs font-semibold bg-muted text-foreground border border-border cursor-not-allowed opacity-60 flex items-center gap-1.5';
+                        designSubmitBtn.title = 'แบบแปลน v2.0 Final ได้รับการอนุมัติแล้ว และเข้าสู่ขั้นตอนที่ 3 BOQ แล้ว';
+                        designSubmitBtn.innerHTML = '<i class="ph ph-lock-key mr-1 text-sm text-foreground"></i> <span class="text-foreground font-semibold">บันทึกแบบแปลน (ล็อคแล้ว - เข้าสู่ Step 3)</span>';
+                    }
+                    // Disable sample loader link
+                    if (designSampleBtn) {
+                        designSampleBtn.disabled = true;
+                        designSampleBtn.className = 'text-xs text-foreground/40 cursor-not-allowed pointer-events-none font-medium flex items-center gap-1';
+                        designSampleBtn.title = 'แบบแปลน v2.0 Final อนุมัติแล้ว (เข้าสู่ Step 3 BOQ แล้ว)';
+                    }
+                    // Disable form controls
+                    if (designTitleInp) {
+                        designTitleInp.disabled = true;
+                        designTitleInp.readOnly = true;
+                        designTitleInp.classList.add('bg-muted/40', 'cursor-not-allowed');
+                        designTitleInp.classList.remove('bg-card');
+                        designTitleInp.placeholder = 'ล็อคแบบแปลน v2.0 Final แล้ว (เข้าสู่ขั้นตอนที่ 3 BOQ)';
+                    }
+                    if (designVerSelect) {
+                        designVerSelect.disabled = true;
+                        designVerSelect.classList.add('bg-muted/40', 'cursor-not-allowed');
+                        designVerSelect.classList.remove('bg-card');
+                    }
+                    if (designFileInput) {
+                        designFileInput.disabled = true;
+                    }
+                    if (designDropzone) {
+                        designDropzone.classList.add('opacity-50', 'pointer-events-none', 'cursor-not-allowed', 'bg-muted/30');
+                        designDropzone.classList.remove('hover:border-indigo-500', 'cursor-pointer', 'bg-card');
+                    }
+                    if (designLockedPill) {
+                        designLockedPill.classList.remove('hidden');
+                        designLockedPill.classList.add('inline-flex');
+                    }
+                } else if (!isQuick) {
+                    // Section 2 Header "บันทึกแบบแปลน" Button -> Enabled
+                    if (designSaveBtn) {
+                        designSaveBtn.disabled = false;
+                        designSaveBtn.className = 'btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-bold border border-indigo-300 bg-indigo-50/70 hover:bg-indigo-100 text-foreground cursor-pointer shadow-xs flex items-center gap-1.5 transition';
+                        designSaveBtn.title = 'บันทึกข้อมูลแบบแปลน (Step 2)';
+                        designSaveBtn.innerHTML = '<i class="ph ph-floppy-disk text-indigo-600 text-sm font-bold"></i> <span class="text-foreground font-bold">บันทึกแบบแปลน</span>';
+                    }
+                    // Section 2 In-Place Form "บันทึกและแนบแบบแปลน" Button -> Enabled
+                    if (designSubmitBtn) {
+                        designSubmitBtn.disabled = false;
+                        designSubmitBtn.className = 'btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs flex items-center gap-1.5';
+                        designSubmitBtn.title = 'บันทึกและแนบแบบแปลน';
+                        designSubmitBtn.innerHTML = '<i class="ph ph-upload-simple mr-1"></i> <span id="btn-unified-design-submit-text">บันทึกและแนบแบบแปลน</span>';
+                    }
+                    // Re-enable sample loader link
+                    if (designSampleBtn) {
+                        designSampleBtn.disabled = false;
+                        designSampleBtn.className = 'text-xs text-foreground hover:underline font-bold cursor-pointer';
+                        designSampleBtn.title = '';
+                    }
+                    // Re-enable form controls
+                    if (designTitleInp) {
+                        designTitleInp.disabled = false;
+                        designTitleInp.readOnly = false;
+                        designTitleInp.classList.remove('bg-muted/40', 'cursor-not-allowed');
+                        designTitleInp.classList.add('bg-card');
+                        designTitleInp.placeholder = 'เช่น แบบแปลน 3D Layout ครัวและท่อระบายน้ำ';
+                    }
+                    if (designVerSelect) {
+                        designVerSelect.disabled = false;
+                        designVerSelect.classList.remove('bg-muted/40', 'cursor-not-allowed');
+                        designVerSelect.classList.add('bg-card');
+                    }
+                    if (designFileInput) {
+                        designFileInput.disabled = false;
+                    }
+                    if (designDropzone) {
+                        designDropzone.classList.remove('opacity-50', 'pointer-events-none', 'cursor-not-allowed', 'bg-muted/30');
+                        designDropzone.classList.add('hover:border-indigo-500', 'cursor-pointer', 'bg-card');
+                    }
+                    if (designLockedPill) {
+                        designLockedPill.classList.add('hidden');
+                        designLockedPill.classList.remove('inline-flex');
+                    }
+                }
+
                 this.updateUnifiedStudioTabs();
             },
 
