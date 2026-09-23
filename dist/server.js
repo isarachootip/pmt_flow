@@ -3680,21 +3680,51 @@ app.get('/api/v1/jobs/:id/daily-logs', requireAuth, async (req, res) => {
     const logs = await (0, database_1.dbLoadDailyWorkLogs)(id);
     return res.json({ success: true, total: logs.length, data: logs });
 });
+function parseSafeBoolean(val) {
+    if (val === true || val === 1)
+        return true;
+    if (typeof val === 'string') {
+        const s = val.trim().toLowerCase();
+        return s === 'true' || s === '1' || s === 'yes';
+    }
+    return false;
+}
 // Helper to create and process daily work log
 async function handleCreateDailyLog(payload, jobIdParam) {
     const id = jobIdParam || payload.job_id || payload.jobId || 'JOB26090900002';
-    const isFinalDay = (Number(payload.day_number || payload.dayNumber) || 1) >= (Number(payload.total_days || payload.totalDays) || 1);
-    const isEarlyCompleted = Boolean(payload.is_early_completed || payload.isEarlyCompleted);
-    const isOverallComplete = Boolean((payload.is_completed || payload.isCompleted) && (isFinalDay || isEarlyCompleted));
-    const isCompleted = Boolean(payload.is_completed || payload.isCompleted || (payload.progress_percent >= 100) || (payload.progressPercent >= 100));
-    const userConfirmed = Boolean(payload.user_confirmed || payload.userConfirmed || isCompleted || isOverallComplete);
+    const dayNumber = Math.max(1, Number(payload.day_number || payload.dayNumber) || 1);
+    const totalDays = Math.max(1, Number(payload.total_days || payload.totalDays) || 1);
+    const isFinalDay = dayNumber >= totalDays;
+    // Explicit confirmation flags for early finish or manual sign-off
+    const isExplicitConfirmation = parseSafeBoolean(payload.user_confirmed) ||
+        parseSafeBoolean(payload.userConfirmed) ||
+        parseSafeBoolean(payload.is_early_completed) ||
+        parseSafeBoolean(payload.isEarlyCompleted) ||
+        parseSafeBoolean(payload.force_complete) ||
+        parseSafeBoolean(payload.forceComplete);
+    const rawProgressNum = payload.progress_percent !== undefined
+        ? Number(payload.progress_percent)
+        : (payload.progressPercent !== undefined ? Number(payload.progressPercent) : NaN);
+    const isExplicit100 = !isNaN(rawProgressNum) && rawProgressNum >= 100;
+    const isCompletedFlag = parseSafeBoolean(payload.is_completed) || parseSafeBoolean(payload.isCompleted);
+    // Overall complete ONLY if:
+    // 1. Reached or exceeded final scheduled day (isFinalDay)
+    // 2. Or explicit user/technician confirmation (early completion)
+    // 3. Or explicit 100% progress accompanied by completion confirmation
+    // NOTE: Intermediate days with normal daily logging (isCompletedFlag without explicit confirmation) NEVER jump to DONE
+    const isOverallComplete = isFinalDay || isExplicitConfirmation || (isExplicit100 && isCompletedFlag);
+    const userConfirmed = isOverallComplete || isExplicitConfirmation;
     let workDesc = payload.work_description || payload.workDescription || '';
-    if ((isCompleted || isOverallComplete) && workDesc && !workDesc.includes('User ยืนยัน')) {
+    if (isOverallComplete && workDesc && !workDesc.includes('User ยืนยัน')) {
         workDesc = `${workDesc.trim()} (User ยืนยัน)`;
     }
-    else if ((isCompleted || isOverallComplete) && !workDesc) {
+    else if (isOverallComplete && !workDesc) {
         workDesc = 'งานติดตั้งเสร็จสมบูรณ์ 100% (User ยืนยัน) ตรวจสอบระบบเรียบร้อย พร้อมส่งมอบให้ทีม QC ตรวจรับรองคุณภาพ';
     }
+    // Progressive percentage calculation (< 100% before completion)
+    const dayProgress = Math.min(95, Math.round((dayNumber / totalDays) * 100));
+    const rawProgress = !isNaN(rawProgressNum) ? rawProgressNum : dayProgress;
+    const finalProgress = isOverallComplete ? 100 : Math.min(95, Math.max(1, rawProgress));
     const newLog = {
         id: payload.id || `LOG_${Date.now()}`,
         job_id: id,
@@ -3705,18 +3735,18 @@ async function handleCreateDailyLog(payload, jobIdParam) {
         start_time: payload.start_time || payload.startTime || '08:30',
         end_time: payload.end_time || payload.endTime || '17:00',
         work_hours: payload.work_hours || payload.workHours || '8 ชม. 30 นาที',
-        day_number: Number(payload.day_number || payload.dayNumber) || 1,
-        total_days: Number(payload.total_days || payload.totalDays) || 1,
+        day_number: dayNumber,
+        total_days: totalDays,
         technician: payload.technician || 'Team B (ประเสริฐ)',
         recorded_by: payload.recorded_by || payload.recordedBy || 'ช่างหน้างาน',
         reporter_role: payload.reporter_role || payload.reporterRole || 'TECH',
-        progress_percent: Number(payload.progress_percent !== undefined ? payload.progress_percent : payload.progressPercent) || 0,
+        progress_percent: finalProgress,
         work_description: workDesc,
         additional_details: payload.additional_details || payload.additionalDetails || '',
         issues: payload.issues || '',
         materials_used: payload.materials_used || payload.materialsUsed || '',
         photos: Array.isArray(payload.photos) ? payload.photos : [],
-        is_completed: isCompleted,
+        is_completed: isOverallComplete,
         user_confirmed: userConfirmed,
         user_confirmed_at: userConfirmed ? (payload.user_confirmed_at || payload.userConfirmedAt || new Date().toISOString()) : null,
         created_at: payload.created_at || payload.createdAt || new Date().toISOString()
@@ -3726,6 +3756,7 @@ async function handleCreateDailyLog(payload, jobIdParam) {
     exports.coreDailyWorkLogStore.push(newLog);
     // If completed (overall complete: reached final day or confirmed early finish), update task and job status to QC_PENDING in DB
     if (isOverallComplete) {
+        const nowIso = new Date().toISOString();
         const job = await (0, database_1.dbGetJob)(id);
         if (job) {
             const tasks = Array.isArray(job.tasks) ? [...job.tasks] : [];
@@ -3734,10 +3765,15 @@ async function handleCreateDailyLog(payload, jobIdParam) {
                 task.status = 'DONE';
                 task.progress_percent = 100;
             }
+            const stepTimestamps = { ...(job.step_timestamps || {}) };
+            if (!stepTimestamps.qc_pending_at) {
+                stepTimestamps.qc_pending_at = nowIso;
+            }
             await (0, database_1.dbUpdateJob)(id, {
                 tasks,
                 status: JobStatus.QC_PENDING,
-                overall_progress: 85
+                overall_progress: 85,
+                step_timestamps: stepTimestamps
             });
         }
         const memTask = exports.coreTaskStore.find(t => String(t.id) === String(newLog.task_id));
@@ -3749,20 +3785,35 @@ async function handleCreateDailyLog(payload, jobIdParam) {
         if (targetJob) {
             targetJob.status = JobStatus.QC_PENDING;
             targetJob.overall_progress = 85;
+            if (Array.isArray(targetJob.tasks)) {
+                const t = targetJob.tasks.find((task) => String(task.id) === String(newLog.task_id));
+                if (t) {
+                    t.status = 'DONE';
+                    t.progress_percent = 100;
+                }
+            }
+            if (!targetJob.step_timestamps)
+                targetJob.step_timestamps = {};
+            if (!targetJob.step_timestamps.qc_pending_at) {
+                targetJob.step_timestamps.qc_pending_at = nowIso;
+            }
         }
         // Confirm QC Booking on the completion end date
-        await (0, database_1.dbConfirmQCBooking)(String(newLog.task_id), undefined, newLog.recorded_by);
-        const booking = exports.coreQCBookingStore.find(b => String(b.task_id) === String(newLog.task_id));
+        await (0, database_1.dbConfirmQCBooking)(String(newLog.task_id), undefined, newLog.recorded_by, undefined, newLog.log_date);
+        const booking = exports.coreQCBookingStore.find(b => String(b.task_id) === String(newLog.task_id) || String(b.job_id) === String(id));
         if (booking) {
             booking.status = 'CONFIRMED';
-            booking.confirmed_at = new Date().toISOString();
+            booking.confirmed_at = nowIso;
             booking.confirmed_by = newLog.recorded_by;
+            if (newLog.log_date) {
+                booking.qc_booking_date = newLog.log_date;
+            }
         }
     }
     else {
         // Progressive daily update: update task progress without prematurely marking DONE
-        const dayProgress = Math.min(95, Math.round((newLog.day_number / Math.max(1, newLog.total_days)) * 100));
         const job = await (0, database_1.dbGetJob)(id);
+        const updatedJobProgress = Math.min(80, Math.max(job?.overall_progress || 50, Math.round(50 + (dayProgress * 0.35))));
         if (job) {
             const tasks = Array.isArray(job.tasks) ? [...job.tasks] : [];
             const task = tasks.find((t) => String(t.id) === String(newLog.task_id));
@@ -3770,12 +3821,23 @@ async function handleCreateDailyLog(payload, jobIdParam) {
                 task.status = 'IN_PROGRESS';
                 task.progress_percent = Math.max(Number(task.progress_percent) || 0, dayProgress);
             }
-            await (0, database_1.dbUpdateJob)(id, { tasks });
+            await (0, database_1.dbUpdateJob)(id, { tasks, overall_progress: updatedJobProgress });
         }
         const memTask = exports.coreTaskStore.find(t => String(t.id) === String(newLog.task_id));
         if (memTask) {
             memTask.status = 'IN_PROGRESS';
             memTask.progress_percent = Math.max(Number(memTask.progress_percent) || 0, dayProgress);
+        }
+        const targetJob = exports.coreJobStore.find(j => String(j.id) === String(id) || j.job_no === id);
+        if (targetJob) {
+            targetJob.overall_progress = Math.max(targetJob.overall_progress || 50, updatedJobProgress);
+            if (Array.isArray(targetJob.tasks)) {
+                const t = targetJob.tasks.find((task) => String(task.id) === String(newLog.task_id));
+                if (t) {
+                    t.status = 'IN_PROGRESS';
+                    t.progress_percent = Math.max(Number(t.progress_percent) || 0, dayProgress);
+                }
+            }
         }
     }
     return newLog;
@@ -3813,6 +3875,7 @@ app.delete('/api/v1/daily-logs/:logId', requireAuth, async (req, res) => {
         exports.coreDailyWorkLogStore.splice(idx, 1);
         // Auto Rollback Task and Job status if no completed logs remain
         const taskId = deletedLog.task_id;
+        const jobId = deletedLog.job_id;
         const remainingLogs = exports.coreDailyWorkLogStore.filter(l => String(l.task_id) === String(taskId));
         const hasRemainingCompleted = remainingLogs.some(l => l.is_completed || l.user_confirmed);
         if (!hasRemainingCompleted) {
@@ -3824,12 +3887,50 @@ app.delete('/api/v1/daily-logs/:logId', requireAuth, async (req, res) => {
                 memTask.status = newProgress > 0 ? 'IN_PROGRESS' : 'PENDING';
                 memTask.progress_percent = newProgress;
             }
-            const jobId = deletedLog.job_id;
             const targetJob = exports.coreJobStore.find(j => String(j.id) === String(jobId) || j.job_no === jobId);
             if (targetJob && targetJob.status === JobStatus.QC_PENDING) {
                 targetJob.status = JobStatus.IN_PROGRESS;
                 targetJob.overall_progress = 70;
+                if (targetJob.step_timestamps && targetJob.step_timestamps.qc_pending_at) {
+                    delete targetJob.step_timestamps.qc_pending_at;
+                }
             }
+            if (targetJob && Array.isArray(targetJob.tasks)) {
+                const t = targetJob.tasks.find((tk) => String(tk.id) === String(taskId));
+                if (t) {
+                    t.status = newProgress > 0 ? 'IN_PROGRESS' : 'PENDING';
+                    t.progress_percent = newProgress;
+                }
+            }
+            // Revert QC booking in memory
+            const booking = exports.coreQCBookingStore.find(b => String(b.task_id) === String(taskId) || String(b.job_id) === String(jobId));
+            if (booking && booking.status === 'CONFIRMED') {
+                booking.status = 'PENDING_CONFIRM';
+                booking.confirmed_at = null;
+                booking.confirmed_by = null;
+            }
+            // Persist rollback to PostgreSQL database
+            const dbJob = await (0, database_1.dbGetJob)(jobId);
+            if (dbJob) {
+                const dbTasks = Array.isArray(dbJob.tasks) ? [...dbJob.tasks] : [];
+                const dbTask = dbTasks.find((t) => String(t.id) === String(taskId));
+                if (dbTask) {
+                    dbTask.status = newProgress > 0 ? 'IN_PROGRESS' : 'PENDING';
+                    dbTask.progress_percent = newProgress;
+                }
+                const updateData = { tasks: dbTasks };
+                if (dbJob.status === JobStatus.QC_PENDING) {
+                    updateData.status = JobStatus.IN_PROGRESS;
+                    updateData.overall_progress = 70;
+                    if (dbJob.step_timestamps && dbJob.step_timestamps.qc_pending_at) {
+                        const stepTs = { ...dbJob.step_timestamps };
+                        delete stepTs.qc_pending_at;
+                        updateData.step_timestamps = stepTs;
+                    }
+                }
+                await (0, database_1.dbUpdateJob)(jobId, updateData);
+            }
+            await (0, database_1.dbRevertQCBooking)(String(taskId));
         }
     }
     return res.json({ success: true, message: 'ลบรายการบันทึกงานประจำวันเรียบร้อย' });
@@ -4096,6 +4197,12 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
         const isAllPassed = payload.all_tasks_passed !== false;
         const updateStatus = isAllPassed ? JobStatus.QC_PASSED : (currentJob ? currentJob.status : JobStatus.IN_PROGRESS);
         const updateProgress = isAllPassed ? 100 : (currentJob?.overall_progress || 80);
+        const existingTimestamps = currentJob?.step_timestamps || {};
+        const updatedTimestamps = {
+            ...existingTimestamps,
+            ...(isAllPassed ? { qc_passed_at: exportedAt } : {}),
+            stk_exported_at: exportedAt
+        };
         // Persist to PostgreSQL database
         await (0, database_1.dbUpdateJob)(param, {
             status: updateStatus,
@@ -4108,6 +4215,7 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
             stk_status: 'DELIVERED',
             stk_payload: formattedOutboundPayload,
             stk_exported_at: exportedAt,
+            step_timestamps: updatedTimestamps,
             ...(Array.isArray(payload.qc_history) ? { qc_history: payload.qc_history } : {}),
             ...(formattedQuestions.length > 0 ? { qc_subtasks: formattedQuestions } : {})
         });
@@ -4119,6 +4227,11 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
             targetJob.stk_status = 'DELIVERED';
             targetJob.stk_exported_at = exportedAt;
             targetJob.stk_payload = formattedOutboundPayload;
+            if (!targetJob.step_timestamps)
+                targetJob.step_timestamps = {};
+            if (isAllPassed)
+                targetJob.step_timestamps.qc_passed_at = exportedAt;
+            targetJob.step_timestamps.stk_exported_at = exportedAt;
             if (Array.isArray(payload.qc_history))
                 targetJob.qc_history = payload.qc_history;
             if (formattedQuestions.length > 0)

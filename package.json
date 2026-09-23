@@ -8,7 +8,7 @@
     "build": "node scripts/check-syntax.js && tsc",
     "start": "node dist/server.js",
     "dev": "ts-node server.ts",
-    "test": "node test_boq_import_scenario.js"
+    "test": "node test_boq_import_scenario.js && node test_daily_work_log_and_qc_pipeline.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

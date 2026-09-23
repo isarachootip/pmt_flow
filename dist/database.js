@@ -30,6 +30,7 @@ exports.dbLoadQCBookings = dbLoadQCBookings;
 exports.dbSaveQCBooking = dbSaveQCBooking;
 exports.dbDeleteQCBookingByTask = dbDeleteQCBookingByTask;
 exports.dbConfirmQCBooking = dbConfirmQCBooking;
+exports.dbRevertQCBooking = dbRevertQCBooking;
 exports.dbLoadMAContracts = dbLoadMAContracts;
 exports.dbGetMAContract = dbGetMAContract;
 exports.dbSaveMAContract = dbSaveMAContract;
@@ -1834,7 +1835,7 @@ async function dbDeleteQCBookingByTask(taskId) {
         console.error('[DB] Error deleting QC booking by task:', err.message);
     }
 }
-async function dbConfirmQCBooking(id, qcTech, confirmedBy, remarks) {
+async function dbConfirmQCBooking(id, qcTech, confirmedBy, remarks, bookingDate) {
     if (!exports.isDatabaseConnected)
         return null;
     try {
@@ -1844,13 +1845,32 @@ async function dbConfirmQCBooking(id, qcTech, confirmedBy, remarks) {
            assigned_qc_tech = COALESCE($2, assigned_qc_tech),
            confirmed_by = COALESCE($3, confirmed_by),
            remarks = COALESCE($4, remarks),
+           qc_booking_date = COALESCE($5, qc_booking_date),
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1 OR task_id = $1
-       RETURNING *`, [id, qcTech || null, confirmedBy || null, remarks || null]);
+       WHERE id = $1 OR task_id = $1 OR job_id = $1
+       RETURNING *`, [id, qcTech || null, confirmedBy || null, remarks || null, bookingDate || null]);
         return res.rows[0] || null;
     }
     catch (err) {
         console.error('[DB] Error confirming QC booking:', err.message);
+        return null;
+    }
+}
+async function dbRevertQCBooking(id) {
+    if (!exports.isDatabaseConnected)
+        return null;
+    try {
+        const res = await exports.pool.query(`UPDATE core_qc_bookings 
+       SET status = 'PENDING_CONFIRM', 
+           confirmed_at = NULL,
+           confirmed_by = NULL,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 OR task_id = $1 OR job_id = $1
+       RETURNING *`, [id]);
+        return res.rows[0] || null;
+    }
+    catch (err) {
+        console.error('[DB] Error reverting QC booking:', err.message);
         return null;
     }
 }

@@ -23037,11 +23037,11 @@ const app = {
                         const qcDateDisplay = this.formatDateDMY(rawQcDate);
                         const isQCConfirmed = qcBooking && qcBooking.status === 'CONFIRMED';
                         const qcBadgeHtml = isQCConfirmed 
-                            ? `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="จองตรวจ QC วันสิ้นสุดงาน: ${qcDateDisplay} (ยืนยันช่าง QC แล้ว: ${qcBooking.assignedQCTech})">
+                            ? `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="จองตรวจ QC วันสิ้นสุดงาน: ${qcDateDisplay} (ยืนยันช่าง QC แล้ว: ${qcBooking.assignedQCTech})">
                                 <i class="ph ph-check-circle text-xs"></i>
                                 <span>QC: ${qcDateDisplay} (Confirmed)</span>
                               </button>`
-                            : `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 hover:bg-amber-500/25 transition cursor-pointer" title="จองช่าง QC ล่วงหน้า วันตรวจ: ${qcDateDisplay} (วันสิ้นสุดงาน) - คลิกเพื่อยืนยันช่าง QC">
+                            : `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-500/15 text-amber-800 border border-amber-500/30 flex items-center gap-1 hover:bg-amber-500/25 transition cursor-pointer" title="จองช่าง QC ล่วงหน้า วันตรวจ: ${qcDateDisplay} (วันสิ้นสุดงาน) - คลิกเพื่อยืนยันช่าง QC">
                                 <i class="ph ph-calendar-check text-xs"></i>
                                 <span>จอง QC: ${qcDateDisplay}</span>
                                 <span class="underline font-bold ml-0.5">Confirm</span>
@@ -23058,16 +23058,16 @@ const app = {
                         const isTaskCompleted = taskLogs.some(l => l.isCompleted) || t.status === 'DONE';
 
                         const dailyLogBadgeHtml = isTaskCompleted
-                            ? `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="ดูบันทึกงานช่างประจำวัน (${logCount} วัน เสร็จสมบูรณ์ 100%)">
+                            ? `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="ดูบันทึกงานช่างประจำวัน (${logCount} วัน เสร็จสมบูรณ์ 100%)">
                                 <i class="ph ph-check-circle text-xs"></i>
                                 <span>บันทึกช่าง (${logCount} วัน: 100%)</span>
                               </button>`
                             : (logCount > 0
-                                ? `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 flex items-center gap-1 hover:bg-blue-500/25 transition cursor-pointer" title="คลิกเพื่อบันทึกงานช่างประจำวัน (บันทึกแล้ว ${logCount} วัน คืบหน้า ${latestPct}%)">
+                                ? `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-blue-500/15 text-blue-800 border border-blue-500/30 flex items-center gap-1 hover:bg-blue-500/25 transition cursor-pointer" title="คลิกเพื่อบันทึกงานช่างประจำวัน (บันทึกแล้ว ${logCount} วัน คืบหน้า ${latestPct}%)">
                                     <i class="ph ph-note-pencil text-xs"></i>
                                     <span>บันทึกช่าง (${logCount} วัน: ${latestPct}%)</span>
                                   </button>`
-                                : `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-medium bg-muted/60 hover:bg-blue-500/10 hover:text-blue-600 text-muted-foreground border border-border flex items-center gap-1 transition cursor-pointer" title="คลิกเพื่อบันทึกงานช่างประจำวัน">
+                                : `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-medium bg-muted/60 hover:bg-blue-500/10 hover:text-black text-black border border-border flex items-center gap-1 transition cursor-pointer" title="คลิกเพื่อบันทึกงานช่างประจำวัน">
                                     <i class="ph ph-plus-circle text-xs"></i>
                                     <span>+ บันทึกงานประจำวัน</span>
                                   </button>`
@@ -23077,9 +23077,9 @@ const app = {
 
                         const mainRowHtml = `
                         <tr class="hover:bg-muted/20 transition gantt-list-row ${isExpanded ? 'bg-brand-500/[0.02]' : ''}">
-                            <td class="py-2.5 px-3 text-center font-mono text-muted-foreground font-semibold text-xs">
+                            <td class="py-2.5 px-3 text-center font-mono text-black font-semibold text-xs">
                                 <div class="flex items-center justify-center gap-1">
-                                    <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="p-1 rounded-md hover:bg-brand-500/15 text-brand-600 dark:text-brand-400 cursor-pointer transition shrink-0" title="${isExpanded ? 'ย่อซ่อน Subtasks' : 'คลิกดู Subtasks ย่อย'}">
+                                    <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="p-1 rounded-md hover:bg-brand-500/15 text-brand-700 cursor-pointer transition shrink-0" title="${isExpanded ? 'ย่อซ่อน Subtasks' : 'คลิกดู Subtasks ย่อย'}">
                                         <i class="ph ${isExpanded ? 'ph-caret-down-bold' : 'ph-caret-right-bold'} text-xs"></i>
                                     </button>
                                     <span>${idx + 1}</span>
@@ -23088,19 +23088,19 @@ const app = {
                             <td class="py-2.5 px-3">
                                 <div class="space-y-1">
                                     <div class="flex items-center gap-1.5">
-                                        <input type="text" value="${cleanName}" onchange="app.updateGanttTaskField('${t.id}', 'name', this.value)" class="w-full bg-card/60 hover:bg-card focus:bg-card border border-border/60 focus:border-brand-500 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-foreground transition focus:outline-none" placeholder="ชื่องานบริการ / Task">
-                                        <button type="button" onclick="app.addGanttSubtask('${t.id}')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500/20 border border-brand-500/20 transition cursor-pointer shrink-0 flex items-center gap-1" title="เพิ่มงานย่อย (Subtask)">
+                                        <input type="text" value="${cleanName}" onchange="app.updateGanttTaskField('${t.id}', 'name', this.value)" class="w-full bg-card/60 hover:bg-card focus:bg-card border border-border/60 focus:border-brand-500 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-black transition focus:outline-none" placeholder="ชื่องานบริการ / Task">
+                                        <button type="button" onclick="app.addGanttSubtask('${t.id}')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-brand-500/10 text-brand-700 hover:bg-brand-500/20 border border-brand-500/20 transition cursor-pointer shrink-0 flex items-center gap-1" title="เพิ่มงานย่อย (Subtask)">
                                             <i class="ph ph-plus-circle text-xs"></i>
                                             <span>+ Subtask</span>
                                         </button>
                                     </div>
                                     ${subtasks.length > 0 ? `
                                         <div class="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                                            <span class="px-1.5 py-0.2 rounded bg-brand-500/10 text-brand-600 dark:text-brand-400 font-mono font-bold">${subtasks.length} Subtasks</span>
+                                            <span class="px-1.5 py-0.2 rounded bg-brand-500/10 text-brand-700 font-mono font-bold">${subtasks.length} Subtasks</span>
                                             <span>•</span>
-                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">เสร็จแล้ว ${subtasks.filter(s => s.status === 'DONE').length}</span>
+                                            <span class="text-emerald-700 font-medium">เสร็จแล้ว ${subtasks.filter(s => s.status === 'DONE').length}</span>
                                             <span>•</span>
-                                            <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="text-brand-500 hover:underline cursor-pointer">
+                                            <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="text-brand-600 hover:underline cursor-pointer">
                                                 ${isExpanded ? '▼ ซ่อนงานย่อย' : '▶ ดูแถบงานย่อย'}
                                             </button>
                                         </div>
@@ -23109,18 +23109,18 @@ const app = {
                             </td>
                             <td class="py-2.5 px-3">
                                 <div class="relative">
-                                    <input type="text" value="${this.formatDateDMY(t.start || '2026-09-05')}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateGanttTaskField('${t.id}', 'start', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg pl-2 pr-7 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                    <input type="text" value="${this.formatDateDMY(t.start || '2026-09-05')}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateGanttTaskField('${t.id}', 'start', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg pl-2 pr-7 py-1.5 text-xs font-mono text-black focus:outline-none cursor-pointer">
                                     <i class="ph ph-calendar absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
                                 </div>
                             </td>
                             <td class="py-2.5 px-3">
                                 <div class="relative">
-                                    <input type="text" value="${this.formatDateDMY(t.end || t.start || '2026-09-05')}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateGanttTaskField('${t.id}', 'end', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg pl-2 pr-7 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                    <input type="text" value="${this.formatDateDMY(t.end || t.start || '2026-09-05')}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateGanttTaskField('${t.id}', 'end', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg pl-2 pr-7 py-1.5 text-xs font-mono text-black focus:outline-none cursor-pointer">
                                     <i class="ph ph-calendar absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
                                 </div>
                             </td>
                             <td class="py-2.5 px-2 text-center">
-                                <span class="px-2 py-1 rounded text-[11px] font-mono font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                                <span class="px-2 py-1 rounded text-[11px] font-mono font-semibold bg-purple-500/10 text-purple-700 border border-purple-500/20">
                                     ${taskDays} วัน
                                 </span>
                             </td>
@@ -23256,13 +23256,13 @@ const app = {
                                         <div class="flex items-center gap-2 flex-wrap">
                                             <span class="font-mono text-sm font-bold text-brand-500">${targetJob.id}</span>
                                             <span class="text-xs font-bold text-foreground">${targetJob.customer}</span>
-                                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium border border-emerald-500/20">✓ นำเข้า BOQ แล้ว (${targetJob.boq_items.length} รายการ)</span>
-                                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold border border-purple-500/20">${jobTasks.length} Tasks</span>
+                                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-800 font-medium border border-emerald-500/20">✓ นำเข้า BOQ แล้ว (${targetJob.boq_items.length} รายการ)</span>
+                                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-700 font-bold border border-purple-500/20">${jobTasks.length} Tasks</span>
                                         </div>
                                         <p class="text-[11px] text-muted-foreground mt-1">${targetJob.service} • มุมมองตารางรายการ (List View) กำหนดวันเริ่ม-สิ้นสุด และระบบจองช่าง QC ล่วงหน้า 5 วันอัตโนมัติ</p>
                                     </div>
                                     <div class="flex items-center gap-2 shrink-0">
-                                        <button type="button" onclick="app.openDailyWorkLogModalForJob('${selectedJobFilter}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-blue-600 dark:text-blue-400 border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 cursor-pointer shadow-xs" title="บันทึกงานช่างประจำวันโดย QC ทีม / ช่างติดตั้ง">
+                                        <button type="button" onclick="app.openDailyWorkLogModalForJob('${selectedJobFilter}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-blue-800 border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 cursor-pointer shadow-xs" title="บันทึกงานช่างประจำวันโดย QC ทีม / ช่างติดตั้ง">
                                             <i class="ph ph-notebook text-sm"></i>
                                             <span>📝 บันทึกงานประจำวัน</span>
                                         </button>
@@ -23270,11 +23270,11 @@ const app = {
                                             <i class="ph ph-plus-circle text-sm"></i>
                                             <span>+ แทรก Task งาน</span>
                                         </button>
-                                        <button type="button" onclick="app.resetGanttTasksFromBOQ('${selectedJobFilter}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer" title="ดึงรายการค่าแรงจาก BOQ มาสร้าง Task ใหม่">
+                                        <button type="button" onclick="app.resetGanttTasksFromBOQ('${selectedJobFilter}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-black hover:text-foreground cursor-pointer" title="ดึงรายการค่าแรงจาก BOQ มาสร้าง Task ใหม่">
                                             <i class="ph ph-arrows-clockwise text-sm"></i>
                                             <span>รีเซ็ตจาก BOQ</span>
                                         </button>
-                                        <button type="button" onclick="app.setGanttViewMode('gantt')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-600 dark:text-brand-400 border border-brand-500/20 hover:bg-brand-500/10 cursor-pointer" title="สลับเป็นแผนภูมิแท่ง Gantt Chart">
+                                        <button type="button" onclick="app.setGanttViewMode('gantt')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-700 border border-brand-500/20 hover:bg-brand-500/10 cursor-pointer" title="สลับเป็นแผนภูมิแท่ง Gantt Chart">
                                             <i class="ph ph-chart-bar-horizontal text-sm"></i>
                                             <span>ดูกราฟ Gantt</span>
                                         </button>
@@ -23284,19 +23284,19 @@ const app = {
                                 <!-- Full-Width List View Table -->
                                 <div class="overflow-x-auto rounded-2xl border border-border bg-card shadow-xs">
                                     <table class="w-full text-left text-xs">
-                                        <thead class="bg-muted/40 text-muted-foreground text-[11px] uppercase tracking-wider border-b border-border">
+                                        <thead class="bg-muted/40 text-black text-[11px] uppercase tracking-wider border-b border-border">
                                             <tr>
-                                                <th class="py-3 px-3.5 w-12 text-center font-bold">#</th>
-                                                <th class="py-3 px-3.5 min-w-[220px] font-bold">ชื่องานบริการ / Task</th>
-                                                <th class="py-3 px-3.5 w-36 font-bold">วันเริ่ม (Start)</th>
-                                                <th class="py-3 px-3.5 w-36 font-bold">วันสิ้นสุด (End)</th>
-                                                <th class="py-3 px-2.5 text-center w-20 font-bold">ระยะเวลา</th>
-                                                <th class="py-3 px-3.5 w-44 font-bold text-brand-600 dark:text-brand-400">จองตรวจ QC (วันสิ้นสุด)</th>
-                                                <th class="py-3 px-3.5 w-44 font-bold text-blue-600 dark:text-blue-400">บันทึกงานประจำวัน</th>
-                                                <th class="py-3 px-3.5 w-48 font-bold">ช่างผู้รับผิดชอบ</th>
-                                                <th class="py-3 px-3.5 w-44 font-bold text-teal-600">QC ผู้รับผิดชอบ</th>
-                                                <th class="py-3 px-3.5 w-28 font-bold">สถานะ</th>
-                                                <th class="py-3 px-2.5 w-12 text-center font-bold">ลบ</th>
+                                                <th class="py-3 px-3.5 w-12 text-center font-bold text-black">#</th>
+                                                <th class="py-3 px-3.5 min-w-[220px] font-bold text-black">ชื่องานบริการ / Task</th>
+                                                <th class="py-3 px-3.5 w-36 font-bold text-black">วันเริ่ม (Start)</th>
+                                                <th class="py-3 px-3.5 w-36 font-bold text-black">วันสิ้นสุด (End)</th>
+                                                <th class="py-3 px-2.5 text-center w-20 font-bold text-black">ระยะเวลา</th>
+                                                <th class="py-3 px-3.5 w-44 font-bold text-black">จองตรวจ QC (วันสิ้นสุด)</th>
+                                                <th class="py-3 px-3.5 w-44 font-bold text-black">บันทึกงานประจำวัน</th>
+                                                <th class="py-3 px-3.5 w-48 font-bold text-black">ช่างผู้รับผิดชอบ</th>
+                                                <th class="py-3 px-3.5 w-44 font-bold text-black">QC ผู้รับผิดชอบ</th>
+                                                <th class="py-3 px-3.5 w-28 font-bold text-black">สถานะ</th>
+                                                <th class="py-3 px-2.5 w-12 text-center font-bold text-black">ลบ</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-border">
@@ -23310,9 +23310,9 @@ const app = {
                                     <div class="flex items-center gap-3">
                                         <span>รวมทั้งหมด <strong class="text-foreground">${jobTasks.length}</strong> งาน</span>
                                         <span>•</span>
-                                        <span class="text-emerald-600 dark:text-emerald-400 font-medium">เสร็จสิ้น ${doneCount} งาน</span>
+                                        <span class="text-emerald-700 font-medium">เสร็จสิ้น ${doneCount} งาน</span>
                                         <span>•</span>
-                                        <span class="text-brand-500 font-medium">กำลังทำ ${inProgCount} งาน</span>
+                                        <span class="text-brand-600 font-medium">กำลังทำ ${inProgCount} งาน</span>
                                     </div>
                                     <div>
                                         <span>ช่างรับผิดชอบหลัก: <strong class="text-foreground">${targetJob.tech || 'Team A'}</strong></span>
@@ -23335,13 +23335,13 @@ const app = {
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <span class="font-mono text-sm font-bold text-brand-500">${targetJob.id}</span>
                                         <span class="text-xs font-bold text-foreground">${targetJob.customer}</span>
-                                        <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium border border-emerald-500/20">✓ นำเข้า BOQ แล้ว (${targetJob.boq_items.length} รายการ)</span>
-                                        <span class="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold border border-purple-500/20">${jobTasks.length} Tasks</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-800 font-medium border border-emerald-500/20">✓ นำเข้า BOQ แล้ว (${targetJob.boq_items.length} รายการ)</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-700 font-bold border border-purple-500/20">${jobTasks.length} Tasks</span>
                                     </div>
                                     <p class="text-[11px] text-muted-foreground mt-1">${targetJob.service} • กำหนดวันเริ่ม-สิ้นสุด และเลือกช่างผู้รับผิดชอบในแต่ละ Task ได้โดยตรง ระบบจะสร้างงานจองช่าง QC ล่วงหน้า 5 วันอัตโนมัติ</p>
                                 </div>
                                 <div class="flex items-center gap-2 shrink-0">
-                                    <button type="button" onclick="app.openDailyWorkLogModalForJob('${selectedJobFilter}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-blue-600 dark:text-blue-400 border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 cursor-pointer shadow-xs" title="บันทึกงานช่างประจำวันโดย QC ทีม / ช่างติดตั้ง">
+                                    <button type="button" onclick="app.openDailyWorkLogModalForJob('${selectedJobFilter}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-blue-800 border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 cursor-pointer shadow-xs" title="บันทึกงานช่างประจำวันโดย QC ทีม / ช่างติดตั้ง">
                                         <i class="ph ph-notebook text-sm"></i>
                                         <span>📝 บันทึกงานประจำวัน</span>
                                     </button>
@@ -23349,11 +23349,11 @@ const app = {
                                         <i class="ph ph-plus-circle text-sm"></i>
                                         <span>+ แทรก Task งาน</span>
                                     </button>
-                                    <button type="button" onclick="app.resetGanttTasksFromBOQ('${selectedJobFilter}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer" title="ดึงรายการค่าแรงจาก BOQ มาสร้าง Task ใหม่">
+                                    <button type="button" onclick="app.resetGanttTasksFromBOQ('${selectedJobFilter}')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-black hover:text-foreground cursor-pointer" title="ดึงรายการค่าแรงจาก BOQ มาสร้าง Task ใหม่">
                                         <i class="ph ph-arrows-clockwise text-sm"></i>
                                         <span>รีเซ็ตจาก BOQ</span>
                                     </button>
-                                    <button type="button" onclick="app.setGanttViewMode('list')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-600 dark:text-brand-400 border border-brand-500/20 hover:bg-brand-500/10 cursor-pointer" title="สลับเป็นมุมมองตาราง List View">
+                                    <button type="button" onclick="app.setGanttViewMode('list')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-700 border border-brand-500/20 hover:bg-brand-500/10 cursor-pointer" title="สลับเป็นมุมมองตาราง List View">
                                         <i class="ph ph-list-bullets text-sm"></i>
                                         <span>สลับเป็น List View</span>
                                     </button>
@@ -23361,19 +23361,19 @@ const app = {
                             </div>
                             <div class="overflow-x-auto rounded-xl border border-border bg-muted/10">
                                 <table class="w-full text-left text-xs">
-                                    <thead class="bg-muted/40 text-muted-foreground text-[11px] uppercase tracking-wider border-b border-border">
+                                    <thead class="bg-muted/40 text-black text-[11px] uppercase tracking-wider border-b border-border">
                                         <tr>
-                                            <th class="py-2.5 px-3 w-10 text-center font-bold">#</th>
-                                            <th class="py-2.5 px-3 min-w-[200px] font-bold">ชื่องานบริการ / Task</th>
-                                            <th class="py-2.5 px-3 w-36 font-bold">วันเริ่ม (Start Date)</th>
-                                            <th class="py-2.5 px-3 w-36 font-bold">วันสิ้นสุด (End Date)</th>
-                                            <th class="py-2.5 px-2 text-center w-20 font-bold">ระยะเวลา</th>
-                                            <th class="py-2.5 px-3 w-44 font-bold text-brand-600 dark:text-brand-400">จองตรวจ QC (วันสิ้นสุด)</th>
-                                            <th class="py-2.5 px-3 w-44 font-bold text-blue-600 dark:text-blue-400">บันทึกงานประจำวัน</th>
-                                            <th class="py-2.5 px-3 w-48 font-bold">ช่างผู้รับผิดชอบ</th>
-                                            <th class="py-2.5 px-3 w-44 font-bold text-teal-600">QC ผู้รับผิดชอบ</th>
-                                            <th class="py-2.5 px-3 w-28 font-bold">สถานะ</th>
-                                            <th class="py-2.5 px-2 w-10 text-center font-bold">ลบ</th>
+                                            <th class="py-2.5 px-3 w-10 text-center font-bold text-black">#</th>
+                                            <th class="py-2.5 px-3 min-w-[200px] font-bold text-black">ชื่องานบริการ / Task</th>
+                                            <th class="py-2.5 px-3 w-36 font-bold text-black">วันเริ่ม (Start Date)</th>
+                                            <th class="py-2.5 px-3 w-36 font-bold text-black">วันสิ้นสุด (End Date)</th>
+                                            <th class="py-2.5 px-2 text-center w-20 font-bold text-black">ระยะเวลา</th>
+                                            <th class="py-2.5 px-3 w-44 font-bold text-black">จองตรวจ QC (วันสิ้นสุด)</th>
+                                            <th class="py-2.5 px-3 w-44 font-bold text-black">บันทึกงานประจำวัน</th>
+                                            <th class="py-2.5 px-3 w-48 font-bold text-black">ช่างผู้รับผิดชอบ</th>
+                                            <th class="py-2.5 px-3 w-44 font-bold text-black">QC ผู้รับผิดชอบ</th>
+                                            <th class="py-2.5 px-3 w-28 font-bold text-black">สถานะ</th>
+                                            <th class="py-2.5 px-2 w-10 text-center font-bold text-black">ลบ</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-border">
@@ -23419,7 +23419,7 @@ const app = {
                                     <button onclick="app.navigate('boq')" class="btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm bg-purple-600 hover:bg-purple-700 text-white cursor-pointer">
                                         <i class="ph ph-receipt text-sm"></i> ไปที่ คลังรายการ BOQ กลาง
                                     </button>
-                                    <button onclick="app.navigate('project-conversion')" class="btn-artifact-secondary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 cursor-pointer">
+                                    <button onclick="app.navigate('project-conversion')" class="btn-artifact-secondary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 border border-amber-500/30 text-amber-800 hover:bg-amber-500/10 cursor-pointer">
                                         <i class="ph ph-folder-plus text-sm"></i> ไปที่เตรียมแผนงานและทีมช่าง
                                     </button>
                                 `}
@@ -23460,11 +23460,11 @@ const app = {
                         const qcDateDisplay = this.formatDateDMY(rawQcDate);
                         const isQCConfirmed = qcBooking && qcBooking.status === 'CONFIRMED';
                         const qcBadgeHtml = isQCConfirmed 
-                            ? `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="จองตรวจ QC วันสิ้นสุดงาน: ${qcDateDisplay} (ยืนยันช่าง QC แล้ว: ${qcBooking.assignedQCTech})">
+                            ? `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="จองตรวจ QC วันสิ้นสุดงาน: ${qcDateDisplay} (ยืนยันช่าง QC แล้ว: ${qcBooking.assignedQCTech})">
                                 <i class="ph ph-check-circle text-xs"></i>
                                 <span>QC: ${qcDateDisplay} (Confirmed)</span>
                               </button>`
-                            : `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 hover:bg-amber-500/25 transition cursor-pointer" title="จองช่าง QC ล่วงหน้า วันตรวจ: ${qcDateDisplay} (วันสิ้นสุดงาน) - คลิกเพื่อยืนยันช่าง QC">
+                            : `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-500/15 text-amber-800 border border-amber-500/30 flex items-center gap-1 hover:bg-amber-500/25 transition cursor-pointer" title="จองช่าง QC ล่วงหน้า วันตรวจ: ${qcDateDisplay} (วันสิ้นสุดงาน) - คลิกเพื่อยืนยันช่าง QC">
                                 <i class="ph ph-calendar-check text-xs"></i>
                                 <span>จอง QC: ${qcDateDisplay}</span>
                                 <span class="underline font-bold ml-0.5">Confirm</span>
@@ -23481,16 +23481,16 @@ const app = {
                         const isTaskCompleted = taskLogs.some(l => l.isCompleted) || t.status === 'DONE';
 
                         const dailyLogBadgeHtml = isTaskCompleted
-                            ? `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="ดูบันทึกงานช่างประจำวัน (${logCount} วัน เสร็จสมบูรณ์ 100%)">
+                            ? `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="ดูบันทึกงานช่างประจำวัน (${logCount} วัน เสร็จสมบูรณ์ 100%)">
                                 <i class="ph ph-check-circle text-xs"></i>
                                 <span>บันทึกช่าง (${logCount} วัน: 100%)</span>
                               </button>`
                             : (logCount > 0
-                                ? `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 flex items-center gap-1 hover:bg-blue-500/25 transition cursor-pointer" title="คลิกเพื่อบันทึกงานช่างประจำวัน (บันทึกแล้ว ${logCount} วัน คืบหน้า ${latestPct}%)">
+                                ? `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-blue-500/15 text-blue-800 border border-blue-500/30 flex items-center gap-1 hover:bg-blue-500/25 transition cursor-pointer" title="คลิกเพื่อบันทึกงานช่างประจำวัน (บันทึกแล้ว ${logCount} วัน คืบหน้า ${latestPct}%)">
                                     <i class="ph ph-note-pencil text-xs"></i>
                                     <span>บันทึกช่าง (${logCount} วัน: ${latestPct}%)</span>
                                   </button>`
-                                : `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-medium bg-muted/60 hover:bg-blue-500/10 hover:text-blue-600 text-muted-foreground border border-border flex items-center gap-1 transition cursor-pointer" title="คลิกเพื่อบันทึกงานช่างประจำวัน">
+                                : `<button type="button" onclick="app.openDailyWorkLogModal('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-medium bg-muted/60 hover:bg-blue-500/10 hover:text-black text-black border border-border flex items-center gap-1 transition cursor-pointer" title="คลิกเพื่อบันทึกงานช่างประจำวัน">
                                     <i class="ph ph-plus-circle text-xs"></i>
                                     <span>+ บันทึกงานประจำวัน</span>
                                   </button>`
@@ -23500,16 +23500,16 @@ const app = {
 
                         const mainRowHtml = `
                         <tr class="hover:bg-muted/20 transition gantt-list-row ${isExpanded ? 'bg-brand-500/[0.02]' : ''}">
-                            <td class="py-2.5 px-3 text-center font-mono text-muted-foreground font-semibold text-xs">
+                            <td class="py-2.5 px-3 text-center font-mono text-black font-semibold text-xs">
                                 <div class="flex items-center justify-center gap-1">
-                                    <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="p-1 rounded-md hover:bg-brand-500/15 text-brand-600 dark:text-brand-400 cursor-pointer transition shrink-0" title="${isExpanded ? 'ย่อซ่อน Subtasks' : 'คลิกดู Subtasks ย่อย'}">
+                                    <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="p-1 rounded-md hover:bg-brand-500/15 text-brand-700 cursor-pointer transition shrink-0" title="${isExpanded ? 'ย่อซ่อน Subtasks' : 'คลิกดู Subtasks ย่อย'}">
                                         <i class="ph ${isExpanded ? 'ph-caret-down-bold' : 'ph-caret-right-bold'} text-xs"></i>
                                     </button>
                                     <span>${idx + 1}</span>
                                 </div>
                             </td>
                             <td class="py-2.5 px-3">
-                                <button type="button" onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-600 dark:text-purple-400 font-bold px-2 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-xs transition cursor-pointer flex items-center gap-1 inline-flex" title="คลิกเพื่อเลือกโครงการ ${t.jobId}">
+                                <button type="button" onclick="app.selectGanttJob('${t.jobId}')" class="font-mono text-purple-700 font-bold px-2 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-xs transition cursor-pointer flex items-center gap-1 inline-flex" title="คลิกเพื่อเลือกโครงการ ${t.jobId}">
                                     <i class="ph ph-folder text-xs"></i> ${t.jobId}
                                 </button>
                                 <div class="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[140px]" title="${custName}">คุณ${custName}</div>
@@ -23517,19 +23517,19 @@ const app = {
                             <td class="py-2.5 px-3">
                                 <div class="space-y-1">
                                     <div class="flex items-center gap-1.5">
-                                        <input type="text" value="${cleanName}" onchange="app.updateGanttTaskField('${t.id}', 'name', this.value)" class="w-full bg-card/60 hover:bg-card focus:bg-card border border-border/60 focus:border-brand-500 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-foreground transition focus:outline-none" placeholder="ชื่องานบริการ / Task">
-                                        <button type="button" onclick="app.addGanttSubtask('${t.id}')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500/20 border border-brand-500/20 transition cursor-pointer shrink-0 flex items-center gap-1" title="เพิ่มงานย่อย (Subtask)">
+                                        <input type="text" value="${cleanName}" onchange="app.updateGanttTaskField('${t.id}', 'name', this.value)" class="w-full bg-card/60 hover:bg-card focus:bg-card border border-border/60 focus:border-brand-500 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-black transition focus:outline-none" placeholder="ชื่องานบริการ / Task">
+                                        <button type="button" onclick="app.addGanttSubtask('${t.id}')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-brand-500/10 text-brand-700 hover:bg-brand-500/20 border border-brand-500/20 transition cursor-pointer shrink-0 flex items-center gap-1" title="เพิ่มงานย่อย (Subtask)">
                                             <i class="ph ph-plus-circle text-xs"></i>
                                             <span>+ Subtask</span>
                                         </button>
                                     </div>
                                     ${subtasks.length > 0 ? `
                                         <div class="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                                            <span class="px-1.5 py-0.2 rounded bg-brand-500/10 text-brand-600 dark:text-brand-400 font-mono font-bold">${subtasks.length} Subtasks</span>
+                                            <span class="px-1.5 py-0.2 rounded bg-brand-500/10 text-brand-700 font-mono font-bold">${subtasks.length} Subtasks</span>
                                             <span>•</span>
-                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">เสร็จแล้ว ${subtasks.filter(s => s.status === 'DONE').length}</span>
+                                            <span class="text-emerald-700 font-medium">เสร็จแล้ว ${subtasks.filter(s => s.status === 'DONE').length}</span>
                                             <span>•</span>
-                                            <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="text-brand-500 hover:underline cursor-pointer">
+                                            <button type="button" onclick="app.toggleGanttSubtaskExpand('${t.id}')" class="text-brand-600 hover:underline cursor-pointer">
                                                 ${isExpanded ? '▼ ซ่อนงานย่อย' : '▶ ดูแถบงานย่อย'}
                                             </button>
                                         </div>
@@ -23538,18 +23538,18 @@ const app = {
                             </td>
                             <td class="py-2.5 px-3">
                                 <div class="relative">
-                                    <input type="text" value="${this.formatDateDMY(t.start || '2026-09-05')}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateGanttTaskField('${t.id}', 'start', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg pl-2 pr-7 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                    <input type="text" value="${this.formatDateDMY(t.start || '2026-09-05')}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateGanttTaskField('${t.id}', 'start', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg pl-2 pr-7 py-1.5 text-xs font-mono text-black focus:outline-none cursor-pointer">
                                     <i class="ph ph-calendar absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
                                 </div>
                             </td>
                             <td class="py-2.5 px-3">
                                 <div class="relative">
-                                    <input type="text" value="${this.formatDateDMY(t.end || t.start || '2026-09-05')}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateGanttTaskField('${t.id}', 'end', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg pl-2 pr-7 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer">
+                                    <input type="text" value="${this.formatDateDMY(t.end || t.start || '2026-09-05')}" data-datepicker="true" placeholder="DD/MM/YYYY" onchange="app.updateGanttTaskField('${t.id}', 'end', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg pl-2 pr-7 py-1.5 text-xs font-mono text-black focus:outline-none cursor-pointer">
                                     <i class="ph ph-calendar absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
                                 </div>
                             </td>
                             <td class="py-2.5 px-2 text-center">
-                                <span class="px-2 py-1 rounded text-[11px] font-mono font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                                <span class="px-2 py-1 rounded text-[11px] font-mono font-semibold bg-purple-500/10 text-purple-700 border border-purple-500/20">
                                     ${taskDays} วัน
                                 </span>
                             </td>
@@ -23686,12 +23686,12 @@ const app = {
                                     <div>
                                         <div class="flex items-center gap-2">
                                             <h3 class="font-display font-bold text-sm text-foreground">รายการแผนงานติดตั้งทั้งหมด (All Tasks List View)</h3>
-                                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-brand-500/10 text-brand-600 dark:text-brand-400 font-bold">${tasks.length} Tasks</span>
+                                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-brand-500/10 text-brand-700 font-bold">${tasks.length} Tasks</span>
                                         </div>
                                         <div class="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
-                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">✓ เสร็จสิ้น ${doneCount}</span>
+                                            <span class="text-emerald-700 font-medium">✓ เสร็จสิ้น ${doneCount}</span>
                                             <span>•</span>
-                                            <span class="text-brand-500 font-medium">⚡ กำลังทำ ${inProgCount}</span>
+                                            <span class="text-brand-600 font-medium">⚡ กำลังทำ ${inProgCount}</span>
                                             <span>•</span>
                                             <span>⏳ รอดำเนินการ ${todoCount}</span>
                                         </div>
@@ -23702,7 +23702,7 @@ const app = {
                                         <i class="ph ph-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
                                         <input type="text" oninput="app.filterGanttListTable(this.value)" placeholder="ค้นหางาน, โครงการ, ช่าง..." class="w-full bg-muted/40 border border-border focus:border-brand-500 rounded-xl pl-7 pr-3 py-1.5 text-xs text-foreground focus:outline-none transition">
                                     </div>
-                                    <button type="button" onclick="app.setGanttViewMode('gantt')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-600 dark:text-brand-400 border border-brand-500/20 hover:bg-brand-500/10 cursor-pointer" title="สลับเป็นแผนภูมิแท่ง Gantt Chart">
+                                    <button type="button" onclick="app.setGanttViewMode('gantt')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-700 border border-brand-500/20 hover:bg-brand-500/10 cursor-pointer" title="สลับเป็นแผนภูมิแท่ง Gantt Chart">
                                         <i class="ph ph-chart-bar-horizontal text-sm"></i>
                                         <span>ดูกราฟ Gantt</span>
                                     </button>
@@ -23712,20 +23712,20 @@ const app = {
                             <!-- Master Tasks Table -->
                             <div class="overflow-x-auto rounded-2xl border border-border bg-card shadow-xs">
                                 <table class="w-full text-left text-xs">
-                                    <thead class="bg-muted/40 text-muted-foreground text-[11px] uppercase tracking-wider border-b border-border">
+                                    <thead class="bg-muted/40 text-black text-[11px] uppercase tracking-wider border-b border-border">
                                         <tr>
-                                            <th class="py-3 px-3 w-10 text-center font-bold">#</th>
-                                            <th class="py-3 px-3 w-36 font-bold">โครงการ</th>
-                                            <th class="py-3 px-3 min-w-[200px] font-bold">ชื่องานบริการ / Task</th>
-                                            <th class="py-3 px-3 w-36 font-bold">วันเริ่ม (Start)</th>
-                                            <th class="py-3 px-3 w-36 font-bold">วันสิ้นสุด (End)</th>
-                                            <th class="py-3 px-2 text-center w-20 font-bold">ระยะเวลา</th>
-                                            <th class="py-3 px-3 w-44 font-bold text-brand-600 dark:text-brand-400">จองตรวจ QC (วันสิ้นสุด)</th>
-                                            <th class="py-3 px-3 w-44 font-bold text-blue-600 dark:text-blue-400">บันทึกงานประจำวัน</th>
-                                            <th class="py-3 px-3 w-48 font-bold">ช่างผู้รับผิดชอบ</th>
-                                            <th class="py-3 px-3 w-44 font-bold text-teal-600">QC ผู้รับผิดชอบ</th>
-                                            <th class="py-3 px-3 w-28 font-bold">สถานะ</th>
-                                            <th class="py-3 px-2 w-10 text-center font-bold">ลบ</th>
+                                            <th class="py-3 px-3 w-10 text-center font-bold text-black">#</th>
+                                            <th class="py-3 px-3 w-36 font-bold text-black">โครงการ</th>
+                                            <th class="py-3 px-3 min-w-[200px] font-bold text-black">ชื่องานบริการ / Task</th>
+                                            <th class="py-3 px-3 w-36 font-bold text-black">วันเริ่ม (Start)</th>
+                                            <th class="py-3 px-3 w-36 font-bold text-black">วันสิ้นสุด (End)</th>
+                                            <th class="py-3 px-2 text-center w-20 font-bold text-black">ระยะเวลา</th>
+                                            <th class="py-3 px-3 w-44 font-bold text-black">จองตรวจ QC (วันสิ้นสุด)</th>
+                                            <th class="py-3 px-3 w-44 font-bold text-black">บันทึกงานประจำวัน</th>
+                                            <th class="py-3 px-3 w-48 font-bold text-black">ช่างผู้รับผิดชอบ</th>
+                                            <th class="py-3 px-3 w-44 font-bold text-black">QC ผู้รับผิดชอบ</th>
+                                            <th class="py-3 px-3 w-28 font-bold text-black">สถานะ</th>
+                                            <th class="py-3 px-2 w-10 text-center font-bold text-black">ลบ</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-border">
@@ -23745,19 +23745,19 @@ const app = {
                     <div class="space-y-4">
                         <div class="p-4 rounded-2xl bg-card border border-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-600 flex items-center justify-center text-lg font-bold">
+                                <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-700 flex items-center justify-center text-lg font-bold">
                                     <i class="ph ph-chart-bar-horizontal"></i>
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-2">
                                         <h3 class="font-display font-bold text-sm text-foreground">แผนงานภาพรวมทุกโครงการ (All Projects Timeline)</h3>
-                                        <span class="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold">${tasks.length} Tasks</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-700 font-bold">${tasks.length} Tasks</span>
                                     </div>
                                     <p class="text-[11px] text-muted-foreground mt-0.5">แผนภูมิแท่งแสดงช่วงเวลาและสถานะ Real-time รายวัน ทุกโครงการพร้อมกัน</p>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                <button type="button" onclick="app.setGanttViewMode('list')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-600 dark:text-brand-400 border border-brand-500/20 hover:bg-brand-500/10 cursor-pointer" title="สลับเป็นตาราง List View">
+                                <button type="button" onclick="app.setGanttViewMode('list')" class="btn-artifact-secondary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-brand-700 border border-brand-500/20 hover:bg-brand-500/10 cursor-pointer" title="สลับเป็นตาราง List View">
                                     <i class="ph ph-list-bullets text-sm"></i>
                                     <span>สลับเป็น List View</span>
                                 </button>
@@ -23929,13 +23929,13 @@ const app = {
                         <div class="w-8 h-8 rounded-full bg-muted/60 group-hover:bg-cyan-500/15 group-hover:text-cyan-500 flex items-center justify-center text-muted-foreground transition mb-1.5">
                             <i class="ph ph-camera text-base"></i>
                         </div>
-                        <div class="text-[11px] font-bold text-foreground group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition">
+                        <div class="text-[11px] font-bold text-black group-hover:text-cyan-700 transition">
                             รูปที่ ${slotNum}
                         </div>
                         <div class="text-[9px] text-muted-foreground line-clamp-1 mt-0.5">
                             ${meta.desc}
                         </div>
-                        <span class="text-[9px] font-semibold text-cyan-600 dark:text-cyan-400 mt-1 flex items-center gap-0.5 opacity-90">
+                        <span class="text-[9px] font-semibold text-cyan-700 mt-1 flex items-center gap-0.5 opacity-90">
                             <i class="ph ph-plus-circle"></i> เลือกรูป/ถ่ายรูป
                         </span>
                     </div>`;
@@ -23952,18 +23952,18 @@ const app = {
                 return `
                 <div>
                     <div class="flex items-center justify-between mb-1">
-                        <label class="block text-[10px] font-semibold text-foreground">
+                        <label class="block text-[10px] font-bold text-black">
                             ${labelText} <span class="text-rose-500">*</span>
                         </label>
-                        <span class="text-[9px] font-mono text-cyan-600 dark:text-cyan-400 font-bold bg-cyan-500/10 px-1.5 py-0.2 rounded border border-cyan-500/20">24 ชม. (ไม่มี AM/PM)</span>
+                        <span class="text-[9px] font-mono text-cyan-800 font-bold bg-cyan-500/10 px-1.5 py-0.2 rounded border border-cyan-500/20">24 ชม. (ไม่มี AM/PM)</span>
                     </div>
                     <div class="flex items-center gap-1.5 bg-card border border-border focus-within:border-cyan-500 rounded-xl px-3 py-2 shadow-xs transition">
-                        <i class="ph ph-clock text-cyan-600 dark:text-cyan-400 text-base shrink-0"></i>
-                        <select id="${prefix}-${type}-hour" onchange="app.syncDailyLogTime('${prefix}')" class="bg-transparent text-xs font-mono font-bold text-foreground focus:outline-none cursor-pointer py-0.5" title="เลือกชั่วโมง (00 - 23)">
+                        <i class="ph ph-clock text-cyan-700 text-base shrink-0"></i>
+                        <select id="${prefix}-${type}-hour" onchange="app.syncDailyLogTime('${prefix}')" class="bg-transparent text-xs font-mono font-bold text-black focus:outline-none cursor-pointer py-0.5" title="เลือกชั่วโมง (00 - 23)">
                             ${hourOptions}
                         </select>
                         <span class="text-xs font-bold text-muted-foreground font-mono select-none px-0.5">:</span>
-                        <select id="${prefix}-${type}-min" onchange="app.syncDailyLogTime('${prefix}')" class="bg-transparent text-xs font-mono font-semibold text-foreground focus:outline-none cursor-pointer py-0.5" title="เลือกนาที">
+                        <select id="${prefix}-${type}-min" onchange="app.syncDailyLogTime('${prefix}')" class="bg-transparent text-xs font-mono font-bold text-black focus:outline-none cursor-pointer py-0.5" title="เลือกนาที">
                             ${minOptions}
                         </select>
                         <span class="text-[11px] text-muted-foreground font-mono ml-auto font-medium select-none">น.</span>
@@ -23975,12 +23975,12 @@ const app = {
             renderDailyLogShiftPresetsHtml(prefix = 'dwl') {
                 return `
                 <div class="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-cyan-500/15 text-[10px]">
-                    <span class="text-muted-foreground font-medium flex items-center gap-1"><i class="ph ph-lightning text-amber-500"></i> เลือกกะเวลารวดเร็ว:</span>
-                    <button type="button" onclick="app.setDailyLogShiftPreset('${prefix}', '08', '00', '17', '00')" class="px-2 py-0.5 rounded-md bg-muted/80 hover:bg-cyan-500/20 hover:text-cyan-600 dark:hover:text-cyan-400 border border-border/60 transition cursor-pointer font-mono font-medium">08:00 - 17:00</button>
-                    <button type="button" onclick="app.setDailyLogShiftPreset('${prefix}', '08', '30', '17', '00')" class="px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/25 border border-cyan-500/30 transition cursor-pointer font-mono font-bold">08:30 - 17:00</button>
-                    <button type="button" onclick="app.setDailyLogShiftPreset('${prefix}', '08', '30', '17', '30')" class="px-2 py-0.5 rounded-md bg-muted/80 hover:bg-cyan-500/20 hover:text-cyan-600 dark:hover:text-cyan-400 border border-border/60 transition cursor-pointer font-mono font-medium">08:30 - 17:30</button>
-                    <button type="button" onclick="app.setDailyLogShiftPreset('${prefix}', '09', '00', '18', '00')" class="px-2 py-0.5 rounded-md bg-muted/80 hover:bg-cyan-500/20 hover:text-cyan-600 dark:hover:text-cyan-400 border border-border/60 transition cursor-pointer font-mono font-medium">09:00 - 18:00</button>
-                    <button type="button" onclick="app.setDailyLogShiftPreset('${prefix}', '13', '00', '17', '00')" class="px-2 py-0.5 rounded-md bg-muted/80 hover:bg-cyan-500/20 hover:text-cyan-600 dark:hover:text-cyan-400 border border-border/60 transition cursor-pointer font-mono font-medium">13:00 - 17:00</button>
+                    <span class="text-black font-semibold flex items-center gap-1"><i class="ph ph-lightning text-amber-500"></i> เลือกกะเวลารวดเร็ว:</span>
+                    <button type="button" onclick="app.setDailyLogShiftPreset('${prefix}', '08', '00', '17', '00')" class="px-2 py-0.5 rounded-md bg-muted/80 hover:bg-cyan-500/20 hover:text-cyan-800 text-black border border-border/60 transition cursor-pointer font-mono font-semibold">08:00 - 17:00</button>
+                    <button type="button" onclick="app.setDailyLogShiftPreset('${prefix}', '08', '30', '17', '00')" class="px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-800 hover:bg-cyan-500/25 border border-cyan-500/30 transition cursor-pointer font-mono font-bold">08:30 - 17:00</button>
+                    <button type="button" onclick="app.setDailyLogShiftPreset('${prefix}', '08', '30', '17', '30')" class="px-2 py-0.5 rounded-md bg-muted/80 hover:bg-cyan-500/20 hover:text-cyan-800 text-black border border-border/60 transition cursor-pointer font-mono font-semibold">08:30 - 17:30</button>
+                    <button type="button" onclick="app.setDailyLogShiftPreset('${prefix}', '09', '00', '18', '00')" class="px-2 py-0.5 rounded-md bg-muted/80 hover:bg-cyan-500/20 hover:text-cyan-800 text-black border border-border/60 transition cursor-pointer font-mono font-semibold">09:00 - 18:00</button>
+                    <button type="button" onclick="app.setDailyLogShiftPreset('${prefix}', '13', '00', '17', '00')" class="px-2 py-0.5 rounded-md bg-muted/80 hover:bg-cyan-500/20 hover:text-cyan-800 text-black border border-border/60 transition cursor-pointer font-mono font-semibold">13:00 - 17:00</button>
                 </div>`;
             },
 
@@ -24274,21 +24274,21 @@ const app = {
                     let statusBadgeHtml = '';
                     if (isDayDone) {
                         cardBgClass = 'bg-emerald-500/10 border-emerald-500/30';
-                        statusBadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">✓ ${dayLog.progressPercent}%${(dayLog.userConfirmed || dayLog.isCompleted) ? ' (User ยืนยัน)' : ''}</span>`;
+                        statusBadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-800 font-bold">✓ ${dayLog.progressPercent}%${(dayLog.userConfirmed || dayLog.isCompleted) ? ' (User ยืนยัน)' : ''}</span>`;
                     } else if (isToday) {
                         cardBgClass = 'bg-rose-500/10 border-rose-500/40 ring-1 ring-rose-500/30';
-                        statusBadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold">วันนี้ (รออัปเดต)</span>`;
+                        statusBadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-800 font-bold">วันนี้ (รออัปเดต)</span>`;
                     } else if (diffFromToday > 0 && canRetro) {
                         cardBgClass = 'bg-amber-500/10 border-amber-500/30';
-                        statusBadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-semibold cursor-pointer" title="อัปเดตย้อนหลังได้">${diffFromToday} วันก่อน (อัปเดตได้)</span>`;
+                        statusBadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-800 font-bold cursor-pointer" title="อัปเดตย้อนหลังได้">${diffFromToday} วันก่อน (อัปเดตได้)</span>`;
                     } else if (diffFromToday > 3) {
                         cardBgClass = 'bg-muted/30 border-border opacity-60';
-                        statusBadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground font-mono" title="เกินกำหนด 3 วัน">เกิน 3 วัน (ล็อค)</span>`;
+                        statusBadgeHtml = `<span class="text-[10px] px-1.5 py-0.2 rounded bg-muted text-black font-mono" title="เกินกำหนด 3 วัน">เกิน 3 วัน (ล็อค)</span>`;
                     } else {
                         cardBgClass = 'bg-muted/40 border-border';
                         statusBadgeHtml = isLastDay 
-                            ? `<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold">นัดตรวจ QC</span>` 
-                            : `<span class="text-[10px] text-muted-foreground">ตามแผนงาน</span>`;
+                            ? `<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-800 font-bold">นัดตรวจ QC</span>` 
+                            : `<span class="text-[10px] text-muted-foreground font-medium">ตามแผนงาน</span>`;
                     }
 
                     const clickHandler = (!isDayDone && canRetro) ? `onclick="app.setDailyLogInputDate('${dStr}', ${dayIdx})"` : '';
@@ -24297,7 +24297,7 @@ const app = {
                     return `
                     <div ${clickHandler} class="flex-1 min-w-[120px] p-2.5 rounded-xl border ${cardBgClass} transition flex flex-col justify-between ${hoverClass}">
                         <div class="flex items-center justify-between text-[11px]">
-                            <span class="font-bold ${isDayDone ? 'text-emerald-600 dark:text-emerald-400' : (isToday ? 'text-rose-600 dark:text-rose-400' : 'text-foreground')}">วันที่ ${dayIdx} (${this.formatDateDMY(dStr).slice(0, 5)})</span>
+                            <span class="font-bold ${isDayDone ? 'text-emerald-800' : (isToday ? 'text-rose-800' : 'text-black')}">วันที่ ${dayIdx} (${this.formatDateDMY(dStr).slice(0, 5)})</span>
                             ${statusBadgeHtml}
                         </div>
                         <div class="text-[10px] text-muted-foreground mt-1 truncate">
@@ -24323,38 +24323,38 @@ const app = {
                     <div class="p-4 rounded-2xl bg-card border ${idx === 0 ? 'border-cyan-500/50 ring-1 ring-cyan-500/30' : 'border-border'} shadow-xs hover:border-cyan-500/30 transition space-y-2.5">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2 flex-wrap">
-                                <span class="w-6 h-6 rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 text-xs font-bold font-mono flex items-center justify-center border border-cyan-500/30">D${l.dayNumber || 1}</span>
-                                <span class="font-bold text-xs text-foreground font-mono">📅 ${this.formatDateDMY(l.logDate)}</span>
+                                <span class="w-6 h-6 rounded-lg bg-cyan-500/15 text-cyan-800 text-xs font-bold font-mono flex items-center justify-center border border-cyan-500/30">D${l.dayNumber || 1}</span>
+                                <span class="font-bold text-xs text-black font-mono">📅 ${this.formatDateDMY(l.logDate)}</span>
                                 ${idx === 0 ? `
                                     <span class="badge-new-item text-[8px] py-0 px-1.5" title="บันทึกล่าสุด">
                                         <i class="ph ph-sparkle-fill text-yellow-200"></i> บันทึกล่าสุด (NEW!)
                                     </span>
                                 ` : ''}
-                                <span class="text-[10px] px-2 py-0.5 rounded-md ${l.isCompleted ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold' : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold'}">
+                                <span class="text-[10px] px-2 py-0.5 rounded-md ${l.isCompleted ? 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 font-bold' : 'bg-cyan-500/10 text-cyan-800 font-bold'}">
                                     ความคืบหน้า ${l.progressPercent}% ${l.isCompleted ? `✓ ช่างบันทึกสำเร็จ${(l.userConfirmed || l.isCompleted) ? ' (User ยืนยัน)' : ''}` : ''}
                                 </span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="text-[10px] font-mono text-muted-foreground"><i class="ph ph-clock text-cyan-500"></i> ${l.startTime || '08:30'} - ${l.endTime || '17:00'} (${l.workHours || '8 ชม. 30 นาที'})</span>
+                                <span class="text-[10px] font-mono text-black font-medium"><i class="ph ph-clock text-cyan-700"></i> ${l.startTime || '08:30'} - ${l.endTime || '17:00'} (${l.workHours || '8 ชม. 30 นาที'})</span>
                                 <button type="button" onclick="app.deleteDailyWorkLog('${l.id}', '${taskId}')" class="text-muted-foreground hover:text-rose-500 p-1 rounded-md transition cursor-pointer" title="ลบบันทึกนี้">
                                     <i class="ph ph-trash text-sm"></i>
                                 </button>
                             </div>
                         </div>
-                        <p class="text-xs text-foreground bg-muted/30 p-2.5 rounded-xl border border-border/60">${l.workDescription}</p>
-                        ${l.additionalDetails ? `<div class="text-[11px] text-muted-foreground flex items-center gap-1.5"><i class="ph ph-info text-cyan-500"></i> <span>ข้อมูลเพิ่มเติม: <strong>${l.additionalDetails}</strong></span></div>` : ''}
-                        ${l.materialsUsed ? `<div class="text-[11px] text-muted-foreground flex items-center gap-1.5"><i class="ph ph-wrench text-cyan-500"></i> <span>อุปกรณ์/อะไหล่: <strong>${l.materialsUsed}</strong></span></div>` : ''}
-                        ${l.issues ? `<div class="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5"><i class="ph ph-warning-circle text-amber-500"></i> <span>ข้อสังเกต: ${l.issues}</span></div>` : ''}
+                        <p class="text-xs text-black bg-muted/30 p-2.5 rounded-xl border border-border/60">${l.workDescription}</p>
+                        ${l.additionalDetails ? `<div class="text-[11px] text-black flex items-center gap-1.5"><i class="ph ph-info text-cyan-700"></i> <span>ข้อมูลเพิ่มเติม: <strong>${l.additionalDetails}</strong></span></div>` : ''}
+                        ${l.materialsUsed ? `<div class="text-[11px] text-black flex items-center gap-1.5"><i class="ph ph-wrench text-cyan-700"></i> <span>อุปกรณ์/อะไหล่: <strong>${l.materialsUsed}</strong></span></div>` : ''}
+                        ${l.issues ? `<div class="text-[11px] text-amber-800 font-medium flex items-center gap-1.5"><i class="ph ph-warning-circle text-amber-600"></i> <span>ข้อสังเกต: ${l.issues}</span></div>` : ''}
                         ${photosCount > 0 ? `
                             <div class="pt-1">
-                                <div class="text-[10px] text-muted-foreground mb-1.5 font-medium flex items-center justify-between">
+                                <div class="text-[10px] text-black mb-1.5 font-bold flex items-center justify-between">
                                     <span>รูปภาพหน้างาน (${photosCount} รูป):</span>
-                                    <span class="text-[9px] text-cyan-500">คลิกรูปเพื่อ Preview</span>
+                                    <span class="text-[9px] text-cyan-700 font-semibold">คลิกรูปเพื่อ Preview</span>
                                 </div>
                                 <div class="flex items-center gap-2 overflow-x-auto pb-1">${photosHtml}</div>
                             </div>
                         ` : ''}
-                        <div class="text-[10px] text-muted-foreground/80 flex items-center justify-between pt-1 border-t border-border/50">
+                        <div class="text-[10px] text-black/80 flex items-center justify-between pt-1 border-t border-border/50">
                             <span>ผู้บันทึก: <strong>${l.recordedBy}</strong> (${l.reporterRole === 'QC' ? 'QC Team' : 'ช่างหน้างาน'})</span>
                             <span>บันทึกเมื่อ: ${new Date(l.createdAt || Date.now()).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</span>
                         </div>
@@ -24366,14 +24366,14 @@ const app = {
                     <div class="p-4 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-brand-500/10 to-emerald-500/10 border border-cyan-500/20 shadow-xs space-y-3">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div>
-                                <div class="text-xs font-bold text-foreground flex items-center gap-2">
-                                    <i class="ph ph-chart-line-up text-cyan-500 text-base"></i>
-                                    <span>ความคืบหน้างานตามแผนงาน Gantt: <strong class="text-cyan-600 dark:text-cyan-400">${taskName}</strong></span>
+                                <div class="text-xs font-bold text-black flex items-center gap-2">
+                                    <i class="ph ph-chart-line-up text-cyan-700 text-base"></i>
+                                    <span>ความคืบหน้างานตามแผนงาน Gantt: <strong class="text-cyan-800">${taskName}</strong></span>
                                 </div>
-                                <p class="text-[11px] text-muted-foreground mt-0.5">ช่วงเวลา: <strong>${this.formatDateDMY(startDateStr)} - ${this.formatDateDMY(endDateStr)}</strong> (${taskDays} วัน) • นัดตรวจ QC: <strong class="text-emerald-600 dark:text-emerald-400">${this.formatDateDMY(endDateStr)} (วันสิ้นสุดงาน)</strong></p>
+                                <p class="text-[11px] text-black/80 mt-0.5">ช่วงเวลา: <strong>${this.formatDateDMY(startDateStr)} - ${this.formatDateDMY(endDateStr)}</strong> (${taskDays} วัน) • นัดตรวจ QC: <strong class="text-emerald-800">${this.formatDateDMY(endDateStr)} (วันสิ้นสุดงาน)</strong></p>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="px-3 py-1 rounded-xl text-xs font-mono font-bold ${isCompleted ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40' : 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30'}">
+                                <span class="px-3 py-1 rounded-xl text-xs font-mono font-bold ${isCompleted ? 'bg-emerald-500/20 text-emerald-800 border border-emerald-500/40' : 'bg-cyan-500/15 text-cyan-800 border border-cyan-500/30'}">
                                     ${isCompleted ? `✓ ช่างบันทึกสำเร็จ 100%${hasUserConfirmed ? ' (User ยืนยัน)' : ''}` : `ความคืบหน้ารวม ${trueProgress}% (${completedDaysCount}/${taskDays} วัน)`}
                                 </span>
                             </div>
@@ -24427,25 +24427,25 @@ const app = {
                                 <form onsubmit="event.preventDefault(); app.saveDailyWorkLog('${taskId}', false, false);" class="space-y-3.5">
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
-                                            <label class="block text-[11px] font-medium text-foreground mb-1">วันที่บันทึก (Work Date - DD/MM/YYYY): <span class="text-rose-500">*</span></label>
+                                            <label class="block text-[11px] font-bold text-black mb-1">วันที่บันทึก (Work Date - DD/MM/YYYY): <span class="text-rose-500">*</span></label>
                                             <div class="relative">
-                                                <input type="text" id="dwl-input-date" value="${this.formatDateDMY(nextDate)}" data-datepicker="true" placeholder="DD/MM/YYYY" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl pl-3 pr-9 py-1.5 text-xs font-mono text-foreground focus:outline-none cursor-pointer" required>
+                                                <input type="text" id="dwl-input-date" value="${this.formatDateDMY(nextDate)}" data-datepicker="true" placeholder="DD/MM/YYYY" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl pl-3 pr-9 py-1.5 text-xs font-mono text-black focus:outline-none cursor-pointer" required>
                                                 <i class="ph ph-calendar absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
                                             </div>
                                         </div>
                                         <div>
-                                            <label class="block text-[11px] font-medium text-foreground mb-1">วันที่ในแผนงาน (Day #):</label>
-                                            <input type="number" id="dwl-input-day-num" value="${nextDayNum}" min="1" max="${taskDays + 5}" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs font-mono text-foreground focus:outline-none" required>
+                                            <label class="block text-[11px] font-bold text-black mb-1">วันที่ในแผนงาน (Day #):</label>
+                                            <input type="number" id="dwl-input-day-num" value="${nextDayNum}" min="1" max="${taskDays + 5}" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs font-mono text-black focus:outline-none" required>
                                         </div>
                                     </div>
 
                                     <!-- Time In & Time Out in Modal (24 Hours) -->
                                     <div class="p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20 space-y-2">
                                         <div class="flex items-center justify-between">
-                                            <span class="text-[11px] font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
+                                            <span class="text-[11px] font-bold text-cyan-800 flex items-center gap-1">
                                                 <i class="ph ph-clock text-xs"></i> ระยะเวลาปฏิบัติงาน (24 ชม.):
                                             </span>
-                                            <span id="dwl-duration-text" class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30">
+                                            <span id="dwl-duration-text" class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-800 border border-cyan-500/30">
                                                 ⏱️ รวม 8 ชม. 30 นาที <span class="text-[9px] font-mono opacity-80">(08:30 - 17:00 น.)</span>
                                             </span>
                                         </div>
@@ -24459,12 +24459,12 @@ const app = {
 
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
-                                            <label class="block text-[11px] font-medium text-foreground mb-1">ผู้บันทึก (Recorded By):</label>
-                                            <input type="text" id="dwl-input-recorded-by" value="${tech || 'ช่างหน้างาน'}" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none" required>
+                                            <label class="block text-[11px] font-bold text-black mb-1">ผู้บันทึก (Recorded By):</label>
+                                            <input type="text" id="dwl-input-recorded-by" value="${tech || 'ช่างหน้างาน'}" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-black focus:outline-none" required>
                                         </div>
                                         <div>
-                                            <label class="block text-[11px] font-medium text-foreground mb-1">บทบาทผู้บันทึก:</label>
-                                            <select id="dwl-input-role" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none cursor-pointer font-medium">
+                                            <label class="block text-[11px] font-bold text-black mb-1">บทบาทผู้บันทึก:</label>
+                                            <select id="dwl-input-role" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-black focus:outline-none cursor-pointer font-medium">
                                                 <option value="TECH" selected>ช่างหน้างาน (Technician)</option>
                                                 <option value="QC">เจ้าหน้าที่ QC ทีม (QC Inspector)</option>
                                             </select>
@@ -24472,31 +24472,31 @@ const app = {
                                     </div>
 
                                     <div>
-                                        <label class="block text-[11px] font-medium text-foreground mb-1">รายละเอียดงานที่ทำในวันนี้ (Daily Accomplishment): <span class="text-rose-500">*</span></label>
-                                        <textarea id="dwl-input-desc" rows="2.5" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none transition" placeholder="เช่น ต่อสายเมนเข้าตู้ Consumer Unit, ทดสอบเบรกเกอร์กันดูด RCBO Safe-T-Cut, ตรวจวัดแรงดันไฟทุกจุด 220V ปกติ และทำความสะอาดพื้นที่ 100%..." required></textarea>
+                                        <label class="block text-[11px] font-bold text-black mb-1">รายละเอียดงานที่ทำในวันนี้ (Daily Accomplishment): <span class="text-rose-500">*</span></label>
+                                        <textarea id="dwl-input-desc" rows="2.5" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-black focus:outline-none transition" placeholder="เช่น ต่อสายเมนเข้าตู้ Consumer Unit, ทดสอบเบรกเกอร์กันดูด RCBO Safe-T-Cut, ตรวจวัดแรงดันไฟทุกจุด 220V ปกติ และทำความสะอาดพื้นที่ 100%..." required></textarea>
                                     </div>
 
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
-                                            <label class="block text-[11px] font-medium text-muted-foreground mb-1">อุปกรณ์/อะไหล่ที่ติดตั้ง:</label>
-                                            <input type="text" id="dwl-input-materials" placeholder="เช่น สายไฟ THW, ตู้เบรกเกอร์, เต้ารับ 8 ชุด" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none">
+                                            <label class="block text-[11px] font-bold text-black mb-1">อุปกรณ์/อะไหล่ที่ติดตั้ง:</label>
+                                            <input type="text" id="dwl-input-materials" placeholder="เช่น สายไฟ THW, ตู้เบรกเกอร์, เต้ารับ 8 ชุด" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-black focus:outline-none">
                                         </div>
                                         <div>
-                                            <label class="block text-[11px] font-medium text-muted-foreground mb-1">ปัญหา / อุปสรรคหน้างาน:</label>
-                                            <input type="text" id="dwl-input-issues" placeholder="เช่น ไม่มีปัญหา หรือ ฝนตกชั่วคราว" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none">
+                                            <label class="block text-[11px] font-bold text-black mb-1">ปัญหา / อุปสรรคหน้างาน:</label>
+                                            <input type="text" id="dwl-input-issues" placeholder="เช่น ไม่มีปัญหา หรือ ฝนตกชั่วคราว" class="w-full bg-muted/20 border border-border focus:border-cyan-500 rounded-xl px-3 py-1.5 text-xs text-black focus:outline-none">
                                         </div>
                                     </div>
 
                                     <!-- 5 Photo Slots in Modal -->
                                     <div class="space-y-2 pt-1 border-t border-border">
                                         <div class="flex items-center justify-between">
-                                            <label class="text-[11px] font-bold text-foreground flex items-center gap-1">
-                                                <i class="ph ph-images text-cyan-500"></i>
+                                            <label class="text-[11px] font-bold text-black flex items-center gap-1">
+                                                <i class="ph ph-images text-cyan-700"></i>
                                                 <span>แนบรูปถ่ายหน้างาน 5 รูป (Preview ได้ทันที):</span>
                                             </label>
                                             <div class="flex items-center gap-2">
-                                                <span class="text-[10px] font-mono text-cyan-600 dark:text-cyan-400" id="dwl-photos-count-badge">แนบแล้ว 0 / 5 รูป</span>
-                                                <button type="button" onclick="app.loadSamplePhotosForDailyLog('dwl')" class="text-[10px] text-cyan-600 hover:underline cursor-pointer">
+                                                <span class="text-[10px] font-mono text-cyan-800 font-bold" id="dwl-photos-count-badge">แนบแล้ว 0 / 5 รูป</span>
+                                                <button type="button" onclick="app.loadSamplePhotosForDailyLog('dwl')" class="text-[10px] text-cyan-700 hover:underline cursor-pointer font-semibold">
                                                     📸 โหลดรูปตัวอย่าง 5 รูป
                                                 </button>
                                             </div>
@@ -24506,17 +24506,35 @@ const app = {
                                         </div>
                                     </div>
 
+                                    <!-- User Completion Confirmation Checkbox -->
+                                    <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                                        <label class="flex items-center gap-2.5 cursor-pointer">
+                                            <input type="checkbox" id="dwl-input-completed" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer border-border shrink-0">
+                                            <div class="flex flex-col">
+                                                <span class="text-xs font-bold text-black flex items-center gap-1.5">
+                                                    <i class="ph ph-check-circle-fill text-emerald-600"></i>
+                                                    งานเสร็จสมบูรณ์ 100% (User ยืนยันปิดงาน ส่งต่อตรวจ QC)
+                                                </span>
+                                                <span class="text-[10px] text-black/70">ทำเครื่องหมายเมื่อการดำเนินงานของ Task นี้เสร็จสิ้นแล้ว หรือจบงานก่อนกำหนด เพื่อเปลี่ยนสถานะเป็น DONE และส่งต่อ QC ทันที</span>
+                                            </div>
+                                        </label>
+                                    </div>
+
                                     <!-- Form Action Buttons -->
                                     <div class="flex items-center justify-between gap-2 pt-3 border-t border-border flex-wrap">
-                                        <button type="button" onclick="app.closeDailyWorkLogModal(); app.navigate('qc', '${jobId}');" class="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-700 hover:underline flex items-center gap-1.5 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-teal-500/10 transition" title="ไปยังหน้าถัดไป: Step 5 ตรวจรับรองคุณภาพ QC & บันทึกปิดงาน">
+                                        <button type="button" onclick="app.closeDailyWorkLogModal(); app.navigate('qc', '${jobId}');" class="text-xs font-semibold text-teal-700 hover:text-teal-800 hover:underline flex items-center gap-1.5 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-teal-500/10 transition" title="ไปยังหน้าถัดไป: Step 5 ตรวจรับรองคุณภาพ QC & บันทึกปิดงาน">
                                             <span>ไปยังหน้าถัดไป (Step 5: ตรวจ QC & บันทึกปิดงาน)</span>
                                             <i class="ph ph-arrow-right text-sm"></i>
                                         </button>
-                                        <div class="flex items-center gap-2">
-                                            <button type="button" onclick="app.closeDailyWorkLogModal()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-medium cursor-pointer">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <button type="button" onclick="app.closeDailyWorkLogModal()" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer">
                                                 ยกเลิก
                                             </button>
-                                            <button type="submit" class="btn-artifact-primary px-5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 cursor-pointer flex items-center gap-1.5 shadow-md transition hover:scale-[1.02]">
+                                            <button type="button" onclick="app.completeDailyWorkAndMoveToQC('${taskId}')" class="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 cursor-pointer flex items-center gap-1.5 shadow-md transition hover:scale-[1.02]" title="บันทึกว่างานเสร็จสิ้น 100% (User ยืนยัน) และส่งต่อเข้าคิว QC ทันที">
+                                                <i class="ph ph-check-circle-bold text-sm"></i>
+                                                <span>🚀 ส่งมอบงานเสร็จ 100% (User ยืนยัน)</span>
+                                            </button>
+                                            <button type="submit" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 cursor-pointer flex items-center gap-1.5 shadow-md transition hover:scale-[1.02]">
                                                 <i class="ph ph-floppy-disk text-sm"></i>
                                                 <span>💾 บันทึกความคืบหน้ารายวัน</span>
                                             </button>
@@ -24604,35 +24622,64 @@ const app = {
 
                 const selSubtaskId = document.getElementById(`${prefix}-input-subtask-id`)?.value || this.state.activeDailyLogSubtaskId || '';
                 const isFinalDay = (dayNumVal >= taskDays);
-                const isEarlyFinish = isCompletedVal && !isFinalDay;
-                const isTrueOverallComplete = forceComplete || (isCompletedVal && (isFinalDay || isEarlyFinish));
+                const isConfirmedComplete = Boolean(forceComplete || isCompletedVal);
+                const isEarlyFinish = Boolean(isConfirmedComplete && !isFinalDay);
+                const isTrueOverallComplete = Boolean(isConfirmedComplete || isFinalDay);
+
+                if (isTrueOverallComplete) {
+                    progressVal = 100;
+                    isCompletedVal = true;
+                    if (isConfirmedComplete && !descVal) {
+                        descVal = 'งานติดตั้งเสร็จสมบูรณ์ 100% (User ยืนยัน) ตรวจสอบระบบเรียบร้อย พร้อมส่งมอบให้ทีม QC ตรวจรับรองคุณภาพ';
+                    }
+                }
 
                 const newLog = {
                     id: `LOG_${Date.now()}`,
                     jobId: jobId,
+                    job_id: jobId,
                     taskId: taskId,
+                    task_id: taskId,
                     subtaskId: selSubtaskId || undefined,
                     taskName: task ? task.name : 'งานบริการติดตั้ง',
+                    task_name: task ? task.name : 'งานบริการติดตั้ง',
                     logDate: dateVal,
+                    log_date: dateVal,
                     startTime: startTimeVal,
+                    start_time: startTimeVal,
                     endTime: endTimeVal,
+                    end_time: endTimeVal,
                     workHours: workHoursVal,
+                    work_hours: workHoursVal,
                     dayNumber: dayNumVal,
+                    day_number: dayNumVal,
                     totalDays: taskDays,
+                    total_days: taskDays,
                     technician: task ? (task.tech || job.tech || 'Team B (ประเสริฐ)') : (job.tech || 'Team B (ประเสริฐ)'),
                     recordedBy: recByVal,
+                    recorded_by: recByVal,
                     reporterRole: roleVal,
-                    progressPercent: progressVal,
+                    reporter_role: roleVal,
+                    progressPercent: isTrueOverallComplete ? 100 : Math.min(95, Math.max(1, progressVal)),
+                    progress_percent: isTrueOverallComplete ? 100 : Math.min(95, Math.max(1, progressVal)),
                     workDescription: descVal,
+                    work_description: descVal,
                     additionalDetails: additionalDetailsVal,
+                    additional_details: additionalDetailsVal,
                     issues: issuesVal,
                     materialsUsed: matVal,
+                    materials_used: matVal,
                     photos: attachedPhotos,
-                    isCompleted: isCompletedVal,
+                    isCompleted: isTrueOverallComplete,
+                    is_completed: isTrueOverallComplete,
                     isEarlyCompleted: isEarlyFinish,
-                    userConfirmed: Boolean(isTrueOverallComplete || isCompletedVal || forceComplete),
-                    userConfirmedAt: (isTrueOverallComplete || isCompletedVal || forceComplete) ? new Date().toISOString() : null,
-                    createdAt: new Date().toISOString()
+                    is_early_completed: isEarlyFinish,
+                    userConfirmed: Boolean(isTrueOverallComplete || isConfirmedComplete),
+                    user_confirmed: Boolean(isTrueOverallComplete || isConfirmedComplete),
+                    userConfirmedAt: (isTrueOverallComplete || isConfirmedComplete) ? new Date().toISOString() : null,
+                    user_confirmed_at: (isTrueOverallComplete || isConfirmedComplete) ? new Date().toISOString() : null,
+                    createdAt: new Date().toISOString(),
+                    created_at: new Date().toISOString()
                 };
 
                 if (!DB.dailyWorkLogs) DB.dailyWorkLogs = [];
@@ -24769,7 +24816,17 @@ const app = {
                             this.recordStepTimestamp(job.id, 'daily_log_reverted', new Date().toISOString(), 'ยกเลิกสถานะส่งตรวจ QC เนื่องจากมีการลบบันทึกเสร็จสมบูรณ์ คืนสถานะงานเป็นระหว่างดำเนินงาน');
                         }
                     }
+
+                    // Auto Rollback QC booking if previously auto-confirmed
+                    const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(taskId) || String(b.jobId) === String(jobId));
+                    if (qcBooking && qcBooking.status === 'CONFIRMED') {
+                        qcBooking.status = 'PENDING_CONFIRM';
+                        qcBooking.confirmedAt = null;
+                        qcBooking.confirmedBy = null;
+                    }
+
                     this.persistJobs();
+                    this.updateQCBadges();
                 }
 
                 this.showToast('🗑️ ลบบันทึกงานประจำวันเรียบร้อย (ปรับปรุงสถานะงานตามบันทึกที่เหลือ)');
@@ -27594,8 +27651,8 @@ const app = {
                     subtasks: Array.isArray(task.subtasks) ? task.subtasks.map(s => s.name || s.title || s) : [],
                     qc_date: nowDmy,
                     qc_recorded_at: nowIso,
-                    customer_name: job.customer || 'ลูกค้า',
-                    customer_phone: job.phone || '-',
+                    customer_name: (typeof job.customer === 'object' ? job.customer?.name : job.customer) || job.customer_name || 'ลูกค้า',
+                    customer_phone: job.phone || (typeof job.customer === 'object' ? job.customer?.phone : job.customer_phone) || '-',
                     qc_round: 1,
                     qc_round_text: 'ตรวจรับรอง On-site (ผ่านเกณฑ์รอบแรก)',
                     qc_result: 'PASSED',
@@ -27777,8 +27834,8 @@ const app = {
                     booking_no: job.booking_no || (job.raw_payload && (job.raw_payload.booking_no || job.raw_payload.vfix_no)) || '-',
                     qc_date: nowDmy,
                     qc_recorded_at: nowIso,
-                    customer_name: job.customer || 'ลูกค้า',
-                    customer_phone: job.phone || '-',
+                    customer_name: (typeof job.customer === 'object' ? job.customer?.name : job.customer) || job.customer_name || 'ลูกค้า',
+                    customer_phone: job.phone || (typeof job.customer === 'object' ? job.customer?.phone : job.customer_phone) || '-',
                     qc_round: 1,
                     qc_round_text: 'ตรวจครั้งที่ 1 (ผ่านเกณฑ์รอบแรก)',
                     qc_result: 'PASSED',

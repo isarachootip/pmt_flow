@@ -6141,6 +6141,28 @@
                                     </ul>
                                 </div>
                             </details>
+
+                            <!-- Q31: Daily Technician Work Log, 24-Hr Time, Progressive Calculation, QC Handover & STK Sync -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q31:</span>
+                                        <span>ระบบบันทึกงานช่างประจำวัน (Technician Daily Work Log), ระบบเวลา 24 ชม., การคำนวณสัดส่วนสะสม และการส่งต่องานไปยังขั้นตอนตรวจ QC (Step 5) จนถึงส่งข้อมูล STK มีมาตรฐานอย่างไร?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-2">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> เพื่อให้การติดตามงานภาคสนามมีความโปร่งใส ถูกต้อง และเชื่อมโยงกับการตรวจรับรองคุณภาพ QC ระบบ PMT Flow ได้กำหนดมาตรฐานครบวงจร 5 ด้าน:</p>
+                                    <ul class="list-disc list-inside space-y-1.5 pl-1 text-[11px]">
+                                        <li><strong>1. ระบบเวลา 24 ชั่วโมงบริสุทธิ์ (Strict 24-Hour Time Standard - NO AM/PM):</strong> ทุกฟอร์มใช้ Custom Dropdown ชั่วโมง (00-23) และนาที (00-55 ทีละ 5 นาที) ปลอดจาก AM/PM 100% พร้อมคำนวณชั่วโมงการทำงานจริงอัตโนมัติ (เช่น 08:30 - 17:00 น. รวม 8 ชม. 30 นาที) และรองรับกะข้ามคืนได้อย่างแม่นยำ</li>
+                                        <li><strong>2. มาตรฐานวันที่ DD/MM/YYYY:</strong> ทุกหน้าจอแสดงผลวันที่ในรูปแบบ <code class="font-mono text-[10px] bg-muted px-1 rounded">DD/MM/YYYY</code> (เช่น 24/09/2026) ป้องกันความสับสนจาก OS Locale</li>
+                                        <li><strong>3. ภาพถ่ายหน้างาน 5 สเตจมาตรฐาน (5 Standard Photos):</strong> บังคับจัดเก็บภาพ 5 จุด ได้แก่ ก่อนเริ่มงาน (Before), ระหว่างทำ 1 (During 1), ระหว่างทำ 2 (During 2), ความปลอดภัย & ทดสอบระบบ (Testing), และงานเสร็จสมบูรณ์ (After) พร้อมป๊อปอัป Lightbox ดูภาพขยายได้ทันที</li>
+                                        <li><strong>4. การคำนวณสัดส่วนสะสมจริง (Progressive Calculation - No Premature Done):</strong> ในรอบวันระหว่างทาง (เช่น วันที่ 1 หรือ 2 จากแผน 3 วัน) ความคืบหน้าจะคำนวณตามสัดส่วนจริง (33%, 67%) และระบบมี In-Progress Guard ป้องกันไม่ให้กระโดดเป็น 100% หรือเปลี่ยนสถานะเป็น DONE ก่อนเสร็จสิ้นจริง</li>
+                                        <li><strong>5. การส่งมอบงานเข้า QC และส่งออก STK:</strong> เมื่องานครบกำหนดตามแผน หรือผู้ใช้กดยืนยันเสร็จสมบูรณ์ 100% (User ยืนยัน) Task จะเปลี่ยนเป็น <code class="bg-emerald-500/15 text-emerald-700 font-bold px-1 rounded text-[10px]">DONE</code> (100%) และ Job จะเปลี่ยนเป็น <code class="bg-amber-500/15 text-amber-700 font-bold px-1 rounded text-[10px]">QC_PENDING</code> (85%) พร้อมบันทึก <code class="font-mono text-[10px]">step_timestamps.qc_pending_at</code> และยืนยันคิวตรวจ QC เป็น <code class="text-emerald-600 font-bold">CONFIRMED</code> จากนั้นเมื่อทีม QC ตรวจผ่านเกณฑ์ 100% ใน Step 5 ระบบจะสร้าง <code class="font-mono text-[10px]">stk_ref</code> และ Payload ส่งต่อไปยังระบบภายนอก STK (<code class="text-teal-600 font-bold">DELIVERED</code>) พร้อมระบบป้องกันการส่งซ้ำ (Idempotency Gating)</li>
+                                        <li><strong>6. การย้อนกลับสถานะอัตโนมัติ (Auto-Rollback Integrity) และความทนทานของระบบ STK (Fault Tolerance):</strong> หากมีการลบรายการบันทึกงานประจำวันที่เคยส่งมอบงานไปแล้ว ระบบจะย้อนสถานะ Task และ Job กลับเป็น <code class="font-mono text-[10px] bg-muted px-1 rounded">IN_PROGRESS</code> เคลียร์ค่า <code class="font-mono text-[10px]">qc_pending_at</code> และคืนสถานะคิวตรวจ QC กลับเป็น <code class="font-mono text-[10px]">PENDING_CONFIRM</code> ทั้งในหน่วยความจำและฐานข้อมูล PostgreSQL แบบ Real-time รวมถึงการส่งออกผลตรวจไป STK จะการันตีสถานะบันทึกผลสำเร็จ <code class="text-teal-600 font-bold">DELIVERED</code> ภายในระบบเสมอแม้เครือข่ายปลายทางของ Partner จะขัดข้องชั่วคราว</li>
+                                    </ul>
+                                </div>
+                            </details>
                         </div>
                     </div>
                 </div>

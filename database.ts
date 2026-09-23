@@ -1838,7 +1838,7 @@ export async function dbDeleteQCBookingByTask(taskId: string | number): Promise<
   }
 }
 
-export async function dbConfirmQCBooking(id: string, qcTech?: string, confirmedBy?: string, remarks?: string): Promise<any | null> {
+export async function dbConfirmQCBooking(id: string, qcTech?: string, confirmedBy?: string, remarks?: string, bookingDate?: string): Promise<any | null> {
   if (!isDatabaseConnected) return null;
   try {
     const res = await pool.query(
@@ -1848,14 +1848,35 @@ export async function dbConfirmQCBooking(id: string, qcTech?: string, confirmedB
            assigned_qc_tech = COALESCE($2, assigned_qc_tech),
            confirmed_by = COALESCE($3, confirmed_by),
            remarks = COALESCE($4, remarks),
+           qc_booking_date = COALESCE($5, qc_booking_date),
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1 OR task_id = $1
+       WHERE id = $1 OR task_id = $1 OR job_id = $1
        RETURNING *`,
-      [id, qcTech || null, confirmedBy || null, remarks || null]
+      [id, qcTech || null, confirmedBy || null, remarks || null, bookingDate || null]
     );
     return res.rows[0] || null;
   } catch (err: any) {
     console.error('[DB] Error confirming QC booking:', err.message);
+    return null;
+  }
+}
+
+export async function dbRevertQCBooking(id: string): Promise<any | null> {
+  if (!isDatabaseConnected) return null;
+  try {
+    const res = await pool.query(
+      `UPDATE core_qc_bookings 
+       SET status = 'PENDING_CONFIRM', 
+           confirmed_at = NULL,
+           confirmed_by = NULL,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 OR task_id = $1 OR job_id = $1
+       RETURNING *`,
+      [id]
+    );
+    return res.rows[0] || null;
+  } catch (err: any) {
+    console.error('[DB] Error reverting QC booking:', err.message);
     return null;
   }
 }
