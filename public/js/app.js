@@ -25389,11 +25389,35 @@ const app = {
                 return tasks;
             },
 
+            isTaskCompletedInGantt(task, job) {
+                if (!task) return false;
+                if (task.is_quick || (job && this.isQuickJob(job))) return true;
+                if (task.stk_exported) return true;
+
+                // Check actual task object in DB.tasks
+                const realTask = (DB.tasks || []).find(t => String(t.id) === String(task.id)) || task;
+                if (realTask.status === 'DONE') return true;
+                if (Number(realTask.progress) >= 100) return true;
+
+                // Check daily work logs for this task
+                const targetJobId = (job && job.id) ? job.id : realTask.jobId;
+                const taskLogs = (DB.dailyWorkLogs || []).filter(l => 
+                    String(l.taskId) === String(realTask.id) || 
+                    (String(l.jobId) === String(targetJobId) && l.taskName === realTask.name)
+                );
+                if (taskLogs.some(l => l.isCompleted || l.userConfirmed || (Number(l.progressPercent) || 0) >= 100)) {
+                    return true;
+                }
+
+                return false;
+            },
+
             ensureTaskQCEvaluation(task, job) {
                 if (!task) return null;
+                const isGanttDone = this.isTaskCompletedInGantt(task, job);
                 if (!task.qc_evaluation || typeof task.qc_evaluation !== 'object') {
                     task.qc_evaluation = {
-                        status: (task.status === 'DONE' && task.stk_exported) ? 'PASSED' : 'PENDING',
+                        status: (isGanttDone && task.stk_exported) ? 'PASSED' : 'PENDING',
                         stk_exported: !!task.stk_exported,
                         stk_ref: task.stk_ref || null,
                         stk_exported_at: task.stk_exported_at || null,
@@ -25419,6 +25443,17 @@ const app = {
                             remarks: ''
                         }
                     ];
+                }
+
+                // If task in Gantt is not yet completed and not exported, keep its questions in pending state
+                if (!isGanttDone && !task.stk_exported) {
+                    task.qc_evaluation.questions.forEach(q => {
+                        if (q.answer !== null) {
+                            q.answer = null;
+                            q.score = 0;
+                            q.status = 'PENDING';
+                        }
+                    });
                 }
 
                 if (task.stk_exported) {
@@ -25481,7 +25516,8 @@ const app = {
             },
 
             calculateTaskQCProgress(task, job) {
-                if (!task) return { total: 0, completed: 0, passed: 0, defect: 0, averageScore: '0.0', percent: 0, isAllComplete: false, isExported: false };
+                if (!task) return { total: 0, completed: 0, passed: 0, defect: 0, averageScore: '0.0', percent: 0, isAllComplete: false, isExported: false, isGanttDone: false };
+                const isGanttDone = this.isTaskCompletedInGantt(task, job);
                 const evalData = this.ensureTaskQCEvaluation(task, job);
                 const questions = evalData.questions || [];
                 const total = questions.length;
@@ -25508,10 +25544,10 @@ const app = {
                 const avgNum = scoredCount > 0 ? (totalScore / scoredCount) : 0;
                 const averageScore = avgNum.toFixed(1);
                 const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-                const isAllComplete = (total > 0) && (completed === total) && (defect === 0);
+                const isAllComplete = isGanttDone && (total > 0) && (completed === total) && (defect === 0);
                 const isExported = !!(task.stk_exported || evalData.stk_exported);
 
-                return { total, completed, passed, defect, averageScore, percent, isAllComplete, isExported };
+                return { total, completed, passed, defect, averageScore, percent, isAllComplete, isExported, isGanttDone };
             },
 
             getJobQCSubtasks(job) {
@@ -26414,6 +26450,7 @@ const app = {
                 const activeTaskProgress = this.calculateTaskQCProgress(activeTask, job);
                 const activeTaskEval = this.ensureTaskQCEvaluation(activeTask, job);
                 const isTaskExported = activeTaskProgress.isExported;
+                const isGanttDone = activeTaskProgress.isGanttDone;
 
                 // 1. Task Navigation Tabs (if multiple tasks)
                 let tabsHtml = '';
@@ -26424,6 +26461,7 @@ const app = {
                                 const isActive = String(t.id) === String(activeTaskId);
                                 const tp = this.calculateTaskQCProgress(t, job);
                                 const isDone = tp.isExported;
+                                const isTaskGanttDone = tp.isGanttDone;
                                 return `
                                     <button type="button" onclick="app.switchQCTaskTab('${t.id}')"
                                         class="px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shadow-2xs ${isActive ? 'bg-brand-600 text-white shadow-sm ring-2 ring-brand-500/30' : 'bg-card text-foreground hover:bg-muted/80 border border-border'}">
@@ -26432,11 +26470,15 @@ const app = {
                                             <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30'} flex items-center gap-1">
                                                 <i class="ph ph-check-circle-fill"></i> ส่ง STK แล้ว
                                             </span>
-                                        ` : `
-                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-amber-500/15 text-amber-800 border border-amber-500/30'}">
-                                                รอตรวจ QC
+                                        ` : (!isTaskGanttDone ? `
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-amber-500/15 text-amber-800 border border-amber-500/30'} flex items-center gap-1">
+                                                <i class="ph ph-hourglass"></i> ช่างกำลังทำใน Gantt
                                             </span>
-                                        `}
+                                        ` : `
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-blue-500/15 text-blue-800 border border-blue-500/30'} flex items-center gap-1">
+                                                <i class="ph ph-clock"></i> รอตรวจ QC
+                                            </span>
+                                        `)}
                                     </button>
                                 `;
                             }).join('')}
@@ -26497,6 +26539,7 @@ const app = {
                 }
 
                 // 4. Questions List for this Task
+                const isLocked = isTaskExported || !isGanttDone;
                 const questions = activeTaskEval.questions || [];
                 const questionsHtml = questions.map((q, qIdx) => {
                     const isYes = q.answer === 'YES' || q.status === 'PASSED';
@@ -26508,7 +26551,7 @@ const app = {
                         qPhotosHtml = qPhotos.map((qp, qpIdx) => `
                             <div class="relative group rounded-xl overflow-hidden border border-border bg-muted/40 w-24 h-24 shrink-0 shadow-xs">
                                 <img src="${qp.url}" alt="${qp.title}" onclick="app.showLightbox('${qp.url}', '${qp.title}', 'รูปประกอบข้อที่ ${qIdx + 1}', '', 'QC On-site')" class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition">
-                                ${isTaskExported ? '' : `
+                                ${isLocked ? '' : `
                                 <button type="button" onclick="app.removeTaskQCPhoto('${job.id}', '${activeTask.id}', '${q.id}', '${qp.id}')" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white hover:bg-rose-600 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition cursor-pointer" title="ลบรูปนี้">
                                     <i class="ph ph-trash"></i>
                                 </button>
@@ -26532,7 +26575,11 @@ const app = {
                                     ${q.is_standard ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-brand-500/10 text-brand-700 border border-brand-500/20">ข้อมาตรฐาน</span>` : `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/10 text-purple-700 border border-purple-500/20">QC เพิ่มเอง</span>`}
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    ${isYes ? `
+                                    ${isLocked && !isTaskExported ? `
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-800 border border-amber-500/30 flex items-center gap-1">
+                                            <i class="ph ph-hourglass"></i> รอตาราง Gantt เสร็จสิ้น
+                                        </span>
+                                    ` : (isYes ? `
                                         <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 flex items-center gap-1">
                                             <i class="ph ph-check-circle-fill text-emerald-600"></i> ผ่านเกณฑ์ (Yes = 5 คะแนน)
                                         </span>
@@ -26541,11 +26588,11 @@ const app = {
                                             <i class="ph ph-warning-fill text-rose-600"></i> ข้อบกพร่อง (No = 1 คะแนน)
                                         </span>
                                     ` : `
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground border border-border">
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground border border-border">
                                             รอประเมิน
                                         </span>
-                                    `)}
-                                    ${(!q.is_standard && !isTaskExported) ? `
+                                    `))}
+                                    ${(!q.is_standard && !isLocked) ? `
                                         <button type="button" onclick="app.removeQCQuestionFromTask('${job.id}', '${activeTask.id}', '${q.id}')" class="text-muted-foreground hover:text-rose-600 p-1 rounded-md hover:bg-rose-50 transition cursor-pointer" title="ลบข้อคำถามนี้">
                                             <i class="ph ph-trash text-sm"></i>
                                         </button>
@@ -26555,11 +26602,11 @@ const app = {
 
                             <div class="bg-muted/20 p-2.5 rounded-lg border border-border/60">
                                 <div class="grid grid-cols-2 gap-2.5">
-                                    <button type="button" ${isTaskExported ? 'disabled' : `onclick="app.setTaskQCQuestionAnswer('${job.id}', '${activeTask.id}', '${q.id}', 'YES')"`} class="py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border transition-all ${isTaskExported ? 'cursor-not-allowed opacity-85 pointer-events-none' : 'cursor-pointer'} ${isYes ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500/30' : 'bg-card text-emerald-800 border-emerald-500/30 hover:bg-emerald-500/10'}">
+                                    <button type="button" ${isLocked ? 'disabled' : `onclick="app.setTaskQCQuestionAnswer('${job.id}', '${activeTask.id}', '${q.id}', 'YES')"`} class="py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border transition-all ${isLocked ? 'cursor-not-allowed opacity-60 pointer-events-none' : 'cursor-pointer'} ${isYes ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500/30' : 'bg-card text-emerald-800 border-emerald-500/30 hover:bg-emerald-500/10'}">
                                         <i class="ph ${isYes ? 'ph-check-circle-fill' : 'ph-check-circle'} text-base"></i>
                                         <span>✓ Yes — ผ่านเกณฑ์ (5 คะแนน)</span>
                                     </button>
-                                    <button type="button" ${isTaskExported ? 'disabled' : `onclick="app.setTaskQCQuestionAnswer('${job.id}', '${activeTask.id}', '${q.id}', 'NO')"`} class="py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border transition-all ${isTaskExported ? 'cursor-not-allowed opacity-85 pointer-events-none' : 'cursor-pointer'} ${isNo ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-500/30' : 'bg-card text-rose-800 border-rose-500/30 hover:bg-rose-500/10'}">
+                                    <button type="button" ${isLocked ? 'disabled' : `onclick="app.setTaskQCQuestionAnswer('${job.id}', '${activeTask.id}', '${q.id}', 'NO')"`} class="py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border transition-all ${isLocked ? 'cursor-not-allowed opacity-60 pointer-events-none' : 'cursor-pointer'} ${isNo ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-500/30' : 'bg-card text-rose-800 border-rose-500/30 hover:bg-rose-500/10'}">
                                         <i class="ph ${isNo ? 'ph-x-circle-fill' : 'ph-x-circle'} text-base"></i>
                                         <span>✕ No — ข้อบกพร่อง (1 คะแนน)</span>
                                     </button>
@@ -26572,7 +26619,7 @@ const app = {
                                         <i class="ph ph-camera text-brand-500"></i>
                                         <span>รูปถ่ายประกอบข้อนี้ (${qPhotos.length} รูป)</span>
                                     </span>
-                                    ${isTaskExported ? '' : `
+                                    ${isLocked ? '' : `
                                     <label class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer bg-red-500 hover:bg-red-600 text-black border border-red-700 transition" style="background-color: #ef4444 !important; color: #000000 !important; font-weight: 900 !important;" title="คลิกเพื่อแนบรูปในข้อนี้">
                                         <i class="ph ph-camera-plus text-xs" style="color: #000000 !important;"></i>
                                         <span style="color: #000000 !important;">+ แนบรูปข้อนี้</span>
@@ -26586,7 +26633,7 @@ const app = {
                             </div>
 
                             <div>
-                                <input type="text" value="${q.remarks || ''}" ${isTaskExported ? 'disabled readonly' : ''} onchange="app.saveTaskQCQuestionRemarks('${job.id}', '${activeTask.id}', '${q.id}', this.value)" placeholder="ระบุข้อสังเกต / รายละเอียดการตรวจในข้อนี้..." class="w-full bg-muted/30 border border-border focus:border-brand-500 rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none transition ${isTaskExported ? 'opacity-80 cursor-not-allowed' : ''}">
+                                <input type="text" value="${q.remarks || ''}" ${isLocked ? 'disabled readonly' : ''} onchange="app.saveTaskQCQuestionRemarks('${job.id}', '${activeTask.id}', '${q.id}', this.value)" placeholder="ระบุข้อสังเกต / รายละเอียดการตรวจในข้อนี้..." class="w-full bg-muted/30 border border-border focus:border-brand-500 rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none transition ${isLocked ? 'opacity-70 cursor-not-allowed' : ''}">
                             </div>
                         </div>
                     `;
@@ -26621,17 +26668,39 @@ const app = {
                                         <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 flex items-center gap-1.5 shadow-2xs">
                                             <i class="ph ph-check-circle-fill text-emerald-600"></i> ปิดงาน & ส่งประเมิน STK แล้ว (${activeTask.stk_ref || activeTaskEval.stk_ref})
                                         </span>
+                                    ` : (!isGanttDone ? `
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-800 border border-amber-500/30 flex items-center gap-1.5 shadow-2xs">
+                                            <i class="ph ph-lock-key text-amber-600"></i> ยังไม่เสร็จสิ้นใน Gantt (สถานะ: ${activeTask.status === 'IN_PROGRESS' ? 'กำลังทำ' : (activeTask.status || 'รอดำเนินการ')})
+                                        </span>
                                     ` : (activeTask.qc_status === 'REWORK' ? `
                                         <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-800 border border-rose-500/30 flex items-center gap-1.5">
                                             <i class="ph ph-warning-fill text-rose-600"></i> แจ้งแก้ไขงาน (Rework)
                                         </span>
                                     ` : `
-                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-800 border border-amber-500/30 flex items-center gap-1.5">
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/15 text-blue-800 border border-blue-500/30 flex items-center gap-1.5">
                                             <i class="ph ph-clock"></i> รอตรวจ On-site & ส่งประเมิน STK
                                         </span>
-                                    `)}
+                                    `))}
                                 </div>
                             </div>
+
+                            ${(!isTaskExported && !isGanttDone) ? `
+                            <!-- Gantt Completion Gating Notice Banner -->
+                            <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start sm:items-center gap-3 shadow-2xs">
+                                <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0 font-bold">
+                                    <i class="ph ph-lock-key text-lg"></i>
+                                </div>
+                                <div class="text-xs">
+                                    <div class="font-bold text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                                        <span>🔒 งานนี้ยังไม่เสร็จสิ้นในแผนงาน Gantt</span>
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-900 border border-amber-500/40">Gantt: ${activeTask.status === 'IN_PROGRESS' ? 'กำลังทำ' : (activeTask.status || 'รอดำเนินการ')}</span>
+                                    </div>
+                                    <p class="text-muted-foreground text-[11px] mt-0.5">
+                                        ฝ่าย QC จะสามารถประเมินผลและบันทึกปิดงานส่งมอบ STK ได้เมื่อช่างหรือผู้จัดการโครงการบันทึกสถานะเป็น <strong>"เสร็จสิ้น"</strong> ในตาราง Gantt (หรือบันทึกงานช่างประจำวันครบ 100%) แล้วเท่านั้น
+                                    </p>
+                                </div>
+                            </div>
+                            ` : ''}
 
                             <!-- Subtasks Breakdown -->
                             ${subtasksListHtml}
@@ -26663,7 +26732,12 @@ const app = {
                                         <span class="font-display font-bold text-xs text-foreground">ข้อคำถามประเมินมาตรฐาน QC ของงานนี้</span>
                                         <span class="text-[10px] text-muted-foreground">(รวม ${questions.length} ข้อ)</span>
                                     </div>
-                                    ${isTaskExported ? '' : `
+                                    ${isLocked ? `
+                                    <div class="text-[11px] text-muted-foreground italic flex items-center gap-1">
+                                        <i class="ph ph-lock"></i>
+                                        <span>${isTaskExported ? 'งานนี้ส่ง STK แล้ว' : 'รอตาราง Gantt บันทึกเสร็จสิ้นก่อนประเมิน'}</span>
+                                    </div>
+                                    ` : `
                                     <div class="flex items-center gap-2">
                                         <button type="button" onclick="app.setAllTaskQCQuestionsYes('${job.id}', '${activeTask.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition cursor-pointer shadow-xs">
                                             <i class="ph ph-check-circle"></i>
@@ -26682,7 +26756,7 @@ const app = {
                                 </div>
 
                                 <!-- Add Dynamic QC Question Form -->
-                                ${isTaskExported ? '' : `
+                                ${isLocked ? '' : `
                                 <div class="p-3 rounded-xl border border-dashed border-border bg-muted/20 flex flex-col sm:flex-row items-center gap-2">
                                     <input type="text" id="input-add-question-${activeTask.id}" placeholder="พิมพ์ข้อคำถามประเมิน On-site เพิ่มเติมสำหรับงานนี้..." class="flex-1 w-full bg-card border border-border focus:border-brand-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none transition">
                                     <button type="button" onclick="app.addQCQuestionToTask('${job.id}', '${activeTask.id}')" class="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold bg-brand-500 hover:bg-brand-600 text-white flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0 shadow-xs">
@@ -26704,7 +26778,9 @@ const app = {
                                     <p class="text-[11px] text-muted-foreground mt-0.5">
                                         ${isTaskExported 
                                             ? `✓ บันทึกปิดงานและส่งข้อมูลผลประเมินไปยังระบบ STK สำเร็จแล้ว (Ref: ${activeTask.stk_ref || activeTaskEval.stk_ref})`
-                                            : `เมื่อประเมินครบและผ่านเกณฑ์ สามารถกดปุ่มด้านขวาเพื่อปิดงานนี้และส่งผลประเมินเข้า STK ได้ทันทีโดยไม่ต้องรองานอื่น`}
+                                            : (!isGanttDone 
+                                                ? `🔒 งานนี้ยังไม่เสร็จสิ้นในแผนงาน Gantt — กรุณาบันทึกงานเสร็จสิ้น 100% ใน Gantt ก่อนเพื่อปลดล็อกการส่ง STK`
+                                                : `เมื่อประเมินครบและผ่านเกณฑ์ สามารถกดปุ่มด้านขวาเพื่อปิดงานนี้และส่งผลประเมินเข้า STK ได้ทันทีโดยไม่ต้องรองานอื่น`)}
                                     </p>
                                 </div>
                                 <div class="flex items-center gap-2 shrink-0">
@@ -26717,6 +26793,11 @@ const app = {
                                             <i class="ph ph-check-circle-fill"></i>
                                             <span>✓ ส่ง STK เรียบร้อย</span>
                                         </span>
+                                    ` : (!isGanttDone ? `
+                                        <button type="button" disabled class="px-5 py-2.5 rounded-xl text-xs font-bold bg-muted text-muted-foreground border border-border opacity-70 cursor-not-allowed flex items-center gap-2" title="กรุณาบันทึกงานเสร็จสิ้นในตาราง Gantt ก่อน">
+                                            <i class="ph ph-lock-key text-base"></i>
+                                            <span>🔒 รอตาราง Gantt บันทึกเสร็จสิ้นก่อนส่งประเมิน STK</span>
+                                        </button>
                                     ` : (activeTaskProgress.isAllComplete ? `
                                         <button type="button" onclick="app.submitTaskQCApproval('${job.id}', '${activeTask.id}')" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2 transition cursor-pointer shadow-md">
                                             <i class="ph ph-paper-plane-tilt text-base"></i>
@@ -26732,7 +26813,7 @@ const app = {
                                             <i class="ph ph-lock"></i>
                                             <span>ประเมินข้อคำถามให้ครบก่อนส่ง STK</span>
                                         </button>
-                                    `))}
+                                    `)))}
                                 </div>
                             </div>
                         </div>
@@ -26751,6 +26832,10 @@ const app = {
                         btnCSAT.disabled = true;
                         btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 cursor-not-allowed opacity-90 transition-all';
                         btnLabel.innerText = `✓ งาน [${activeTask.name}] ส่ง STK แล้ว (สลับแท็บเพื่อตรวจงานอื่น)`;
+                    } else if (!isGanttDone) {
+                        btnCSAT.disabled = true;
+                        btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60 transition-all';
+                        btnLabel.innerText = `🔒 งาน [${activeTask.name}] ใน Gantt ยังไม่เสร็จสิ้น (ไม่สามารถส่ง STK)`;
                     } else if (activeTaskProgress.isAllComplete) {
                         btnCSAT.disabled = false;
                         btnCSAT.className = 'btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all';
@@ -26775,6 +26860,10 @@ const app = {
                 if (!task) return;
                 if (task.stk_exported) {
                     this.showToast('⚠️ งานนี้ส่งข้อมูลประเมินไปยังระบบ STK แล้ว ไม่อนุญาตให้เพิ่มข้อคำถาม');
+                    return;
+                }
+                if (!this.isTaskCompletedInGantt(task, job)) {
+                    this.showToast(`🔒 ไม่สามารถเพิ่มข้อคำถามได้: งาน [${task.name}] ยังไม่บันทึกเสร็จสิ้นในแผนงาน Gantt`, 'warning');
                     return;
                 }
                 const evalData = this.ensureTaskQCEvaluation(task, job);
@@ -26820,6 +26909,10 @@ const app = {
                     this.showToast('⚠️ งานนี้ส่งข้อมูลประเมินไปยังระบบ STK แล้ว ไม่อนุญาตให้ลบข้อคำถาม');
                     return;
                 }
+                if (!this.isTaskCompletedInGantt(task, job)) {
+                    this.showToast(`🔒 ไม่สามารถลบข้อคำถามได้: งาน [${task.name}] ยังไม่บันทึกเสร็จสิ้นในแผนงาน Gantt`, 'warning');
+                    return;
+                }
                 const evalData = this.ensureTaskQCEvaluation(task, job);
                 evalData.questions = evalData.questions.filter(q => q.id !== questionId);
                 evalData.questions.forEach((q, idx) => { q.num = idx + 1; });
@@ -26836,6 +26929,10 @@ const app = {
                 if (!task) return;
                 if (task.stk_exported) {
                     this.showToast('⚠️ งานนี้ส่งข้อมูลประเมินไปยังระบบ STK แล้ว ไม่อนุญาตให้แก้ไข');
+                    return;
+                }
+                if (!this.isTaskCompletedInGantt(task, job)) {
+                    this.showToast(`🔒 ไม่สามารถประเมินได้: งาน [${task.name}] ยังไม่บันทึกเสร็จสิ้นในแผนงาน Gantt`, 'warning');
                     return;
                 }
                 const evalData = this.ensureTaskQCEvaluation(task, job);
@@ -26870,6 +26967,10 @@ const app = {
                     this.showToast('⚠️ งานนี้ส่งข้อมูลประเมินไปยังระบบ STK แล้ว');
                     return;
                 }
+                if (!this.isTaskCompletedInGantt(task, job)) {
+                    this.showToast(`🔒 ไม่สามารถประเมินได้: งาน [${task.name}] ยังไม่บันทึกเสร็จสิ้นในแผนงาน Gantt`, 'warning');
+                    return;
+                }
                 const evalData = this.ensureTaskQCEvaluation(task, job);
                 evalData.questions.forEach(q => {
                     q.answer = 'YES';
@@ -26892,6 +26993,10 @@ const app = {
                     this.showToast('⚠️ งานนี้ส่งข้อมูลประเมินไปยังระบบ STK แล้ว');
                     return;
                 }
+                if (!this.isTaskCompletedInGantt(task, job)) {
+                    this.showToast(`🔒 งาน [${task.name}] ยังไม่บันทึกเสร็จสิ้นในแผนงาน Gantt`, 'warning');
+                    return;
+                }
                 const evalData = this.ensureTaskQCEvaluation(task, job);
                 evalData.questions.forEach(q => {
                     q.answer = null;
@@ -26912,6 +27017,10 @@ const app = {
                 if (!task) return;
                 if (task.stk_exported) {
                     this.showToast('⚠️ งานนี้ส่งข้อมูลประเมินไปยังระบบ STK แล้ว ไม่อนุญาตให้อัปโหลดรูปภาพ');
+                    return;
+                }
+                if (!this.isTaskCompletedInGantt(task, job)) {
+                    this.showToast(`🔒 ไม่สามารถแนบรูปได้: งาน [${task.name}] ยังไม่บันทึกเสร็จสิ้นในแผนงาน Gantt`, 'warning');
                     return;
                 }
                 const file = event.target.files && event.target.files[0];
@@ -26955,6 +27064,10 @@ const app = {
                     this.showToast('⚠️ งานนี้ส่งข้อมูลประเมินไปยังระบบ STK แล้ว ไม่อนุญาตให้ลบรูปภาพ');
                     return;
                 }
+                if (!this.isTaskCompletedInGantt(task, job)) {
+                    this.showToast(`🔒 ไม่สามารถลบรูปได้: งาน [${task.name}] ยังไม่บันทึกเสร็จสิ้นในแผนงาน Gantt`, 'warning');
+                    return;
+                }
                 const evalData = this.ensureTaskQCEvaluation(task, job);
                 const q = evalData.questions.find(item => item.id === questionId);
                 if (q && Array.isArray(q.photos)) {
@@ -26970,7 +27083,7 @@ const app = {
                 if (!job) return;
                 const tasks = this.getJobMainTasks(job);
                 const task = tasks.find(t => String(t.id) === String(taskId));
-                if (!task || task.stk_exported) return;
+                if (!task || task.stk_exported || !this.isTaskCompletedInGantt(task, job)) return;
                 const evalData = this.ensureTaskQCEvaluation(task, job);
                 const q = evalData.questions.find(item => item.id === questionId);
                 if (q) {
@@ -27189,6 +27302,10 @@ const app = {
                 const tasks = this.getJobMainTasks(job);
                 const task = tasks.find(t => String(t.id) === String(taskId));
                 if (!task) return;
+                if (!this.isTaskCompletedInGantt(task, job)) {
+                    this.showToast(`🔒 ไม่สามารถแจ้งแก้ไขงานได้: งาน [${task.name}] ในตาราง Gantt ยังไม่บันทึกเสร็จสิ้น`, 'warning');
+                    return;
+                }
                 if (task.stk_exported) {
                     this.showToast('⚠️ งานนี้ส่ง STK เรียบร้อยแล้ว ไม่อนุญาตให้ส่งแก้');
                     return;
@@ -27298,6 +27415,11 @@ const app = {
                 const tasks = this.getJobMainTasks(job);
                 const task = tasks.find(t => String(t.id) === String(taskId));
                 if (!task) return;
+
+                if (!this.isTaskCompletedInGantt(task, job)) {
+                    this.showToast(`🔒 ไม่สามารถปิดงานส่ง STK ได้: งาน [${task.name}] ในตาราง Gantt ยังไม่บันทึกเสร็จสิ้น`, 'warning');
+                    return;
+                }
 
                 if (task.stk_exported) {
                     this.showToast(`⚠️ งาน [${task.name}] ได้รับการปิดงานและส่งผลประเมินไปยัง STK เรียบร้อยแล้ว (Ref: ${task.stk_ref})`);
