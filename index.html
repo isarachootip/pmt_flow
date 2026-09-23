@@ -7887,46 +7887,50 @@
                     <!-- Slip Box -->
                     <div class="space-y-2 border border-border bg-muted/20 p-3 rounded-xl">
                         <label class="text-xs font-semibold text-foreground flex items-center justify-between">
-                            <span class="flex items-center gap-1.5"><i class="ph ph-receipt text-emerald-500"></i> 1. แนบใบเสร็จ / สลิปโอนเงิน</span>
-                            <span class="text-[10px] text-emerald-500 font-mono">JPG, PNG, PDF</span>
+                            <span class="flex items-center gap-1.5"><i class="ph ph-receipt text-emerald-600"></i> 1. แนบใบเสร็จ / สลิปโอนเงิน</span>
+                            <span class="text-[10px] text-emerald-600 font-mono font-semibold">JPG, PNG, PDF</span>
                         </label>
-                        <div class="border-2 border-dashed border-border hover:border-emerald-500/50 rounded-xl p-3 text-center cursor-pointer bg-card hover:bg-emerald-500/5 transition relative" onclick="document.getElementById('ticket-slip-file').click()">
+                        <div class="border-2 border-dashed border-border hover:border-emerald-500/60 rounded-xl p-3 text-center cursor-pointer bg-card hover:bg-emerald-500/5 transition relative min-h-[145px] flex flex-col items-center justify-center" onclick="document.getElementById('ticket-slip-file').click()">
                             <input type="file" id="ticket-slip-file" accept="image/*,.pdf" class="hidden" onchange="app.handleTicketSlipSelect(event)">
-                            <i class="ph ph-cloud-arrow-up text-xl text-emerald-500 mb-0.5"></i>
-                            <p class="text-xs font-semibold text-foreground">คลิกเพื่อแนบไฟล์สลิป</p>
-                            <p class="text-[10px] text-muted-foreground mt-0.5">รองรับสลิปธนาคาร / ใบเสร็จ vFIX</p>
-                            <div id="ticket-slip-preview-container" class="mt-2 hidden">
-                                <img id="ticket-slip-preview-img" src="" alt="Slip Preview" class="max-h-28 mx-auto rounded-lg shadow border border-border object-contain">
-                                <p id="ticket-slip-preview-name" class="mt-1 text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold truncate"></p>
+                            <div id="ticket-slip-placeholder" class="py-2 flex flex-col items-center justify-center">
+                                <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-2 shadow-2xs border border-emerald-500/20">
+                                    <i class="ph ph-image text-2xl"></i>
+                                </div>
+                                <p class="text-xs font-semibold text-foreground">ใส่รูปภาพสลิปโอนเงิน / ใบเสร็จตรงนี้</p>
+                                <p class="text-[10px] text-muted-foreground mt-0.5">คลิกเพื่อเลือกไฟล์รูปภาพ หรือลากไฟล์มาวางที่นี่</p>
                             </div>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
-                            <span class="text-[10px] text-muted-foreground">ตัวอย่าง:</span>
-                            <button type="button" onclick="app.useSampleSlip(1)" class="text-[10px] bg-card hover:bg-muted px-2 py-0.5 rounded text-foreground border border-border cursor-pointer">Slip โอนเงิน</button>
-                            <button type="button" onclick="app.useSampleSlip(2)" class="text-[10px] bg-card hover:bg-muted px-2 py-0.5 rounded text-foreground border border-border cursor-pointer">Slip บัตรเครดิต</button>
+                            <div id="ticket-slip-preview-container" class="w-full hidden">
+                                <img id="ticket-slip-preview-img" src="" alt="Slip Preview" class="max-h-28 mx-auto rounded-lg shadow border border-border object-contain">
+                                <p id="ticket-slip-preview-name" class="mt-1 text-[10px] font-mono text-emerald-600 font-semibold truncate"></p>
+                                <button type="button" onclick="event.stopPropagation(); app.clearTicketSlip();" class="mt-1 text-[10px] text-rose-600 hover:text-rose-700 hover:underline cursor-pointer inline-flex items-center gap-1">
+                                    <i class="ph ph-trash"></i> ลบ / เปลี่ยนรูปภาพ
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Work Contract Box -->
                     <div class="space-y-2 border border-border bg-muted/20 p-3 rounded-xl">
                         <label class="text-xs font-semibold text-foreground flex items-center justify-between">
-                            <span class="flex items-center gap-1.5"><i class="ph ph-file-text text-brand-500"></i> 2. แนบสัญญาการทำงาน</span>
-                            <span class="text-[10px] text-brand-500 font-mono">PDF, JPG, PNG</span>
+                            <span class="flex items-center gap-1.5"><i class="ph ph-file-text text-brand-600"></i> 2. แนบสัญญาการทำงาน</span>
+                            <span class="text-[10px] text-brand-600 font-mono font-semibold">PDF, JPG, PNG</span>
                         </label>
-                        <div class="border-2 border-dashed border-border hover:border-brand-500/50 rounded-xl p-3 text-center cursor-pointer bg-card hover:bg-brand-500/5 transition relative" onclick="document.getElementById('ticket-contract-file').click()">
+                        <div class="border-2 border-dashed border-border hover:border-brand-500/60 rounded-xl p-3 text-center cursor-pointer bg-card hover:bg-brand-500/5 transition relative min-h-[145px] flex flex-col items-center justify-center" onclick="document.getElementById('ticket-contract-file').click()">
                             <input type="file" id="ticket-contract-file" accept="image/*,.pdf,.doc,.docx" class="hidden" onchange="app.handleTicketContractSelect(event)">
-                            <i class="ph ph-file-arrow-up text-xl text-brand-500 mb-0.5"></i>
-                            <p class="text-xs font-semibold text-foreground">คลิกเพื่อแนบสัญญาจ้างงาน</p>
-                            <p class="text-[10px] text-muted-foreground mt-0.5">สัญญาติดตั้ง / สัญญาจ้างเหมา</p>
-                            <div id="ticket-contract-preview-container" class="mt-2 hidden">
-                                <img id="ticket-contract-preview-img" src="" alt="Contract Preview" class="max-h-28 mx-auto rounded-lg shadow border border-border object-contain">
-                                <p id="ticket-contract-preview-name" class="mt-1 text-[10px] font-mono text-brand-600 dark:text-brand-400 font-semibold truncate"></p>
+                            <div id="ticket-contract-placeholder" class="py-2 flex flex-col items-center justify-center">
+                                <div class="w-12 h-12 rounded-2xl bg-brand-500/10 text-brand-600 flex items-center justify-center mb-2 shadow-2xs border border-brand-500/20">
+                                    <i class="ph ph-image text-2xl"></i>
+                                </div>
+                                <p class="text-xs font-semibold text-foreground">ใส่รูปภาพหรือเอกสารสัญญาจ้างตรงนี้</p>
+                                <p class="text-[10px] text-muted-foreground mt-0.5">คลิกเพื่อเลือกไฟล์รูปภาพ หรือลากไฟล์มาวางที่นี่</p>
                             </div>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
-                            <span class="text-[10px] text-muted-foreground">ตัวอย่าง:</span>
-                            <button type="button" onclick="app.useSampleContract(1)" class="text-[10px] bg-card hover:bg-muted px-2 py-0.5 rounded text-foreground border border-border cursor-pointer">สัญญาจ้างมาตรฐาน</button>
-                            <button type="button" onclick="app.useSampleContract(2)" class="text-[10px] bg-card hover:bg-muted px-2 py-0.5 rounded text-foreground border border-border cursor-pointer">สัญญาติดตั้งแอร์</button>
+                            <div id="ticket-contract-preview-container" class="w-full hidden">
+                                <img id="ticket-contract-preview-img" src="" alt="Contract Preview" class="max-h-28 mx-auto rounded-lg shadow border border-border object-contain">
+                                <p id="ticket-contract-preview-name" class="mt-1 text-[10px] font-mono text-brand-600 font-semibold truncate"></p>
+                                <button type="button" onclick="event.stopPropagation(); app.clearTicketContract();" class="mt-1 text-[10px] text-rose-600 hover:text-rose-700 hover:underline cursor-pointer inline-flex items-center gap-1">
+                                    <i class="ph ph-trash"></i> ลบ / เปลี่ยนรูปภาพ
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

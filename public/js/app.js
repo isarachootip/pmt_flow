@@ -16780,28 +16780,52 @@ const app = {
                     this.initDatePicker(dateInput, { defaultDate: todayDMY });
                 }
 
-                // Slip preview initialize & display
+                // Slip preview initialize & display (No sample images, show empty placeholder with image icon)
                 const previewContainer = document.getElementById('ticket-slip-preview-container');
                 const previewImg = document.getElementById('ticket-slip-preview-img');
                 const previewName = document.getElementById('ticket-slip-preview-name');
-                this.state.newTicketSlipPreview = (targetJob && targetJob.slip_url) ? targetJob.slip_url : 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80';
-                this.state.newTicketSlipName = (targetJob && targetJob.slip_name) ? targetJob.slip_name : 'slip_sample_transfer.jpg';
+                const slipPlaceholder = document.getElementById('ticket-slip-placeholder');
+                const slipFileInput = document.getElementById('ticket-slip-file');
+                if (slipFileInput) slipFileInput.value = '';
+
+                this.state.newTicketSlipPreview = (targetJob && targetJob.slip_url) ? targetJob.slip_url : '';
+                this.state.newTicketSlipName = (targetJob && targetJob.slip_name) ? targetJob.slip_name : '';
                 if (previewContainer && previewImg) {
-                    previewImg.src = this.state.newTicketSlipPreview;
-                    if (previewName) previewName.innerText = `📎 ${this.state.newTicketSlipName}`;
-                    previewContainer.classList.remove('hidden');
+                    if (this.state.newTicketSlipPreview) {
+                        previewImg.src = this.state.newTicketSlipPreview;
+                        if (previewName) previewName.innerText = `📎 ${this.state.newTicketSlipName || 'สลิปใบเสร็จ'}`;
+                        previewContainer.classList.remove('hidden');
+                        if (slipPlaceholder) slipPlaceholder.classList.add('hidden');
+                    } else {
+                        previewImg.src = '';
+                        if (previewName) previewName.innerText = '';
+                        previewContainer.classList.add('hidden');
+                        if (slipPlaceholder) slipPlaceholder.classList.remove('hidden');
+                    }
                 }
 
-                // Contract preview initialize & display
+                // Contract preview initialize & display (No sample images, show empty placeholder with image icon)
                 const ctrPreviewContainer = document.getElementById('ticket-contract-preview-container');
                 const ctrPreviewImg = document.getElementById('ticket-contract-preview-img');
                 const ctrPreviewName = document.getElementById('ticket-contract-preview-name');
-                this.state.newTicketContractPreview = (targetJob && targetJob.contract_url) ? targetJob.contract_url : 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80';
-                this.state.newTicketContractName = (targetJob && targetJob.contract_name) ? targetJob.contract_name : 'contract_service_vfix.pdf';
+                const ctrPlaceholder = document.getElementById('ticket-contract-placeholder');
+                const ctrFileInput = document.getElementById('ticket-contract-file');
+                if (ctrFileInput) ctrFileInput.value = '';
+
+                this.state.newTicketContractPreview = (targetJob && targetJob.contract_url) ? targetJob.contract_url : '';
+                this.state.newTicketContractName = (targetJob && targetJob.contract_name) ? targetJob.contract_name : '';
                 if (ctrPreviewContainer && ctrPreviewImg) {
-                    ctrPreviewImg.src = this.state.newTicketContractPreview;
-                    if (ctrPreviewName) ctrPreviewName.innerText = `📄 ${this.state.newTicketContractName}`;
-                    ctrPreviewContainer.classList.remove('hidden');
+                    if (this.state.newTicketContractPreview) {
+                        ctrPreviewImg.src = this.state.newTicketContractPreview;
+                        if (ctrPreviewName) ctrPreviewName.innerText = `📄 ${this.state.newTicketContractName || 'สัญญาการทำงาน'}`;
+                        ctrPreviewContainer.classList.remove('hidden');
+                        if (ctrPlaceholder) ctrPlaceholder.classList.add('hidden');
+                    } else {
+                        ctrPreviewImg.src = '';
+                        if (ctrPreviewName) ctrPreviewName.innerText = '';
+                        ctrPreviewContainer.classList.add('hidden');
+                        if (ctrPlaceholder) ctrPlaceholder.classList.remove('hidden');
+                    }
                 }
 
                 const notesInput = document.getElementById('create-ticket-notes');
@@ -16821,6 +16845,7 @@ const app = {
                     if (infoEl) {
                         const ts = job.step_timestamps || {};
                         const enterIso = ts.step2_ticket_at || ts.step4_ticket_at || ts.step1_accepted_at || ts.step1_order_at || job.created_at || (job.date ? `${job.date}T08:30:00.000Z` : null);
+                        const enterStr = enterIso ? this.formatDateTimeDMY(enterIso, false, true) : '-';
                         infoEl.innerHTML = `<span class="inline-flex items-center gap-1 text-[11px] text-muted-foreground"><i class="ph ph-clock text-emerald-600 dark:text-emerald-400"></i> วันเวลาที่เข้าสู่ Step 2: <strong class="text-foreground">${enterStr}</strong></span>`;
                     }
                     if (job.slip_url) {
@@ -16829,11 +16854,15 @@ const app = {
                         const previewContainer = document.getElementById('ticket-slip-preview-container');
                         const previewImg = document.getElementById('ticket-slip-preview-img');
                         const previewName = document.getElementById('ticket-slip-preview-name');
+                        const slipPlaceholder = document.getElementById('ticket-slip-placeholder');
                         if (previewContainer && previewImg) {
                             previewImg.src = job.slip_url;
                             if (previewName) previewName.innerText = `📎 ${this.state.newTicketSlipName}`;
                             previewContainer.classList.remove('hidden');
+                            if (slipPlaceholder) slipPlaceholder.classList.add('hidden');
                         }
+                    } else {
+                        this.clearTicketSlip();
                     }
                     if (job.contract_url) {
                         this.state.newTicketContractPreview = job.contract_url;
@@ -16841,11 +16870,15 @@ const app = {
                         const ctrPreviewContainer = document.getElementById('ticket-contract-preview-container');
                         const ctrPreviewImg = document.getElementById('ticket-contract-preview-img');
                         const ctrPreviewName = document.getElementById('ticket-contract-preview-name');
+                        const ctrPlaceholder = document.getElementById('ticket-contract-placeholder');
                         if (ctrPreviewContainer && ctrPreviewImg) {
                             ctrPreviewImg.src = job.contract_url;
                             if (ctrPreviewName) ctrPreviewName.innerText = `📄 ${this.state.newTicketContractName}`;
                             ctrPreviewContainer.classList.remove('hidden');
+                            if (ctrPlaceholder) ctrPlaceholder.classList.add('hidden');
                         }
+                    } else {
+                        this.clearTicketContract();
                     }
                 }
             },
@@ -16860,13 +16893,30 @@ const app = {
                     const previewContainer = document.getElementById('ticket-slip-preview-container');
                     const previewImg = document.getElementById('ticket-slip-preview-img');
                     const previewName = document.getElementById('ticket-slip-preview-name');
+                    const slipPlaceholder = document.getElementById('ticket-slip-placeholder');
                     if (previewContainer && previewImg) {
                         previewImg.src = e.target.result;
                         if (previewName) previewName.innerText = `📎 ${file.name}`;
                         previewContainer.classList.remove('hidden');
+                        if (slipPlaceholder) slipPlaceholder.classList.add('hidden');
                     }
                 };
                 reader.readAsDataURL(file);
+            },
+
+            clearTicketSlip() {
+                this.state.newTicketSlipPreview = '';
+                this.state.newTicketSlipName = '';
+                const fileInput = document.getElementById('ticket-slip-file');
+                if (fileInput) fileInput.value = '';
+                const previewContainer = document.getElementById('ticket-slip-preview-container');
+                const previewImg = document.getElementById('ticket-slip-preview-img');
+                const previewName = document.getElementById('ticket-slip-preview-name');
+                const slipPlaceholder = document.getElementById('ticket-slip-placeholder');
+                if (previewContainer) previewContainer.classList.add('hidden');
+                if (previewImg) previewImg.src = '';
+                if (previewName) previewName.innerText = '';
+                if (slipPlaceholder) slipPlaceholder.classList.remove('hidden');
             },
 
             handleTicketContractSelect(event) {
@@ -16879,13 +16929,30 @@ const app = {
                     const previewContainer = document.getElementById('ticket-contract-preview-container');
                     const previewImg = document.getElementById('ticket-contract-preview-img');
                     const previewName = document.getElementById('ticket-contract-preview-name');
+                    const ctrPlaceholder = document.getElementById('ticket-contract-placeholder');
                     if (previewContainer && previewImg) {
                         previewImg.src = e.target.result;
                         if (previewName) previewName.innerText = `📄 ${file.name}`;
                         previewContainer.classList.remove('hidden');
+                        if (ctrPlaceholder) ctrPlaceholder.classList.add('hidden');
                     }
                 };
                 reader.readAsDataURL(file);
+            },
+
+            clearTicketContract() {
+                this.state.newTicketContractPreview = '';
+                this.state.newTicketContractName = '';
+                const fileInput = document.getElementById('ticket-contract-file');
+                if (fileInput) fileInput.value = '';
+                const previewContainer = document.getElementById('ticket-contract-preview-container');
+                const previewImg = document.getElementById('ticket-contract-preview-img');
+                const previewName = document.getElementById('ticket-contract-preview-name');
+                const ctrPlaceholder = document.getElementById('ticket-contract-placeholder');
+                if (previewContainer) previewContainer.classList.add('hidden');
+                if (previewImg) previewImg.src = '';
+                if (previewName) previewName.innerText = '';
+                if (ctrPlaceholder) ctrPlaceholder.classList.remove('hidden');
             },
 
             useSampleSlip(type = 1) {
@@ -16898,12 +16965,13 @@ const app = {
                 const previewContainer = document.getElementById('ticket-slip-preview-container');
                 const previewImg = document.getElementById('ticket-slip-preview-img');
                 const previewName = document.getElementById('ticket-slip-preview-name');
+                const slipPlaceholder = document.getElementById('ticket-slip-placeholder');
                 if (previewContainer && previewImg) {
                     previewImg.src = sampleUrl;
                     if (previewName) previewName.innerText = `📎 ${sampleName}`;
                     previewContainer.classList.remove('hidden');
+                    if (slipPlaceholder) slipPlaceholder.classList.add('hidden');
                 }
-                this.showToast('📷 เลือกรูปตัวอย่างสลิปใบเสร็จเรียบร้อย');
             },
 
             useSampleContract(type = 1) {
@@ -16916,12 +16984,13 @@ const app = {
                 const previewContainer = document.getElementById('ticket-contract-preview-container');
                 const previewImg = document.getElementById('ticket-contract-preview-img');
                 const previewName = document.getElementById('ticket-contract-preview-name');
+                const ctrPlaceholder = document.getElementById('ticket-contract-placeholder');
                 if (previewContainer && previewImg) {
                     previewImg.src = sampleUrl;
                     if (previewName) previewName.innerText = `📄 ${sampleName}`;
                     previewContainer.classList.remove('hidden');
+                    if (ctrPlaceholder) ctrPlaceholder.classList.add('hidden');
                 }
-                this.showToast('📝 เลือกไฟล์ตัวอย่างสัญญาการทำงานเรียบร้อย');
             },
 
             submitCreateTicket(event) {
@@ -16948,10 +17017,10 @@ const app = {
                     amount: amount,
                     payment_date: paymentDate,
                     payment_method: paymentMethod,
-                    slip_url: this.state.newTicketSlipPreview || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80',
-                    slip_name: this.state.newTicketSlipName || 'receipt_slip.jpg',
-                    contract_url: this.state.newTicketContractPreview || 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80',
-                    contract_name: this.state.newTicketContractName || 'work_contract.pdf',
+                    slip_url: this.state.newTicketSlipPreview || '',
+                    slip_name: this.state.newTicketSlipName || '',
+                    contract_url: this.state.newTicketContractPreview || '',
+                    contract_name: this.state.newTicketContractName || '',
                     status: 'VERIFIED',
                     notes: notes,
                     created_at: new Date().toISOString()
