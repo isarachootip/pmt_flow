@@ -16110,7 +16110,7 @@ const app = {
                         }
                     }
                     const daysEl = document.getElementById(`convert-days-${idx}`);
-                    if (daysEl) daysEl.innerText = `${task.days} วัน`;
+                    if (daysEl) daysEl.innerHTML = `<span class="text-xs font-semibold text-foreground whitespace-nowrap">${task.days} วัน</span>`;
                 } else if (field === 'days') {
                     task.days = parseInt(value) || 1;
                     if (task.start) {
@@ -16164,6 +16164,7 @@ const app = {
 
                 const rowsHtml = tasks.map((t, idx) => {
                     const techName = t.tech || (t.assignees && t.assignees[0]) || '';
+                    const hasSystemTech = !!(techName && techName.trim() && techName !== 'รอระบุช่าง' && techName !== '-');
 
                     return `
                     <tr class="hover:bg-muted/30 transition">
@@ -16188,22 +16189,25 @@ const app = {
                                 <i class="ph ph-calendar absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-xs"></i>
                             </div>
                         </td>
-                        <td class="py-2.5 px-3 text-center" id="convert-days-${idx}">
-                            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-purple-500/10 text-purple-600 border border-purple-500/20">
+                        <td class="py-2.5 px-3 text-center whitespace-nowrap" id="convert-days-${idx}">
+                            <span class="text-xs font-semibold text-foreground whitespace-nowrap">
                                 ${t.days || 1} วัน
                             </span>
                         </td>
                         <!-- ผู้รับผิดชอบ (Key ชื่อช่าง / เลือกช่างจาก INT) -->
-                        <td class="py-2.5 px-3 min-w-[280px]">
+                        <td class="py-2.5 px-3 min-w-[240px]">
                             <div class="flex items-center gap-1.5">
                                 <div class="relative flex-1">
                                     <i class="ph ph-user text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 text-xs pointer-events-none"></i>
                                     <input type="text"
+                                           list="int-tech-suggestions"
                                            value="${(techName || '').replace(/"/g, '&quot;')}"
                                            oninput="app.updateConvertTaskField(${idx}, 'tech', this.value)"
+                                           onblur="if (!this.value.trim()) app.renderConvertTasksRows();"
                                            placeholder="Key ระบุชื่อช่าง..."
-                                           class="w-full bg-card hover:bg-muted/40 focus:bg-card border border-border focus:border-purple-500 rounded-lg pl-8 pr-2 py-1.5 text-xs text-foreground font-semibold focus:outline-none shadow-2xs transition">
+                                           class="w-full bg-card hover:bg-muted/40 focus:bg-card border border-border focus:border-purple-500 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-foreground font-semibold focus:outline-none shadow-2xs transition">
                                 </div>
+                                ${!hasSystemTech ? `
                                 <button type="button"
                                         onclick="app.openIntTechBookingModal(${idx})"
                                         class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1 text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-300 cursor-pointer shadow-2xs shrink-0 whitespace-nowrap transition"
@@ -16211,6 +16215,7 @@ const app = {
                                     <i class="ph ph-calendar-check text-xs text-purple-600"></i>
                                     <span>เลือกช่างจาก INT</span>
                                 </button>
+                                ` : ''}
                             </div>
                         </td>
                         <td class="py-2.5 px-2 text-center">

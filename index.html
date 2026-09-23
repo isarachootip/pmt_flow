@@ -5867,16 +5867,17 @@
                                 <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
                                     <span class="flex items-center gap-2">
                                         <span class="text-brand-500 font-bold">Q18:</span>
-                                        <span>การระบุช่างในหน้าจอ Convert Project กำหนดให้มีเฉพาะการ Key ชื่อช่าง และปุ่ม "เลือกช่างจาก INT" มีข้อดีและรูปแบบการใช้งานอย่างไร?</span>
+                                        <span>การระบุช่างในหน้าจอ Convert Project และการแสดงผลระยะเวลา มีข้อดีและรูปแบบการใช้งานอย่างไร?</span>
                                     </span>
                                     <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
                                 </summary>
                                 <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
-                                    <p><strong class="text-foreground">คำตอบ:</strong> ในหน้าต่าง <strong>"นำเข้า BOQ สู่ Project Tasks & แผนงาน Gantt"</strong> (`modal-convert-boq-tasks`) คอลัมน์ <strong>"ผู้รับผิดชอบ (Key ชื่อช่าง / เลือกช่างจาก INT)"</strong> ถูกปรับให้กระชับ ชัดเจน และมีเฉพาะองค์ประกอบที่จำเป็นต่อการปฏิบัติงานจริงเท่านั้น:</p>
+                                    <p><strong class="text-foreground">คำตอบ:</strong> ในหน้าต่าง <strong>"นำเข้า BOQ สู่ Project Tasks & แผนงาน Gantt"</strong> (`modal-convert-boq-tasks`) คอลัมน์ <strong>"ระยะเวลา"</strong> และ <strong>"ผู้รับผิดชอบ"</strong> ถูกปรับให้กระชับ ชัดเจน และมีเฉพาะองค์ประกอบที่จำเป็นต่อการปฏิบัติงานจริงเท่านั้น:</p>
                                     <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
-                                        <li><strong>ช่อง Key ชื่อช่างโดยตรง (Free Text Input):</strong> เจ้าหน้าที่สามารถพิมพ์ (Key in) ชื่อช่าง ทีมช่าง หรือเบอร์ติดต่อลงในช่อง Input ได้อย่างอิสระโดยตรง ไม่ซับซ้อน</li>
-                                        <li><strong>ปุ่ม "เลือกช่างจาก INT" (INT Selection Integration):</strong> แต่ละแถวมีปุ่ม <code class="bg-purple-500/10 text-purple-700 font-bold px-1.5 py-0.2 rounded text-[10px]">เลือกช่างจาก INT</code> เมื่อคลิกจะเปิดหน้าต่างเลือกรายชื่อช่างจากระบบ INT พร้อมคะแนนดาวรีวิว และปุ่มยืนยันเลือกช่าง (Confirm) เพื่อนำชื่อช่างมาใส่ในช่อง Key ทันที</li>
-                                        <li><strong>ตัดปุ่มด่วนลัดที่ไม่จำเป็นออก:</strong> เพื่อให้ตารางมีความสะอาดตา อ่านข้อมูลง่าย บรรทัดไม่ซ้อนทับกัน และคงไว้เฉพาะการ Key ชื่อช่างกับปุ่มเลือกช่างจาก INT เท่านั้น</li>
+                                        <li><strong>ระยะเวลาแสดงบรรทัดเดียว (Clean Single Line):</strong> แสดงผลระยะเวลาในบรรทัดเดียว (เช่น <code class="font-semibold text-foreground">1 วัน</code>) โดยไม่มีสีกรอบฉากหลัง เพื่อความสบายตา คมชัดสูงสุดตามมาตรฐาน Pure Black Text</li>
+                                        <li><strong>ซ่อนปุ่ม INT อัตโนมัติเมื่อมีชื่อช่างจากระบบ:</strong> หากดึงรายชื่อช่างมาจากระบบแล้ว ระบบจะซ่อนปุ่ม <code class="bg-purple-500/10 text-purple-700 font-bold px-1.5 py-0.2 rounded text-[10px]">เลือกช่างจาก INT</code> ในแถวนั้นอัตโนมัติ เพื่อขยายช่องระบุชื่อช่างให้อ่านง่ายเต็มความกว้าง</li>
+                                        <li><strong>ปุ่ม "เลือกช่างจาก INT" สำหรับงานที่ยังไม่ระบุช่าง:</strong> แถวที่ยังไม่มีรายชื่อช่างจะแสดงปุ่มให้กดเปิดหน้าต่างเลือกรายชื่อช่างจากระบบ INT พร้อมคะแนนรีวิวและปุ่มยืนยันเลือกช่าง</li>
+                                        <li><strong>ช่อง Key ชื่อช่างโดยตรง (Free Text & Suggestions):</strong> สามารถพิมพ์แก้ไขชื่อช่างได้โดยตรง พร้อมระบบ Autocomplete แนะนำรายชื่อช่าง</li>
                                         <li><strong>ปุ่ม "เลือกช่างจาก INT ทั้งหมด":</strong> ที่แถบเครื่องมือด้านบน มีปุ่มลัดสำหรับดึงและจัดสรรช่าง INT ให้ทุกงานพร้อมกันในคลิกเดียว</li>
                                     </ul>
                                 </div>
@@ -9593,8 +9594,8 @@
                                     <th class="py-2.5 px-3 min-w-[220px]">Task ตาม BOQ / ชื่องานปฏิบัติการ</th>
                                     <th class="py-2.5 px-3 w-36">วันเริ่มต้น (Start Date)</th>
                                     <th class="py-2.5 px-3 w-36">วันสิ้นสุด (End Date)</th>
-                                    <th class="py-2.5 px-3 w-20 text-center">ระยะเวลา</th>
-                                    <th class="py-2.5 px-3 min-w-[280px]">ผู้รับผิดชอบ (Key ชื่อช่าง / เลือกช่างจาก INT)</th>
+                                    <th class="py-2.5 px-3 w-24 text-center whitespace-nowrap">ระยะเวลา</th>
+                                    <th class="py-2.5 px-3 min-w-[240px]">ผู้รับผิดชอบ (Key ชื่อช่าง / เลือกช่างจาก INT)</th>
                                     <th class="py-2.5 px-2 w-28 text-center">การแทรก / ลบ</th>
                                 </tr>
                             </thead>
