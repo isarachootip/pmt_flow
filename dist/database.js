@@ -820,7 +820,7 @@ async function dbLoadJobsPaginated(options = {}) {
                 whereClauses.push(`(UPPER(status) IN ('IN_PROGRESS', 'INSTALLING', 'GANTT_ACTIVE'))`);
             }
             else if (stp === 'step5' || stp === 'qc') {
-                whereClauses.push(`(UPPER(status) IN ('QC_PENDING', 'QC_INSPECTING', 'QC_REWORK'))`);
+                whereClauses.push(`(UPPER(status) IN ('QC_PENDING', 'QC_INSPECTING', 'QC_REWORK', 'QC_PASSED', 'QC_CONFIRMED', 'DRAFT_QC'))`);
             }
             else if (stp === 'step6' || stp === 'closed') {
                 whereClauses.push(`(UPPER(status) IN ('QC_PASSED', 'CLOSED'))`);

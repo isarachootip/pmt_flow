@@ -766,7 +766,9 @@ const app = {
                 if (typeof flatpickr === 'undefined') return;
                 const dateInputs = container.querySelectorAll('input[data-datepicker="true"], input.pmt-datepicker');
                 dateInputs.forEach(inp => {
-                    this.initDatePicker(inp);
+                    if (!inp._flatpickr) {
+                        this.initDatePicker(inp);
+                    }
                 });
             },
 
@@ -25051,41 +25053,25 @@ const app = {
                 const dateFromStr = (dateFromEl?.value || '').trim();
                 const dateToStr = (dateToEl?.value || '').trim();
 
-                const parseDMY = (s) => {
-                    if (!s) return null;
-                    const parts = s.split('/');
-                    if (parts.length !== 3) return null;
-                    return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-                };
-                const dateFrom = parseDMY(dateFromStr);
-                const dateTo = parseDMY(dateToStr);
+                let dateFromISO = this.formatDateISO(dateFromStr);
+                let dateToISO = this.formatDateISO(dateToStr);
 
-                if (dateFrom || dateTo) {
+                if (dateFromISO && dateToISO && dateFromISO > dateToISO) {
+                    const tmp = dateFromISO;
+                    dateFromISO = dateToISO;
+                    dateToISO = tmp;
+                }
+
+                if (dateFromISO || dateToISO) {
                     list = list.filter(j => {
-                        const datesToCheck = [
-                            j.qc_booking?.date,
-                            j.plan_date,
-                            j.date,
-                            j.step_timestamps?.qc_pending_at,
-                            j.created_at
-                        ].filter(Boolean);
+                        // Match EXACT appointment date displayed in the 'กำหนดวันนัด' column
+                        const rawTarget = j.plan_date || j.date || (j.qc_booking && (j.qc_booking.bookingDate || j.qc_booking.date)) || (j.schedule_plan && j.schedule_plan.visit_date) || (j.step_timestamps && j.step_timestamps.qc_pending_at) || j.created_at;
+                        const jobDateISO = this.formatDateISO(rawTarget);
+                        if (!jobDateISO) return false;
 
-                        if (datesToCheck.length === 0) return false;
-
-                        return datesToCheck.some(raw => {
-                            let dObj = null;
-                            if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
-                                const d = new Date(raw);
-                                dObj = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                            } else {
-                                dObj = parseDMY(raw);
-                            }
-                            if (!dObj || isNaN(dObj.getTime())) return false;
-
-                            if (dateFrom && dObj < dateFrom) return false;
-                            if (dateTo && dObj > dateTo) return false;
-                            return true;
-                        });
+                        if (dateFromISO && jobDateISO < dateFromISO) return false;
+                        if (dateToISO && jobDateISO > dateToISO) return false;
+                        return true;
                     });
                 }
 
@@ -25095,8 +25081,17 @@ const app = {
                     countBadge.textContent = `พบ ${list.length} รายการ`;
                 }
 
-                // CRITICAL RULE: Sort jobs descending so newest incoming jobs are always on top!
-                list = this.sortJobsDescending(list);
+                // If date range is active, sort chronologically so user sees appointment timeline; otherwise sort latest incoming on top
+                if (dateFromISO || dateToISO) {
+                    list.sort((a, b) => {
+                        const dateA = this.formatDateISO(a.plan_date || a.date || (a.qc_booking && (a.qc_booking.bookingDate || a.qc_booking.date)) || (a.schedule_plan && a.schedule_plan.visit_date) || (a.step_timestamps && a.step_timestamps.qc_pending_at) || a.created_at || '');
+                        const dateB = this.formatDateISO(b.plan_date || b.date || (b.qc_booking && (b.qc_booking.bookingDate || b.qc_booking.date)) || (b.schedule_plan && b.schedule_plan.visit_date) || (b.step_timestamps && b.step_timestamps.qc_pending_at) || b.created_at || '');
+                        return dateA.localeCompare(dateB);
+                    });
+                } else {
+                    // CRITICAL RULE: Sort jobs descending so newest incoming jobs are always on top!
+                    list = this.sortJobsDescending(list);
+                }
 
                 const tableBody = document.getElementById('qc-jobs-table-body');
                 if (!tableBody) return;
@@ -25446,9 +25441,47 @@ const app = {
             clearQCDateFilter() {
                 const dFrom = document.getElementById('qc-filter-date-from');
                 const dTo = document.getElementById('qc-filter-date-to');
-                if (dFrom) dFrom.value = '';
-                if (dTo) dTo.value = '';
+                if (dFrom) {
+                    if (dFrom._flatpickr) dFrom._flatpickr.clear();
+                    else dFrom.value = '';
+                }
+                if (dTo) {
+                    if (dTo._flatpickr) dTo._flatpickr.clear();
+                    else dTo.value = '';
+                }
                 this.renderQC();
+            },
+
+            setQCDatePreset(preset) {
+                const dFrom = document.getElementById('qc-filter-date-from');
+                const dTo = document.getElementById('qc-filter-date-to');
+                if (!dFrom || !dTo) return;
+
+                const now = new Date();
+                let fromStr = '';
+                let toStr = '';
+
+                if (preset === 'today') {
+                    fromStr = this.formatDateDMY(now);
+                    toStr = this.formatDateDMY(now);
+                } else if (preset === 'this_month') {
+                    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    fromStr = this.formatDateDMY(firstDay);
+                    toStr = this.formatDateDMY(lastDay);
+                } else if (preset === '7days') {
+                    const pastDay = new Date(now.getTime() - 7 * 86400000);
+                    fromStr = this.formatDateDMY(pastDay);
+                    toStr = this.formatDateDMY(now);
+                }
+
+                if (dFrom._flatpickr) dFrom._flatpickr.setDate(fromStr, false);
+                else dFrom.value = fromStr;
+
+                if (dTo._flatpickr) dTo._flatpickr.setDate(toStr, false);
+                else dTo.value = toStr;
+
+                this.filterQCTable();
             },
 
             clearAllQCFilters() {
@@ -25467,9 +25500,15 @@ const app = {
                 if (serviceSel) serviceSel.value = 'all';
 
                 const dFrom = document.getElementById('qc-filter-date-from');
-                if (dFrom) dFrom.value = '';
+                if (dFrom) {
+                    if (dFrom._flatpickr) dFrom._flatpickr.clear();
+                    else dFrom.value = '';
+                }
                 const dTo = document.getElementById('qc-filter-date-to');
-                if (dTo) dTo.value = '';
+                if (dTo) {
+                    if (dTo._flatpickr) dTo._flatpickr.clear();
+                    else dTo.value = '';
+                }
 
                 this.state.qcSegmentFilter = 'all';
                 this.renderQC();
@@ -25495,7 +25534,9 @@ const app = {
                 } else if (type === 'OVERDUE') {
                     this.showToast('🔍 กรองงาน QC ที่เกินกำหนด SLA');
                 } else if (type === 'TODAY') {
+                    this.setQCDatePreset('today');
                     this.showToast('🔍 กรองเฉพาะงานที่เข้าสู่ QC วันนี้');
+                    return;
                 } else {
                     if (statusSel) statusSel.value = 'all';
                     this.state.qcSegmentFilter = 'all';

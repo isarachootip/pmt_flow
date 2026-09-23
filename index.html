@@ -3356,22 +3356,30 @@
                                     <option value="round_2_plus">ตรวจรอบแก้ไข (Round 2+ ล็อก 1.0)</option>
                                 </select>
 
-                                <!-- Date Filter (DD/MM/YYYY) with Flatpickr -->
-                                <div class="flex items-center gap-1 bg-muted/50 p-0.5 rounded-lg border border-border/80">
-                                    <div class="relative">
-                                        <i class="ph ph-calendar absolute left-2 top-1/2 -translate-y-1/2 text-teal-600 text-xs pointer-events-none"></i>
-                                        <input type="text" id="qc-filter-date-from" data-datepicker="true" placeholder="DD/MM/YYYY" readonly
-                                            class="pl-6 pr-2 py-1 text-xs bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-teal-500 w-28 cursor-pointer shadow-2xs">
+                                <!-- Date Filter (DD/MM/YYYY) with Flatpickr & Quick Presets -->
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <div class="flex items-center gap-1 bg-muted/50 p-0.5 rounded-lg border border-border/80">
+                                        <div class="relative">
+                                            <i class="ph ph-calendar absolute left-2 top-1/2 -translate-y-1/2 text-teal-600 text-xs pointer-events-none"></i>
+                                            <input type="text" id="qc-filter-date-from" data-datepicker="true" placeholder="DD/MM/YYYY" readonly
+                                                onchange="app.filterQCTable()"
+                                                class="pl-6 pr-2 py-1 text-xs bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-teal-500 w-28 cursor-pointer shadow-2xs">
+                                        </div>
+                                        <span class="text-muted-foreground text-[11px] px-0.5">ถึง</span>
+                                        <div class="relative">
+                                            <i class="ph ph-calendar absolute left-2 top-1/2 -translate-y-1/2 text-teal-600 text-xs pointer-events-none"></i>
+                                            <input type="text" id="qc-filter-date-to" data-datepicker="true" placeholder="DD/MM/YYYY" readonly
+                                                onchange="app.filterQCTable()"
+                                                class="pl-6 pr-2 py-1 text-xs bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-teal-500 w-28 cursor-pointer shadow-2xs">
+                                        </div>
+                                        <button type="button" onclick="app.clearQCDateFilter()" title="ล้างตัวกรองวันที่" class="px-1.5 py-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border text-xs cursor-pointer">
+                                            <i class="ph ph-x-circle text-xs"></i>
+                                        </button>
                                     </div>
-                                    <span class="text-muted-foreground text-[11px] px-0.5">ถึง</span>
-                                    <div class="relative">
-                                        <i class="ph ph-calendar absolute left-2 top-1/2 -translate-y-1/2 text-teal-600 text-xs pointer-events-none"></i>
-                                        <input type="text" id="qc-filter-date-to" data-datepicker="true" placeholder="DD/MM/YYYY" readonly
-                                            class="pl-6 pr-2 py-1 text-xs bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-teal-500 w-28 cursor-pointer shadow-2xs">
+                                    <div class="flex items-center gap-1">
+                                        <button type="button" onclick="app.setQCDatePreset('today')" class="px-2 py-1 rounded-md bg-card hover:bg-muted text-foreground border border-border text-[11px] font-semibold cursor-pointer shadow-2xs transition" title="กรองเฉพาะวันนัดวันนี้">วันนี้</button>
+                                        <button type="button" onclick="app.setQCDatePreset('this_month')" class="px-2 py-1 rounded-md bg-card hover:bg-muted text-foreground border border-border text-[11px] font-semibold cursor-pointer shadow-2xs transition" title="กรองเฉพาะวันนัดเดือนนี้">เดือนนี้</button>
                                     </div>
-                                    <button type="button" onclick="app.clearQCDateFilter()" title="ล้างตัวกรองวันที่" class="px-1.5 py-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border text-xs cursor-pointer">
-                                        <i class="ph ph-x-circle text-xs"></i>
-                                    </button>
                                 </div>
                             </div>
 
@@ -5592,7 +5600,7 @@
                                         <li><strong>ช่องค้นหาคำสำคัญอเนกประสงค์ (Global Search):</strong> พิมพ์คำค้นหาแบบ Real-time โดยค้นหาครอบคลุมทั้ง <em>เลขที่งาน (Job ID), เลขที่อ้างอิง Ref ID / STK Ref, เลขที่ Booking, เลขที่ Ticket, ชื่อ-นามสกุลลูกค้า, เบอร์โทรศัพท์ลูกค้า (พิมพ์ 3-4 ตัวท้ายก็ค้นเจอ), ชื่อช่าง / หัวหน้าช่าง QC, ประเภทบริการ, และหมายเหตุส่งแก้ไข</em></li>
                                         <li><strong>ตัวกรองสถานะ QC (QC Status Filter):</strong> กรองงานตามสถานะ <em>รอตรวจ (Pending / Draft), ผ่านเกณฑ์แล้ว (Passed), หรือ มีประวัติส่งแก้ไข (Rework / Defect)</em></li>
                                         <li><strong>ตัวกรองรอบการตรวจ (Inspection Round Filter):</strong> แยกงานตรวจรอบแรก <em>(Round 1 - First-time Pass)</em> ออกจากงานที่เคยส่งแก้ไข <em>(Round 2+ ล็อก 1.0 คะแนน)</em> ได้ทันที</li>
-                                        <li><strong>ตัวกรองช่วงวันที่ (Date Range Filter):</strong> เลือกช่วงวันที่นัดหมายหรือวันส่งมอบงานผ่าน Flatpickr ตามมาตรฐานรูปแบบวันที่ <code>DD/MM/YYYY</code></li>
+                                        <li><strong>ตัวกรองช่วงวันที่ & ปุ่มลัด (Date Range Filter & Quick Presets):</strong> เลือกช่วงวันที่นัดหมายตามมาตรฐาน <code>DD/MM/YYYY</code> ผ่าน Flatpickr พร้อมปุ่มลัดเลือกช่วง <strong>"วันนี้"</strong> และ <strong>"เดือนนี้"</strong> ช่วยกรองงานตามกำหนดวันนัดหมายได้อย่างรวดเร็วในคลิกเดียว</li>
                                         <li><strong>ปุ่มล้างคำค้นหา [X] & ปุ่มรีเซ็ตทั้งหมด:</strong> สามารถกดเคลียร์คำค้นหาหรือรีเซ็ตเงื่อนไขตัวกรองทั้งหมดกลับสู่ค่าเริ่มต้นได้ในคลิกเดียว พร้อมป้ายแสดงจำนวนรายการที่พบแบบเรียลไทม์</li>
                                     </ul>
                                 </div>
