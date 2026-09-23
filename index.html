@@ -5143,6 +5143,29 @@
                                     </button>
                                 </div>
                             </div>
+
+                            <!-- Module 15: System Health & Inbound API Traffic Monitor -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-cyan-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-700 font-mono text-[10px] font-bold border border-cyan-500/20">TRN-PMT-MON01</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">การเฝ้าระวัง & มอนิเตอร์</span>
+                                    </div>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-cyan-600 transition">การ Monitor ระบบ & ตรวจสอบ API Traffic</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">คู่มือเจาะลึก 3 ระดับชั้น: Standalone Live Monitor 24/7 (/apimonitor), Inbound Request Logs, ตรวจสอบ Payload/Headers/cURL, เสียงเตือน Error และประวัติ Login Audit</p>
+                                </div>
+                                <div class="pt-2 border-t border-border flex items-center gap-1.5">
+                                    <button onclick="app.navigate('api-logs')" class="flex-1 py-1.5 px-2 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition" title="ไปหน้าประวัติการยิง API ขาเข้า">
+                                        <i class="ph ph-terminal-window"></i> หน้า Logs
+                                    </button>
+                                    <a href="/apimonitor" target="_blank" class="flex-1 py-1.5 px-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-[11px] font-semibold text-cyan-700 flex items-center justify-center gap-1 cursor-pointer transition" title="เปิดหน้าจอ Live Monitor แยกต่างหาก">
+                                        <i class="ph ph-arrow-square-out"></i> Live Monitor
+                                    </a>
+                                    <button onclick="window.openTrainingDoc('คู่มือการMonitorระบบ_และตรวจสอบAPITraffic.md', 'โมดูล 15: คู่มือการ Monitor ระบบ และตรวจสอบ Inbound API Traffic')" class="flex-1 py-1.5 px-2 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-[11px] font-semibold text-purple-700 flex items-center justify-center gap-1 cursor-pointer transition" title="เปิดอ่านคู่มือการ Monitor ระบบฉบับสมบูรณ์">
+                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -6103,6 +6126,10 @@
                                 <i class="ph ph-book-open text-sm"></i>
                                 <span>Swagger UI Docs</span>
                             </a>
+                            <button type="button" onclick="window.openTrainingDoc('คู่มือการMonitorระบบ_และตรวจสอบAPITraffic.md', 'โมดูล 15: คู่มือการ Monitor ระบบ และตรวจสอบ Inbound API Traffic')" class="btn-artifact-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-purple-700 bg-purple-50 border border-purple-300 hover:bg-purple-100 transition cursor-pointer shadow-xs" title="เปิดอ่านคู่มือการ Monitor ระบบและตรวจสอบ API Traffic ฉบับสมบูรณ์">
+                                <i class="ph ph-graduation-cap text-sm text-purple-600"></i>
+                                <span>คู่มือการ Monitor</span>
+                            </button>
                             <button type="button" onclick="app.clearApiLogs()" class="px-3.5 py-2 rounded-xl text-xs font-semibold border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition flex items-center gap-1.5 cursor-pointer">
                                 <i class="ph ph-trash text-sm"></i>
                                 <span>ล้างประวัติ Log</span>

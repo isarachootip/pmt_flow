@@ -21,6 +21,7 @@
 | **09** | `TRN-PMT-SYS01` | **แดชบอร์ดภาพรวม & การจัดการผู้ใช้งาน** (Dashboard & Users) | ผู้บริหาร, Admin, PM | [คู่มือ Dashboard & Admin](คู่มือการใช้งาน_แดชบอร์ดและจัดการผู้ใช้งาน.md) |
 | **10** | `TRN-PMT-PRC01` | **บันทึกราคาโครงการ: งานที่ปิดแล้ว** (แยกราคาทุน vs ราคาขาย No VAT) | เจ้าหน้าที่คิดราคา, AE, Admin | [คู่มือบันทึกราคาโครงการ](คู่มือการใช้งาน_บันทึกราคาโครงการ_แยกทุนและราคาขาย.md) |
 | **14** | `TRN-PMT-RENOVATE01` | **คู่มือการดำเนินงานโครงการ Renovate** (Renovate Master SOP) | AE, PM, Cost Controller, QC Lead, Admin | [คู่มือโครงการ Renovate](คู่มือการดำเนินงาน_โครงการRenovate.md) |
+| **15** | `TRN-PMT-MON01` | **การ Monitor ระบบ & ตรวจสอบ API Traffic** (System & Inbound API Monitor) | System Admin, Integrator, PM, Auditor, NOC | [คู่มือการ Monitor ระบบ](คู่มือการMonitorระบบ_และตรวจสอบAPITraffic.md) |
 
 ---
 
