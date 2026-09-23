@@ -23797,7 +23797,16 @@ const app = {
             openDailyWorkLogModal(taskId, targetDate = null, subtaskId = null) {
                 let task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
                 let jobId = task ? task.jobId : this.state.selectedGanttJobId;
-                if (!jobId || jobId === 'all') jobId = 'JOB202609001';
+                if (!task && taskId && String(taskId).startsWith('T_')) {
+                    const parts = String(taskId).split('_');
+                    if (parts.length >= 2 && parts[1].startsWith('JOB')) {
+                        jobId = parts[1];
+                    }
+                }
+                if (!jobId || jobId === 'all') {
+                    const firstJobWithTask = (DB.tasks && DB.tasks.length > 0) ? DB.tasks[0].jobId : null;
+                    jobId = firstJobWithTask || (DB.jobs && DB.jobs.length > 0 ? DB.jobs[0].id : 'JOB202609001');
+                }
                 
                 if (!task) {
                     const jobTasks = (DB.tasks || []).filter(t => t.jobId === jobId);
@@ -23834,14 +23843,20 @@ const app = {
                 const elJobId = document.getElementById('dwl-modal-job-id');
                 if (elJobId) elJobId.innerText = jobId;
                 const elCust = document.getElementById('dwl-modal-customer');
-                if (elCust) elCust.innerText = `${job.customer || 'คุณกุลนารี ทรงเกียรติ'} • ${job.phone || '094-567-8901'}`;
+                const custName = (this.getCustomerName ? this.getCustomerName(job) : null) || (typeof job.customer === 'string' ? job.customer : (job.customer && job.customer.name ? job.customer.name : 'คุณกุลนารี ทรงเกียรติ'));
+                const custPhone = job.phone || (job.customer && job.customer.phone) || '094-567-8901';
+                if (elCust) elCust.innerText = `${custName} • ${custPhone}`;
                 const elSub = document.getElementById('dwl-modal-subtitle');
                 if (elSub) elSub.innerText = `Task: "${taskName}" • แผนงาน: ${this.formatDateDMY(startDate)} ถึง ${this.formatDateDMY(endDate)} (${days} วัน) • ช่าง: ${tech} • วันนัดตรวจ QC: ${this.formatDateDMY(endDate)}`;
 
                 // Reset photo slots for modal
                 this.state.dailyLogPhotoSlots = [null, null, null, null, null];
 
-                this.renderDailyWorkLogs(taskId);
+                try {
+                    this.renderDailyWorkLogs(taskId);
+                } catch (renderErr) {
+                    console.error('Error rendering daily work logs:', renderErr);
+                }
 
                 modal.classList.remove('hidden-view');
                 setTimeout(() => {
@@ -23864,8 +23879,16 @@ const app = {
             },
 
             openDailyWorkLogModalForJob(jobId) {
+                if (!jobId || jobId === 'all') {
+                    jobId = this.state.selectedGanttJobId;
+                }
+                if (!jobId || jobId === 'all') {
+                    const firstJobWithTask = (DB.tasks && DB.tasks.length > 0) ? DB.tasks[0].jobId : null;
+                    jobId = firstJobWithTask || (DB.jobs && DB.jobs.length > 0 ? DB.jobs[0].id : 'JOB202609001');
+                }
                 const jobTasks = (DB.tasks || []).filter(t => t.jobId === jobId);
                 const firstTask = jobTasks.length > 0 ? jobTasks[0] : null;
+                this.state.activeDailyLogJobId = jobId;
                 this.openDailyWorkLogModal(firstTask ? firstTask.id : `T_${jobId}_1`);
             },
 
@@ -23888,10 +23911,18 @@ const app = {
                 const job = (DB.jobs || []).find(j => j.id === jobId) || {};
                 const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
                 
-                const taskName = task ? task.name : 'งาน set ระบบ ไฟ';
-                const startDateStr = task ? (task.start || '2026-09-07') : '2026-09-07';
-                const endDateStr = task ? (task.end || task.start) : '2026-09-09';
-                const taskDays = task ? (task.days || 3) : 3;
+                let subtask = null;
+                if (task && Array.isArray(task.subtasks) && this.state.activeDailyLogSubtaskId) {
+                    subtask = task.subtasks.find(s => String(s.id) === String(this.state.activeDailyLogSubtaskId));
+                }
+
+                const taskName = subtask ? `${task.name} ➔ [งานย่อย] ${subtask.name}` : (task ? task.name : (job.service || 'งาน set ระบบ ไฟ'));
+                const rawStart = subtask ? (subtask.start || (task ? task.start : null)) : (task ? task.start : null);
+                const rawEnd = subtask ? (subtask.end || subtask.start || (task ? (task.end || task.start) : null)) : (task ? (task.end || task.start) : null);
+                const startDateStr = this.formatDateISO(rawStart) || rawStart || '2026-09-07';
+                const endDateStr = this.formatDateISO(rawEnd) || rawEnd || '2026-09-09';
+                const taskDays = subtask ? (subtask.days || 1) : (task ? (task.days || 3) : 3);
+                const tech = subtask ? (subtask.tech || (task ? task.tech : null) || job.tech || 'ช่างหน้างาน') : (task ? (task.tech || job.tech || 'ช่างหน้างาน') : (job.tech || 'ช่างหน้างาน'));
 
                 const todayStr = this.getGanttTodayDate();
                 const todayTimestamp = new Date(todayStr).getTime();
