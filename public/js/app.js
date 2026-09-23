@@ -23035,19 +23035,6 @@ const app = {
 
                         const cleanName = (t.name || '').replace(/"/g, '&quot;');
                         const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
-                        const rawQcDate = qcBooking ? qcBooking.qcBookingDate : (t.end || t.start);
-                        const qcDateDisplay = this.formatDateDMY(rawQcDate);
-                        const isQCConfirmed = qcBooking && qcBooking.status === 'CONFIRMED';
-                        const qcBadgeHtml = isQCConfirmed 
-                            ? `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="จองตรวจ QC วันสิ้นสุดงาน: ${qcDateDisplay} (ยืนยันช่าง QC แล้ว: ${qcBooking.assignedQCTech})">
-                                <i class="ph ph-check-circle text-xs"></i>
-                                <span>QC: ${qcDateDisplay} (Confirmed)</span>
-                              </button>`
-                            : `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-500/15 text-amber-800 border border-amber-500/30 flex items-center gap-1 hover:bg-amber-500/25 transition cursor-pointer" title="จองช่าง QC ล่วงหน้า วันตรวจ: ${qcDateDisplay} (วันสิ้นสุดงาน) - คลิกเพื่อยืนยันช่าง QC">
-                                <i class="ph ph-calendar-check text-xs"></i>
-                                <span>จอง QC: ${qcDateDisplay}</span>
-                                <span class="underline font-bold ml-0.5">Confirm</span>
-                              </button>`;
 
                         // Daily work log status for this task
                         const taskLogs = (DB.dailyWorkLogs || []).filter(l => 
@@ -23127,9 +23114,6 @@ const app = {
                                 </span>
                             </td>
                             <td class="py-2.5 px-3 whitespace-nowrap">
-                                ${qcBadgeHtml}
-                            </td>
-                            <td class="py-2.5 px-3 whitespace-nowrap">
                                 ${dailyLogBadgeHtml}
                             </td>
                             <td class="py-2.5 px-3">
@@ -23201,9 +23185,6 @@ const app = {
                                     <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-muted text-foreground border border-border">
                                         ${subDays} วัน
                                     </span>
-                                </td>
-                                <td class="py-2 px-3 text-center text-muted-foreground text-[10px] font-mono">
-                                    <span class="opacity-60">- งานย่อย -</span>
                                 </td>
                                 <td class="py-2 px-3">
                                     <button type="button" onclick="app.openDailyWorkLogModal('${t.id}', '${sub.start}', '${sub.id}')" class="px-2 py-0.5 rounded-lg text-[10px] font-semibold ${sub.status === 'DONE' ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30' : 'bg-brand-500/10 text-brand-600 border border-brand-500/30'} flex items-center gap-1 hover:brightness-105 transition cursor-pointer">
@@ -23293,7 +23274,6 @@ const app = {
                                                 <th class="py-3 px-3.5 w-36 font-bold text-black">วันเริ่ม (Start)</th>
                                                 <th class="py-3 px-3.5 w-36 font-bold text-black">วันสิ้นสุด (End)</th>
                                                 <th class="py-3 px-2.5 text-center w-20 font-bold text-black">ระยะเวลา</th>
-                                                <th class="py-3 px-3.5 w-44 font-bold text-black">จองตรวจ QC (วันสิ้นสุด)</th>
                                                 <th class="py-3 px-3.5 w-44 font-bold text-black">บันทึกงานประจำวัน</th>
                                                 <th class="py-3 px-3.5 w-48 font-bold text-black">ช่างผู้รับผิดชอบ</th>
                                                 <th class="py-3 px-3.5 w-44 font-bold text-black">QC ผู้รับผิดชอบ</th>
@@ -23302,7 +23282,7 @@ const app = {
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-border">
-                                            ${taskRowsHtml || '<tr><td colspan="11" class="py-8 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
+                                            ${taskRowsHtml || '<tr><td colspan="10" class="py-8 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
                                         </tbody>
                                     </table>
                                 </div>
@@ -23370,7 +23350,6 @@ const app = {
                                             <th class="py-2.5 px-3 w-36 font-bold text-black">วันเริ่ม (Start Date)</th>
                                             <th class="py-2.5 px-3 w-36 font-bold text-black">วันสิ้นสุด (End Date)</th>
                                             <th class="py-2.5 px-2 text-center w-20 font-bold text-black">ระยะเวลา</th>
-                                            <th class="py-2.5 px-3 w-44 font-bold text-black">จองตรวจ QC (วันสิ้นสุด)</th>
                                             <th class="py-2.5 px-3 w-44 font-bold text-black">บันทึกงานประจำวัน</th>
                                             <th class="py-2.5 px-3 w-48 font-bold text-black">ช่างผู้รับผิดชอบ</th>
                                             <th class="py-2.5 px-3 w-44 font-bold text-black">QC ผู้รับผิดชอบ</th>
@@ -23379,7 +23358,7 @@ const app = {
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-border">
-                                        ${taskRowsHtml || '<tr><td colspan="11" class="py-6 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
+                                        ${taskRowsHtml || '<tr><td colspan="10" class="py-6 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
                                     </tbody>
                                 </table>
                             </div>
@@ -23458,19 +23437,6 @@ const app = {
                         const custName = targetJob.customer || 'ลูกค้า';
 
                         const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(t.id));
-                        const rawQcDate = qcBooking ? qcBooking.qcBookingDate : (t.end || t.start);
-                        const qcDateDisplay = this.formatDateDMY(rawQcDate);
-                        const isQCConfirmed = qcBooking && qcBooking.status === 'CONFIRMED';
-                        const qcBadgeHtml = isQCConfirmed 
-                            ? `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 flex items-center gap-1 hover:bg-emerald-500/25 transition cursor-pointer" title="จองตรวจ QC วันสิ้นสุดงาน: ${qcDateDisplay} (ยืนยันช่าง QC แล้ว: ${qcBooking.assignedQCTech})">
-                                <i class="ph ph-check-circle text-xs"></i>
-                                <span>QC: ${qcDateDisplay} (Confirmed)</span>
-                              </button>`
-                            : `<button type="button" onclick="app.openQCFromTask('${t.id}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-500/15 text-amber-800 border border-amber-500/30 flex items-center gap-1 hover:bg-amber-500/25 transition cursor-pointer" title="จองช่าง QC ล่วงหน้า วันตรวจ: ${qcDateDisplay} (วันสิ้นสุดงาน) - คลิกเพื่อยืนยันช่าง QC">
-                                <i class="ph ph-calendar-check text-xs"></i>
-                                <span>จอง QC: ${qcDateDisplay}</span>
-                                <span class="underline font-bold ml-0.5">Confirm</span>
-                              </button>`;
 
                         // Daily work log status for this task
                         const taskLogs = (DB.dailyWorkLogs || []).filter(l => 
@@ -23556,9 +23522,6 @@ const app = {
                                 </span>
                             </td>
                             <td class="py-2.5 px-3 whitespace-nowrap">
-                                ${qcBadgeHtml}
-                            </td>
-                            <td class="py-2.5 px-3 whitespace-nowrap">
                                 ${dailyLogBadgeHtml}
                             </td>
                             <td class="py-2.5 px-3">
@@ -23633,9 +23596,6 @@ const app = {
                                     <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-muted text-foreground border border-border">
                                         ${subDays} วัน
                                     </span>
-                                </td>
-                                <td class="py-2 px-3 text-center text-muted-foreground text-[10px] font-mono">
-                                    <span class="opacity-60">- งานย่อย -</span>
                                 </td>
                                 <td class="py-2 px-3">
                                     <button type="button" onclick="app.openDailyWorkLogModal('${t.id}', '${sub.start}', '${sub.id}')" class="px-2 py-0.5 rounded-lg text-[10px] font-semibold ${sub.status === 'DONE' ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30' : 'bg-brand-500/10 text-brand-600 border border-brand-500/30'} flex items-center gap-1 hover:brightness-105 transition cursor-pointer">
@@ -23722,7 +23682,6 @@ const app = {
                                             <th class="py-3 px-3 w-36 font-bold text-black">วันเริ่ม (Start)</th>
                                             <th class="py-3 px-3 w-36 font-bold text-black">วันสิ้นสุด (End)</th>
                                             <th class="py-3 px-2 text-center w-20 font-bold text-black">ระยะเวลา</th>
-                                            <th class="py-3 px-3 w-44 font-bold text-black">จองตรวจ QC (วันสิ้นสุด)</th>
                                             <th class="py-3 px-3 w-44 font-bold text-black">บันทึกงานประจำวัน</th>
                                             <th class="py-3 px-3 w-48 font-bold text-black">ช่างผู้รับผิดชอบ</th>
                                             <th class="py-3 px-3 w-44 font-bold text-black">QC ผู้รับผิดชอบ</th>
