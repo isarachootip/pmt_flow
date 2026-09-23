@@ -108,7 +108,11 @@ const app = {
                             status: j.status,
                             plan_date: j.plan_date,
                             created_at: j.created_at,
-                            step_timestamps: j.step_timestamps
+                            step_timestamps: j.step_timestamps,
+                            qc_subtasks: j.qc_subtasks,
+                            qc_remarks: j.qc_remarks,
+                            qc_inspector: j.qc_inspector,
+                            qc_history: j.qc_history
                         }));
                         localStorage.setItem('pmt_jobs', JSON.stringify(safeRecent));
                     }
@@ -2925,7 +2929,7 @@ const app = {
                                         if (existing.qc_type) incoming.qc_type = existing.qc_type;
                                     }
 
-                                    // Protect child arrays (boq_items, photos, tasks) from being overwritten with empty arrays by lean list responses
+                                    // Protect child arrays (boq_items, photos, tasks, qc_subtasks, qc_history) from being overwritten with empty arrays by lean list responses
                                     const preservedBoqItems = (existing.boq_items && existing.boq_items.length > 0 && (!incoming.boq_items || incoming.boq_items.length === 0))
                                         ? existing.boq_items
                                         : (incoming.boq_items || existing.boq_items || []);
@@ -2935,6 +2939,14 @@ const app = {
                                     const preservedTasks = (existing.tasks && existing.tasks.length > 0 && (!incoming.tasks || incoming.tasks.length === 0))
                                         ? existing.tasks
                                         : (incoming.tasks || existing.tasks || []);
+                                    const preservedQcSubtasks = (existing.qc_subtasks && existing.qc_subtasks.length > 0 && (!incoming.qc_subtasks || incoming.qc_subtasks.length === 0 || !incoming.qc_subtasks.some(s => s.answer)))
+                                        ? existing.qc_subtasks
+                                        : (incoming.qc_subtasks && incoming.qc_subtasks.length > 0 ? incoming.qc_subtasks : (existing.qc_subtasks || []));
+                                    const preservedQcHistory = (existing.qc_history && existing.qc_history.length > 0 && (!incoming.qc_history || incoming.qc_history.length === 0))
+                                        ? existing.qc_history
+                                        : (incoming.qc_history || existing.qc_history || []);
+                                    const preservedQcRemarks = existing.qc_remarks || incoming.qc_remarks || '';
+                                    const preservedQcInspector = existing.qc_inspector || incoming.qc_inspector || '';
 
                                     // Determine whether existing status is more advanced than incoming
                                     // to prevent polling from rolling back a job that was already sent to QC
@@ -2951,6 +2963,10 @@ const app = {
                                         boq_items: preservedBoqItems,
                                         photos: preservedPhotos,
                                         tasks: preservedTasks,
+                                        qc_subtasks: preservedQcSubtasks,
+                                        qc_history: preservedQcHistory,
+                                        qc_remarks: preservedQcRemarks,
+                                        qc_inspector: preservedQcInspector,
                                         // Protect key identifier fields from being overwritten by empty/null from lean API responses
                                         booking_no: incoming.booking_no || existing.booking_no || '',
                                         external_ref_id: incoming.external_ref_id || existing.external_ref_id || '',
@@ -2973,6 +2989,15 @@ const app = {
                                         if (existing.step1_passed !== undefined) merged.step1_passed = existing.step1_passed;
                                         if (existing.step2_passed !== undefined) merged.step2_passed = existing.step2_passed;
                                         if (existing.step3_passed !== undefined) merged.step3_passed = existing.step3_passed;
+                                    }
+
+                                    // If user is currently in QC modal for this job, preserve in-memory QC evaluation fields
+                                    const activeQCModalId = this.state.currentQCModalJobId;
+                                    if (activeQCModalId && (String(activeQCModalId) === key || String(activeQCModalId) === String(existing.job_no))) {
+                                        merged.qc_subtasks = existing.qc_subtasks || preservedQcSubtasks;
+                                        merged.qc_remarks = existing.qc_remarks !== undefined ? existing.qc_remarks : preservedQcRemarks;
+                                        merged.qc_inspector = existing.qc_inspector !== undefined ? existing.qc_inspector : preservedQcInspector;
+                                        merged.qc_history = existing.qc_history || preservedQcHistory;
                                     }
 
                                     existingJobsMap.set(key, merged);
@@ -25044,6 +25069,13 @@ const app = {
                     this.persistJobs();
                     this.renderQCSubtasks(job);
                     this.updateQCDashboard();
+
+                    // Background auto-save subtasks to server
+                    fetch(`/api/v1/jobs/${job.id}`, {
+                        method: 'PATCH',
+                        headers: this.getAuthHeaders(),
+                        body: JSON.stringify({ qc_subtasks: job.qc_subtasks })
+                    }).catch(err => console.warn('PATCH qc_subtasks error:', err));
                 }
             },
 
@@ -25082,6 +25114,13 @@ const app = {
                 this.updateQCDashboard();
                 const progress = this.calculateJobQCProgress(job);
                 this.showToast(`✅ บันทึกผลผ่านเกณฑ์ครบทุกข้อเรียบร้อย (คะแนนรวม ${progress.averageScore} คะแนน)`);
+
+                // Background auto-save subtasks to server
+                fetch(`/api/v1/jobs/${job.id}`, {
+                    method: 'PATCH',
+                    headers: this.getAuthHeaders(),
+                    body: JSON.stringify({ qc_subtasks: job.qc_subtasks })
+                }).catch(err => console.warn('PATCH qc_subtasks error:', err));
             },
 
             resetAllQCSubtasks(jobId) {
@@ -25205,6 +25244,18 @@ const app = {
                 this.persistJobs();
                 this.updateQCDashboard();
                 this.renderQC();
+
+                // Persist draft to backend
+                fetch(`/api/v1/jobs/${job.id}`, {
+                    method: 'PATCH',
+                    headers: this.getAuthHeaders(),
+                    body: JSON.stringify({
+                        qc_subtasks: job.qc_subtasks,
+                        qc_remarks: job.qc_remarks,
+                        qc_inspector: job.qc_inspector
+                    })
+                }).catch(err => console.warn('PATCH QC draft error:', err));
+
                 this.showToast('💾 บันทึกแบบร่างการตรวจ QC เรียบร้อยแล้ว');
             },
 
@@ -25303,6 +25354,25 @@ const app = {
                     return;
                 }
 
+                const isQuick = this.isQuickJob(job);
+                const subtasks = this.getJobQCSubtasks(job);
+
+                // Defensive DOM-to-Memory recovery: If memory was wiped or desynced by background polling,
+                // but the user visibly answered in the modal DOM:
+                if (isQuick && subtasks.length > 0 && !subtasks[0].answer) {
+                    const btnYes = document.querySelector('#qc-subtasks-list button[onclick*="YES"]');
+                    const btnNo = document.querySelector('#qc-subtasks-list button[onclick*="NO"]');
+                    if (btnYes && (btnYes.classList.contains('bg-emerald-600') || btnYes.classList.contains('bg-amber-600'))) {
+                        subtasks[0].answer = 'YES';
+                        subtasks[0].status = 'PASSED';
+                        subtasks[0].score = 5;
+                    } else if (btnNo && btnNo.classList.contains('bg-rose-600')) {
+                        subtasks[0].answer = 'NO';
+                        subtasks[0].status = 'DEFECT';
+                        subtasks[0].score = 1;
+                    }
+                }
+
                 const progress = this.calculateJobQCProgress(job);
                 if (!progress.isAllComplete) {
                     this.showToast(`⚠️ ไม่สามารถส่งผลตรวจไป STK ได้: กรุณาประเมินและให้คะแนนงานย่อยให้ครบทุกข้อก่อน (คงเหลือ ${progress.total - progress.completed} ข้อ)`);
@@ -25313,9 +25383,6 @@ const app = {
                 if (inspectorEl) job.qc_inspector = inspectorEl.value;
                 const remarksEl = document.getElementById('qc-modal-overall-remarks');
                 if (remarksEl) job.qc_remarks = remarksEl.value.trim();
-
-                const subtasks = this.getJobQCSubtasks(job);
-                const isQuick = this.isQuickJob(job);
 
                 if (!Array.isArray(job.qc_history)) job.qc_history = [];
                 const reworkCount = job.qc_history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (job.qc_rework_count || job.rework_count || 0);
