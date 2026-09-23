@@ -16164,7 +16164,6 @@ const app = {
 
                 const rowsHtml = tasks.map((t, idx) => {
                     const techName = t.tech || (t.assignees && t.assignees[0]) || '';
-                    const hasSystemTech = !!(techName && techName.trim() && techName !== 'รอระบุช่าง' && techName !== '-');
 
                     return `
                     <tr class="hover:bg-muted/30 transition">
@@ -16194,28 +16193,16 @@ const app = {
                                 ${t.days || 1} วัน
                             </span>
                         </td>
-                        <!-- ผู้รับผิดชอบ (Key ชื่อช่าง / เลือกช่างจาก INT) -->
-                        <td class="py-2.5 px-3 min-w-[240px]">
-                            <div class="flex items-center gap-1.5">
-                                <div class="relative flex-1">
-                                    <i class="ph ph-user text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 text-xs pointer-events-none"></i>
-                                    <input type="text"
-                                           list="int-tech-suggestions"
-                                           value="${(techName || '').replace(/"/g, '&quot;')}"
-                                           oninput="app.updateConvertTaskField(${idx}, 'tech', this.value)"
-                                           onblur="if (!this.value.trim()) app.renderConvertTasksRows();"
-                                           placeholder="Key ระบุชื่อช่าง..."
-                                           class="w-full bg-card hover:bg-muted/40 focus:bg-card border border-border focus:border-purple-500 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-foreground font-semibold focus:outline-none shadow-2xs transition">
-                                </div>
-                                ${!hasSystemTech ? `
-                                <button type="button"
-                                        onclick="app.openIntTechBookingModal(${idx})"
-                                        class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1 text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-300 cursor-pointer shadow-2xs shrink-0 whitespace-nowrap transition"
-                                        title="เลือกช่างจากระบบ INT">
-                                    <i class="ph ph-calendar-check text-xs text-purple-600"></i>
-                                    <span>เลือกช่างจาก INT</span>
-                                </button>
-                                ` : ''}
+                        <!-- ผู้รับผิดชอบ (ชื่อช่าง / ผู้ดูแล) -->
+                        <td class="py-2.5 px-3 min-w-[200px]">
+                            <div class="relative w-full">
+                                <i class="ph ph-user text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 text-xs pointer-events-none"></i>
+                                <input type="text"
+                                       list="int-tech-suggestions"
+                                       value="${(techName || '').replace(/"/g, '&quot;')}"
+                                       oninput="app.updateConvertTaskField(${idx}, 'tech', this.value)"
+                                       placeholder="ระบุชื่อช่าง..."
+                                       class="w-full bg-card hover:bg-muted/40 focus:bg-card border border-border focus:border-purple-500 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-foreground font-semibold focus:outline-none shadow-2xs transition">
                             </div>
                         </td>
                         <td class="py-2.5 px-2 text-center">

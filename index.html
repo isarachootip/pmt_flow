@@ -5875,10 +5875,9 @@
                                     <p><strong class="text-foreground">คำตอบ:</strong> ในหน้าต่าง <strong>"นำเข้า BOQ สู่ Project Tasks & แผนงาน Gantt"</strong> (`modal-convert-boq-tasks`) คอลัมน์ <strong>"ระยะเวลา"</strong> และ <strong>"ผู้รับผิดชอบ"</strong> ถูกปรับให้กระชับ ชัดเจน และมีเฉพาะองค์ประกอบที่จำเป็นต่อการปฏิบัติงานจริงเท่านั้น:</p>
                                     <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
                                         <li><strong>ระยะเวลาแสดงบรรทัดเดียว (Clean Single Line):</strong> แสดงผลระยะเวลาในบรรทัดเดียว (เช่น <code class="font-semibold text-foreground">1 วัน</code>) โดยไม่มีสีกรอบฉากหลัง เพื่อความสบายตา คมชัดสูงสุดตามมาตรฐาน Pure Black Text</li>
-                                        <li><strong>ซ่อนปุ่ม INT อัตโนมัติเมื่อมีชื่อช่างจากระบบ:</strong> หากดึงรายชื่อช่างมาจากระบบแล้ว ระบบจะซ่อนปุ่ม <code class="bg-purple-500/10 text-purple-700 font-bold px-1.5 py-0.2 rounded text-[10px]">เลือกช่างจาก INT</code> ในแถวนั้นอัตโนมัติ เพื่อขยายช่องระบุชื่อช่างให้อ่านง่ายเต็มความกว้าง</li>
-                                        <li><strong>ปุ่ม "เลือกช่างจาก INT" สำหรับงานที่ยังไม่ระบุช่าง:</strong> แถวที่ยังไม่มีรายชื่อช่างจะแสดงปุ่มให้กดเปิดหน้าต่างเลือกรายชื่อช่างจากระบบ INT พร้อมคะแนนรีวิวและปุ่มยืนยันเลือกช่าง</li>
-                                        <li><strong>ช่อง Key ชื่อช่างโดยตรง (Free Text & Suggestions):</strong> สามารถพิมพ์แก้ไขชื่อช่างได้โดยตรง พร้อมระบบ Autocomplete แนะนำรายชื่อช่าง</li>
-                                        <li><strong>ปุ่ม "เลือกช่างจาก INT ทั้งหมด":</strong> ที่แถบเครื่องมือด้านบน มีปุ่มลัดสำหรับดึงและจัดสรรช่าง INT ให้ทุกงานพร้อมกันในคลิกเดียว</li>
+                                        <li><strong>ช่องชื่อช่างแสดงเต็มความกว้าง (Full Width Input):</strong> ดึงชื่อช่างจากระบบงานมาแสดงผลโดยตรง และขยายเต็มพื้นที่ตารางให้อ่านง่าย ชัดเจน ไม่โดนตัดทอน</li>
+                                        <li><strong>พิมพ์หรือเลือกจากรายการแนะนำ (Free Text & Suggestions):</strong> สามารถพิมพ์แก้ไขชื่อช่างได้โดยตรง พร้อมระบบ Autocomplete แนะนำรายชื่อช่างผ่าน datalist</li>
+                                        <li><strong>ตัดปุ่ม INT ออกอย่างสมบูรณ์:</strong> เพื่อความสะอาดตา ไม่เกะกะพื้นที่ และให้การแสดงผลกระชับ รวดเร็ว สอดคล้องกับการใช้งานจริง</li>
                                     </ul>
                                 </div>
                             </details>
@@ -9572,10 +9571,6 @@
                             <button type="button" onclick="app.insertConvertTaskAt(-1)" class="text-[11px] bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 px-2.5 py-1 rounded-lg border border-purple-500/30 flex items-center gap-1 cursor-pointer font-medium">
                                 <i class="ph ph-plus"></i> + แทรกงานใหม่
                             </button>
-                            <button type="button" onclick="app.batchBookAllTechsFromINT()" class="text-[11px] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-500/30 flex items-center gap-1 cursor-pointer font-medium" title="ดึงคิวเลือกช่างจากระบบ INT ให้ทุกงาน (ทำไว้ รอเชื่อมต่อ)">
-                                <i class="ph ph-calendar-check text-indigo-600"></i>
-                                <span>เลือกช่างจาก INT ทั้งหมด (รอเชื่อมต่อ)</span>
-                            </button>
                             <button type="button" onclick="app.sortConvertTasksByStartDate(true)" class="text-[11px] bg-muted hover:bg-muted/80 text-foreground px-2.5 py-1 rounded-lg border border-border flex items-center gap-1 cursor-pointer" title="จัดเรียงรายการ Task ตามวันเริ่มต้น">
                                 <i class="ph ph-arrows-down-up"></i> จัดเรียงตามวันเริ่มงาน
                             </button>
@@ -9595,7 +9590,7 @@
                                     <th class="py-2.5 px-3 w-36">วันเริ่มต้น (Start Date)</th>
                                     <th class="py-2.5 px-3 w-36">วันสิ้นสุด (End Date)</th>
                                     <th class="py-2.5 px-3 w-24 text-center whitespace-nowrap">ระยะเวลา</th>
-                                    <th class="py-2.5 px-3 min-w-[240px]">ผู้รับผิดชอบ (Key ชื่อช่าง / เลือกช่างจาก INT)</th>
+                                    <th class="py-2.5 px-3 min-w-[200px]">ผู้รับผิดชอบ (ชื่อช่าง / ผู้ดูแล)</th>
                                     <th class="py-2.5 px-2 w-28 text-center">การแทรก / ลบ</th>
                                 </tr>
                             </thead>
