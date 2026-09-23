@@ -4890,7 +4890,7 @@
                                         <span class="text-[10px] text-muted-foreground font-mono">Step 2 (Tickets)</span>
                                     </div>
                                     <h4 class="font-display font-bold text-xs text-foreground group-hover:text-emerald-600 transition">Step 2: บันทึก Ticket & ใบเสร็จ</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">เปิด Work Ticket, ซิงค์จองช่าง INT, แนบสลิปเงินโอน, พรีวิวดูแบบแปลน Drawing และตาราง BOQ (รองรับ Blank BOQ ตารางว่างไม่มี Dummy สำหรับงาน Renovate) พร้อมดูรูปสลิปใบเสร็จและสัญญาครบจบในที่เดียว (งาน Quick ข้ามเข้า QC Online / Renovate เข้า Step 3)</p>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">เปิด Work Ticket, ซิงค์จองช่าง INT, แนบสลิปเงินโอน เมื่อบันทึกสำเร็จจะนำทางอัตโนมัติ (Auto-Navigation) ตรงสู่ Step 3 Convert เข้า Project ทันทีสำหรับงาน Renovate (Quick Services วิ่งตรงสู่ QC Online) พร้อมตัดงานออกจากคิวรอออกตั๋วทันที</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
                                     <button onclick="app.navigate('tickets')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
@@ -6115,6 +6115,28 @@
                                         <li><strong>6. Step 5 (ตรวจรับรองคุณภาพ QC & ประวัติแก้ไข):</strong> แสดงผลคะแนน QC (5.0 หรือกฎล็อก 1.0 รอบแก้ไข Rework), รายการเกณฑ์ตรวจ 5 ข้อคำถามมาตรฐาน (หรือ 1 ข้อของ Quick Service), บันทึกข้อเสนอแนะผู้ตรวจ, รูปถ่ายหลักฐาน QC และตารางประวัติการตรวจย้อนหลังทุกรอบ</li>
                                         <li><strong>7. Step 6 (การปิดงาน & ส่งมอบ STK / CSAT):</strong> แสดงสถานะและเลขอ้างอิงการส่ง API ไปยังระบบตัดสต็อก STK, ผลคะแนนดาวความพึงพอใจลูกค้า (CSAT), ข้อคิดเห็นของลูกค้า และรูปถ่ายส่งมอบงาน</li>
                                         <li><strong>8. ศูนย์รวมไฟล์ &amp; รูปภาพโครงการทั้งหมด (Central Media &amp; Files Hub):</strong> อยู่ส่วนล่างสุดของหน้าต่าง รวบรวมหลักฐาน รูปถ่าย และเอกสารทั้งหมดของโครงการมาจัดแสดงเป็นการ์ดแกลเลอรี่ พร้อมปุ่มกรองแยกประเภท (ภาพสำรวจ, เอกสาร INT, แบบ CAD, สลิป/สัญญา, ไฟล์ BOQ, ภาพช่างประจำวัน, ภาพ QC, ภาพ CSAT) และคลิกเพื่อเปิดดูภาพเต็มผ่าน Lightbox หรือดาวน์โหลดไฟล์ได้ทันที</li>
+                                    </ul>
+                                </div>
+                            </details>
+
+                            <!-- Q30: Step 2 Auto-Navigation to Project Conversion & Instant Queue Clearing -->
+                            <details class="p-4 rounded-xl bg-muted/30 border border-border group">
+                                <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-brand-500 font-bold">Q30:</span>
+                                        <span>ใน Step 2 (บันทึก Ticket &amp; ใบเสร็จ) เมื่อแนบสลิปหรือออก Ticket สำเร็จ ทำไมระบบจึงสลับหน้าจอไปที่ "Convert เข้า Project" ทันที และคิวงานที่บันทึกแล้วจัดการอย่างไร?</span>
+                                    </span>
+                                    <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-2">
+                                    <p><strong class="text-foreground">คำตอบ:</strong> เพื่อให้การดำเนินงานมีความลื่นไหลต่อเนื่องสูงสุด (Seamless End-to-End Workflow) และตัดขั้นตอนที่เจ้าหน้าที่ต้องคอยกดเปลี่ยนหน้าจอเอง ระบบ PMT Flow ได้ยกระดับการทำงานของหน้าจอ <strong>Step 2: บันทึก Ticket &amp; ใบเสร็จ</strong> ดังนี้:</p>
+                                    <ul class="list-disc list-inside space-y-1.5 pl-1 text-[11px]">
+                                        <li><strong>1. ระบบนำทางอัตโนมัติทันที (Auto-Navigation to Next Step):</strong>
+                                            <span class="block mt-0.5 pl-3">• <strong>กรณีโครงการ Renovate:</strong> ทันทีที่เจ้าหน้าที่กดยืนยันบันทึก Ticket, แนบหลักฐานสลิปโอนเงินผ่านโมดอล หรือใช้ปุ่มแนบสลิปด่วน (Quick Attach) ระบบจะนำทางผู้ใช้งานตรงเข้าสู่หน้าจอ <strong>"Step 3: เตรียมแผนงานและทีมช่าง (Convert เข้า Project)"</strong> พร้อมโฟกัสคำสั่งซื้อนั้นโดยอัตโนมัติ เพื่อให้ผู้รับผิดชอบสามารถจัดทีมช่าง คัดกรองค่าแรง BOQ และสร้าง Task เข้าสู่ Gantt Timeline ได้ทันที</span>
+                                            <span class="block pl-3">• <strong>กรณีงานบริการด่วน (Quick Services):</strong> ระบบจะนำทางอัตโนมัติตรงเข้าสู่หน้าจอ <strong>"ตรวจรับรองคุณภาพ QC (Step 5)"</strong> พร้อมเปิดฟอร์มตรวจ QC Online ให้ปิดงานได้ทันที</span>
+                                        </li>
+                                        <li><strong>2. ตัดงานที่บันทึกแล้วออกจากคิวรอออกตั๋วทันที (Instant Queue Filter):</strong> งานที่มีการแนบสลิปเงินโอน หรือมีตั๋วงาน Ticket แล้ว จะถูกคัดออกจากรายการ "คิวโครงการที่รอออก Ticket &amp; แนบสลิป" และตัวนับ Badge ที่แท็บทันที เพื่อให้ตารางคิวงานแสดงเฉพาะรายการที่ยังคงต้องจัดการจริง (Pending Queue) อย่างถูกต้องแม่นยำ 100%</li>
+                                        <li><strong>3. ปุ่มดำเนินการในตาราง (Action Buttons):</strong> ในตารางคิวงาน หากคำสั่งซื้อมีหลักฐานการเงินหรือพร้อมดำเนินการ จะมีปุ่มสีเขียว <code class="bg-emerald-600 text-white px-2 py-0.5 rounded font-bold text-[10px]">Convert เข้า Project ➔</code> ให้เจ้าหน้าที่สามารถคลิกเพื่อกระโดดเข้าสู่หน้า Project Conversion ของงานนั้นได้ทันทีในคลิกเดียว</li>
                                     </ul>
                                 </div>
                             </details>
@@ -10892,11 +10914,11 @@
 
     <!-- APPLICATION JAVASCRIPT LOGIC -->
     <!-- APPLICATION SCRIPTS -->
-    <script src="./public/js/db.js?v=1.7.6"></script>
-    <script src="./public/js/auth.js?v=1.7.6"></script>
-    <script src="./public/js/app.js?v=1.7.6"></script>
-    <script src="./public/js/userMgmt.js?v=1.7.6"></script>
-    <script src="./public/js/app.hooks.js?v=1.7.6"></script>
+    <script src="./public/js/db.js?v=1.7.7"></script>
+    <script src="./public/js/auth.js?v=1.7.7"></script>
+    <script src="./public/js/app.js?v=1.7.7"></script>
+    <script src="./public/js/userMgmt.js?v=1.7.7"></script>
+    <script src="./public/js/app.hooks.js?v=1.7.7"></script>
 
 </body>
 </html>

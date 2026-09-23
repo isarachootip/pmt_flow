@@ -3264,6 +3264,8 @@ const app = {
                     this.renderBlueprints();
                 }
                 if(view === 'tickets') {
+                    const stFilter = document.getElementById('filter-tickets-status');
+                    if (stFilter && !param) stFilter.value = 'STEP4_QUEUE';
                     this.fetchTicketsFromApi();
                     this.renderTickets();
                 }
@@ -8448,6 +8450,9 @@ const app = {
                 const step2QueueCount = allJobs.filter(j => 
                     !this.isQuickJob(j) &&
                     !ticketJobIds.has(j.id) &&
+                    !this.isJobPaymentRecorded(j) &&
+                    !(j.slip_url && String(j.slip_url).trim() !== '') &&
+                    !(j.step_timestamps && (j.step_timestamps.step3_conversion_at || j.step_timestamps.step5_project_at)) &&
                     (
                         (j.boq_items && j.boq_items.length > 0) ||
                         (j.boq_count && Number(j.boq_count) > 0) ||
@@ -8913,8 +8918,13 @@ const app = {
                 );
                 const totalStep4 = step4Eligible.length;
 
-                // Remaining in Step 4: Eligible jobs that don't have Ticket yet
-                const remainingStep4Jobs = step4Eligible.filter(j => !ticketJobIds.has(j.id));
+                // Remaining in Step 4: Eligible jobs that don't have Ticket or Slip yet
+                const remainingStep4Jobs = step4Eligible.filter(j => 
+                    !ticketJobIds.has(j.id) &&
+                    !this.isJobPaymentRecorded(j) &&
+                    !(j.slip_url && String(j.slip_url).trim() !== '') &&
+                    !(j.step_timestamps && (j.step_timestamps.step3_conversion_at || j.step_timestamps.step5_project_at))
+                );
                 const remainingStep4 = remainingStep4Jobs.length;
 
                 // Completed Tickets
@@ -9314,10 +9324,15 @@ const app = {
                     const svcSel = document.getElementById('filter-tickets-service');
                     const stSel = document.getElementById('filter-tickets-status');
                     if (type === 'ALL') {
+                        const step4Eligible = allJobs.filter(j => 
+                            (j.boq_items && j.boq_items.length > 0) || 
+                            (j.step_timestamps && (j.step_timestamps.step4_ticket_at || j.step_timestamps.step2_ticket_at)) ||
+                            (this.isQuickJob(j) && j.pmt_accepted)
+                        );
                         if (stSel) stSel.value = 'ALL';
                         if (svcSel) svcSel.value = 'all';
-                        this.renderTickets('', null, allJobs);
-                        this.showToast(`📊 แสดงรายการทั้งหมดใน Step 2 (${allJobs.length} รายการ)`);
+                        this.renderTickets('', null, step4Eligible);
+                        this.showToast(`📊 แสดงรายการทั้งหมดใน Step 2 (${step4Eligible.length} รายการ)`);
                     } else if (type === 'TODAY') {
                         if (svcSel) svcSel.value = 'all';
                         let todayList = allJobs.filter(j => {
@@ -9562,14 +9577,10 @@ const app = {
                 }).catch(() => {});
 
                 this.updateStepBadges();
-                this.showToast(`✅ ย้าย Order [${job.id}] เข้าสู่คิว "Step 3: บันทึก BOQ เข้า Project & Gantt" สำเร็จ`);
-
-                if (this.state.currentView === 'tickets') {
-                    this.renderTickets();
-                }
-                if (this.state.currentView === 'job-detail') {
-                    this.renderJobDetail();
-                }
+                this.state.selectedConversionJobId = jobId;
+                this.state.selectedGanttJobId = jobId;
+                this.navigate('project-conversion', jobId);
+                this.showToast(`🚀 ย้าย Order [${job.id}] เข้าสู่ขั้นตอน Convert เข้า Project เรียบร้อย`);
             },
 
             openJobTicketsDetail(jobId) {
@@ -15825,8 +15836,9 @@ const app = {
                 if (job.status === 'PAID' || job.payment_status === 'PAID' || job.is_paid === true) return true;
                 if (job.receipt_no && typeof job.receipt_no === 'string' && job.receipt_no.trim() !== '' && job.receipt_no !== '-') return true;
                 if (job.ticket_id && String(job.ticket_id).trim() !== '') return true;
-                if (job.step_timestamps && (job.step_timestamps.step4_ticket_at || job.step_timestamps.step2_ticket_at)) return true;
-                const hasTicket = (DB.tickets || []).some(t => (t.job_id === job.id || t.jobId === job.id) && t.receipt_no && t.receipt_no !== '-');
+                if (job.slip_url && typeof job.slip_url === 'string' && job.slip_url.trim() !== '') return true;
+                if (job.step_timestamps && (job.step_timestamps.step4_ticket_at || job.step_timestamps.step2_ticket_at || job.step_timestamps.step3_conversion_at || job.step_timestamps.step5_project_at)) return true;
+                const hasTicket = (DB.tickets || []).some(t => (t.job_id === job.id || t.jobId === job.id) && ((t.receipt_no && t.receipt_no !== '-') || t.slip_url));
                 if (hasTicket) return true;
                 return false;
             },
@@ -16905,26 +16917,34 @@ const app = {
                     ticketsByJob[jid].push(t);
                 });
 
+                const hasRecordedPaymentOrSlip = (j) => {
+                    const jobTkts = ticketsByJob[j.id] || [];
+                    return jobTkts.length > 0 ||
+                           this.isJobPaymentRecorded(j) ||
+                           (j.ticket_count && Number(j.ticket_count) > 0) ||
+                           (j.slip_url && String(j.slip_url).trim() !== '') ||
+                           !!(j.step_timestamps && (j.step_timestamps.step3_conversion_at || j.step_timestamps.step5_project_at));
+                };
+
                 let tableJobs = customJobList || allJobs;
                 if (!customJobList) {
                     if (tktServiceFilter !== 'all') {
                         tableJobs = tableJobs.filter(j => j.service === tktServiceFilter);
                     }
-                    if (tktStatusFilter === 'STEP4_QUEUE') {
+                    if (tktStatusFilter === 'STEP4_QUEUE' || !tktStatusFilter) {
                         tableJobs = tableJobs.filter(j => {
                             const isEligible = !this.isQuickJob(j) && (
                                 (j.boq_items && j.boq_items.length > 0) || 
                                 (j.step_timestamps && (j.step_timestamps.step4_ticket_at || j.step_timestamps.step2_ticket_at))
                             );
-                            const hasNoTicket = !(ticketsByJob[j.id] && ticketsByJob[j.id].length > 0);
-                            return isEligible && hasNoTicket;
+                            return isEligible && !hasRecordedPaymentOrSlip(j);
                         });
                     } else if (tktStatusFilter === 'NO_TICKET') {
-                        tableJobs = tableJobs.filter(j => !(ticketsByJob[j.id] && ticketsByJob[j.id].length > 0));
+                        tableJobs = tableJobs.filter(j => !hasRecordedPaymentOrSlip(j));
                     } else if (tktStatusFilter === 'HAS_TICKET') {
-                        tableJobs = tableJobs.filter(j => ticketsByJob[j.id] && ticketsByJob[j.id].length > 0);
+                        tableJobs = tableJobs.filter(j => hasRecordedPaymentOrSlip(j));
                     } else if (tktStatusFilter === 'VERIFIED') {
-                        tableJobs = tableJobs.filter(j => (ticketsByJob[j.id] || []).some(t => t.status === 'VERIFIED'));
+                        tableJobs = tableJobs.filter(j => (ticketsByJob[j.id] || []).some(t => t.status === 'VERIFIED') || j.status === 'PAID');
                     }
                 }
 
@@ -16964,7 +16984,8 @@ const app = {
                         tktTableBody.innerHTML = tableJobs.map((j, idx) => {
                             const isTopNew = idx < 3;
                             const jobTickets = ticketsByJob[j.id] || [];
-                            const hasTicket = jobTickets.length > 0;
+                            const hasTicket = jobTickets.length > 0 || hasRecordedPaymentOrSlip(j);
+                            const ticketDisplayCount = jobTickets.length > 0 ? jobTickets.length : (j.ticket_count || (j.slip_url ? 1 : 1));
                             const stageHtml = this.renderStageWithSLA(j, 2);
 
                             const isQuick = this.isQuickJob(j);
@@ -16980,7 +17001,7 @@ const app = {
                                 <div class="flex items-center justify-end gap-1.5">
                                     <button onclick="event.stopPropagation(); app.openJobTicketsDetail('${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted text-foreground inline-flex items-center gap-1 cursor-pointer" title="ดูสลิปและใบเสร็จ">
                                         <i class="ph ph-receipt"></i>
-                                        <span>ดูสลิป/ใบเสร็จ (${jobTickets.length})</span>
+                                        <span>ดูสลิป/ใบเสร็จ (${ticketDisplayCount})</span>
                                     </button>
                                     ${isQuick ? `
                                     <button onclick="event.stopPropagation(); app.goToQC('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-700 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="ไปตรวจคุณภาพ QC Online (ภาพถ่ายหน้างาน)">
@@ -16988,9 +17009,9 @@ const app = {
                                         <span>ไปตรวจ QC Online ➔</span>
                                     </button>
                                     ` : (isSentToStep3 ? `
-                                    <button onclick="event.stopPropagation(); app.navigate('project-conversion', '${j.id}')" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 inline-flex items-center gap-1 cursor-pointer" title="งานนี้ส่งเข้า Convert เข้า Project แล้ว (คลิกเพื่อเปิดดู)">
+                                    <button onclick="event.stopPropagation(); app.navigate('project-conversion', '${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="งานนี้ส่งเข้า Convert เข้า Project แล้ว (คลิกเพื่อเปิดดู)">
                                         <i class="ph ph-lightning text-xs"></i>
-                                        <span>คิว Convert Project</span>
+                                        <span>Convert เข้า Project ➔</span>
                                     </button>
                                     ` : `
                                     <button onclick="event.stopPropagation(); app.proceedJobToConversion('${j.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-xs inline-flex items-center gap-1.5 transition cursor-pointer" title="Convert รายการค่าแรง BOQ เข้าสู่แผนงานโครงการ">
@@ -17089,8 +17110,8 @@ const app = {
                 const sFilter = serviceFilterEl ? serviceFilterEl.value : 'all';
                 const mFilter = methodFilterEl ? methodFilterEl.value : 'all';
 
-                // 1. Calculate pending queue jobs (waiting for ticket or with tickets)
-                let pendingJobs = this.sortJobsDescending(allJobs);
+                // 1. Calculate pending queue jobs (only truly pending jobs waiting for ticket & slip)
+                let pendingJobs = this.sortJobsDescending(allJobs.filter(j => !this.isQuickJob(j) && !hasRecordedPaymentOrSlip(j)));
                 if (q) {
                     pendingJobs = pendingJobs.filter(j => 
                         (j.id && String(j.id).toLowerCase().includes(q)) ||
@@ -17143,7 +17164,7 @@ const app = {
                 });
 
                 // Update tab badges & counts
-                const pendingCount = allJobs.filter(j => !(ticketsByJob[j.id] && ticketsByJob[j.id].length > 0)).length;
+                const pendingCount = allJobs.filter(j => !this.isQuickJob(j) && !hasRecordedPaymentOrSlip(j)).length;
                 const tabPendingBadge = document.getElementById('tab-ticket-pending-badge');
                 if (tabPendingBadge) tabPendingBadge.innerText = pendingCount;
 
@@ -17994,25 +18015,15 @@ const app = {
                 this.updateStepBadges();
                 this.updateQCBadges();
                 this.hideModal('modal-create-ticket');
-                if (this.state.currentView === 'tickets') {
-                    this.switchTicketTab('library');
-                    this.renderTickets();
-                } else if (this.state.currentView === 'jobs') {
-                    this.renderJobs();
-                } else if (this.state.currentView === 'dashboard') {
-                    this.renderDashboard();
-                } else if (this.state.currentView === 'qc') {
-                    this.renderQC();
-                } else if (this.state.currentView === 'job-detail') {
-                    this.renderJobDetail();
-                } else {
-                    this.renderTickets();
-                }
 
                 if (isQuick) {
-                    this.showToast(`⚡ บันทึกจ่ายเงิน Ticket ${ticketNo} สำเร็จ! ย้าย Order [${jobId}] เข้าสู่คิวรอตรวจ QC Online เรียบร้อย (สามารถเลือกตรวจได้ที่เมนู QC)`);
+                    this.navigate('qc', jobId);
+                    this.showToast(`⚡ บันทึกจ่ายเงิน Ticket ${ticketNo} สำเร็จ! ย้าย Order [${jobId}] เข้าสู่คิวรอตรวจ QC Online เรียบร้อย`);
                 } else {
-                    this.showToast(`✅ บันทึก Ticket ${ticketNo}, ใบเสร็จ และย้ายเข้าสู่ State 5 (บันทึก BOQ เข้า Project) สำเร็จ`);
+                    this.state.selectedConversionJobId = jobId;
+                    this.state.selectedGanttJobId = jobId;
+                    this.navigate('project-conversion', jobId);
+                    this.showToast(`✅ บันทึก Ticket ${ticketNo} และสลิปสำเร็จ! ย้าย Order [${jobId}] เข้าสู่ขั้นตอน Convert เข้า Project เรียบร้อย`);
                 }
             },
 
@@ -18186,9 +18197,57 @@ const app = {
 
                     t.status = 'VERIFIED';
                     this.persistTickets();
-                    this.renderTickets();
+
+                    const jid = t.job_id || t.jobId;
+                    const job = (DB.jobs || []).find(j => j.id === jid);
+                    if (job) {
+                        if (t.slip_url) {
+                            job.slip_url = t.slip_url;
+                            job.slip_name = t.slip_name || 'slip.jpg';
+                        }
+                        if (t.contract_url) {
+                            job.contract_url = t.contract_url;
+                            job.contract_name = t.contract_name || 'contract.pdf';
+                        }
+                        const isQuick = this.isQuickJob(job);
+                        if (!job.step_timestamps) job.step_timestamps = {};
+                        const nowIso = new Date().toISOString();
+                        job.step_timestamps.step2_ticket_at = nowIso;
+                        job.step_timestamps.step4_ticket_at = nowIso;
+                        if (!isQuick) {
+                            job.step_timestamps.step3_conversion_at = nowIso;
+                            job.step_timestamps.step5_project_at = nowIso;
+                            job.progress = Math.max(job.progress || 0, 80);
+                            this.recordStepTimestamp(job.id, 'step3_conversion_at', nowIso, 'แนบสลิปและย้ายเข้าสู่ขั้นตอน Convert เข้า Project (Step 3)');
+                        }
+                        this.persistJobs();
+                        this.updateStepBadges();
+
+                        fetch(`/api/v1/jobs/${encodeURIComponent(job.id)}`, {
+                            method: 'PATCH',
+                            headers: this.getAuthHeaders(),
+                            body: JSON.stringify({
+                                slip_url: job.slip_url,
+                                slip_name: job.slip_name,
+                                overall_progress: job.progress,
+                                step_timestamps: job.step_timestamps
+                            })
+                        }).catch(() => {});
+                    }
+
                     this.hideModal('modal-quick-attach');
-                    this.showToast(`✅ อัปโหลดเอกสารสลิปและสัญญาการทำงานสำหรับ ${t.ticket_no} เรียบร้อย`);
+                    if (job && !this.isQuickJob(job)) {
+                        this.state.selectedConversionJobId = job.id;
+                        this.state.selectedGanttJobId = job.id;
+                        this.navigate('project-conversion', job.id);
+                        this.showToast(`✅ อัปโหลดสลิปเรียบร้อย! ย้าย Order [${job.id}] เข้าสู่ขั้นตอน Convert เข้า Project แล้ว`);
+                    } else if (job && this.isQuickJob(job)) {
+                        this.navigate('qc', job.id);
+                        this.showToast(`⚡ อัปโหลดสลิปเรียบร้อย! ย้าย Order [${job.id}] เข้าสู่คิวรอตรวจ QC Online แล้ว`);
+                    } else {
+                        this.renderTickets();
+                        this.showToast(`✅ อัปโหลดเอกสารสลิปและสัญญาการทำงานสำหรับ ${t.ticket_no} เรียบร้อย`);
+                    }
                 };
 
                 processFiles();
