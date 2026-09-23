@@ -16633,6 +16633,62 @@ const app = {
                 this.state.intManualTechName = '';
             },
 
+            // =====================================================================
+            // INT QC Inspector Booking (Mock API — จอง QC ผู้รับผิดชอบจาก INT)
+            // =====================================================================
+            async bookQCInspectorFromINT(taskId) {
+                const btn = document.getElementById(`btn-int-qc-${taskId}`);
+                const task = (DB.tasks || []).find(t => String(t.id) === String(taskId));
+                if (!task) { this.showToast('⚠️ ไม่พบ Task', 'error'); return; }
+
+                // Loading state
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="ph ph-circle-notch animate-spin text-xs"></i><span> กำลังดึงข้อมูล INT...</span>';
+                    btn.className = 'flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-200 text-gray-500 border border-gray-300 cursor-not-allowed';
+                }
+
+                try {
+                    // Simulate INT API network delay (~1.2s)
+                    await new Promise(resolve => setTimeout(resolve, 1200));
+                    // TODO: Replace with real: const res = await fetch('/api/v1/int/qc-inspectors'); const data = await res.json();
+                    const inspectors = this.getIntQCInspectors();
+                    const available = inspectors.filter(i => i.available);
+                    if (available.length === 0) throw new Error('No QC inspector available from INT');
+
+                    // Pick a random available inspector for realistic mock
+                    const picked = available[Math.floor(Math.random() * available.length)];
+
+                    // Persist to task
+                    task.qc_inspector = picked.name;
+                    const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(taskId));
+                    if (qcBooking) qcBooking.assignedQCTech = picked.name;
+
+                    this.persistJobs();
+                    this.showToast(`✅ จอง QC สำเร็จ: ${picked.name}`, 'success');
+                    this.renderGantt(); // re-render to show updated value
+                } catch (err) {
+                    console.error('[bookQCInspectorFromINT]', err);
+                    this.showToast('⚠️ INT API ไม่ตอบสนอง — กรุณาลองใหม่', 'error');
+                    // Restore button
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="ph ph-plugs-connected text-xs"></i><span>จอง QC จาก INT</span>';
+                        btn.className = 'flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-teal-500/10 text-teal-700 border border-teal-500/30 hover:bg-teal-500/20 transition cursor-pointer';
+                    }
+                }
+            },
+
+            getIntQCInspectors() {
+                return [
+                    { id: 'QC-001', name: 'วิชัย ตรวจดี (QC Lead)', rating: 4.9, available: true },
+                    { id: 'QC-002', name: 'อนุสรณ์ วงศ์ไทย (QC Specialist)', rating: 4.8, available: true },
+                    { id: 'QC-003', name: 'สมชาย มาตรฐาน (QC ทั่วไป)', rating: 4.7, available: true },
+                    { id: 'QC-004', name: 'วรเทพ ชำนาญการ (QC Lead)', rating: 4.9, available: true },
+                    { id: 'QC-005', name: 'ธนกร ตรวจมาตรฐาน (QC)', rating: 4.8, available: true },
+                ];
+            },
+
             batchBookAllTechsFromINT() {
                 const tasks = this.state.convertTasks || [];
                 if (tasks.length === 0) {
@@ -22012,6 +22068,10 @@ const app = {
                     task.name = value;
                 } else if (field === 'status') {
                     task.status = value;
+                } else if (field === 'qc_inspector') {
+                    task.qc_inspector = value;
+                    const qcBooking = (DB.qcBookings || []).find(b => String(b.taskId) === String(task.id));
+                    if (qcBooking) qcBooking.assignedQCTech = value;
                 }
 
                 // Auto sort tasks of this job by start date
@@ -22880,6 +22940,8 @@ const app = {
                                   </button>`
                             );
 
+                        const qcInspector = t.qc_inspector || (qcBooking && qcBooking.assignedQCTech) || '';
+
                         const mainRowHtml = `
                         <tr class="hover:bg-muted/20 transition gantt-list-row ${isExpanded ? 'bg-brand-500/[0.02]' : ''}">
                             <td class="py-2.5 px-3 text-center font-mono text-muted-foreground font-semibold text-xs">
@@ -22939,6 +23001,21 @@ const app = {
                                 <select onchange="app.updateGanttTaskField('${t.id}', 'tech', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-xs text-foreground font-medium focus:outline-none cursor-pointer">
                                     ${techOpts}
                                 </select>
+                            </td>
+                            <td class="py-2.5 px-3">
+                                <div class="space-y-1.5">
+                                    ${qcInspector
+                                        ? `<div class="flex items-center gap-1.5">
+                                                <i class="ph ph-user-check text-teal-600 text-xs shrink-0"></i>
+                                                <span class="text-xs font-semibold text-teal-700 truncate max-w-[140px]" title="${qcInspector}">${qcInspector}</span>
+                                           </div>`
+                                        : `<span class="text-[10px] text-muted-foreground italic">ยังไม่ได้จอง QC</span>`
+                                    }
+                                    <button type="button" id="btn-int-qc-${t.id}" onclick="app.bookQCInspectorFromINT('${t.id}')" class="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-teal-500/10 text-teal-700 border border-teal-500/30 hover:bg-teal-500/20 transition cursor-pointer" title="จอง QC ผู้รับผิดชอบจาก INT API">
+                                        <i class="ph ph-plugs-connected text-xs"></i>
+                                        <span>จอง QC จาก INT</span>
+                                    </button>
+                                </div>
                             </td>
                             <td class="py-2.5 px-3">
                                 <select onchange="app.updateGanttTaskField('${t.id}', 'status', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-[11px] font-medium focus:outline-none cursor-pointer">
@@ -23074,12 +23151,13 @@ const app = {
                                                 <th class="py-3 px-3.5 w-44 font-bold text-brand-600 dark:text-brand-400">จองตรวจ QC (วันสิ้นสุด)</th>
                                                 <th class="py-3 px-3.5 w-44 font-bold text-blue-600 dark:text-blue-400">บันทึกงานประจำวัน</th>
                                                 <th class="py-3 px-3.5 w-48 font-bold">ช่างผู้รับผิดชอบ</th>
+                                                <th class="py-3 px-3.5 w-44 font-bold text-teal-600">QC ผู้รับผิดชอบ</th>
                                                 <th class="py-3 px-3.5 w-28 font-bold">สถานะ</th>
                                                 <th class="py-3 px-2.5 w-12 text-center font-bold">ลบ</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-border">
-                                            ${taskRowsHtml || '<tr><td colspan="10" class="py-8 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
+                                            ${taskRowsHtml || '<tr><td colspan="11" class="py-8 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
                                         </tbody>
                                     </table>
                                 </div>
@@ -23150,12 +23228,13 @@ const app = {
                                             <th class="py-2.5 px-3 w-44 font-bold text-brand-600 dark:text-brand-400">จองตรวจ QC (วันสิ้นสุด)</th>
                                             <th class="py-2.5 px-3 w-44 font-bold text-blue-600 dark:text-blue-400">บันทึกงานประจำวัน</th>
                                             <th class="py-2.5 px-3 w-48 font-bold">ช่างผู้รับผิดชอบ</th>
+                                            <th class="py-2.5 px-3 w-44 font-bold text-teal-600">QC ผู้รับผิดชอบ</th>
                                             <th class="py-2.5 px-3 w-28 font-bold">สถานะ</th>
                                             <th class="py-2.5 px-2 w-10 text-center font-bold">ลบ</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-border">
-                                        ${taskRowsHtml || '<tr><td colspan="10" class="py-6 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
+                                        ${taskRowsHtml || '<tr><td colspan="11" class="py-6 text-center text-muted-foreground text-xs">ยังไม่มีรายการ Task ในโครงการนี้</td></tr>'}
                                     </tbody>
                                 </table>
                             </div>
@@ -23274,6 +23353,8 @@ const app = {
                                   </button>`
                             );
 
+                        const qcInspectorAll = t.qc_inspector || (qcBooking && qcBooking.assignedQCTech) || '';
+
                         const mainRowHtml = `
                         <tr class="hover:bg-muted/20 transition gantt-list-row ${isExpanded ? 'bg-brand-500/[0.02]' : ''}">
                             <td class="py-2.5 px-3 text-center font-mono text-muted-foreground font-semibold text-xs">
@@ -23339,6 +23420,21 @@ const app = {
                                 <select onchange="app.updateGanttTaskField('${t.id}', 'tech', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-xs text-foreground font-medium focus:outline-none cursor-pointer">
                                     ${techOpts}
                                 </select>
+                            </td>
+                            <td class="py-2.5 px-3">
+                                <div class="space-y-1.5">
+                                    ${qcInspectorAll
+                                        ? `<div class="flex items-center gap-1.5">
+                                                <i class="ph ph-user-check text-teal-600 text-xs shrink-0"></i>
+                                                <span class="text-xs font-semibold text-teal-700 truncate max-w-[140px]" title="${qcInspectorAll}">${qcInspectorAll}</span>
+                                           </div>`
+                                        : `<span class="text-[10px] text-muted-foreground italic">ยังไม่ได้จอง QC</span>`
+                                    }
+                                    <button type="button" id="btn-int-qc-${t.id}" onclick="app.bookQCInspectorFromINT('${t.id}')" class="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-teal-500/10 text-teal-700 border border-teal-500/30 hover:bg-teal-500/20 transition cursor-pointer" title="จอง QC ผู้รับผิดชอบจาก INT API">
+                                        <i class="ph ph-plugs-connected text-xs"></i>
+                                        <span>จอง QC จาก INT</span>
+                                    </button>
+                                </div>
                             </td>
                             <td class="py-2.5 px-3">
                                 <select onchange="app.updateGanttTaskField('${t.id}', 'status', this.value)" class="w-full bg-card border border-border focus:border-brand-500 rounded-lg px-2 py-1.5 text-[11px] font-medium focus:outline-none cursor-pointer">
@@ -23474,6 +23570,7 @@ const app = {
                                             <th class="py-3 px-3 w-44 font-bold text-brand-600 dark:text-brand-400">จองตรวจ QC (วันสิ้นสุด)</th>
                                             <th class="py-3 px-3 w-44 font-bold text-blue-600 dark:text-blue-400">บันทึกงานประจำวัน</th>
                                             <th class="py-3 px-3 w-48 font-bold">ช่างผู้รับผิดชอบ</th>
+                                            <th class="py-3 px-3 w-44 font-bold text-teal-600">QC ผู้รับผิดชอบ</th>
                                             <th class="py-3 px-3 w-28 font-bold">สถานะ</th>
                                             <th class="py-3 px-2 w-10 text-center font-bold">ลบ</th>
                                         </tr>
