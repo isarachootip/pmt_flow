@@ -3727,19 +3727,26 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', requireAuth, async (req: Request, 
 
     const techName = item.assigned_tech || item.tech || default_tech;
     const assignees = item.assignees || [techName];
+    const taskId = item.id || item.taskId || `T_${param}_${idx + 1}`;
 
     return {
-      id: `T_${param}_${Date.now()}_${idx + 1}`,
+      id: taskId,
       job_id: numId,
       job_no: jobNo,
       task_name: item.task_name || item.name || `งานติดตั้ง ${idx + 1}`,
+      name: item.task_name || item.name || `งานติดตั้ง ${idx + 1}`,
       plan_start_date: startStr,
+      start: startStr,
       plan_end_date: endStr,
+      end: endStr,
       duration_days: days,
+      days: days,
       assigned_tech: techName,
+      tech: techName,
       assignees: assignees,
-      status: 'IN_PROGRESS',
+      status: item.status || 'IN_PROGRESS',
       progress_percent: 0,
+      subtasks: Array.isArray(item.subtasks) ? item.subtasks : [],
       source_boq_item: item.source_boq_item || item.name,
       created_at: new Date().toISOString()
     };
@@ -3808,9 +3815,10 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', requireAuth, async (req: Request, 
 app.post('/api/v1/jobs/:id/tasks', requireAuth, async (req: Request, res: Response) => {
   const param = req.params.id;
   const numId = isNaN(Number(param)) ? param : Number(param);
-  const { task_name, start_date, end_date, duration_days = 1, assigned_tech = 'Team A (สมศักดิ์)', assignees, subtasks, allow_bypass = false } = req.body;
+  const { id: customId, task_name, name, start_date, start, end_date, end, duration_days, days, assigned_tech = 'Team A (สมศักดิ์)', tech, assignees, subtasks, allow_bypass = false } = req.body;
+  const effectiveName = task_name || name;
 
-  if (!task_name) {
+  if (!effectiveName) {
     return res.status(400).json({ success: false, error: { code: 'MISSING_TASK_NAME', message: 'กรุณาระบุชื่อ Task' } });
   }
 
@@ -3825,42 +3833,49 @@ app.post('/api/v1/jobs/:id/tasks', requireAuth, async (req: Request, res: Respon
     });
   }
 
-  const startStr = start_date || new Date().toISOString().slice(0, 10);
-  let endStr = end_date;
-  let days = duration_days;
+  const startStr = start_date || start || new Date().toISOString().slice(0, 10);
+  let endStr = end_date || end;
+  let numDays = duration_days || days || 1;
 
   if (!endStr) {
-    const start = new Date(startStr);
-    const end = new Date(start);
-    end.setDate(end.getDate() + (days - 1));
-    endStr = end.toISOString().slice(0, 10);
+    const s = new Date(startStr);
+    const e = new Date(s);
+    e.setDate(e.getDate() + (numDays - 1));
+    endStr = e.toISOString().slice(0, 10);
   } else {
     const s = new Date(startStr);
     const e = new Date(endStr);
-    days = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    numDays = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
   }
 
-  const techList = assignees || [assigned_tech];
+  const effectiveTech = tech || assigned_tech;
+  const techList = assignees || [effectiveTech];
   const jobNo = job?.job_no || (typeof param === 'string' && param.startsWith('JOB') ? param : `JOB2609090000${numId}`);
   const customerName = job?.customer || 'ลูกค้า';
+  const taskId = customId || `T_${param}_${Date.now()}`;
 
-  const newTask: CoreTask = {
-    id: `T_${param}_${Date.now()}`,
+  const newTask: any = {
+    id: taskId,
     job_id: numId,
     job_no: jobNo,
-    task_name,
+    task_name: effectiveName,
+    name: effectiveName,
     plan_start_date: startStr,
+    start: startStr,
     plan_end_date: endStr,
-    duration_days: days,
+    end: endStr,
+    duration_days: numDays,
+    days: numDays,
     assigned_tech: techList.join(' + '),
+    tech: techList.join(' + '),
     assignees: techList,
-    status: 'IN_PROGRESS',
+    status: req.body.status || 'IN_PROGRESS',
     progress_percent: 0,
     subtasks: Array.isArray(subtasks) ? subtasks : [],
     created_at: new Date().toISOString()
   };
 
-  let tasks: CoreTask[] = (job && Array.isArray(job.tasks)) ? [...job.tasks, newTask] : [newTask];
+  let tasks: any[] = (job && Array.isArray(job.tasks)) ? [...job.tasks, newTask] : [newTask];
   await dbUpdateJob(param, { tasks });
 
   // QC Booking in DB
@@ -3917,49 +3932,127 @@ app.post('/api/v1/jobs/:id/tasks/reorder', requireAuth, async (req: Request, res
 // PUT /api/v1/jobs/:id/tasks/:taskId — Update Task (Start Date, End Date, Technician, Status, etc.)
 app.put('/api/v1/jobs/:id/tasks/:taskId', requireAuth, async (req: Request, res: Response) => {
   const { id, taskId } = req.params;
+  const numId = isNaN(Number(id)) ? id : Number(id);
   const job = await dbGetJob(id);
-  let tasks: CoreTask[] = job && Array.isArray(job.tasks) ? job.tasks : coreTaskStore.filter(t => String(t.job_id) === id || t.job_no === id);
+  const jobNo = job?.job_no || (typeof id === 'string' && id.startsWith('JOB') ? id : `JOB2609090000${numId}`);
+  let tasks: any[] = job && Array.isArray(job.tasks) ? [...job.tasks] : [...coreTaskStore.filter(t => String(t.job_id) === id || t.job_no === id)];
+
+  // 1. Try exact ID match
   let task = tasks.find(t => String(t.id) === taskId);
 
+  // 2. Try match by ID suffix (e.g. `_1` matches `..._1` or index N-1)
+  if (!task && taskId) {
+    const parts = taskId.split('_');
+    const suffix = parts[parts.length - 1];
+    const indexFromSuffix = parseInt(suffix, 10);
+    if (!isNaN(indexFromSuffix)) {
+      task = tasks.find(t => String(t.id).endsWith(`_${suffix}`));
+      if (!task && indexFromSuffix >= 1 && indexFromSuffix <= tasks.length) {
+        task = tasks[indexFromSuffix - 1];
+      }
+    }
+  }
+
+  // 3. Try match by task name
+  const reqName = req.body.task_name || req.body.name;
+  if (!task && reqName) {
+    task = tasks.find(t => (t.task_name || t.name) === reqName);
+  }
+
+  // 4. Try in-memory store fallback
   if (!task) {
     task = coreTaskStore.find(t => String(t.id) === taskId);
   }
+
+  // 5. If STILL not found, UPSERT as a new task to guarantee NO DATA LOSS!
+  let isNew = false;
   if (!task) {
-    return res.status(404).json({ success: false, error: { code: 'TASK_NOT_FOUND', message: 'ไม่พบ Task' } });
+    isNew = true;
+    task = {
+      id: taskId,
+      job_id: numId,
+      job_no: jobNo,
+      task_name: reqName || 'งานบริการ / ติดตั้ง',
+      name: reqName || 'งานบริการ / ติดตั้ง',
+      plan_start_date: req.body.start_date || req.body.start || new Date().toISOString().slice(0, 10),
+      start: req.body.start_date || req.body.start || new Date().toISOString().slice(0, 10),
+      plan_end_date: req.body.end_date || req.body.end || new Date().toISOString().slice(0, 10),
+      end: req.body.end_date || req.body.end || new Date().toISOString().slice(0, 10),
+      duration_days: req.body.duration_days || req.body.days || 1,
+      days: req.body.duration_days || req.body.days || 1,
+      assigned_tech: req.body.assigned_tech || req.body.tech || job?.assigned_tech || 'Team A (สมศักดิ์)',
+      tech: req.body.assigned_tech || req.body.tech || job?.assigned_tech || 'Team A (สมศักดิ์)',
+      assignees: req.body.assignees || [req.body.assigned_tech || req.body.tech || 'Team A (สมศักดิ์)'],
+      status: req.body.status || 'IN_PROGRESS',
+      progress_percent: 0,
+      subtasks: Array.isArray(req.body.subtasks) ? req.body.subtasks : [],
+      created_at: new Date().toISOString()
+    };
+    tasks.push(task);
   }
 
+  // Normalize taskId onto task so future exact lookups succeed
+  task.id = taskId;
+
   const { task_name, name, start_date, start, end_date, end, duration_days, days, assigned_tech, tech, assignees, status, subtasks } = req.body;
-  if (task_name !== undefined || name !== undefined) task.task_name = task_name || name;
-  if (start_date !== undefined || start !== undefined) task.plan_start_date = start_date || start;
-  if (end_date !== undefined || end !== undefined) task.plan_end_date = end_date || end;
+  if (task_name !== undefined || name !== undefined) {
+    const n = task_name || name;
+    task.task_name = n;
+    task.name = n;
+  }
+  if (start_date !== undefined || start !== undefined) {
+    const s = start_date || start;
+    task.plan_start_date = s;
+    task.start = s;
+  }
+  if (end_date !== undefined || end !== undefined) {
+    const e = end_date || end;
+    task.plan_end_date = e;
+    task.end = e;
+  }
   if (duration_days !== undefined || days !== undefined) {
-    task.duration_days = duration_days || days;
+    const d = duration_days || days;
+    task.duration_days = d;
+    task.days = d;
   } else if (task.plan_start_date && task.plan_end_date) {
     const s = new Date(task.plan_start_date);
     const e = new Date(task.plan_end_date);
-    task.duration_days = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    const calcDays = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    task.duration_days = calcDays;
+    task.days = calcDays;
   }
-  if (assigned_tech !== undefined || tech !== undefined) task.assigned_tech = assigned_tech || tech;
+  if (assigned_tech !== undefined || tech !== undefined) {
+    const tc = assigned_tech || tech;
+    task.assigned_tech = tc;
+    task.tech = tc;
+  }
   if (assignees !== undefined) task.assignees = assignees;
   if (status !== undefined) task.status = status;
   if (subtasks !== undefined) task.subtasks = subtasks;
 
+  // Persist directly to PostgreSQL core_jobs
   await dbUpdateJob(id, { tasks });
 
   // Update QC booking
-  const qcDate = calculateQCBookingDate(task.plan_end_date, 5);
+  const qcDate = calculateQCBookingDate(task.plan_end_date || task.end, 5);
   await dbSaveQCBooking({
     id: `QCB_${task.id}`,
     task_id: task.id,
-    task_name: task.task_name,
-    plan_start_date: task.plan_start_date,
-    plan_end_date: task.plan_end_date,
+    task_name: task.task_name || task.name,
+    customer_name: job?.customer || 'ลูกค้า',
+    plan_start_date: task.plan_start_date || task.start,
+    plan_end_date: task.plan_end_date || task.end,
     qc_booking_date: qcDate,
-    assigned_tech: task.assigned_tech
+    assigned_tech: task.assigned_tech || task.tech
   });
 
   const qcBooking = syncQCBookingForTask(task);
-  return res.json({ success: true, message: 'อัปเดต Task และวันจองตรวจ QC สำเร็จ', data: task, qc_booking: qcBooking });
+  return res.json({ 
+    success: true, 
+    message: isNew ? 'สร้าง Task ใหม่และบันทึกลง Database สำเร็จ' : 'อัปเดต Task และวันจองตรวจ QC ลง Database สำเร็จ', 
+    data: task, 
+    qc_booking: qcBooking 
+  });
 });
 
 // DELETE /api/v1/jobs/:id/tasks/:taskId — Delete Task
@@ -3967,7 +4060,12 @@ app.delete('/api/v1/jobs/:id/tasks/:taskId', requireAuth, async (req: Request, r
   const { id, taskId } = req.params;
   const job = await dbGetJob(id);
   if (job && Array.isArray(job.tasks)) {
-    const filtered = job.tasks.filter((t: any) => String(t.id) !== taskId);
+    let filtered = job.tasks.filter((t: any) => String(t.id) !== taskId);
+    if (filtered.length === job.tasks.length && taskId) {
+      const parts = taskId.split('_');
+      const suffix = parts[parts.length - 1];
+      filtered = job.tasks.filter((t: any) => !String(t.id).endsWith(`_${suffix}`) && String(t.id) !== taskId);
+    }
     await dbUpdateJob(id, { tasks: filtered });
   }
   await dbDeleteQCBookingByTask(taskId);

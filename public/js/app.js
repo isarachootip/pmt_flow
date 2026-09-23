@@ -16294,12 +16294,19 @@ const app = {
                     method: 'POST',
                     headers: this.getAuthHeaders(),
                     body: JSON.stringify({
-                        items: selectedTasks.map(t => ({
+                        items: selectedTasks.map((t, idx) => ({
+                            id: `T_${targetJobId}_${idx + 1}`,
+                            taskId: `T_${targetJobId}_${idx + 1}`,
                             name: t.name,
+                            task_name: t.name,
                             start_date: t.start,
+                            start: t.start,
                             end_date: t.end,
+                            end: t.end,
                             duration_days: t.days,
+                            days: t.days,
                             assigned_tech: t.tech,
+                            tech: t.tech,
                             assignees: t.assignees
                         }))
                     })
@@ -21949,12 +21956,33 @@ const app = {
                 
                 if (jobId && jobId !== 'all') {
                     const job = (DB.jobs || []).find(j => j.id === jobId);
-                    if (job && Array.isArray(job.boq_items) && job.boq_items.length > 0) {
-                        const existing = (DB.tasks || []).filter(t => t.jobId === jobId);
-                        if (existing.length === 0) {
-                            this.renderGantt();
-                            this.openConvertBOQToTasksModal(jobId);
-                            return;
+                    if (job) {
+                        // 1. Sync tasks from job.tasks (Database) into DB.tasks if available
+                        if (Array.isArray(job.tasks) && job.tasks.length > 0) {
+                            if (!DB.tasks) DB.tasks = [];
+                            DB.tasks = DB.tasks.filter(t => t.jobId !== jobId);
+                            job.tasks.forEach((t, idx) => {
+                                DB.tasks.push({
+                                    id: t.id || `T_${jobId}_${idx + 1}`,
+                                    jobId: jobId,
+                                    name: t.task_name || t.name || 'งานติดตั้ง',
+                                    start: t.plan_start_date || t.start || job.date || '2026-09-05',
+                                    end: t.plan_end_date || t.end || t.plan_start_date || t.start || job.date || '2026-09-05',
+                                    days: t.duration_days || t.days || 1,
+                                    tech: t.assigned_tech || t.tech || job.tech || 'Team A (สมศักดิ์)',
+                                    status: t.status || 'IN_PROGRESS',
+                                    subtasks: Array.isArray(t.subtasks) ? t.subtasks : []
+                                });
+                            });
+                            this.persistJobs();
+                            this.syncQCBookingsFromTasks();
+                        } else if (Array.isArray(job.boq_items) && job.boq_items.length > 0) {
+                            const existing = (DB.tasks || []).filter(t => t.jobId === jobId);
+                            if (existing.length === 0) {
+                                this.renderGantt();
+                                this.openConvertBOQToTasksModal(jobId);
+                                return;
+                            }
                         }
                     }
                 }
@@ -22020,11 +22048,18 @@ const app = {
                     headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         items: newTasks.map(t => ({
+                            id: t.id,
+                            taskId: t.id,
                             name: t.name,
+                            task_name: t.name,
                             start_date: t.start,
+                            start: t.start,
                             end_date: t.end,
+                            end: t.end,
                             duration_days: t.days,
-                            assigned_tech: t.tech
+                            days: t.days,
+                            assigned_tech: t.tech,
+                            tech: t.tech
                         }))
                     })
                 }).catch(() => {});
@@ -22083,6 +22118,26 @@ const app = {
                     return (a.name || '').localeCompare(b.name || '');
                 });
 
+                // Sync in-memory targetJob.tasks
+                const targetJob = (DB.jobs || []).find(j => j.id === task.jobId);
+                if (targetJob) {
+                    targetJob.tasks = (DB.tasks || []).filter(t => t.jobId === task.jobId).map(t => ({
+                        id: t.id,
+                        task_name: t.name,
+                        name: t.name,
+                        plan_start_date: t.start,
+                        start: t.start,
+                        plan_end_date: t.end,
+                        end: t.end,
+                        duration_days: t.days,
+                        days: t.days,
+                        assigned_tech: t.tech,
+                        tech: t.tech,
+                        status: t.status,
+                        subtasks: t.subtasks || []
+                    }));
+                }
+
                 this.persistJobs();
                 this.syncQCBookingsFromTasks();
 
@@ -22096,13 +22151,19 @@ const app = {
                     headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         name: task.name,
+                        task_name: task.name,
                         start: task.start,
+                        start_date: task.start,
                         end: task.end,
+                        end_date: task.end,
                         days: task.days,
+                        duration_days: task.days,
                         tech: task.tech,
-                        status: task.status
+                        assigned_tech: task.tech,
+                        status: task.status,
+                        subtasks: task.subtasks || []
                     })
-                }).catch(() => {});
+                }).catch(err => console.warn('[GANTT] Task update sync notice:', err));
 
                 this.renderGantt();
             },
@@ -22132,10 +22193,37 @@ const app = {
                 };
                 if (!DB.tasks) DB.tasks = [];
                 DB.tasks.push(newTask);
+
+                // Sync in-memory job.tasks
+                if (job) {
+                    job.tasks = (DB.tasks || []).filter(t => t.jobId === jobId);
+                }
+
                 this.persistJobs();
                 this.syncQCBookingsFromTasks();
                 const qcD = this.calculateQCBookingDate(newTask.end, 5);
                 this.showToast(`➕ เพิ่ม Task ใหม่สำหรับ ${jobId} พร้อมสร้างคิวจองช่าง QC (${this.formatDateDMY(qcD)})`);
+
+                // Persist new task to PostgreSQL database
+                fetch(`/api/v1/jobs/${jobId}/tasks`, {
+                    method: 'POST',
+                    headers: this.getAuthHeaders(),
+                    body: JSON.stringify({
+                        id: newTask.id,
+                        task_name: newTask.name,
+                        name: newTask.name,
+                        start_date: newTask.start,
+                        start: newTask.start,
+                        end_date: newTask.end,
+                        end: newTask.end,
+                        duration_days: newTask.days,
+                        days: newTask.days,
+                        assigned_tech: newTask.tech,
+                        tech: newTask.tech,
+                        allow_bypass: true
+                    })
+                }).catch(err => console.warn('[GANTT] Create task DB sync notice:', err));
+
                 this.renderGantt();
             },
 
@@ -22498,19 +22586,45 @@ const app = {
 
             syncSubtaskToBackend(task) {
                 if (!task || !task.jobId) return;
+
+                // Sync in-memory targetJob.tasks
+                const targetJob = (DB.jobs || []).find(j => j.id === task.jobId);
+                if (targetJob) {
+                    targetJob.tasks = (DB.tasks || []).filter(t => t.jobId === task.jobId).map(t => ({
+                        id: t.id,
+                        task_name: t.name,
+                        name: t.name,
+                        plan_start_date: t.start,
+                        start: t.start,
+                        plan_end_date: t.end,
+                        end: t.end,
+                        duration_days: t.days,
+                        days: t.days,
+                        assigned_tech: t.tech,
+                        tech: t.tech,
+                        status: t.status,
+                        subtasks: t.subtasks || []
+                    }));
+                }
+
                 fetch(`/api/v1/jobs/${task.jobId}/tasks/${task.id}`, {
                     method: 'PUT',
                     headers: this.getAuthHeaders(),
                     body: JSON.stringify({
                         name: task.name,
+                        task_name: task.name,
                         start: task.start,
+                        start_date: task.start,
                         end: task.end,
+                        end_date: task.end,
                         days: task.days,
+                        duration_days: task.days,
                         tech: task.tech,
+                        assigned_tech: task.tech,
                         status: task.status,
                         subtasks: task.subtasks || []
                     })
-                }).catch(() => {});
+                }).catch(err => console.warn('[GANTT] Subtask backend sync notice:', err));
             },
 
             openSubtasksModal(taskId, focusSubtaskId = null) {
@@ -22846,6 +22960,25 @@ const app = {
 
                     // Project HAS BOQ: Check if tasks exist
                     let jobTasks = (DB.tasks || []).filter(t => t.jobId === selectedJobFilter);
+                    if (jobTasks.length === 0 && Array.isArray(targetJob.tasks) && targetJob.tasks.length > 0) {
+                        if (!DB.tasks) DB.tasks = [];
+                        targetJob.tasks.forEach((t, idx) => {
+                            DB.tasks.push({
+                                id: t.id || `T_${selectedJobFilter}_${idx + 1}`,
+                                jobId: selectedJobFilter,
+                                name: t.task_name || t.name || 'งานติดตั้ง',
+                                start: t.plan_start_date || t.start || targetJob.date || '2026-09-05',
+                                end: t.plan_end_date || t.end || t.plan_start_date || t.start || targetJob.date || '2026-09-05',
+                                days: t.duration_days || t.days || 1,
+                                tech: t.assigned_tech || t.tech || targetJob.tech || 'Team A (สมศักดิ์)',
+                                status: t.status || 'IN_PROGRESS',
+                                subtasks: Array.isArray(t.subtasks) ? t.subtasks : []
+                            });
+                        });
+                        this.persistJobs();
+                        this.syncQCBookingsFromTasks();
+                        jobTasks = (DB.tasks || []).filter(t => t.jobId === selectedJobFilter);
+                    }
                     if (jobTasks.length === 0) {
                         const countEl = document.getElementById('gantt-total-count');
                         if (countEl) countEl.innerText = '0';
