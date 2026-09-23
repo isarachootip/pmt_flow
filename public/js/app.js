@@ -9373,31 +9373,31 @@ const app = {
 
                 const isQuick = this.isQuickJob(job);
                 const isRenovate = job.job_type === 'renovate' || (!isQuick && job.job_type !== 'ma');
-                let tickets = (DB.tickets || []).filter(t => (t.job_id || t.jobId) === job.id);
-                if (tickets.length === 0 && (job.ticket_no || job.receipt_no || job.ticket_id || (job.step_timestamps && (job.step_timestamps.step2_ticket_at || job.step_timestamps.step4_ticket_at)))) {
-                    const tktNo = job.ticket_no || `TKT-202609-${String(job.id).replace(/\D/g, '').slice(-3) || '001'}`;
-                    const rcNo = job.receipt_no || `RC-VFIX-260901-${String(job.id).replace(/\D/g, '').slice(-3) || '001'}`;
-                    const ctrNo = job.contract_no || `CTR-202609-${String(job.id).replace(/\D/g, '').slice(-3) || '001'}`;
-                    tickets = [{
-                        id: job.ticket_id || tktNo,
-                        ticket_no: tktNo,
-                        receipt_no: rcNo,
-                        contract_no: ctrNo,
-                        job_id: job.id,
-                        customer_name: job.customer,
-                        service: job.service,
-                        amount: job.ticket_amount || job.boq_grand_total || 25000,
-                        payment_date: job.payment_date || job.date || '2026-09-08',
-                        payment_method: job.payment_method || 'โอนเงินผ่านธนาคาร (Bank Transfer)',
-                        slip_url: job.slip_url || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80',
-                        slip_name: job.slip_name || 'slip_kbank_transfer_001.jpg',
-                        contract_url: job.contract_url || 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80',
-                        contract_name: job.contract_name || 'contract_service_vfix.pdf',
-                        status: 'VERIFIED',
-                        notes: job.ticket_notes || 'ชำระเงินและแนบหลักฐานเรียบร้อย'
-                    }];
+                let tickets = [];
+                if (!isQuick) {
+                    tickets = (DB.tickets || []).filter(t => (t.job_id || t.jobId) === job.id);
+                    if (tickets.length === 0 && (job.slip_url || job.contract_url)) {
+                        tickets = [{
+                            id: job.ticket_id || job.ticket_no || `TKT-${job.id}`,
+                            ticket_no: job.ticket_no || '-',
+                            receipt_no: job.receipt_no || '-',
+                            contract_no: job.contract_no || '-',
+                            job_id: job.id,
+                            customer_name: job.customer,
+                            service: job.service,
+                            amount: job.ticket_amount || job.boq_grand_total || 0,
+                            payment_date: job.payment_date || job.date || null,
+                            payment_method: job.payment_method || 'โอนเงินผ่านธนาคาร',
+                            slip_url: job.slip_url || null,
+                            slip_name: job.slip_name || 'สลิปการโอนเงิน',
+                            contract_url: job.contract_url || null,
+                            contract_name: job.contract_name || 'สัญญาจ้างงาน',
+                            status: job.ticket_status || 'VERIFIED',
+                            notes: job.ticket_notes || ''
+                        }];
+                    }
                 }
-                const hasTicket = tickets.length > 0;
+                const hasTicket = !isQuick && tickets.length > 0;
                 let boqItems = Array.isArray(job.boq_items) ? job.boq_items : [];
                 if (boqItems.length === 0 && job.raw_payload && Array.isArray(job.raw_payload.boq_items)) {
                     boqItems = job.raw_payload.boq_items;
@@ -9421,7 +9421,7 @@ const app = {
                         }
                     });
                 }
-                if (blueprints.length === 0 && (job.blueprint_id || job.blueprint_name || job.blueprint_img)) {
+                if (!isQuick && blueprints.length === 0 && (job.blueprint_id || job.blueprint_name || job.blueprint_img)) {
                     blueprints.push({
                         id: job.blueprint_id || `BP-${job.id}`,
                         jobId: job.id,
@@ -9433,7 +9433,7 @@ const app = {
                         notes: 'แบบแปลนโครงการ Renovate'
                     });
                 }
-                const showDrawingAndBOQ = isRenovate || blueprints.length > 0 || boqItems.length > 0;
+                const showDrawingAndBOQ = !isQuick && (isRenovate || blueprints.length > 0 || boqItems.length > 0);
                 const tasks = (DB.tasks || []).filter(t => t.jobId === job.id);
 
                 // Calculate SLA
@@ -9544,28 +9544,44 @@ const app = {
                     <div class="p-6 overflow-y-auto space-y-5 flex-1 text-xs bg-card">
                         <!-- Key Summary Cards Grid -->
                         <div class="grid grid-cols-2 sm:grid-cols-3 ${isRenovate ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3">
+                            ${isRenovate ? `
                             <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
                                 <div class="text-[10px] text-muted-foreground font-medium uppercase">สถานะ SLA (Step 2)</div>
                                 <div class="text-xs font-bold text-foreground">${s2Sla ? s2Sla.badgeHtml : '<span class="text-emerald-600 font-semibold">ตามกำหนด</span>'}</div>
                                 <div class="text-[10px] text-muted-foreground font-mono truncate">เข้า State: ${s2Formatted}</div>
                             </div>
-                            ${isRenovate ? `
                             <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
                                 <div class="text-[10px] text-muted-foreground font-medium uppercase">แบบแปลน Drawing</div>
                                 <div class="text-xs font-bold">${blueprints.length > 0 ? `<span class="text-indigo-600 inline-flex items-center gap-1 font-semibold"><i class="ph ph-blueprint"></i> ${blueprints.length} ไฟล์แนบ</span>` : `<span class="text-amber-600 inline-flex items-center gap-1 font-semibold"><i class="ph ph-warning"></i> รออัปโหลดแบบ</span>`}</div>
                                 <div class="text-[10px] text-muted-foreground truncate">${blueprints.length > 0 ? (blueprints[0].filename || 'มีไฟล์ CAD/PDF') : 'ยังไม่มีแบบแปลน'}</div>
                             </div>
-                            ` : ''}
                             <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
                                 <div class="text-[10px] text-muted-foreground font-medium uppercase">ยอดเงิน BOQ / สัญญา</div>
-                                <div class="text-xs font-bold font-mono">${grandTotal > 0 ? `<span class="text-emerald-600">${grandTotal.toLocaleString('th-TH')} ฿</span>` : (isRenovate ? `<span class="text-purple-600 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-[11px]">Blank BOQ</span>` : '<span class="text-muted-foreground">รอระบุยอด</span>')}</div>
-                                <div class="text-[10px] text-muted-foreground">${boqItems.length > 0 ? (boqItems.length + ' รายการย่อย') : (isRenovate ? 'ตารางว่างรอถอดราคา' : 'ราคาประมาณการ')}</div>
+                                <div class="text-xs font-bold font-mono">${grandTotal > 0 ? `<span class="text-emerald-600">${grandTotal.toLocaleString('th-TH')} ฿</span>` : `<span class="text-purple-600 font-bold px-1.5 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-[11px]">Blank BOQ</span>`}</div>
+                                <div class="text-[10px] text-muted-foreground">${boqItems.length > 0 ? (boqItems.length + ' รายการย่อย') : 'ตารางว่างรอถอดราคา'}</div>
                             </div>
                             <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
                                 <div class="text-[10px] text-muted-foreground font-medium uppercase">สถานะ Ticket / สลิป</div>
                                 <div class="text-xs font-bold">${hasTicket ? `<span class="text-emerald-600 inline-flex items-center gap-1"><i class="ph ph-check-circle-fill"></i> ออกแล้ว (${tickets.length})</span>` : `<span class="text-amber-600 inline-flex items-center gap-1"><i class="ph ph-hourglass-high"></i> รอออก Ticket</span>`}</div>
                                 <div class="text-[10px] text-muted-foreground truncate">${hasTicket ? (tickets[0].ticket_no || tickets[0].ticketNo || 'มีสลิปแนบแล้ว') : 'ยังไม่มีสลิปการเงิน'}</div>
                             </div>
+                            ` : `
+                            <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
+                                <div class="text-[10px] text-muted-foreground font-medium uppercase">กระบวนการงาน (Flow)</div>
+                                <div class="text-xs font-bold text-amber-700 flex items-center gap-1"><i class="ph ph-lightning-fill"></i> Quick Services</div>
+                                <div class="text-[10px] text-muted-foreground truncate">Fast-track ข้ามไป QC</div>
+                            </div>
+                            <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
+                                <div class="text-[10px] text-muted-foreground font-medium uppercase">สถานะการตรวจ QC</div>
+                                <div class="text-xs font-bold">${job.qc_status ? `<span class="text-emerald-600">${this.escapeHtml(job.qc_status)}</span>` : '<span class="text-cyan-700 font-semibold">รอตรวจ QC Online</span>'}</div>
+                                <div class="text-[10px] text-muted-foreground truncate">ตรวจภาพถ่ายหน้างาน</div>
+                            </div>
+                            <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
+                                <div class="text-[10px] text-muted-foreground font-medium uppercase">รูปภาพสำรวจหน้างาน</div>
+                                <div class="text-xs font-bold font-mono text-foreground">${photos.length} รูป</div>
+                                <div class="text-[10px] text-muted-foreground truncate">${photos.length > 0 ? 'แนบภาพหน้างานแล้ว' : 'ยังไม่มีรูปภาพ'}</div>
+                            </div>
+                            `}
                             <div class="p-3 rounded-xl bg-muted/40 border border-border space-y-1">
                                 <div class="text-[10px] text-muted-foreground font-medium uppercase">วันเวลานัดหมาย</div>
                                 <div class="text-xs font-bold font-mono text-foreground">${job.date ? this.formatDateDMY(job.date) : '-'}</div>
@@ -9927,7 +9943,8 @@ const app = {
                             </div>
                         ` : ''}
 
-                        <!-- Section 6: Tickets & Slips Summary with Previews -->
+                        <!-- Section 6: Tickets & Slips Summary with Previews (เฉพาะงาน Renovate เท่านั้น) -->
+                        ${!isQuick ? `
                         <div class="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
                             <div class="flex items-center justify-between border-b border-border/60 pb-2">
                                 <div class="flex items-center gap-2 font-bold text-foreground text-xs">
@@ -9947,8 +9964,8 @@ const app = {
                             ${hasTicket ? `
                                 <div class="space-y-3">
                                     ${tickets.map(t => {
-                                        const slipImgUrl = t.slip_url || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80';
-                                        const contractImgUrl = t.contract_url || 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80';
+                                        const slipImgUrl = t.slip_url || '';
+                                        const contractImgUrl = t.contract_url || '';
                                         return `
                                         <div class="p-3.5 rounded-xl bg-card border border-emerald-500/30 space-y-3 shadow-2xs">
                                             <div class="flex items-center justify-between gap-3 border-b border-border/60 pb-2.5 flex-wrap">
@@ -9973,6 +9990,7 @@ const app = {
                                             </div>
 
                                             <!-- Previews: Receipt & Contract -->
+                                            ${(slipImgUrl || contractImgUrl) ? `
                                             <div>
                                                 <div class="flex items-center justify-between mb-2">
                                                     <span class="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
@@ -9982,6 +10000,7 @@ const app = {
                                                     <span class="text-[10px] text-muted-foreground">Lightbox Zoom</span>
                                                 </div>
                                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                    ${slipImgUrl ? `
                                                     <!-- Slip / Receipt Box -->
                                                     <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.openTicketSlipLightbox('${t.id || t.ticket_no}', 'slip')" title="คลิกเพื่อดูใบเสร็จ / สลิปโอนเงิน">
                                                         <img src="${slipImgUrl}" alt="สลิปใบเสร็จ" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
@@ -10001,7 +10020,14 @@ const app = {
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    ` : `
+                                                    <div class="rounded-xl border border-dashed border-border bg-muted/20 p-4 text-center aspect-video flex flex-col items-center justify-center text-muted-foreground">
+                                                        <i class="ph ph-receipt text-2xl text-muted-foreground/50 mb-1"></i>
+                                                        <span class="text-[11px]">ไม่มีรูปภาพสลิปแนบ</span>
+                                                    </div>
+                                                    `}
 
+                                                    ${contractImgUrl ? `
                                                     <!-- Contract Box -->
                                                     <div class="group relative rounded-xl overflow-hidden border border-border bg-card shadow-2xs cursor-pointer aspect-video" onclick="app.openTicketSlipLightbox('${t.id || t.ticket_no}', 'contract')" title="คลิกเพื่อดูสัญญาการทำงาน">
                                                         <img src="${contractImgUrl}" alt="สัญญาการทำงาน" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
@@ -10021,8 +10047,15 @@ const app = {
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    ` : `
+                                                    <div class="rounded-xl border border-dashed border-border bg-muted/20 p-4 text-center aspect-video flex flex-col items-center justify-center text-muted-foreground">
+                                                        <i class="ph ph-file-text text-2xl text-muted-foreground/50 mb-1"></i>
+                                                        <span class="text-[11px]">ไม่มีไฟล์สัญญาแนบ</span>
+                                                    </div>
+                                                    `}
                                                 </div>
                                             </div>
+                                            ` : ''}
                                             ${t.notes ? `
                                                 <div class="text-[11px] text-muted-foreground bg-muted/40 p-2 rounded-lg border border-border/60">
                                                     <span class="font-medium text-foreground">หมายเหตุ:</span> ${this.escapeHtml(t.notes)}
@@ -10047,6 +10080,7 @@ const app = {
                                 </div>
                             `}
                         </div>
+                        ` : ''}
                     </div>
 
                     <!-- Modal Footer -->
@@ -10061,15 +10095,15 @@ const app = {
                                 <i class="ph ph-arrow-square-out"></i>
                                 <span>เปิดหน้ารายละเอียดเต็ม</span>
                             </button>
-                            ${!hasTicket ? `
-                                <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.openCreateTicketModal('${job.id}');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
-                                    <i class="ph ph-plus-circle font-bold"></i>
-                                    <span>+ บันทึก Ticket & สลิป ➔</span>
-                                </button>
-                            ` : (isQuick ? `
+                            ${isQuick ? `
                                 <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.goToQC('${job.id}');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold bg-cyan-600 hover:bg-cyan-700 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
                                     <i class="ph ph-globe"></i>
                                     <span>ไปตรวจ QC Online ➔</span>
+                                </button>
+                            ` : (!hasTicket ? `
+                                <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.openCreateTicketModal('${job.id}');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
+                                    <i class="ph ph-plus-circle font-bold"></i>
+                                    <span>+ บันทึก Ticket & สลิป ➔</span>
                                 </button>
                             ` : `
                                 <button type="button" onclick="app.hideModal('modal-job-preview-detail'); app.proceedJobToConversion('${job.id}');" class="btn-artifact-primary px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center gap-1.5 shadow-xs w-full sm:w-auto cursor-pointer">
@@ -16771,7 +16805,7 @@ const app = {
                 let t = (DB.tickets || []).find(x => x.id === ticketId || x.ticket_no === ticketId || (x.job_id || x.jobId) === ticketId);
                 if (!t) {
                     const job = (DB.jobs || []).find(j => j.id === ticketId || j.job_no === ticketId || j.ticket_id === ticketId || j.ticket_no === ticketId);
-                    if (job) {
+                    if (job && !this.isQuickJob(job) && (job.slip_url || job.contract_url)) {
                         const tktNo = job.ticket_no || `TKT-202609-${String(job.id).replace(/\D/g, '').slice(-3) || '001'}`;
                         const rcNo = job.receipt_no || `RC-VFIX-260901-${String(job.id).replace(/\D/g, '').slice(-3) || '001'}`;
                         const ctrNo = job.contract_no || `CTR-202609-${String(job.id).replace(/\D/g, '').slice(-3) || '001'}`;
@@ -16783,19 +16817,22 @@ const app = {
                             job_id: job.id,
                             customer_name: job.customer,
                             service: job.service,
-                            amount: job.ticket_amount || job.boq_grand_total || 25000,
-                            payment_date: job.payment_date || job.date || '2026-09-08',
-                            payment_method: job.payment_method || 'โอนเงินผ่านธนาคาร (Bank Transfer)',
-                            slip_url: job.slip_url || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80',
-                            slip_name: job.slip_name || 'slip_kbank_transfer_001.jpg',
-                            contract_url: job.contract_url || 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700&auto=format&fit=crop&q=80',
-                            contract_name: job.contract_name || 'contract_service_vfix.pdf',
+                            amount: job.ticket_amount || job.boq_grand_total || 0,
+                            payment_date: job.payment_date || job.date || null,
+                            payment_method: job.payment_method || 'โอนเงินผ่านธนาคาร',
+                            slip_url: job.slip_url || '',
+                            slip_name: job.slip_name || 'สลิปใบเสร็จ',
+                            contract_url: job.contract_url || '',
+                            contract_name: job.contract_name || 'สัญญาจ้างงาน',
                             status: 'VERIFIED',
-                            notes: job.ticket_notes || 'ชำระเงินและแนบหลักฐานเรียบร้อย'
+                            notes: job.ticket_notes || ''
                         };
                     }
                 }
-                if (!t) return;
+                if (!t) {
+                    this.showToast('⚠️ ไม่พบข้อมูลหลักฐานใบเสร็จหรือสัญญาของรายการนี้');
+                    return;
+                }
                 this.state.currentLightboxTicketId = t.id || ticketId;
 
                 const slipImg = document.getElementById('receipt-lightbox-img');
