@@ -3906,7 +3906,8 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
         const currentJob = targetJob || dbJob;
         // 2. Prevent duplicate submission if already QC_PASSED (Gating rule!)
         const isForce = req.query.force === 'true' || payload.force === true;
-        if (!isForce && currentJob && (currentJob.status === JobStatus.QC_PASSED || currentJob.qc_status === 'QC_PASSED')) {
+        const isTaskExport = !!payload.task_id;
+        if (!isForce && !isTaskExport && currentJob && (currentJob.status === JobStatus.QC_PASSED || currentJob.qc_status === 'QC_PASSED')) {
             const existingPayload = currentJob.stk_payload || {
                 ref_no: currentJob.external_ref_id || '-',
                 ticket: currentJob.ticket_no || currentJob.job_no || param,
@@ -4003,12 +4004,15 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
             questions: formattedQuestions,
             qc_history: history
         };
+        const isAllPassed = payload.all_tasks_passed !== false;
+        const updateStatus = isAllPassed ? JobStatus.QC_PASSED : (currentJob ? currentJob.status : JobStatus.IN_PROGRESS);
+        const updateProgress = isAllPassed ? 100 : (currentJob?.overall_progress || 80);
         // Persist to PostgreSQL database
         await (0, database_1.dbUpdateJob)(param, {
-            status: JobStatus.QC_PASSED,
-            overall_progress: 100,
+            status: updateStatus,
+            overall_progress: updateProgress,
             qc_score: qcScore,
-            qc_passed_at: exportedAt,
+            ...(isAllPassed ? { qc_passed_at: exportedAt } : {}),
             qc_remarks: payload.qc_remarks || 'งานติดตั้งเรียบร้อยตามมาตรฐาน',
             qc_inspector: payload.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
             stk_ref: stkRef,
@@ -4019,8 +4023,8 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
             ...(formattedQuestions.length > 0 ? { qc_subtasks: formattedQuestions } : {})
         });
         if (targetJob) {
-            targetJob.status = JobStatus.QC_PASSED;
-            targetJob.overall_progress = 100;
+            targetJob.status = updateStatus;
+            targetJob.overall_progress = updateProgress;
             targetJob.qc_score = qcScore;
             targetJob.stk_ref = stkRef;
             targetJob.stk_status = 'DELIVERED';

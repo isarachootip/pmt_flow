@@ -23,6 +23,8 @@
 | **14** | `TRN-PMT-RENOVATE01` | **คู่มือการดำเนินงานโครงการ Renovate** (Renovate Master SOP) | AE, PM, Cost Controller, QC Lead, Admin | [คู่มือโครงการ Renovate](คู่มือการดำเนินงาน_โครงการRenovate.md) |
 | **15** | `TRN-PMT-MON01` | **การ Monitor ระบบ & ตรวจสอบ API Traffic** (System & Inbound API Monitor) | System Admin, Integrator, PM, Auditor, NOC | [คู่มือการ Monitor ระบบ](คู่มือการMonitorระบบ_และตรวจสอบAPITraffic.md) |
 | **16** | `TRN-PMT-ORD01` | **สรุปคำสั่งซื้อทั้งหมด & Job 360° Retrospective Audit Hub** | ผู้บริหาร, PM, AE, QC, Contact Center, Auditor | [คู่มือสรุปคำสั่งซื้อและ Job 360°](คู่มือการใช้งาน_สรุปคำสั่งซื้อทั้งหมด_Job360Audit.md) |
+| **17** | `TRN-PMT-KM01` | **ศูนย์จัดการองค์ความรู้ และคู่มือการจัดทำ KM** (KM Portal & Training Architecture) | ผู้บริหาร, Admin, Lead Trainer, ทีมพัฒนา | [คู่มือการใช้งานระบบ KM](คู่มือการใช้งาน_ระบบคลังความรู้KM.md) |
+
 
 ---
 

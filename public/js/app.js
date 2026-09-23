@@ -25146,6 +25146,167 @@ const app = {
                 this.renderQC(list);
             },
 
+            getJobMainTasks(job) {
+                if (!job) return [];
+                const isQuick = this.isQuickJob(job);
+                if (isQuick) {
+                    return [{
+                        id: `task_quick_${job.id}`,
+                        jobId: job.id,
+                        name: job.service || 'งานด่วน Quick Service',
+                        tech: job.tech || '-',
+                        status: job.status === 'QC_PASSED' ? 'DONE' : 'IN_PROGRESS',
+                        subtasks: [],
+                        is_quick: true,
+                        stk_exported: job.status === 'QC_PASSED' || !!job.stk_exported_at,
+                        stk_ref: job.stk_ref || null
+                    }];
+                }
+
+                let tasks = (DB.tasks || []).filter(t => t.jobId === job.id || t.job_id === job.id || String(t.jobId) === String(job.id));
+                if (tasks.length === 0 && Array.isArray(job.tasks) && job.tasks.length > 0) {
+                    tasks = job.tasks;
+                }
+
+                if (tasks.length === 0) {
+                    tasks = [{
+                        id: `task_${job.id}_main1`,
+                        jobId: job.id,
+                        name: job.service || 'งานปรับปรุงและติดตั้งตามแบบ',
+                        tech: job.tech || 'ทีมช่างประจำโครงการ',
+                        status: job.status === 'QC_PASSED' ? 'DONE' : 'IN_PROGRESS',
+                        subtasks: Array.isArray(job.subtasks) ? job.subtasks : []
+                    }];
+                }
+
+                return tasks;
+            },
+
+            ensureTaskQCEvaluation(task, job) {
+                if (!task) return null;
+                if (!task.qc_evaluation || typeof task.qc_evaluation !== 'object') {
+                    task.qc_evaluation = {
+                        status: (task.status === 'DONE' && task.stk_exported) ? 'PASSED' : 'PENDING',
+                        stk_exported: !!task.stk_exported,
+                        stk_ref: task.stk_ref || null,
+                        stk_exported_at: task.stk_exported_at || null,
+                        inspector: (job && job.qc_inspector) || 'วิชัย ตรวจดี (ช่าง QC Lead)',
+                        remarks: '',
+                        questions: []
+                    };
+                }
+
+                if (!Array.isArray(task.qc_evaluation.questions) || task.qc_evaluation.questions.length === 0) {
+                    task.qc_evaluation.questions = [
+                        {
+                            id: `q_${task.id}_std1`,
+                            num: 1,
+                            title: 'ช่างปฏิบัติงานติดตั้งได้ตามแบบ BOQ และมาตรฐาน On-site ถูกต้องเรียบร้อย',
+                            category: 'มาตรฐาน On-site & BOQ',
+                            is_standard: true,
+                            mandatory: true,
+                            answer: null,
+                            score: 0,
+                            status: 'PENDING',
+                            photos: [],
+                            remarks: ''
+                        }
+                    ];
+                }
+
+                if (task.stk_exported) {
+                    task.qc_evaluation.stk_exported = true;
+                    task.qc_evaluation.status = 'PASSED';
+                    if (task.stk_ref) task.qc_evaluation.stk_ref = task.stk_ref;
+                }
+
+                return task.qc_evaluation;
+            },
+
+            getTaskTechnicianPhotos(job, task) {
+                const photos = [];
+                const logs = (DB.dailyWorkLogs || []).filter(l =>
+                    (task && String(l.taskId) === String(task.id)) ||
+                    (!task && String(l.jobId) === String(job.id))
+                );
+                logs.forEach(l => {
+                    if (Array.isArray(l.photos)) {
+                        l.photos.forEach(p => {
+                            const url = typeof p === 'string' ? p : (p && p.url);
+                            if (url && !photos.some(item => item.url === url)) {
+                                photos.push({
+                                    url: url,
+                                    title: (p && p.title) || `ภาพรายงานช่างประจำวัน (${l.date || ''}) #${photos.length + 1}`,
+                                    source: 'บันทึกงานช่างประจำวัน (Step 4)',
+                                    date: l.date || l.createdAt || ''
+                                });
+                            }
+                        });
+                    }
+                });
+                if (task && Array.isArray(task.photos)) {
+                    task.photos.forEach(p => {
+                        const url = typeof p === 'string' ? p : (p && p.url);
+                        if (url && !photos.some(item => item.url === url)) {
+                            photos.push({
+                                url: url,
+                                title: (p && p.title) || `ภาพถ่ายงาน ${task.name} #${photos.length + 1}`,
+                                source: 'ภาพถ่ายงานหลัก',
+                                date: p.uploaded_at || ''
+                            });
+                        }
+                    });
+                }
+                if (photos.length === 0 && Array.isArray(job.photos)) {
+                    job.photos.slice(0, 5).forEach((p, idx) => {
+                        const url = typeof p === 'string' ? p : (p && p.url);
+                        if (url && !photos.some(item => item.url === url)) {
+                            photos.push({
+                                url: url,
+                                title: (p && p.title) || `ภาพถ่ายหน้างาน #${idx + 1}`,
+                                source: 'ภาพถ่ายหน้างาน',
+                                date: p.uploaded_at || ''
+                            });
+                        }
+                    });
+                }
+                return photos;
+            },
+
+            calculateTaskQCProgress(task, job) {
+                if (!task) return { total: 0, completed: 0, passed: 0, defect: 0, averageScore: '0.0', percent: 0, isAllComplete: false, isExported: false };
+                const evalData = this.ensureTaskQCEvaluation(task, job);
+                const questions = evalData.questions || [];
+                const total = questions.length;
+                const completed = questions.filter(q => q.answer === 'YES' || q.answer === 'NO' || q.status === 'PASSED' || q.status === 'DEFECT').length;
+                const passed = questions.filter(q => q.answer === 'YES' || q.status === 'PASSED').length;
+                const defect = questions.filter(q => q.answer === 'NO' || q.status === 'DEFECT').length;
+
+                let totalScore = 0;
+                let scoredCount = 0;
+                questions.forEach(q => {
+                    if (q.answer === 'YES' || q.status === 'PASSED') {
+                        const isRework = q.failed_once || q.has_rework || (job && job.has_rework);
+                        const sc = isRework ? 1 : (Number(q.score) > 0 ? Number(q.score) : 5);
+                        q.score = sc;
+                        totalScore += sc;
+                        scoredCount++;
+                    } else if (q.answer === 'NO' || q.status === 'DEFECT') {
+                        q.score = 1;
+                        totalScore += 1;
+                        scoredCount++;
+                    }
+                });
+
+                const avgNum = scoredCount > 0 ? (totalScore / scoredCount) : 0;
+                const averageScore = avgNum.toFixed(1);
+                const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+                const isAllComplete = (total > 0) && (completed === total) && (defect === 0);
+                const isExported = !!(task.stk_exported || evalData.stk_exported);
+
+                return { total, completed, passed, defect, averageScore, percent, isAllComplete, isExported };
+            },
+
             getJobQCSubtasks(job) {
                 if (!job) return [];
 
@@ -25161,7 +25322,6 @@ const app = {
                         title: 'ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด',
                         category: 'มาตรฐานการทำงาน Quick Service', mandatory: true
                     };
-                    // Return existing if already initialised for Quick
                     if (Array.isArray(job.qc_subtasks) && job.qc_subtasks.length === 1 && job.qc_subtasks[0].id === 'qq1') {
                         const sub = job.qc_subtasks[0];
                         if (isJobRework) {
@@ -25188,7 +25348,6 @@ const app = {
                         }
                         return job.qc_subtasks;
                     }
-                    // Migrate/init — try to carry over previous answer if any
                     const oldSub = Array.isArray(job.qc_subtasks) ? (job.qc_subtasks[0] || {}) : {};
                     let ans = null, score = 0, st = 'PENDING';
                     const isRework = oldSub.failed_once || oldSub.has_rework || oldSub.is_rework_pass || isJobRework;
@@ -25214,130 +25373,102 @@ const app = {
                     return job.qc_subtasks;
                 }
 
-                // ── Renovate Job: 5 ข้อมาตรฐาน (Isara Chootip Standard) ─────
-                const standardQuestions = [
-                    { id: 'q1', num: 1, title: 'ช่างทำงานตาม BOQ/มาตรฐานการติดตั้งที่กำหนด', category: 'มาตรฐาน & BOQ', mandatory: true },
-                    { id: 'q2', num: 2, title: 'ความเรียบร้อยของงานติดตั้ง', category: 'คุณภาพงานติดตั้ง', mandatory: true },
-                    { id: 'q3', num: 3, title: 'ช่างเข้าปฏิบัติงานตรงตามเวลาที่นัดหมายกับลูกค้า', category: 'การตรงต่อเวลา', mandatory: true },
-                    { id: 'q4', num: 4, title: 'ส่งมอบงานได้ตามกำหนดเวลา', category: 'กำหนดเวลาส่งมอบ', mandatory: true },
-                    { id: 'q5', num: 5, title: 'ช่างป้องกันพื้นที่ติดตั้งและส่งมอบพื้นที่คืนโดยไม่เกิดความเสียหาย', category: 'การป้องกัน & คืนพื้นที่', mandatory: true }
-                ];
-
-                // Check if existing qc_subtasks matches the 5 standard questions
-                if (Array.isArray(job.qc_subtasks) && job.qc_subtasks.length === 5 && job.qc_subtasks[0].id === 'q1') {
-                    job.qc_subtasks.forEach(sub => {
-                        if (isJobRework && (sub.status === 'DEFECT' || sub.answer === 'NO')) {
-                            sub.failed_once = true;
-                            sub.has_rework = true;
-                        }
-                        if ((sub.answer === 'YES' || sub.status === 'PASSED') && (sub.failed_once || sub.has_rework || sub.is_rework_pass || isJobRework)) {
-                            sub.score = 1;
-                            sub.status = 'PASSED';
-                            sub.is_rework_pass = true;
-                            sub.failed_once = true;
-                            sub.has_rework = true;
-                        }
-                    });
+                if (Array.isArray(job.qc_subtasks) && job.qc_subtasks.length > 0) {
                     return job.qc_subtasks;
                 }
 
-                // Initialize or migrate to 5 standard questions
-                const oldSubtasks = Array.isArray(job.qc_subtasks) ? job.qc_subtasks : [];
-                const subtasks = standardQuestions.map((q, idx) => {
-                    const oldMatch = oldSubtasks[idx] || {};
-                    let score = 0;
-                    let answer = null;
-                    let status = 'PENDING';
-                    const isRework = oldMatch.failed_once || oldMatch.has_rework || oldMatch.is_rework_pass || (isJobRework && (oldMatch.status === 'DEFECT' || oldMatch.answer === 'NO'));
-                    if (oldMatch.answer === 'YES' || oldMatch.status === 'PASSED') {
-                        answer = 'YES';
-                        score = isRework ? 1 : (Number(oldMatch.score) > 0 ? Number(oldMatch.score) : 5);
-                        status = 'PASSED';
-                    } else if (oldMatch.answer === 'NO' || oldMatch.status === 'DEFECT') {
-                        answer = 'NO';
-                        score = 1;
-                        status = 'DEFECT';
-                    }
-                    return {
-                        id: q.id,
-                        num: q.num,
-                        title: q.title,
-                        category: q.category,
-                        mandatory: q.mandatory,
-                        status: status,
-                        answer: answer,
-                        score: score,
-                        photos: Array.isArray(oldMatch.photos) ? oldMatch.photos : [],
-                        remarks: oldMatch.remarks || '',
-                        failed_once: !!(oldMatch.failed_once || (isJobRework && oldMatch.status === 'DEFECT')),
-                        has_rework: !!(oldMatch.has_rework || (isJobRework && oldMatch.status === 'DEFECT')),
-                        is_rework_pass: !!(oldMatch.is_rework_pass || (answer === 'YES' && isRework))
-                    };
+                const tasks = this.getJobMainTasks(job);
+                const allQ = [];
+                tasks.forEach(t => {
+                    const evalData = this.ensureTaskQCEvaluation(t, job);
+                    allQ.push(...(evalData.questions || []));
                 });
-
-                // If job has photos from earlier stages, distribute them into subtasks
-                if (Array.isArray(job.photos) && job.photos.length > 0) {
-                    job.photos.forEach((p, pIdx) => {
-                        const targetSub = subtasks[pIdx % subtasks.length];
-                        if (targetSub && !targetSub.photos.some(sp => sp.url === p.url)) {
-                            targetSub.photos.push({
-                                id: p.id || `sp_${Date.now()}_${pIdx}`,
-                                title: p.title || `รูปถ่ายหน้างาน ${pIdx + 1}`,
-                                url: p.url,
-                                uploaded_at: p.uploaded_at || new Date().toISOString()
-                            });
-                        }
-                    });
-                }
-
-                job.qc_subtasks = subtasks;
+                job.qc_subtasks = allQ;
                 return job.qc_subtasks;
             },
 
             calculateJobQCProgress(job) {
-                if (!job) return { total: 5, completed: 0, passed: 0, defect: 0, averageScore: '0.0', percent: 0, isAllComplete: false };
-                const subtasks = this.getJobQCSubtasks(job);
-                const total = subtasks.length || 5;
-                const completed = subtasks.filter(s => s.answer === 'YES' || s.answer === 'NO' || s.status === 'PASSED' || s.status === 'DEFECT').length;
-                const passed = subtasks.filter(s => s.answer === 'YES' || s.status === 'PASSED').length;
-                const defect = subtasks.filter(s => s.answer === 'NO' || s.status === 'DEFECT').length;
-
-                const history = Array.isArray(job.qc_history) ? job.qc_history : [];
-                const reworkCount = history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (job.qc_rework_count || job.rework_count || 0);
-                const isJobRework = job.status === 'QC_REWORK' || reworkCount > 0 || (job.rework_count && job.rework_count > 0) || !!job.has_rework || history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
+                if (!job) return { totalTasks: 0, exportedTasks: 0, allPassed: false, percent: 0, averageScore: '0.0', total: 0, completed: 0, passed: 0, defect: 0, isAllComplete: false };
                 const isQuick = this.isQuickJob(job);
-
-                let totalScore = 0;
-                let scoredCount = 0;
-                subtasks.forEach(s => {
-                    if (s.answer === 'YES' || s.status === 'PASSED') {
-                        const isRework = s.is_rework_pass || s.failed_once || s.has_rework || (isQuick && isJobRework) || isJobRework;
-                        const sc = isRework ? 1 : (Number(s.score) > 0 ? Number(s.score) : 5);
-                        s.score = sc;
-                        if (isRework) {
-                            s.is_rework_pass = true;
-                            s.failed_once = true;
-                            s.has_rework = true;
+                if (isQuick) {
+                    const subtasks = this.getJobQCSubtasks(job);
+                    const total = subtasks.length || 1;
+                    const completed = subtasks.filter(s => s.answer === 'YES' || s.answer === 'NO' || s.status === 'PASSED' || s.status === 'DEFECT').length;
+                    const passed = subtasks.filter(s => s.answer === 'YES' || s.status === 'PASSED').length;
+                    const defect = subtasks.filter(s => s.answer === 'NO' || s.status === 'DEFECT').length;
+                    let totalScore = 0;
+                    let scoredCount = 0;
+                    subtasks.forEach(s => {
+                        if (s.answer === 'YES' || s.status === 'PASSED') {
+                            const sc = (job.has_rework || s.failed_once) ? 1 : 5;
+                            s.score = sc;
+                            totalScore += sc;
+                            scoredCount++;
+                        } else if (s.answer === 'NO' || s.status === 'DEFECT') {
+                            s.score = 1;
+                            totalScore += 1;
+                            scoredCount++;
                         }
-                        totalScore += sc;
-                        scoredCount++;
-                    } else if (s.answer === 'NO' || s.status === 'DEFECT') {
-                        const sc = 1;
-                        s.score = sc;
-                        s.failed_once = true;
-                        s.has_rework = true;
-                        s.is_rework_pass = false;
-                        totalScore += sc;
-                        scoredCount++;
+                    });
+                    const avgNum = scoredCount > 0 ? (totalScore / scoredCount) : 0;
+                    const averageScore = avgNum.toFixed(1);
+                    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+                    const isAllComplete = (total > 0) && (completed === total) && (defect === 0);
+                    const isExported = job.status === 'QC_PASSED' || !!job.stk_exported_at;
+                    return {
+                        totalTasks: 1,
+                        exportedTasks: isExported ? 1 : 0,
+                        allPassed: isExported,
+                        percent,
+                        averageScore,
+                        total,
+                        completed,
+                        passed,
+                        defect,
+                        isAllComplete
+                    };
+                }
+
+                const tasks = this.getJobMainTasks(job);
+                const totalTasks = tasks.length;
+                let exportedTasks = 0;
+                let totalQuestions = 0;
+                let totalCompleted = 0;
+                let totalPassed = 0;
+                let totalDefect = 0;
+                let sumScore = 0;
+                let scoreCount = 0;
+
+                tasks.forEach(t => {
+                    const tp = this.calculateTaskQCProgress(t, job);
+                    if (tp.isExported) exportedTasks++;
+                    totalQuestions += tp.total;
+                    totalCompleted += tp.completed;
+                    totalPassed += tp.passed;
+                    totalDefect += tp.defect;
+                    if (Number(tp.averageScore) > 0) {
+                        sumScore += Number(tp.averageScore);
+                        scoreCount++;
                     }
                 });
 
-                const avgNum = scoredCount > 0 ? (totalScore / scoredCount) : 0;
-                const averageScore = avgNum.toFixed(1);
-                const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-                const isAllComplete = (total > 0) && (completed === total) && (defect === 0);
+                const allPassed = totalTasks > 0 && exportedTasks === totalTasks;
+                const avgScore = scoreCount > 0 ? (sumScore / scoreCount).toFixed(1) : '0.0';
+                const percent = totalTasks > 0 ? Math.round((exportedTasks / totalTasks) * 100) : 0;
+                const isAllComplete = allPassed;
 
-                return { total, completed, passed, defect, averageScore, percent, isAllComplete };
+                return {
+                    totalTasks,
+                    exportedTasks,
+                    allPassed,
+                    percent,
+                    averageScore: avgScore,
+                    total: totalQuestions,
+                    completed: totalCompleted,
+                    passed: totalPassed,
+                    defect: totalDefect,
+                    isAllComplete
+                };
             },
 
             isJobQCLocked(job) {
@@ -25382,6 +25513,9 @@ const app = {
                     const isQuick = this.isQuickJob(job);
                     if (!isQuick) {
                         this.ensureQCPendingForRenovate(job.id);
+                        const tasks = this.getJobMainTasks(job);
+                        const unexported = tasks.find(t => !t.stk_exported && !(t.qc_evaluation && t.qc_evaluation.stk_exported));
+                        this.state.activeQCTaskId = (unexported ? unexported.id : (tasks[0] && tasks[0].id)) || null;
                     }
 
                     // Render Renovate QC Booking & Dispatch Section
@@ -25510,13 +25644,12 @@ const app = {
                     this.renderQCIntPhotos(job);
 
                     // Update dynamic labels based on job type
-                    const numQ = isQuick ? 1 : 5;
                     const elProgressTitle = document.getElementById('qc-progress-card-title');
                     if (elProgressTitle) {
                         const badge = elProgressTitle.querySelector('#qc-detail-completion-badge');
                         const titleText = isQuick
                             ? 'ความคืบหน้าการประเมินมาตรฐานคุณภาพ QC (1 ข้อคำถามจบกระบวนการ)'
-                            : `ความคืบหน้าการประเมินมาตรฐานคุณภาพ QC (${numQ} ข้อคำถามมาตรฐาน)`;
+                            : 'ความคืบหน้าการส่งมอบงาน QC แยกตามงานหลัก (Main Task QC & STK Submission)';
                         if (badge) {
                             elProgressTitle.innerHTML = '';
                             elProgressTitle.appendChild(document.createTextNode(titleText + ' '));
@@ -25528,20 +25661,20 @@ const app = {
                     const elProgressDesc = document.getElementById('qc-progress-card-desc');
                     if (elProgressDesc) {
                         elProgressDesc.textContent = isQuick
-                            ? 'ตอบ ผ่าน/ไม่ผ่าน เพียง 1 ข้อคำถาม จึงจะสามารถส่งมอบต่อไปยังขั้นตอน CSAT (Step 6)'
-                            : 'ต้องประเมินและตอบ Yes/No (Yes=5, No=1) พร้อมแนบรูปภาพให้ครบ 5 ข้อ จึงจะสามารถส่งมอบต่อไปยังขั้นตอน CSAT (Step 6)';
+                            ? 'ตอบ ผ่าน/ไม่ผ่าน เพียง 1 ข้อคำถาม เพื่อส่งมอบผลตรวจไปยังระบบ STK'
+                            : 'ตรวจประเมิน On-site ตอบ Yes/No พร้อมแนบรูปภาพ และกดปิดงานเพื่อส่งผลประเมินไปยังระบบ STK แยกตามงานหลัก';
                     }
                     const elSecTitle = document.getElementById('qc-subtasks-section-title');
                     if (elSecTitle) {
                         elSecTitle.textContent = isQuick
                             ? 'แบบประเมินมาตรฐานงาน Quick Service (1 ข้อคำถาม)'
-                            : '5 ข้อคำถามมาตรฐานการประเมินคุณภาพ QC (Isara Chootip Standard)';
+                            : 'รายการงานหลัก & การประเมินคุณภาพ QC On-site (แยกตามงานหลัก)';
                     }
                     const elSecSub = document.getElementById('qc-subtasks-section-subtitle');
                     if (elSecSub) {
                         elSecSub.textContent = isQuick
                             ? '(ประเมิน 1 ข้อจบ | รอบแรกผ่านได้ 5.0 คะแนน, หากเป็นรอบแก้ไขครั้งที่ 2, 3, 4 จะได้ 1.0 คะแนนอัตโนมัติ)'
-                            : '(Yes = 5 คะแนน [รอบแก้ได้ 1 คะแนน], No = 1 คะแนน | แนบรูปภาพและบันทึกหมายเหตุรายข้อ)';
+                            : '(1 ข้อมาตรฐาน On-site + เพิ่มคำถามเองได้ | แนบรูป 5 ภาพจากช่าง & บันทึกปิดงานส่ง STK ราย Task)';
                     }
 
                     this.showModal('modal-qc-job-detail');
@@ -25878,15 +26011,31 @@ const app = {
                 if (banner) banner.style.display = 'none';
             },
 
+            switchQCTaskTab(taskId) {
+                this.state.activeQCTaskId = taskId;
+                const jobId = this.state.currentQCModalJobId;
+                const job = this.getJob(jobId);
+                if (job) {
+                    this.renderQCSubtasks(job);
+                }
+            },
+
             renderQCSubtasks(job) {
-                const subtasks = this.getJobQCSubtasks(job);
                 const progress = this.calculateJobQCProgress(job);
+                const isQuick = this.isQuickJob(job);
+                const isPassed = job.status === 'QC_PASSED' || job.qc_status === 'QC_PASSED' || (Array.isArray(job.qc_history) && job.qc_history.some(h => h.result === 'PASSED' || h.action === 'PASSED'));
 
                 // Update Progress Summary DOM
                 const elAvg = document.getElementById('qc-detail-avg-score');
                 if (elAvg) elAvg.innerText = progress.averageScore;
                 const elCounts = document.getElementById('qc-detail-subtask-counts');
-                if (elCounts) elCounts.innerText = `ประเมินแล้ว ${progress.completed} จาก ${progress.total} ข้อคำถาม (ผ่าน ${progress.passed}, ข้อบกพร่อง ${progress.defect})`;
+                if (elCounts) {
+                    if (isQuick) {
+                        elCounts.innerText = `ประเมินแล้ว ${progress.completed} จาก ${progress.total} ข้อคำถาม (ผ่าน ${progress.passed}, ข้อบกพร่อง ${progress.defect})`;
+                    } else {
+                        elCounts.innerText = `ปิดงานและส่งมอบ STK แล้ว ${progress.exportedTasks} จาก ${progress.totalTasks} งานหลัก (ผ่านเกณฑ์รวม ${progress.passed} ข้อ)`;
+                    }
+                }
                 const elPct = document.getElementById('qc-detail-progress-pct');
                 if (elPct) elPct.innerText = `${progress.percent}%`;
                 const elBar = document.getElementById('qc-detail-progress-bar');
@@ -25894,70 +26043,30 @@ const app = {
 
                 const elBadge = document.getElementById('qc-detail-completion-badge');
                 if (elBadge) {
-                    if (progress.isAllComplete) {
-                        const hasReworkPass = subtasks.some(s => s.is_rework_pass || (s.status === 'PASSED' && s.score === 1));
-                        elBadge.className = hasReworkPass
-                            ? 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300'
-                            : 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
-                        elBadge.innerHTML = hasReworkPass
-                            ? `<i class="ph ph-check-circle"></i> ประเมินครบ ${progress.total} ข้อ (ผ่านรอบแก้ไข ${progress.averageScore} คะแนน)`
-                            : `<i class="ph ph-check-circle"></i> ประเมินครบ ${progress.total} ข้อ (ผ่านเกณฑ์ 100%)`;
+                    if (progress.allPassed || isPassed) {
+                        elBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-800';
+                        elBadge.innerHTML = `<i class="ph ph-check-circle"></i> ปิดงานส่ง STK ครบทุกงานหลัก 100% (CLOSED)`;
                     } else if (progress.defect > 0) {
-                        elBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400';
+                        elBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-rose-500/15 text-rose-700';
                         elBadge.innerHTML = `<i class="ph ph-warning"></i> พบข้อบกพร่อง ${progress.defect} ข้อ`;
                     } else {
-                        elBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400';
-                        elBadge.innerText = `ประเมินแล้ว ${progress.completed}/${progress.total} ข้อ`;
+                        elBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/15 text-amber-800';
+                        elBadge.innerText = isQuick ? `ประเมินแล้ว ${progress.completed}/${progress.total} ข้อ` : `ส่ง STK แล้ว ${progress.exportedTasks}/${progress.totalTasks} งานหลัก`;
                     }
                 }
 
                 const elSubBadge = document.getElementById('qc-detail-subtask-badge');
-                if (elSubBadge) elSubBadge.innerText = `${progress.total} ข้อคำถาม QC`;
-
-                // Update STK Submit Button (Gating rule!)
-                const btnCSAT = document.getElementById('btn-qc-approve-csat');
-                const btnLabel = document.getElementById('btn-qc-approve-csat-label');
-                const history = Array.isArray(job.qc_history) ? job.qc_history : [];
-                const isPassed = job.status === 'QC_PASSED' || job.qc_status === 'QC_PASSED' || history.some(h => h.result === 'PASSED' || h.action === 'PASSED');
-
-                if (btnCSAT && btnLabel) {
-                    if (isPassed) {
-                        btnCSAT.disabled = true;
-                        btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 cursor-not-allowed opacity-90 transition-all';
-                        btnLabel.innerText = '✓ ผ่านเกณฑ์ QC แล้ว (ปิดงาน & ส่งข้อมูล STK สำเร็จ)';
-                    } else if (progress.isAllComplete) {
-                        btnCSAT.disabled = false;
-                        btnCSAT.className = 'btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all';
-                        btnLabel.innerText = `✓ บันทึกปิดงาน & อนุมัติผ่านเกณฑ์ QC (${progress.averageScore} คะแนน) & ส่งข้อมูลไป STK`;
-                    } else if (progress.defect > 0) {
-                        btnCSAT.disabled = true;
-                        btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 bg-rose-500/10 text-rose-600 border border-rose-500/20 cursor-not-allowed opacity-80 transition-all';
-                        btnLabel.innerText = `พบข้อบกพร่อง ${progress.defect} ข้อ (ต้องแก้ไขก่อน หรือกดส่งแก้งาน Rework)`;
-                    } else {
-                        btnCSAT.disabled = true;
-                        btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 bg-muted text-muted-foreground cursor-not-allowed opacity-60 transition-all';
-                        btnLabel.innerText = `ประเมินแล้ว ${progress.completed}/${progress.total} ข้อ (ต้องตอบ Yes/No ให้ครบ ${progress.total} ข้อ)`;
-                    }
+                if (elSubBadge) {
+                    elSubBadge.innerText = isQuick ? '1 ข้อคำถาม Quick Service' : `${progress.totalTasks} งานหลัก (ส่ง STK รายงาน)`;
                 }
 
-                // Lock footer action buttons if already passed
-                const btnDraft = document.getElementById('btn-qc-save-draft');
-                if (btnDraft) btnDraft.style.display = isPassed ? 'none' : 'inline-flex';
-                const btnRework = document.getElementById('btn-qc-fail-rework');
-                if (btnRework) btnRework.style.display = isPassed ? 'none' : 'inline-flex';
-
-                // Render Subtask Cards
+                // Render Subtask Cards Container
                 const container = document.getElementById('qc-subtasks-list');
                 if (!container) return;
 
-                const reworkCount = history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (job.qc_rework_count || job.rework_count || 0);
-                const isJobRework = job.status === 'QC_REWORK' || reworkCount > 0 || (job.rework_count && job.rework_count > 0) || !!job.has_rework || history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
-                const isQuick = this.isQuickJob(job);
-                const currentRound = history.length + (job.status === 'QC_PASSED' ? 0 : 1) || (isJobRework ? (reworkCount + 1) : 1);
-                const isRound2Plus = currentRound >= 2 || isJobRework;
-
                 // ── Quick Service: ประเมิน 1 ข้อคำถามเดียวจบกระบวนการ ──────────
                 if (isQuick) {
+                    const subtasks = this.getJobQCSubtasks(job);
                     const s = subtasks[0] || { id: 'qq1', num: 1, title: 'ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด', category: 'มาตรฐานการทำงาน Quick Service', answer: null, score: 0, photos: [], remarks: '' };
                     const isYes = s.answer === 'YES' || s.status === 'PASSED';
                     const isNo = s.answer === 'NO' || s.status === 'DEFECT';
@@ -25977,15 +26086,14 @@ const app = {
                             </div>
                         `).join('');
                     } else {
-                        photosListHtml = `<div class="text-[11px] text-muted-foreground italic py-2 flex items-center gap-1.5"><i class="ph ph-image"></i> ยังไม่มีรูปภาพประกอบ (สามารถกดปุ่มสีแดง <span class="font-black text-black bg-red-100 px-1.5 py-0.5 rounded border border-red-300">"+ แนบรูปข้อนี้"</span> ด้านบน หรือตรวจสอบภาพจาก INT ด้านบน)</div>`;
+                        photosListHtml = `<div class="text-[11px] text-muted-foreground italic py-2 flex items-center gap-1.5"><i class="ph ph-image"></i> ยังไม่มีรูปภาพประกอบ (สามารถกดปุ่ม "+ แนบรูปข้อนี้" หรือตรวจสอบภาพจาก INT ด้านบน)</div>`;
                     }
 
                     container.innerHTML = `
-                        <div class="p-5 rounded-2xl bg-card border ${isYes ? (isRound2Plus ? 'border-amber-500/50 ring-2 ring-amber-500/20' : 'border-emerald-500/50 ring-2 ring-emerald-500/20') : (isNo ? 'border-rose-500/50 ring-2 ring-rose-500/20' : 'border-border')} shadow-sm space-y-4 transition-all">
-                            <!-- Header -->
+                        <div class="p-5 rounded-2xl bg-card border ${isYes ? 'border-emerald-500/50 ring-2 ring-emerald-500/20' : (isNo ? 'border-rose-500/50 ring-2 ring-rose-500/20' : 'border-border')} shadow-sm space-y-4 transition-all">
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/70 pb-3">
                                 <div class="flex items-center gap-2.5">
-                                    <div class="w-8 h-8 rounded-xl ${isYes ? (isRound2Plus ? 'bg-amber-500/20 text-amber-700' : 'bg-emerald-500/20 text-emerald-600') : (isNo ? 'bg-rose-500/20 text-rose-600' : 'bg-brand-500/15 text-brand-600')} flex items-center justify-center font-bold text-sm">
+                                    <div class="w-8 h-8 rounded-xl ${isYes ? 'bg-emerald-500/20 text-emerald-600' : (isNo ? 'bg-rose-500/20 text-rose-600' : 'bg-brand-500/15 text-brand-600')} flex items-center justify-center font-bold text-sm">
                                         <i class="ph ph-check-square-offset"></i>
                                     </div>
                                     <div>
@@ -25996,17 +26104,13 @@ const app = {
                                     </div>
                                 </div>
                                 <div>
-                                    ${isYes ? (isRound2Plus ? `
-                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1.5">
-                                            <i class="ph ph-check-circle-fill text-amber-600"></i> ผ่านเกณฑ์รอบแก้ไข (ได้ 1.0 คะแนนอัตโนมัติ)
+                                    ${isYes ? `
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 flex items-center gap-1.5">
+                                            <i class="ph ph-check-circle-fill text-emerald-600"></i> ผ่านเกณฑ์มาตรฐาน (5.0 คะแนนเต็ม)
                                         </span>
-                                    ` : `
-                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
-                                            <i class="ph ph-check-circle-fill text-emerald-500"></i> ผ่านเกณฑ์มาตรฐานรอบแรก (ได้ 5.0 คะแนนเต็ม)
-                                        </span>
-                                    `) : (isNo ? `
-                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1.5">
-                                            <i class="ph ph-warning-fill text-rose-500"></i> พบข้อบกพร่อง / ต้องแก้ไข (ได้ 1.0 คะแนน)
+                                    ` : (isNo ? `
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-800 border border-rose-500/30 flex items-center gap-1.5">
+                                            <i class="ph ph-warning-fill text-rose-600"></i> พบข้อบกพร่อง / ต้องแก้ไข (1.0 คะแนน)
                                         </span>
                                     ` : `
                                         <span class="px-3 py-1 rounded-full text-xs font-bold bg-muted text-muted-foreground border border-border">
@@ -26016,30 +26120,28 @@ const app = {
                                 </div>
                             </div>
 
-                            <!-- Single Question Decision Buttons -->
                             <div class="bg-muted/20 p-4 rounded-xl border border-border/70 space-y-2.5">
                                 <div class="flex items-center justify-between text-xs font-semibold">
                                     <span class="text-foreground flex items-center gap-1.5">
                                         <i class="ph ph-scales text-brand-500"></i>
                                         <span>ผลการประเมิน (คลิกเลือกผลการตรวจ):</span>
                                     </span>
-                                    <span class="font-mono font-bold ${isYes ? (isRound2Plus ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600') : (isNo ? 'text-rose-600' : 'text-muted-foreground')}">
-                                        ${isYes ? (isRound2Plus ? '✓ ผ่านเกณฑ์รอบแก้ไข (1.0 คะแนนอัตโนมัติ)' : '✓ ผ่านเกณฑ์รอบแรก (5.0 คะแนน)') : (isNo ? '✕ ไม่ผ่าน / ข้อบกพร่อง (1.0 คะแนน)' : 'ยังไม่ได้ประเมิน')}
+                                    <span class="font-mono font-bold ${isYes ? 'text-emerald-700' : (isNo ? 'text-rose-700' : 'text-muted-foreground')}">
+                                        ${isYes ? '✓ ผ่านเกณฑ์ (5.0 คะแนน)' : (isNo ? '✕ ไม่ผ่าน / ข้อบกพร่อง (1.0 คะแนน)' : 'ยังไม่ได้ประเมิน')}
                                     </span>
                                 </div>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <button type="button" ${isPassed ? 'disabled' : `onclick="app.setQCSubtaskAnswer('${job.id}', '${s.id}', 'YES')"`} class="py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all ${isPassed ? 'cursor-not-allowed opacity-85 pointer-events-none' : 'cursor-pointer'} ${isYes ? (isRound2Plus ? 'bg-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-500/30 scale-[1.01]' : 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500/30 scale-[1.01]') : (isRound2Plus ? 'bg-card text-amber-700 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10' : 'bg-card text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10')}">
+                                    <button type="button" ${isPassed ? 'disabled' : `onclick="app.setQCSubtaskAnswer('${job.id}', '${s.id}', 'YES')"`} class="py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all ${isPassed ? 'cursor-not-allowed opacity-85 pointer-events-none' : 'cursor-pointer'} ${isYes ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500/30 scale-[1.01]' : 'bg-card text-emerald-800 border-emerald-500/30 hover:bg-emerald-500/10'}">
                                         <i class="ph ${isYes ? 'ph-check-circle-fill' : 'ph-check-circle'} text-lg"></i>
-                                        <span>✓ Yes — ${isRound2Plus ? 'ผ่านเกณฑ์รอบแก้ไข (1.0 คะแนนอัตโนมัติ)' : 'ผ่านเกณฑ์ (5.0 คะแนนเต็ม)'}</span>
+                                        <span>✓ Yes — ผ่านเกณฑ์ (5.0 คะแนนเต็ม)</span>
                                     </button>
-                                    <button type="button" ${isPassed ? 'disabled' : `onclick="app.setQCSubtaskAnswer('${job.id}', '${s.id}', 'NO')"`} class="py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all ${isPassed ? 'cursor-not-allowed opacity-85 pointer-events-none' : 'cursor-pointer'} ${isNo ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-500/30 scale-[1.01]' : 'bg-card text-rose-700 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10'}">
+                                    <button type="button" ${isPassed ? 'disabled' : `onclick="app.setQCSubtaskAnswer('${job.id}', '${s.id}', 'NO')"`} class="py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all ${isPassed ? 'cursor-not-allowed opacity-85 pointer-events-none' : 'cursor-pointer'} ${isNo ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-500/30 scale-[1.01]' : 'bg-card text-rose-800 border-rose-500/30 hover:bg-rose-500/10'}">
                                         <i class="ph ${isNo ? 'ph-x-circle-fill' : 'ph-x-circle'} text-lg"></i>
-                                        <span>✕ No — ${isRound2Plus ? 'ต้องแก้ไขซ้ำ / Rework (1.0 คะแนน)' : 'ต้องแก้ไข / Rework (1.0 คะแนน)'}</span>
+                                        <span>✕ No — ต้องแก้ไข / Rework (1.0 คะแนน)</span>
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Dedicated Photos for this Question -->
                             <div class="space-y-2">
                                 <div class="flex items-center justify-between">
                                     <div class="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
@@ -26047,9 +26149,9 @@ const app = {
                                         <span>รูปถ่ายประกอบการตรวจข้อนี้ (${photos.length} รูป)</span>
                                     </div>
                                     ${isPassed ? '' : `
-                                    <label class="px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-md transition hover:scale-105 active:scale-95 border-2 border-red-700 bg-red-500 hover:bg-red-600 text-black shrink-0" style="background-color: #ef4444 !important; color: #000000 !important; font-weight: 900 !important; border: 2px solid #b91c1c !important;" title="คลิกเพื่อเลือกไฟล์รูปภาพแนบในข้อนี้">
-                                        <i class="ph ph-camera-plus text-sm" style="color: #000000 !important; font-weight: 900 !important;"></i>
-                                        <span style="color: #000000 !important; font-weight: 900 !important; letter-spacing: 0.025em;">+ แนบรูปข้อนี้</span>
+                                    <label class="px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-md transition hover:scale-105 active:scale-95 border border-red-700 bg-red-500 hover:bg-red-600 text-black shrink-0" style="background-color: #ef4444 !important; color: #000000 !important; font-weight: 900 !important;" title="คลิกเพื่อเลือกไฟล์รูปภาพแนบในข้อนี้">
+                                        <i class="ph ph-camera-plus text-sm" style="color: #000000 !important;"></i>
+                                        <span style="color: #000000 !important;">+ แนบรูปข้อนี้</span>
                                         <input type="file" accept="image/*" class="hidden" onchange="app.handleSubtaskPhotoUpload(event, '${job.id}', '${s.id}')">
                                     </label>
                                     `}
@@ -26059,204 +26161,655 @@ const app = {
                                 </div>
                             </div>
 
-                            <!-- Subtask Remarks Input -->
                             <div>
                                 <input type="text" value="${s.remarks || ''}" ${isPassed ? 'disabled readonly' : ''} onchange="app.saveSubtaskRemarks('${job.id}', '${s.id}', this.value)" placeholder="ระบุข้อสังเกต หรือรายละเอียดการตรวจรับรองงานด่วน Quick Service..." class="w-full bg-muted/30 border border-border focus:border-brand-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none transition ${isPassed ? 'opacity-80 cursor-not-allowed' : ''}">
                             </div>
                         </div>
                     `;
+
+                    // Update bottom modal footer for Quick Service
+                    const btnCSAT = document.getElementById('btn-qc-approve-csat');
+                    const btnLabel = document.getElementById('btn-qc-approve-csat-label');
+                    if (btnCSAT && btnLabel) {
+                        if (isPassed) {
+                            btnCSAT.disabled = true;
+                            btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 cursor-not-allowed opacity-90 transition-all';
+                            btnLabel.innerText = '✓ ผ่านเกณฑ์ QC แล้ว (ปิดงาน & ส่งข้อมูล STK สำเร็จ)';
+                        } else if (progress.isAllComplete) {
+                            btnCSAT.disabled = false;
+                            btnCSAT.className = 'btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all';
+                            btnLabel.innerText = `✓ บันทึกปิดงาน & อนุมัติผ่านเกณฑ์ QC (${progress.averageScore} คะแนน) & ส่งข้อมูลไป STK`;
+                        } else {
+                            btnCSAT.disabled = true;
+                            btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 bg-muted text-muted-foreground cursor-not-allowed opacity-60 transition-all';
+                            btnLabel.innerText = 'ตอบข้อคำถามให้ครบก่อนส่งมอบผลตรวจไป STK';
+                        }
+                    }
                     return;
                 }
 
-                const hasAnyRework = subtasks.some(s => s.failed_once || s.has_rework || s.is_rework_pass) || isJobRework;
+                // ── Renovate Projects: แยกปิดงาน & ส่ง STK รายงานหลัก (Per-Task) ─────────
+                const tasks = this.getJobMainTasks(job);
+                if (tasks.length === 0) {
+                    container.innerHTML = `<div class="p-6 text-center text-xs text-muted-foreground bg-muted/30 rounded-2xl border border-border">ไม่พบรายการงานหลักสำหรับโครงการนี้</div>`;
+                    return;
+                }
 
-                // Action Controls Header above questions (Hidden if already passed)
-                let html = isPassed ? '' : `
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-muted/40 rounded-xl border border-border/80 mb-3 shadow-2xs">
-                        <div class="flex items-center gap-2">
-                            <span class="w-6 h-6 rounded-lg bg-brand-500/15 text-brand-600 flex items-center justify-center font-mono font-bold text-xs">
-                                <i class="ph ph-checks"></i>
-                            </span>
-                            <div>
-                                <span class="font-display font-bold text-xs text-foreground">คำถามประเมินมาตรฐาน QC (Isara Chootip Standard)</span>
-                                <span class="ml-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-600 border border-brand-500/20">Yes=5 (รอบแก้=1), No=1</span>
+                let activeTaskId = this.state.activeQCTaskId;
+                if (!activeTaskId || !tasks.some(t => String(t.id) === String(activeTaskId))) {
+                    const unexported = tasks.find(t => !t.stk_exported && !(t.qc_evaluation && t.qc_evaluation.stk_exported));
+                    activeTaskId = (unexported ? unexported.id : tasks[0].id);
+                    this.state.activeQCTaskId = activeTaskId;
+                }
+
+                const activeTaskIdx = tasks.findIndex(t => String(t.id) === String(activeTaskId));
+                const activeTask = tasks[activeTaskIdx] || tasks[0];
+                const activeTaskProgress = this.calculateTaskQCProgress(activeTask, job);
+                const activeTaskEval = this.ensureTaskQCEvaluation(activeTask, job);
+                const isTaskExported = activeTaskProgress.isExported;
+
+                // 1. Task Navigation Tabs (if multiple tasks)
+                let tabsHtml = '';
+                if (tasks.length > 1) {
+                    tabsHtml = `
+                        <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-border/80 scroll-smooth">
+                            ${tasks.map((t, idx) => {
+                                const isActive = String(t.id) === String(activeTaskId);
+                                const tp = this.calculateTaskQCProgress(t, job);
+                                const isDone = tp.isExported;
+                                return `
+                                    <button type="button" onclick="app.switchQCTaskTab('${t.id}')"
+                                        class="px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shadow-2xs ${isActive ? 'bg-brand-600 text-white shadow-sm ring-2 ring-brand-500/30' : 'bg-card text-foreground hover:bg-muted/80 border border-border'}">
+                                        <span>${idx + 1}. ${t.name}</span>
+                                        ${isDone ? `
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30'} flex items-center gap-1">
+                                                <i class="ph ph-check-circle-fill"></i> ส่ง STK แล้ว
+                                            </span>
+                                        ` : `
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-amber-500/15 text-amber-800 border border-amber-500/30'}">
+                                                รอตรวจ QC
+                                            </span>
+                                        `}
+                                    </button>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                }
+
+                // 2. Subtasks breakdown (งานย่อยในงานหลักนี้)
+                let subtasksListHtml = '';
+                if (Array.isArray(activeTask.subtasks) && activeTask.subtasks.length > 0) {
+                    subtasksListHtml = `
+                        <div class="p-3.5 rounded-xl bg-muted/30 border border-border/80 space-y-2">
+                            <div class="flex items-center justify-between text-xs font-bold text-foreground">
+                                <span class="flex items-center gap-1.5">
+                                    <i class="ph ph-tree-structure text-brand-500"></i>
+                                    <span>งานย่อยในงานหลักนี้ (Subtasks Breakdown):</span>
+                                </span>
+                                <span class="text-[10px] font-mono font-medium text-muted-foreground">${activeTask.subtasks.length} งานย่อย (รวมตรวจในงานนี้)</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                ${activeTask.subtasks.map((st, stIdx) => {
+                                    const stName = st.name || st.title || (typeof st === 'string' ? st : `งานย่อย ${stIdx + 1}`);
+                                    const stProgress = st.progress || (st.status === 'DONE' ? 100 : 0);
+                                    return `
+                                        <div class="p-2 rounded-lg bg-card border border-border/70 flex items-center justify-between gap-1 text-[11px]">
+                                            <span class="truncate font-medium text-foreground">${stIdx + 1}. ${stName}</span>
+                                            <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold ${stProgress >= 100 ? 'bg-emerald-500/15 text-emerald-800' : 'bg-amber-500/15 text-amber-800'} shrink-0">${stProgress}%</span>
+                                        </div>
+                                    `;
+                                }).join('')}
                             </div>
                         </div>
-                        <div class="flex items-center gap-2 shrink-0">
-                            <button type="button" onclick="app.setAllQCSubtasksYes('${job.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition cursor-pointer shadow-xs" title="ตอบผ่านเกณฑ์ทั้งหมด">
-                                <i class="ph ph-check-circle"></i>
-                                <span>✓ เลือก Yes ทั้งหมด ${hasAnyRework ? '(รอบแก้ได้ 1 คะแนน)' : '(ได้ 5 คะแนนทุกข้อ)'}</span>
-                            </button>
-                            <button type="button" onclick="app.resetAllQCSubtasks('${job.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 border border-border flex items-center gap-1 transition cursor-pointer" title="ล้างผลการตอบ">
-                                <i class="ph ph-arrow-counter-clockwise"></i>
-                                <span>ล้างคำตอบ</span>
-                            </button>
+                    `;
+                }
+
+                // 3. Technician 5 Daily Work Photos Gallery
+                const techDailyPhotos = this.getTaskTechnicianPhotos(job, activeTask);
+                let techPhotosHtml = '';
+                if (techDailyPhotos.length > 0) {
+                    techPhotosHtml = techDailyPhotos.slice(0, 5).map((p, pIdx) => {
+                        const safeUrl = (p.url || '').replace(/'/g, "\\'");
+                        const safeTitle = (p.title || `ภาพถ่ายงานช่าง #${pIdx + 1}`).replace(/'/g, "\\'");
+                        const safeDate = p.date ? this.formatDateDMY(p.date) : '';
+                        return `
+                            <div class="relative shrink-0 w-28 h-28 rounded-xl overflow-hidden border border-border bg-muted/40 shadow-xs cursor-pointer group"
+                                 onclick="app.showLightbox('${safeUrl}', '${safeTitle}', 'ภาพถ่าย 5 รูปจากบันทึกงานช่างประจำวัน (Step 4)', '${safeDate}', 'งานช่างประจำวัน')">
+                                <img src="${p.url}" alt="${safeTitle}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                     onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23e2e8f0%22 width=%22100%22 height=%22100%22/><text y=%2250%22 x=%2250%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22 fill=%22%2394a3b8%22 font-size=%2212%22>No Img</text></svg>'">
+                                <span class="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-mono bg-black/60 text-white backdrop-blur-xs">#${pIdx + 1}</span>
+                                <div class="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/15 transition-all">
+                                    <i class="ph ph-magnifying-glass-plus text-white opacity-0 group-hover:opacity-100 text-lg transition-opacity"></i>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    techPhotosHtml = `<div class="text-[11px] text-muted-foreground italic py-2 flex items-center gap-1.5"><i class="ph ph-info"></i> ยังไม่มีบันทึกรูปภาพจากช่างประจำวันในงานนี้ (ภาพจากบันทึกงานประจำวัน Step 4 จะปรากฏที่นี่)</div>`;
+                }
+
+                // 4. Questions List for this Task
+                const questions = activeTaskEval.questions || [];
+                const questionsHtml = questions.map((q, qIdx) => {
+                    const isYes = q.answer === 'YES' || q.status === 'PASSED';
+                    const isNo = q.answer === 'NO' || q.status === 'DEFECT';
+                    const qPhotos = Array.isArray(q.photos) ? q.photos : [];
+
+                    let qPhotosHtml = '';
+                    if (qPhotos.length > 0) {
+                        qPhotosHtml = qPhotos.map((qp, qpIdx) => `
+                            <div class="relative group rounded-xl overflow-hidden border border-border bg-muted/40 w-24 h-24 shrink-0 shadow-xs">
+                                <img src="${qp.url}" alt="${qp.title}" onclick="app.showLightbox('${qp.url}', '${qp.title}', 'รูปประกอบข้อที่ ${qIdx + 1}', '', 'QC On-site')" class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition">
+                                ${isTaskExported ? '' : `
+                                <button type="button" onclick="app.removeTaskQCPhoto('${job.id}', '${activeTask.id}', '${q.id}', '${qp.id}')" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white hover:bg-rose-600 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition cursor-pointer" title="ลบรูปนี้">
+                                    <i class="ph ph-trash"></i>
+                                </button>
+                                `}
+                                <span class="absolute bottom-1 left-1 px-1 py-0.2 rounded text-[8px] font-mono bg-black/60 text-white backdrop-blur-xs">#${qpIdx + 1}</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        qPhotosHtml = `<div class="text-[11px] text-muted-foreground italic py-1.5 flex items-center gap-1.5"><i class="ph ph-image"></i> ยังไม่มีรูปภาพแนบในข้อนี้</div>`;
+                    }
+
+                    return `
+                        <div class="p-4 rounded-xl bg-card border ${isYes ? 'border-emerald-500/40 ring-1 ring-emerald-500/20' : (isNo ? 'border-rose-500/40 ring-1 ring-rose-500/20' : 'border-border')} shadow-xs space-y-3 transition-all">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-2">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="w-6 h-6 rounded-lg ${isYes ? 'bg-emerald-500/20 text-emerald-700 font-bold' : (isNo ? 'bg-rose-500/20 text-rose-700 font-bold' : 'bg-muted text-muted-foreground')} flex items-center justify-center font-mono text-xs">
+                                        ${qIdx + 1}
+                                    </span>
+                                    <h5 class="font-display font-bold text-foreground text-xs sm:text-sm">${q.title}</h5>
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-muted text-foreground border border-border">${q.category || 'มาตรฐาน QC'}</span>
+                                    ${q.is_standard ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-brand-500/10 text-brand-700 border border-brand-500/20">ข้อมาตรฐาน</span>` : `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/10 text-purple-700 border border-purple-500/20">QC เพิ่มเอง</span>`}
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    ${isYes ? `
+                                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 flex items-center gap-1">
+                                            <i class="ph ph-check-circle-fill text-emerald-600"></i> ผ่านเกณฑ์ (Yes = 5 คะแนน)
+                                        </span>
+                                    ` : (isNo ? `
+                                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-800 border border-rose-500/30 flex items-center gap-1">
+                                            <i class="ph ph-warning-fill text-rose-600"></i> ข้อบกพร่อง (No = 1 คะแนน)
+                                        </span>
+                                    ` : `
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground border border-border">
+                                            รอประเมิน
+                                        </span>
+                                    `)}
+                                    ${(!q.is_standard && !isTaskExported) ? `
+                                        <button type="button" onclick="app.removeQCQuestionFromTask('${job.id}', '${activeTask.id}', '${q.id}')" class="text-muted-foreground hover:text-rose-600 p-1 rounded-md hover:bg-rose-50 transition cursor-pointer" title="ลบข้อคำถามนี้">
+                                            <i class="ph ph-trash text-sm"></i>
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+
+                            <div class="bg-muted/20 p-2.5 rounded-lg border border-border/60">
+                                <div class="grid grid-cols-2 gap-2.5">
+                                    <button type="button" ${isTaskExported ? 'disabled' : `onclick="app.setTaskQCQuestionAnswer('${job.id}', '${activeTask.id}', '${q.id}', 'YES')"`} class="py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border transition-all ${isTaskExported ? 'cursor-not-allowed opacity-85 pointer-events-none' : 'cursor-pointer'} ${isYes ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500/30' : 'bg-card text-emerald-800 border-emerald-500/30 hover:bg-emerald-500/10'}">
+                                        <i class="ph ${isYes ? 'ph-check-circle-fill' : 'ph-check-circle'} text-base"></i>
+                                        <span>✓ Yes — ผ่านเกณฑ์ (5 คะแนน)</span>
+                                    </button>
+                                    <button type="button" ${isTaskExported ? 'disabled' : `onclick="app.setTaskQCQuestionAnswer('${job.id}', '${activeTask.id}', '${q.id}', 'NO')"`} class="py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border transition-all ${isTaskExported ? 'cursor-not-allowed opacity-85 pointer-events-none' : 'cursor-pointer'} ${isNo ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-500/30' : 'bg-card text-rose-800 border-rose-500/30 hover:bg-rose-500/10'}">
+                                        <i class="ph ${isNo ? 'ph-x-circle-fill' : 'ph-x-circle'} text-base"></i>
+                                        <span>✕ No — ข้อบกพร่อง (1 คะแนน)</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
+                                        <i class="ph ph-camera text-brand-500"></i>
+                                        <span>รูปถ่ายประกอบข้อนี้ (${qPhotos.length} รูป)</span>
+                                    </span>
+                                    ${isTaskExported ? '' : `
+                                    <label class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer bg-red-500 hover:bg-red-600 text-black border border-red-700 transition" style="background-color: #ef4444 !important; color: #000000 !important; font-weight: 900 !important;" title="คลิกเพื่อแนบรูปในข้อนี้">
+                                        <i class="ph ph-camera-plus text-xs" style="color: #000000 !important;"></i>
+                                        <span style="color: #000000 !important;">+ แนบรูปข้อนี้</span>
+                                        <input type="file" accept="image/*" class="hidden" onchange="app.handleTaskQCPhotoUpload(event, '${job.id}', '${activeTask.id}', '${q.id}')">
+                                    </label>
+                                    `}
+                                </div>
+                                <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5">
+                                    ${qPhotosHtml}
+                                </div>
+                            </div>
+
+                            <div>
+                                <input type="text" value="${q.remarks || ''}" ${isTaskExported ? 'disabled readonly' : ''} onchange="app.saveTaskQCQuestionRemarks('${job.id}', '${activeTask.id}', '${q.id}', this.value)" placeholder="ระบุข้อสังเกต / รายละเอียดการตรวจในข้อนี้..." class="w-full bg-muted/30 border border-border focus:border-brand-500 rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none transition ${isTaskExported ? 'opacity-80 cursor-not-allowed' : ''}">
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                container.innerHTML = `
+                    <div class="space-y-4">
+                        ${tabsHtml}
+
+                        <!-- Active Main Task Card -->
+                        <div class="p-5 rounded-2xl bg-card border ${isTaskExported ? 'border-emerald-500/50 ring-2 ring-emerald-500/20' : 'border-border'} shadow-sm space-y-4">
+                            <!-- Header of Active Task -->
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/70 pb-3">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-9 h-9 rounded-xl ${isTaskExported ? 'bg-emerald-500/20 text-emerald-700' : 'bg-brand-500/15 text-brand-600'} flex items-center justify-center font-bold text-sm shrink-0">
+                                        <i class="ph ${isTaskExported ? 'ph-check-circle-fill' : 'ph-briefcase'}"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="font-display font-bold text-sm text-foreground">
+                                                งานหลักที่ ${activeTaskIdx + 1}: ${activeTask.name}
+                                            </span>
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-muted text-foreground border border-border">
+                                                ช่าง: ${activeTask.tech || job.tech || '-'}
+                                            </span>
+                                        </div>
+                                        <span class="text-[11px] text-muted-foreground">ตรวจรับรอง On-site ตรวจรูปช่าง 5 รูป ประเมินมาตรฐาน และปิดงานส่งผลไป STK</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    ${isTaskExported ? `
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 flex items-center gap-1.5 shadow-2xs">
+                                            <i class="ph ph-check-circle-fill text-emerald-600"></i> ปิดงาน & ส่งประเมิน STK แล้ว (${activeTask.stk_ref || activeTaskEval.stk_ref})
+                                        </span>
+                                    ` : (activeTask.qc_status === 'REWORK' ? `
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-800 border border-rose-500/30 flex items-center gap-1.5">
+                                            <i class="ph ph-warning-fill text-rose-600"></i> แจ้งแก้ไขงาน (Rework)
+                                        </span>
+                                    ` : `
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-800 border border-amber-500/30 flex items-center gap-1.5">
+                                            <i class="ph ph-clock"></i> รอตรวจ On-site & ส่งประเมิน STK
+                                        </span>
+                                    `)}
+                                </div>
+                            </div>
+
+                            <!-- Subtasks Breakdown -->
+                            ${subtasksListHtml}
+
+                            <!-- Technician 5 Daily Work Photos Gallery -->
+                            <div class="p-4 rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/5 to-card space-y-2.5 shadow-2xs">
+                                <div class="flex items-center justify-between flex-wrap gap-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-6 h-6 rounded-lg bg-cyan-500/15 text-cyan-600 flex items-center justify-center shrink-0">
+                                            <i class="ph ph-camera"></i>
+                                        </div>
+                                        <span class="font-display font-bold text-xs text-foreground">ภาพถ่าย 5 รูปจากบันทึกงานช่างประจำวัน (Step 4 Daily Work Log)</span>
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-600 border border-cyan-500/20">${techDailyPhotos.length} รูป</span>
+                                    </div>
+                                    <span class="text-[11px] text-muted-foreground">QC ตรวจสอบภาพถ่ายงานจริงก่อนให้คะแนน</span>
+                                </div>
+                                <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5">
+                                    ${techPhotosHtml}
+                                </div>
+                            </div>
+
+                            <!-- QC Questions Section -->
+                            <div class="space-y-3">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-muted/40 rounded-xl border border-border/80">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-6 h-6 rounded-lg bg-brand-500/15 text-brand-600 flex items-center justify-center font-bold text-xs">
+                                            <i class="ph ph-clipboard-text"></i>
+                                        </span>
+                                        <span class="font-display font-bold text-xs text-foreground">ข้อคำถามประเมินมาตรฐาน QC ของงานนี้</span>
+                                        <span class="text-[10px] text-muted-foreground">(รวม ${questions.length} ข้อ)</span>
+                                    </div>
+                                    ${isTaskExported ? '' : `
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="app.setAllTaskQCQuestionsYes('${job.id}', '${activeTask.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition cursor-pointer shadow-xs">
+                                            <i class="ph ph-check-circle"></i>
+                                            <span>✓ เลือก Yes ทั้งหมด</span>
+                                        </button>
+                                        <button type="button" onclick="app.resetAllTaskQCQuestions('${job.id}', '${activeTask.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-foreground bg-muted hover:bg-muted/80 border border-border flex items-center gap-1 transition cursor-pointer">
+                                            <i class="ph ph-arrow-counter-clockwise"></i>
+                                            <span>ล้างคำตอบ</span>
+                                        </button>
+                                    </div>
+                                    `}
+                                </div>
+
+                                <div class="space-y-3">
+                                    ${questionsHtml}
+                                </div>
+
+                                <!-- Add Dynamic QC Question Form -->
+                                ${isTaskExported ? '' : `
+                                <div class="p-3 rounded-xl border border-dashed border-border bg-muted/20 flex flex-col sm:flex-row items-center gap-2">
+                                    <input type="text" id="input-add-question-${activeTask.id}" placeholder="พิมพ์ข้อคำถามประเมิน On-site เพิ่มเติมสำหรับงานนี้..." class="flex-1 w-full bg-card border border-border focus:border-brand-500 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none transition">
+                                    <button type="button" onclick="app.addQCQuestionToTask('${job.id}', '${activeTask.id}')" class="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold bg-brand-500 hover:bg-brand-600 text-white flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0 shadow-xs">
+                                        <i class="ph ph-plus-circle text-sm"></i>
+                                        <span>➕ เพิ่มข้อคำถามประเมิน</span>
+                                    </button>
+                                </div>
+                                `}
+                            </div>
+
+                            <!-- Per-Task Closure & STK Dispatch Action Card -->
+                            <div class="p-4 rounded-xl ${isTaskExported ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-muted/40 border border-border'} flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-display font-bold text-xs text-foreground">สรุปผลประเมินงาน [${activeTask.name}]:</span>
+                                        <span class="text-xs font-mono font-bold ${isTaskExported ? 'text-emerald-800' : 'text-foreground'}">คะแนน: ${activeTaskProgress.averageScore} / 5.0</span>
+                                        <span class="text-[11px] text-muted-foreground">(${activeTaskProgress.completed}/${activeTaskProgress.total} ข้อ)</span>
+                                    </div>
+                                    <p class="text-[11px] text-muted-foreground mt-0.5">
+                                        ${isTaskExported 
+                                            ? `✓ บันทึกปิดงานและส่งข้อมูลผลประเมินไปยังระบบ STK สำเร็จแล้ว (Ref: ${activeTask.stk_ref || activeTaskEval.stk_ref})`
+                                            : `เมื่อประเมินครบและผ่านเกณฑ์ สามารถกดปุ่มด้านขวาเพื่อปิดงานนี้และส่งผลประเมินเข้า STK ได้ทันทีโดยไม่ต้องรองานอื่น`}
+                                    </p>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    ${isTaskExported ? `
+                                        <button type="button" onclick="app.showTaskSTKPayload('${job.id}', '${activeTask.id}')" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-white text-emerald-800 border border-emerald-500/40 hover:bg-emerald-50 flex items-center gap-1.5 transition cursor-pointer shadow-xs">
+                                            <i class="ph ph-file-code"></i>
+                                            <span>📄 ดูข้อมูลส่ง STK</span>
+                                        </button>
+                                        <span class="px-4 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 text-white flex items-center gap-1.5 shadow-xs cursor-default">
+                                            <i class="ph ph-check-circle-fill"></i>
+                                            <span>✓ ส่ง STK เรียบร้อย</span>
+                                        </span>
+                                    ` : (activeTaskProgress.isAllComplete ? `
+                                        <button type="button" onclick="app.submitTaskQCApproval('${job.id}', '${activeTask.id}')" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2 transition cursor-pointer shadow-md">
+                                            <i class="ph ph-paper-plane-tilt text-base"></i>
+                                            <span>✓ บันทึกปิดงาน [${activeTask.name}] & ส่งประเมิน STK</span>
+                                        </button>
+                                    ` : (activeTaskProgress.defect > 0 ? `
+                                        <button type="button" onclick="app.failTaskQCRework('${job.id}', '${activeTask.id}')" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 transition cursor-pointer shadow-xs">
+                                            <i class="ph ph-warning"></i>
+                                            <span>❌ แจ้งแก้ไขงาน [${activeTask.name}]</span>
+                                        </button>
+                                    ` : `
+                                        <button type="button" disabled class="px-4 py-2.5 rounded-xl text-xs font-semibold bg-muted text-muted-foreground border border-border opacity-70 cursor-not-allowed flex items-center gap-1.5">
+                                            <i class="ph ph-lock"></i>
+                                            <span>ประเมินข้อคำถามให้ครบก่อนส่ง STK</span>
+                                        </button>
+                                    `))}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
 
-                html += subtasks.map((s, idx) => {
-                    const isYes = s.answer === 'YES' || s.status === 'PASSED';
-                    const isNo = s.answer === 'NO' || s.status === 'DEFECT';
-                    const isRework = s.failed_once || s.has_rework || s.is_rework_pass || (isQuick && isJobRework);
-                    const isReworkPass = isYes && (s.is_rework_pass || isRework);
-                    const photos = Array.isArray(s.photos) ? s.photos : [];
-
-                    // Photo gallery for this subtask
-                    let photosListHtml = '';
-                    if (photos.length > 0) {
-                        photosListHtml = photos.map((p, pIdx) => `
-                            <div class="relative group rounded-xl overflow-hidden border border-border bg-muted/40 w-28 h-28 shrink-0 shadow-xs">
-                                <img src="${p.url}" alt="${p.title}" onclick="app.showLightbox('${p.url}', '${p.title}', 'รูปประกอบข้อที่ ${idx + 1}: ${s.title}', '${p.uploaded_at ? app.formatDateDMY(p.uploaded_at) : ''}', 'QC Inspector')" class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition">
-                                ${isPassed ? '' : `
-                                <button type="button" onclick="app.removeSubtaskPhoto('${job.id}', '${s.id}', '${p.id}')" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white hover:bg-rose-600 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition cursor-pointer" title="ลบรูปนี้">
-                                    <i class="ph ph-trash"></i>
-                                </button>
-                                `}
-                                <span class="absolute bottom-1 left-1 px-1 py-0.2 rounded text-[8px] font-mono bg-black/60 text-white backdrop-blur-xs">#${pIdx + 1}</span>
-                            </div>
-                        `).join('');
+                // Update Bottom Modal Footer Buttons
+                const btnCSAT = document.getElementById('btn-qc-approve-csat');
+                const btnLabel = document.getElementById('btn-qc-approve-csat-label');
+                if (btnCSAT && btnLabel) {
+                    if (progress.allPassed || isPassed) {
+                        btnCSAT.disabled = true;
+                        btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 cursor-not-allowed opacity-90 transition-all';
+                        btnLabel.innerText = '✓ ผ่านเกณฑ์ QC ครบทุกงานหลัก & ปิดโครงการส่ง STK แล้ว (100% CLOSED)';
+                    } else if (isTaskExported) {
+                        btnCSAT.disabled = true;
+                        btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 cursor-not-allowed opacity-90 transition-all';
+                        btnLabel.innerText = `✓ งาน [${activeTask.name}] ส่ง STK แล้ว (สลับแท็บเพื่อตรวจงานอื่น)`;
+                    } else if (activeTaskProgress.isAllComplete) {
+                        btnCSAT.disabled = false;
+                        btnCSAT.className = 'btn-artifact-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all';
+                        btnLabel.innerText = `✓ บันทึกปิดงาน [${activeTask.name}] & ส่งประเมิน STK`;
+                    } else if (activeTaskProgress.defect > 0) {
+                        btnCSAT.disabled = true;
+                        btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 bg-rose-500/10 text-rose-700 border border-rose-500/20 cursor-not-allowed opacity-80 transition-all';
+                        btnLabel.innerText = `งาน [${activeTask.name}] พบข้อบกพร่อง (ต้องแก้ไขหรือแจ้งส่ง Rework)`;
                     } else {
-                        photosListHtml = `<div class="text-[11px] text-muted-foreground italic py-2 flex items-center gap-1.5"><i class="ph ph-image"></i> ยังไม่มีรูปภาพประกอบข้อนี้ (สามารถกดปุ่มสีแดง <span class="font-black text-black bg-red-100 px-1.5 py-0.5 rounded border border-red-300">"+ แนบรูปข้อนี้"</span> ด้านบน)</div>`;
+                        btnCSAT.disabled = true;
+                        btnCSAT.className = 'btn-artifact-secondary px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 bg-muted text-muted-foreground cursor-not-allowed opacity-60 transition-all';
+                        btnLabel.innerText = `ตอบข้อคำถามของงาน [${activeTask.name}] ให้ครบก่อนส่ง STK`;
                     }
+                }
+            },
 
-                    return `
-                    <div class="p-4.5 rounded-2xl bg-card border ${isYes ? (isReworkPass ? 'border-amber-500/40 ring-1 ring-amber-500/20' : 'border-emerald-500/40 ring-1 ring-emerald-500/20') : (isNo ? 'border-rose-500/40 ring-1 ring-rose-500/20' : 'border-border')} shadow-xs space-y-3.5 transition-all">
-                        <!-- Question Header -->
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-2.5">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="w-7 h-7 rounded-lg ${isYes ? (isReworkPass ? 'bg-amber-500/20 text-amber-700 font-bold' : 'bg-emerald-500/20 text-emerald-600 font-bold') : (isNo ? 'bg-rose-500/20 text-rose-600 font-bold' : 'bg-muted text-muted-foreground')} flex items-center justify-center font-mono text-xs">
-                                    ${idx + 1}
-                                </span>
-                                <h5 class="font-display font-bold text-foreground text-xs sm:text-sm">${s.title}</h5>
-                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-muted text-muted-foreground border border-border/80">${s.category || 'หมวดประเมิน'}</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                ${isYes ? (isReworkPass ? `
-                                    <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1.5" title="ผ่านเกณฑ์รอบแก้ไข (ได้ 1 คะแนน)">
-                                        <i class="ph ph-check-circle-fill text-amber-600"></i> ผ่านเกณฑ์รอบแก้ (Yes = 1 คะแนน)
-                                    </span>
-                                ` : `
-                                    <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
-                                        <i class="ph ph-check-circle-fill text-emerald-500"></i> ผ่านเกณฑ์ (Yes = 5 คะแนน)
-                                    </span>
-                                `) : (isNo ? `
-                                    <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1.5">
-                                        <i class="ph ph-warning-fill text-rose-500"></i> ข้อบกพร่อง (No = 1 คะแนน)
-                                    </span>
-                                ` : `
-                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground border border-border">
-                                        รอประเมิน
-                                    </span>
-                                `)}
-                            </div>
-                        </div>
+            addQCQuestionToTask(jobId, taskId, customTitle) {
+                const job = this.getJob(jobId);
+                if (!job) return;
+                const tasks = this.getJobMainTasks(job);
+                const task = tasks.find(t => String(t.id) === String(taskId));
+                if (!task) return;
+                if (task.stk_exported) {
+                    this.showToast('⚠️ งานนี้ส่งข้อมูลประเมินไปยังระบบ STK แล้ว ไม่อนุญาตให้เพิ่มข้อคำถาม');
+                    return;
+                }
+                const evalData = this.ensureTaskQCEvaluation(task, job);
+                let title = customTitle;
+                if (!title) {
+                    const inputEl = document.getElementById(`input-add-question-${task.id}`);
+                    if (inputEl && inputEl.value.trim()) {
+                        title = inputEl.value.trim();
+                        inputEl.value = '';
+                    } else {
+                        title = prompt('กรุณาระบุหัวข้อคำถามประเมินมาตรฐาน QC เพิ่มเติม:');
+                    }
+                }
+                if (!title || !title.trim()) return;
 
-                        <!-- Yes / No Evaluation Buttons (คะแนน Y=5 [รอบแก้ Y=1], N=1) -->
-                        <div class="bg-muted/20 p-3 rounded-xl border border-border/60">
-                            <label class="block text-[11px] font-semibold text-foreground mb-2 flex items-center justify-between">
-                                <span class="flex items-center gap-1.5">
-                                    <i class="ph ph-scales text-brand-500"></i>
-                                    <span>ผลการประเมินข้อนี้ (Yes / No):</span>
-                                </span>
-                                <span class="font-mono text-xs font-bold ${isYes ? (isReworkPass ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600') : (isNo ? 'text-rose-600' : 'text-muted-foreground')}">
-                                    ${isYes ? (isReworkPass ? '✓ Yes (ผ่านรอบแก้ไข ได้ 1 คะแนน)' : '✓ Yes (ได้ 5 คะแนน)') : (isNo ? '✕ No (ได้ 1 คะแนน)' : 'ยังไม่ได้เลือก')}
-                                </span>
-                            </label>
-                            <div class="grid grid-cols-2 gap-3">
-                                <button type="button" ${isPassed ? 'disabled' : `onclick="app.setQCSubtaskAnswer('${job.id}', '${s.id}', 'YES')"`} class="py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all ${isPassed ? 'cursor-not-allowed opacity-85 pointer-events-none' : 'cursor-pointer'} ${isYes ? (isReworkPass ? 'bg-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-500/30 scale-[1.01]' : 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500/30 scale-[1.01]') : (isRework ? 'bg-card text-amber-700 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10' : 'bg-card text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10')}">
-                                    <i class="ph ${isYes ? 'ph-check-circle-fill' : 'ph-check-circle'} text-base"></i>
-                                    <span>✓ Yes — ${isRework ? 'ผ่านเกณฑ์รอบแก้ (1 คะแนน)' : 'ผ่านเกณฑ์ (5 คะแนน)'}</span>
-                                </button>
-                                <button type="button" ${isPassed ? 'disabled' : `onclick="app.setQCSubtaskAnswer('${job.id}', '${s.id}', 'NO')"`} class="py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all ${isPassed ? 'cursor-not-allowed opacity-85 pointer-events-none' : 'cursor-pointer'} ${isNo ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-500/30 scale-[1.01]' : 'bg-card text-rose-700 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10'}">
-                                    <i class="ph ${isNo ? 'ph-x-circle-fill' : 'ph-x-circle'} text-base"></i>
-                                    <span>✕ No — ข้อบกพร่อง (1 คะแนน)</span>
-                                </button>
-                            </div>
-                        </div>
+                const newNum = evalData.questions.length + 1;
+                const newQ = {
+                    id: `q_${task.id}_custom_${Date.now()}`,
+                    num: newNum,
+                    title: title.trim(),
+                    category: 'คำถามเพิ่มเติม (QC Custom)',
+                    is_standard: false,
+                    mandatory: true,
+                    answer: null,
+                    score: 0,
+                    status: 'PENDING',
+                    photos: [],
+                    remarks: ''
+                };
+                evalData.questions.push(newQ);
+                this.persistJobs();
+                this.renderQCSubtasks(job);
+                this.showToast(`➕ เพิ่มข้อคำถามประเมิน: "${newQ.title}" เรียบร้อย`);
+            },
 
-                        <!-- Dedicated Photos for this Question -->
-                        <div class="space-y-2">
-                            <div class="flex items-center justify-between">
-                                <div class="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
-                                    <i class="ph ph-camera text-brand-500"></i>
-                                    <span>รูปถ่ายประกอบข้อนี้ (${photos.length} รูป)</span>
-                                </div>
-                                ${isPassed ? '' : `
-                                <label class="px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-md transition hover:scale-105 active:scale-95 border-2 border-red-700 bg-red-500 hover:bg-red-600 text-black shrink-0" style="background-color: #ef4444 !important; color: #000000 !important; font-weight: 900 !important; border: 2px solid #b91c1c !important;" title="คลิกเพื่อเลือกไฟล์รูปภาพแนบในข้อนี้">
-                                    <i class="ph ph-camera-plus text-sm" style="color: #000000 !important; font-weight: 900 !important;"></i>
-                                    <span style="color: #000000 !important; font-weight: 900 !important; letter-spacing: 0.025em;">+ แนบรูปข้อนี้</span>
-                                    <input type="file" accept="image/*" class="hidden" onchange="app.handleSubtaskPhotoUpload(event, '${job.id}', '${s.id}')">
-                                </label>
-                                `}
-                            </div>
-                            <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5">
-                                ${photosListHtml}
-                            </div>
-                        </div>
+            removeQCQuestionFromTask(jobId, taskId, questionId) {
+                const job = this.getJob(jobId);
+                if (!job) return;
+                const tasks = this.getJobMainTasks(job);
+                const task = tasks.find(t => String(t.id) === String(taskId));
+                if (!task) return;
+                if (task.stk_exported) {
+                    this.showToast('⚠️ งานนี้ส่งข้อมูลประเมินไปยังระบบ STK แล้ว ไม่อนุญาตให้ลบข้อคำถาม');
+                    return;
+                }
+                const evalData = this.ensureTaskQCEvaluation(task, job);
+                evalData.questions = evalData.questions.filter(q => q.id !== questionId);
+                evalData.questions.forEach((q, idx) => { q.num = idx + 1; });
+                this.persistJobs();
+                this.renderQCSubtasks(job);
+                this.showToast('🗑️ ลบข้อคำถามเรียบร้อย');
+            },
 
-                        <!-- Subtask Remarks Input -->
-                        <div>
-                            <input type="text" value="${s.remarks || ''}" ${isPassed ? 'disabled readonly' : ''} onchange="app.saveSubtaskRemarks('${job.id}', '${s.id}', this.value)" placeholder="ระบุข้อสังเกต หรือรายละเอียดการตรวจในข้อนี้..." class="w-full bg-muted/30 border border-border focus:border-brand-500 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none transition ${isPassed ? 'opacity-80 cursor-not-allowed' : ''}">
-                        </div>
-                    </div>
-                    `;
-                }).join('');
+            setTaskQCQuestionAnswer(jobId, taskId, questionId, answer) {
+                const job = this.getJob(jobId);
+                if (!job) return;
+                const tasks = this.getJobMainTasks(job);
+                const task = tasks.find(t => String(t.id) === String(taskId));
+                if (!task) return;
+                if (task.stk_exported) {
+                    this.showToast('⚠️ งานนี้ส่งข้อมูลประเมินไปยังระบบ STK แล้ว ไม่อนุญาตให้แก้ไข');
+                    return;
+                }
+                const evalData = this.ensureTaskQCEvaluation(task, job);
+                const q = evalData.questions.find(item => item.id === questionId);
+                if (!q) return;
 
-                container.innerHTML = html;
+                q.answer = answer;
+                if (answer === 'YES') {
+                    q.score = (q.failed_once || q.has_rework || (job && job.has_rework)) ? 1 : 5;
+                    q.status = 'PASSED';
+                } else if (answer === 'NO') {
+                    q.score = 1;
+                    q.status = 'DEFECT';
+                    q.failed_once = true;
+                    q.has_rework = true;
+                } else {
+                    q.score = 0;
+                    q.status = 'PENDING';
+                }
+                this.persistJobs();
+                this.renderQCSubtasks(job);
+                this.updateQCDashboard();
+            },
+
+            setAllTaskQCQuestionsYes(jobId, taskId) {
+                const job = this.getJob(jobId);
+                if (!job) return;
+                const tasks = this.getJobMainTasks(job);
+                const task = tasks.find(t => String(t.id) === String(taskId));
+                if (!task) return;
+                if (task.stk_exported) {
+                    this.showToast('⚠️ งานนี้ส่งข้อมูลประเมินไปยังระบบ STK แล้ว');
+                    return;
+                }
+                const evalData = this.ensureTaskQCEvaluation(task, job);
+                evalData.questions.forEach(q => {
+                    q.answer = 'YES';
+                    q.status = 'PASSED';
+                    q.score = (q.failed_once || q.has_rework || (job && job.has_rework)) ? 1 : 5;
+                });
+                this.persistJobs();
+                this.renderQCSubtasks(job);
+                this.updateQCDashboard();
+                this.showToast(`✅ ตอบผ่านเกณฑ์ครบทุกข้อสำหรับ [${task.name}]`);
+            },
+
+            resetAllTaskQCQuestions(jobId, taskId) {
+                const job = this.getJob(jobId);
+                if (!job) return;
+                const tasks = this.getJobMainTasks(job);
+                const task = tasks.find(t => String(t.id) === String(taskId));
+                if (!task) return;
+                if (task.stk_exported) {
+                    this.showToast('⚠️ งานนี้ส่งข้อมูลประเมินไปยังระบบ STK แล้ว');
+                    return;
+                }
+                const evalData = this.ensureTaskQCEvaluation(task, job);
+                evalData.questions.forEach(q => {
+                    q.answer = null;
+                    q.score = 0;
+                    q.status = 'PENDING';
+                });
+                this.persistJobs();
+                this.renderQCSubtasks(job);
+                this.updateQCDashboard();
+                this.showToast(`↺ ล้างผลการตอบของ [${task.name}] เรียบร้อย`);
+            },
+
+            handleTaskQCPhotoUpload(event, jobId, taskId, questionId) {
+                const job = this.getJob(jobId);
+                if (!job) return;
+                const tasks = this.getJobMainTasks(job);
+                const task = tasks.find(t => String(t.id) === String(taskId));
+                if (!task) return;
+                if (task.stk_exported) {
+                    this.showToast('⚠️ งานนี้ส่งข้อมูลประเมินไปยังระบบ STK แล้ว ไม่อนุญาตให้อัปโหลดรูปภาพ');
+                    return;
+                }
+                const file = event.target.files && event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const evalData = this.ensureTaskQCEvaluation(task, job);
+                    const q = evalData.questions.find(item => item.id === questionId);
+                    if (!q) return;
+
+                    if (!Array.isArray(q.photos)) q.photos = [];
+                    const newPhoto = {
+                        id: `qp_${Date.now()}`,
+                        title: `${q.title}: ${file.name}`,
+                        url: e.target.result,
+                        uploaded_at: new Date().toISOString()
+                    };
+                    q.photos.push(newPhoto);
+
+                    if (!Array.isArray(job.photos)) job.photos = [];
+                    job.photos.push({
+                        ...newPhoto,
+                        note: `แนบในงาน [${task.name}] ข้อที่ ${q.num}: ${q.title}`
+                    });
+
+                    this.persistJobs();
+                    this.renderQCSubtasks(job);
+                    this.showToast(`📸 แนบรูปภาพสำหรับ "${q.title}" สำเร็จ`);
+                };
+                reader.readAsDataURL(file);
+            },
+
+            removeTaskQCPhoto(jobId, taskId, questionId, photoId) {
+                const job = this.getJob(jobId);
+                if (!job) return;
+                const tasks = this.getJobMainTasks(job);
+                const task = tasks.find(t => String(t.id) === String(taskId));
+                if (!task) return;
+                if (task.stk_exported) {
+                    this.showToast('⚠️ งานนี้ส่งข้อมูลประเมินไปยังระบบ STK แล้ว ไม่อนุญาตให้ลบรูปภาพ');
+                    return;
+                }
+                const evalData = this.ensureTaskQCEvaluation(task, job);
+                const q = evalData.questions.find(item => item.id === questionId);
+                if (q && Array.isArray(q.photos)) {
+                    q.photos = q.photos.filter(p => p.id !== photoId);
+                    this.persistJobs();
+                    this.renderQCSubtasks(job);
+                    this.showToast('🗑️ ลบรูปภาพเรียบร้อย');
+                }
+            },
+
+            saveTaskQCQuestionRemarks(jobId, taskId, questionId, remarks) {
+                const job = this.getJob(jobId);
+                if (!job) return;
+                const tasks = this.getJobMainTasks(job);
+                const task = tasks.find(t => String(t.id) === String(taskId));
+                if (!task || task.stk_exported) return;
+                const evalData = this.ensureTaskQCEvaluation(task, job);
+                const q = evalData.questions.find(item => item.id === questionId);
+                if (q) {
+                    q.remarks = remarks ? remarks.trim() : '';
+                    this.persistJobs();
+                }
             },
 
             setQCSubtaskAnswer(jobId, subtaskId, answer) {
                 const job = this.getJob(jobId);
                 if (!job) return;
                 if (this.isJobQCLocked(job)) {
-                    this.showToast('⚠️ ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC แล้ว ระบบล็อกผลตรวจถาวร (ไม่อนุญาตให้แก้ไข)');
+                    this.showToast('⚠️ ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC แล้ว ระบบล็อกผลตรวจถาวร');
                     return;
                 }
-                const subtasks = this.getJobQCSubtasks(job);
-                const sub = subtasks.find(s => s.id === subtaskId);
-                if (sub) {
-                    const isQuick = this.isQuickJob(job);
-                    const history = Array.isArray(job.qc_history) ? job.qc_history : [];
-                    const reworkCount = history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (job.qc_rework_count || job.rework_count || 0);
-                    const isJobRework = job.status === 'QC_REWORK' || reworkCount > 0 || (job.rework_count && job.rework_count > 0) || !!job.has_rework || history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
-                    const currentRound = history.length + (job.status === 'QC_PASSED' ? 0 : 1) || (isJobRework ? (reworkCount + 1) : 1);
-                    const isRound2Plus = currentRound >= 2 || isJobRework;
-
-                    sub.answer = answer;
-                    if (answer === 'YES') {
-                        const isRework = isRound2Plus || sub.failed_once || sub.has_rework || sub.is_rework_pass || (isQuick && isJobRework);
-                        if (isRework) {
-                            sub.score = 1;
-                            sub.status = 'PASSED';
-                            sub.is_rework_pass = true;
-                            sub.failed_once = true;
-                            sub.has_rework = true;
-                        } else {
+                const isQuick = this.isQuickJob(job);
+                if (isQuick) {
+                    const subtasks = this.getJobQCSubtasks(job);
+                    const sub = subtasks.find(s => s.id === subtaskId);
+                    if (sub) {
+                        sub.answer = answer;
+                        if (answer === 'YES') {
                             sub.score = 5;
                             sub.status = 'PASSED';
-                            sub.is_rework_pass = false;
+                        } else if (answer === 'NO') {
+                            sub.score = 1;
+                            sub.status = 'DEFECT';
+                        } else {
+                            sub.score = 0;
+                            sub.status = 'PENDING';
                         }
-                    } else if (answer === 'NO') {
-                        sub.score = 1;
-                        sub.status = 'DEFECT';
-                        sub.failed_once = true;
-                        sub.has_rework = true;
-                        sub.is_rework_pass = false;
-                    } else {
-                        sub.score = 0;
-                        sub.status = 'PENDING';
+                        this.persistJobs();
+                        this.renderQCSubtasks(job);
+                        this.updateQCDashboard();
+                        fetch(`/api/v1/jobs/${job.id}`, {
+                            method: 'PATCH',
+                            headers: this.getAuthHeaders(),
+                            body: JSON.stringify({ qc_subtasks: job.qc_subtasks })
+                        }).catch(() => {});
                     }
-                    this.persistJobs();
-                    this.renderQCSubtasks(job);
-                    this.updateQCDashboard();
+                    return;
+                }
 
-                    // Background auto-save subtasks to server
-                    fetch(`/api/v1/jobs/${job.id}`, {
-                        method: 'PATCH',
-                        headers: this.getAuthHeaders(),
-                        body: JSON.stringify({ qc_subtasks: job.qc_subtasks })
-                    }).catch(err => console.warn('PATCH qc_subtasks error:', err));
+                const activeTaskId = this.state.activeQCTaskId;
+                if (activeTaskId) {
+                    this.setTaskQCQuestionAnswer(jobId, activeTaskId, subtaskId, answer);
                 }
             },
 
@@ -26264,70 +26817,48 @@ const app = {
                 const targetJobId = jobId || this.state.currentQCModalJobId;
                 const job = this.getJob(targetJobId);
                 if (!job) return;
-                if (this.isJobQCLocked(job)) {
-                    this.showToast('⚠️ ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC แล้ว ระบบล็อกผลตรวจถาวร');
+                const isQuick = this.isQuickJob(job);
+                if (isQuick) {
+                    const subtasks = this.getJobQCSubtasks(job);
+                    subtasks.forEach(s => {
+                        s.answer = 'YES';
+                        s.status = 'PASSED';
+                        s.score = 5;
+                    });
+                    this.persistJobs();
+                    this.renderQCSubtasks(job);
+                    this.updateQCDashboard();
+                    this.showToast('✅ บันทึกผลผ่านเกณฑ์เรียบร้อย');
                     return;
                 }
-                const isQuick = this.isQuickJob(job);
-                const history = Array.isArray(job.qc_history) ? job.qc_history : [];
-                const reworkCount = history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (job.qc_rework_count || job.rework_count || 0);
-                const isJobRework = job.status === 'QC_REWORK' || reworkCount > 0 || (job.rework_count && job.rework_count > 0) || !!job.has_rework || history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
-                const currentRound = history.length + (job.status === 'QC_PASSED' ? 0 : 1) || (isJobRework ? (reworkCount + 1) : 1);
-                const isRound2Plus = currentRound >= 2 || isJobRework;
-
-                const subtasks = this.getJobQCSubtasks(job);
-                subtasks.forEach(s => {
-                    const isRework = isRound2Plus || s.failed_once || s.has_rework || s.is_rework_pass || (isQuick && isJobRework);
-                    s.answer = 'YES';
-                    s.status = 'PASSED';
-                    if (isRework) {
-                        s.score = 1;
-                        s.is_rework_pass = true;
-                        s.failed_once = true;
-                        s.has_rework = true;
-                    } else {
-                        s.score = 5;
-                        s.is_rework_pass = false;
-                    }
-                });
-                this.persistJobs();
-                this.renderQCSubtasks(job);
-                this.updateQCDashboard();
-                const progress = this.calculateJobQCProgress(job);
-                this.showToast(`✅ บันทึกผลผ่านเกณฑ์ครบทุกข้อเรียบร้อย (คะแนนรวม ${progress.averageScore} คะแนน)`);
-
-                // Background auto-save subtasks to server
-                fetch(`/api/v1/jobs/${job.id}`, {
-                    method: 'PATCH',
-                    headers: this.getAuthHeaders(),
-                    body: JSON.stringify({ qc_subtasks: job.qc_subtasks })
-                }).catch(err => console.warn('PATCH qc_subtasks error:', err));
+                const activeTaskId = this.state.activeQCTaskId;
+                if (activeTaskId) {
+                    this.setAllTaskQCQuestionsYes(targetJobId, activeTaskId);
+                }
             },
 
             resetAllQCSubtasks(jobId) {
                 const targetJobId = jobId || this.state.currentQCModalJobId;
                 const job = this.getJob(targetJobId);
                 if (!job) return;
-                if (this.isJobQCLocked(job)) {
-                    this.showToast('⚠️ ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC แล้ว ระบบล็อกผลตรวจถาวร');
+                const isQuick = this.isQuickJob(job);
+                if (isQuick) {
+                    const subtasks = this.getJobQCSubtasks(job);
+                    subtasks.forEach(s => {
+                        s.answer = null;
+                        s.score = 0;
+                        s.status = 'PENDING';
+                    });
+                    this.persistJobs();
+                    this.renderQCSubtasks(job);
+                    this.updateQCDashboard();
+                    this.showToast('↺ ล้างผลการตอบเรียบร้อย');
                     return;
                 }
-                const isJobRework = job.status === 'QC_REWORK' || (job.qc_rework_count && job.qc_rework_count > 0) || (job.rework_count && job.rework_count > 0) || !!job.has_rework;
-                const subtasks = this.getJobQCSubtasks(job);
-                subtasks.forEach(s => {
-                    s.answer = null;
-                    s.score = 0;
-                    s.status = 'PENDING';
-                    if (!isJobRework) {
-                        s.failed_once = false;
-                        s.has_rework = false;
-                        s.is_rework_pass = false;
-                    }
-                });
-                this.persistJobs();
-                this.renderQCSubtasks(job);
-                this.updateQCDashboard();
-                this.showToast(`↺ ล้างผลการตอบทั้ง ${subtasks.length} ข้อเรียบร้อย`);
+                const activeTaskId = this.state.activeQCTaskId;
+                if (activeTaskId) {
+                    this.resetAllTaskQCQuestions(targetJobId, activeTaskId);
+                }
             },
 
             setSubtaskScore(jobId, subtaskId, score) {
@@ -26342,69 +26873,75 @@ const app = {
             },
 
             handleSubtaskPhotoUpload(event, jobId, subtaskId) {
-                const job = this.getJob(jobId);
-                if (!job) return;
-                if (this.isJobQCLocked(job)) {
-                    this.showToast('⚠️ ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC แล้ว ไม่อนุญาตให้อัปโหลดรูปภาพ');
+                const isQuick = this.isQuickJob(this.getJob(jobId));
+                if (isQuick) {
+                    const job = this.getJob(jobId);
+                    if (!job) return;
+                    const file = event.target.files && event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const subtasks = this.getJobQCSubtasks(job);
+                        const sub = subtasks.find(s => s.id === subtaskId);
+                        if (!sub) return;
+                        if (!Array.isArray(sub.photos)) sub.photos = [];
+                        const newPhoto = {
+                            id: `sp_${Date.now()}`,
+                            title: `${sub.title}: ${file.name}`,
+                            url: e.target.result,
+                            uploaded_at: new Date().toISOString()
+                        };
+                        sub.photos.push(newPhoto);
+                        this.persistJobs();
+                        this.renderQCSubtasks(job);
+                        this.showToast(`📸 แนบรูปภาพสำเร็จ`);
+                    };
+                    reader.readAsDataURL(file);
                     return;
                 }
-                const file = event.target.files && event.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const subtasks = this.getJobQCSubtasks(job);
-                    const sub = subtasks.find(s => s.id === subtaskId);
-                    if (!sub) return;
-
-                    if (!Array.isArray(sub.photos)) sub.photos = [];
-                    const newPhoto = {
-                        id: `sp_${Date.now()}`,
-                        title: `${sub.title}: ${file.name}`,
-                        url: e.target.result,
-                        uploaded_at: new Date().toISOString()
-                    };
-                    sub.photos.push(newPhoto);
-
-                    // Also mirror to job.photos
-                    if (!Array.isArray(job.photos)) job.photos = [];
-                    job.photos.push({
-                        ...newPhoto,
-                        note: `แนบในข้อที่ ${sub.num || ''}: ${sub.title}`
-                    });
-
-                    this.persistJobs();
-                    this.renderQCSubtasks(job);
-                    this.showToast(`📸 แนบรูปภาพสำหรับ "${sub.title}" สำเร็จแล้ว`);
-                };
-                reader.readAsDataURL(file);
+                const activeTaskId = this.state.activeQCTaskId;
+                if (activeTaskId) {
+                    this.handleTaskQCPhotoUpload(event, jobId, activeTaskId, subtaskId);
+                }
             },
 
             removeSubtaskPhoto(jobId, subtaskId, photoId) {
-                const job = this.getJob(jobId);
-                if (!job) return;
-                if (this.isJobQCLocked(job)) {
-                    this.showToast('⚠️ ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC แล้ว ไม่อนุญาตให้ลบรูปภาพ');
+                const isQuick = this.isQuickJob(this.getJob(jobId));
+                if (isQuick) {
+                    const job = this.getJob(jobId);
+                    if (!job) return;
+                    const subtasks = this.getJobQCSubtasks(job);
+                    const sub = subtasks.find(s => s.id === subtaskId);
+                    if (sub && Array.isArray(sub.photos)) {
+                        sub.photos = sub.photos.filter(p => p.id !== photoId);
+                        this.persistJobs();
+                        this.renderQCSubtasks(job);
+                        this.showToast('🗑️ ลบรูปภาพเรียบร้อย');
+                    }
                     return;
                 }
-                const subtasks = this.getJobQCSubtasks(job);
-                const sub = subtasks.find(s => s.id === subtaskId);
-                if (sub && Array.isArray(sub.photos)) {
-                    sub.photos = sub.photos.filter(p => p.id !== photoId);
-                    this.persistJobs();
-                    this.renderQCSubtasks(job);
-                    this.showToast('🗑️ ลบรูปภาพเรียบร้อยแล้ว');
+                const activeTaskId = this.state.activeQCTaskId;
+                if (activeTaskId) {
+                    this.removeTaskQCPhoto(jobId, activeTaskId, subtaskId, photoId);
                 }
             },
 
             saveSubtaskRemarks(jobId, subtaskId, remarks) {
-                const job = this.getJob(jobId);
-                if (!job || this.isJobQCLocked(job)) return;
-                const subtasks = this.getJobQCSubtasks(job);
-                const sub = subtasks.find(s => s.id === subtaskId);
-                if (sub) {
-                    sub.remarks = remarks ? remarks.trim() : '';
-                    this.persistJobs();
+                const isQuick = this.isQuickJob(this.getJob(jobId));
+                if (isQuick) {
+                    const job = this.getJob(jobId);
+                    if (!job) return;
+                    const subtasks = this.getJobQCSubtasks(job);
+                    const sub = subtasks.find(s => s.id === subtaskId);
+                    if (sub) {
+                        sub.remarks = remarks ? remarks.trim() : '';
+                        this.persistJobs();
+                    }
+                    return;
+                }
+                const activeTaskId = this.state.activeQCTaskId;
+                if (activeTaskId) {
+                    this.saveTaskQCQuestionRemarks(jobId, activeTaskId, subtaskId, remarks);
                 }
             },
 
@@ -26426,7 +26963,6 @@ const app = {
                 this.updateQCDashboard();
                 this.renderQC();
 
-                // Persist draft to backend
                 fetch(`/api/v1/jobs/${job.id}`, {
                     method: 'PATCH',
                     headers: this.getAuthHeaders(),
@@ -26435,9 +26971,43 @@ const app = {
                         qc_remarks: job.qc_remarks,
                         qc_inspector: job.qc_inspector
                     })
-                }).catch(err => console.warn('PATCH QC draft error:', err));
+                }).catch(() => {});
 
                 this.showToast('💾 บันทึกแบบร่างการตรวจ QC เรียบร้อยแล้ว');
+            },
+
+            failTaskQCRework(jobId, taskId) {
+                const job = this.getJob(jobId);
+                if (!job) return;
+                const tasks = this.getJobMainTasks(job);
+                const task = tasks.find(t => String(t.id) === String(taskId));
+                if (!task) return;
+                if (task.stk_exported) {
+                    this.showToast('⚠️ งานนี้ส่ง STK เรียบร้อยแล้ว ไม่อนุญาตให้ส่งแก้');
+                    return;
+                }
+
+                const remarksEl = document.getElementById('qc-modal-overall-remarks');
+                const remark = (remarksEl && remarksEl.value.trim()) ? remarksEl.value.trim() : `พบข้อบกพร่องในงาน [${task.name}] ต้องแก้ไขก่อนส่งตรวจใหม่`;
+
+                task.qc_status = 'REWORK';
+                task.status = 'IN_PROGRESS';
+                task.has_rework = true;
+                const evalData = this.ensureTaskQCEvaluation(task, job);
+                evalData.status = 'REWORK';
+                evalData.remarks = remark;
+
+                job.status = 'QC_REWORK';
+                job.qc_status = 'QC_REWORK';
+                job.has_rework = true;
+                job.rework_count = (job.rework_count || 0) + 1;
+
+                this.persistJobs();
+                this.updateQCDashboard();
+                this.renderQCSubtasks(job);
+                this.renderQC();
+
+                this.showToast(`⚠️ บันทึกแจ้งแก้ไขงาน (Rework) สำหรับ [${task.name}] เรียบร้อย`);
             },
 
             failCurrentQCJob() {
@@ -26483,19 +27053,6 @@ const app = {
                 job.qc_rework_count = reworkCount;
                 job.rework_count = reworkCount;
 
-                const isQuick = this.isQuickJob(job);
-                const subtasks = this.getJobQCSubtasks(job);
-                subtasks.forEach(s => {
-                    if (isQuick || s.status === 'DEFECT' || s.answer === 'NO' || s.status !== 'PASSED') {
-                        s.failed_once = true;
-                        s.has_rework = true;
-                        s.is_rework_pass = false;
-                        s.answer = 'NO';
-                        s.score = 1;
-                        s.status = 'DEFECT';
-                    }
-                });
-
                 if (!job.step_timestamps) job.step_timestamps = {};
                 job.step_timestamps.qc_rework_at = nowIso;
 
@@ -26504,7 +27061,6 @@ const app = {
                 this.updateQCDashboard();
                 this.renderQC();
 
-                // Call backend PATCH to persist rework state and history
                 fetch(`/api/v1/jobs/${job.id}`, {
                     method: 'PATCH',
                     headers: this.getAuthHeaders(),
@@ -26516,13 +27072,194 @@ const app = {
                         qc_remarks: job.qc_remarks,
                         qc_inspector: job.qc_inspector,
                         qc_history: job.qc_history,
-                        qc_subtasks: job.qc_subtasks,
                         step_timestamps: job.step_timestamps
                     })
-                }).catch(err => console.warn('PATCH QC_REWORK error:', err));
+                }).catch(() => {});
 
                 this.hideModal('modal-qc-job-detail');
-                this.showToast(`⚠️ บันทึกส่งกลับแก้ไขงาน (Rework ครั้งที่ ${reworkCount}) ใบงาน ${job.job_no || job.id} เรียบร้อย (รอบถัดไปคะแนนล็อก 1.0 อัตโนมัติเมื่อตรวจผ่าน)`);
+                this.showToast(`⚠️ บันทึกส่งกลับแก้ไขงาน (Rework ครั้งที่ ${reworkCount}) เรียบร้อย`);
+            },
+
+            async submitTaskQCApproval(jobId, taskId) {
+                const job = this.getJob(jobId);
+                if (!job) return;
+                const isQuick = this.isQuickJob(job);
+                if (isQuick) {
+                    return this.approveCurrentJobToSTK();
+                }
+
+                const tasks = this.getJobMainTasks(job);
+                const task = tasks.find(t => String(t.id) === String(taskId));
+                if (!task) return;
+
+                if (task.stk_exported) {
+                    this.showToast(`⚠️ งาน [${task.name}] ได้รับการปิดงานและส่งผลประเมินไปยัง STK เรียบร้อยแล้ว (Ref: ${task.stk_ref})`);
+                    return;
+                }
+
+                const evalData = this.ensureTaskQCEvaluation(task, job);
+                const tp = this.calculateTaskQCProgress(task, job);
+                if (!tp.isAllComplete) {
+                    this.showToast(`⚠️ กรุณาประเมินข้อคำถามของ [${task.name}] ให้ครบทุกข้อก่อนปิดงานส่ง STK (คงเหลือ ${tp.total - tp.completed} ข้อ)`);
+                    return;
+                }
+
+                const nowIso = new Date().toISOString();
+                const nowDmy = this.formatDateTimeDMY(nowIso, false, true);
+                const stkRef = `STK-TASK-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+
+                const questionsPayload = evalData.questions.map((q, idx) => ({
+                    question_no: q.num || (idx + 1),
+                    question_title: q.title,
+                    category: q.category || 'มาตรฐาน QC On-site',
+                    answer: q.answer || 'YES',
+                    score: q.score || 5,
+                    max_score: 5,
+                    result: q.answer === 'YES' ? 'PASS' : 'DEFECT',
+                    remarks: q.remarks || '',
+                    photos_count: Array.isArray(q.photos) ? q.photos.length : 0,
+                    photos: Array.isArray(q.photos) ? q.photos : []
+                }));
+
+                const techPhotos = this.getTaskTechnicianPhotos(job, task);
+
+                const taskPayload = {
+                    ref_no: stkRef,
+                    ticket: job.ticket_no || job.job_no || job.id,
+                    booking_no: job.booking_no || (job.raw_payload && (job.raw_payload.booking_no || job.raw_payload.vfix_no)) || '-',
+                    task_id: task.id,
+                    task_name: task.name,
+                    subtasks: Array.isArray(task.subtasks) ? task.subtasks.map(s => s.name || s.title || s) : [],
+                    qc_date: nowDmy,
+                    qc_recorded_at: nowIso,
+                    customer_name: job.customer || 'ลูกค้า',
+                    customer_phone: job.phone || '-',
+                    qc_round: 1,
+                    qc_round_text: 'ตรวจรับรอง On-site (ผ่านเกณฑ์รอบแรก)',
+                    qc_result: 'PASSED',
+                    qc_score: Number(tp.averageScore),
+                    qc_score_text: `${tp.averageScore} / 5.0 (ผ่านเกณฑ์ On-site)`,
+                    qc_inspector: (job.qc_booking && job.qc_booking.assignedQCTech) || job.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
+                    job_no: job.job_no || job.id,
+                    job_id: job.id,
+                    stk_ref: stkRef,
+                    questions: questionsPayload,
+                    tech_daily_photos: techPhotos,
+                    qc_remarks: evalData.remarks || `ตรวจรับรองงาน ${task.name} ผ่านเกณฑ์มาตรฐาน On-site ถูกต้องเรียบร้อย`
+                };
+
+                task.qc_status = 'PASSED';
+                task.status = 'DONE';
+                task.progress = 100;
+                task.stk_exported = true;
+                task.stk_ref = stkRef;
+                task.stk_exported_at = nowIso;
+                task.stk_payload = taskPayload;
+
+                evalData.status = 'PASSED';
+                evalData.stk_exported = true;
+                evalData.stk_ref = stkRef;
+                evalData.stk_exported_at = nowIso;
+                evalData.stk_payload = taskPayload;
+
+                const allTasks = this.getJobMainTasks(job);
+                const unexportedTasks = allTasks.filter(t => !t.stk_exported && !(t.qc_evaluation && t.qc_evaluation.stk_exported));
+                const allPassed = unexportedTasks.length === 0;
+
+                if (allPassed) {
+                    job.status = 'QC_PASSED';
+                    job.qc_status = 'QC_PASSED';
+                    job.progress = 100;
+                    job.stk_status = 'DELIVERED';
+                    job.stk_ref = stkRef;
+                    job.qc_passed_at = nowIso;
+                    job.stk_exported_at = nowIso;
+                    job.stk_payload = taskPayload;
+                    if (!job.step_timestamps) job.step_timestamps = {};
+                    job.step_timestamps.qc_passed_at = nowIso;
+                    job.step_timestamps.stk_exported_at = nowIso;
+                } else {
+                    job.status = 'IN_PROGRESS';
+                    job.stk_status = 'PARTIAL_DELIVERED';
+                }
+
+                this.recordStepTimestamp(
+                    job.id,
+                    'stk_exported_at',
+                    nowIso,
+                    `ปิดงานและส่งประเมิน STK สำหรับงาน [${task.name}] (Ref: ${stkRef}) - สถานะโครงการ: ${allPassed ? 'ปิดงานสมบูรณ์ 100% (CLOSED)' : `ปิดแล้ว ${allTasks.length - unexportedTasks.length}/${allTasks.length} งานหลัก`}`
+                );
+
+                this.persistJobs();
+                this.updateStepBadges();
+                this.updateQCDashboard();
+                this.renderQCSubtasks(job);
+                this.renderQC();
+
+                try {
+                    const res = await fetch(`/api/v1/jobs/${job.id}/export-stk`, {
+                        method: 'POST',
+                        headers: this.getAuthHeaders(),
+                        body: JSON.stringify({
+                            ...taskPayload,
+                            all_tasks_passed: allPassed
+                        })
+                    });
+                    const resp = await res.json();
+                    if (resp && resp.data && resp.data.stk_ref) {
+                        task.stk_ref = resp.data.stk_ref;
+                        task.qc_evaluation.stk_ref = resp.data.stk_ref;
+                        this.persistJobs();
+                    }
+                } catch (e) {
+                    console.warn('[submitTaskQCApproval] export-stk API error:', e);
+                }
+
+                if (allPassed) {
+                    this.showToast(`🏁 ยินดีด้วย! ปิดงานครบทุกงานหลัก (${allTasks.length} งาน) และส่งข้อมูลไปยังระบบ STK เรียบร้อยแล้ว โครงการเสร็จสิ้นสมบูรณ์ 100% (CLOSED)`);
+                } else {
+                    this.showToast(`✓ บันทึกปิดงาน [${task.name}] และส่งผลประเมินไปยังระบบ STK สำเร็จ (Ref: ${stkRef}) — คงเหลืออีก ${unexportedTasks.length} งานหลัก`);
+                }
+            },
+
+            showTaskSTKPayload(jobId, taskId) {
+                const job = this.getJob(jobId);
+                if (!job) return;
+                const tasks = this.getJobMainTasks(job);
+                const task = tasks.find(t => String(t.id) === String(taskId));
+                if (!task || !task.stk_payload) {
+                    this.showToast('⚠️ ยังไม่มีข้อมูล STK Payload สำหรับงานนี้');
+                    return;
+                }
+                this.renderSTKPayloadModalData(task.stk_payload);
+            },
+
+            renderSTKPayloadModalData(payload) {
+                const refEl = document.getElementById('stk-view-ref-no');
+                if (refEl) refEl.innerText = payload.ref_no || '-';
+                const ticketEl = document.getElementById('stk-view-ticket');
+                if (ticketEl) ticketEl.innerText = payload.ticket || payload.job_no || '-';
+                const bookingEl = document.getElementById('stk-view-booking-no');
+                if (bookingEl) bookingEl.innerText = payload.booking_no || '-';
+                const dateEl = document.getElementById('stk-view-qc-date');
+                if (dateEl) dateEl.innerText = payload.qc_date || '-';
+                const nameEl = document.getElementById('stk-view-customer-name');
+                if (nameEl) nameEl.innerText = payload.customer_name || '-';
+                const phoneEl = document.getElementById('stk-view-customer-phone');
+                if (phoneEl) phoneEl.innerText = payload.customer_phone || '-';
+                const roundEl = document.getElementById('stk-view-qc-round');
+                if (roundEl) roundEl.innerText = `${payload.qc_round_text || `ครั้งที่ ${payload.qc_round || 1}`} — ${payload.qc_result || 'PASSED'}`;
+                const scoreEl = document.getElementById('stk-view-qc-score');
+                if (scoreEl) scoreEl.innerText = `${Number(payload.qc_score || 0).toFixed(1)} คะแนน (${payload.qc_score_text || ''})`;
+
+                const jsonEl = document.getElementById('stk-view-json');
+                if (jsonEl) jsonEl.textContent = JSON.stringify(payload, null, 2);
+
+                const refBadge = document.getElementById('stk-view-ref-badge');
+                if (refBadge) refBadge.innerText = `STK Reference: ${payload.ref_no || payload.stk_ref || '-'}`;
+
+                this.state.lastSTKPayload = payload;
+                this.showModal('modal-stk-payload-view');
             },
 
             approveCurrentJobToSTK() {
@@ -26531,32 +27268,22 @@ const app = {
                 if (!job) return;
 
                 if (this.isJobQCLocked(job)) {
-                    this.showToast('⚠️ ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC และส่งข้อมูลไปยังระบบ STK เรียบร้อยแล้ว ไม่อนุญาตให้บันทึกซ้ำ');
+                    this.showToast('⚠️ ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC และส่งข้อมูลไปยังระบบ STK เรียบร้อยแล้ว');
                     return;
                 }
 
                 const isQuick = this.isQuickJob(job);
-                const subtasks = this.getJobQCSubtasks(job);
-
-                // Defensive DOM-to-Memory recovery: If memory was wiped or desynced by background polling,
-                // but the user visibly answered in the modal DOM:
-                if (isQuick && subtasks.length > 0 && !subtasks[0].answer) {
-                    const btnYes = document.querySelector('#qc-subtasks-list button[onclick*="YES"]');
-                    const btnNo = document.querySelector('#qc-subtasks-list button[onclick*="NO"]');
-                    if (btnYes && (btnYes.classList.contains('bg-emerald-600') || btnYes.classList.contains('bg-amber-600'))) {
-                        subtasks[0].answer = 'YES';
-                        subtasks[0].status = 'PASSED';
-                        subtasks[0].score = 5;
-                    } else if (btnNo && btnNo.classList.contains('bg-rose-600')) {
-                        subtasks[0].answer = 'NO';
-                        subtasks[0].status = 'DEFECT';
-                        subtasks[0].score = 1;
+                if (!isQuick) {
+                    const activeTaskId = this.state.activeQCTaskId;
+                    if (activeTaskId) {
+                        return this.submitTaskQCApproval(job.id, activeTaskId);
                     }
                 }
 
+                const subtasks = this.getJobQCSubtasks(job);
                 const progress = this.calculateJobQCProgress(job);
                 if (!progress.isAllComplete) {
-                    this.showToast(`⚠️ ไม่สามารถส่งผลตรวจไป STK ได้: กรุณาประเมินและให้คะแนนงานย่อยให้ครบทุกข้อก่อน (คงเหลือ ${progress.total - progress.completed} ข้อ)`);
+                    this.showToast(`⚠️ ไม่สามารถส่งผลตรวจไป STK ได้: กรุณาประเมินและให้คะแนนให้ครบทุกข้อก่อน`);
                     return;
                 }
 
@@ -26565,117 +27292,53 @@ const app = {
                 const remarksEl = document.getElementById('qc-modal-overall-remarks');
                 if (remarksEl) job.qc_remarks = remarksEl.value.trim();
 
-                if (!Array.isArray(job.qc_history)) job.qc_history = [];
-                const reworkCount = job.qc_history.filter(h => h.result === 'REWORK' || h.action === 'REWORK').length || (job.qc_rework_count || job.rework_count || 0);
-                const isJobRework = job.status === 'QC_REWORK' || reworkCount > 0 || (job.rework_count && job.rework_count > 0) || !!job.has_rework || job.qc_history.some(h => h.result === 'REWORK' || h.action === 'REWORK');
-                const currentRound = job.qc_history.length + 1;
-                const isRound2Plus = currentRound >= 2 || isJobRework;
-
-                // Strict 1.0 Score Lock for Round >= 2
-                const calculatedAvg = Number(progress.averageScore);
-                const finalAvgScore = isRound2Plus ? 1.0 : (calculatedAvg > 0 ? calculatedAvg : 5.0);
-
-                const questionsPayload = subtasks.map((s, idx) => {
-                    const isRework = isRound2Plus || s.is_rework_pass || s.failed_once || s.has_rework || (isQuick && isJobRework);
-                    const finalScore = (s.answer === 'YES' || s.status === 'PASSED') 
-                        ? (isRework ? 1 : (Number(s.score) > 0 ? Number(s.score) : 5))
-                        : 1;
-                    return {
-                        question_no: s.num || (idx + 1),
-                        question_title: s.title || `ข้อที่ ${idx + 1}`,
-                        category: s.category || 'มาตรฐาน QC',
-                        answer: s.answer || ((s.status === 'PASSED' || Number(s.score) >= 1) ? 'YES' : 'NO'),
-                        score: finalScore,
-                        max_score: 5,
-                        result: (s.answer === 'YES' || s.status === 'PASSED') ? 'PASS' : 'DEFECT',
-                        is_rework_pass: isRework && (s.answer === 'YES' || s.status === 'PASSED'),
-                        remarks: s.remarks || '',
-                        photos_count: Array.isArray(s.photos) ? s.photos.length : 0,
-                        photos: (Array.isArray(s.photos) ? s.photos : []).map(p => ({
-                            id: p.id,
-                            title: p.title,
-                            url: p.url,
-                            uploaded_at: p.uploaded_at
-                        }))
-                    };
-                });
-
                 const stkRef = `STK-QC-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
                 const nowIso = new Date().toISOString();
                 const nowDmy = this.formatDateTimeDMY(nowIso, false, true);
 
-                // Record passed entry into qc_history
-                const passedHistoryEntry = {
-                    round: currentRound,
-                    round_label: isRound2Plus ? `ตรวจครั้งที่ ${currentRound} (ผ่านเกณฑ์รอบแก้ไข)` : `ตรวจครั้งที่ 1 (ผ่านเกณฑ์รอบแรก)`,
-                    action: 'PASSED',
-                    result: 'PASSED',
-                    score: finalAvgScore,
-                    score_display: Number(finalAvgScore).toFixed(1),
-                    inspector: job.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
-                    timestamp: nowIso,
-                    date_display: nowDmy,
-                    remarks: job.qc_remarks || 'งานติดตั้งเรียบร้อยตามมาตรฐาน'
-                };
-                job.qc_history.push(passedHistoryEntry);
+                const questionsPayload = subtasks.map((s, idx) => ({
+                    question_no: s.num || (idx + 1),
+                    question_title: s.title || `ข้อที่ ${idx + 1}`,
+                    category: s.category || 'มาตรฐาน QC',
+                    answer: s.answer || 'YES',
+                    score: s.score || 5,
+                    max_score: 5,
+                    result: 'PASS',
+                    remarks: s.remarks || '',
+                    photos_count: Array.isArray(s.photos) ? s.photos.length : 0,
+                    photos: Array.isArray(s.photos) ? s.photos : []
+                }));
 
-                const refNo = job.external_ref_id || job.stk_ref || stkRef;
-                const ticket = job.ticket_no || job.ticket || job.ticket_id || job.job_no || job.id || '-';
-                const bookingNo = job.booking_no || job.booking_id || job.appointment_no || (job.raw_payload && (job.raw_payload.booking_no || job.raw_payload.vfix_no)) || '-';
-                const customerName = job.customer || job.customer_name || 'ลูกค้า';
-                const customerPhone = job.phone || job.customer_phone || '-';
-                const qcRoundText = isRound2Plus ? `ตรวจครั้งที่ ${currentRound} (ผ่านเกณฑ์รอบแก้ไข)` : `ตรวจครั้งที่ 1 (ผ่านเกณฑ์รอบแรก)`;
-                const qcScoreText = isRound2Plus ? `${Number(finalAvgScore).toFixed(1)} / 5.0 (ผ่านเกณฑ์รอบแก้ไข)` : `${Number(finalAvgScore).toFixed(1)} / 5.0 (ผ่านเกณฑ์รอบแรก)`;
-
-                // Format Outbound STK API Payload (featuring the 8 required fields)
                 const stkPayload = {
-                    // 1. เลขที่ Ref
-                    ref_no: refNo,
-                    // 2. ticket
-                    ticket: ticket,
-                    // 3. booking_no
-                    booking_no: bookingNo,
-                    // 4. วันที่ บันทึก Qc (24-hr DD/MM/YYYY HH:mm:ss น.)
+                    ref_no: stkRef,
+                    ticket: job.ticket_no || job.job_no || job.id || '-',
+                    booking_no: job.booking_no || (job.raw_payload && (job.raw_payload.booking_no || job.raw_payload.vfix_no)) || '-',
                     qc_date: nowDmy,
                     qc_recorded_at: nowIso,
-                    // 5. ชื่อลูกค้า นามสกุล
-                    customer_name: customerName,
-                    // 6. เบอร์โทร
-                    customer_phone: customerPhone,
-                    // 7. ผลการทดสอบ QC ครั้งที่ x
-                    qc_round: currentRound,
-                    qc_round_text: qcRoundText,
+                    customer_name: job.customer || 'ลูกค้า',
+                    customer_phone: job.phone || '-',
+                    qc_round: 1,
+                    qc_round_text: 'ตรวจครั้งที่ 1 (ผ่านเกณฑ์รอบแรก)',
                     qc_result: 'PASSED',
-                    // 8. คะแนน ประเมิน
-                    qc_score: finalAvgScore,
-                    qc_score_text: qcScoreText,
-
-                    // Detailed Job Metadata
+                    qc_score: 5.0,
+                    qc_score_text: '5.0 / 5.0 (ผ่านเกณฑ์รอบแรก)',
                     job_no: job.job_no || job.id,
                     job_id: job.id,
-                    stk_ref: refNo,
-                    inspection_date: nowIso,
-                    inspection_round: currentRound,
-                    rework_count: reworkCount,
-                    service: job.service || job.service_type || 'บริการติดตั้ง',
-                    tech_team: job.tech || job.assigned_team || '-',
+                    stk_ref: stkRef,
+                    service: job.service || 'บริการติดตั้ง',
+                    tech_team: job.tech || '-',
                     qc_inspector: job.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
-                    total_score_obtained: questionsPayload.reduce((sum, q) => sum + q.score, 0),
-                    max_possible_score: questionsPayload.length * 5,
-                    total_questions: questionsPayload.length,
-                    passed_questions: questionsPayload.filter(q => q.result === 'PASS').length,
                     questions: questionsPayload,
-                    qc_history: job.qc_history,
                     qc_remarks: job.qc_remarks || 'งานติดตั้งเรียบร้อยตามมาตรฐาน'
                 };
 
                 job.status = 'QC_PASSED';
                 job.qc_status = 'QC_PASSED';
-                job.qc_score = finalAvgScore;
+                job.qc_score = 5.0;
                 job.qc_passed_at = nowIso;
                 job.progress = 100;
                 job.stk_status = 'DELIVERED';
-                job.stk_ref = refNo;
+                job.stk_ref = stkRef;
                 job.stk_exported_at = nowIso;
                 job.stk_payload = stkPayload;
 
@@ -26687,27 +27350,18 @@ const app = {
                     job.id, 
                     'stk_exported_at', 
                     nowIso, 
-                    `อนุมัติผ่านเกณฑ์ QC ครั้งที่ ${currentRound} (${finalAvgScore} คะแนน) และส่งข้อมูลผลตรวจออก API ไปยังระบบ STK (Ref: ${refNo})`
+                    `อนุมัติผ่านเกณฑ์ QC และส่งข้อมูลผลตรวจออก API ไปยังระบบ STK (Ref: ${stkRef})`
                 );
                 this.persistJobs();
                 this.updateStepBadges();
                 this.updateQCDashboard();
 
-                // Outbound REST API call to backend & STK integration
                 fetch(`/api/v1/jobs/${job.id}/export-stk`, {
                     method: 'POST',
                     headers: this.getAuthHeaders(),
                     body: JSON.stringify(stkPayload)
-                }).then(r => r.json()).then(resp => {
-                    if (resp && resp.data && resp.data.stk_ref) {
-                        job.stk_ref = resp.data.stk_ref;
-                        this.persistJobs();
-                    }
-                }).catch(err => {
-                    console.warn('STK Export background API error:', err);
-                });
+                }).catch(() => {});
 
-                // Also update job record via standard PATCH
                 fetch(`/api/v1/jobs/${job.id}`, {
                     method: 'PATCH',
                     headers: this.getAuthHeaders(),
@@ -26718,16 +27372,13 @@ const app = {
                         qc_passed_at: job.qc_passed_at,
                         qc_inspector: job.qc_inspector,
                         qc_remarks: job.qc_remarks,
-                        qc_history: job.qc_history,
-                        qc_subtasks: job.qc_subtasks,
                         step_timestamps: job.step_timestamps
                     })
                 }).catch(() => {});
 
                 this.hideModal('modal-qc-job-detail');
                 this.renderQC();
-                const roundText = isRound2Plus ? `ผ่านเกณฑ์รอบแก้ไขครั้งที่ ${currentRound} (ได้ 1.0 คะแนนอัตโนมัติ)` : `ผ่านเกณฑ์รอบแรก (ได้ 5.0 คะแนนเต็ม)`;
-                this.showToast(`🚀 อนุมัติผ่านเกณฑ์ QC ใบงาน ${job.job_no || job.id} [${roundText}] และส่งข้อมูลไปยังระบบ STK สำเร็จ (Ref: ${refNo})`);
+                this.showToast(`🚀 อนุมัติผ่านเกณฑ์ QC ใบงาน ${job.job_no || job.id} และส่งข้อมูลไปยังระบบ STK สำเร็จ (Ref: ${stkRef})`);
             },
 
             approveCurrentJobToCSAT() {
