@@ -734,6 +734,14 @@ const app = {
                             longhand: ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"]
                         }
                     },
+                    onChange: (selectedDates, dateStr, instance) => {
+                        try {
+                            instance.element.dispatchEvent(new Event('change', { bubbles: true }));
+                        } catch(e) {}
+                        if (typeof options.onChange === 'function') {
+                            options.onChange(selectedDates, dateStr, instance);
+                        }
+                    },
                     ...options
                 };
 
@@ -5286,6 +5294,40 @@ const app = {
                         source = source.filter(j => !this.isQuickJob(j) && (j.job_type === 'renovate' || (j.services && JSON.stringify(j.services).toLowerCase().includes('renovate'))));
                     } else if (this.state.jobsFilterService === 'ma') {
                         source = source.filter(j => (j.job_type === 'ma' || (j.services && JSON.stringify(j.services).toLowerCase().includes('ma'))));
+                    }
+
+                    // Date range filter for กำหนดวันนัด (plan_date / date)
+                    const dateFromEl = document.getElementById('filter-appt-date-from');
+                    const dateToEl = document.getElementById('filter-appt-date-to');
+                    const dateFromISO = this.formatDateISO(dateFromEl ? dateFromEl.value.trim() : '');
+                    const dateToISO = this.formatDateISO(dateToEl ? dateToEl.value.trim() : '');
+
+                    if (dateFromISO || dateToISO) {
+                        source = source.filter(j => {
+                            const rawDate = j.plan_date || j.date || '';
+                            const jobDateISO = this.formatDateISO(rawDate);
+                            if (!jobDateISO) return false;
+                            if (dateFromISO && jobDateISO < dateFromISO) return false;
+                            if (dateToISO && jobDateISO > dateToISO) return false;
+                            return true;
+                        });
+                    }
+
+                    // Search query filter
+                    const searchEl = document.getElementById('jobs-table-search');
+                    const query = (searchEl && searchEl.value) ? searchEl.value.trim().toLowerCase() : (this.state.jobsSearch || '').toLowerCase();
+                    if (query) {
+                        source = source.filter(j =>
+                            (j.id && String(j.id).toLowerCase().includes(query)) ||
+                            (j.job_no && String(j.job_no).toLowerCase().includes(query)) ||
+                            (j.external_ref_id && String(j.external_ref_id).toLowerCase().includes(query)) ||
+                            (j.booking_no && String(j.booking_no).toLowerCase().includes(query)) ||
+                            (j.ticket_no && String(j.ticket_no).toLowerCase().includes(query)) ||
+                            (j.customer_name && String(j.customer_name).toLowerCase().includes(query)) ||
+                            (this.getCustomerName(j) && this.getCustomerName(j).toLowerCase().includes(query)) ||
+                            (j.customer_phone && String(j.customer_phone).includes(query)) ||
+                            (j.assigned_tech && String(j.assigned_tech).toLowerCase().includes(query))
+                        );
                     }
 
                     this.state.jobsTotal = source.length;

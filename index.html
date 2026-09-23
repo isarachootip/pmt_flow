@@ -1269,12 +1269,14 @@
                                         <div class="relative">
                                             <i class="ph ph-calendar absolute left-2 top-1/2 -translate-y-1/2 text-indigo-500 text-xs pointer-events-none"></i>
                                             <input type="text" id="filter-appt-date-from" data-datepicker="true" placeholder="DD/MM/YYYY" readonly
+                                                onchange="app.filterJobsTable()"
                                                 class="pl-6 pr-1.5 py-0.5 text-xs bg-transparent border-0 text-foreground placeholder:text-muted-foreground/60 focus:outline-none w-24 cursor-pointer">
                                         </div>
                                         <span class="text-muted-foreground text-[11px] px-0.5">ถึง</span>
                                         <div class="relative">
                                             <i class="ph ph-calendar absolute left-2 top-1/2 -translate-y-1/2 text-indigo-500 text-xs pointer-events-none"></i>
                                             <input type="text" id="filter-appt-date-to" data-datepicker="true" placeholder="DD/MM/YYYY" readonly
+                                                onchange="app.filterJobsTable()"
                                                 class="pl-6 pr-1.5 py-0.5 text-xs bg-transparent border-0 text-foreground placeholder:text-muted-foreground/60 focus:outline-none w-24 cursor-pointer">
                                         </div>
                                         <button type="button" onclick="app.clearApptDateFilter()" title="ล้างตัวกรองวันนัด" class="px-1.5 py-0.5 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-xs cursor-pointer">
