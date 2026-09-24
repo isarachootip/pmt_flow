@@ -9,10 +9,26 @@ import { useNavigate } from 'react-router-dom';
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { data: summary, isLoading: isLoadingSummary } = useJobSummary();
-  const { data: todayJobs, isLoading: isLoadingToday } = useJobs({ date_from: new Date().toISOString().split('T')[0], limit: 5 });
-  const { data: overdueJobs, isLoading: isLoadingOverdue } = useJobs({ status: 'overdue', limit: 5 });
+  const { data: allJobsData, isLoading: isLoadingJobs } = useJobs({ page: 1, limit: 10 });
 
-  const metrics = summary?.metrics || { total: 0, new_today: 0, pending_plan: 0, overdue: 0 };
+  const metrics = summary?.metrics || { 
+    total: 0, 
+    step1: 0, 
+    in_progress: 0, 
+    qc_pending: 0, 
+    completed: 0, 
+    qc_passed: 0,
+    today: 0 
+  };
+
+  const newJobsCount = Number(metrics.step1 ?? metrics.today ?? 0);
+  const inProgressCount = Number(metrics.in_progress ?? 0);
+  const qcPendingCount = Number(metrics.qc_pending ?? 0);
+  const completedCount = Number(metrics.completed ?? metrics.qc_passed ?? 0);
+
+  const jobs = allJobsData?.data || [];
+  const todayJobs = jobs.slice(0, 5);
+  const queueJobs = jobs.filter((j: any) => j.status === 'SURVEYED' || j.status === 'IN_PROGRESS' || !j.pmt_accepted).slice(0, 5);
 
   return (
     <div className="flex flex-col flex-1 h-full bg-subtle p-6 space-y-6 overflow-auto">
@@ -23,10 +39,10 @@ export default function DashboardPage() {
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />)
         ) : (
           <>
-            <KpiCard label="งานใหม่" value={metrics.new_today} />
-            <KpiCard label="กำลังดำเนินการ" value={metrics.pending_plan} />
-            <KpiCard label="รอ QC" value={metrics.total - metrics.new_today - metrics.pending_plan - metrics.overdue} />
-            <KpiCard label="ปิดแล้วเดือนนี้" value={metrics.overdue} />
+            <KpiCard label="งานใหม่" value={newJobsCount} />
+            <KpiCard label="กำลังดำเนินการ" value={inProgressCount} />
+            <KpiCard label="รอ QC" value={qcPendingCount} />
+            <KpiCard label="ปิดแล้วเดือนนี้" value={completedCount} />
           </>
         )}
       </div>
@@ -34,9 +50,9 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 gap-6">
         <div className="bg-card rounded-2xl border border-soft p-5 shadow-card flex flex-col">
           <h2 className="text-sm font-semibold mb-4 text-text">งานที่ต้องทำวันนี้</h2>
-          {isLoadingToday ? (
+          {isLoadingJobs ? (
             <Skeleton className="h-40 rounded-lg" />
-          ) : todayJobs?.data?.length === 0 ? (
+          ) : todayJobs.length === 0 ? (
             <EmptyState />
           ) : (
             <div className="overflow-x-auto">
@@ -49,13 +65,13 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {todayJobs?.data?.map((job: any) => (
+                  {todayJobs.map((job: any) => (
                     <tr 
                       key={job.id} 
                       className="h-13 border-b border-soft hover:bg-subtle cursor-pointer transition-colors"
                       onClick={() => navigate(`/orders/${job.job_no}`)}
                     >
-                      <td className="px-4 text-sm whitespace-nowrap">{job.job_no}</td>
+                      <td className="px-4 text-sm whitespace-nowrap font-mono font-medium">{job.job_no}</td>
                       <td className="px-4 text-sm whitespace-nowrap">{typeof job.customer === 'string' ? job.customer : job.customer?.name}</td>
                       <td className="px-4 whitespace-nowrap"><StatusBadge status={job.status === 'QC_PENDING' ? 'PENDING' : job.status} /></td>
                     </tr>
@@ -67,10 +83,10 @@ export default function DashboardPage() {
         </div>
 
         <div className="bg-card rounded-2xl border border-soft p-5 shadow-card flex flex-col">
-          <h2 className="text-sm font-semibold mb-4 text-text">งานใกล้ครบกำหนด 5 วัน</h2>
-          {isLoadingOverdue ? (
+          <h2 className="text-sm font-semibold mb-4 text-text">คิวงานรอจัดสรร / ดำเนินการ</h2>
+          {isLoadingJobs ? (
             <Skeleton className="h-40 rounded-lg" />
-          ) : overdueJobs?.data?.length === 0 ? (
+          ) : queueJobs.length === 0 ? (
             <EmptyState />
           ) : (
             <div className="overflow-x-auto">
@@ -83,13 +99,13 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {overdueJobs?.data?.map((job: any) => (
+                  {queueJobs.map((job: any) => (
                     <tr 
                       key={job.id} 
                       className="h-13 border-b border-soft hover:bg-subtle cursor-pointer transition-colors"
                       onClick={() => navigate(`/orders/${job.job_no}`)}
                     >
-                      <td className="px-4 text-sm whitespace-nowrap">{job.job_no}</td>
+                      <td className="px-4 text-sm whitespace-nowrap font-mono font-medium">{job.job_no}</td>
                       <td className="px-4 text-sm whitespace-nowrap">{typeof job.customer === 'string' ? job.customer : job.customer?.name}</td>
                       <td className="px-4 whitespace-nowrap"><StatusBadge status={job.status === 'QC_PENDING' ? 'PENDING' : job.status} /></td>
                     </tr>

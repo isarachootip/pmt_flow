@@ -407,8 +407,15 @@ async function initDatabase() {
         ('USR-001B', 'isarachootip@gmail.com', 'isarachootip@gmail.com', 'Isara Chootip', 'ADMIN', '$2a$12$demo_df4740268cae8dd415b3c396825c0ff1800f16f0b48db929c426639bcf469bfd', true)
       ON CONFLICT (username) DO NOTHING;
     `);
+        // 3. Auto-seed mock data if core_jobs table is empty
+        const countCheck = await client.query('SELECT COUNT(*)::int AS count FROM core_jobs');
+        const existingCount = countCheck.rows[0]?.count || 0;
         client.release();
         console.log('[DB] Core tables verified / created in spmt_db.');
+        if (existingCount === 0) {
+            console.log('[DB AUTO-SEED] core_jobs table is empty. Auto-seeding initial jobs...');
+            await dbSeedMockJobs();
+        }
         return true;
     }
     catch (err) {

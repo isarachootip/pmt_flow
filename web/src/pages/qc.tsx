@@ -46,15 +46,15 @@ export default function QcPage() {
       return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`;
     }},
     { id: 'time_slot', header: 'ช่วงเวลา', accessorKey: 'time_slot' },
-    { id: 'status', header: 'สถานะ', cell: ({ row }: any) => <StatusBadge status={row.original.status as any} /> },
+    { id: 'status', header: 'สถานะ', cell: ({ row }: any) => <StatusBadge status={row.status as any} /> },
     { id: 'inspector', header: 'ผู้ตรวจ', accessorKey: 'inspector' },
     { id: 'actions', header: '', cell: ({ row }: any) => (
         <div className="flex gap-2">
-          {row.original.status === 'PENDING' && (
-            <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); handleConfirmBooking(row.original.id); }}>ยืนยันนัด QC</Button>
+          {row.status === 'PENDING' && (
+            <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); handleConfirmBooking(row.id); }}>ยืนยันนัด QC</Button>
           )}
-          {(row.original.status === 'CONFIRMED' || row.original.status === 'PENDING') && (
-            <Button size="sm" onClick={(e) => { e.stopPropagation(); setSelectedBooking(row.original); setShowQcForm(true); }}>เริ่มตรวจ QC</Button>
+          {(row.status === 'CONFIRMED' || row.status === 'PENDING') && (
+            <Button size="sm" onClick={(e) => { e.stopPropagation(); setSelectedBooking(row); setShowQcForm(true); }}>เริ่มตรวจ QC</Button>
           )}
         </div>
       ) 

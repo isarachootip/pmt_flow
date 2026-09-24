@@ -361,8 +361,17 @@ export async function initDatabase(): Promise<boolean> {
       ON CONFLICT (username) DO NOTHING;
     `);
 
+    // 3. Auto-seed mock data if core_jobs table is empty
+    const countCheck = await client.query('SELECT COUNT(*)::int AS count FROM core_jobs');
+    const existingCount = countCheck.rows[0]?.count || 0;
+
     client.release();
     console.log('[DB] Core tables verified / created in spmt_db.');
+
+    if (existingCount === 0) {
+      console.log('[DB AUTO-SEED] core_jobs table is empty. Auto-seeding initial jobs...');
+      await dbSeedMockJobs();
+    }
     return true;
   } catch (err: any) {
     console.error('[DB FATAL] Could not initialize PostgreSQL tables:', err.message);

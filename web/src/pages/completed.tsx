@@ -50,19 +50,19 @@ export default function CompletedPage() {
       return '-';
     }},
     { id: 'csat', header: 'CSAT', cell: ({ row }: any) => row.csat_score ? `${row.csat_score}/5` : '-' },
-    { id: 'status', header: 'สถานะ', cell: ({ row }: any) => <StatusBadge status={row.original.status as any} /> },
+    { id: 'status', header: 'สถานะ', cell: ({ row }: any) => <StatusBadge status={row.status as any} /> },
     { id: 'actions', header: '', cell: ({ row }: any) => {
-        const status = row.original.status;
+        const status = row.status;
         return (
           <div className="flex gap-2">
             {status === 'QC_PASS' && (
-              <Button size="sm" onClick={(e) => { e.stopPropagation(); setSelectedJob(row.original); setShowCsatForm(true); }}>ประเมิน CSAT</Button>
+              <Button size="sm" onClick={(e) => { e.stopPropagation(); setSelectedJob(row); setShowCsatForm(true); }}>ประเมิน CSAT</Button>
             )}
             {status === 'COMPLETED' && (
-              <Button size="sm" onClick={(e) => { e.stopPropagation(); handleCloseAndBmt(row.original.id); }}>ปิดงาน & ส่ง STK</Button>
+              <Button size="sm" onClick={(e) => { e.stopPropagation(); handleCloseAndBmt(row.id); }}>ปิดงาน & ส่ง STK</Button>
             )}
             {status === 'CLOSED' && (
-              <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); handleExportStk(row.original.id); }}>ส่ง STK</Button>
+              <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); handleExportStk(row.id); }}>ส่ง STK</Button>
             )}
           </div>
         );

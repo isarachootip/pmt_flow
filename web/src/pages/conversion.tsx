@@ -9,8 +9,8 @@ import { ConvertBoqDrawer } from '@/features/jobs/convert-boq-drawer';
 export default function ConversionPage() {
   const { data: jobsData, isLoading } = useJobs({});
   
-  // Master grid: Jobs ready to convert (status DESIGNING or BOQ)
-  const conversionJobs = jobsData?.data?.filter((job: Job) => job.status === 'BOQ' || job.status === 'DESIGNING') || [];
+  // Master grid: Jobs ready to convert or manage BOQ
+  const conversionJobs = jobsData?.data?.filter((job: Job) => ['BOQ', 'DESIGNING', 'SURVEYED', 'IN_PROGRESS'].includes(job.status?.toUpperCase())) || jobsData?.data || [];
   
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
