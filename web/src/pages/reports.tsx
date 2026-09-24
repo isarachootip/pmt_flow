@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { DatePicker } from '@/components/ui/date-picker';
 
 export default function ReportsPage() {
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
@@ -19,10 +20,10 @@ export default function ReportsPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">รายงาน (Reports)</h1>
         <div className="flex gap-4 items-center">
-          <div className="flex gap-2">
-            <input type="date" className="border border-gray-300 rounded-md p-2 text-sm" value={dateRange.start} onChange={e => setDateRange({ ...dateRange, start: e.target.value })} />
-            <span className="self-center text-gray-500">-</span>
-            <input type="date" className="border border-gray-300 rounded-md p-2 text-sm" value={dateRange.end} onChange={e => setDateRange({ ...dateRange, end: e.target.value })} />
+          <div className="flex gap-2 items-center">
+            <DatePicker placeholder="จาก DD/MM/YYYY" value={dateRange.start} onChange={(v) => setDateRange({ ...dateRange, start: v })} />
+            <span className="self-center text-gray-500">—</span>
+            <DatePicker placeholder="ถึง DD/MM/YYYY" value={dateRange.end} onChange={(v) => setDateRange({ ...dateRange, end: v })} />
           </div>
           <button className="bg-gray-100 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-200 text-sm">Export Excel</button>
           <button className="bg-gray-100 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-200 text-sm">Export PDF</button>
