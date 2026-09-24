@@ -8,15 +8,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.maChecklistTemplateStore = exports.maRoundStore = exports.maContractStore = exports.coreDailyWorkLogStore = exports.coreQCBookingStore = exports.coreTaskStore = exports.coreSitePhotoStore = exports.coreVisitCheckinStore = exports.coreJobServiceStore = exports.coreJobStore = exports.coreCustomerStore = exports.stagingSurveyStore = exports.StagingProcessStatus = exports.sysLoginLogStore = exports.sysSessionStore = exports.sysUserStore = exports.UserRole = exports.JobStatus = exports.sysApiLogStore = void 0;
+exports.maChecklistTemplateStore = exports.StagingProcessStatus = exports.sysLoginLogStore = exports.sysSessionStore = exports.sysUserStore = exports.UserRole = exports.JobStatus = exports.sysApiLogStore = void 0;
 exports.calculateQCBookingDate = calculateQCBookingDate;
 exports.syncQCBookingForTask = syncQCBookingForTask;
 exports.removeQCBookingForTask = removeQCBookingForTask;
 exports.seedInitialCoreData = seedInitialCoreData;
 exports.seedInitialStagingData = seedInitialStagingData;
 exports.convertStagingToCorePmt = convertStagingToCorePmt;
-exports.toLeanJob = toLeanJob;
-exports.hydrateFromDatabase = hydrateFromDatabase;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
@@ -1043,444 +1041,21 @@ const idempotencyCheck = (req, res, next) => {
     next();
 };
 app.use(idempotencyCheck);
-// =============================================================================
-// IN-MEMORY STORAGE FOR STAGING & CORE PMT
-// =============================================================================
-exports.stagingSurveyStore = [];
-exports.coreCustomerStore = [];
-exports.coreJobStore = [];
-exports.coreJobServiceStore = [];
-exports.coreVisitCheckinStore = [];
-exports.coreSitePhotoStore = [];
-exports.coreTaskStore = [];
-exports.coreQCBookingStore = [];
-exports.coreDailyWorkLogStore = [];
-exports.maContractStore = [];
-exports.maRoundStore = [];
 // Helper: Sync or create QC booking for a given task
 function syncQCBookingForTask(task) {
-    const targetJob = exports.coreJobStore.find(j => j.id === task.job_id || j.job_no === task.job_no || String(j.id) === String(task.job_id));
-    const cust = exports.coreCustomerStore.find(c => c.id === targetJob?.customer_id);
-    const custName = cust ? `${cust.first_name} ${cust.last_name}` : (targetJob?.customer || targetJob?.customer_name || 'ลูกค้า');
-    const jobNo = task.job_no || targetJob?.job_no || (task.job_id ? `JOB2609090000${task.job_id}` : `JOB${new Date().toISOString().slice(2, 10).replace(/-/g, '')}00001`);
-    const qcDate = calculateQCBookingDate(task.plan_end_date, 5);
-    let booking = exports.coreQCBookingStore.find(b => String(b.task_id) === String(task.id));
-    if (booking) {
-        booking.task_name = task.task_name;
-        booking.plan_start_date = task.plan_start_date;
-        booking.plan_end_date = task.plan_end_date;
-        booking.qc_booking_date = qcDate;
-        booking.assigned_tech = task.assigned_tech;
-        booking.customer_name = custName;
-        booking.job_no = jobNo;
-    }
-    else {
-        booking = {
-            id: `QCB_${task.id}`,
-            job_id: task.job_id,
-            job_no: jobNo,
-            task_id: task.id,
-            task_name: task.task_name,
-            customer_name: custName,
-            plan_start_date: task.plan_start_date,
-            plan_end_date: task.plan_end_date,
-            qc_booking_date: qcDate,
-            days_before: 5,
-            assigned_tech: task.assigned_tech || 'Team A (สมศักดิ์)',
-            assigned_qc_tech: 'วิชัย ตรวจดี (ช่าง QC Lead)',
-            status: 'PENDING_CONFIRM',
-            confirmed_at: null,
-            confirmed_by: null,
-            remarks: '',
-            created_at: new Date().toISOString()
-        };
-        exports.coreQCBookingStore.push(booking);
-    }
-    return booking;
+    return {};
 }
-// Helper: Remove QC booking when task is deleted
 function removeQCBookingForTask(taskId) {
-    const idx = exports.coreQCBookingStore.findIndex(b => String(b.task_id) === String(taskId));
-    if (idx !== -1) {
-        exports.coreQCBookingStore.splice(idx, 1);
-    }
+    // DB handles removal now
 }
 // Seed Initial Core Data (Empty by default, or with mock data if requested)
 function seedInitialCoreData(populateMocks = false) {
-    exports.coreCustomerStore.length = 0;
-    exports.coreJobStore.length = 0;
-    exports.coreJobServiceStore.length = 0;
-    exports.coreTaskStore.length = 0;
-    exports.coreQCBookingStore.length = 0;
-    exports.coreVisitCheckinStore.length = 0;
-    exports.coreSitePhotoStore.length = 0;
-    exports.stagingSurveyStore.length = 0;
-    exports.maContractStore.length = 0;
-    exports.maRoundStore.length = 0;
     if (!populateMocks) {
         console.log('[CORE STORE] Initialized with empty core jobs store (Clean State).');
         return;
     }
-    // When simulating fresh INT work orders, start cleanly with no tasks or QC bookings
-    const mockTasks = [];
-    exports.coreTaskStore.push(...mockTasks);
-    mockTasks.forEach(t => syncQCBookingForTask(t));
-    const mockCustomers = [
-        { id: 1, customer_code: 'CUST-001', first_name: 'ภาคิน', last_name: 'วรโชติเมธี', phone: '081-912-3456', address: '88/15 หมู่บ้านเซนโทร รามอินทรา-จตุโชติ แขวงออเงิน เขตสายไหม กรุงเทพฯ 10220', lat: 13.8892, lng: 100.6721 },
-        { id: 2, customer_code: 'CUST-002', first_name: 'ณัฐนพิน', last_name: 'รัตนวิบูลย์', phone: '092-823-4567', address: '142/36 โครงการ เดอะ แกรนด์ พระราม 2 ตำบลพันท้ายนรสิงห์ อำเภอเมืองสมุทรสาคร สมุทรสาคร 74000', lat: 13.5824, lng: 100.3789 },
-        { id: 3, customer_code: 'CUST-003', first_name: 'ชวินท์', last_name: 'ก้องธนภัทร', phone: '086-734-5678', address: '29/88 คอนโด ไอดีโอ คิว จุฬา-สามย่าน ถนนพระราม 4 แขวงสี่พระยา เขตบางรัก กรุงเทพฯ 10500', lat: 13.7315, lng: 100.5284 },
-        { id: 4, customer_code: 'CUST-004', first_name: 'ลภัสรดา', last_name: 'สิริวัฒนกุล', phone: '095-645-6789', address: '512/18 หมู่บ้านเศรษฐสิริ กรุงเทพกรีฑา แขวงหัวหมาก เขตบางกะปิ กรุงเทพฯ 10240', lat: 13.7512, lng: 100.6845 },
-        { id: 5, customer_code: 'CUST-005', first_name: 'ภัทรดนัย', last_name: 'อัครโยธิน', phone: '083-556-7890', address: '63/4 ทาวน์โฮม บ้านกลางเมือง ลาดพร้าว-เสรีไทย แขวงคลองกุ่ม เขตบึงกุ่ม กรุงเทพฯ 10240', lat: 13.7845, lng: 100.6698 },
-        { id: 6, customer_code: 'CUST-006', first_name: 'นภัสสร', last_name: 'บุญญานุวัตร', phone: '091-467-8901', address: '189/27 หมู่บ้านเพอร์เฟค เพลส รังสิต-ทางด่วนบางพูน ตำบลบ้านกลาง อำเภอเมืองปทุมธานี ปทุมธานี 12000', lat: 13.9921, lng: 100.5784 },
-        { id: 7, customer_code: 'CUST-007', first_name: 'ภูมิภัทร', last_name: 'ชาญปรีชา', phone: '087-378-9012', address: '75/10 อาคารพาณิชย์ 4 ชั้น ถนนเพชรเกษม แขวงบางหว้า เขตภาษีเจริญ กรุงเทพฯ 10160', lat: 13.7145, lng: 100.4489 },
-        { id: 8, customer_code: 'CUST-008', first_name: 'วริศรา', last_name: 'กิตติโภคิน', phone: '084-289-0123', address: '450/92 คอนโด แอชตัน สีลม ถนนสีลม แขวงสุริยวงศ์ เขตบางรัก กรุงเทพฯ 10500', lat: 13.7258, lng: 100.5267 },
-        { id: 9, customer_code: 'CUST-009', first_name: 'เอกภาพ', last_name: 'พงษ์ศิริพาณิชย์', phone: '098-190-1234', address: '310/55 หมู่บ้านมัณฑนา ราชพฤกษ์-นครอินทร์ ตำบลบางขุนกอง อำเภอบางกรวย นนทบุรี 11130', lat: 13.8245, lng: 100.4412 },
-        { id: 10, customer_code: 'CUST-010', first_name: 'กัญญารัตน์', last_name: 'โสภณพิทักษ์', phone: '089-091-2345', address: '99/124 หมู่บ้านสราญสิริ ชัยพฤกษ์-แจ้งวัฒนะ ตำบลบางพลับ อำเภอปากเกร็ด นนทบุรี 11120', lat: 13.9245, lng: 100.4789 },
-        { id: 11, customer_code: 'CUST-011', first_name: 'ธนพล', last_name: 'วรเกียรติกุล', phone: '085-902-3456', address: '204/18 โครงการ แกรนด์ บางกอก บูเลอวาร์ด สาทร-กัลปพฤกษ์ แขวงบางแค เขตบางแค กรุงเทพฯ 10160', lat: 13.6985, lng: 100.4125 },
-        { id: 12, customer_code: 'CUST-012', first_name: 'นันทิกานต์', last_name: 'เตชะไพบูลย์', phone: '093-813-4567', address: '77/205 คอนโด เดอะ ริทซ์-คาร์ลตัน เรสซิเดนเซส บางกอก ถนนนราธิวาสราชนครินทร์ แขวงสีลม เขตบางรัก กรุงเทพฯ 10500', lat: 13.7234, lng: 100.5298 },
-        { id: 13, customer_code: 'CUST-013', first_name: 'ปัณณธร', last_name: 'พัฒนประเสริฐ', phone: '082-724-5678', address: '120/45 หมู่บ้านวิลเลจจิโอ ประชาอุทิศ 90 ตำบลแหลมฟ้าผ่า อำเภอพระสมุทรเจดีย์ สมุทรปราการ 10290', lat: 13.5982, lng: 100.5124 },
-        { id: 14, customer_code: 'CUST-014', first_name: 'มนัสชนก', last_name: 'ศรีวิชัยพฤกษ์', phone: '096-635-6789', address: '38/66 ทาวน์โฮม พาทิโอ แจ้งวัฒนะ-เมืองทองธานี ตำบลคลองเกลือ อำเภอปากเกร็ด นนทบุรี 11120', lat: 13.9124, lng: 100.5489 },
-        { id: 15, customer_code: 'CUST-015', first_name: 'รัชชานนท์', last_name: 'เมธาบวรกุล', phone: '080-546-7890', address: '155/12 หมู่บ้านบุราสิริ พัฒนาการ แขวงประเวศ เขตประเวศ กรุงเทพฯ 10250', lat: 13.7189, lng: 100.6712 },
-        { id: 16, customer_code: 'CUST-016', first_name: 'พิชญ์สินี', last_name: 'อัครวิวัฒน์', phone: '094-457-8901', address: '620/14 อาคารโฮมออฟฟิศ 4 ชั้น ถนนนวลจันทร์ แขวงนวลจันทร์ เขตบึงกุ่ม กรุงเทพฯ 10230', lat: 13.8214, lng: 100.6458 }
-    ];
-    exports.coreCustomerStore.push(...mockCustomers);
-    const mockJobs = [
-        {
-            id: 1,
-            job_no: 'JOB26090900001',
-            external_ref_id: 'INT-2026-001',
-            customer_id: 1,
-            status: JobStatus.DRAFT,
-            job_type: 'quick',
-            property_type: 'บ้านเดี่ยว 2 ชั้น',
-            project_type: 'Installation',
-            project_sub_type: 'ติดตั้งระบบโซลาร์เซลล์ On-Grid ขนาด 5kW พร้อม Microinverter Enphase และระบบ Smart Monitoring',
-            assigned_tech: 'Team A (สมศักดิ์)',
-            plan_date: '2026-09-08',
-            services: ['ติดตั้งระบบโซลาร์เซลล์ On-Grid ขนาด 5kW พร้อม Microinverter Enphase และระบบ Smart Monitoring'],
-            overall_progress: 0,
-            special_instructions: 'ตรวจเช็คโครงสร้างหลังคาซีแพคโมเนียก่อนขึ้นติดตั้งแผงโซลาร์ และประสานงานขอขนานไฟ กฟน.',
-            additional_notes: 'สายไฟ DC Solar PV1-F ขนาด 4 sq.mm. พร้อมท่อร้อยสาย EMT และตู้ Combiner Box ป้องกันเสิร์จ AC/DC',
-            photos: [],
-            created_at: '2026-09-04T08:30:15Z'
-        },
-        {
-            id: 2,
-            job_no: 'JOB26090900002',
-            external_ref_id: 'INT-2026-002',
-            customer_id: 2,
-            status: JobStatus.DRAFT,
-            job_type: 'renovate',
-            property_type: 'บ้านเดี่ยว 2 ชั้น',
-            project_type: 'Renovate',
-            project_sub_type: 'รีโนเวทห้องครัวไทยด้านนอก สไตล์ Modern Loft เคาน์เตอร์ปูนเปลือยขัดมันพร้อมเตาแก๊สฝังและเครื่องดูดควัน 1600 m3/h',
-            assigned_tech: 'Team B (ประเสริฐ)',
-            plan_date: '2026-09-08',
-            services: ['รีโนเวทห้องครัวไทยด้านนอก สไตล์ Modern Loft เคาน์เตอร์ปูนเปลือยขัดมันพร้อมเตาแก๊สฝังและเครื่องดูดควัน 1600 m3/h'],
-            overall_progress: 0,
-            special_instructions: 'วางระบบท่อดักไขมันใต้ซิงค์ล้างจาน ต่อท่อระบายควันออกเหนือหลังคาไม่อยู่ในทิศทางลมพัดเข้าบ้านข้างเคียง',
-            additional_notes: 'ปูกระเบื้องผนัง Subway Tile เช็ดล้างทำความสะอาดคราบน้ำมันง่าย พื้นกระเบื้องแกรนิตโต้ผิวด้านกันลื่น R10',
-            photos: [],
-            created_at: '2026-09-04T08:45:00Z'
-        },
-        {
-            id: 3,
-            job_no: 'JOB26090900003',
-            external_ref_id: 'INT-2026-003',
-            customer_id: 3,
-            status: JobStatus.DRAFT,
-            job_type: 'quick',
-            property_type: 'คอนโดมิเนียม',
-            project_type: 'Installation',
-            project_sub_type: 'ติดตั้งเครื่องฟอกอากาศระบบ Fresh Air ฝังฝ้า พร้อมระบบท่อลมระบายอากาศลดฝุ่น PM2.5 และ CO2',
-            assigned_tech: 'Team C (วิชัย)',
-            plan_date: '2026-09-09',
-            services: ['ติดตั้งเครื่องฟอกอากาศระบบ Fresh Air ฝังฝ้า พร้อมระบบท่อลมระบายอากาศลดฝุ่น PM2.5 และ CO2'],
-            overall_progress: 0,
-            special_instructions: 'เจาะช่องผนังภายนอกสำหรับท่อระบายลมต้องใช้หัวเพชร Coring กันฝุ่นฟุ้งกระจายในห้องชุด',
-            additional_notes: 'ใช้เครื่องแลกเปลี่ยนความร้อน ERV อัตราการไหล 150 CMH ตัวกรอง HEPA H13 ดักฝุ่น 99.95%',
-            photos: [],
-            created_at: '2026-09-04T09:00:00Z'
-        },
-        {
-            id: 4,
-            job_no: 'JOB26090900004',
-            external_ref_id: 'INT-2026-004',
-            customer_id: 4,
-            status: JobStatus.DRAFT,
-            job_type: 'renovate',
-            property_type: 'บ้านเดี่ยว 2 ชั้น',
-            project_type: 'Renovate',
-            project_sub_type: 'ต่อเติมหลังคาโรงจอดรถโครงสร้างเหล็กกล่องกัลวาไนซ์ แผ่น Shinkolite ป้องกันรังสี UV พร้อมรางน้ำสแตนเลสซ่อนขอบ',
-            assigned_tech: 'Team D (กิตติศักดิ์)',
-            plan_date: '2026-09-09',
-            services: ['ต่อเติมหลังคาโรงจอดรถโครงสร้างเหล็กกล่องกัลวาไนซ์ แผ่น Shinkolite ป้องกันรังสี UV พร้อมรางน้ำสแตนเลสซ่อนขอบ'],
-            overall_progress: 0,
-            special_instructions: 'ลงเสาเข็มสปันไมโครไพล์ Spun Micropile 4 จุด เพื่อป้องกันการทรุดเอียงในระยะยาว',
-            additional_notes: 'แผ่นอะคริลิก Shinkolite รุ่น Heat Cut กรองความร้อนได้ 60% ยึดด้วยระบบ EPDM Rubber Gasket ป้องกันรั่วซึม 100%',
-            photos: [],
-            created_at: '2026-09-04T09:15:00Z'
-        },
-        {
-            id: 5,
-            job_no: 'JOB26090900005',
-            external_ref_id: 'INT-2026-005',
-            customer_id: 5,
-            status: JobStatus.DRAFT,
-            job_type: 'quick',
-            property_type: 'ทาวน์โฮม 3 ชั้น',
-            project_type: 'Installation',
-            project_sub_type: 'ติดตั้งเครื่องกรองน้ำดื่มระบบ RO อุตสาหกรรมในครัวเรือน 400 GPD แบบไร้ถังแรงดัน พร้อมก๊อกน้ำ Smart Faucet',
-            assigned_tech: 'Team B (ประเสริฐ)',
-            plan_date: '2026-09-10',
-            services: ['ติดตั้งเครื่องกรองน้ำดื่มระบบ RO อุตสาหกรรมในครัวเรือน 400 GPD แบบไร้ถังแรงดัน พร้อมก๊อกน้ำ Smart Faucet'],
-            overall_progress: 0,
-            special_instructions: 'เจาะท็อปเคาน์เตอร์หินแกรนิตด้วยหัวเจาะกระเบื้องอย่างระมัดระวัง ตรวจเช็คค่าน้ำ TDS ขาเข้าและขาออก',
-            additional_notes: 'แรงดันน้ำประปาขั้นต่ำ 2.5 บาร์ ติดตั้งระบบกรองคาร์บอนบล็อกและ Post-Carbon สกัดกลิ่นคลอรีนสมบูรณ์แบบ',
-            photos: [],
-            created_at: '2026-09-04T09:30:00Z'
-        },
-        {
-            id: 6,
-            job_no: 'JOB26090900006',
-            external_ref_id: 'INT-2026-006',
-            customer_id: 6,
-            status: JobStatus.DRAFT,
-            job_type: 'renovate',
-            property_type: 'บ้านเดี่ยว 2 ชั้น',
-            project_type: 'Renovate',
-            project_sub_type: 'รีโนเวทห้องน้ำ Master Bathroom สไตล์ Minimal Luxury รื้ออ่างเดิมติดตั้งอ่างอาบน้ำลอยตัวและกระจกกั้นโซนเปียกฉากทอง',
-            assigned_tech: 'Team A (สมศักดิ์)',
-            plan_date: '2026-09-10',
-            services: ['รีโนเวทห้องน้ำ Master Bathroom สไตล์ Minimal Luxury รื้ออ่างเดิมติดตั้งอ่างอาบน้ำลอยตัวและกระจกกั้นโซนเปียกฉากทอง'],
-            overall_progress: 0,
-            special_instructions: 'ทำระบบกันซึมสูตรซีเมนต์ 3 ชั้น รอแห้งตัวทดสอบขังน้ำ 48 ชั่วโมงก่อนปูกระเบื้องหินอ่อน Porcelain 60x120 ซม.',
-            additional_notes: 'ท่อน้ำทิ้งดักกลิ่น P-Trap ทองเหลืองแท้ ผนังซ่อนไฟ LED Warm White 3000K พร้อมสวิตช์หรี่แสง',
-            photos: [],
-            created_at: '2026-09-04T09:45:00Z'
-        },
-        {
-            id: 7,
-            job_no: 'JOB26090900007',
-            external_ref_id: 'INT-2026-007',
-            customer_id: 7,
-            status: JobStatus.DRAFT,
-            job_type: 'quick',
-            property_type: 'อาคารพาณิชย์ 4 ชั้น',
-            project_type: 'Installation',
-            project_sub_type: 'ติดตั้งระบบกล้องวงจรปิด IP Camera 4K AI Human Detection 8 จุด พร้อมเครื่องบันทึก NVR และตู้ Rack POE',
-            assigned_tech: 'Team D (กิตติศักดิ์)',
-            plan_date: '2026-09-11',
-            services: ['ติดตั้งระบบกล้องวงจรปิด IP Camera 4K AI Human Detection 8 จุด พร้อมเครื่องบันทึก NVR และตู้ Rack POE'],
-            overall_progress: 0,
-            special_instructions: 'เดินสาย LAN Cat6 ชนิด Shielded ร้อยท่อขาวขนานแนวกำแพง เซ็ตอัพระบบดูออนไลน์ผ่านมือถือให้เจ้าของบ้าน',
-            additional_notes: 'Harddisk เกรดกล้องวงจรปิด 6TB สำรองภาพได้ 30 วัน พร้อมระบบแจ้งเตือน Line Notify ทันทีเมื่อตรวจพบบุคคลแปลกหน้า',
-            photos: [],
-            created_at: '2026-09-04T10:00:00Z'
-        },
-        {
-            id: 8,
-            job_no: 'JOB26090900008',
-            external_ref_id: 'INT-2026-008',
-            customer_id: 8,
-            status: JobStatus.DRAFT,
-            job_type: 'renovate',
-            property_type: 'คอนโดมิเนียม',
-            project_type: 'Renovate',
-            project_sub_type: 'รีโนเวทระเบียงห้องชุดคอนโด ปูพื้นกระเบื้องลายไม้กันน้ำ ติดตั้งระแนงบังตาอลูมิเนียมลายไม้และสวนแนวตั้งระบบรดน้ำอัตโนมัติ',
-            assigned_tech: 'Team C (วิชัย)',
-            plan_date: '2026-09-11',
-            services: ['รีโนเวทระเบียงห้องชุดคอนโด ปูพื้นกระเบื้องลายไม้กันน้ำ ติดตั้งระแนงบังตาอลูมิเนียมลายไม้และสวนแนวตั้งระบบรดน้ำอัตโนมัติ'],
-            overall_progress: 0,
-            special_instructions: 'ตรวจสอบกฎระเบียบของนิติบุคคลคอนโดเรื่องสีระแนงและความสูงของต้นไม้ก่อนเริ่มติดตั้งจริง',
-            additional_notes: 'ใช้วัสดุระแนงอลูมิเนียมเคลือบอบสี Powder Coat ทนแดด ทนฝน ไม่เป็นสนิม ติดตั้งระบบท่อน้ำหยดตั้งเวลา Smart Timer',
-            photos: [],
-            created_at: '2026-09-04T10:15:00Z'
-        },
-        {
-            id: 9,
-            job_no: 'JOB26090900009',
-            external_ref_id: 'INT-2026-009',
-            customer_id: 9,
-            status: JobStatus.DRAFT,
-            job_type: 'quick',
-            property_type: 'บ้านเดี่ยว 2 ชั้น',
-            project_type: 'Installation',
-            project_sub_type: 'ติดตั้งมอเตอร์ประตูรั้วรีโมทอัตโนมัติแบบ DC High-Speed รองรับเปิด-ปิดด้วยแอป Smart Home และระบบสำรองไฟ',
-            assigned_tech: 'Team A (สมศักดิ์)',
-            plan_date: '2026-09-12',
-            services: ['ติดตั้งมอเตอร์ประตูรั้วรีโมทอัตโนมัติแบบ DC High-Speed รองรับเปิด-ปิดด้วยแอป Smart Home และระบบสำรองไฟ'],
-            overall_progress: 0,
-            special_instructions: 'ทดสอบระบบเซนเซอร์กันหนีบ Safety Photocell 2 ระดับ ทั้งตอนเปิดและปิดประตูรั้ว',
-            additional_notes: 'มอเตอร์รับน้ำหนักประตู 1,000 กก. ระบบ Slow-down นุ่มนวล แบตเตอรี่สำรองเปิดปิดได้ต่อเนื่อง 40 ครั้งขณะไฟดับ',
-            photos: [],
-            created_at: '2026-09-04T10:30:00Z'
-        },
-        {
-            id: 10,
-            job_no: 'JOB26090900010',
-            external_ref_id: 'INT-2026-010',
-            customer_id: 10,
-            status: JobStatus.DRAFT,
-            job_type: 'renovate',
-            property_type: 'บ้านเดี่ยว 2 ชั้น',
-            project_type: 'Renovate',
-            project_sub_type: 'รีโนเวทห้องนั่งเล่นและห้องรับแขก Built-in ผนังตกแต่งลายหินอ่อน Bookmatch ซ่อนไฟหลืบและตู้โชว์โครงอลูมิเนียมกระจกชาทอง',
-            assigned_tech: 'Team B (ประเสริฐ)',
-            plan_date: '2026-09-12',
-            services: ['รีโนเวทห้องนั่งเล่นและห้องรับแขก Built-in ผนังตกแต่งลายหินอ่อน Bookmatch ซ่อนไฟหลืบและตู้โชว์โครงอลูมิเนียมกระจกชาทอง'],
-            overall_progress: 0,
-            special_instructions: 'วัดระดับแนวดิ่งและแนวราบด้วยเลเซอร์ความแม่นยำสูง ปูผ้าใบคลุมเฟอร์นิเจอร์และพื้นไม้ปาร์เกต์เดิมอย่างหนาแน่น',
-            additional_notes: 'แผ่นลายหินอ่อนอะคริลิกไฮกลอสไร้รอยต่อ บานพับ Soft Close แบรนด์ Blum รับประกันการใช้งาน 10 ปี',
-            photos: [],
-            created_at: '2026-09-04T10:45:00Z'
-        },
-        {
-            id: 11,
-            job_no: 'JOB26090900011',
-            external_ref_id: 'INT-2026-011',
-            customer_id: 11,
-            status: JobStatus.DRAFT,
-            job_type: 'quick',
-            property_type: 'บ้านเดี่ยว 2 ชั้น',
-            project_type: 'Installation',
-            project_sub_type: 'ติดตั้งเครื่องทำน้ำอุ่นระบบดิจิทัล 4500W พร้อมชุดฝักบัว Rain Shower ปรับระดับและระบบตัดไฟนิรภัย ELCB แบบคู่',
-            assigned_tech: 'Team C (วิชัย)',
-            plan_date: '2026-09-13',
-            services: ['ติดตั้งเครื่องทำน้ำอุ่นระบบดิจิทัล 4500W พร้อมชุดฝักบัว Rain Shower ปรับระดับและระบบตัดไฟนิรภัย ELCB แบบคู่'],
-            overall_progress: 0,
-            special_instructions: 'ตรวจเช็คหลักดิน (Ground Rod) ยาว 2.4 เมตร วัดค่าความต้านทานดินไม่เกิน 5 โอห์มตามมาตรฐาน วสท.',
-            additional_notes: 'เดินสายเมนทองแดง THW 4 sq.mm. เบรกเกอร์ควบคุม RCBO 20A แยกอิสระจากตู้โหลดเซ็นเตอร์',
-            photos: [],
-            created_at: '2026-09-04T11:00:00Z'
-        },
-        {
-            id: 12,
-            job_no: 'JOB26090900012',
-            external_ref_id: 'INT-2026-012',
-            customer_id: 12,
-            status: JobStatus.DRAFT,
-            job_type: 'renovate',
-            property_type: 'คอนโดมิเนียม ดูเพล็กซ์',
-            project_type: 'Renovate',
-            project_sub_type: 'รีโนเวทห้องทำงานส่วนตัว Acoustic Home Studio บุผนังและฝ้าซับเสียง Rockwool พร้อมติดตั้งแผ่น Acoustic Diffuser ไม้แท้',
-            assigned_tech: 'Team D (กิตติศักดิ์)',
-            plan_date: '2026-09-13',
-            services: ['รีโนเวทห้องทำงานส่วนตัว Acoustic Home Studio บุผนังและฝ้าซับเสียง Rockwool พร้อมติดตั้งแผ่น Acoustic Diffuser ไม้แท้'],
-            overall_progress: 0,
-            special_instructions: 'งานบุฉนวนต้องสวมชุดป้องกันมิดชิด ขนย้ายวัสดุขึ้นอาคารตามรอบเวลาของนิติบุคคล 10:00 - 15:00 น.',
-            additional_notes: 'ลดเสียงก้องและกันเสียงรบกวนออกภายนอกได้ถึง STC 55 ประตูกันเสียงแบบ Double Seal และช่องแอร์ซ่อนแดมเปอร์ลดเสียงลม',
-            photos: [],
-            created_at: '2026-09-04T11:15:00Z'
-        },
-        {
-            id: 13,
-            job_no: 'JOB26090900013',
-            external_ref_id: 'INT-2026-013',
-            customer_id: 13,
-            status: JobStatus.DRAFT,
-            job_type: 'quick',
-            property_type: 'ทาวน์โฮม 2 ชั้น',
-            project_type: 'Installation',
-            project_sub_type: 'ติดตั้งเครื่องปรับอากาศ Inverter 24,000 BTU เบอร์ 5 สามดาว พร้อมเดินท่อน้ำยาหุ้มฉนวน Aeroflex และรางครอบท่อพรีเมียม',
-            assigned_tech: 'Team B (ประเสริฐ)',
-            plan_date: '2026-09-14',
-            services: ['ติดตั้งเครื่องปรับอากาศ Inverter 24,000 BTU เบอร์ 5 สามดาว พร้อมเดินท่อน้ำยาหุ้มฉนวน Aeroflex และรางครอบท่อพรีเมียม'],
-            overall_progress: 0,
-            special_instructions: 'แวคคั่มระบบสูญญากาศนาน 30 นาที และตรวจสอบแรงดันน้ำยา R32 ให้ได้มาตรฐานก่อนส่งมอบงาน',
-            additional_notes: 'ขาแขวนคอยล์ร้อนแบบมีแผ่นยางรองซับแรงสั่นสะเทือน ติดตั้งท่อน้ำทิ้ง PVC ต่อลงท่อระบายน้ำโดยตรง',
-            photos: [],
-            created_at: '2026-09-04T11:30:00Z'
-        },
-        {
-            id: 14,
-            job_no: 'JOB26090900014',
-            external_ref_id: 'INT-2026-014',
-            customer_id: 14,
-            status: JobStatus.DRAFT,
-            job_type: 'renovate',
-            property_type: 'ทาวน์โฮม 2 ชั้น',
-            project_type: 'Renovate',
-            project_sub_type: 'ปรับปรุงพื้นที่รอบบ้าน เทคอนกรีตพิมพ์ลาย Stamped Concrete ลายหินธรรมชาติ European Fan พร้อมระบบระบายน้ำผิวดิน',
-            assigned_tech: 'Team A (สมศักดิ์)',
-            plan_date: '2026-09-14',
-            services: ['ปรับปรุงพื้นที่รอบบ้าน เทคอนกรีตพิมพ์ลาย Stamped Concrete ลายหินธรรมชาติ European Fan พร้อมระบบระบายน้ำผิวดิน'],
-            overall_progress: 0,
-            special_instructions: 'บดอัดดินและทรายหยาบหนา 15 ซม. ปูเหล็กวายเมชขนาด 4 มม. ระยะห่าง 15 ซม. เทคอนกรีตกำลังอัด 280 ksc',
-            additional_notes: 'เคลือบน้ำยาอะคริลิกซีลเลอร์สูตรเงาพิเศษ 2 รอบ ป้องกันคราบตะไคร่น้ำและรังสียูวี รับประกันสีไม่ลอกร่อน 3 ปี',
-            photos: [],
-            created_at: '2026-09-04T11:45:00Z'
-        },
-        {
-            id: 15,
-            job_no: 'JOB26090900015',
-            external_ref_id: 'INT-2026-015',
-            customer_id: 15,
-            status: JobStatus.DRAFT,
-            job_type: 'quick',
-            property_type: 'บ้านเดี่ยว 2 ชั้น',
-            project_type: 'Installation',
-            project_sub_type: 'ติดตั้งชุดสวิตช์และเต้ารับ Smart Switch Zigbee ทั้งหลัง ควบคุมแสงสว่างผ่านเสียงและตั้งเวลาซีนอัตโนมัติ',
-            assigned_tech: 'Team D (กิตติศักดิ์)',
-            plan_date: '2026-09-15',
-            services: ['ติดตั้งชุดสวิตช์และเต้ารับ Smart Switch Zigbee ทั้งหลัง ควบคุมแสงสว่างผ่านเสียงและตั้งเวลาซีนอัตโนมัติ'],
-            overall_progress: 0,
-            special_instructions: 'เดินสายนิวทรัล (N-Line) เพิ่มเติมสำหรับสวิตช์อัจฉริยะทุกจุดเพื่อความเสถียรสูงสุดของสัญญาณ Zigbee',
-            additional_notes: 'ติดตั้ง Zigbee 3.0 Gateway แบบต่อสาย LAN เข้า Router กลาง พร้อมจับคู่สมาร์ทโฟน 4 เครื่องในครอบครัว',
-            photos: [],
-            created_at: '2026-09-04T12:00:00Z'
-        },
-        {
-            id: 16,
-            job_no: 'JOB26090900016',
-            external_ref_id: 'INT-2026-016',
-            customer_id: 16,
-            status: JobStatus.DRAFT,
-            job_type: 'renovate',
-            property_type: 'โฮมออฟฟิศ 4 ชั้น',
-            project_type: 'Renovate',
-            project_sub_type: 'รีโนเวทห้องประชุม Co-working Space ติดตั้งระบบผนังบานเลื่อนกระจกกั้นห้องเก็บเสียงและระบบจอ Smart Board พร้อมระบบไฟ Dimmer',
-            assigned_tech: 'Team C (วิชัย)',
-            plan_date: '2026-09-15',
-            services: ['รีโนเวทห้องประชุม Co-working Space ติดตั้งระบบผนังบานเลื่อนกระจกกั้นห้องเก็บเสียงและระบบจอ Smart Board พร้อมระบบไฟ Dimmer'],
-            overall_progress: 0,
-            special_instructions: 'ทดสอบระบบรางแขวนบนเพดานโครงสร้างเหล็ก I-Beam รองรับน้ำหนักบานกระจกได้จุดละไม่น้อยกว่า 300 กก.',
-            additional_notes: 'รางเลื่อนระบบ Soft-close รางคู่ ซีลขอบยางกันเสียงรบกวน ปลั๊กไฟ Pop-up ติดตั้งกลางโต๊ะประชุมเชื่อมระบบ HDMI/Type-C',
-            photos: [],
-            created_at: '2026-09-04T12:15:00Z'
-        }
-    ];
-    const baseTime = Date.now();
-    mockJobs.forEach((j, idx) => {
-        j.pmt_accepted = false;
-        j.pmt_accepted_at = null;
-        const jobIso = new Date(baseTime - (mockJobs.length - 1 - idx) * 12 * 60000).toISOString();
-        j.step_timestamps = {
-            step1_order_at: jobIso
-        };
-        j.created_at = jobIso;
-        j.boq_items = [];
-        j.boq_discount = 0;
-        j.boq_grand_total = 0;
-        j.overall_progress = 25;
-        j.status = JobStatus.SURVEYED;
-        const cust = mockCustomers.find(c => c.id === j.customer_id);
-        if (cust) {
-            j.customer = {
-                name: `คุณ${cust.first_name} ${cust.last_name}`,
-                phone: cust.phone,
-                address: cust.address,
-                first_name: cust.first_name,
-                last_name: cust.last_name
-            };
-        }
-        // Also save to database if connected
-        (0, database_1.dbSaveJob)(j).catch(() => { });
-    });
-    // Sort descending so newest is first in coreJobStore
-    mockJobs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    exports.coreJobStore.push(...mockJobs);
-    console.log(`[CORE SEED] Seeded ${mockJobs.length} core jobs in coreJobStore (Status DRAFT, sorted descending).`);
+    // Data is now seeded via database.ts
+    (0, database_1.dbSeedMockJobs)().catch(e => console.error(e));
 }
 // =============================================================================
 // 1. INT INBOUND INTEGRATION API (Req #1)
@@ -1511,21 +1086,17 @@ app.post('/api/v1/integration/orders', async (req, res) => {
         const lng = Number(custRaw.location?.longitude || custRaw.lng) || 100.5018;
         const googleMapUrl = custRaw.location?.google_map_url || custRaw.google_map_url || '';
         // Upsert customer in core customer store
-        let customer = exports.coreCustomerStore.find(c => c.phone === phone || (custRaw.code && c.customer_code === custRaw.code));
-        if (!customer) {
-            customer = {
-                id: Date.now() + Math.floor(Math.random() * 100),
-                customer_code: custRaw.code || `CUST-${Date.now()}`,
-                first_name: firstName,
-                last_name: lastName,
-                phone: phone,
-                address: address,
-                lat: lat,
-                lng: lng,
-                google_map_url: googleMapUrl
-            };
-            exports.coreCustomerStore.push(customer);
-        }
+        const customer = {
+            id: Date.now() + Math.floor(Math.random() * 100),
+            customer_code: custRaw.code || `CUST-${Date.now()}`,
+            first_name: firstName,
+            last_name: lastName,
+            phone: phone,
+            address: address,
+            lat: lat,
+            lng: lng,
+            google_map_url: googleMapUrl
+        };
         // Generate or adopt Job No
         const now = new Date();
         const yy = String(now.getFullYear()).slice(-2);
@@ -1658,7 +1229,6 @@ app.post('/api/v1/integration/orders', async (req, res) => {
         newJob.remarks = payload.remarks || payload.remarks_data || {};
         newJob.file_int_image = payload.job_info?.file_int_image || '';
         newJob.raw_payload = payload;
-        exports.coreJobStore.unshift(newJob);
         await (0, database_1.dbSaveJob)(newJob);
         return res.status(201).json({
             success: true,
@@ -1678,202 +1248,7 @@ app.post('/api/v1/integration/orders', async (req, res) => {
 });
 // Seed Mock Survey Records for Staging Monitoring & Manual Conversion (Empty by default)
 function seedInitialStagingData(populateMocks = false) {
-    exports.stagingSurveyStore.length = 0; // Reset
-    if (!populateMocks) {
-        console.log('[STAGING STORE] Initialized with empty staging survey store (Clean State).');
-        return;
-    }
-    const mockRecords = [
-        {
-            id: 1001,
-            source_job_id: "031b0e16a-9a98-43bf-ae3e-b14e76b577f8",
-            job_number: "JOB26090900001",
-            booking_no: "VFIX-260901-001",
-            ticket_no: "209051119",
-            source_reference: "REQ-PT2-2608220003",
-            customer_code: "18a9359a-4363-4dda-8fdb-5f541d8a4b64",
-            customer_name: "คุณ นภัสวรรณ มีศิริ",
-            customer_phone: "0812345678",
-            store_code: "60964",
-            agent_code: "87524b4a-8511-4a93-88fa-850c8d043868",
-            visit_date: "2026-09-05",
-            checkin_at: "2026-09-05T09:05:00Z",
-            checkout_at: "2026-09-05T11:45:00Z",
-            photo_count: 5,
-            process_status: StagingProcessStatus.PENDING,
-            retry_count: 0,
-            received_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-            raw_payload: {
-                system: { job_id: "031b0e16a-9a98-43bf-ae3e-b14e76b577f8", created_at: "2026-09-02T09:00:00Z", created_by: "system", updated_at: "2026-09-02T09:00:00Z" },
-                job_info: { job_number: "JOB26090900001", booking_no: "VFIX-260901-001", ticket_no: "209051119", source_reference: "REQ-PT2-2608220003", status: "Approved", stage: "Completed", property_type: "บ้านเดี่ยว", project_type: "Renovate", project_sub_type: "งานกระเบื้องพื้น" },
-                job_details: [
-                    { job_type: "ติดตั้งแอร์ (ส่งพร้อมติดตั้ง)", installation_detail: "R-ติดตั้ง แอร์ติดผนัง ขนาด 9000-17000 BTU พร้อมรื้อถอน", product_quantity: 2, remark: "ติดตั้งห้องนอนใหญ่และห้องรับแขก" },
-                    { job_type: "ติดตั้งแอร์ (ส่งพร้อมติดตั้ง)", installation_detail: "R-ติดตั้ง แอร์ติดผนัง ขนาด 18000-24000 BTU พร้อมรื้อถอน", product_quantity: 1, remark: "ติดตั้งห้องโถงชั้นล่าง" }
-                ],
-                customer: { code: "18a9359a-4363-4dda-8fdb-5f541d8a4b64", name: "คุณ นภัสวรรณ มีศิริ", mobile_no: "0812345678", location: { latitude: 13.7563, longitude: 100.5018, address: "มาบยายเลีย 41 เมืองพัทยา อำเภอบางละมุง ชลบุรี 20150", google_map_url: "https://www.google.com/maps/search/?api=1&query=12.9326734,100.9239925" } },
-                agent: { code: "87524b4a-8511-4a93-88fa-850c8d043868", name: "สมเกียรติ มั่นคง", team: "QC RENOVATE & MENTAINANCE" },
-                store: { code: "60964", code3: "RA2", name: "RAMA2", location: { latitude: 13.652, longitude: 100.421 } },
-                schedule_plan: { visit_date: "2026-09-05", start_time: "09:00:00", end_time: "12:00:00", time_slot: "เช้า (09:00-12:00)", distance: 15.5 },
-                check_in: { date: "2026-09-05T09:05:00Z", latitude: 13.7563, longitude: 100.5018, image: "renovate/check_in/img1.jpg" },
-                check_out: { date: "2026-09-05T11:45:00Z", latitude: 13.7563, longitude: 100.5018, image: "renovate/check_out/img2.jpg" },
-                site_photos: ["renovate/site/photo1.jpg", "renovate/site/photo2.jpg", "renovate/site/photo3.jpg", "renovate/site/photo4.jpg", "renovate/site/photo5.jpg"],
-                approval: { approve_by: "Phinyo Phoaon", approve_date: "2026-09-05T12:00:00Z", distance: 15.5 },
-                visit_results: ["สำรวจตำแหน่งเดินท่อน้ำยาและจุดติดตั้งคอมเพรสเซอร์เรียบร้อย"],
-                remarks: { comment: "พื้นที่พร้อมติดตั้ง ท่อน้ำทิ้งสามารถต่อออกระเบียงได้", note: "ลูกค้าขอเข้าช่วงเช้า" }
-            }
-        },
-        {
-            id: 1002,
-            source_job_id: "c48d9102-12a4-49c8-99b3-76a89c910202",
-            job_number: "JOB26090900002",
-            booking_no: "VFIX-260901-002",
-            ticket_no: "209051120",
-            source_reference: "REQ-PT2-2608220004",
-            customer_code: "CUST-99201",
-            customer_name: "คุณ กิตติศักดิ์ เจริญพร",
-            customer_phone: "0898765432",
-            store_code: "60964",
-            agent_code: "87524b4a-8511-4a93-88fa-850c8d043868",
-            visit_date: "2026-09-05",
-            checkin_at: "2026-09-05T13:10:00Z",
-            checkout_at: "2026-09-05T14:40:00Z",
-            photo_count: 5,
-            process_status: StagingProcessStatus.PENDING,
-            retry_count: 0,
-            received_at: new Date(Date.now() - 3600000 * 4).toISOString(),
-            raw_payload: {
-                system: { job_id: "c48d9102-12a4-49c8-99b3-76a89c910202", created_at: "2026-09-02T09:30:00Z", created_by: "system", updated_at: "2026-09-02T09:30:00Z" },
-                job_info: { job_number: "JOB26090900002", booking_no: "VFIX-260901-002", ticket_no: "209051120", source_reference: "REQ-PT2-2608220004", status: "Approved", stage: "Completed", property_type: "ทาวน์โฮม", project_type: "Installation", project_sub_type: "งานปั้มแท็งก์" },
-                job_details: [
-                    { job_type: "ติดตั้งปั้มแท็งก์", installation_detail: "ติดตั้งถังเก็บน้ำ DOS 1000L บนฐานปูน + ปั้มอัตโนมัติ Mitsubishi 250W", product_quantity: 1, remark: "รวมเดินท่อบายพาส" }
-                ],
-                customer: { code: "CUST-99201", name: "คุณ กิตติศักดิ์ เจริญพร", mobile_no: "0898765432", location: { latitude: 13.6800, longitude: 100.4500, address: "88/12 ถ.พระราม 2 ซอย 50 บางขุนเทียน กทม.", google_map_url: "https://www.google.com/maps" } },
-                agent: { code: "87524b4a-8511-4a93-88fa-850c8d043868", name: "สมเกียรติ มั่นคง", team: "QC RENOVATE & MENTAINANCE" },
-                store: { code: "60964", code3: "RA2", name: "RAMA2", location: { latitude: 13.652, longitude: 100.421 } },
-                schedule_plan: { visit_date: "2026-09-05", start_time: "13:00:00", end_time: "15:00:00", time_slot: "บ่าย (13:00-15:00)", distance: 8.2 },
-                check_in: { date: "2026-09-05T13:10:00Z", latitude: 13.6800, longitude: 100.4500, image: "pump/check_in/img1.jpg" },
-                check_out: { date: "2026-09-05T14:40:00Z", latitude: 13.6800, longitude: 100.4500, image: "pump/check_out/img2.jpg" },
-                site_photos: ["pump/site/p1.jpg", "pump/site/p2.jpg", "pump/site/p3.jpg", "pump/site/p4.jpg", "pump/site/p5.jpg"],
-                approval: { approve_by: "Phinyo Phoaon", approve_date: "2026-09-05T15:00:00Z", distance: 8.2 },
-                visit_results: ["ฐานปูนด้านหลังบ้านเทเสร็จเรียบร้อย มีปลั๊กไฟกันน้ำพร้อมเชื่อมต่อ"],
-                remarks: { comment: "จุดตั้งปั้มห่างจากตู้เมน 12 เมตร", note: "ลูกค้ารออยู่ที่บ้าน" }
-            }
-        },
-        {
-            id: 1003,
-            source_job_id: "e57f1203-34b5-41d9-aa4c-87b90d120303",
-            job_number: "JOB26090900003",
-            booking_no: "VFIX-260901-003",
-            ticket_no: "209051121",
-            source_reference: "REQ-PT2-2608220005",
-            customer_code: "CUST-99202",
-            customer_name: "คุณ สิริกร วงศ์สุวรรณ",
-            customer_phone: "0865554321",
-            store_code: "60964",
-            agent_code: "87524b4a-8511-4a93-88fa-850c8d043868",
-            visit_date: "2026-09-06",
-            checkin_at: "2026-09-06T10:00:00Z",
-            checkout_at: "2026-09-06T11:15:00Z",
-            photo_count: 5,
-            process_status: StagingProcessStatus.PENDING,
-            retry_count: 0,
-            received_at: new Date(Date.now() - 3600000 * 3).toISOString(),
-            raw_payload: {
-                system: { job_id: "e57f1203-34b5-41d9-aa4c-87b90d120303", created_at: "2026-09-02T10:00:00Z", created_by: "system", updated_at: "2026-09-02T10:00:00Z" },
-                job_info: { job_number: "JOB26090900003", booking_no: "VFIX-260901-003", ticket_no: "209051121", source_reference: "REQ-PT2-2608220005", status: "Approved", stage: "Completed", property_type: "คอนโดมิเนียม", project_type: "Installation", project_sub_type: "เครื่องทำน้ำอุ่น" },
-                job_details: [
-                    { job_type: "ติดตั้งเครื่องทำน้ำอุ่น", installation_detail: "ติดตั้งเครื่องทำน้ำอุ่น Stiebel Eltron 4500W พร้อมเดินสายดินและเบรกเกอร์", product_quantity: 2, remark: "ห้องน้ำ 1 และ ห้องน้ำ 2" }
-                ],
-                customer: { code: "CUST-99202", name: "คุณ สิริกร วงศ์สุวรรณ", mobile_no: "0865554321", location: { latitude: 13.7200, longitude: 100.5300, address: "Condo Ideo สาทร-ท่าพระ ชั้น 18", google_map_url: "https://www.google.com/maps" } },
-                agent: { code: "87524b4a-8511-4a93-88fa-850c8d043868", name: "สมเกียรติ มั่นคง", team: "QC RENOVATE & MENTAINANCE" },
-                store: { code: "60964", code3: "RA2", name: "RAMA2", location: { latitude: 13.652, longitude: 100.421 } },
-                schedule_plan: { visit_date: "2026-09-06", start_time: "10:00:00", end_time: "12:00:00", time_slot: "เช้า (10:00-12:00)", distance: 11.0 },
-                check_in: { date: "2026-09-06T10:00:00Z", latitude: 13.7200, longitude: 100.5300, image: "heater/check_in/img1.jpg" },
-                check_out: { date: "2026-09-06T11:15:00Z", latitude: 13.7200, longitude: 100.5300, image: "heater/check_out/img2.jpg" },
-                site_photos: ["heater/site/h1.jpg", "heater/site/h2.jpg", "heater/site/h3.jpg", "heater/site/h4.jpg", "heater/site/h5.jpg"],
-                approval: { approve_by: "Phinyo Phoaon", approve_date: "2026-09-06T11:30:00Z", distance: 11.0 },
-                visit_results: ["มีท่อน้ำดีและสายไฟร้อยท่อฝังผนังไว้แล้ว เข้าติดตั้งได้ทันที"],
-                remarks: { comment: "นิติบุคคลคอนโดอนุญาตทำงาน 09:00-17:00", note: "ต้องแจ้งชื่อช่างล่วงหน้า" }
-            }
-        },
-        {
-            id: 1004,
-            source_job_id: "f68a2304-45c6-42ea-bb5d-98c01e230404",
-            job_number: "JOB26090900004",
-            booking_no: "VFIX-260901-004",
-            ticket_no: "209051122",
-            source_reference: "REQ-PT2-2608220006",
-            customer_code: "CUST-99203",
-            customer_name: "คุณ ณัฐพงษ์ เตชะสกุล",
-            customer_phone: "0819998877",
-            store_code: "60964",
-            agent_code: "87524b4a-8511-4a93-88fa-850c8d043868",
-            visit_date: "2026-09-06",
-            checkin_at: "2026-09-06T13:30:00Z",
-            checkout_at: "2026-09-06T15:20:00Z",
-            photo_count: 6,
-            process_status: StagingProcessStatus.PENDING,
-            retry_count: 0,
-            received_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-            raw_payload: {
-                system: { job_id: "f68a2304-45c6-42ea-bb5d-98c01e230404", created_at: "2026-09-02T10:30:00Z", created_by: "system", updated_at: "2026-09-02T10:30:00Z" },
-                job_info: { job_number: "JOB26090900004", booking_no: "VFIX-260901-004", ticket_no: "209051122", source_reference: "REQ-PT2-2608220006", status: "Approved", stage: "Completed", property_type: "บ้านเดี่ยว", project_type: "Renovate", project_sub_type: "งานกระเบื้องพื้น" },
-                job_details: [
-                    { job_type: "ปูกระเบื้องพื้นห้องน้ำ", installation_detail: "รื้อกระเบื้องเดิม + ปูกระเบื้องแกรนิตโต้ 60x60 cm พื้นที่ 15 ตร.ม.", product_quantity: 15, remark: "รวมระบบกันซึม 3 ชั้น" }
-                ],
-                customer: { code: "CUST-99203", name: "คุณ ณัฐพงษ์ เตชะสกุล", mobile_no: "0819998877", location: { latitude: 13.7650, longitude: 100.4890, address: "99 หมู่บ้านเพอร์เฟค ราชพฤกษ์ นนทบุรี", google_map_url: "https://www.google.com/maps" } },
-                agent: { code: "87524b4a-8511-4a93-88fa-850c8d043868", name: "สมเกียรติ มั่นคง", team: "QC RENOVATE & MENTAINANCE" },
-                store: { code: "60964", code3: "RA2", name: "RAMA2", location: { latitude: 13.652, longitude: 100.421 } },
-                schedule_plan: { visit_date: "2026-09-06", start_time: "13:00:00", end_time: "16:00:00", time_slot: "บ่าย (13:00-16:00)", distance: 18.0 },
-                check_in: { date: "2026-09-06T13:30:00Z", latitude: 13.7650, longitude: 100.4890, image: "tile/check_in/img1.jpg" },
-                check_out: { date: "2026-09-06T15:20:00Z", latitude: 13.7650, longitude: 100.4890, image: "tile/check_out/img2.jpg" },
-                site_photos: ["tile/site/t1.jpg", "tile/site/t2.jpg", "tile/site/t3.jpg", "tile/site/t4.jpg", "tile/site/t5.jpg", "tile/site/t6.jpg"],
-                approval: { approve_by: "Phinyo Phoaon", approve_date: "2026-09-06T15:30:00Z", distance: 18.0 },
-                visit_results: ["วัดระดับ Slope ท่อระบายน้ำทิ้งเดิมเรียบร้อย ต้องเสริมกันซึมรอบท่อน้ำทิ้ง"],
-                remarks: { comment: "ลูกค้าเลือกกระเบื้องรหัส TILE-GR-6060 จากโฮมโปรแล้ว", note: "รอเริ่มงานสัปดาห์หน้า" }
-            }
-        },
-        {
-            id: 1005,
-            source_job_id: "a79b3405-56d7-43fb-cc6e-09d12f340505",
-            job_number: "JOB26090900005",
-            booking_no: "VFIX-260901-005",
-            ticket_no: "209051123",
-            source_reference: "REQ-PT2-2608220007",
-            customer_code: "CUST-99204",
-            customer_name: "คุณ อรวรรณ จิตรสมบูรณ์",
-            customer_phone: "0831122334",
-            store_code: "60964",
-            agent_code: "87524b4a-8511-4a93-88fa-850c8d043868",
-            visit_date: "2026-09-07",
-            checkin_at: "2026-09-07T09:30:00Z",
-            checkout_at: "2026-09-07T11:00:00Z",
-            photo_count: 5,
-            process_status: StagingProcessStatus.PENDING,
-            retry_count: 0,
-            received_at: new Date(Date.now() - 3600000 * 1).toISOString(),
-            raw_payload: {
-                system: { job_id: "a79b3405-56d7-43fb-cc6e-09d12f340505", created_at: "2026-09-02T11:00:00Z", created_by: "system", updated_at: "2026-09-02T11:00:00Z" },
-                job_info: { job_number: "JOB26090900005", booking_no: "VFIX-260901-005", ticket_no: "209051123", source_reference: "REQ-PT2-2608220007", status: "Approved", stage: "Completed", property_type: "อาคารพาณิชย์", project_type: "Renovate", project_sub_type: "สุขภัณฑ์และห้องน้ำ" },
-                job_details: [
-                    { job_type: "ติดตั้งสุขภัณฑ์", installation_detail: "รื้อถอนโถสุขภัณฑ์เดิม + ติดตั้งโถสุขภัณฑ์ Kohler 2 ชิ้น พร้อมสายฉีดชำระ", product_quantity: 2, remark: "ชั้น 1 และ ชั้น 2" },
-                    { job_type: "ติดตั้งฉากกั้นอาบน้ำ", installation_detail: "ติดตั้งฉากกั้นกระจกนิรภัย Tempered 10mm ขนาด 100x200 cm", product_quantity: 1, remark: "ชั้น 2" }
-                ],
-                customer: { code: "CUST-99204", name: "คุณ อรวรรณ จิตรสมบูรณ์", mobile_no: "0831122334", location: { latitude: 13.7340, longitude: 100.5670, address: "45/3 ซอยสุขุมวิท 39 คลองตันเหนือ วัฒนา กทม.", google_map_url: "https://www.google.com/maps" } },
-                agent: { code: "87524b4a-8511-4a93-88fa-850c8d043868", name: "สมเกียรติ มั่นคง", team: "QC RENOVATE & MENTAINANCE" },
-                store: { code: "60964", code3: "RA2", name: "RAMA2", location: { latitude: 13.652, longitude: 100.421 } },
-                schedule_plan: { visit_date: "2026-09-07", start_time: "09:00:00", end_time: "11:30:00", time_slot: "เช้า (09:00-11:30)", distance: 14.3 },
-                check_in: { date: "2026-09-07T09:30:00Z", latitude: 13.7340, longitude: 100.5670, image: "sanitary/check_in/img1.jpg" },
-                check_out: { date: "2026-09-07T11:00:00Z", latitude: 13.7340, longitude: 100.5670, image: "sanitary/check_out/img2.jpg" },
-                site_photos: ["sanitary/site/s1.jpg", "sanitary/site/s2.jpg", "sanitary/site/s3.jpg", "sanitary/site/s4.jpg", "sanitary/site/s5.jpg"],
-                approval: { approve_by: "Phinyo Phoaon", approve_date: "2026-09-07T11:15:00Z", distance: 14.3 },
-                visit_results: ["ระยะท่อชักโครก 30.5 cm ตรงตามมาตรฐาน พร้อมติดตั้งได้ทันที"],
-                remarks: { comment: "มีที่จอดรถหน้าอาคาร ช่างขนย้ายสินค้าสะดวก", note: "นัดหมายเรียบร้อย" }
-            }
-        }
-    ];
-    exports.stagingSurveyStore.push(...mockRecords);
-    console.log(`[STAGING SEED] Seeded ${mockRecords.length} mock pending records in staging table.`);
+    // DB handles staging data now
 }
 // Initial Seed on Server Startup (Clean Slate - 0 transactions)
 seedInitialStagingData(false);
@@ -1906,24 +1281,20 @@ function convertStagingToCorePmt(stagingRecord) {
     stagingRecord.process_status = StagingProcessStatus.PROCESSING;
     try {
         // 1. Upsert Customer in Core Table
-        let customer = exports.coreCustomerStore.find(c => c.phone === payload.customer.mobile_no || (payload.customer.code && c.customer_code === payload.customer.code));
-        if (!customer) {
-            const nameParts = payload.customer.name.trim().split(' ');
-            const firstName = nameParts[0] || payload.customer.name;
-            const lastName = nameParts.slice(1).join(' ') || '-';
-            customer = {
-                id: Date.now() + Math.floor(Math.random() * 1000),
-                customer_code: payload.customer.code || `CUST-${Date.now()}`,
-                first_name: firstName,
-                last_name: lastName,
-                phone: payload.customer.mobile_no,
-                address: payload.customer.location?.address || 'ไม่ระบุที่อยู่',
-                lat: payload.customer.location?.latitude || 0,
-                lng: payload.customer.location?.longitude || 0,
-                google_map_url: payload.customer.location?.google_map_url
-            };
-            exports.coreCustomerStore.push(customer);
-        }
+        const nameParts = payload.customer.name.trim().split(' ');
+        const firstName = nameParts[0] || payload.customer.name;
+        const lastName = nameParts.slice(1).join(' ') || '-';
+        const customer = {
+            id: Date.now() + Math.floor(Math.random() * 1000),
+            customer_code: payload.customer.code || `CUST-${Date.now()}`,
+            first_name: firstName,
+            last_name: lastName,
+            phone: payload.customer.mobile_no,
+            address: payload.customer.location?.address || 'ไม่ระบุที่อยู่',
+            lat: payload.customer.location?.latitude || 0,
+            lng: payload.customer.location?.longitude || 0,
+            google_map_url: payload.customer.location?.google_map_url
+        };
         // 2. Insert Core Job (Req #1 & State Machine: SURVEYED)
         const customerData = {
             id: customer.id,
@@ -2021,55 +1392,7 @@ function convertStagingToCorePmt(stagingRecord) {
             },
             created_at: payload.system?.created_at || new Date().toISOString()
         };
-        exports.coreJobStore.push(newCoreJob);
         (0, database_1.dbSaveJob)(newCoreJob).catch(err => console.error('[DB] Failed to save converted job:', err.message));
-        // 3. Insert Job Services
-        if (Array.isArray(payload.job_details)) {
-            payload.job_details.forEach((item, idx) => {
-                exports.coreJobServiceStore.push({
-                    id: Date.now() + idx + Math.floor(Math.random() * 1000),
-                    job_id: jobId,
-                    job_type: item.job_type,
-                    installation_detail: item.installation_detail,
-                    quantity: item.product_quantity || 1,
-                    remark: item.remark
-                });
-            });
-        }
-        // 4. Insert Visit Checkin & Checkout record (Req #2 & #3)
-        const checkinTime = new Date(payload.check_in.date).getTime();
-        const checkoutTime = new Date(payload.check_out.date).getTime();
-        const durationMinutes = Math.max(0, Math.round((checkoutTime - checkinTime) / (1000 * 60)));
-        const visitCheckinId = Date.now() + Math.floor(Math.random() * 1000);
-        const visitRecord = {
-            id: visitCheckinId,
-            job_id: jobId,
-            checkin_at: payload.check_in.date,
-            checkout_at: payload.check_out.date,
-            duration_minutes: durationMinutes,
-            checkin_lat: payload.check_in.latitude,
-            checkin_lng: payload.check_in.longitude,
-            distance_km: payload.schedule_plan?.distance || 0,
-            is_in_radius: true,
-            photo_count: photoCount,
-            visit_results: payload.visit_results || [],
-            remarks_comment: payload.remarks?.comment,
-            approved_by: payload.approval?.approve_by,
-            approved_at: payload.approval?.approve_date
-        };
-        exports.coreVisitCheckinStore.push(visitRecord);
-        // 5. Insert Site Photos (Req #2)
-        if (Array.isArray(payload.site_photos)) {
-            payload.site_photos.forEach((photoPath, idx) => {
-                exports.coreSitePhotoStore.push({
-                    id: Date.now() + idx + Math.floor(Math.random() * 1000),
-                    job_id: jobId,
-                    visit_checkin_id: visitCheckinId,
-                    file_path: photoPath,
-                    taken_at: payload.check_in.date
-                });
-            });
-        }
         // 6. Update Staging Record as CONVERTED
         stagingRecord.process_status = StagingProcessStatus.CONVERTED;
         stagingRecord.converted_job_id = jobId;
@@ -2130,9 +1453,6 @@ app.post(['/api/v1/jobs/survey-report', '/api/v1/integration/survey-reports'], a
         }
         // 2. Check Idempotency / Duplicate in Staging DB
         let existing = await (0, database_1.dbGetStagingReport)(payload.system.job_id);
-        if (!existing) {
-            existing = exports.stagingSurveyStore.find(s => s.source_job_id === payload.system.job_id);
-        }
         if (existing) {
             return res.status(200).json({
                 success: true,
@@ -2164,7 +1484,6 @@ app.post(['/api/v1/jobs/survey-report', '/api/v1/integration/survey-reports'], a
             retry_count: 0,
             received_at: new Date().toISOString()
         };
-        exports.stagingSurveyStore.push(stagingRecord);
         await (0, database_1.dbSaveStagingReport)(stagingRecord);
         console.log(`[STAGING INGEST] Successfully saved raw payload in staging: #${stagingRecord.id} (Job: ${stagingRecord.job_number})`);
         // 4. Processing based on Auto-Convert Mode
@@ -2209,17 +1528,8 @@ app.get('/api/v1/staging/survey-reports', requireAuth, async (req, res) => {
         status: status,
         search: search
     });
-    if (!results || results.length === 0) {
-        results = [...exports.stagingSurveyStore];
-        if (status) {
-            results = results.filter(r => r.process_status === status);
-        }
-        if (search) {
-            const q = String(search).toLowerCase();
-            results = results.filter(r => r.job_number.toLowerCase().includes(q) ||
-                r.customer_name.toLowerCase().includes(q) ||
-                (r.booking_no && r.booking_no.toLowerCase().includes(q)));
-        }
+    if (!results) {
+        results = [];
     }
     return res.json({
         success: true,
@@ -2243,23 +1553,17 @@ app.get('/api/v1/staging/survey-reports/:id', requireAuth, async (req, res) => {
     const id = req.params.id;
     let record = await (0, database_1.dbGetStagingReport)(id);
     if (!record) {
-        record = exports.stagingSurveyStore.find(r => String(r.id) === id || r.source_job_id === id);
-    }
-    if (!record) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Staging record not found' } });
     }
     return res.json({ success: true, data: record });
 });
 app.post('/api/v1/staging/survey-reports/:id/convert', requireAuth, async (req, res) => {
     const id = req.params.id;
-    let record = await (0, database_1.dbGetStagingReport)(id);
-    if (!record) {
-        record = exports.stagingSurveyStore.find(r => String(r.id) === id || r.source_job_id === id);
-    }
+    const record = await (0, database_1.dbGetStagingReport)(id);
     if (!record) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Staging record not found' } });
     }
-    const result = convertStagingToCorePmt(record);
+    const result = await convertStagingToCorePmt(record);
     return res.json({
         success: result.success,
         data: {
@@ -2271,14 +1575,10 @@ app.post('/api/v1/staging/survey-reports/:id/convert', requireAuth, async (req, 
     });
 });
 app.post('/api/v1/staging/seed', requireAuth, async (req, res) => {
-    seedInitialStagingData();
-    for (const rec of exports.stagingSurveyStore) {
-        await (0, database_1.dbSaveStagingReport)(rec);
-    }
     return res.json({
         success: true,
-        message: 'Seeded 5 mock survey reports into staging table successfully',
-        total_records: exports.stagingSurveyStore.length
+        message: 'Seeding mock survey reports is disabled (DB source of truth)',
+        total_records: 0
     });
 });
 // =============================================================================
@@ -2297,155 +1597,20 @@ app.get('/api/v1/jobs', requireAuth, async (req, res) => {
         const dateToStr = typeof date_to === 'string' && date_to.trim() ? date_to.trim() : undefined;
         const sortByStr = typeof sort_by === 'string' && sort_by.trim() ? sort_by.trim() : undefined;
         const sortOrderStr = (typeof sort_order === 'string' && sort_order.trim().toLowerCase() === 'desc') ? 'desc' : 'asc';
-        let pagedResult;
-        let metrics;
-        if (database_1.isDatabaseConnected) {
-            pagedResult = await (0, database_1.dbLoadJobsPaginated)({
-                page,
-                limit,
-                status: statusStr,
-                step: stepStr,
-                service: serviceStr,
-                search: searchStr,
-                plan_date_from: dateFromStr,
-                plan_date_to: dateToStr,
-                sort_by: sortByStr,
-                sort_order: sortOrderStr,
-                lean: true
-            });
-            metrics = await (0, database_1.dbGetJobMetrics)();
-        }
-        else {
-            // In-memory fallback
-            let list = [...exports.coreJobStore];
-            if (statusStr && statusStr !== 'all') {
-                const st = statusStr.toLowerCase();
-                if (st === 'step1_queue') {
-                    list = list.filter((j) => !j.pmt_accepted && ['new', 'draft', 'new_order', 'surveyed', 'survey'].includes((j.status || '').toLowerCase()));
-                }
-                else if (st === 'transferred') {
-                    list = list.filter((j) => j.pmt_accepted || !['new', 'draft', 'new_order', 'surveyed', 'survey'].includes((j.status || '').toLowerCase()));
-                }
-                else if (st === 'new') {
-                    list = list.filter((j) => !j.pmt_accepted && ['new', 'draft', 'new_order'].includes((j.status || '').toLowerCase()) && (!j.assigned_tech || j.assigned_tech === 'รอระบุช่าง'));
-                }
-                else if (st === 'assigned') {
-                    list = list.filter((j) => !j.pmt_accepted && j.assigned_tech && j.assigned_tech !== 'รอระบุช่าง' && !['surveyed', 'cancelled', 'closed_lost'].includes((j.status || '').toLowerCase()));
-                }
-                else if (st === 'surveyed') {
-                    list = list.filter((j) => !j.pmt_accepted && ((j.status || '').toLowerCase() === 'surveyed' || (j.step_timestamps && j.step_timestamps.step1_survey_at) || (Array.isArray(j.photos) && j.photos.length > 0)));
-                }
-                else {
-                    list = list.filter((j) => (j.status || '').toLowerCase() === statusStr.toLowerCase());
-                }
-            }
-            if (stepStr && stepStr !== 'all') {
-                const stp = stepStr.toLowerCase();
-                if (stp === 'step1') {
-                    list = list.filter((j) => !j.pmt_accepted && ['new', 'draft', 'new_order', 'surveyed', 'survey'].includes((j.status || '').toLowerCase()));
-                }
-                else if (stp === 'step2') {
-                    list = list.filter((j) => j.pmt_accepted && ['in_progress', 'pending_ticket', 'ticket_issued', 'designed'].includes((j.status || '').toLowerCase()));
-                }
-                else if (stp === 'step5' || stp === 'qc') {
-                    list = list.filter((j) => ['qc_pending', 'qc_inspecting', 'qc_rework', 'qc_passed', 'qc_confirmed', 'draft_qc'].includes((j.status || '').toLowerCase()));
-                }
-                else if (stp === 'step6' || stp === 'closed') {
-                    list = list.filter((j) => ['qc_passed', 'closed'].includes((j.status || '').toLowerCase()));
-                }
-                else if (stp === 'step7' || stp === 'ma') {
-                    list = list.filter((j) => (j.status || '').toLowerCase() === 'after_sale' || (j.job_type || '').toLowerCase() === 'ma');
-                }
-            }
-            if (serviceStr && serviceStr !== 'all') {
-                const s = serviceStr.toLowerCase();
-                if (s === 'quick') {
-                    list = list.filter((j) => (j.job_type || '').toLowerCase() === 'quick' || String(j.services || '').toLowerCase().includes('quick'));
-                }
-                else if (s === 'renovate') {
-                    list = list.filter((j) => (j.job_type || '').toLowerCase() === 'renovate' || String(j.project_sub_type || '').toLowerCase().includes('renovate'));
-                }
-                else if (s === 'ma') {
-                    list = list.filter((j) => (j.job_type || '').toLowerCase() === 'ma' || String(j.project_sub_type || '').toLowerCase().includes('ma'));
-                }
-                else {
-                    list = list.filter((j) => j.service === serviceStr || (Array.isArray(j.services) && j.services.includes(serviceStr)) || j.project_sub_type === serviceStr);
-                }
-            }
-            if (searchStr && searchStr.trim()) {
-                const q = searchStr.trim().toLowerCase();
-                list = list.filter((j) => (j.id && String(j.id).toLowerCase().includes(q)) ||
-                    (j.job_no && String(j.job_no).toLowerCase().includes(q)) ||
-                    (j.external_ref_id && String(j.external_ref_id).toLowerCase().includes(q)) ||
-                    (j.booking_no && String(j.booking_no).toLowerCase().includes(q)) ||
-                    (j.ticket_no && String(j.ticket_no).toLowerCase().includes(q)) ||
-                    (j.plan_date && String(j.plan_date).toLowerCase().includes(q)) ||
-                    (j.customer && String(j.customer).toLowerCase().includes(q)) ||
-                    (j.customer_name && String(j.customer_name).toLowerCase().includes(q)) ||
-                    (j.customer_data?.name && String(j.customer_data.name).toLowerCase().includes(q)) ||
-                    (j.phone && String(j.phone).includes(q)) ||
-                    (j.customer_phone && String(j.customer_phone).includes(q)) ||
-                    (j.customer_data?.phone && String(j.customer_data.phone).includes(q)) ||
-                    (j.service && String(j.service).toLowerCase().includes(q)) ||
-                    (j.project_sub_type && String(j.project_sub_type).toLowerCase().includes(q)) ||
-                    (j.assigned_tech && String(j.assigned_tech).toLowerCase().includes(q)) ||
-                    (j.store_code && String(j.store_code).toLowerCase().includes(q)) ||
-                    (j.agent_name && String(j.agent_name).toLowerCase().includes(q)));
-            }
-            if (dateFromStr) {
-                list = list.filter((j) => (j.plan_date || '') >= dateFromStr);
-            }
-            if (dateToStr) {
-                list = list.filter((j) => (j.plan_date || '') <= dateToStr);
-            }
-            // Sorting: if filtered by plan_date or specifically requested sort_by=plan_date, sort chronologically by plan_date
-            const shouldSortByPlanDate = (sortByStr === 'plan_date') || ((dateFromStr || dateToStr) && sortByStr !== 'created_at');
-            if (shouldSortByPlanDate) {
-                list.sort((a, b) => {
-                    const dateA = a.plan_date || a.date || '';
-                    const dateB = b.plan_date || b.date || '';
-                    if (dateA !== dateB) {
-                        if (!dateA)
-                            return 1;
-                        if (!dateB)
-                            return -1;
-                        return sortOrderStr === 'desc' ? dateB.localeCompare(dateA) : dateA.localeCompare(dateB);
-                    }
-                    const timeSlotA = String(a.plan_time || a.time_slot || a.survey_time || a.time || '').trim();
-                    const timeSlotB = String(b.plan_time || b.time_slot || b.survey_time || b.time || '').trim();
-                    if (timeSlotA && timeSlotB && timeSlotA !== timeSlotB) {
-                        return sortOrderStr === 'desc' ? timeSlotB.localeCompare(timeSlotA) : timeSlotA.localeCompare(timeSlotB);
-                    }
-                    const timeA = new Date(a.created_at || 0).getTime();
-                    const timeB = new Date(b.created_at || 0).getTime();
-                    if (timeB !== timeA)
-                        return timeB - timeA;
-                    return String(b.job_no || b.id || '').localeCompare(String(a.job_no || a.id || ''));
-                });
-            }
-            else {
-                // Default: Sort descending so latest jobs are always on top
-                list.sort((a, b) => {
-                    const timeA = new Date(a.created_at || 0).getTime();
-                    const timeB = new Date(b.created_at || 0).getTime();
-                    if (timeB !== timeA)
-                        return timeB - timeA;
-                    return String(b.job_no || b.id || '').localeCompare(String(a.job_no || a.id || ''));
-                });
-            }
-            const total = list.length;
-            const totalPages = Math.max(1, Math.ceil(total / limit));
-            const offset = (page - 1) * limit;
-            const pageRows = list.slice(offset, offset + limit).map(toLeanJob);
-            pagedResult = {
-                jobs: pageRows,
-                total,
-                page,
-                limit,
-                totalPages
-            };
-            metrics = getInMemoryJobMetrics(exports.coreJobStore);
-        }
+        let pagedResult = await (0, database_1.dbLoadJobsPaginated)({
+            page,
+            limit,
+            status: statusStr,
+            step: stepStr,
+            service: serviceStr,
+            search: searchStr,
+            plan_date_from: dateFromStr,
+            plan_date_to: dateToStr,
+            sort_by: sortByStr,
+            sort_order: sortOrderStr,
+            lean: true
+        });
+        let metrics = await (0, database_1.dbGetJobMetrics)();
         const pagination = {
             page: pagedResult.page,
             limit: pagedResult.limit,
@@ -2469,99 +1634,9 @@ app.get('/api/v1/jobs', requireAuth, async (req, res) => {
         return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
     }
 });
-function getInMemoryJobMetrics(jobsList) {
-    const list = jobsList || [];
-    const todayStr = new Date().toISOString().slice(0, 10);
-    let step1 = 0;
-    let qc_pending = 0;
-    let in_progress = 0;
-    let completed = 0;
-    let cancelled = 0;
-    let quick = 0;
-    let renovate = 0;
-    let ma = 0;
-    let today = 0;
-    let qc_passed = 0;
-    let after_sale = 0;
-    for (const j of list) {
-        const st = String(j.status || '').toUpperCase();
-        const jt = String(j.job_type || '').toLowerCase();
-        const isStep1 = ['SURVEYED', 'DRAFT', 'NEW'].includes(st) && (!j.pmt_accepted);
-        if (isStep1)
-            step1++;
-        if (st === 'QC_PENDING')
-            qc_pending++;
-        if (['IN_PROGRESS', 'CONVERTED'].includes(st))
-            in_progress++;
-        if (['QC_PASSED', 'CLOSED', 'AFTER_SALE'].includes(st))
-            completed++;
-        if (st === 'QC_PASSED')
-            qc_passed++;
-        if (['AFTER_SALE', 'CLOSED'].includes(st))
-            after_sale++;
-        if (['CANCELLED', 'CLOSED_LOST'].includes(st))
-            cancelled++;
-        if (jt === 'quick')
-            quick++;
-        else if (jt === 'renovate')
-            renovate++;
-        else if (jt === 'ma')
-            ma++;
-        const d = String((j.step_timestamps && j.step_timestamps.step1_order_at) || j.created_at || j.date || '').slice(0, 10);
-        if (d === todayStr)
-            today++;
-    }
-    return {
-        total: list.length,
-        step1,
-        qc_pending,
-        in_progress,
-        completed,
-        cancelled,
-        quick,
-        renovate,
-        ma,
-        today,
-        qc_passed,
-        after_sale
-    };
-}
-function toLeanJob(j) {
-    if (!j)
-        return j;
-    const copy = { ...j };
-    delete copy.raw_payload;
-    if (Array.isArray(copy.photos)) {
-        copy.photo_count = copy.photos.length;
-        copy.photos = [];
-    }
-    if (Array.isArray(copy.boq_items)) {
-        copy.boq_count = copy.boq_items.length;
-        copy.boq_grand_total = Number(copy.boq_grand_total) || 0;
-        copy.boq_items = [];
-    }
-    if (Array.isArray(copy.tasks)) {
-        copy.task_count = copy.tasks.length;
-        copy.tasks = [];
-    }
-    if (Array.isArray(copy.csat_photos))
-        copy.csat_photos = [];
-    if (Array.isArray(copy.job_details))
-        copy.job_details = [];
-    if (Array.isArray(copy.visit_results))
-        copy.visit_results = [];
-    return copy;
-}
-// Fast summary metrics endpoint for badges and dashboard KPI cards
 app.get('/api/v1/jobs/summary', requireAuth, async (req, res) => {
     try {
-        let metrics;
-        if (database_1.isDatabaseConnected) {
-            metrics = await (0, database_1.dbGetJobMetrics)();
-        }
-        else {
-            metrics = getInMemoryJobMetrics(exports.coreJobStore);
-        }
+        const metrics = await (0, database_1.dbGetJobMetrics)();
         return res.json({
             success: true,
             metrics
@@ -2574,16 +1649,6 @@ app.get('/api/v1/jobs/summary', requireAuth, async (req, res) => {
 app.get('/api/v1/jobs/:id', requireAuth, async (req, res) => {
     const param = req.params.id;
     let job = await (0, database_1.dbGetJob)(param);
-    if (!job) {
-        const found = exports.coreJobStore.find((j) => String(j.id) === String(param) ||
-            String(j.job_no) === String(param) ||
-            String(j.external_ref_id) === String(param) ||
-            String(j.booking_no) === String(param) ||
-            String(j.ticket_no) === String(param));
-        if (found) {
-            job = found;
-        }
-    }
     if (!job) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found in database' } });
     }
@@ -2614,17 +1679,6 @@ app.patch('/api/v1/jobs/:id', requireAuth, async (req, res) => {
     const param = req.params.id;
     let updatedJob = await (0, database_1.dbUpdateJob)(param, req.body);
     if (!updatedJob) {
-        const idx = exports.coreJobStore.findIndex((j) => String(j.id) === String(param) ||
-            String(j.job_no) === String(param));
-        if (idx !== -1) {
-            exports.coreJobStore[idx] = { ...exports.coreJobStore[idx], ...req.body, updated_at: new Date().toISOString() };
-            updatedJob = exports.coreJobStore[idx];
-        }
-    }
-    if (!updatedJob) {
-        return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found in database or update failed' } });
-    }
-    if (!updatedJob) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found in database or update failed' } });
     }
     return res.json({
@@ -2637,10 +1691,6 @@ app.patch('/api/v1/jobs/:id', requireAuth, async (req, res) => {
 app.post('/api/v1/jobs/:id/photos', requireAuth, async (req, res) => {
     const param = req.params.id;
     let job = await (0, database_1.dbGetJob)(param);
-    if (!job) {
-        const numId = Number(param);
-        job = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
-    }
     if (!job) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
     }
@@ -2676,10 +1726,6 @@ app.delete('/api/v1/jobs/:id/photos/:photoId', requireAuth, async (req, res) => 
     const param = req.params.id;
     const photoId = req.params.photoId;
     let job = await (0, database_1.dbGetJob)(param);
-    if (!job) {
-        const numId = Number(param);
-        job = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
-    }
     if (!job) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Job not found' } });
     }
@@ -2762,7 +1808,6 @@ app.post('/api/v1/jobs', requireAuth, async (req, res) => {
             created_at: new Date().toISOString()
         };
         await (0, database_1.dbSaveJob)(newJob);
-        exports.coreJobStore.unshift(newJob);
         return res.status(201).json({
             success: true,
             data: newJob,
@@ -2775,17 +1820,6 @@ app.post('/api/v1/jobs', requireAuth, async (req, res) => {
 });
 const wipeAllTransactions = async (req, res) => {
     await (0, database_1.dbWipeAllTransactions)();
-    exports.coreJobStore.length = 0;
-    exports.coreTaskStore.length = 0;
-    exports.coreCustomerStore.length = 0;
-    exports.coreJobServiceStore.length = 0;
-    exports.coreVisitCheckinStore.length = 0;
-    exports.coreSitePhotoStore.length = 0;
-    exports.coreQCBookingStore.length = 0;
-    exports.coreDailyWorkLogStore.length = 0;
-    exports.stagingSurveyStore.length = 0;
-    exports.maContractStore.length = 0;
-    exports.maRoundStore.length = 0;
     console.log('[SYSTEM] Wiped all transactions across Core Jobs, Tasks, QC, Staging, and MA in PostgreSQL.');
     return res.json({
         success: true,
@@ -2797,41 +1831,19 @@ app.delete(['/api/v1/jobs', '/api/v1/system/wipe-transactions'], wipeAllTransact
 app.post(['/api/v1/system/wipe-transactions', '/api/v1/jobs/wipe-all'], wipeAllTransactions);
 app.post('/api/v1/jobs/reset-status', async (req, res) => {
     const count = await (0, database_1.dbResetJobStatus)();
-    exports.coreJobStore.forEach(j => {
-        j.status = JobStatus.SURVEYED;
-        j.overall_progress = 25;
-        j.boq_items = [];
-        j.pmt_accepted = false;
-    });
-    exports.coreTaskStore.length = 0;
-    exports.coreQCBookingStore.length = 0;
-    exports.coreDailyWorkLogStore.length = 0;
     return res.json({
         success: true,
         message: 'ถอยสถานะของทุก Job กลับสู่จุดเริ่มต้น (SURVEYED / 25%) พร้อมทำแบบและ BOQ เรียบร้อย',
-        total_jobs: count || exports.coreJobStore.length
+        total_jobs: count || 0
     });
 });
 app.post(['/api/v1/jobs/reset', '/api/v1/jobs/simulate-int'], async (req, res) => {
     await (0, database_1.dbWipeAllTransactions)();
     const count = await (0, database_1.dbSeedMockJobs)();
-    const dbJobs = await (0, database_1.dbLoadJobs)();
-    exports.coreJobStore.length = 0;
-    if (dbJobs && dbJobs.length > 0) {
-        exports.coreJobStore.push(...dbJobs);
-    }
-    exports.coreTaskStore.length = 0;
-    exports.coreQCBookingStore.length = 0;
-    exports.coreDailyWorkLogStore.length = 0;
-    exports.coreVisitCheckinStore.length = 0;
-    exports.coreSitePhotoStore.length = 0;
-    exports.stagingSurveyStore.length = 0;
-    exports.maContractStore.length = 0;
-    exports.maRoundStore.length = 0;
     return res.json({
         success: true,
         message: 'จำลองและ Reset รายการคำสั่งซื้อเข้าสู่ระบบ PMT สำเร็จ (5 รายการ VFIX + 20 รายการ INT บันทึกลงฐานข้อมูล PostgreSQL core_jobs เริ่มต้น Step 1 ทั้งหมด)',
-        total_jobs: count || exports.coreJobStore.length
+        total_jobs: count || 0
     });
 });
 // =============================================================================
@@ -2854,15 +1866,10 @@ app.post('/api/v1/jobs/:id/checkin', requireAuth, async (req, res) => {
                 }
             });
         }
-        // Update job status in PostgreSQL and coreJobStore
+        // Update job status in PostgreSQL
         const targetJob = await (0, database_1.dbGetJob)(param);
         const newProgress = Math.max(targetJob?.progress || targetJob?.overall_progress || 0, 30);
         await (0, database_1.dbUpdateJob)(param, { status: JobStatus.SURVEYED, overall_progress: newProgress });
-        const memJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
-        if (memJob) {
-            memJob.status = JobStatus.SURVEYED;
-            memJob.overall_progress = newProgress;
-        }
         // Rule: Geo-fence Check (Default 400m - Configurable) (Req #2, OQ-A07)
         const configRadius = 400; // meters
         const distanceMeters = 180; // Calculated distance
@@ -2936,14 +1943,6 @@ app.post('/api/v1/jobs/:id/boq', requireAuth, async (req, res) => {
         boq_grand_total: grandTotal,
         status: JobStatus.BOQ
     });
-    const targetJob = exports.coreJobStore.find(j => j.id === jobId || j.job_no === String(req.params.id) || String(j.id) === String(req.params.id));
-    if (targetJob) {
-        targetJob.boq_items = items;
-        targetJob.boq_subtotal = subtotal;
-        targetJob.boq_discount = discount_amount;
-        targetJob.boq_grand_total = grandTotal;
-        targetJob.status = JobStatus.BOQ;
-    }
     return res.status(201).json({ success: true, data: boq });
 });
 // POST /api/v1/jobs/:id/boq/upload-file — Upload original BOQ file to server filesystem
@@ -3072,9 +2071,7 @@ app.get('/api/v1/jobs/:id/tasks', requireAuth, async (req, res) => {
     if (job && Array.isArray(job.tasks)) {
         tasks = job.tasks;
     }
-    if (tasks.length === 0) {
-        tasks = exports.coreTaskStore.filter(t => t.job_id === numId || t.job_no === param || String(t.job_id) === param);
-    }
+    // memory fallback removed
     const sorted = sortTasksByStartDate([...tasks]);
     return res.json({ success: true, total: sorted.length, data: sorted });
 });
@@ -3169,16 +2166,7 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', requireAuth, async (req, res) => {
         };
         await (0, database_1.dbSaveQCBooking)(qcBooking);
     }
-    // Also sync in-memory store for fallback
-    if (!isAppend) {
-        for (let i = exports.coreTaskStore.length - 1; i >= 0; i--) {
-            if (exports.coreTaskStore[i].job_id === numId || exports.coreTaskStore[i].job_no === param || String(exports.coreTaskStore[i].job_id) === param) {
-                exports.coreTaskStore.splice(i, 1);
-            }
-        }
-    }
-    exports.coreTaskStore.push(...newTasks);
-    newTasks.forEach(t => syncQCBookingForTask(t));
+    // In-memory sync removed
     const sorted = sortTasksByStartDate([...updatedTasks]);
     return res.status(201).json({
         success: true,
@@ -3268,8 +2256,6 @@ app.post('/api/v1/jobs/:id/tasks', requireAuth, async (req, res) => {
         created_at: new Date().toISOString()
     };
     await (0, database_1.dbSaveQCBooking)(qcBooking);
-    exports.coreTaskStore.push(newTask);
-    syncQCBookingForTask(newTask);
     const sorted = sortTasksByStartDate([...tasks]);
     return res.status(201).json({
         success: true,
@@ -3284,7 +2270,7 @@ app.post('/api/v1/jobs/:id/tasks/reorder', requireAuth, async (req, res) => {
     const param = req.params.id;
     const numId = isNaN(Number(param)) ? param : Number(param);
     const job = await (0, database_1.dbGetJob)(param);
-    const jobTasks = (job && Array.isArray(job.tasks)) ? job.tasks : exports.coreTaskStore.filter(t => t.job_id === numId || t.job_no === param || String(t.job_id) === param);
+    const jobTasks = (job && Array.isArray(job.tasks)) ? job.tasks : [];
     const sorted = sortTasksByStartDate([...jobTasks]);
     await (0, database_1.dbUpdateJob)(param, { tasks: sorted });
     return res.json({
@@ -3299,7 +2285,7 @@ app.put('/api/v1/jobs/:id/tasks/:taskId', requireAuth, async (req, res) => {
     const numId = isNaN(Number(id)) ? id : Number(id);
     const job = await (0, database_1.dbGetJob)(id);
     const jobNo = job?.job_no || (typeof id === 'string' && id.startsWith('JOB') ? id : `JOB2609090000${numId}`);
-    let tasks = job && Array.isArray(job.tasks) ? [...job.tasks] : [...exports.coreTaskStore.filter(t => String(t.job_id) === id || t.job_no === id)];
+    let tasks = job && Array.isArray(job.tasks) ? [...job.tasks] : [];
     // 1. Try exact ID match
     let task = tasks.find(t => String(t.id) === taskId);
     // 2. Try match by ID suffix (e.g. `_1` matches `..._1` or index N-1)
@@ -3318,10 +2304,6 @@ app.put('/api/v1/jobs/:id/tasks/:taskId', requireAuth, async (req, res) => {
     const reqName = req.body.task_name || req.body.name;
     if (!task && reqName) {
         task = tasks.find(t => (t.task_name || t.name) === reqName);
-    }
-    // 4. Try in-memory store fallback
-    if (!task) {
-        task = exports.coreTaskStore.find(t => String(t.id) === taskId);
     }
     // 5. If STILL not found, UPSERT as a new task to guarantee NO DATA LOSS!
     let isNew = false;
@@ -3426,10 +2408,6 @@ app.delete('/api/v1/jobs/:id/tasks/:taskId', requireAuth, async (req, res) => {
         await (0, database_1.dbUpdateJob)(id, { tasks: filtered });
     }
     await (0, database_1.dbDeleteQCBookingByTask)(taskId);
-    const idx = exports.coreTaskStore.findIndex(t => String(t.id) === taskId);
-    if (idx !== -1)
-        exports.coreTaskStore.splice(idx, 1);
-    removeQCBookingForTask(taskId);
     return res.json({ success: true, message: 'ลบ Task และยกเลิกการจอง QC สำเร็จ' });
 });
 // GET /api/v1/tasks/gantt — Get all tasks structured for Gantt Timeline view
@@ -3448,12 +2426,6 @@ app.get('/api/v1/tasks/gantt', requireAuth, async (req, res) => {
             if (Array.isArray(j.tasks))
                 allTasks.push(...j.tasks);
         });
-    }
-    if (allTasks.length === 0) {
-        allTasks = exports.coreTaskStore;
-        if (jobId && jobId !== 'all') {
-            allTasks = allTasks.filter(t => t.job_no === jobId || String(t.job_id) === jobId);
-        }
     }
     const sorted = sortTasksByStartDate([...allTasks]);
     return res.json({
@@ -3582,25 +2554,13 @@ app.put('/api/v1/qc/bookings/:id/confirm', requireAuth, async (req, res) => {
     const { id } = req.params;
     const { qc_tech, confirmed_by, remarks } = req.body;
     const updated = await (0, database_1.dbConfirmQCBooking)(id, qc_tech, confirmed_by, remarks);
-    const booking = exports.coreQCBookingStore.find(b => b.id === id || String(b.task_id) === id);
-    if (booking) {
-        booking.status = 'CONFIRMED';
-        booking.confirmed_at = new Date().toISOString();
-        if (qc_tech)
-            booking.assigned_qc_tech = qc_tech;
-        if (confirmed_by)
-            booking.confirmed_by = confirmed_by;
-        if (remarks !== undefined)
-            booking.remarks = remarks;
-    }
-    const result = updated || booking;
-    if (!result) {
+    if (!updated) {
         return res.status(404).json({ success: false, error: { code: 'BOOKING_NOT_FOUND', message: 'ไม่พบรายการจอง QC' } });
     }
     return res.json({
         success: true,
-        message: `ยืนยันการจองช่าง QC (${result.assigned_qc_tech || 'QC Technician'}) สำหรับ "${result.task_name}" เรียบร้อยแล้ว`,
-        data: result
+        message: `ยืนยันการจองช่าง QC (${updated.assigned_qc_tech || 'QC Technician'}) สำหรับ "${updated.task_name}" เรียบร้อยแล้ว`,
+        data: updated
     });
 });
 // PUT /api/v1/qc/bookings/:id — Update QC Booking (Change QC tech, date, remarks, status)
@@ -3609,9 +2569,6 @@ app.put('/api/v1/qc/bookings/:id', requireAuth, async (req, res) => {
     const { assigned_qc_tech, qc_booking_date, remarks, status } = req.body;
     const bookings = await (0, database_1.dbLoadQCBookings)();
     let booking = bookings.find((b) => String(b.id) === id || String(b.task_id) === id);
-    if (!booking) {
-        booking = exports.coreQCBookingStore.find(b => b.id === id || String(b.task_id) === id);
-    }
     if (!booking) {
         return res.status(404).json({ success: false, error: { code: 'BOOKING_NOT_FOUND', message: 'ไม่พบรายการจอง QC' } });
     }
@@ -3624,17 +2581,6 @@ app.put('/api/v1/qc/bookings/:id', requireAuth, async (req, res) => {
     if (status !== undefined)
         booking.status = status;
     await (0, database_1.dbSaveQCBooking)(booking);
-    const memBooking = exports.coreQCBookingStore.find(b => b.id === id || String(b.task_id) === id);
-    if (memBooking) {
-        if (assigned_qc_tech !== undefined)
-            memBooking.assigned_qc_tech = assigned_qc_tech;
-        if (qc_booking_date !== undefined)
-            memBooking.qc_booking_date = qc_booking_date;
-        if (remarks !== undefined)
-            memBooking.remarks = remarks;
-        if (status !== undefined)
-            memBooking.status = status;
-    }
     return res.json({ success: true, message: 'อัปเดตข้อมูลการจอง QC เรียบร้อย', data: booking });
 });
 // POST /api/v1/qc/bookings/sync-all — Sync QC bookings from all existing tasks
@@ -3753,7 +2699,6 @@ async function handleCreateDailyLog(payload, jobIdParam) {
     };
     // Persist to PostgreSQL database
     await (0, database_1.dbSaveDailyWorkLog)(newLog);
-    exports.coreDailyWorkLogStore.push(newLog);
     // If completed (overall complete: reached final day or confirmed early finish), update task and job status to QC_PENDING in DB
     if (isOverallComplete) {
         const nowIso = new Date().toISOString();
@@ -3776,39 +2721,8 @@ async function handleCreateDailyLog(payload, jobIdParam) {
                 step_timestamps: stepTimestamps
             });
         }
-        const memTask = exports.coreTaskStore.find(t => String(t.id) === String(newLog.task_id));
-        if (memTask) {
-            memTask.status = 'DONE';
-            memTask.progress_percent = 100;
-        }
-        const targetJob = exports.coreJobStore.find(j => String(j.id) === String(id) || j.job_no === id);
-        if (targetJob) {
-            targetJob.status = JobStatus.QC_PENDING;
-            targetJob.overall_progress = 85;
-            if (Array.isArray(targetJob.tasks)) {
-                const t = targetJob.tasks.find((task) => String(task.id) === String(newLog.task_id));
-                if (t) {
-                    t.status = 'DONE';
-                    t.progress_percent = 100;
-                }
-            }
-            if (!targetJob.step_timestamps)
-                targetJob.step_timestamps = {};
-            if (!targetJob.step_timestamps.qc_pending_at) {
-                targetJob.step_timestamps.qc_pending_at = nowIso;
-            }
-        }
         // Confirm QC Booking on the completion end date
         await (0, database_1.dbConfirmQCBooking)(String(newLog.task_id), undefined, newLog.recorded_by, undefined, newLog.log_date);
-        const booking = exports.coreQCBookingStore.find(b => String(b.task_id) === String(newLog.task_id) || String(b.job_id) === String(id));
-        if (booking) {
-            booking.status = 'CONFIRMED';
-            booking.confirmed_at = nowIso;
-            booking.confirmed_by = newLog.recorded_by;
-            if (newLog.log_date) {
-                booking.qc_booking_date = newLog.log_date;
-            }
-        }
     }
     else {
         // Progressive daily update: update task progress without prematurely marking DONE
@@ -3822,22 +2736,6 @@ async function handleCreateDailyLog(payload, jobIdParam) {
                 task.progress_percent = Math.max(Number(task.progress_percent) || 0, dayProgress);
             }
             await (0, database_1.dbUpdateJob)(id, { tasks, overall_progress: updatedJobProgress });
-        }
-        const memTask = exports.coreTaskStore.find(t => String(t.id) === String(newLog.task_id));
-        if (memTask) {
-            memTask.status = 'IN_PROGRESS';
-            memTask.progress_percent = Math.max(Number(memTask.progress_percent) || 0, dayProgress);
-        }
-        const targetJob = exports.coreJobStore.find(j => String(j.id) === String(id) || j.job_no === id);
-        if (targetJob) {
-            targetJob.overall_progress = Math.max(targetJob.overall_progress || 50, updatedJobProgress);
-            if (Array.isArray(targetJob.tasks)) {
-                const t = targetJob.tasks.find((task) => String(task.id) === String(newLog.task_id));
-                if (t) {
-                    t.status = 'IN_PROGRESS';
-                    t.progress_percent = Math.max(Number(t.progress_percent) || 0, dayProgress);
-                }
-            }
         }
     }
     return newLog;
@@ -3865,50 +2763,22 @@ app.post('/api/v1/daily-logs', requireAuth, async (req, res) => {
         data: newLog
     });
 });
-// DELETE /api/v1/daily-logs/:logId — Delete daily work log
 app.delete('/api/v1/daily-logs/:logId', requireAuth, async (req, res) => {
     const { logId } = req.params;
+    const allLogs = await (0, database_1.dbLoadDailyWorkLogs)();
+    const deletedLog = allLogs.find((l) => l.id === logId);
     await (0, database_1.dbDeleteDailyWorkLog)(logId);
-    const idx = exports.coreDailyWorkLogStore.findIndex(l => l.id === logId);
-    if (idx !== -1) {
-        const deletedLog = exports.coreDailyWorkLogStore[idx];
-        exports.coreDailyWorkLogStore.splice(idx, 1);
+    if (deletedLog) {
         // Auto Rollback Task and Job status if no completed logs remain
         const taskId = deletedLog.task_id;
         const jobId = deletedLog.job_id;
-        const remainingLogs = exports.coreDailyWorkLogStore.filter(l => String(l.task_id) === String(taskId));
-        const hasRemainingCompleted = remainingLogs.some(l => l.is_completed || l.user_confirmed);
+        const currentLogs = await (0, database_1.dbLoadDailyWorkLogs)();
+        const remainingLogs = currentLogs.filter((l) => String(l.task_id) === String(taskId));
+        const hasRemainingCompleted = remainingLogs.some((l) => l.is_completed || l.user_confirmed);
         if (!hasRemainingCompleted) {
             const taskDays = deletedLog.total_days || 3;
-            const completedDays = remainingLogs.filter(l => (Number(l.progress_percent) || 0) > 0).length;
+            const completedDays = remainingLogs.filter((l) => (Number(l.progress_percent) || 0) > 0).length;
             const newProgress = completedDays > 0 ? Math.min(95, Math.round((completedDays / taskDays) * 100)) : 0;
-            const memTask = exports.coreTaskStore.find(t => String(t.id) === String(taskId));
-            if (memTask) {
-                memTask.status = newProgress > 0 ? 'IN_PROGRESS' : 'PENDING';
-                memTask.progress_percent = newProgress;
-            }
-            const targetJob = exports.coreJobStore.find(j => String(j.id) === String(jobId) || j.job_no === jobId);
-            if (targetJob && targetJob.status === JobStatus.QC_PENDING) {
-                targetJob.status = JobStatus.IN_PROGRESS;
-                targetJob.overall_progress = 70;
-                if (targetJob.step_timestamps && targetJob.step_timestamps.qc_pending_at) {
-                    delete targetJob.step_timestamps.qc_pending_at;
-                }
-            }
-            if (targetJob && Array.isArray(targetJob.tasks)) {
-                const t = targetJob.tasks.find((tk) => String(tk.id) === String(taskId));
-                if (t) {
-                    t.status = newProgress > 0 ? 'IN_PROGRESS' : 'PENDING';
-                    t.progress_percent = newProgress;
-                }
-            }
-            // Revert QC booking in memory
-            const booking = exports.coreQCBookingStore.find(b => String(b.task_id) === String(taskId) || String(b.job_id) === String(jobId));
-            if (booking && booking.status === 'CONFIRMED') {
-                booking.status = 'PENDING_CONFIRM';
-                booking.confirmed_at = null;
-                booking.confirmed_by = null;
-            }
             // Persist rollback to PostgreSQL database
             const dbJob = await (0, database_1.dbGetJob)(jobId);
             if (dbJob) {
@@ -3953,16 +2823,11 @@ app.post('/api/v1/jobs/:id/qc-inspection', requireAuth, async (req, res) => {
         overall_progress: overallProgress,
         qc_passed_at: overallResult === 'PASS' ? new Date().toISOString() : null
     });
-    const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
-    if (targetJob) {
-        targetJob.status = nextStatus;
-        targetJob.overall_progress = overallProgress;
-    }
     return res.status(200).json({
         success: true,
         data: {
             inspection_id: Date.now(),
-            job_id: updatedJob ? updatedJob.id : (targetJob ? targetJob.id : numId),
+            job_id: updatedJob ? updatedJob.id : numId,
             overall_result: overallResult,
             is_rework_required: hasMandatoryFail,
             next_job_status: nextStatus,
@@ -3993,21 +2858,11 @@ app.post('/api/v1/jobs/:id/after-sale/csat', requireAuth, async (req, res) => {
         csat_evaluated_at: evalDate
     };
     const updatedJob = await (0, database_1.dbUpdateJob)(param, updatePayload);
-    const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
-    if (targetJob) {
-        targetJob.status = nextStatus;
-        targetJob.overall_progress = 100;
-        targetJob.csat_score = isNaN(scoreNum) ? 5 : scoreNum;
-        targetJob.csat_remarks = remarksText;
-        targetJob.csat_photos = Array.isArray(csat_photos) ? csat_photos : [];
-        targetJob.csat_surveyor = csat_surveyor || '';
-        targetJob.csat_evaluated_at = evalDate;
-    }
     return res.status(200).json({
         success: true,
         data: {
             case_no: `AS-${Date.now()}`,
-            job_id: updatedJob ? updatedJob.id : (targetJob ? targetJob.id : numId),
+            job_id: updatedJob ? updatedJob.id : numId,
             csat_score: isNaN(scoreNum) ? 5 : scoreNum,
             csat_result: csatResult,
             customer_feedback: remarksText,
@@ -4029,15 +2884,10 @@ app.post('/api/v1/jobs/:id/close-and-export-bmt', requireAuth, async (req, res) 
             status: JobStatus.CLOSED,
             overall_progress: 100
         });
-        const targetJob = exports.coreJobStore.find(j => j.id === numId || j.job_no === param);
-        if (targetJob) {
-            targetJob.status = JobStatus.CLOSED;
-            targetJob.overall_progress = 100;
-        }
-        const jobNo = updatedJob?.job_no || targetJob?.job_no || (String(param).startsWith('JOB') ? param : `JOB2609090000${param}`);
-        const customerName = updatedJob?.customer_name || targetJob?.customer_name || 'นาย สมชาย ใจดี';
-        const customerPhone = updatedJob?.customer_phone || targetJob?.customer_phone || '081-234-5678';
-        const customerAddress = updatedJob?.customer_address || targetJob?.customer_address || '123/45 ถ.พหลโยธิน กรุงเทพฯ';
+        const jobNo = updatedJob?.job_no || (String(param).startsWith('JOB') ? param : `JOB2609090000${param}`);
+        const customerName = updatedJob?.customer_name || 'นาย สมชาย ใจดี';
+        const customerPhone = updatedJob?.customer_phone || '081-234-5678';
+        const customerAddress = updatedJob?.customer_address || '123/45 ถ.พหลโยธิน กรุงเทพฯ';
         const bmtPayload = {
             job_no: jobNo,
             bmt_export_timestamp: new Date().toISOString(),
@@ -4060,7 +2910,7 @@ app.post('/api/v1/jobs/:id/close-and-export-bmt', requireAuth, async (req, res) 
         return res.status(200).json({
             success: true,
             data: {
-                job_id: updatedJob ? updatedJob.id : (targetJob ? targetJob.id : numId),
+                job_id: updatedJob ? updatedJob.id : numId,
                 status: JobStatus.CLOSED,
                 bmt_response_ref: `BMT-REF-${Math.floor(100000 + Math.random() * 900000)}`,
                 exported_payload: bmtPayload
@@ -4080,20 +2930,11 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
         const param = req.params.id;
         const numId = Number(param);
         const payload = req.body || {};
-        // 1. Locate target job in in-memory store or DB
-        let targetJob = exports.coreJobStore.find(j => j.id === numId ||
-            j.job_no === param ||
-            j.ticket_no === param ||
-            j.booking_no === param ||
-            j.external_ref_id === param);
-        let dbJob = null;
-        if (!targetJob && database_1.isDatabaseConnected) {
-            dbJob = await (0, database_1.dbGetJob)(param);
-            if (!dbJob && !isNaN(numId)) {
-                dbJob = await (0, database_1.dbGetJob)(numId);
-            }
+        // 1. Locate target job in DB
+        let currentJob = await (0, database_1.dbGetJob)(param);
+        if (!currentJob && !isNaN(numId)) {
+            currentJob = await (0, database_1.dbGetJob)(numId);
         }
-        const currentJob = targetJob || dbJob;
         // 2. Prevent duplicate submission if already QC_PASSED (Gating rule!)
         const isForce = req.query.force === 'true' || payload.force === true;
         const isTaskExport = !!payload.task_id;
@@ -4219,24 +3060,7 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'],
             ...(Array.isArray(payload.qc_history) ? { qc_history: payload.qc_history } : {}),
             ...(formattedQuestions.length > 0 ? { qc_subtasks: formattedQuestions } : {})
         });
-        if (targetJob) {
-            targetJob.status = updateStatus;
-            targetJob.overall_progress = updateProgress;
-            targetJob.qc_score = qcScore;
-            targetJob.stk_ref = stkRef;
-            targetJob.stk_status = 'DELIVERED';
-            targetJob.stk_exported_at = exportedAt;
-            targetJob.stk_payload = formattedOutboundPayload;
-            if (!targetJob.step_timestamps)
-                targetJob.step_timestamps = {};
-            if (isAllPassed)
-                targetJob.step_timestamps.qc_passed_at = exportedAt;
-            targetJob.step_timestamps.stk_exported_at = exportedAt;
-            if (Array.isArray(payload.qc_history))
-                targetJob.qc_history = payload.qc_history;
-            if (formattedQuestions.length > 0)
-                targetJob.qc_subtasks = formattedQuestions;
-        }
+        // In-memory fallback removed
         // Forward to external Webhook (e.g. STK / vwds.online)
         const targetWebhookUrl = process.env.STK_OUTBOUND_WEBHOOK_URL || 'https://vwds.online/api/webhooks/pmt-qc';
         const targetApiKey = process.env.STK_OUTBOUND_WEBHOOK_API_KEY || 'wds_pmt_secure_key_2026';
@@ -4302,19 +3126,10 @@ app.get(['/api/v1/jobs/:id/stk-payload', '/api/v1/integrations/stk/qc-results/:i
     try {
         const param = req.params.id;
         const numId = Number(param);
-        let targetJob = exports.coreJobStore.find(j => j.id === numId ||
-            j.job_no === param ||
-            j.ticket_no === param ||
-            j.booking_no === param ||
-            j.external_ref_id === param);
-        let dbJob = null;
-        if (!targetJob && database_1.isDatabaseConnected) {
-            dbJob = await (0, database_1.dbGetJob)(param);
-            if (!dbJob && !isNaN(numId)) {
-                dbJob = await (0, database_1.dbGetJob)(numId);
-            }
+        let job = await (0, database_1.dbGetJob)(param);
+        if (!job && !isNaN(numId)) {
+            job = await (0, database_1.dbGetJob)(numId);
         }
-        const job = targetJob || dbJob;
         if (!job) {
             return res.status(404).json({
                 success: false,
@@ -4465,17 +3280,7 @@ app.get(['/api/ma-contracts', '/api/v1/ma-contracts'], requireAuth, async (req, 
 app.get(['/api/ma-contracts/:id', '/api/v1/ma-contracts/:id'], requireAuth, async (req, res) => {
     const contract = await (0, database_1.dbGetMAContract)(req.params.id);
     if (!contract) {
-        const memContract = exports.maContractStore.find(c => c.id === req.params.id);
-        if (!memContract) {
-            return res.status(404).json({ error: 'ไม่พบสัญญา MA ที่ระบุ' });
-        }
-        const memRounds = exports.maRoundStore
-            .filter(r => r.contract_id === memContract.id)
-            .sort((a, b) => a.round_number - b.round_number);
-        return res.json({
-            ...(await formatContractWithRounds(memContract)),
-            rounds: memRounds
-        });
+        return res.status(404).json({ error: 'ไม่พบสัญญา MA ที่ระบุ' });
     }
     const rounds = await (0, database_1.dbLoadMARounds)(contract.id);
     rounds.sort((a, b) => a.round_number - b.round_number);
@@ -4533,7 +3338,6 @@ app.post(['/api/ma-contracts', '/api/v1/ma-contracts'], requireAuth, async (req,
             created_at: new Date().toISOString()
         };
         await (0, database_1.dbSaveMAContract)(newContract);
-        exports.maContractStore.unshift(newContract);
         // Auto generate rounds if not created externally
         if (req.query.auto_rounds !== 'false' && newContract.total_rounds > 0) {
             const startDate = new Date(newContract.contract_start_date);
@@ -4552,7 +3356,6 @@ app.post(['/api/ma-contracts', '/api/v1/ma-contracts'], requireAuth, async (req,
                     created_at: new Date().toISOString()
                 };
                 await (0, database_1.dbSaveMARound)(roundData);
-                exports.maRoundStore.push(roundData);
             }
         }
         return res.status(201).json(await formatContractWithRounds(newContract));
@@ -4580,7 +3383,6 @@ app.post(['/api/ma-rounds', '/api/v1/ma-rounds'], requireAuth, async (req, res) 
             created_at: new Date().toISOString()
         };
         await (0, database_1.dbSaveMARound)(newRound);
-        exports.maRoundStore.push(newRound);
         return res.status(201).json(newRound);
     }
     catch (err) {
@@ -4610,70 +3412,12 @@ app.patch(['/api/ma-rounds/:id', '/api/v1/ma-rounds/:id'], requireAuth, async (r
                 await (0, database_1.dbSaveMAContract)({ id: currentRound.contract_id, status: 'Completed' });
             }
         }
-        const round = exports.maRoundStore.find(r => r.id === req.params.id);
-        if (round) {
-            if (status)
-                round.status = status;
-            if (scheduled_date)
-                round.scheduled_date = scheduled_date;
-            if (actual_date !== undefined)
-                round.actual_date = actual_date;
-            if (notes !== undefined)
-                round.notes = notes;
-            const contractRoundsMem = exports.maRoundStore.filter(r => r.contract_id === round.contract_id);
-            const contractMem = exports.maContractStore.find(c => c.id === round.contract_id);
-            if (contractMem && contractRoundsMem.length > 0 && contractRoundsMem.every(r => r.status === 'Completed')) {
-                contractMem.status = 'Completed';
-            }
-        }
-        return res.json(currentRound || round || { id: req.params.id, ...updates });
+        return res.json(currentRound || { id: req.params.id, ...updates });
     }
     catch (err) {
         return res.status(500).json({ error: err.message });
     }
 });
-async function hydrateFromDatabase() {
-    try {
-        let dbJobs = await (0, database_1.dbLoadJobs)();
-        exports.coreJobStore.length = 0;
-        if (!dbJobs || dbJobs.length === 0) {
-            console.log('[DB HYDRATE] core_jobs table is empty (0 jobs). Auto-seeding core_jobs into PostgreSQL...');
-            await (0, database_1.dbSeedMockJobs)();
-            dbJobs = await (0, database_1.dbLoadJobs)();
-        }
-        if (dbJobs && dbJobs.length > 0) {
-            exports.coreJobStore.push(...dbJobs);
-            console.log(`[DB HYDRATE] Loaded ${exports.coreJobStore.length} jobs from PostgreSQL.`);
-        }
-        const dbLogs = await (0, database_1.dbLoadDailyWorkLogs)();
-        exports.coreDailyWorkLogStore.length = 0;
-        if (dbLogs && dbLogs.length > 0) {
-            exports.coreDailyWorkLogStore.push(...dbLogs);
-            console.log(`[DB HYDRATE] Loaded ${exports.coreDailyWorkLogStore.length} daily work logs from PostgreSQL.`);
-        }
-        const dbBookings = await (0, database_1.dbLoadQCBookings)();
-        exports.coreQCBookingStore.length = 0;
-        if (dbBookings && dbBookings.length > 0) {
-            exports.coreQCBookingStore.push(...dbBookings);
-            console.log(`[DB HYDRATE] Loaded ${exports.coreQCBookingStore.length} QC bookings from PostgreSQL.`);
-        }
-        const dbContracts = await (0, database_1.dbLoadMAContracts)();
-        exports.maContractStore.length = 0;
-        if (dbContracts && dbContracts.length > 0) {
-            exports.maContractStore.push(...dbContracts);
-            console.log(`[DB HYDRATE] Loaded ${exports.maContractStore.length} MA contracts from PostgreSQL.`);
-        }
-        const dbRounds = await (0, database_1.dbLoadMARounds)();
-        exports.maRoundStore.length = 0;
-        if (dbRounds && dbRounds.length > 0) {
-            exports.maRoundStore.push(...dbRounds);
-            console.log(`[DB HYDRATE] Loaded ${exports.maRoundStore.length} MA rounds from PostgreSQL.`);
-        }
-    }
-    catch (err) {
-        console.error('[DB HYDRATE ERROR]', err.message);
-    }
-}
 // Global error protection
 process.on('uncaughtException', (err) => {
     console.error('[UNCAUGHT EXCEPTION]', err);
@@ -4689,7 +3433,6 @@ app.listen(PORT, async () => {
         const connected = await (0, database_1.initDatabase)();
         if (connected) {
             await seedUsers();
-            await hydrateFromDatabase();
         }
     }
     catch (err) {

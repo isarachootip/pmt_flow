@@ -412,17 +412,15 @@ async function initDatabase() {
         return true;
     }
     catch (err) {
-        console.warn('[DB WARNING] Could not initialize PostgreSQL tables, running in-memory fallback:', err.message);
+        console.error('[DB FATAL] Could not initialize PostgreSQL tables:', err.message);
         exports.isDatabaseConnected = false;
-        return false;
+        throw err; // DB is mandatory - server must not start without it
     }
 }
 // =============================================================================
 // USERS & AUTH DB REPOSITORY
 // =============================================================================
 async function dbLoadUsers() {
-    if (!exports.isDatabaseConnected)
-        return [];
     try {
         const res = await exports.pool.query('SELECT * FROM sys_users ORDER BY id ASC');
         return res.rows;
@@ -433,8 +431,6 @@ async function dbLoadUsers() {
     }
 }
 async function dbGetUser(usernameOrEmail) {
-    if (!exports.isDatabaseConnected)
-        return null;
     try {
         const res = await exports.pool.query('SELECT * FROM sys_users WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1) LIMIT 1', [usernameOrEmail]);
         return res.rows[0] || null;
@@ -445,8 +441,6 @@ async function dbGetUser(usernameOrEmail) {
     }
 }
 async function dbSaveUser(user) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         await exports.pool.query(`INSERT INTO sys_users (user_code, username, email, full_name, role, password_hash, is_active, last_login_at, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -475,8 +469,6 @@ async function dbSaveUser(user) {
     }
 }
 async function dbUpdateUser(id, fields) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         const setClauses = [];
         const values = [];
@@ -498,8 +490,6 @@ async function dbUpdateUser(id, fields) {
     }
 }
 async function dbDeleteUser(id) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         await exports.pool.query('DELETE FROM sys_users WHERE id::text = $1 OR user_code = $1', [String(id)]);
     }
@@ -508,8 +498,6 @@ async function dbDeleteUser(id) {
     }
 }
 async function dbSaveLoginLog(log) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         await exports.pool.query(`INSERT INTO sys_login_log (username, user_id, success, ip_address, fail_reason, created_at)
        VALUES ($1, $2, $3, $4, $5, $6)`, [
@@ -526,8 +514,6 @@ async function dbSaveLoginLog(log) {
     }
 }
 async function dbLoadLoginLogs(limit = 100) {
-    if (!exports.isDatabaseConnected)
-        return [];
     try {
         const res = await exports.pool.query('SELECT * FROM sys_login_log ORDER BY created_at DESC LIMIT $1', [limit]);
         return res.rows;
@@ -926,8 +912,6 @@ async function dbLoadJobs(filters) {
         const paged = await dbLoadJobsPaginated(filters);
         return paged.jobs;
     }
-    if (!exports.isDatabaseConnected)
-        return [];
     try {
         const whereClauses = [];
         const params = [];
@@ -1001,8 +985,6 @@ async function dbLoadJobs(filters) {
     }
 }
 async function dbGetJob(jobNoOrId) {
-    if (!exports.isDatabaseConnected)
-        return null;
     try {
         const target = String(jobNoOrId);
         const res = await exports.pool.query('SELECT * FROM core_jobs WHERE job_no = $1 OR (id::text = $1) OR external_ref_id = $1 OR booking_no = $1 OR ticket_no = $1 LIMIT 1', [target]);
@@ -1016,8 +998,6 @@ async function dbGetJob(jobNoOrId) {
     }
 }
 async function dbSaveJob(job) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         const customerData = job.customer_data || job.customer || {};
         const agentData = job.agent_data || job.agent || {};
@@ -1149,8 +1129,6 @@ async function dbSaveJob(job) {
     }
 }
 async function dbUpdateJob(jobNoOrId, updates) {
-    if (!exports.isDatabaseConnected)
-        return null;
     try {
         const target = String(jobNoOrId);
         const setClauses = [];
@@ -1245,8 +1223,6 @@ async function dbUpdateJob(jobNoOrId, updates) {
     }
 }
 async function dbDeleteJob(jobNoOrId) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         const isId = typeof jobNoOrId === 'number' || !isNaN(Number(jobNoOrId));
         const whereCol = isId ? 'id' : 'job_no';
@@ -1257,8 +1233,6 @@ async function dbDeleteJob(jobNoOrId) {
     }
 }
 async function dbResetJobStatus() {
-    if (!exports.isDatabaseConnected)
-        return 0;
     try {
         const res = await exports.pool.query(`
       UPDATE core_jobs 
@@ -1281,8 +1255,6 @@ async function dbResetJobStatus() {
     }
 }
 async function dbWipeAllTransactions() {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         await exports.pool.query(`
       TRUNCATE core_jobs, core_daily_work_logs, core_qc_bookings, ma_contracts, ma_rounds CASCADE;
@@ -1300,8 +1272,6 @@ async function dbWipeAllTransactions() {
 }
 // 20 Mock Jobs Data Generator for INT simulation (10 Quick, 10 Renovate)
 async function dbSeedMockJobs() {
-    if (!exports.isDatabaseConnected)
-        return 0;
     const mockCustomers = [
         { id: 1, customer_code: 'CUST-001', first_name: 'ภาคิน', last_name: 'วรโชติเมธี', phone: '081-912-3456', address: '88/15 หมู่บ้านเซนโทร รามอินทรา-จตุโชติ แขวงออเงิน เขตสายไหม กรุงเทพฯ 10220', lat: 13.8892, lng: 100.6721 },
         { id: 2, customer_code: 'CUST-002', first_name: 'ชวินท์', last_name: 'ก้องธนภัทร', phone: '086-734-5678', address: '29/88 คอนโด ไอดีโอ คิว จุฬา-สามย่าน ถนนพระราม 4 แขวงสี่พระยา เขตบางรัก กรุงเทพฯ 10500', lat: 13.7315, lng: 100.5284 },
@@ -1621,8 +1591,6 @@ async function dbSeedMockJobs() {
 // DAILY WORK LOGS & TECHNICIAN PHOTOS DB REPOSITORY
 // =============================================================================
 async function dbLoadDailyWorkLogs(jobId, taskId) {
-    if (!exports.isDatabaseConnected)
-        return [];
     try {
         let sql = 'SELECT * FROM core_daily_work_logs';
         const params = [];
@@ -1651,8 +1619,6 @@ async function dbLoadDailyWorkLogs(jobId, taskId) {
     }
 }
 async function dbSaveDailyWorkLog(log) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         await exports.pool.query(`INSERT INTO core_daily_work_logs (
         id, job_id, job_no, task_id, task_name, log_date, start_time, end_time,
@@ -1718,8 +1684,6 @@ async function dbSaveDailyWorkLog(log) {
     }
 }
 async function dbDeleteDailyWorkLog(id) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         await exports.pool.query('DELETE FROM core_daily_work_logs WHERE id = $1', [id]);
     }
@@ -1731,8 +1695,6 @@ async function dbDeleteDailyWorkLog(id) {
 // QC BOOKINGS DB REPOSITORY
 // =============================================================================
 async function dbLoadQCBookings(jobId, status) {
-    if (!exports.isDatabaseConnected)
-        return [];
     try {
         let sql = 'SELECT * FROM core_qc_bookings';
         const params = [];
@@ -1762,8 +1724,6 @@ async function dbLoadQCBookings(jobId, status) {
     }
 }
 async function dbSaveQCBooking(booking) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         await exports.pool.query(`INSERT INTO core_qc_bookings (
         id, job_id, job_no, customer_name, booking_date, time_slot, technician_name,
@@ -1826,8 +1786,6 @@ async function dbSaveQCBooking(booking) {
     }
 }
 async function dbDeleteQCBookingByTask(taskId) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         await exports.pool.query('DELETE FROM core_qc_bookings WHERE task_id = $1 OR id = $1', [String(taskId)]);
     }
@@ -1836,8 +1794,6 @@ async function dbDeleteQCBookingByTask(taskId) {
     }
 }
 async function dbConfirmQCBooking(id, qcTech, confirmedBy, remarks, bookingDate) {
-    if (!exports.isDatabaseConnected)
-        return null;
     try {
         const res = await exports.pool.query(`UPDATE core_qc_bookings 
        SET status = 'CONFIRMED', 
@@ -1857,8 +1813,6 @@ async function dbConfirmQCBooking(id, qcTech, confirmedBy, remarks, bookingDate)
     }
 }
 async function dbRevertQCBooking(id) {
-    if (!exports.isDatabaseConnected)
-        return null;
     try {
         const res = await exports.pool.query(`UPDATE core_qc_bookings 
        SET status = 'PENDING_CONFIRM', 
@@ -1878,8 +1832,6 @@ async function dbRevertQCBooking(id) {
 // MA CONTRACTS & ROUNDS DB REPOSITORY
 // =============================================================================
 async function dbLoadMAContracts() {
-    if (!exports.isDatabaseConnected)
-        return [];
     try {
         const res = await exports.pool.query(`
       SELECT c.*, 
@@ -1903,8 +1855,6 @@ async function dbLoadMAContracts() {
     }
 }
 async function dbGetMAContract(id) {
-    if (!exports.isDatabaseConnected)
-        return null;
     try {
         const contractRes = await exports.pool.query('SELECT * FROM ma_contracts WHERE id = $1 LIMIT 1', [id]);
         if (contractRes.rows.length === 0)
@@ -1927,8 +1877,6 @@ async function dbGetMAContract(id) {
     }
 }
 async function dbSaveMAContract(contract) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         await exports.pool.query(`INSERT INTO ma_contracts (
         id, contract_no, customer_id, customer_site_id, customer_name, customer_phone,
@@ -1978,8 +1926,6 @@ async function dbSaveMAContract(contract) {
     }
 }
 async function dbDeleteMAContract(id) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         await exports.pool.query('DELETE FROM ma_rounds WHERE contract_id = $1', [id]);
         await exports.pool.query('DELETE FROM ma_contracts WHERE id = $1', [id]);
@@ -1989,8 +1935,6 @@ async function dbDeleteMAContract(id) {
     }
 }
 async function dbLoadMARounds(contractId) {
-    if (!exports.isDatabaseConnected)
-        return [];
     try {
         let sql = 'SELECT * FROM ma_rounds';
         const params = [];
@@ -2008,8 +1952,6 @@ async function dbLoadMARounds(contractId) {
     }
 }
 async function dbSaveMARound(round) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         await exports.pool.query(`INSERT INTO ma_rounds (
         id, contract_id, project_id, round_number, scheduled_date, actual_date, status, technician_id, notes
@@ -2041,8 +1983,6 @@ async function dbSaveMARound(round) {
     }
 }
 async function dbUpdateMARound(id, updates) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         const setClauses = [];
         const values = [];
@@ -2067,8 +2007,6 @@ async function dbUpdateMARound(id, updates) {
 // INBOUND API LOGS DB REPOSITORY
 // =============================================================================
 async function dbSaveApiLog(log) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         await exports.pool.query(`INSERT INTO inbound_api_logs (id, timestamp, method, path, ip, status, duration_ms, headers, body, response_body)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -2093,8 +2031,6 @@ async function dbSaveApiLog(log) {
     }
 }
 async function dbLoadApiLogs(filters) {
-    if (!exports.isDatabaseConnected)
-        return [];
     try {
         let sql = 'SELECT * FROM inbound_api_logs';
         const params = [];
@@ -2144,8 +2080,6 @@ async function dbLoadApiLogs(filters) {
     }
 }
 async function dbDeleteApiLogs() {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         await exports.pool.query('DELETE FROM inbound_api_logs');
     }
@@ -2157,8 +2091,6 @@ async function dbDeleteApiLogs() {
 // STAGING SURVEY REPORTS DB REPOSITORY
 // =============================================================================
 async function dbSaveStagingReport(report) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         await exports.pool.query(`INSERT INTO staging_survey_reports (
         id, source_job_id, job_number, booking_no, ticket_no, source_reference,
@@ -2220,8 +2152,6 @@ async function dbSaveStagingReport(report) {
     }
 }
 async function dbLoadStagingReports(filters) {
-    if (!exports.isDatabaseConnected)
-        return [];
     try {
         let sql = 'SELECT * FROM staging_survey_reports';
         const params = [];
@@ -2255,8 +2185,6 @@ async function dbLoadStagingReports(filters) {
     }
 }
 async function dbGetStagingReport(id) {
-    if (!exports.isDatabaseConnected)
-        return null;
     try {
         const res = await exports.pool.query('SELECT * FROM staging_survey_reports WHERE id::text = $1 OR source_job_id = $1 LIMIT 1', [String(id)]);
         if (res.rows.length === 0)
@@ -2277,8 +2205,6 @@ async function dbGetStagingReport(id) {
     }
 }
 async function dbUpdateStagingReport(id, updates) {
-    if (!exports.isDatabaseConnected)
-        return;
     try {
         const setClauses = [];
         const values = [];
@@ -2318,8 +2244,6 @@ async function dbUpdateStagingReport(id, updates) {
 // CORE BLUEPRINTS (แบบแปลนโครงการ Step 2 Design)
 // =============================================================================
 async function dbLoadBlueprints(jobId) {
-    if (!exports.isDatabaseConnected)
-        return [];
     try {
         let query = 'SELECT * FROM core_blueprints';
         const params = [];
@@ -2354,8 +2278,6 @@ async function dbLoadBlueprints(jobId) {
     }
 }
 async function dbSaveBlueprint(bp) {
-    if (!exports.isDatabaseConnected)
-        return bp;
     try {
         const id = bp.id || `BP-${Date.now()}`;
         const jobId = String(bp.jobId || bp.job_id || '');
@@ -2398,8 +2320,6 @@ async function dbSaveBlueprint(bp) {
     }
 }
 async function dbUpdateBlueprint(id, updates) {
-    if (!exports.isDatabaseConnected)
-        return null;
     try {
         const setClauses = [];
         const values = [];
@@ -2432,8 +2352,6 @@ async function dbUpdateBlueprint(id, updates) {
     }
 }
 async function dbDeleteBlueprint(id) {
-    if (!exports.isDatabaseConnected)
-        return false;
     try {
         await exports.pool.query('DELETE FROM core_blueprints WHERE id = $1', [String(id)]);
         return true;
@@ -2447,8 +2365,6 @@ async function dbDeleteBlueprint(id) {
 // CORE TICKETS (ตั๋วใบเสร็จ & สัญญาโครงการ Step 2 & 4)
 // =============================================================================
 async function dbLoadTickets(jobId) {
-    if (!exports.isDatabaseConnected)
-        return [];
     try {
         let query = 'SELECT * FROM core_tickets';
         const params = [];
@@ -2485,8 +2401,6 @@ async function dbLoadTickets(jobId) {
     }
 }
 async function dbSaveTicket(tkt) {
-    if (!exports.isDatabaseConnected)
-        return tkt;
     try {
         const id = tkt.id || `TKT-${Date.now()}`;
         const ticketNo = tkt.ticket_no || `TK-${Date.now()}`;
@@ -2535,8 +2449,6 @@ async function dbSaveTicket(tkt) {
     }
 }
 async function dbUpdateTicket(id, updates) {
-    if (!exports.isDatabaseConnected)
-        return null;
     try {
         const setClauses = [];
         const values = [];
@@ -2564,8 +2476,6 @@ async function dbUpdateTicket(id, updates) {
     }
 }
 async function dbDeleteTicket(id) {
-    if (!exports.isDatabaseConnected)
-        return false;
     try {
         await exports.pool.query('DELETE FROM core_tickets WHERE id = $1', [String(id)]);
         return true;
