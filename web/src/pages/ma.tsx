@@ -28,7 +28,7 @@ export default function MAPage() {
   if (isLoading) return <div>Loading...</div>;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6 flex gap-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6 flex gap-6 overflow-auto h-full w-full">
       {/* Master List */}
       <div className={`flex-1 space-y-4 ${selectedContract ? 'w-2/3 hidden md:block' : 'w-full'}`}>
         <div className="flex justify-between items-center">

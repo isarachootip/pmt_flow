@@ -18,7 +18,10 @@ const MasterDetailLayout = React.forwardRef<HTMLDivElement, MasterDetailLayoutPr
     React.useEffect(() => {
       const saved = localStorage.getItem(`pmt_master_h_${pageKey}`);
       if (saved) {
-        setMasterHeight(Number(saved));
+        const val = Number(saved);
+        if (!isNaN(val) && val >= 120 && val <= 500) {
+          setMasterHeight(val);
+        }
       }
     }, [pageKey]);
 

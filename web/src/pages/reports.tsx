@@ -16,7 +16,7 @@ export default function ReportsPage() {
   const isLoading = query.isLoading;
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-8">
+    <div className="p-6 max-w-6xl mx-auto space-y-8 overflow-auto h-full w-full">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">รายงาน (Reports)</h1>
         <div className="flex gap-4 items-center">

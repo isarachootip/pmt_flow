@@ -55,7 +55,7 @@ export default function AdminUsersPage() {
   if (isLoading) return <div>Loading...</div>;
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
+    <div className="p-6 max-w-6xl mx-auto space-y-6 overflow-auto h-full w-full">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">จัดการผู้ใช้งาน (Admin)</h1>
         <button className="bg-blue-600 text-white px-4 py-2 rounded-md" onClick={() => setIsCreateOpen(true)}>สร้างผู้ใช้</button>

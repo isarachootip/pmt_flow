@@ -16,7 +16,7 @@ export default function KMPage() {
   );
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-6 max-w-4xl mx-auto space-y-6 overflow-auto h-full w-full">
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold text-blue-600">คลังความรู้ (Knowledge Management)</h1>
         <p className="text-gray-500">รวบรวมคู่มือและขั้นตอนการทำงานต่างๆ ในระบบ PMT Flow</p>

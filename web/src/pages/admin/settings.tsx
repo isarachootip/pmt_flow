@@ -13,7 +13,7 @@ export default function AdminSettingsPage() {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-8">
+    <div className="p-6 max-w-6xl mx-auto space-y-8 overflow-auto h-full w-full">
       <h1 className="text-2xl font-bold">Settings (Admin)</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
