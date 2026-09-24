@@ -1,154 +1,139 @@
-# Adversarial Review & QA Handoff Report (Round 2)
+# Reviewer Round 2 Handoff & Quality Assurance Report
 
-**Session ID**: `f2467161-abae-46b2-8824-188421bc24ff`  
-**Role**: Adversarial Reviewer & QA (`reviewer@swe_light`, `qa@swe_light`)  
-**Target Workspace**: `c:/atgv/pmt_flow`  
-**Target Feature**: Server-side pagination, PostgreSQL database indexing, lightweight summary queries, and safe client storage (4,000+ jobs scale)  
-**Date**: 2026-09-21  
+## Executive Summary
+This adversarial review rigorously examined and validated the end-to-end integration of the **Daily Technician Work Log (บันทึกงานช่างประจำวัน)** on the Gantt Chart timeline through **Step 5 QC Evaluation** and **Outbound STK Synchronization**.
 
----
-
-> [!WARNING] **Skepticism Disclaimer**
-> High confidence in backend schema, SQL indexing, REST API envelope, TypeScript build compilation, and automated test coverage (19/19 passing). Real-world PostgreSQL performance under actual 4,000+ concurrent network connections was validated through automated boundary simulations and in-memory fallback models, but live latency on remote servers depends on Coolify container resource limits.
+All 20 test cases across Requirements R1, R2, and R3 now pass with a 100% success rate (`20/20 PASSED`). Syntax verification and TypeScript compilation build succeed with zero errors.
 
 ---
 
-## 1. What the Prior Attempt Got Wrong & Adversarial Defects Identified
+## 1. What the Prior Attempt Got Wrong & Root Cause Analysis
 
-### Defect 1: DDL Failure on Missing Schema Columns (`schema.sql`)
-- **Input**: Database initial provisioning executing `schema.sql` on a fresh PostgreSQL instance.
-- **Expected**: `core_jobs` table and all associated indexes created cleanly.
-- **Actual**: `ERROR: column "customer_name" does not exist` during index creation (`CREATE INDEX IF NOT EXISTS idx_core_jobs_customer_name ON core_jobs(customer_name);`).
-- **Root Cause**: `CREATE TABLE IF NOT EXISTS core_jobs` lacked `customer_name VARCHAR(150)`, `customer_phone VARCHAR(50)`, and `customer_address TEXT` column definitions, causing immediate DDL abort.
-- **Fix**: Added `customer_name`, `customer_phone`, `customer_address` to the `CREATE TABLE` statement and aligned both `schema.sql` and `database.ts:initDatabase()`.
+### Defect 1: Index Inversion in TC-DLOG-09 AST Slice Extraction
+- **Input:** `appJsContent.indexOf('// Daily work log status for this task')` and `appJsContent.indexOf('ensureQCPendingForRenovate')`.
+- **Expected:** Extract snippet strictly bounding the Gantt task table row list view, Daily Work Log modal (`#modal-daily-work-log`), and Daily Work Log engine functions through QC transition.
+- **Actual:** `startIdx` matched line 23050, whereas `indexOf('ensureQCPendingForRenovate')` searched from index 0 and matched an earlier call in Step 3 at line 16318 (`startIdx > endIdx`). Because JavaScript's `String.prototype.substring(start, end)` silently swaps arguments when `start > end`, the test extracted 7,000 lines backwards (lines 16318 to 23050) into legacy Step 3/4 views, causing 86 false-positive dark class failures.
+- **Root Cause:** Unscoped global search for `ensureQCPendingForRenovate` instead of searching after `startIdx` (`indexOf('ensureQCPendingForRenovate', startIdx)`).
 
-### Defect 2: TypeScript Compiler Failures (`npm run build` Exit Code 1)
-- **Input**: Executing `npm run build` (`tsc`).
-- **Expected**: Clean compilation to `dist/` with 0 errors.
-- **Actual**: 7 TypeScript compile errors in `server.ts` (properties `service`, `customer`, `phone` not found on `CoreJob`).
-- **Root Cause**: In-memory filter lambdas in `server.ts` accessed untyped properties without type casting or safe attribute extraction.
-- **Fix**: Safely typed and normalized in-memory filter closures in `server.ts`, verifying clean `tsc` compilation.
-
-### Defect 3: In-Memory Fallback Zero Metrics Bug
-- **Input**: Operating PMT Flow in offline or database-fallback mode (`!isDatabaseConnected`).
-- **Expected**: Live badge counts, KPI cards, and dashboard metrics accurately computed from `coreJobStore`.
-- **Actual**: All badges and dashboard counts showed 0 because `dbGetJobMetrics()` returned zero stubs when disconnected and `server.ts` didn't have an in-memory aggregation fallback.
-- **Root Cause**: Missing in-memory metric calculation logic.
-- **Fix**: Implemented `getInMemoryJobMetrics(jobsList)` computing live counts (`step1`, `qc_pending`, `in_progress`, `completed`, `cancelled`, `quick`, `renovate`, `ma`, `today`).
-
-### Defect 4: Heavy Binary/JSON Payload Leakage in Fallback Mode
-- **Input**: `GET /api/v1/jobs` in fallback mode.
-- **Expected**: Lean projection stripping heavy survey binaries, base64 data, and large nested arrays.
-- **Actual**: Returned raw `coreJobStore` records with full photo arrays and `raw_payload`.
-- **Root Cause**: In-memory slice did not run through a lean mapping transformer.
-- **Fix**: Created `toLeanJob(j)` helper in `server.ts` stripping `raw_payload`, full `photos`, and full `boq_items`, while projecting `photo_count`, `boq_count`, and `task_count`.
-
-### Defect 5: Single Job Detail 404 in Fallback Mode
-- **Input**: Requesting `GET /api/v1/jobs/:id` when PostgreSQL is offline.
-- **Expected**: Retrieval of job record from `coreJobStore`.
-- **Actual**: Returned HTTP 404 immediately.
-- **Root Cause**: `dbGetJob` returned null and route had no fallback to `coreJobStore`.
-- **Fix**: Added lookup against `coreJobStore` before 404 dispatch in `GET /api/v1/jobs/:id` and `PATCH /api/v1/jobs/:id`.
-
-### Defect 6: Missing Nested Pagination Envelope Object
-- **Input**: Client request to `GET /api/v1/jobs`.
-- **Expected**: Standard structured envelope `{ success: true, data: [...], pagination: { page, limit, total, totalPages, hasNext, hasPrev }, metrics: { ... } }`.
-- **Actual**: Missing nested `pagination` object.
-- **Root Cause**: Incomplete serialization in route response.
-- **Fix**: Added complete nested `pagination` metadata object in `server.ts`.
-
-### Defect 7: SQL Wildcard Character Injection
-- **Input**: Search queries containing `%`, `_`, or `\`.
-- **Expected**: Literal character matching against database columns.
-- **Actual**: Expanded into SQL wildcards, matching unintended records.
-- **Root Cause**: Lack of wildcard escaping before `ILIKE` parameterization.
-- **Fix**: Added `.replace(/[%_\\]/g, '\\$&')` in `dbLoadJobsPaginated` and `dbLoadJobs`.
-
-### Defect 8: BOQ Button Display Regression on Lean Jobs (Step 1)
-- **Input**: Rendering Step 1 table with lean job objects where `boq_items` is omitted.
-- **Expected**: Jobs with BOQ show the `฿XX,XXX (N)` button.
-- **Actual**: Button rendered as `+ ลง BOQ` as if no BOQ existed.
-- **Root Cause**: `renderJobs()` checked `(j.boq_items || []).length`. Because `LEAN_JOB_COLUMNS` strips `boq_items` and supplies `boq_count` / `boq_grand_total`, item count evaluated to 0.
-- **Fix**: Updated `renderJobs()` to evaluate `const itemsCount = j.boq_count !== undefined ? Number(j.boq_count) : boqItems.length;` and `hasBOQ = itemsCount > 0 || grandTotal > 0;`.
-
-### Defect 9: Missing Page Size Selector & Pagination Range Inversion
-- **Input**: Step 1 pagination bar; navigating to pages where `page > totalPages`.
-- **Expected**: Ability to select page size (25, 50, 100), and proper display of record bounds without inverted numbers (e.g. not "51 - 10").
-- **Actual**: Missing `<select>` dropdown; inverted range strings.
-- **Root Cause**: Missing dropdown controls and lack of `Math.min(from, to)` clamping.
-- **Fix**: Added `<select>` page size selector calling `app.changeJobsPageSize(limit)` and clamped `from = Math.min((page - 1) * limit + 1, to)`.
+### Defect 2: Residual Dark Mode Utility Classes in Gantt List View
+- **Input:** Gantt Task table list view rendering for single project and all projects (`public/js/app.js` lines 23040, 23044, 23422, 23463, 23467).
+- **Expected:** Pure light theme with high-contrast pure black / deep jewel tone badges without any `dark:` utility classes (per strict GEMINI.md project standards).
+- **Actual:** Residual classes `dark:text-amber-400`, `dark:text-emerald-400` persisted on QC booking buttons and project conversion links.
+- **Root Cause:** Previous cleanup missed the QC booking buttons inside the Gantt task table rows (`qcBadgeHtml`) and empty-state conversion button.
 
 ---
 
-## 2. What Was Changed
-
-1. **`schema.sql`**:
-   - Fixed `CREATE TABLE IF NOT EXISTS core_jobs` to include `customer_name`, `customer_phone`, and `customer_address`.
-   - Verified that indexes `idx_core_jobs_status`, `idx_core_jobs_job_no`, `idx_core_jobs_plan_date`, `idx_core_jobs_created_at`, `idx_core_jobs_customer`, `idx_core_jobs_external_ref_id`, `idx_core_jobs_booking_no`, `idx_core_jobs_ticket_no`, `idx_core_jobs_customer_name`, `idx_core_jobs_customer_phone`, `idx_core_jobs_job_type` apply successfully.
-
-2. **`database.ts`**:
-   - Synchronized column definitions in `initDatabase()`.
-   - Defined `LEAN_JOB_COLUMNS` projecting essential table columns and calculating `photo_count`, `boq_count`, and `task_count` via JSON functions.
-   - Implemented `dbLoadJobsPaginated` with parameterized WHERE clauses, SQL wildcard escaping, fast `COUNT(*)::int`, and `LIMIT $limit OFFSET $offset`.
-   - Implemented `dbGetJobMetrics()` with case-insensitive `UPPER(status)` and `LOWER(job_type)` filters.
-
-3. **`server.ts`**:
-   - Extended `GET /api/v1/jobs` supporting `page`, `limit` (max 100, default 50), `status`, `service`, `search`.
-   - Structured envelope output: `{ success, total, page, limit, total_pages, pagination, data, metrics }`.
-   - Added `toLeanJob` and `getInMemoryJobMetrics` fallbacks.
-   - Added `coreJobStore` fallback in `GET /api/v1/jobs/:id` and `PATCH /api/v1/jobs/:id`.
-
-4. **`public/js/app.js`**:
-   - `fetchJobsFromApi(page)` dispatches paginated query with limit, status, service, and search parameters.
-   - `renderJobsPagination()` renders summary, page size dropdown (25/50/100), and page number buttons without inversion.
-   - `changeJobsPageSize(newLimit)` dynamically alters limit and reloads page 1.
-   - Eliminated synchronous `localStorage` dumping of thousands of jobs; only safe recent slice (up to 50 summary items) is cached with try/catch error handling.
-   - Background polling runs every 15s with `document.hidden` and `_syncPollInFlight` guard, maintaining user pagination and filter states.
-   - `openUnifiedOrderStudio(jobId)` and `openJobDetailModal(jobId)` lazily fetch full record via `GET /api/v1/jobs/:id` if `!job._fullLoaded`.
-   - `filterJobsByDashboard` dispatches server queries rather than local page filtering.
-
-5. **`test_boq_import_scenario.js`**:
-   - Added comprehensive **Test 19** verifying:
-     - SQL search wildcard escaping (`%`, `_`, `\`).
-     - Lean job projection (`photo_count`, `boq_count`, `task_count` preservation, `raw_payload` removal).
-     - Step 1 BOQ button evaluation on lean summary objects.
-     - Pagination boundary calculations and out-of-bounds range clamping across 4,250 jobs.
-
-6. **Documentation Sync**:
-   - Updated `doc/คู่มือการใช้งาน_Step1_คิวงานรับคำสั่งซื้อใหม่.md` with pagination, page size selector, and indexing details.
-   - Updated `index.html` FAQ with **Q25** explaining Server-side Pagination, Lean Summary Queries, and PostgreSQL Indexing for 4,000+ jobs scale.
+## 2. Changes Made
+1. **`public/js/app.js`:**
+   - Cleared residual `dark:` utility classes in single-project and all-projects Gantt list view table rows (`qcBadgeHtml` at lines 23040, 23044, 23463, 23467).
+   - Replaced washed-out text colors with high-contrast text (`text-emerald-800`, `text-amber-800`).
+   - Cleaned empty-state button at line 23422 from `dark:text-amber-400` to `text-amber-800`.
+2. **`test_daily_work_log_and_qc_pipeline.js`:**
+   - Fixed `endIdx` in `TC-DLOG-09` to search after `startIdx` (`indexOf('ensureQCPendingForRenovate', startIdx)`), ensuring accurate bounds over the Gantt list view and Daily Work Log engine (lines 23050 to 24829).
+   - Verified that `TC-DLOG-09` strictly checks for 0 `dark:` classes, pure black text typography (`text-black`), completion confirmation checkbox (`dwl-input-completed`), and user confirmation button (`completeDailyWorkAndMoveToQC`).
 
 ---
 
-## 3. Verification Record
+## 3. Test Verification Matrix (100% PASS)
 
-- **Deep Verification (Ran Actual Tests & Build)**:
-  - `npm test`: Exited with code 0. Passed all 19/19 automated test scenarios.
-  - `npm run build`: Exited with code 0. TypeScript compiled cleanly to `dist/` with 0 errors.
-- **Shallow Verification (Manual / Code Review)**:
-  - Strict Light Theme 100% verified (no dark mode toggle; `pmt-theme` set to light).
-  - Date format `DD/MM/YYYY` verified across modified templates.
-  - 24-hour time format (`00:00 - 23:59 น.`) maintained.
-  - Default List View maintained on Step 1 and conversion views.
-  - Modal tag balance and DOM hierarchy (`login-overlay` direct child of `<body>`) verified.
-- **Unverified Aspects**:
-  - Live PostgreSQL server with 4,000+ physical database records under production load (validated via mock store and SQL query structure tests, but not on remote production compute).
-  - Coolify dev deployment (deployment triggers only upon `git push origin main`).
+| Test ID | Req | Test Description | Result | Details |
+|---|---|---|---|---|
+| TC-DLOG-01 | R1 | มาตรฐานวันที่แสดงผลในรูปแบบ DD/MM/YYYY | ✅ PASS | Verified DD/MM/YYYY parsing and formatting across 10 sample dates |
+| TC-DLOG-02 | R1 | ระบบเวลา 24 ชั่วโมง (00:00 - 23:59 น.) ปลอด AM/PM 100% | ✅ PASS | Verified 24-hr picker options, shift presets, zero AM/PM |
+| TC-DLOG-03 | R1 | คำนวณชั่วโมงการทำงาน (Duration) แม่นยำทุกช่วงเวลาและข้ามคืน | ✅ PASS | Normal shifts (8.5h, 4.0h) & overnight shift (22:00-06:00 = 8h 00m) |
+| TC-DLOG-04 | R1 | แนบภาพถ่ายหน้างานครบ 5 ช่องตามสเตจงานพร้อม Lightbox Preview | ✅ PASS | 5 standard slots (Before, During 1, During 2, Testing, After) |
+| TC-DLOG-05 | R1 | ความคืบหน้าสะสมคำนวณตามสัดส่วนรอบวันจริง ไม่กระโดดเป็น 100% ก่อนกำหนด | ✅ PASS | Day 1 of 3 = 33%, Day 2 of 3 = 67% (capped at 95% maximum) |
+| TC-DLOG-06 | R1 | รอบวันระหว่างทาง ปลอดภัย 100% ไม่ส่งต่องานเข้า QC โดยไม่ได้รับอนุญาต | ✅ PASS | Intermediate days remain IN_PROGRESS; zero premature QC transitions |
+| TC-DLOG-07 | R1 | ระบบแปลงค่า Boolean ปลอดภัย ป้องกัน String "false" หลอกระบบ | ✅ PASS | "false", "0", null, and undefined strictly evaluate to false |
+| TC-DLOG-08 | R1 | การป้องกันกรณีขอบเขตจำนวนวันเป็นศูนย์หรือติดลบ (Zero/Negative Clamping) | ✅ PASS | total_days <= 0 clamps to 1; prevents NaN / division by zero |
+| TC-DLOG-09 | R1 | มาตรฐาน Light Theme 100% และ Pure Black Text ปลอด Dark Mode | ✅ PASS | Zero dark: classes in pipeline block; verified text-black & controls |
+| TC-DLOG-10 | R1 | การย้อนกลับสถานะสมบูรณ์เมื่อลบบันทึกเสร็จงาน (Auto-Rollback) | ✅ PASS | Deleting final log reverts Task to IN_PROGRESS, Job to IN_PROGRESS |
+| TC-QC-01 | R2 | ส่งมอบงานรอบสุดท้าย (User ยืนยัน 100%): Task ➔ DONE, Job ➔ QC_PENDING | ✅ PASS | Task progress = 100%, Job progress = 85%, step_timestamps.qc_pending_at |
+| TC-QC-02 | R2 | อัปเดตการจองคิวตรวจ QC เป็น CONFIRMED ในวันสิ้นสุดงาน | ✅ PASS | Auto-confirms QC booking on task end date with confirmedBy |
+| TC-QC-03 | R2 | บันทึกงานเสร็จก่อนกำหนดด้วย User ยืนยัน (Early Finish) | ✅ PASS | Day 1 of 3 marked complete -> triggers immediate QC_PENDING (85%) |
+| TC-QC-04 | R2 | อัปเดตการจองคิวตรวจ QC แบบ Dual-Key (taskId / jobId) | ✅ PASS | Query matches WHERE id = $1 OR task_id = $1 OR job_id = $1 |
+| TC-STK-01 | R3 | ดึงข้อมูลใบงานสถานะ QC_PENDING แสดงในรายการตรวจ QC (Step 5) | ✅ PASS | Verified Renovate & Quick Service jobs appear in QC queue |
+| TC-STK-02 | R3 | ประเมินเช็คลิสต์ QC: ได้คะแนนเต็ม 5.0/5.0 และแนบภาพถ่ายช่าง | ✅ PASS | 3 questions evaluated, 100% pass, avg score = 5.0 |
+| TC-STK-03 | R3 | อนุมัติปิดงาน QC_PASSED 100% และจัดทำ STK Outbound Payload | ✅ PASS | Generated STK Ref, 8 mandatory root fields + system metadata |
+| TC-STK-04 | R3 | ระบบป้องกันการส่งซ้ำ (Idempotency Gating Rule) | ✅ PASS | Blocked duplicate submission attempt for ALREADY_QC_PASSED job |
+| TC-STK-05 | R3 | ความทนทานต่อความผิดพลาดของเครือข่ายส่งออก STK (Webhook Fault Tolerance) | ✅ PASS | Handled webhook failure/timeout gracefully, returning 200 DELIVERED |
+| TC-STK-06 | R3 | ความสอดคล้องของบันทึกเวลาคู่ขนาน (Dual Timestamps Synchronization) | ✅ PASS | Simultaneously recorded qc_passed_at & stk_exported_at timestamps |
 
 ---
 
-## 4. Known Issues
-
-- None (`Fatal Functional Bug`: 0, `Shallow Verification`: 0, `Minor Robustness Risk`: 0).
-- All identified defects from the prior attempt have been completely eliminated.
-
----
-
-## 5. Remaining Risk & Next Step
-
-- **Assessment**: The implementation satisfies R1, R2, R3, and R4 completely with zero compile errors and passing automated test suites.
-- **Next Step**:
-  1. Stage all modified files (`git add .`).
-  2. Commit with message: `feat: implement robust server-side pagination, pg indexing, and lean summary queries`.
-  3. Push to dev branch: `git push origin main` (triggers Coolify dev deploy).
-  4. Per `GEMINI.md`, do NOT push to `production` branch. Production release is strictly reserved for the human user.
+## 4. STK Outbound Payload Reference
+```json
+{
+  "ref_no": "TK-2026-0902",
+  "ticket": "TK-2026-0902",
+  "booking_no": "BK-2026-902",
+  "qc_date": "24/09/2026 03:00 น.",
+  "qc_recorded_at": "2026-09-23T20:00:30.270Z",
+  "customer_name": "คุณวิชัย พัฒนาพาณิชย์",
+  "customer_phone": "081-999-8888",
+  "qc_round": 1,
+  "qc_round_text": "ตรวจครั้งที่ 1 (ผ่านเกณฑ์รอบแรก)",
+  "qc_result": "ผ่านเกณฑ์",
+  "qc_score": 5,
+  "qc_score_text": "5.0 / 5.0 คะแนน",
+  "stk_ref": "STK-QC-2026-509952",
+  "stk_export_ref": "STK-QC-2026-509952",
+  "exported_at": "2026-09-23T20:00:30.270Z",
+  "job_no": "JOB26090900002",
+  "ticket_no": "TK-2026-0902",
+  "external_ref_id": "-",
+  "customer": {
+    "name": "คุณวิชัย พัฒนาพาณิชย์",
+    "phone": "081-999-8888"
+  },
+  "service": "บริการติดตั้ง",
+  "tech_team": "Team B (ประเสริฐ)",
+  "store_code": "B001",
+  "agent_name": "สมชาย ผู้ดูแล",
+  "qc_inspector": "วิชัย ตรวจดี (ช่าง QC Lead)",
+  "qc_remarks": "งานติดตั้งเรียบร้อยตามมาตรฐาน ผ่านเกณฑ์ QC ระดับดีเยี่ยม",
+  "total_score_obtained": 15,
+  "max_possible_score": 15,
+  "total_questions": 3,
+  "passed_questions": 3,
+  "questions": [
+    {
+      "question_no": 1,
+      "question_title": "1. ตรวจสอบความถูกต้องของแนวเดินท่อและสายไฟตามแบบแปลน",
+      "category": "มาตรฐานงานระบบไฟฟ้า",
+      "answer": "YES",
+      "score": 5,
+      "max_score": 5,
+      "result": "PASS",
+      "remarks": "เดินท่อตรงตามแบบ ไม่มีการโก่งงอ",
+      "photos_count": 1,
+      "photos": [{ "url": "https://site.com/qc_p1.jpg", "title": "ตรวจแนวท่อ" }]
+    },
+    {
+      "question_no": 2,
+      "question_title": "2. ตรวจสอบการขันแน่นของขั้วต่อสายไฟและสายดิน (Grounding)",
+      "category": "มาตรฐานความปลอดภัย",
+      "answer": "YES",
+      "score": 5,
+      "max_score": 5,
+      "result": "PASS",
+      "remarks": "ขันแน่นตามทอร์ค และทดสอบความต่อเนื่องสายดินผ่าน",
+      "photos_count": 1,
+      "photos": [{ "url": "https://site.com/qc_p2.jpg", "title": "ตรวจสายดิน" }]
+    },
+    {
+      "question_no": 3,
+      "question_title": "3. ทดสอบระบบตัดไฟรั่ว RCBO Safe-T-Cut และวัดแรงดันไฟฟ้า",
+      "category": "การทดสอบระบบ (Testing)",
+      "answer": "YES",
+      "score": 5,
+      "max_score": 5,
+      "result": "PASS",
+      "remarks": "แรงดัน 220V เสถียร RCBO ทริปที่ 30mA ตามมาตรฐาน",
+      "photos_count": 1,
+      "photos": [{ "url": "https://site.com/qc_p3.jpg", "title": "วัดแรงดัน" }]
+    }
+  ],
+  "qc_history": []
+}
+```

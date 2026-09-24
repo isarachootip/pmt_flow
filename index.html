@@ -5862,22 +5862,22 @@
                                 </div>
                             </details>
 
-                            <!-- Q18: Keying Technician Name & INT Technician Booking -->
+                            <!-- Q18: Clean Interface & Task Converter in Convert Project Modal -->
                             <details class="p-4 rounded-xl bg-muted/30 border border-border group">
                                 <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
                                     <span class="flex items-center gap-2">
                                         <span class="text-brand-500 font-bold">Q18:</span>
-                                        <span>การระบุช่างในหน้าจอ Convert Project และการแสดงผลระยะเวลา มีข้อดีและรูปแบบการใช้งานอย่างไร?</span>
+                                        <span>หน้าต่างนำเข้า BOQ สู่ Task (modal-convert-boq-tasks) มีการปรับปรุง UI ให้ Clean และใช้งานอย่างไร?</span>
                                     </span>
                                     <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
                                 </summary>
                                 <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-1.5">
-                                    <p><strong class="text-foreground">คำตอบ:</strong> ในหน้าต่าง <strong>"นำเข้า BOQ สู่ Project Tasks & แผนงาน Gantt"</strong> (`modal-convert-boq-tasks`) คอลัมน์ <strong>"ระยะเวลา"</strong> และ <strong>"ผู้รับผิดชอบ"</strong> ถูกปรับให้กระชับ ชัดเจน และมีเฉพาะองค์ประกอบที่จำเป็นต่อการปฏิบัติงานจริงเท่านั้น:</p>
+                                    <p><strong class="text-foreground">คำตอบ:</strong> ในหน้าต่าง <strong>"นำเข้า BOQ สู่ Project Tasks & แผนงาน Gantt"</strong> (`modal-convert-boq-tasks`) ได้รับการปรับปรุง UI ให้ <strong>Clean & Focused 100%</strong> เพื่อตัดสิ่งรบกวนสายตาและเพิ่มพื้นที่สำหรับตารางจัดการงาน:</p>
                                     <ul class="list-disc list-inside mt-1 space-y-1 pl-1 text-[11px]">
+                                        <li><strong>ตัดแบนเนอร์ที่ไม่จำเป็นออกทั้งหมด (Zero Clutter Banners):</strong> ปลดแบนเนอร์นโยบายค่าแรง แบนเนอร์กล่องไฟล์ BOQ ขนาดใหญ่ และแบนเนอร์หมายเหตุด้านล่างออกอย่างสมบูรณ์ เหลือเฉพาะแถบสรุปข้อมูล Job แบบกระชับบรรทัดเดียว</li>
+                                        <li><strong>ตัดปุ่มซ้ำซ้อนและปุ่มนอกบริบท (Streamlined Actions):</strong> ตัดปุ่มจัดเรียงซ้ำซ้อนใน Footer, ตัดปุ่ม Close Lost, ตัดปุ่มดาวน์โหลด Template และปุ่มนำเข้าไฟล์ เพื่อคงไว้เฉพาะปุ่มที่จำเป็นจริง คือ <code class="font-semibold text-foreground">+ แทรกงานใหม่</code> และ <code class="font-semibold text-foreground">รีเซ็ตจาก BOQ</code> บน Toolbar และปุ่ม <code class="font-semibold text-foreground">ยืนยันสร้าง Task & ซิงค์เข้า Gantt</code> ใน Footer</li>
                                         <li><strong>ระยะเวลาแสดงบรรทัดเดียว (Clean Single Line):</strong> แสดงผลระยะเวลาในบรรทัดเดียว (เช่น <code class="font-semibold text-foreground">1 วัน</code>) โดยไม่มีสีกรอบฉากหลัง เพื่อความสบายตา คมชัดสูงสุดตามมาตรฐาน Pure Black Text</li>
-                                        <li><strong>ช่องชื่อช่างแสดงเต็มความกว้าง (Full Width Input):</strong> ดึงชื่อช่างจากระบบงานมาแสดงผลโดยตรง และขยายเต็มพื้นที่ตารางให้อ่านง่าย ชัดเจน ไม่โดนตัดทอน</li>
-                                        <li><strong>พิมพ์หรือเลือกจากรายการแนะนำ (Free Text & Suggestions):</strong> สามารถพิมพ์แก้ไขชื่อช่างได้โดยตรง พร้อมระบบ Autocomplete แนะนำรายชื่อช่างผ่าน datalist</li>
-                                        <li><strong>ตัดปุ่ม INT ออกอย่างสมบูรณ์:</strong> เพื่อความสะอาดตา ไม่เกะกะพื้นที่ และให้การแสดงผลกระชับ รวดเร็ว สอดคล้องกับการใช้งานจริง</li>
+                                        <li><strong>ช่องชื่อช่างแสดงเต็มความกว้าง (Full Width Input):</strong> ดึงชื่อช่างจากระบบงานมาแสดงผลโดยตรง และขยายเต็มพื้นที่ตารางให้อ่านง่าย ชัดเจน ไม่โดนตัดทอน พร้อมระบบ Autocomplete แนะนำรายชื่อช่างผ่าน datalist</li>
                                     </ul>
                                 </div>
                             </details>
@@ -9480,101 +9480,71 @@
         </div>
     </div>
 
-    <!-- MODAL: CONVERT BOQ TO PROJECT TASKS -->
+    <!-- MODAL: CONVERT BOQ TO PROJECT TASKS (CLEAN & STREAMLINED) -->
     <div id="modal-convert-boq-tasks" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden-view opacity-0 transition-all duration-200 p-4">
         <div class="artifact-card rounded-2xl w-full max-w-5xl shadow-2xl overflow-hidden transform scale-95 transition-all duration-200 bg-card border border-border" id="modal-convert-boq-tasks-content">
-            <div class="p-5 border-b border-border flex justify-between items-center bg-muted/30">
+            <!-- Modal Header (Clean & Minimal) -->
+            <div class="px-5 py-3.5 border-b border-border flex justify-between items-center bg-muted/20">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-600 flex items-center justify-center font-bold">
-                        <i class="ph ph-calendar-plus text-xl"></i>
+                    <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center font-bold text-lg">
+                        <i class="ph ph-calendar-plus"></i>
                     </div>
                     <div>
-                        <div class="flex items-center gap-2">
-                            <h3 class="font-display font-bold text-sm sm:text-base text-foreground">⚡ นำเข้า BOQ สู่ Project Tasks & แผนงาน Gantt</h3>
-                            <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-purple-500/10 text-purple-600 border border-purple-500/20 font-semibold">Auto-Sort by Start Date</span>
-                        </div>
-                        <p class="text-[11px] text-muted-foreground mt-0.5">ดึงหรือนำเข้าไฟล์ BOQ แปลงเป็น Task พร้อมกำหนด <strong>Start Date</strong>, <strong>End Date</strong> และสามารถแทรกงานได้ (จัดเรียงตามวันเริ่มงานอัตโนมัติ)</p>
+                        <h3 class="font-display font-bold text-sm sm:text-base text-foreground">นำเข้า BOQ สู่ Project Tasks & แผนงาน Gantt</h3>
                     </div>
                 </div>
-                <button onclick="app.hideModal('modal-convert-boq-tasks')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition cursor-pointer">
+                <button onclick="app.hideModal('modal-convert-boq-tasks')" class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition cursor-pointer" title="ปิดหน้าต่าง">
                     <i class="ph ph-x text-base"></i>
                 </button>
             </div>
 
-            <div class="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
-                <!-- Job Header Info -->
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl bg-brand-500/5 border border-brand-500/20 text-xs gap-2">
+            <div class="p-5 space-y-3.5 max-h-[75vh] overflow-y-auto">
+                <!-- Job Header Info (Clean Single Row) -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-muted/30 border border-border text-xs gap-2">
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-mono font-bold text-brand-500" id="convert-job-id">JOB26090900001</span>
+                        <span class="font-mono font-bold text-brand-600" id="convert-job-id">JOB26090900001</span>
                         <span class="text-muted-foreground">•</span>
-                        <span class="font-medium text-foreground" id="convert-job-customer">ลูกค้า: คุณณวัฒน์ รักสงบ</span>
+                        <span class="font-semibold text-foreground" id="convert-job-customer">ลูกค้า: -</span>
                         <span class="text-muted-foreground">•</span>
-                        <span class="text-muted-foreground" id="convert-job-service">บริการ: Renovate ครัว</span>
-                    </div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span id="convert-job-payment-badge" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-700 border border-rose-500/30 flex items-center gap-1">
-                            <i class="ph ph-warning-circle"></i> ยังไม่ได้บันทึกชำระเงิน
-                        </span>
-                        <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 border border-emerald-500/20 flex items-center gap-1">
-                            <i class="ph ph-check-circle"></i> จัดเรียงตามวันเริ่มต้น
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Unpaid Warning Alert Banner -->
-                <div id="convert-unpaid-warning-banner" class="hidden p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-rose-800">
-                    <div class="flex items-start gap-2.5">
-                        <i class="ph ph-shield-warning text-xl text-rose-600 shrink-0 mt-0.5"></i>
-                        <div>
-                            <span class="font-bold text-rose-900 block text-xs">⚠️ โครงการนี้ยังไม่ได้รับการบันทึกจ่ายเงิน (Payment Required)</span>
-                            <span class="text-rose-700 text-[11px] leading-relaxed">ตามกฎระบบ งานจะสามารถสร้าง Project Tasks และจัดเข้า Gantt Timeline ได้เมื่อบันทึกการชำระเงินและออก Ticket (Step 2) เรียบร้อยแล้วเท่านั้น</span>
-                        </div>
+                        <span class="text-foreground" id="convert-job-service">บริการ: -</span>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
-                        <button type="button" onclick="app.hideModal('modal-convert-boq-tasks'); app.openCreateTicketModal(app.state.convertJobId)" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs flex items-center gap-1">
-                            <i class="ph ph-receipt"></i>
-                            <span>💳 ไปบันทึกจ่ายเงิน ➔</span>
-                        </button>
+                        <span id="convert-job-payment-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-700 border border-rose-500/30 flex items-center gap-1">
+                            <i class="ph ph-warning-circle"></i> ยังไม่ได้บันทึกชำระเงิน
+                        </span>
                     </div>
                 </div>
 
-                <!-- Labor-Only Policy Notice Banner -->
-                <div class="p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-purple-700">
-                    <div class="flex items-center gap-2 font-medium">
-                        <i class="ph ph-wrench text-base shrink-0"></i>
-                        <span>ระบบดึงเฉพาะรายการ <strong class="underline decoration-purple-500 font-bold">ค่าแรง / งานบริการติดตั้ง</strong> จาก BOQ เข้าเป็น Project Tasks (<span id="convert-labor-ratio" class="font-mono font-bold">เฉพาะค่าแรง</span>)</span>
+                <!-- Unpaid Warning Alert Banner (Clean & Compact) -->
+                <div id="convert-unpaid-warning-banner" class="hidden p-3 rounded-xl bg-rose-50 border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-rose-900">
+                    <div class="flex items-center gap-2">
+                        <i class="ph ph-warning-circle text-base text-rose-600 shrink-0"></i>
+                        <span>โครงการนี้ยังไม่ได้รับการบันทึกชำระเงิน (ต้องบันทึกชำระเงินใน Step 4 ก่อนสร้าง Task)</span>
                     </div>
-                    <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-purple-500/20 text-purple-700 border border-purple-500/30 shrink-0">
-                        ⚡ Labor Items Only
-                    </span>
+                    <button type="button" onclick="app.hideModal('modal-convert-boq-tasks'); app.openCreateTicketModal(app.state.convertJobId)" class="btn-artifact-primary px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs shrink-0 flex items-center gap-1">
+                        <i class="ph ph-receipt"></i>
+                        <span>ไปบันทึกจ่ายเงิน</span>
+                    </button>
                 </div>
 
-                <!-- Attached BOQ Original File Display Banner -->
-                <div id="convert-boq-file-display"></div>
-
-                <!-- Hidden file input for uploading BOQ directly into task converter -->
+                <!-- Hidden container for file/ratio elements to ensure zero JS ReferenceErrors -->
+                <div id="convert-boq-file-display" class="hidden"></div>
                 <input type="file" id="task-boq-file-input" accept=".xlsx,.xls,.csv" class="hidden" onchange="app.handleBOQFileForTasks(event)">
 
                 <!-- Tasks Editor Table Toolbar -->
                 <div class="space-y-2">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <span class="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                            <i class="ph ph-list-checks text-brand-500"></i> รายการ Project Tasks (<span id="convert-task-count">0</span> งานที่เลือก)
-                        </span>
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <button type="button" onclick="document.getElementById('task-boq-file-input').click()" class="text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 px-2.5 py-1 rounded-lg border border-emerald-500/30 flex items-center gap-1 cursor-pointer font-medium">
-                                <i class="ph ph-file-arrow-up"></i> นำเข้าไฟล์ BOQ (.csv/.xlsx)
-                            </button>
-                            <button type="button" onclick="app.downloadTaskBOQTemplate()" class="text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-muted transition flex items-center gap-1 cursor-pointer" title="ดาวน์โหลด Template สำหรับนำเข้าไฟล์ Task">
-                                <i class="ph ph-download-simple"></i> Template
-                            </button>
-                            <button type="button" onclick="app.insertConvertTaskAt(-1)" class="text-[11px] bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 px-2.5 py-1 rounded-lg border border-purple-500/30 flex items-center gap-1 cursor-pointer font-medium">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                <i class="ph ph-list-checks text-brand-600"></i> รายการ Tasks (<span id="convert-task-count">0</span> งานที่เลือก)
+                            </span>
+                            <span id="convert-labor-ratio" class="text-[11px] text-muted-foreground font-medium"></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="app.insertConvertTaskAt(-1)" class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200 hover:bg-purple-100 flex items-center gap-1 cursor-pointer">
                                 <i class="ph ph-plus"></i> + แทรกงานใหม่
                             </button>
-                            <button type="button" onclick="app.sortConvertTasksByStartDate(true)" class="text-[11px] bg-muted hover:bg-muted/80 text-foreground px-2.5 py-1 rounded-lg border border-border flex items-center gap-1 cursor-pointer" title="จัดเรียงรายการ Task ตามวันเริ่มต้น">
-                                <i class="ph ph-arrows-down-up"></i> จัดเรียงตามวันเริ่มงาน
-                            </button>
-                            <button type="button" onclick="app.resetConvertTasksFromBOQ()" class="text-[11px] text-brand-500 hover:underline flex items-center gap-1 cursor-pointer ml-1">
+                            <button type="button" onclick="app.resetConvertTasksFromBOQ()" class="btn-artifact-secondary px-2.5 py-1 rounded-lg text-xs font-medium text-foreground hover:bg-muted border border-border flex items-center gap-1 cursor-pointer" title="รีเซ็ตดึงรายการงานใหม่จาก BOQ">
                                 <i class="ph ph-arrows-clockwise"></i> รีเซ็ตจาก BOQ
                             </button>
                         </div>
@@ -9582,7 +9552,7 @@
 
                     <div class="border border-border rounded-xl overflow-x-auto shadow-xs">
                         <table class="w-full text-left text-xs">
-                            <thead class="bg-muted/50 border-b border-border text-[11px] text-muted-foreground">
+                            <thead class="bg-muted/50 border-b border-border text-[11px] text-foreground font-bold">
                                 <tr>
                                     <th class="py-2.5 px-3 w-10 text-center">เลือก</th>
                                     <th class="py-2.5 px-2 w-10 text-center">#</th>
@@ -9613,33 +9583,17 @@
                         <option value="อนุชา (ผู้ช่วยช่าง)">
                     </datalist>
                 </div>
-
-                <div class="p-3 rounded-xl bg-muted/30 border border-border text-[11px] text-muted-foreground flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                    <div class="flex items-center gap-2">
-                        <i class="ph ph-info text-base text-brand-500 shrink-0"></i>
-                        <span><strong>หมายเหตุ:</strong> ระบบจะจัดเรียงตาม <strong>Start Date</strong> อัตโนมัติเมื่อแทรกงานหรือแก้ไขวันเริ่มงาน และเมื่อกดยืนยันจะแปลงเป็น Gantt Timeline ทันที</span>
-                    </div>
-                    <span class="text-[10px] text-purple-600 font-medium">✨ สามารถกด "แทรกงานด้านล่าง" ในแต่ละแถวได้</span>
-                </div>
             </div>
 
-            <!-- Modal Footer -->
-            <div class="p-4 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-3 bg-muted/30">
-                <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
-                    <button type="button" onclick="app.hideModal('modal-convert-boq-tasks')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs cursor-pointer">ปิดหน้าต่าง</button>
-                    <button type="button" onclick="app.openCloseLostModal(app.state.convertJobId)" class="btn-artifact-secondary text-rose-600 hover:bg-rose-500/10 border-rose-500/30 px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer" title="บันทึกปิดงานไม่สำเร็จ / ลูกค้ายกเลิก (Close Lost & Cancel Job)">
-                        <i class="ph ph-x-circle text-rose-500 text-sm"></i>
-                        <span>🚫 บันทึก Close Lost (ยกเลิกงาน)</span>
-                    </button>
-                </div>
-                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-                    <button type="button" onclick="app.sortConvertTasksByStartDate(true)" class="btn-artifact-secondary px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer">
-                        <i class="ph ph-arrows-down-up"></i> จัดเรียงตามวันเริ่มต้น
-                    </button>
-                    <button type="button" onclick="app.confirmConvertBOQToTasks()" id="btn-confirm-convert-tasks" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-700 hover:to-brand-700 text-white cursor-pointer">
-                        <i class="ph ph-calendar-check text-sm"></i> ⚡ ยืนยันสร้าง Task & ซิงค์เข้า Gantt Timeline
-                    </button>
-                </div>
+            <!-- Modal Footer (Clean & Focused) -->
+            <div class="px-5 py-3 border-t border-border flex justify-between items-center bg-muted/20">
+                <button type="button" onclick="app.hideModal('modal-convert-boq-tasks')" class="btn-artifact-secondary px-4 py-2 rounded-lg text-xs cursor-pointer">
+                    ปิดหน้าต่าง
+                </button>
+                <button type="button" onclick="app.confirmConvertBOQToTasks()" id="btn-confirm-convert-tasks" class="btn-artifact-primary px-5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-700 hover:to-brand-700 text-white cursor-pointer">
+                    <i class="ph ph-calendar-check text-sm"></i>
+                    <span>ยืนยันสร้าง Task & ซิงค์เข้า Gantt Timeline</span>
+                </button>
             </div>
         </div>
     </div>

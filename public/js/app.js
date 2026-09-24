@@ -15563,73 +15563,8 @@ const app = {
             renderConvertBOQFileCard(job) {
                 const container = document.getElementById('convert-boq-file-display');
                 if (!container) return;
-
-                if (!job) {
-                    const targetJobId = this.state.convertJobId || this.state.currentJobId;
-                    job = DB.jobs.find(j => j.id === targetJobId);
-                }
-                if (!job) {
-                    container.innerHTML = '';
-                    return;
-                }
-
-                const origFile = job.boq_original_file || job.boq_file;
-                if (origFile && origFile.name) {
-                    const ext = (origFile.name || '').split('.').pop().toLowerCase();
-                    const isExcel = ext === 'xlsx' || ext === 'xls' || ext === 'xlsm';
-                    const isCsv = ext === 'csv' || ext === 'txt';
-                    const iconClass = isExcel ? 'ph-file-xls' : (isCsv ? 'ph-file-csv' : 'ph-file-arrow-up');
-                    const iconColor = isExcel ? 'text-emerald-700 bg-emerald-100 border-emerald-300' : 'text-purple-700 bg-purple-100 border-purple-300';
-
-                    const uploadTime = origFile.uploaded_at || origFile.uploadedAt;
-                    const uploadTimeStr = uploadTime ? this.formatDateTimeDMY(uploadTime, false, true) : '-';
-                    const sizeStr = origFile.size_formatted || (origFile.size ? `${(origFile.size / 1024).toFixed(1)} KB` : '-');
-
-                    container.innerHTML = `
-                        <div class="p-3.5 rounded-xl border border-emerald-300 bg-emerald-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-                            <div class="flex items-center gap-3 min-w-0">
-                                <div class="w-10 h-10 rounded-xl ${iconColor} flex items-center justify-center shrink-0 border text-xl font-bold">
-                                    <i class="ph ${iconClass}"></i>
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <span class="text-xs font-bold text-foreground truncate max-w-xs sm:max-w-md" title="${this.escapeHtml(origFile.name)}">${this.escapeHtml(origFile.name)}</span>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0">
-                                            📎 ไฟล์ต้นฉบับ BOQ ที่จัดเก็บ
-                                        </span>
-                                    </div>
-                                    <div class="text-[11px] text-muted-foreground flex items-center gap-2 mt-1 flex-wrap font-mono">
-                                        <span>ขนาด: <strong class="text-foreground">${sizeStr}</strong></span>
-                                        <span>•</span>
-                                        <span>นำเข้าเมื่อ: <strong class="text-foreground">${uploadTimeStr}</strong></span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                                <button type="button" onclick="app.downloadBOQOriginalFile('${job.id}')" class="btn-artifact-primary px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs flex items-center gap-1.5 transition">
-                                    <i class="ph ph-download-simple font-bold text-sm"></i>
-                                    <span>ดาวน์โหลดไฟล์</span>
-                                </button>
-                                <button type="button" onclick="document.getElementById('task-boq-file-input').click()" class="btn-artifact-secondary px-2.5 py-1.5 rounded-lg text-xs font-medium text-foreground hover:bg-muted border border-border cursor-pointer flex items-center gap-1 transition" title="นำเข้าไฟล์ BOQ ใหม่แทนที่">
-                                    <i class="ph ph-arrows-clockwise text-xs"></i>
-                                    <span>เปลี่ยนไฟล์</span>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    container.innerHTML = `
-                        <div class="p-3 rounded-xl border border-dashed border-border bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                            <div class="flex items-center gap-2 text-muted-foreground">
-                                <i class="ph ph-info text-base text-purple-600 shrink-0"></i>
-                                <span>ยังไม่มีการจัดเก็บไฟล์ Excel BOQ ต้นฉบับสำหรับโครงการนี้ (สามารถกดปุ่ม <strong>"นำเข้าไฟล์ BOQ"</strong> เพื่อจัดเก็บไฟล์และแปลงเป็น Tasks)</span>
-                            </div>
-                            <button type="button" onclick="document.getElementById('task-boq-file-input').click()" class="text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-500/30 flex items-center gap-1 cursor-pointer font-medium shrink-0 self-start sm:self-auto">
-                                <i class="ph ph-file-arrow-up"></i> แนบและนำเข้าไฟล์ BOQ
-                            </button>
-                        </div>
-                    `;
-                }
+                container.innerHTML = '';
+                container.classList.add('hidden');
             },
 
             handleBOQFileForTasks(event) {
@@ -15953,7 +15888,7 @@ const app = {
                 // Update ratio badge in modal
                 const ratioEl = document.getElementById('convert-labor-ratio');
                 if (ratioEl) {
-                    ratioEl.innerText = `${laborItems.length} จาก ${boqItems.length} รายการ BOQ (คัดเฉพาะค่าแรง)`;
+                    ratioEl.innerText = `• คัดเฉพาะค่าแรง ${laborItems.length}/${boqItems.length} รายการ`;
                 }
 
                 if (laborItems.length === 0) {
@@ -25552,18 +25487,47 @@ const app = {
                     }];
                 }
 
-                let tasks = (DB.tasks || []).filter(t => t.jobId === job.id || t.job_id === job.id || String(t.jobId) === String(job.id));
-                if (tasks.length === 0 && Array.isArray(job.tasks) && job.tasks.length > 0) {
-                    tasks = job.tasks;
+                // First priority: job.tasks if present
+                let tasks = [];
+                if (Array.isArray(job.tasks) && job.tasks.length > 0) {
+                    tasks = [...job.tasks];
+                }
+
+                // Also merge DB.tasks for this job
+                const dbTasks = (DB.tasks || []).filter(t => 
+                    String(t.jobId || t.job_id) === String(job.id) || 
+                    (job.job_no && String(t.jobId || t.job_id) === String(job.job_no))
+                );
+                dbTasks.forEach(dbt => {
+                    const idx = tasks.findIndex(t => String(t.id) === String(dbt.id));
+                    if (idx >= 0) {
+                        tasks[idx] = { ...tasks[idx], ...dbt };
+                    } else {
+                        tasks.push(dbt);
+                    }
+                });
+
+                // Sync back to DB.tasks
+                if (tasks.length > 0) {
+                    DB.tasks = DB.tasks || [];
+                    tasks.forEach(t => {
+                        const existingIdx = DB.tasks.findIndex(existing => String(existing.id) === String(t.id));
+                        if (existingIdx >= 0) {
+                            DB.tasks[existingIdx] = { ...DB.tasks[existingIdx], ...t, jobId: job.id, job_id: job.id, job_no: job.job_no };
+                        } else {
+                            DB.tasks.push({ ...t, jobId: job.id, job_id: job.id, job_no: job.job_no });
+                        }
+                    });
                 }
 
                 if (tasks.length === 0) {
                     tasks = [{
                         id: `task_${job.id}_main1`,
                         jobId: job.id,
+                        job_id: job.id,
                         name: job.service || 'งานปรับปรุงและติดตั้งตามแบบ',
                         tech: job.tech || 'ทีมช่างประจำโครงการ',
-                        status: job.status === 'QC_PASSED' ? 'DONE' : 'IN_PROGRESS',
+                        status: (job.status === 'QC_PASSED' || job.status === 'QC_PENDING') ? 'DONE' : 'IN_PROGRESS',
                         subtasks: Array.isArray(job.subtasks) ? job.subtasks : []
                     }];
                 }
@@ -25576,18 +25540,53 @@ const app = {
                 if (task.is_quick || (job && this.isQuickJob(job))) return true;
                 if (task.stk_exported) return true;
 
-                // Check actual task object in DB.tasks
-                const realTask = (DB.tasks || []).find(t => String(t.id) === String(task.id)) || task;
-                if (realTask.status === 'DONE') return true;
-                if (Number(realTask.progress) >= 100) return true;
+                // Check actual task object in DB.tasks or job.tasks
+                const realTask = (DB.tasks || []).find(t => String(t.id) === String(task.id)) ||
+                                 ((job && Array.isArray(job.tasks)) ? job.tasks.find(t => String(t.id) === String(task.id)) : null) ||
+                                 task;
+                if (realTask.status === 'DONE' || realTask.status === 'QC_PENDING' || realTask.status === 'QC_PASSED') return true;
+                if (Number(realTask.progress || realTask.progress_percent) >= 100) return true;
 
-                // Check daily work logs for this task
-                const targetJobId = (job && job.id) ? job.id : realTask.jobId;
-                const taskLogs = (DB.dailyWorkLogs || []).filter(l => 
-                    String(l.taskId) === String(realTask.id) || 
-                    (String(l.jobId) === String(targetJobId) && l.taskName === realTask.name)
-                );
-                if (taskLogs.some(l => l.isCompleted || l.userConfirmed || (Number(l.progressPercent) || 0) >= 100)) {
+                // Check daily work logs from both job.daily_logs and DB.dailyWorkLogs
+                const allLogs = [
+                    ...(Array.isArray(job?.daily_logs) ? job.daily_logs : []),
+                    ...(Array.isArray(DB.dailyWorkLogs) ? DB.dailyWorkLogs : [])
+                ];
+                const targetJobId = String((job && (job.id || job.job_no)) || realTask.jobId || realTask.job_id || '');
+                const targetJobNo = String((job && job.job_no) || '');
+
+                const taskLogs = allLogs.filter(l => {
+                    const lTaskId = String(l.taskId || l.task_id || '');
+                    const lJobId = String(l.jobId || l.job_id || l.job_no || '');
+                    const lTaskName = l.taskName || l.task_name || '';
+                    const rTaskName = realTask.name || realTask.task_name || '';
+
+                    if (lTaskId) {
+                        return lTaskId === String(realTask.id);
+                    }
+                    if (lTaskName && rTaskName) {
+                        return lTaskName === rTaskName;
+                    }
+                    return (lJobId && (lJobId === targetJobId || (targetJobNo && lJobId === targetJobNo)));
+                });
+
+                const logsToCheck = taskLogs.length > 0 ? taskLogs : allLogs.filter(l => {
+                    const lJobId = String(l.jobId || l.job_id || l.job_no || '');
+                    return (lJobId && (lJobId === targetJobId || (targetJobNo && lJobId === targetJobNo)));
+                });
+
+                if (logsToCheck.some(l => 
+                    l.isCompleted || l.is_completed || 
+                    l.userConfirmed || l.user_confirmed || 
+                    l.isEarlyCompleted || l.is_early_completed ||
+                    (Number(l.progressPercent || l.progress_percent) || 0) >= 100 ||
+                    (Array.isArray(l.photos) && l.photos.length > 0)
+                )) {
+                    return true;
+                }
+
+                // If job itself is already in QC_PENDING, QC_PASSED, or progress >= 80, task is ready for QC
+                if (job && (job.status === 'QC_PENDING' || job.status === 'QC_PASSED' || (Number(job.overall_progress || job.progress) >= 80))) {
                     return true;
                 }
 
@@ -25609,6 +25608,15 @@ const app = {
                     };
                 }
 
+                const techPhotos = this.getTaskTechnicianPhotos(job, task);
+                const techPhotoItems = (techPhotos.length > 0) ? techPhotos.map((tp, idx) => ({
+                    id: `p_${task.id}_tech_${idx + 1}`,
+                    url: tp.url,
+                    title: tp.title || `รูปจากช่าง #${idx + 1}`,
+                    uploaded_at: tp.date || new Date().toISOString(),
+                    source: 'TECH_DAILY_LOG'
+                })) : [];
+
                 if (!Array.isArray(task.qc_evaluation.questions) || task.qc_evaluation.questions.length === 0) {
                     task.qc_evaluation.questions = [
                         {
@@ -25621,10 +25629,16 @@ const app = {
                             answer: null,
                             score: 0,
                             status: 'PENDING',
-                            photos: [],
+                            photos: techPhotoItems,
                             remarks: ''
                         }
                     ];
+                } else {
+                    // Auto-seed first question photos if empty and techPhotos exist
+                    const q1 = task.qc_evaluation.questions[0];
+                    if (q1 && (!Array.isArray(q1.photos) || q1.photos.length === 0) && techPhotoItems.length > 0) {
+                        q1.photos = [...techPhotoItems];
+                    }
                 }
 
                 // If task in Gantt is not yet completed and not exported, keep its questions in pending state
@@ -25649,47 +25663,80 @@ const app = {
 
             getTaskTechnicianPhotos(job, task) {
                 const photos = [];
-                const logs = (DB.dailyWorkLogs || []).filter(l =>
-                    (task && String(l.taskId) === String(task.id)) ||
-                    (!task && String(l.jobId) === String(job.id))
-                );
-                logs.forEach(l => {
+                // Merge logs from both job.daily_logs and DB.dailyWorkLogs
+                const allLogs = [
+                    ...(Array.isArray(job?.daily_logs) ? job.daily_logs : []),
+                    ...(Array.isArray(DB.dailyWorkLogs) ? DB.dailyWorkLogs : [])
+                ];
+
+                const targetJobId = String((job && (job.id || job.job_no)) || (task && (task.jobId || task.job_id)) || '');
+                const targetJobNo = String((job && job.job_no) || '');
+                const targetTaskId = String(task ? task.id : '');
+                const targetTaskName = (task && (task.name || task.task_name)) ? (task.name || task.task_name) : '';
+
+                // Filter logs for this task or job
+                const matchedLogs = allLogs.filter(l => {
+                    const lJobId = String(l.jobId || l.job_id || l.job_no || '');
+                    const lTaskId = String(l.taskId || l.task_id || '');
+                    const lTaskName = l.taskName || l.task_name || '';
+
+                    const isJobMatch = !targetJobId || lJobId === targetJobId || (targetJobNo && lJobId === targetJobNo);
+                    if (!isJobMatch) return false;
+
+                    if (!task) return true;
+                    // Match task by id or name
+                    if (targetTaskId && lTaskId === targetTaskId) return true;
+                    if (targetTaskName && lTaskName && lTaskName === targetTaskName) return true;
+                    return false;
+                });
+
+                // If no photos matched specific task, fallback to all logs for this job so photos are never lost
+                const logsToUse = (matchedLogs.length > 0) ? matchedLogs : allLogs.filter(l => {
+                    const lJobId = String(l.jobId || l.job_id || l.job_no || '');
+                    return !targetJobId || lJobId === targetJobId || (targetJobNo && lJobId === targetJobNo);
+                });
+
+                logsToUse.forEach(l => {
                     if (Array.isArray(l.photos)) {
                         l.photos.forEach(p => {
-                            const url = typeof p === 'string' ? p : (p && p.url);
+                            const url = typeof p === 'string' ? p : (p && (p.url || p.dataUrl));
                             if (url && !photos.some(item => item.url === url)) {
+                                const logDate = l.log_date || l.date || l.created_at || l.createdAt || '';
                                 photos.push({
                                     url: url,
-                                    title: (p && p.title) || `ภาพรายงานช่างประจำวัน (${l.date || ''}) #${photos.length + 1}`,
+                                    title: (p && (p.title || p.caption || p.name)) || `ภาพรายงานช่างประจำวัน (${logDate ? this.formatDateDMY(logDate) : ''}) #${photos.length + 1}`,
                                     source: 'บันทึกงานช่างประจำวัน (Step 4)',
-                                    date: l.date || l.createdAt || ''
+                                    date: logDate,
+                                    phase: (p && p.phase) || 'DURING'
                                 });
                             }
                         });
                     }
                 });
+
                 if (task && Array.isArray(task.photos)) {
                     task.photos.forEach(p => {
-                        const url = typeof p === 'string' ? p : (p && p.url);
+                        const url = typeof p === 'string' ? p : (p && (p.url || p.dataUrl));
                         if (url && !photos.some(item => item.url === url)) {
                             photos.push({
                                 url: url,
-                                title: (p && p.title) || `ภาพถ่ายงาน ${task.name} #${photos.length + 1}`,
+                                title: (p && (p.title || p.caption || p.name)) || `ภาพถ่ายงาน ${task.name} #${photos.length + 1}`,
                                 source: 'ภาพถ่ายงานหลัก',
-                                date: p.uploaded_at || ''
+                                date: (p && p.uploaded_at) || ''
                             });
                         }
                     });
                 }
-                if (photos.length === 0 && Array.isArray(job.photos)) {
+
+                if (photos.length === 0 && Array.isArray(job?.photos)) {
                     job.photos.slice(0, 5).forEach((p, idx) => {
-                        const url = typeof p === 'string' ? p : (p && p.url);
+                        const url = typeof p === 'string' ? p : (p && (p.url || p.dataUrl));
                         if (url && !photos.some(item => item.url === url)) {
                             photos.push({
                                 url: url,
-                                title: (p && p.title) || `ภาพถ่ายหน้างาน #${idx + 1}`,
+                                title: (p && (p.title || p.caption)) || `ภาพถ่ายหน้างาน #${idx + 1}`,
                                 source: 'ภาพถ่ายหน้างาน',
-                                date: p.uploaded_at || ''
+                                date: (p && p.uploaded_at) || ''
                             });
                         }
                     });
@@ -25905,25 +25952,72 @@ const app = {
             async openQCDetailModal(jobId) {
                 try {
                     let job = this.getJob(jobId);
-                    if (!job) {
-                        // Fallback: ดึงจาก API หากยังไม่มีใน DB.jobs ใน memory
-                        try {
-                            const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
-                            const res = await fetch(`/api/v1/jobs/${encodeURIComponent(jobId)}`, {
-                                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-                            });
-                            if (res.ok) {
-                                const json = await res.json();
-                                if (json && json.success && json.data) {
-                                    job = json.data;
+                    const lookupId = job ? (job.job_no || job.id || jobId) : jobId;
+
+                    // Always fetch latest job detail to ensure daily_logs, tasks, and qc_bookings are complete
+                    try {
+                        const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                        const res = await fetch(`/api/v1/jobs/${encodeURIComponent(lookupId)}`, {
+                            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                        });
+                        if (res.ok) {
+                            const json = await res.json();
+                            if (json && json.success && json.data) {
+                                const fullJob = json.data;
+                                if (job) {
+                                    Object.assign(job, fullJob);
+                                } else {
+                                    job = fullJob;
                                     DB.jobs = DB.jobs || [];
                                     const idx = DB.jobs.findIndex(j => String(j.id) === String(job.id) || j.job_no === job.job_no);
                                     if (idx >= 0) DB.jobs[idx] = job;
                                     else DB.jobs.unshift(job);
                                 }
+                                if (Array.isArray(fullJob.daily_logs)) {
+                                    job.daily_logs = fullJob.daily_logs;
+                                    DB.dailyWorkLogs = DB.dailyWorkLogs || [];
+                                    fullJob.daily_logs.forEach(log => {
+                                        const lIdx = DB.dailyWorkLogs.findIndex(x => String(x.id) === String(log.id));
+                                        if (lIdx >= 0) DB.dailyWorkLogs[lIdx] = log;
+                                        else DB.dailyWorkLogs.unshift(log);
+                                    });
+                                }
+                                if (Array.isArray(fullJob.tasks)) {
+                                    job.tasks = fullJob.tasks;
+                                    DB.tasks = DB.tasks || [];
+                                    fullJob.tasks.forEach(t => {
+                                        const tIdx = DB.tasks.findIndex(x => String(x.id) === String(t.id));
+                                        if (tIdx >= 0) DB.tasks[tIdx] = t;
+                                        else DB.tasks.push(t);
+                                    });
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[openQCDetailModal] fetch job error:', e);
+                    }
+
+                    // Fallback to /api/v1/daily-logs if daily_logs is still missing or empty
+                    if (job && (!Array.isArray(job.daily_logs) || job.daily_logs.length === 0)) {
+                        try {
+                            const token = (window.auth && window.auth.token) || sessionStorage.getItem('pmt_token') || localStorage.getItem('pmt_token');
+                            const dlRes = await fetch(`/api/v1/daily-logs?jobId=${encodeURIComponent(job.job_no || job.id)}`, {
+                                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                            });
+                            if (dlRes.ok) {
+                                const dlJson = await dlRes.json();
+                                if (dlJson && dlJson.success && Array.isArray(dlJson.data) && dlJson.data.length > 0) {
+                                    job.daily_logs = dlJson.data;
+                                    DB.dailyWorkLogs = DB.dailyWorkLogs || [];
+                                    dlJson.data.forEach(log => {
+                                        const lIdx = DB.dailyWorkLogs.findIndex(x => String(x.id) === String(log.id));
+                                        if (lIdx >= 0) DB.dailyWorkLogs[lIdx] = log;
+                                        else DB.dailyWorkLogs.unshift(log);
+                                    });
+                                }
                             }
                         } catch (e) {
-                            console.warn('[openQCDetailModal] fetch fallback failed:', e);
+                            console.warn('[openQCDetailModal] daily-logs fallback error:', e);
                         }
                     }
 
@@ -26742,7 +26836,16 @@ const app = {
                             </div>
                         `).join('');
                     } else {
-                        qPhotosHtml = `<div class="text-[11px] text-muted-foreground italic py-1.5 flex items-center gap-1.5"><i class="ph ph-image"></i> ยังไม่มีรูปภาพแนบในข้อนี้</div>`;
+                        qPhotosHtml = `
+                            <div class="text-[11px] text-muted-foreground italic py-1.5 flex items-center gap-2 flex-wrap">
+                                <span><i class="ph ph-image"></i> ยังไม่มีรูปภาพแนบในข้อนี้</span>
+                                ${(techDailyPhotos.length > 0 && !isLocked) ? `
+                                <button type="button" onclick="app.importTechPhotosToQCQuestion('${job.id}', '${activeTask.id}', '${q.id}')" class="px-2.5 py-1 rounded-md text-[10px] font-bold bg-cyan-500/15 text-cyan-800 border border-cyan-500/30 hover:bg-cyan-500/25 transition cursor-pointer flex items-center gap-1">
+                                    <i class="ph ph-download-simple"></i> ใช้ภาพจากช่างประจำวัน (${techDailyPhotos.length} รูป)
+                                </button>
+                                ` : ''}
+                            </div>
+                        `;
                     }
 
                     return `
@@ -26802,11 +26905,19 @@ const app = {
                                         <span>รูปถ่ายประกอบข้อนี้ (${qPhotos.length} รูป)</span>
                                     </span>
                                     ${isLocked ? '' : `
-                                    <label class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer bg-red-500 hover:bg-red-600 text-black border border-red-700 transition" style="background-color: #ef4444 !important; color: #000000 !important; font-weight: 900 !important;" title="คลิกเพื่อแนบรูปในข้อนี้">
-                                        <i class="ph ph-camera-plus text-xs" style="color: #000000 !important;"></i>
-                                        <span style="color: #000000 !important;">+ แนบรูปข้อนี้</span>
-                                        <input type="file" accept="image/*" class="hidden" onchange="app.handleTaskQCPhotoUpload(event, '${job.id}', '${activeTask.id}', '${q.id}')">
-                                    </label>
+                                    <div class="flex items-center gap-1.5">
+                                        ${techDailyPhotos.length > 0 ? `
+                                        <button type="button" onclick="app.importTechPhotosToQCQuestion('${job.id}', '${activeTask.id}', '${q.id}')" class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer bg-cyan-600 hover:bg-cyan-700 text-white shadow-xs transition" title="ดึงรูปจากบันทึกงานช่างมาไว้ในข้อนี้อัตโนมัติ">
+                                            <i class="ph ph-arrow-down-left text-xs"></i>
+                                            <span>📥 ใช้รูปจากช่าง (${techDailyPhotos.length})</span>
+                                        </button>
+                                        ` : ''}
+                                        <label class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer bg-red-500 hover:bg-red-600 text-black border border-red-700 transition" style="background-color: #ef4444 !important; color: #000000 !important; font-weight: 900 !important;" title="คลิกเพื่อแนบรูปในข้อนี้">
+                                            <i class="ph ph-camera-plus text-xs" style="color: #000000 !important;"></i>
+                                            <span style="color: #000000 !important;">+ แนบรูปข้อนี้</span>
+                                            <input type="file" accept="image/*" class="hidden" onchange="app.handleTaskQCPhotoUpload(event, '${job.id}', '${activeTask.id}', '${q.id}')">
+                                        </label>
+                                    </div>
                                     `}
                                 </div>
                                 <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5">

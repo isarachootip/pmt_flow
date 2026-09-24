@@ -1629,7 +1629,7 @@ export async function dbLoadDailyWorkLogs(jobId?: string, taskId?: string): Prom
     const params: any[] = [];
     const where: string[] = [];
     if (jobId) {
-      where.push(`(job_id = $${params.length + 1} OR job_no = $${params.length + 1})`);
+      where.push(`(job_id = $${params.length + 1} OR job_no = $${params.length + 1} OR job_id IN (SELECT job_no FROM core_jobs WHERE id::text = $${params.length + 1}) OR job_no IN (SELECT job_no FROM core_jobs WHERE id::text = $${params.length + 1}))`);
       params.push(String(jobId));
     }
     if (taskId) {
@@ -1740,7 +1740,7 @@ export async function dbLoadQCBookings(jobId?: string, status?: string): Promise
     const params: any[] = [];
     const where: string[] = [];
     if (jobId && jobId !== 'all') {
-      where.push(`(job_id = $${params.length + 1} OR job_no = $${params.length + 1})`);
+      where.push(`(job_id = $${params.length + 1} OR job_no = $${params.length + 1} OR job_id IN (SELECT job_no FROM core_jobs WHERE id::text = $${params.length + 1}) OR job_no IN (SELECT job_no FROM core_jobs WHERE id::text = $${params.length + 1}))`);
       params.push(String(jobId));
     }
     if (status && status !== 'all') {
@@ -2336,7 +2336,7 @@ export async function dbLoadBlueprints(jobId?: string): Promise<any[]> {
     let query = 'SELECT * FROM core_blueprints';
     const params: any[] = [];
     if (jobId && jobId !== 'all') {
-      query += ' WHERE job_id = $1';
+      query += ' WHERE (job_id = $1 OR job_id IN (SELECT job_no FROM core_jobs WHERE id::text = $1))';
       params.push(String(jobId));
     }
     query += ' ORDER BY created_at DESC';
