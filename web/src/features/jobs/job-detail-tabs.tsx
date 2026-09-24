@@ -4,6 +4,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { DataGrid, ColumnDef } from '@/components/ui/data-grid';
+import { BoqTab } from '@/features/boq/boq-tab';
 
 interface JobDetailTabsProps {
   job: Job;
@@ -87,8 +88,8 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                 getRowId={(row: any) => String(row.id)}
               />
             </TabsContent>
-            <TabsContent value="boq" className="h-full m-0">
-              <div className="text-sm text-text-secondary">ยังไม่มีข้อมูล BOQ</div>
+            <TabsContent value="boq" className="h-full m-0 data-[state=active]:flex flex-col">
+              <BoqTab job={job} />
             </TabsContent>
             <TabsContent value="log" className="h-full m-0">
               <div className="text-sm text-text-secondary">ยังไม่มีข้อมูลบันทึกช่าง</div>
