@@ -1,12 +1,12 @@
 /**
  * PMT Flow v2 API Client Wrapper
  * - Attaches Bearer token from 'pmt_token' (sessionStorage / localStorage)
- * - 10-second timeout enforcement via AbortController
+ * - 30-second timeout enforcement via AbortController
  * - 401 redirect to /v2/login
  * - Friendly Thai error translation
  */
 
-const DEFAULT_TIMEOUT_MS = 10000;
+const DEFAULT_TIMEOUT_MS = 30000;
 import { getToken, clearAuth } from './auth';
 
 export interface ApiResponse<T = unknown> {
@@ -59,7 +59,7 @@ function translateError(code: string, originalMessage?: string, status?: number)
     DUPLICATE_ENTRY: 'มีข้อมูลนี้อยู่ในระบบแล้ว ไม่สามารถสร้างซ้ำได้',
     OUT_OF_GEOFENCE: 'พิกัดของคุณอยู่นอกพื้นที่ทำงาน (เกินรัศมี 400 เมตรที่กำหนด)',
     QC_REQUIREMENTS_NOT_MET: 'ยังไม่สามารถตรวจ QC ได้ เนื่องจากยังมีงานในแผนงานไม่เสร็จสิ้น',
-    TIMEOUT: 'การเชื่อมต่อไปยังเซิร์ฟเวอร์หมดเวลา (เกิน 10 วินาที) กรุณาลองใหม่อีกครั้ง',
+    TIMEOUT: 'การเชื่อมต่อไปยังเซิร์ฟเวอร์หมดเวลา (เกิน 30 วินาที) กรุณาลองใหม่อีกครั้ง',
     NETWORK_ERROR: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต',
     SERVER_ERROR: 'เซิร์ฟเวอร์ขัดข้องภายใน กรุณาติดต่อทีมพัฒนาระบบ',
   };

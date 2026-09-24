@@ -679,7 +679,15 @@ export interface JobMetrics {
   after_sale?: number;
 }
 
+let cachedMetrics: JobMetrics | null = null;
+let cachedMetricsTime = 0;
+
 export async function dbGetJobMetrics(): Promise<JobMetrics> {
+  const now = Date.now();
+  if (cachedMetrics && (now - cachedMetricsTime < 15000)) {
+    return cachedMetrics;
+  }
+
   if (!isDatabaseConnected) {
     return {
       total: 0,
@@ -715,7 +723,7 @@ export async function dbGetJobMetrics(): Promise<JobMetrics> {
       FROM core_jobs
     `);
     const row = res.rows[0] || {};
-    return {
+    const result: JobMetrics = {
       total: Number(row.total) || 0,
       step1: Number(row.step1) || 0,
       qc_pending: Number(row.qc_pending) || 0,
@@ -729,6 +737,9 @@ export async function dbGetJobMetrics(): Promise<JobMetrics> {
       qc_passed: Number(row.qc_passed) || 0,
       after_sale: Number(row.after_sale) || 0
     };
+    cachedMetrics = result;
+    cachedMetricsTime = Date.now();
+    return result;
   } catch (err: any) {
     console.error('[DB] Error getting job metrics:', err.message);
     return {
@@ -1148,6 +1159,7 @@ export async function dbSaveJob(job: any): Promise<void> {
         job.created_at || null
       ]
     );
+    cachedMetrics = null;
   } catch (err: any) {
     console.error('[DB] Error saving job:', err.message);
     throw err;
@@ -1233,6 +1245,7 @@ export async function dbUpdateJob(jobNoOrId: string | number, updates: any): Pro
       `UPDATE core_jobs SET ${setClauses.join(', ')} WHERE job_no = $${idx} OR (id::text = $${idx})`,
       values
     );
+    cachedMetrics = null;
     return await dbGetJob(jobNoOrId);
   } catch (err: any) {
     console.error('[DB] Error updating job:', err.message);
@@ -1245,6 +1258,7 @@ export async function dbDeleteJob(jobNoOrId: string | number): Promise<void> {
     const isId = typeof jobNoOrId === 'number' || !isNaN(Number(jobNoOrId));
     const whereCol = isId ? 'id' : 'job_no';
     await pool.query(`DELETE FROM core_jobs WHERE ${whereCol} = $1`, [jobNoOrId]);
+    cachedMetrics = null;
   } catch (err: any) {
     console.error('[DB] Error deleting job:', err.message);
   }

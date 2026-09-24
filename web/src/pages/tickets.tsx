@@ -12,16 +12,17 @@ export default function TicketsPage() {
   const { data: ticketsData, isLoading } = useTickets();
   const { data: jobsData } = useJobs({});
   
+  const tickets: Ticket[] = Array.isArray(ticketsData) ? ticketsData : (ticketsData?.data || []);
+  const allJobs: Job[] = Array.isArray(jobsData) ? jobsData : (jobsData?.data || []);
+
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleRowClick = (row: Ticket) => {
     setSelectedTicket(row);
-    if (jobsData?.data) {
-      const job = jobsData.data.find((j: Job) => j.id.toString() === row.job_id);
-      if (job) setSelectedJob(job);
-    }
+    const job = allJobs.find((j: Job) => j.id.toString() === row.job_id || j.job_no === row.job_no);
+    if (job) setSelectedJob(job);
   };
 
   const columns: ColumnDef<Ticket>[] = [
@@ -67,7 +68,7 @@ export default function TicketsPage() {
             <div className="flex-1 min-h-0">
               <DataGrid
                 columns={columns}
-                data={ticketsData?.data || []}
+                data={tickets}
                 isLoading={isLoading}
                 onRowSelect={handleRowClick}
                 getRowId={(row) => row.id.toString()}

@@ -694,7 +694,13 @@ exports.LEAN_JOB_COLUMNS = `
     ELSE 0 
   END AS task_count
 `;
+let cachedMetrics = null;
+let cachedMetricsTime = 0;
 async function dbGetJobMetrics() {
+    const now = Date.now();
+    if (cachedMetrics && (now - cachedMetricsTime < 15000)) {
+        return cachedMetrics;
+    }
     if (!exports.isDatabaseConnected) {
         return {
             total: 0,
@@ -729,7 +735,7 @@ async function dbGetJobMetrics() {
       FROM core_jobs
     `);
         const row = res.rows[0] || {};
-        return {
+        const result = {
             total: Number(row.total) || 0,
             step1: Number(row.step1) || 0,
             qc_pending: Number(row.qc_pending) || 0,
@@ -743,6 +749,9 @@ async function dbGetJobMetrics() {
             qc_passed: Number(row.qc_passed) || 0,
             after_sale: Number(row.after_sale) || 0
         };
+        cachedMetrics = result;
+        cachedMetricsTime = Date.now();
+        return result;
     }
     catch (err) {
         console.error('[DB] Error getting job metrics:', err.message);
@@ -1129,6 +1138,7 @@ async function dbSaveJob(job) {
             JSON.stringify(rawPayload),
             job.created_at || null
         ]);
+        cachedMetrics = null;
     }
     catch (err) {
         console.error('[DB] Error saving job:', err.message);
@@ -1222,6 +1232,7 @@ async function dbUpdateJob(jobNoOrId, updates) {
         setClauses.push('updated_at = CURRENT_TIMESTAMP');
         values.push(target);
         await exports.pool.query(`UPDATE core_jobs SET ${setClauses.join(', ')} WHERE job_no = $${idx} OR (id::text = $${idx})`, values);
+        cachedMetrics = null;
         return await dbGetJob(jobNoOrId);
     }
     catch (err) {
@@ -1234,6 +1245,7 @@ async function dbDeleteJob(jobNoOrId) {
         const isId = typeof jobNoOrId === 'number' || !isNaN(Number(jobNoOrId));
         const whereCol = isId ? 'id' : 'job_no';
         await exports.pool.query(`DELETE FROM core_jobs WHERE ${whereCol} = $1`, [jobNoOrId]);
+        cachedMetrics = null;
     }
     catch (err) {
         console.error('[DB] Error deleting job:', err.message);

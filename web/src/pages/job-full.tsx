@@ -13,7 +13,8 @@ export default function JobFullPage() {
   const navigate = useNavigate();
   
   const { data, isLoading } = useJobs({ search: jobNo });
-  const job = React.useMemo(() => data?.data?.find((j: Job) => j.job_no === jobNo), [data, jobNo]);
+  const jobList: Job[] = Array.isArray(data) ? data : (data?.data || []);
+  const job = React.useMemo(() => jobList.find((j: Job) => j.job_no === jobNo), [jobList, jobNo]);
 
   if (isLoading) {
     return <div className="p-6 space-y-4"><Skeleton className="h-20" /><Skeleton className="h-64" /></div>;
@@ -62,7 +63,7 @@ export default function JobFullPage() {
           </div>
           <div className="flex items-center">
             <span className="text-text-secondary mr-2">สถานะ:</span>
-            <StatusBadge status={job.status} />
+            <StatusBadge status={(job.status === 'QC_PENDING' ? 'PENDING' : job.status) as any} />
           </div>
         </div>
       </div>

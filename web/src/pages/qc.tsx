@@ -16,9 +16,10 @@ export default function QcPage() {
   const [showQcForm, setShowQcForm] = useState(false);
 
   const { data, isLoading } = useQCBookings();
-  const bookings = data?.data || [];
+  const bookings = Array.isArray(data) ? data : (data?.data || []);
 
   const { data: jobData } = useJob(selectedBooking?.job_id);
+  const selectedJob = jobData?.data || jobData;
   const confirmBooking = useConfirmBooking();
   const qcInspection = useQCInspection();
 
@@ -88,10 +89,10 @@ export default function QcPage() {
           />
         </div>
         
-        {selectedBooking && jobData?.data && (
+        {selectedBooking && selectedJob && (
           <div className="w-[600px] flex flex-col">
             <JobDetailTabs 
-              job={jobData.data} 
+              job={selectedJob} 
               defaultTab="qc" 
               onClose={() => setSelectedBooking(null)} 
             />

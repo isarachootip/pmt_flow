@@ -1619,20 +1619,22 @@ app.get('/api/v1/jobs', requireAuth, async (req, res) => {
         const dateToStr = typeof date_to === 'string' && date_to.trim() ? date_to.trim() : undefined;
         const sortByStr = typeof sort_by === 'string' && sort_by.trim() ? sort_by.trim() : undefined;
         const sortOrderStr = (typeof sort_order === 'string' && sort_order.trim().toLowerCase() === 'desc') ? 'desc' : 'asc';
-        let pagedResult = await (0, database_1.dbLoadJobsPaginated)({
-            page,
-            limit,
-            status: statusStr,
-            step: stepStr,
-            service: serviceStr,
-            search: searchStr,
-            plan_date_from: dateFromStr,
-            plan_date_to: dateToStr,
-            sort_by: sortByStr,
-            sort_order: sortOrderStr,
-            lean: true
-        });
-        let metrics = await (0, database_1.dbGetJobMetrics)();
+        const [pagedResult, metrics] = await Promise.all([
+            (0, database_1.dbLoadJobsPaginated)({
+                page,
+                limit,
+                status: statusStr,
+                step: stepStr,
+                service: serviceStr,
+                search: searchStr,
+                plan_date_from: dateFromStr,
+                plan_date_to: dateToStr,
+                sort_by: sortByStr,
+                sort_order: sortOrderStr,
+                lean: true
+            }),
+            (0, database_1.dbGetJobMetrics)()
+        ]);
         const pagination = {
             page: pagedResult.page,
             limit: pagedResult.limit,

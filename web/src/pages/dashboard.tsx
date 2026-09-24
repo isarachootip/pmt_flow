@@ -26,7 +26,7 @@ export default function DashboardPage() {
   const qcPendingCount = Number(metrics.qc_pending ?? 0);
   const completedCount = Number(metrics.completed ?? metrics.qc_passed ?? 0);
 
-  const jobs = allJobsData?.data || [];
+  const jobs = Array.isArray(allJobsData) ? allJobsData : (allJobsData?.data || []);
   const todayJobs = jobs.slice(0, 5);
   const queueJobs = jobs.filter((j: any) => j.status === 'SURVEYED' || j.status === 'IN_PROGRESS' || !j.pmt_accepted).slice(0, 5);
 

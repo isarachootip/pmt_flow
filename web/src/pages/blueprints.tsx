@@ -10,15 +10,16 @@ export default function BlueprintsPage() {
   const { data: blueprintsData, isLoading } = useBlueprints();
   const { data: jobsData } = useJobs({});
   
+  const blueprints: Blueprint[] = Array.isArray(blueprintsData) ? blueprintsData : (blueprintsData?.data || []);
+  const allJobs: Job[] = Array.isArray(jobsData) ? jobsData : (jobsData?.data || []);
+
   const [selectedBlueprint, setSelectedBlueprint] = useState<Blueprint | null>(null);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   const handleRowClick = (row: Blueprint) => {
     setSelectedBlueprint(row);
-    if (jobsData?.data) {
-      const job = jobsData.data.find((j: Job) => j.id.toString() === row.job_id);
-      if (job) setSelectedJob(job);
-    }
+    const job = allJobs.find((j: Job) => j.id.toString() === row.job_id || j.job_no === row.job_no);
+    if (job) setSelectedJob(job);
   };
 
   const columns: ColumnDef<Blueprint>[] = [
@@ -51,7 +52,7 @@ export default function BlueprintsPage() {
           <div className="flex-1 min-h-0">
             <DataGrid
               columns={columns}
-              data={blueprintsData?.data || []}
+              data={blueprints}
               isLoading={isLoading}
               onRowSelect={handleRowClick}
               getRowId={(row) => row.id.toString()}

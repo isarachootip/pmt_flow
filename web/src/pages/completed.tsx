@@ -15,7 +15,7 @@ export default function CompletedPage() {
 
   // Load jobs that are in statuses handled by this page
   const { data, isLoading } = useJobs({ status: 'QC_PASS,COMPLETED,CLOSED' });
-  const jobs = data?.data || [];
+  const jobs = Array.isArray(data) ? data : (data?.data || []);
 
   const csatMutation = useCSAT();
   const closeMutation = useCloseJob();
