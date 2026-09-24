@@ -6,9 +6,8 @@
  * - Friendly Thai error translation
  */
 
-const TOKEN_KEY = 'pmt_token';
-const USER_KEY = 'pmt_user';
 const DEFAULT_TIMEOUT_MS = 10000;
+import { getToken, clearAuth } from './auth';
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -81,20 +80,7 @@ function translateError(code: string, originalMessage?: string, status?: number)
  * Retrieves the stored authentication token
  */
 export function getStoredToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
-}
-
-/**
- * Saves auth token to storage
- */
-export function setStoredToken(token: string, persist = false): void {
-  if (typeof window === 'undefined') return;
-  if (persist) {
-    localStorage.setItem(TOKEN_KEY, token);
-  } else {
-    sessionStorage.setItem(TOKEN_KEY, token);
-  }
+  return getToken();
 }
 
 /**
@@ -102,10 +88,7 @@ export function setStoredToken(token: string, persist = false): void {
  */
 export function handleUnauthorized(): void {
   if (typeof window === 'undefined') return;
-  sessionStorage.removeItem(TOKEN_KEY);
-  sessionStorage.removeItem(USER_KEY);
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
+  clearAuth();
 
   const currentPath = window.location.pathname;
   if (!currentPath.includes('/login')) {
