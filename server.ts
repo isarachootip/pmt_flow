@@ -342,6 +342,29 @@ app.use('/doc', express.static(path.join(__dirname, '../doc')));
 app.use('/doc', express.static(path.join(__dirname, './doc')));
 app.use('/doc', express.static(path.join(process.cwd(), 'doc')));
 
+// =============================================================================
+// PMT Flow v2 Static Assets & SPA Route Fallback (/v2)
+// =============================================================================
+const v2DistCandidates = [
+  path.join(__dirname, '../web/dist'),
+  path.join(__dirname, './web/dist'),
+  path.join(process.cwd(), 'web/dist'),
+];
+const v2DistDir = v2DistCandidates.find(p => fs.existsSync(p));
+if (v2DistDir) {
+  app.use('/v2', express.static(v2DistDir));
+  app.get(['/v2', '/v2/*'], (req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    const indexHtml = path.join(v2DistDir, 'index.html');
+    if (fs.existsSync(indexHtml)) {
+      return res.sendFile(indexHtml);
+    }
+    return res.status(404).send('PMT Flow v2 build not found');
+  });
+}
+
 // Serve static frontend files (index.html)
 app.use(express.static(path.join(__dirname, '../')));
 app.use(express.static(path.join(__dirname, './')));

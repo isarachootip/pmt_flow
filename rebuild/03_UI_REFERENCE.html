@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PMT Flow v2 — UI Reference (Grid บน / Grid ล่าง)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#3370FF;--primary-hover:#245BDB;--primary-soft:#E1EAFF;--primary-softer:#F0F4FF;
+  --bg:#FFFFFF;--bg-subtle:#F7F8FA;--hero:linear-gradient(180deg,#EAF0FF 0%,#F4F6FF 60%,#FFFFFF 100%);
+  --border:#DEE0E3;--border-soft:#EFF0F1;--grid-line:#E5E6EB;--text:#000000;--text-2:#4E5969;--ph:#86909C;
+  --st-pending:#245BDB;--st-progress:#F5A623;--st-done:#0F7B3F;--st-overdue:#D12D2D;--st-rework:#D25F00;--st-neutral:#86909C;
+  --master-h:280px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:Inter,"IBM Plex Sans Thai","Noto Sans Thai",system-ui,sans-serif;color:var(--text);background:var(--bg);font-size:14px;line-height:22px;overflow:hidden}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+/* Topbar */
+.topbar{height:56px;display:flex;align-items:center;gap:24px;padding:0 20px;border-bottom:1px solid var(--border-soft);background:#fff}
+.logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:19px;white-space:nowrap}
+.logo-mark{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#3370FF,#5B8CFF);display:grid;place-items:center;color:#fff}
+.search-global{flex:1;max-width:420px;display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:1px solid var(--border);border-radius:8px;color:var(--ph)}
+.search-global kbd{margin-left:auto;font-family:inherit;font-size:12px;border:1px solid var(--border);border-radius:4px;padding:0 6px;color:var(--text-2)}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:16px}
+.icon-btn{width:32px;height:32px;border-radius:8px;display:grid;place-items:center}
+.icon-btn:hover{background:var(--bg-subtle)}
+.user{display:flex;align-items:center;gap:10px;font-weight:500;white-space:nowrap;font-size:15px}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#A78BFA,#7C3AED);color:#fff;display:grid;place-items:center;font-size:12px}
+.btn{height:32px;padding:0 12px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:500;border:1px solid transparent;white-space:nowrap}
+.btn svg{width:16px;height:16px}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-hover)}
+.btn-secondary{background:#fff;border-color:var(--border)}.btn-secondary:hover{background:var(--bg-subtle)}
+/* Shell */
+.shell{display:flex;height:calc(100vh - 56px)}
+.sidebar{width:224px;flex-shrink:0;padding:14px 12px;overflow:auto;border-right:1px solid var(--border-soft)}
+.side-label{font-size:13px;font-weight:500;color:var(--text-2);padding:12px 12px 6px}
+.nav a{display:flex;align-items:center;gap:10px;min-height:36px;white-space:nowrap;padding:0 12px;border-radius:10px;font-size:15px;margin-bottom:2px}
+.nav a:hover{background:var(--bg-subtle)}
+.nav a.active{background:var(--primary-soft);color:var(--primary);font-weight:500}
+.step{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border);font-size:11px;font-weight:600;display:grid;place-items:center;flex-shrink:0}
+.nav a.active .step{border-color:var(--primary);background:var(--primary);color:#fff}
+.count{margin-left:auto;font-size:12px;background:#F2F3F5;border-radius:999px;padding:0 8px;line-height:20px}
+.nav a.active .count{background:#fff;color:var(--primary)}
+main{flex:1;min-width:0;display:flex;flex-direction:column}
+/* Page head */
+.m-head{background:var(--hero);padding:14px 24px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.m-head h1{font-size:22px;line-height:30px;font-weight:600}
+.km-link{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--text-2)}.km-link:hover{background:#fff;color:var(--primary)}
+.kpis{display:flex;gap:8px;margin-left:16px}
+.kpi{background:#fff;border:1px solid var(--border-soft);border-radius:10px;padding:1px 12px;display:flex;align-items:baseline;gap:8px;cursor:pointer;white-space:nowrap}
+.kpi span{font-size:12px;color:var(--text-2)}
+.kpi b{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+.kpi.on{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary-soft)}
+.m-head .actions{margin-left:auto;display:flex;gap:8px}
+/* Grid toolbar (shared top & bottom) */
+.gbar{display:flex;align-items:center;gap:8px;padding:8px 24px;flex-wrap:wrap}
+.input{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border:1px solid var(--border);border-radius:8px;color:var(--ph);width:280px;background:#fff}
+.input svg{width:16px;height:16px}
+.chip{height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--border);font-size:13px;display:inline-flex;align-items:center;gap:6px;background:#fff;white-space:nowrap}
+.chip svg{width:14px;height:14px}
+.chip.on{background:var(--primary-soft);border-color:transparent;color:var(--primary);font-weight:500}
+.right{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap}
+/* ===== DATA GRID (same component top & bottom) ===== */
+.grid-wrap{overflow:auto;margin:0 24px;border:1px solid var(--grid-line);border-radius:10px;background:#fff}
+.grid{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+.grid th,.grid td{border-right:1px solid var(--grid-line);border-bottom:1px solid var(--grid-line);padding:0 12px;height:36px;white-space:nowrap;text-align:left}
+.grid th:last-child,.grid td:last-child{border-right:0}
+.grid th{position:sticky;top:0;z-index:1;background:var(--bg-subtle);font-size:13px;font-weight:600;cursor:pointer;user-select:none}
+.grid th .sort{color:var(--ph);font-size:11px;margin-left:4px}
+.grid .rn{width:44px;text-align:center;color:var(--text-2);font-size:12px;background:var(--bg-subtle);position:sticky;left:0}
+.grid th.rn{z-index:2}
+.grid tbody tr:hover td{background:#FAFBFC}
+.grid tbody tr:hover td.rn{background:#F0F1F3}
+.grid tr.sel td{background:var(--primary-softer)!important}
+.grid tr.sel td.rn{background:var(--primary)!important;color:#fff}
+.grid td.num{text-align:right;font-variant-numeric:tabular-nums}
+.grid td.b{font-weight:600}
+.grid td.edit:hover{outline:1px solid var(--primary);outline-offset:-1px;cursor:text}
+.grid tfoot td{background:var(--bg-subtle);font-weight:600;position:sticky;bottom:0}
+.type{font-size:12px;font-weight:500;border:1px solid var(--border);border-radius:6px;padding:0 7px;background:#fff}
+.badge{display:inline-flex;align-items:center;gap:7px;font-weight:500;color:var(--text)}
+.badge::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--dot)}
+.b-pending{--dot:var(--st-pending)}.b-progress{--dot:var(--st-progress)}.b-done{--dot:var(--st-done)}.b-overdue{--dot:var(--st-overdue)}.b-rework{--dot:var(--st-rework)}.b-neutral{--dot:var(--st-neutral)}
+.thumb{display:inline-block;width:28px;height:20px;border-radius:4px;background:linear-gradient(135deg,#E8EEF9,#C9D6EE);vertical-align:middle;margin-right:3px}
+.master{height:var(--master-h);min-height:120px}
+/* Splitter */
+.split{height:12px;margin:0 24px;cursor:row-resize;display:grid;place-items:center;flex-shrink:0}
+.split::before{content:"";width:48px;height:4px;border-radius:4px;background:var(--border)}
+.split:hover::before{background:var(--primary)}
+/* Detail area */
+.d-bar{padding:4px 24px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.d-bar .job{font-weight:600;font-size:15px}
+.tabs{display:flex;gap:4px;padding:6px 24px 8px;overflow-x:auto}
+.tab{height:30px;padding:0 12px;border-radius:8px;font-size:14px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.tab:hover{background:var(--bg-subtle)}
+.tab.on{background:var(--primary-soft);color:var(--primary);font-weight:500}
+.tab i{font-style:normal;font-size:12px;background:#F2F3F5;border-radius:999px;padding:0 7px;line-height:18px;color:var(--text)}
+.tab.on i{background:#fff;color:var(--primary)}
+.detail{flex:1;min-height:0;margin-bottom:16px}
+@media (max-width:1280px){.kpis{margin-left:0;order:3;width:100%}}
+@media (max-width:1100px){.sidebar{display:none}}
+@media (max-width:820px){
+  body{overflow:auto}.shell{height:auto}main{display:block}
+  .search-global{display:none}.user{font-size:0;gap:0}.topbar{gap:12px;padding:0 16px}
+  .m-head,.gbar,.d-bar,.tabs{padding-left:16px;padding-right:16px}.grid-wrap{margin:0 16px}
+  .input{width:100%}.kpis{overflow-x:auto}.right{margin-left:0}
+  .master{height:260px}.split{display:none}.detail{height:360px;margin-bottom:16px}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="logo"><span class="logo-mark"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h6"/></svg></span>PMT Flow</div>
+  <div class="search-global"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>ค้นหารหัสงาน ชื่อลูกค้า หรือเมนู<kbd>Ctrl K</kbd></div>
+  <div class="top-right">
+    <span class="icon-btn"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></span>
+    <span class="user"><span class="avatar">IC</span>isara chootip</span>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="sidebar">
+    <nav class="nav">
+      <div class="side-label">ภาพรวม</div>
+      <a href="#"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>แดชบอร์ด</a>
+      <div class="side-label">ขั้นตอนงาน</div>
+      <a href="#" class="active"><span class="step">1</span>รับงาน &amp; คิวงาน<span class="count">12</span></a>
+      <a href="#"><span class="step">2</span>Ticket &amp; ใบเสร็จ<span class="count">4</span></a>
+      <a href="#"><span class="step">3</span>โปรเจกต์ &amp; BOQ<span class="count">3</span></a>
+      <a href="#"><span class="step">4</span>แผนงาน Gantt<span class="count">8</span></a>
+      <a href="#"><span class="step">5</span>ตรวจรับงาน QC<span class="count">5</span></a>
+      <a href="#"><span class="step">6</span>ปิดงาน &amp; ส่ง STK</a>
+      <div class="side-label">คลังข้อมูล</div>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>แบบติดตั้ง</a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h12"/></svg>คลัง BOQ กลาง</a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>สัญญา MA</a>
+      <div class="side-label">ระบบ</div>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg>รายงาน</a>
+      <a href="#"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/></svg>ผู้ใช้งาน</a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>KM คลังความรู้</a>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="m-head">
+      <h1>รับงาน &amp; คิวงาน</h1>
+      <a class="km-link" href="#" title="KM"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></a>
+      <div class="kpis">
+        <div class="kpi on"><span>ทั้งหมด</span><b>128</b></div>
+        <div class="kpi"><span>ใหม่วันนี้</span><b>12</b></div>
+        <div class="kpi"><span>รอนัด</span><b>7</b></div>
+        <div class="kpi"><span>เลยกำหนด</span><b style="color:var(--st-overdue)">3</b></div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-secondary"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>ส่งออก</button>
+        <button class="btn btn-primary"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>สร้างงาน</button>
+      </div>
+    </div>
+
+    <!-- ===== GRID บน (Master) ===== -->
+    <div class="gbar">
+      <div class="input"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>ค้นหารหัสงาน / ลูกค้า / เบอร์โทร</div>
+      <span class="chip on">ทั้งหมด</span><span class="chip">Renovate</span><span class="chip">Quick</span>
+      <span class="chip"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>01/09/2026 ถึง 24/09/2026</span>
+      <span class="chip"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>ตัวกรอง</span>
+      <span class="chip"><svg viewBox="0 0 24 24"><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>คอลัมน์</span>
+      <span class="right">1–6 จาก 128 <span>‹ 1 / 22 ›</span></span>
+    </div>
+    <div class="grid-wrap master" id="master">
+      <table class="grid">
+        <thead><tr><th class="rn">#</th><th>รหัสงาน<span class="sort">▼</span></th><th>ลูกค้า</th><th>เบอร์โทร</th><th>บริการ</th><th>ประเภท</th><th>วันนัด</th><th>สถานะ</th><th class="num">ยอดสุทธิ</th><th>AE</th><th>ช่าง</th><th>QC</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="split" id="split" title="ลากเพื่อปรับขนาด"></div>
+
+    <!-- ===== GRID ล่าง (Detail) ===== -->
+    <div class="d-bar" id="dbar"></div>
+    <div class="tabs" id="tabs"></div>
+    <div class="grid-wrap detail"><table class="grid" id="dgrid"></table></div>
+  </main>
+</div>
+
+<script>
+const JOBS=[
+ {no:"JOB2609-00128",cus:"สมชาย ใจดี",tel:"081-234-5678",svc:"Renovate ครัว",type:"Renovate",date:"26/09/2026 10:00",st:"รอออก Ticket",c:"pending",step:2,ae:"วิภา",tech:"-",qc:"-",amt:"184,500.00"},
+ {no:"JOB2609-00127",cus:"อรุณี ศรีสุข",tel:"089-555-1200",svc:"ติดตั้งเครื่องทำน้ำอุ่น",type:"Quick",date:"25/09/2026 13:30",st:"รอตรวจ QC Online",c:"progress",step:5,ae:"ปวีณา",tech:"สมศักดิ์ (INT)",qc:"ธนา",amt:"4,900.00"},
+ {no:"JOB2609-00121",cus:"บริษัท เอ บี ซี จำกัด",tel:"02-111-2222",svc:"Renovate ห้องน้ำ",type:"Renovate",date:"20/09/2026 09:00",st:"เลยกำหนด 2 วัน",c:"overdue",step:4,ae:"กิตติ",tech:"ทีมช่างเอก",qc:"ธนา",amt:"96,200.00"},
+ {no:"JOB2609-00118",cus:"มานพ รักงาน",tel:"086-777-8888",svc:"ปั๊มแท็งก์ + เดินท่อ",type:"Renovate",date:"18/09/2026 08:30",st:"Rework รอบ 2",c:"rework",step:5,ae:"วิภา",tech:"ทีมช่างบี",qc:"ธนา",amt:"38,750.00"},
+ {no:"JOB2609-00109",cus:"กมล แสงทอง",tel:"081-999-0000",svc:"สำรวจหน้างาน",type:"Renovate",date:"15/09/2026 14:00",st:"รอนัดสำรวจ",c:"neutral",step:1,ae:"กิตติ",tech:"-",qc:"-",amt:"-"},
+ {no:"JOB2609-00102",cus:"ศิริพร วงศ์ดี",tel:"082-000-1234",svc:"ติดตั้งแอร์",type:"Quick",date:"12/09/2026 14:00",st:"ปิดงาน · ส่ง STK แล้ว",c:"done",step:7,ae:"ปวีณา",tech:"ประเสริฐ (INT)",qc:"ธนา",amt:"12,500.00"}
+];
+/* Detail grids: each tab = one grid with its own columns */
+const TABS={
+ task:{t:"งาน / Task",add:"+ เพิ่ม Task",cols:["Task","ช่าง","QC","เริ่ม","สิ้นสุด","วัน","%","สถานะ"],num:[5,6],
+  rows:j=>[["รื้อถอน",j.tech,j.qc,"20/09/2026","21/09/2026","2","100",["เสร็จ","done"]],["เดินท่อประปา",j.tech,j.qc,"22/09/2026","23/09/2026","2","100",["เสร็จ","done"]],["เดินสายไฟ",j.tech,j.qc,"23/09/2026","24/09/2026","2","60",["กำลังทำ","progress"]],["ปูกระเบื้อง",j.tech,j.qc,"25/09/2026","27/09/2026","3","0",["รอดำเนินการ","pending"]],["ติดตั้งสุขภัณฑ์",j.tech,j.qc,"28/09/2026","28/09/2026","1","0",["รอดำเนินการ","pending"]]]},
+ boq:{t:"BOQ",add:"+ เพิ่มรายการ",cols:["รายการ","หน่วย","จำนวน","ราคา/หน่วย","รวม"],num:[2,3,4],foot:true,
+  rows:()=>[["ค่ารื้อถอน","งาน","1","8,000.00","8,000.00"],["ท่อ PPR 20 มม.","เส้น","12","185.00","2,220.00"],["สายไฟ THW 2.5","ม้วน","2","1,450.00","2,900.00"],["กระเบื้อง 60x60","ตร.ม.","24","390.00","9,360.00"],["ค่าแรงปูกระเบื้อง","ตร.ม.","24","250.00","6,000.00"],["สุขภัณฑ์ชุด","ชุด","1","12,500.00","12,500.00"]]},
+ log:{t:"บันทึกช่าง",add:"+ บันทึกช่าง",cols:["วันที่","รอบ","ช่าง","เวลา","ชม.","งานที่ทำ","ปัญหา","รูป"],num:[4],
+  rows:j=>[["20/09/2026","1/9",j.tech,"08:30 - 17:00","8.5","รื้อถอนผนัง+พื้นเดิม","-","p5"],["22/09/2026","2/9",j.tech,"08:00 - 17:00","9.0","เดินท่อน้ำดี/น้ำทิ้ง","ท่อเดิมรั่ว 1 จุด","p5"],["23/09/2026","3/9",j.tech,"08:30 - 16:30","8.0","เดินสายไฟ/ปลั๊ก","-","p5"]]},
+ qc:{t:"QC",add:"+ นัดตรวจ QC",cols:["ครั้งที่","วันเวลา","ผู้ตรวจ","รูปแบบ","ผล","คะแนน","หมายเหตุ"],num:[0,5],
+  rows:j=>[["1","24/09/2026 14:00",j.qc,"On-site",["ไม่ผ่าน","overdue"],"-","ยาแนวไม่เรียบ"],["2","26/09/2026 10:00",j.qc,"On-site",["รอตรวจ","pending"],"-","-"]]},
+ pay:{t:"การเงิน",add:"+ Ticket",cols:["เลขที่ Ticket","วันที่ชำระ","วิธีชำระ","ยอด","สลิป","สถานะ"],num:[3],
+  rows:()=>[["TK2609-0041","19/09/2026 11:20","โอนเงิน","50,000.00","p1",["ตรวจแล้ว","done"]],["TK2609-0057","24/09/2026 09:05","โอนเงิน","46,200.00","p1",["รอตรวจ","pending"]]]},
+ file:{t:"แบบติดตั้ง",add:"+ อัปโหลด",cols:["เวอร์ชัน","ไฟล์","ประเภท","ขนาด","ผู้อัปโหลด","วันที่","Current"],num:[],
+  rows:()=>[["v1","kitchen_plan_v1.pdf","PDF","2.4 MB","วิภา","15/09/2026 10:12","-"],["v2","kitchen_plan_v2.dwg","DWG","5.1 MB","วิภา","17/09/2026 16:40","-"],["v3 Final","kitchen_plan_final.pdf","PDF","2.8 MB","วิภา","18/09/2026 09:30","✓"]]},
+ hist:{t:"ประวัติ",add:null,cols:["วันเวลา","ผู้ใช้","การกระทำ","รายละเอียด"],num:[],
+  rows:j=>[["24/09/2026 09:12",j.ae,"อัปเดตสถานะ",j.st],["22/09/2026 16:40",j.tech,"บันทึกช่าง","รอบที่ 2"],["19/09/2026 11:20",j.ae,"สร้าง Ticket","TK2609-0041"],["15/09/2026 08:05","INT","รับงาน","Inbound API"]]}
+};
+const ORDER=["task","boq","log","qc","pay","file","hist"];
+let sel=0,tab="task";
+function mrows(){document.getElementById('rows').innerHTML=JOBS.map((j,i)=>`
+ <tr class="${i===sel?'sel':''}" onclick="pick(${i})"><td class="rn">${i+1}</td>
+  <td class="b">${j.no}</td><td>${j.cus}</td><td>${j.tel}</td><td>${j.svc}</td><td><span class="type">${j.type}</span></td>
+  <td>${j.date}</td><td><span class="badge b-${j.c}">${j.st}</span></td><td class="num">${j.amt}</td><td>${j.ae}</td><td>${j.tech}</td><td>${j.qc}</td></tr>`).join('')}
+function cell(v,k,d){if(Array.isArray(v))return `<td><span class="badge b-${v[1]}">${v[0]}</span></td>`;
+ if(v==="p5")return `<td>${'<span class="thumb"></span>'.repeat(5)}</td>`;if(v==="p1")return `<td><span class="thumb"></span></td>`;
+ return `<td class="${d.num.includes(k)?'num':''} edit">${v}</td>`}
+function detail(){const j=JOBS[sel],d=TABS[tab],rs=d.rows(j);
+ document.getElementById('dbar').innerHTML=`<span class="job">${j.no}</span><span>${j.cus} · ${j.svc}</span><span class="badge b-${j.c}">${j.st}</span>
+  <span class="right"><button class="btn btn-secondary"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M21 14v7H3V3h7"/></svg>เปิดเต็มหน้า</button>
+  ${d.add?`<button class="btn btn-primary">${d.add}</button>`:''}</span>`;
+ document.getElementById('tabs').innerHTML=ORDER.map(k=>`<button class="tab ${k===tab?'on':''}" onclick="setTab('${k}')">${TABS[k].t}<i>${TABS[k].rows(j).length}</i></button>`).join('');
+ let foot='';if(d.foot){const sub=rs.reduce((s,r)=>s+parseFloat(r[4].replace(/,/g,'')),0);const f=n=>n.toLocaleString('en-US',{minimumFractionDigits:2});
+  foot=`<tfoot><tr><td class="rn"></td><td colspan="4">รวม (Subtotal)</td><td class="num">${f(sub)}</td></tr><tr><td class="rn"></td><td colspan="4">ส่วนลด</td><td class="num">0.00</td></tr><tr><td class="rn"></td><td colspan="4">ยอดสุทธิ (No VAT)</td><td class="num">${f(sub)}</td></tr></tfoot>`}
+ document.getElementById('dgrid').innerHTML=`<thead><tr><th class="rn">#</th>${d.cols.map((c,k)=>`<th style="${d.num.includes(k)?'text-align:right':''}">${c}</th>`).join('')}</tr></thead>
+  <tbody>${rs.map((r,i)=>`<tr><td class="rn">${i+1}</td>${r.map((v,k)=>cell(v,k,d)).join('')}</tr>`).join('')}</tbody>${foot}`}
+function pick(i){sel=i;mrows();detail()}
+function setTab(k){tab=k;detail()}
+mrows();detail();
+document.addEventListener('keydown',e=>{if(e.key==='ArrowDown'&&sel<JOBS.length-1){e.preventDefault();pick(sel+1)}if(e.key==='ArrowUp'&&sel>0){e.preventDefault();pick(sel-1)}});
+(()=>{const s=document.getElementById('split'),m=document.getElementById('master');let y0,h0;
+ s.addEventListener('mousedown',e=>{y0=e.clientY;h0=m.offsetHeight;document.body.style.userSelect='none';
+  const mv=ev=>{m.style.height=Math.max(120,Math.min(window.innerHeight-260,h0+ev.clientY-y0))+'px'};
+  const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);document.body.style.userSelect=''};
+  document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up)})})();
+</script>
+</body>
+</html>

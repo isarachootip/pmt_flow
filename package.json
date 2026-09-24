@@ -5,7 +5,8 @@
   "main": "dist/server.js",
   "scripts": {
     "check:syntax": "node scripts/check-syntax.js",
-    "build": "node scripts/check-syntax.js && tsc",
+    "build:web": "npm --prefix web run build",
+    "build": "node scripts/check-syntax.js && npm run build:web && tsc",
     "start": "node dist/server.js",
     "dev": "ts-node server.ts",
     "test": "node test_boq_import_scenario.js && node test_daily_work_log_and_qc_pipeline.js"
