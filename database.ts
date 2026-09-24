@@ -365,9 +365,9 @@ export async function initDatabase(): Promise<boolean> {
     console.log('[DB] Core tables verified / created in spmt_db.');
     return true;
   } catch (err: any) {
-    console.warn('[DB WARNING] Could not initialize PostgreSQL tables, running in-memory fallback:', err.message);
+    console.error('[DB FATAL] Could not initialize PostgreSQL tables:', err.message);
     isDatabaseConnected = false;
-    return false;
+    throw err; // DB is mandatory - server must not start without it
   }
 }
 
@@ -376,7 +376,6 @@ export async function initDatabase(): Promise<boolean> {
 // =============================================================================
 
 export async function dbLoadUsers(): Promise<any[]> {
-  if (!isDatabaseConnected) return [];
   try {
     const res = await pool.query('SELECT * FROM sys_users ORDER BY id ASC');
     return res.rows;
@@ -387,7 +386,6 @@ export async function dbLoadUsers(): Promise<any[]> {
 }
 
 export async function dbGetUser(usernameOrEmail: string): Promise<any | null> {
-  if (!isDatabaseConnected) return null;
   try {
     const res = await pool.query(
       'SELECT * FROM sys_users WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1) LIMIT 1',
@@ -401,7 +399,6 @@ export async function dbGetUser(usernameOrEmail: string): Promise<any | null> {
 }
 
 export async function dbSaveUser(user: any): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     await pool.query(
       `INSERT INTO sys_users (user_code, username, email, full_name, role, password_hash, is_active, last_login_at, created_at)
@@ -433,7 +430,6 @@ export async function dbSaveUser(user: any): Promise<void> {
 }
 
 export async function dbUpdateUser(id: number | string, fields: any): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     const setClauses: string[] = [];
     const values: any[] = [];
@@ -456,7 +452,6 @@ export async function dbUpdateUser(id: number | string, fields: any): Promise<vo
 }
 
 export async function dbDeleteUser(id: number | string): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     await pool.query('DELETE FROM sys_users WHERE id::text = $1 OR user_code = $1', [String(id)]);
   } catch (err: any) {
@@ -465,7 +460,6 @@ export async function dbDeleteUser(id: number | string): Promise<void> {
 }
 
 export async function dbSaveLoginLog(log: any): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     await pool.query(
       `INSERT INTO sys_login_log (username, user_id, success, ip_address, fail_reason, created_at)
@@ -485,7 +479,6 @@ export async function dbSaveLoginLog(log: any): Promise<void> {
 }
 
 export async function dbLoadLoginLogs(limit: number = 100): Promise<any[]> {
-  if (!isDatabaseConnected) return [];
   try {
     const res = await pool.query('SELECT * FROM sys_login_log ORDER BY created_at DESC LIMIT $1', [limit]);
     return res.rows;
@@ -932,8 +925,6 @@ export async function dbLoadJobs(filters?: {
     const paged = await dbLoadJobsPaginated(filters);
     return paged.jobs;
   }
-
-  if (!isDatabaseConnected) return [];
   try {
     const whereClauses: string[] = [];
     const params: any[] = [];
@@ -1005,7 +996,6 @@ export async function dbLoadJobs(filters?: {
 }
 
 export async function dbGetJob(jobNoOrId: string | number): Promise<any | null> {
-  if (!isDatabaseConnected) return null;
   try {
     const target = String(jobNoOrId);
     const res = await pool.query(
@@ -1021,7 +1011,6 @@ export async function dbGetJob(jobNoOrId: string | number): Promise<any | null> 
 }
 
 export async function dbSaveJob(job: any): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     const customerData = job.customer_data || job.customer || {};
     const agentData = job.agent_data || job.agent || {};
@@ -1157,7 +1146,6 @@ export async function dbSaveJob(job: any): Promise<void> {
 }
 
 export async function dbUpdateJob(jobNoOrId: string | number, updates: any): Promise<any | null> {
-  if (!isDatabaseConnected) return null;
   try {
     const target = String(jobNoOrId);
     const setClauses: string[] = [];
@@ -1244,7 +1232,6 @@ export async function dbUpdateJob(jobNoOrId: string | number, updates: any): Pro
 }
 
 export async function dbDeleteJob(jobNoOrId: string | number): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     const isId = typeof jobNoOrId === 'number' || !isNaN(Number(jobNoOrId));
     const whereCol = isId ? 'id' : 'job_no';
@@ -1255,7 +1242,6 @@ export async function dbDeleteJob(jobNoOrId: string | number): Promise<void> {
 }
 
 export async function dbResetJobStatus(): Promise<number> {
-  if (!isDatabaseConnected) return 0;
   try {
     const res = await pool.query(`
       UPDATE core_jobs 
@@ -1278,7 +1264,6 @@ export async function dbResetJobStatus(): Promise<number> {
 }
 
 export async function dbWipeAllTransactions(): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     await pool.query(`
       TRUNCATE core_jobs, core_daily_work_logs, core_qc_bookings, ma_contracts, ma_rounds CASCADE;
@@ -1296,7 +1281,6 @@ export async function dbWipeAllTransactions(): Promise<void> {
 
 // 20 Mock Jobs Data Generator for INT simulation (10 Quick, 10 Renovate)
 export async function dbSeedMockJobs(): Promise<number> {
-  if (!isDatabaseConnected) return 0;
   const mockCustomers = [
     { id: 1, customer_code: 'CUST-001', first_name: 'ภาคิน', last_name: 'วรโชติเมธี', phone: '081-912-3456', address: '88/15 หมู่บ้านเซนโทร รามอินทรา-จตุโชติ แขวงออเงิน เขตสายไหม กรุงเทพฯ 10220', lat: 13.8892, lng: 100.6721 },
     { id: 2, customer_code: 'CUST-002', first_name: 'ชวินท์', last_name: 'ก้องธนภัทร', phone: '086-734-5678', address: '29/88 คอนโด ไอดีโอ คิว จุฬา-สามย่าน ถนนพระราม 4 แขวงสี่พระยา เขตบางรัก กรุงเทพฯ 10500', lat: 13.7315, lng: 100.5284 },
@@ -1623,7 +1607,6 @@ export async function dbSeedMockJobs(): Promise<number> {
 // =============================================================================
 
 export async function dbLoadDailyWorkLogs(jobId?: string, taskId?: string): Promise<any[]> {
-  if (!isDatabaseConnected) return [];
   try {
     let sql = 'SELECT * FROM core_daily_work_logs';
     const params: any[] = [];
@@ -1652,7 +1635,6 @@ export async function dbLoadDailyWorkLogs(jobId?: string, taskId?: string): Prom
 }
 
 export async function dbSaveDailyWorkLog(log: any): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     await pool.query(
       `INSERT INTO core_daily_work_logs (
@@ -1721,7 +1703,6 @@ export async function dbSaveDailyWorkLog(log: any): Promise<void> {
 }
 
 export async function dbDeleteDailyWorkLog(id: string): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     await pool.query('DELETE FROM core_daily_work_logs WHERE id = $1', [id]);
   } catch (err: any) {
@@ -1734,7 +1715,6 @@ export async function dbDeleteDailyWorkLog(id: string): Promise<void> {
 // =============================================================================
 
 export async function dbLoadQCBookings(jobId?: string, status?: string): Promise<any[]> {
-  if (!isDatabaseConnected) return [];
   try {
     let sql = 'SELECT * FROM core_qc_bookings';
     const params: any[] = [];
@@ -1764,7 +1744,6 @@ export async function dbLoadQCBookings(jobId?: string, status?: string): Promise
 }
 
 export async function dbSaveQCBooking(booking: any): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     await pool.query(
       `INSERT INTO core_qc_bookings (
@@ -1830,7 +1809,6 @@ export async function dbSaveQCBooking(booking: any): Promise<void> {
 }
 
 export async function dbDeleteQCBookingByTask(taskId: string | number): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     await pool.query('DELETE FROM core_qc_bookings WHERE task_id = $1 OR id = $1', [String(taskId)]);
   } catch (err: any) {
@@ -1839,7 +1817,6 @@ export async function dbDeleteQCBookingByTask(taskId: string | number): Promise<
 }
 
 export async function dbConfirmQCBooking(id: string, qcTech?: string, confirmedBy?: string, remarks?: string, bookingDate?: string): Promise<any | null> {
-  if (!isDatabaseConnected) return null;
   try {
     const res = await pool.query(
       `UPDATE core_qc_bookings 
@@ -1862,7 +1839,6 @@ export async function dbConfirmQCBooking(id: string, qcTech?: string, confirmedB
 }
 
 export async function dbRevertQCBooking(id: string): Promise<any | null> {
-  if (!isDatabaseConnected) return null;
   try {
     const res = await pool.query(
       `UPDATE core_qc_bookings 
@@ -1886,7 +1862,6 @@ export async function dbRevertQCBooking(id: string): Promise<any | null> {
 // =============================================================================
 
 export async function dbLoadMAContracts(): Promise<any[]> {
-  if (!isDatabaseConnected) return [];
   try {
     const res = await pool.query(`
       SELECT c.*, 
@@ -1910,7 +1885,6 @@ export async function dbLoadMAContracts(): Promise<any[]> {
 }
 
 export async function dbGetMAContract(id: string): Promise<any | null> {
-  if (!isDatabaseConnected) return null;
   try {
     const contractRes = await pool.query('SELECT * FROM ma_contracts WHERE id = $1 LIMIT 1', [id]);
     if (contractRes.rows.length === 0) return null;
@@ -1935,7 +1909,6 @@ export async function dbGetMAContract(id: string): Promise<any | null> {
 }
 
 export async function dbSaveMAContract(contract: any): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     await pool.query(
       `INSERT INTO ma_contracts (
@@ -1988,7 +1961,6 @@ export async function dbSaveMAContract(contract: any): Promise<void> {
 }
 
 export async function dbDeleteMAContract(id: string): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     await pool.query('DELETE FROM ma_rounds WHERE contract_id = $1', [id]);
     await pool.query('DELETE FROM ma_contracts WHERE id = $1', [id]);
@@ -1998,7 +1970,6 @@ export async function dbDeleteMAContract(id: string): Promise<void> {
 }
 
 export async function dbLoadMARounds(contractId?: string): Promise<any[]> {
-  if (!isDatabaseConnected) return [];
   try {
     let sql = 'SELECT * FROM ma_rounds';
     const params: any[] = [];
@@ -2016,7 +1987,6 @@ export async function dbLoadMARounds(contractId?: string): Promise<any[]> {
 }
 
 export async function dbSaveMARound(round: any): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     await pool.query(
       `INSERT INTO ma_rounds (
@@ -2051,7 +2021,6 @@ export async function dbSaveMARound(round: any): Promise<void> {
 }
 
 export async function dbUpdateMARound(id: string, updates: any): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     const setClauses: string[] = [];
     const values: any[] = [];
@@ -2078,7 +2047,6 @@ export async function dbUpdateMARound(id: string, updates: any): Promise<void> {
 // =============================================================================
 
 export async function dbSaveApiLog(log: any): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     await pool.query(
       `INSERT INTO inbound_api_logs (id, timestamp, method, path, ip, status, duration_ms, headers, body, response_body)
@@ -2106,7 +2074,6 @@ export async function dbSaveApiLog(log: any): Promise<void> {
 }
 
 export async function dbLoadApiLogs(filters?: { method?: string; status?: string; search?: string; limit?: number }): Promise<any[]> {
-  if (!isDatabaseConnected) return [];
   try {
     let sql = 'SELECT * FROM inbound_api_logs';
     const params: any[] = [];
@@ -2159,7 +2126,6 @@ export async function dbLoadApiLogs(filters?: { method?: string; status?: string
 }
 
 export async function dbDeleteApiLogs(): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     await pool.query('DELETE FROM inbound_api_logs');
   } catch (err: any) {
@@ -2172,7 +2138,6 @@ export async function dbDeleteApiLogs(): Promise<void> {
 // =============================================================================
 
 export async function dbSaveStagingReport(report: any): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     await pool.query(
       `INSERT INTO staging_survey_reports (
@@ -2237,7 +2202,6 @@ export async function dbSaveStagingReport(report: any): Promise<void> {
 }
 
 export async function dbLoadStagingReports(filters?: { status?: string; search?: string }): Promise<any[]> {
-  if (!isDatabaseConnected) return [];
   try {
     let sql = 'SELECT * FROM staging_survey_reports';
     const params: any[] = [];
@@ -2274,7 +2238,6 @@ export async function dbLoadStagingReports(filters?: { status?: string; search?:
 }
 
 export async function dbGetStagingReport(id: number | string): Promise<any | null> {
-  if (!isDatabaseConnected) return null;
   try {
     const res = await pool.query('SELECT * FROM staging_survey_reports WHERE id::text = $1 OR source_job_id = $1 LIMIT 1', [String(id)]);
     if (res.rows.length === 0) return null;
@@ -2294,7 +2257,6 @@ export async function dbGetStagingReport(id: number | string): Promise<any | nul
 }
 
 export async function dbUpdateStagingReport(id: number | string, updates: any): Promise<void> {
-  if (!isDatabaseConnected) return;
   try {
     const setClauses: string[] = [];
     const values: any[] = [];
@@ -2331,7 +2293,6 @@ export async function dbUpdateStagingReport(id: number | string, updates: any): 
 // CORE BLUEPRINTS (แบบแปลนโครงการ Step 2 Design)
 // =============================================================================
 export async function dbLoadBlueprints(jobId?: string): Promise<any[]> {
-  if (!isDatabaseConnected) return [];
   try {
     let query = 'SELECT * FROM core_blueprints';
     const params: any[] = [];
@@ -2366,7 +2327,6 @@ export async function dbLoadBlueprints(jobId?: string): Promise<any[]> {
 }
 
 export async function dbSaveBlueprint(bp: any): Promise<any> {
-  if (!isDatabaseConnected) return bp;
   try {
     const id = bp.id || `BP-${Date.now()}`;
     const jobId = String(bp.jobId || bp.job_id || '');
@@ -2413,7 +2373,6 @@ export async function dbSaveBlueprint(bp: any): Promise<any> {
 }
 
 export async function dbUpdateBlueprint(id: string, updates: any): Promise<any | null> {
-  if (!isDatabaseConnected) return null;
   try {
     const setClauses: string[] = [];
     const values: any[] = [];
@@ -2448,7 +2407,6 @@ export async function dbUpdateBlueprint(id: string, updates: any): Promise<any |
 }
 
 export async function dbDeleteBlueprint(id: string): Promise<boolean> {
-  if (!isDatabaseConnected) return false;
   try {
     await pool.query('DELETE FROM core_blueprints WHERE id = $1', [String(id)]);
     return true;
@@ -2462,7 +2420,6 @@ export async function dbDeleteBlueprint(id: string): Promise<boolean> {
 // CORE TICKETS (ตั๋วใบเสร็จ & สัญญาโครงการ Step 2 & 4)
 // =============================================================================
 export async function dbLoadTickets(jobId?: string): Promise<any[]> {
-  if (!isDatabaseConnected) return [];
   try {
     let query = 'SELECT * FROM core_tickets';
     const params: any[] = [];
@@ -2499,7 +2456,6 @@ export async function dbLoadTickets(jobId?: string): Promise<any[]> {
 }
 
 export async function dbSaveTicket(tkt: any): Promise<any> {
-  if (!isDatabaseConnected) return tkt;
   try {
     const id = tkt.id || `TKT-${Date.now()}`;
     const ticketNo = tkt.ticket_no || `TK-${Date.now()}`;
@@ -2552,7 +2508,6 @@ export async function dbSaveTicket(tkt: any): Promise<any> {
 }
 
 export async function dbUpdateTicket(id: string, updates: any): Promise<any | null> {
-  if (!isDatabaseConnected) return null;
   try {
     const setClauses: string[] = [];
     const values: any[] = [];
@@ -2583,7 +2538,6 @@ export async function dbUpdateTicket(id: string, updates: any): Promise<any | nu
 }
 
 export async function dbDeleteTicket(id: string): Promise<boolean> {
-  if (!isDatabaseConnected) return false;
   try {
     await pool.query('DELETE FROM core_tickets WHERE id = $1', [String(id)]);
     return true;
