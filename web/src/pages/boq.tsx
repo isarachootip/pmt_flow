@@ -7,8 +7,8 @@ import { JobDetailTabs } from '@/features/jobs/job-detail-tabs';
 export default function BoqPage() {
   const { data: jobsData, isLoading } = useJobs({});
   
-  // Filter jobs that have BOQ data or status BOQ (simplified here)
-  const boqJobs = jobsData?.data?.filter((job: Job) => job.status === 'BOQ' || job.status === 'DESIGNING') || [];
+  const allJobs: Job[] = Array.isArray(jobsData) ? jobsData : (jobsData?.data || []);
+  const boqJobs = allJobs.filter((job: Job) => ['BOQ', 'DESIGNING', 'SURVEYED', 'IN_PROGRESS'].includes(job.status?.toUpperCase())) || allJobs;
   
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 

@@ -50,7 +50,7 @@ export default function MAPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {contracts.map((contract: MAContract) => (
+              {(Array.isArray(contracts) ? contracts : ((contracts as any)?.data || [])).map((contract: MAContract) => (
                 <tr 
                   key={contract.id} 
                   className={`cursor-pointer hover:bg-gray-50 ${selectedContract?.id === contract.id ? 'bg-blue-50' : ''}`}

@@ -75,7 +75,7 @@ export default function AdminUsersPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {users.map((user: User) => (
+            {(Array.isArray(users) ? users : ((users as any)?.data || [])).map((user: User) => (
               <tr key={user.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3">{user.username}</td>
                 <td className="px-4 py-3">{user.full_name}</td>

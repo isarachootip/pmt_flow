@@ -14,7 +14,7 @@ export default function OrdersPage() {
   const { jobNo } = useParams<{ jobNo?: string }>();
   
   const { data, isLoading } = useJobs({ page: 1, limit: 50 });
-  const jobs: Job[] = data?.data || [];
+  const jobs: Job[] = Array.isArray(data) ? data : (data?.data || []);
 
   const selectedJob = React.useMemo(() => {
     return jobs.find(j => j.job_no === jobNo) || null;
@@ -26,14 +26,17 @@ export default function OrdersPage() {
 
   const columns: ColumnDef<Job>[] = [
     { id: 'job_no', header: 'รหัสงาน', accessorKey: 'job_no', width: 120 },
-    { id: 'customer_name', header: 'ลูกค้า', cell: ({ row }) => typeof row.customer === 'string' ? row.customer : row.customer?.name },
-    { id: 'customer_phone', header: 'เบอร์โทร', width: 120, cell: ({ row }) => typeof row.customer === 'string' ? '-' : row.customer?.phone },
-    { id: 'services', header: 'บริการ', width: 150, cell: ({ row }) => row.services?.join(', ') || '-' },
-    { id: 'project_type', header: 'ประเภท', accessorKey: 'project_type', width: 120 },
-    { id: 'plan_date', header: 'วันนัด', width: 120, cell: ({ row }) => formatDMY(row.plan_date) },
+    { id: 'customer_name', header: 'ลูกค้า', cell: ({ row }) => typeof row.customer === 'string' ? row.customer : (row.customer?.name || (row as any).customer_name || '-') },
+    { id: 'customer_phone', header: 'เบอร์โทร', width: 120, cell: ({ row }) => typeof row.customer === 'string' ? '-' : (row.customer?.phone || (row as any).customer_phone || '-') },
+    { id: 'services', header: 'บริการ', width: 150, cell: ({ row }) => Array.isArray(row.services) ? row.services.join(', ') : (row.services || (row as any).project_sub_type || '-') },
+    { id: 'project_type', header: 'ประเภท', accessorKey: 'project_type', width: 120, cell: ({ row }) => row.project_type || (row as any).job_type || '-' },
+    { id: 'plan_date', header: 'วันนัด', width: 120, cell: ({ row }) => formatDMY(row.plan_date || (row as any).created_at) },
     { id: 'status', header: 'สถานะ', width: 120, cell: ({ row }) => <StatusBadge status={row.status === 'QC_PENDING' ? 'PENDING' : row.status} /> },
-    { id: 'grand_total', header: 'ยอดสุทธิ์', width: 120, cell: ({ row }) => row.grand_total?.toLocaleString('th-TH') || '0' },
-    { id: 'assigned_tech', header: 'ช่าง', accessorKey: 'assigned_tech', width: 120 },
+    { id: 'grand_total', header: 'ยอดสุทธิ', width: 120, cell: ({ row }) => {
+      const amt = Number(row.grand_total || (row as any).boq_grand_total || 0);
+      return amt > 0 ? amt.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
+    }},
+    { id: 'assigned_tech', header: 'ช่าง', accessorKey: 'assigned_tech', width: 120, cell: ({ row }) => row.assigned_tech || '-' },
   ];
 
   const actions = (

@@ -19,7 +19,7 @@ export function useTickets(jobId?: string) {
   return useQuery({
     queryKey: ['tickets', jobId],
     queryFn: async () => {
-      const url = jobId ? `/tickets?job_id=${jobId}` : '/tickets';
+      const url = jobId ? `/api/v1/tickets?job_id=${jobId}` : '/api/v1/tickets';
       // api.get unwraps 'data' if present
       const result = await api.get<Ticket[]>(url);
       // Ensure we return { data: ... } for the component
@@ -32,7 +32,7 @@ export function useCreateTicket() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: Partial<Ticket>) => {
-      const result = await api.post<Ticket>('/tickets', payload);
+      const result = await api.post<Ticket>('/api/v1/tickets', payload);
       return result;
     },
     onSuccess: () => {
@@ -45,7 +45,7 @@ export function useUpdateTicket() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...payload }: Partial<Ticket> & { id: string }) => {
-      const result = await api.patch<Ticket>(`/tickets/${id}`, payload);
+      const result = await api.patch<Ticket>(`/api/v1/tickets/${id}`, payload);
       return result;
     },
     onSuccess: () => {
@@ -58,7 +58,7 @@ export function useDeleteTicket() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const result = await api.delete<boolean>(`/tickets/${id}`);
+      const result = await api.delete<boolean>(`/api/v1/tickets/${id}`);
       return result;
     },
     onSuccess: () => {
