@@ -27371,6 +27371,43 @@ const app = {
                 }
             },
 
+            importTechPhotosToQCQuestion(jobId, taskId, questionId) {
+                const job = this.getJob(jobId);
+                if (!job) return;
+                const tasks = this.getJobMainTasks(job);
+                const task = tasks.find(t => String(t.id) === String(taskId));
+                if (!task) return;
+                const evalData = this.ensureTaskQCEvaluation(task, job);
+                const q = (evalData.questions || []).find(item => String(item.id) === String(questionId));
+                if (!q) return;
+
+                const techPhotos = this.getTaskTechnicianPhotos(job, task);
+                if (techPhotos.length === 0) {
+                    this.showToast('⚠️ ไม่พบรูปภาพจากช่างประจำวันในงานนี้', 'warning');
+                    return;
+                }
+
+                if (!Array.isArray(q.photos)) q.photos = [];
+                let addedCount = 0;
+                techPhotos.forEach(tp => {
+                    const exists = q.photos.some(existing => existing.url === tp.url);
+                    if (!exists) {
+                        q.photos.push({
+                            id: `photo_tech_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+                            url: tp.url,
+                            title: tp.title || `รูปถ่ายจากช่างประจำวัน (${this.formatDateDMY(tp.date)})`,
+                            uploaded_at: tp.date || new Date().toISOString(),
+                            source: 'TECH_DAILY_LOG'
+                        });
+                        addedCount++;
+                    }
+                });
+
+                this.persistJobs();
+                this.renderQCSubtasks(job);
+                this.showToast(`✓ ดึงรูปภาพจากช่างมายังข้อนี้เรียบร้อยแล้ว (${addedCount > 0 ? addedCount + ' รูปใหม่' : 'มีรูปครบอยู่แล้ว'})`, 'success');
+            },
+
             saveTaskQCQuestionRemarks(jobId, taskId, questionId, remarks) {
                 const job = this.getJob(jobId);
                 if (!job) return;

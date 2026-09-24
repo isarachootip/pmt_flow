@@ -2589,7 +2589,7 @@ app.get('/api/v1/jobs/:id', requireAuth, async (req, res) => {
     }
     // Attach full auxiliary evidence & history (Daily work logs, QC bookings, Blueprints)
     try {
-        const lookupJobId = String(job.id || job.job_no || param);
+        const lookupJobId = String(job.job_no || job.id || param);
         const [dailyLogs, qcBookings, blueprints] = await Promise.all([
             (0, database_1.dbLoadDailyWorkLogs)(lookupJobId),
             (0, database_1.dbLoadQCBookings)(lookupJobId),

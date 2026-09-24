@@ -1628,7 +1628,7 @@ async function dbLoadDailyWorkLogs(jobId, taskId) {
         const params = [];
         const where = [];
         if (jobId) {
-            where.push(`(job_id = $${params.length + 1} OR job_no = $${params.length + 1})`);
+            where.push(`(job_id = $${params.length + 1} OR job_no = $${params.length + 1} OR job_id IN (SELECT job_no FROM core_jobs WHERE id::text = $${params.length + 1}) OR job_no IN (SELECT job_no FROM core_jobs WHERE id::text = $${params.length + 1}))`);
             params.push(String(jobId));
         }
         if (taskId) {
@@ -1738,7 +1738,7 @@ async function dbLoadQCBookings(jobId, status) {
         const params = [];
         const where = [];
         if (jobId && jobId !== 'all') {
-            where.push(`(job_id = $${params.length + 1} OR job_no = $${params.length + 1})`);
+            where.push(`(job_id = $${params.length + 1} OR job_no = $${params.length + 1} OR job_id IN (SELECT job_no FROM core_jobs WHERE id::text = $${params.length + 1}) OR job_no IN (SELECT job_no FROM core_jobs WHERE id::text = $${params.length + 1}))`);
             params.push(String(jobId));
         }
         if (status && status !== 'all') {
@@ -2324,7 +2324,7 @@ async function dbLoadBlueprints(jobId) {
         let query = 'SELECT * FROM core_blueprints';
         const params = [];
         if (jobId && jobId !== 'all') {
-            query += ' WHERE job_id = $1';
+            query += ' WHERE (job_id = $1 OR job_id IN (SELECT job_no FROM core_jobs WHERE id::text = $1))';
             params.push(String(jobId));
         }
         query += ' ORDER BY created_at DESC';
