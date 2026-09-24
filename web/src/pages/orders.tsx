@@ -16,12 +16,23 @@ export default function OrdersPage() {
   const { data, isLoading } = useJobs({ page: 1, limit: 50 });
   const jobs: Job[] = Array.isArray(data) ? data : (data?.data || []);
 
-  const selectedJob = React.useMemo(() => {
-    return jobs.find(j => j.job_no === jobNo) || null;
-  }, [jobs, jobNo]);
+  const [selectedJob, setSelectedJob] = React.useState<Job | null>(null);
+
+  // Sync selectedJob when jobs load or jobNo changes in URL
+  React.useEffect(() => {
+    if (jobNo && jobs.length > 0) {
+      const found = jobs.find(j => j.job_no === jobNo || String(j.id) === jobNo);
+      if (found) {
+        setSelectedJob(found);
+      }
+    }
+  }, [jobNo, jobs]);
 
   const handleRowClick = (row: Job) => {
-    navigate(`/orders/${row.job_no}`);
+    setSelectedJob(row);
+    if (row.job_no) {
+      navigate(`/orders/${row.job_no}`, { replace: true });
+    }
   };
 
   const columns: ColumnDef<Job>[] = [
@@ -67,7 +78,10 @@ export default function OrdersPage() {
             selectedJob ? (
               <JobDetailTabs 
                 job={selectedJob} 
-                onClose={() => navigate('/orders')} 
+                onClose={() => {
+                  setSelectedJob(null);
+                  navigate('/orders', { replace: true });
+                }} 
               />
             ) : (
               <div className="flex h-full items-center justify-center text-text-secondary bg-card border border-soft rounded-xl shadow-card">

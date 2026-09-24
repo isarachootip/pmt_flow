@@ -11,6 +11,7 @@ import { AppLayout } from './features/layout/app-layout';
 
 const DashboardPage = React.lazy(() => import('./pages/dashboard'));
 const OrdersPage = React.lazy(() => import('./pages/orders'));
+const JobFullPage = React.lazy(() => import('./pages/job-full'));
 const TicketsPage = React.lazy(() => import('./pages/tickets'));
 const ConversionPage = React.lazy(() => import('./pages/conversion'));
 const GanttPage = React.lazy(() => import('./pages/gantt'));
@@ -54,6 +55,8 @@ export function App() {
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<RequireRole><Suspense fallback={<PageSkeleton />}><DashboardPage /></Suspense></RequireRole>} />
               <Route path="orders" element={<RequireRole><Suspense fallback={<PageSkeleton />}><OrdersPage /></Suspense></RequireRole>} />
+              <Route path="orders/:jobNo" element={<RequireRole><Suspense fallback={<PageSkeleton />}><OrdersPage /></Suspense></RequireRole>} />
+              <Route path="jobs/:jobNo" element={<RequireRole><Suspense fallback={<PageSkeleton />}><JobFullPage /></Suspense></RequireRole>} />
               <Route path="tickets" element={<RequireRole><Suspense fallback={<PageSkeleton />}><TicketsPage /></Suspense></RequireRole>} />
               <Route path="conversion" element={<RequireRole><Suspense fallback={<PageSkeleton />}><ConversionPage /></Suspense></RequireRole>} />
               <Route path="gantt" element={<RequireRole><Suspense fallback={<PageSkeleton />}><GanttPage /></Suspense></RequireRole>} />
