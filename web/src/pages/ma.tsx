@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMAContracts, useCreateMAContract, MAContract } from '@/features/ma/api';
 import { format } from 'date-fns';
+import { DatePicker } from '@/components/ui/date-picker';
 
 export default function MAPage() {
   const { data: contracts, isLoading } = useMAContracts();
@@ -119,8 +120,8 @@ export default function MAPage() {
               <input placeholder="เบอร์โทรศัพท์" className="w-full border p-2 rounded-md" onChange={e => setFormData({ ...formData, phone: e.target.value })} />
               <textarea placeholder="ที่อยู่" className="w-full border p-2 rounded-md" onChange={e => setFormData({ ...formData, address: e.target.value })} />
               <div className="flex gap-2">
-                <input type="date" className="w-full border p-2 rounded-md" onChange={e => setFormData({ ...formData, start_date: e.target.value })} />
-                <input type="date" className="w-full border p-2 rounded-md" onChange={e => setFormData({ ...formData, end_date: e.target.value })} />
+                <DatePicker placeholder="วันเริ่มสัญญา" value={formData.start_date} onChange={(v) => setFormData({ ...formData, start_date: v })} />
+                <DatePicker placeholder="วันสิ้นสุดสัญญา" value={formData.end_date} onChange={(v) => setFormData({ ...formData, end_date: v })} />
               </div>
               <div className="flex gap-2">
                 <input type="number" placeholder="มูลค่าสัญญา" className="w-full border p-2 rounded-md" onChange={e => setFormData({ ...formData, contract_value: Number(e.target.value) })} />
