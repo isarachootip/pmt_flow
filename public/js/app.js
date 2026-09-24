@@ -5551,40 +5551,6 @@ const app = {
                                 </div>`;
                             })()}
                         </td>
-                        <td class="px-2 py-2 whitespace-nowrap text-center">
-                            ${isQuick ? `
-                                <span class="px-2 py-0.5 rounded text-xs font-bold bg-muted/80 text-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอนแบบแปลน">
-                                    <i class="ph ph-minus text-xs"></i> ข้าม (Quick)
-                                </span>
-                            ` : hasBps ? `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'design')" class="px-2 py-1 rounded-md text-xs font-bold bg-indigo-50 text-foreground border border-indigo-300 inline-flex items-center gap-1 hover:bg-indigo-100 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไขแบบแปลน ${bpCount} รายการ">
-                                    <i class="ph ph-blueprint text-indigo-600 text-xs font-bold"></i>
-                                    <span class="text-foreground font-bold">${bpCount} แบบ</span>
-                                </button>
-                            ` : `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'design')" class="px-2 py-1 rounded-md text-xs font-semibold bg-muted hover:bg-indigo-500/10 text-muted-foreground hover:text-indigo-600 border border-border inline-flex items-center gap-1 transition cursor-pointer whitespace-nowrap" title="แนบแบบแปลน 2D/3D">
-                                    <i class="ph ph-plus-circle text-xs"></i>
-                                    <span>+ แนบแบบ</span>
-                                </button>
-                            `}
-                        </td>
-                        <td class="px-2 py-2 whitespace-nowrap text-center">
-                            ${isQuick ? `
-                                <span class="px-2 py-0.5 rounded text-xs font-bold bg-muted/80 text-foreground border border-border/60 inline-flex items-center gap-1" title="งาน Quick Services ข้ามขั้นตอน BOQ">
-                                    <i class="ph ph-minus text-xs"></i> ข้าม (Quick)
-                                </span>
-                            ` : hasBOQ ? `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'boq')" class="px-2 py-1 rounded-md text-xs font-bold bg-purple-50 text-foreground border border-purple-300 inline-flex items-center gap-1 hover:bg-purple-100 transition cursor-pointer shadow-2xs whitespace-nowrap" title="ดู/แก้ไข BOQ (${itemsCount} รายการ)">
-                                    <i class="ph ph-calculator text-purple-600 text-xs font-bold"></i>
-                                    <span class="text-foreground font-bold">฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${itemsCount})</span>
-                                </button>
-                            ` : `
-                                <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'boq')" class="px-2 py-1 rounded-md text-xs font-semibold bg-muted hover:bg-purple-500/10 text-muted-foreground hover:text-purple-600 border border-border inline-flex items-center gap-1 transition cursor-pointer whitespace-nowrap" title="จัดทำรายการประมาณการ BOQ">
-                                    <i class="ph ph-plus-circle text-xs"></i>
-                                    <span>+ ลง BOQ</span>
-                                </button>
-                            `}
-                        </td>
                         <td class="px-2.5 py-2 text-right whitespace-nowrap">
                             <div class="flex items-center justify-end gap-1.5 whitespace-nowrap">
                                 <button type="button" onclick="event.stopPropagation(); app.openUnifiedOrderStudio('${safeId}', 'intake')" class="btn-artifact-primary px-2.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:via-indigo-700 hover:to-indigo-800 text-white shadow-xs inline-flex items-center gap-1.5 transition hover:scale-105 cursor-pointer whitespace-nowrap" title="เปิด One-Stop Studio: ข้อมูลคำสั่งซื้อ • Design แบบแปลน • BOQ">
@@ -5605,7 +5571,7 @@ const app = {
                 if (tbody) {
                     tbody.innerHTML = html || `
                     <tr>
-                        <td colspan="11" class="px-5 py-12 text-center">
+                        <td colspan="9" class="px-5 py-12 text-center">
                             <div class="max-w-md mx-auto space-y-3">
                                 <div class="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center text-2xl font-bold shadow-xs">
                                     <i class="ph ph-tray"></i>
