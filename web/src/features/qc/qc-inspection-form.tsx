@@ -46,34 +46,36 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
     const passedCount = items.filter(i => i.result === 'PASS').length;
 
     return (
-      <div ref={ref} className={cn('space-y-6', className)}>
-        <h2 className="text-lg font-semibold">QC Inspection (Job {jobId})</h2>
-        <form onSubmit={handleFormSubmit} className="space-y-6">
-          <div className="space-y-4 border rounded-md p-4 border-border">
+      <div ref={ref} className={cn('space-y-6 text-black', className)}>
+        <h2 className="text-lg font-bold text-black">QC Inspection (Job {jobId})</h2>
+        <form onSubmit={handleFormSubmit} className="space-y-6 text-black">
+          <div className="space-y-4 border rounded-md p-4 border-gray-200 bg-white">
             {CHECKLIST.map((c, idx) => (
-              <div key={c.id} className="flex flex-col gap-2 pb-4 border-b last:border-0 border-border-soft">
+              <div key={c.id} className="flex flex-col gap-2 pb-4 border-b last:border-0 border-gray-200">
                 <div className="flex justify-between items-center">
-                  <span className="font-medium text-[14px]">
+                  <span className="font-semibold text-[14px] text-black">
                     {c.label} {c.is_mandatory && <span className="text-[#D12D2D]">*</span>}
                   </span>
                   <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-1 text-[14px]">
+                    <label className="flex items-center gap-1 text-[14px] text-black cursor-pointer font-medium">
                       <input
                         type="radio"
                         name={`items.${idx}.result`}
                         value="PASS"
                         onChange={() => updateItem(idx, 'result', 'PASS')}
                         checked={items[idx].result === 'PASS'}
+                        className="text-primary focus:ring-primary h-4 w-4"
                       />
                       PASS
                     </label>
-                    <label className="flex items-center gap-1 text-[14px]">
+                    <label className="flex items-center gap-1 text-[14px] text-black cursor-pointer font-medium">
                       <input
                         type="radio"
                         name={`items.${idx}.result`}
                         value="FAIL"
                         onChange={() => updateItem(idx, 'result', 'FAIL')}
                         checked={items[idx].result === 'FAIL'}
+                        className="text-primary focus:ring-primary h-4 w-4"
                       />
                       FAIL
                     </label>
@@ -82,30 +84,30 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
                 <Input
                   value={items[idx].remark}
                   onChange={(e) => updateItem(idx, 'remark', e.target.value)}
-                  placeholder="Remark"
-                  className="h-[36px]"
+                  placeholder="หมายเหตุเพิ่มเติม"
+                  className="h-[36px] text-black bg-white"
                 />
               </div>
             ))}
           </div>
 
           <div className="space-y-2">
-            <Label>Overall Remarks</Label>
+            <Label className="text-black font-semibold">Overall Remarks</Label>
             <textarea
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
-              className="w-full border border-border rounded-md p-2 h-24 focus:outline-none focus:ring-2 focus:ring-primary-soft focus:border-primary"
+              className="w-full border border-gray-300 rounded-md p-2 h-24 text-black bg-white focus:outline-none focus:ring-2 focus:ring-primary-soft focus:border-primary"
               placeholder="Additional remarks..."
             />
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-[14px] font-medium">
+          <div className="flex items-center justify-between text-black">
+            <span className="text-[14px] font-semibold text-black">
               Summary: {passedCount} / {CHECKLIST.length} Passed
             </span>
             <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
-              <Button type="submit">Submit QC</Button>
+              <Button type="button" variant="secondary" onClick={onCancel} className="text-black font-medium">Cancel</Button>
+              <Button type="submit" className="text-black font-semibold">Submit QC</Button>
             </div>
           </div>
         </form>

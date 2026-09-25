@@ -5,7 +5,7 @@ import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { cn } from '@/lib/utils';
 import { Input } from './input';
 import { Button } from './button';
-import { formatDMY, parseDMY, toISODate } from '@/lib/date';
+import { formatDMY, parseDMY, toISODate, toDateTime } from '@/lib/date';
 
 export interface DatePickerProps {
   value?: string; // ISO date YYYY-MM-DD
@@ -18,16 +18,17 @@ const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
   ({ value, onChange, placeholder = 'DD/MM/YYYY', className }, ref) => {
     const [isOpen, setIsOpen] = React.useState(false);
     const [inputValue, setInputValue] = React.useState(
-      value ? formatDMY(new Date(value)) : ''
+      value ? formatDMY(value) : ''
     );
     const [month, setMonth] = React.useState<Date>(
-      value ? new Date(value) : new Date()
+      (value && toDateTime(value)) || new Date()
     );
 
     React.useEffect(() => {
       if (value) {
-        setInputValue(formatDMY(new Date(value)));
-        setMonth(new Date(value));
+        const d = toDateTime(value);
+        setInputValue(d ? formatDMY(d) : '');
+        if (d) setMonth(d);
       } else {
         setInputValue('');
       }
@@ -36,10 +37,22 @@ const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
       setInputValue(val);
+      if (!val.trim()) {
+        onChange?.('');
+        return;
+      }
       const parsedDate = parseDMY(val);
       if (parsedDate) {
         setMonth(parsedDate);
         onChange?.(toISODate(parsedDate));
+      }
+    };
+
+    const handleInputBlur = () => {
+      if (!inputValue.trim()) return;
+      const parsedDate = parseDMY(inputValue);
+      if (parsedDate) {
+        setInputValue(formatDMY(parsedDate));
       }
     };
 
@@ -67,6 +80,7 @@ const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
             <Input
               value={inputValue}
               onChange={handleInputChange}
+              onBlur={handleInputBlur}
               placeholder={placeholder}
               className="pr-10"
             />
@@ -74,7 +88,7 @@ const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-0 top-0 h-9 w-9 text-[var(--text-secondary)] hover:text-black"
+                className="absolute right-0 top-0 h-9 w-9 text-black hover:text-black"
               >
                 <CalendarIcon className="h-4 w-4" />
               </Button>
@@ -82,22 +96,22 @@ const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
           </div>
           <PopoverPrimitive.Content
             align="start"
-            className="z-50 rounded-md border border-[var(--border)] bg-white p-3 shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
+            className="z-50 rounded-md border border-[var(--border)] bg-white p-3 shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 text-black"
           >
             <div className="mb-2 flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setPreset(0)}>
+              <Button size="sm" variant="outline" onClick={() => setPreset(0)} className="text-black font-medium">
                 วันนี้
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setPreset(1)}>
+              <Button size="sm" variant="outline" onClick={() => setPreset(1)} className="text-black font-medium">
                 พรุ่งนี้
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setPreset(7)}>
+              <Button size="sm" variant="outline" onClick={() => setPreset(7)} className="text-black font-medium">
                 สัปดาห์นี้
               </Button>
             </div>
             <DayPicker
               mode="single"
-              selected={value ? new Date(value) : undefined}
+              selected={value ? (toDateTime(value) || undefined) : undefined}
               onSelect={handleSelect}
               month={month}
               onMonthChange={setMonth}

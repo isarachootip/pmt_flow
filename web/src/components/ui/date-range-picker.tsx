@@ -22,7 +22,7 @@ const DateRangePicker = React.forwardRef<HTMLDivElement, DateRangePickerProps>(
           onChange={onStartDateChange}
           placeholder="DD/MM/YYYY"
         />
-        <span className="text-sm text-[var(--text-secondary)]">ถึง</span>
+        <span className="text-sm font-semibold text-black">ถึง</span>
         <DatePicker
           value={endDate}
           onChange={onEndDateChange}

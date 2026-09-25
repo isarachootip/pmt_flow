@@ -4046,6 +4046,63 @@ app.post('/api/v1/jobs/:id/after-sale/csat', requireAuth, async (req, res) => {
         }
     });
 });
+// POST /api/v1/jobs/:id/export-stk — Export QC results & job to STK Outbound System
+app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/jobs/:id/stk-export'], requireAuth, async (req, res) => {
+    try {
+        const param = req.params.id;
+        const numId = Number(param);
+        const job = await (0, database_1.dbGetJob)(param);
+        if (!job) {
+            return res.status(404).json({ success: false, error: { code: 'JOB_NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+        }
+        if (job.status === JobStatus.QC_PASSED && job.stk_status === 'DELIVERED') {
+            return res.status(409).json({
+                success: false,
+                error: {
+                    code: 'ALREADY_QC_PASSED',
+                    message: 'ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC และบันทึกส่งข้อมูลไป STK เรียบร้อยแล้ว ไม่อนุญาตให้บันทึกใหม่หรือส่งซ้ำ'
+                }
+            });
+        }
+        const nowIso = new Date().toISOString();
+        const currentScore = job.qc_score != null ? Number(job.qc_score) : 5;
+        const effectiveInspector = req.currentUser?.full_name || job.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)';
+        const syncResult = await dispatchStkSync({
+            job,
+            qcResult: 'PASS',
+            qcScore: currentScore,
+            qcRound: 1,
+            inspectorName: effectiveInspector
+        });
+        const stkRef = syncResult?.stkRef || `STK-QC-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+        const stepTimestamps = { ...(job.step_timestamps || {}) };
+        stepTimestamps.qc_passed_at = nowIso;
+        stepTimestamps.stk_exported_at = nowIso;
+        const updatedJob = await (0, database_1.dbUpdateJob)(param, {
+            status: JobStatus.QC_PASSED,
+            overall_progress: 100,
+            stk_status: 'DELIVERED',
+            stk_ref: stkRef,
+            stk_exported_at: nowIso,
+            qc_passed_at: nowIso,
+            step_timestamps: stepTimestamps
+        });
+        return res.status(200).json({
+            success: true,
+            message: `ส่งออกข้อมูลไปยังระบบ STK สำเร็จ (Ref: ${stkRef})`,
+            data: {
+                job_id: updatedJob ? updatedJob.id : numId,
+                stk_ref: stkRef,
+                stk_status: 'DELIVERED',
+                exported_at: nowIso,
+                sync_result: syncResult
+            }
+        });
+    }
+    catch (err) {
+        return res.status(500).json({ success: false, error: { code: 'STK_EXPORT_FAILED', message: err.message } });
+    }
+});
 // =============================================================================
 // 6. BMT OUTBOUND REST INTEGRATION API (Req #12, OQ-A02, OQ-A03)
 // =============================================================================

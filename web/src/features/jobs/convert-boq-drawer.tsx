@@ -57,33 +57,33 @@ export function ConvertBoqDrawer({ job, open, onOpenChange }: ConvertBoqDrawerPr
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-50 transition-opacity" />
-        <Dialog.Content className="fixed inset-y-0 right-0 z-50 w-full max-w-2xl bg-card shadow-2xl focus:outline-none flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right duration-300">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-soft">
-            <Dialog.Title className="text-lg font-semibold text-text">
+        <Dialog.Content className="fixed inset-y-0 right-0 z-50 w-full max-w-2xl bg-white text-black shadow-2xl focus:outline-none flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right duration-300">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <Dialog.Title className="text-lg font-bold text-black">
               แปลง BOQ เป็น Task - {job.job_no}
             </Dialog.Title>
             <Dialog.Close asChild>
-              <button className="text-text-secondary hover:text-text p-1 rounded-full hover:bg-bg-subtle transition-colors" aria-label="Close">
-                <X className="w-5 h-5" />
+              <button className="text-black hover:bg-gray-100 p-1 rounded-full transition-colors" aria-label="Close">
+                <X className="w-5 h-5 text-black" />
               </button>
             </Dialog.Close>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden text-black">
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               
               <div className="space-y-2">
-                <label className="text-sm font-medium text-text">วันเริ่มงาน (Base Start Date)</label>
+                <label className="text-sm font-semibold text-black">วันเริ่มงาน (Base Start Date)</label>
                 <DatePicker value={baseStartDate} onChange={setBaseStartDate} />
               </div>
 
               <div className="space-y-4 mt-6">
-                <h4 className="font-medium text-text">รายการ BOQ</h4>
+                <h4 className="font-semibold text-black text-sm">รายการ BOQ</h4>
                 <div className="space-y-3">
                   {items.map((item, idx) => (
-                    <div key={idx} className="flex gap-2 items-center bg-bg-subtle p-3 rounded-md border border-soft">
+                    <div key={idx} className="flex gap-2 items-center bg-[var(--bg-subtle)] p-3 rounded-md border border-[var(--border-soft)]">
                       <div className="flex-1">
-                        <Input value={item.name} readOnly className="bg-card" />
+                        <Input value={item.name} readOnly className="bg-white text-black font-medium" />
                       </div>
                       <div className="w-24">
                         <Input 
@@ -94,7 +94,8 @@ export function ConvertBoqDrawer({ job, open, onOpenChange }: ConvertBoqDrawerPr
                             newItems[idx].duration_days = parseInt(e.target.value) || 0;
                             setItems(newItems);
                           }}
-                          placeholder="ระยะเวลา (วัน)" 
+                          placeholder="ระยะเวลา (วัน)"
+                          className="bg-white text-black font-mono"
                         />
                       </div>
                       <div className="w-40">
@@ -105,7 +106,8 @@ export function ConvertBoqDrawer({ job, open, onOpenChange }: ConvertBoqDrawerPr
                             newItems[idx].tech = e.target.value;
                             setItems(newItems);
                           }}
-                          placeholder="ระบุช่าง (ถ้ามี)" 
+                          placeholder="ระบุช่าง (ถ้ามี)"
+                          className="bg-white text-black"
                         />
                       </div>
                     </div>
@@ -114,9 +116,9 @@ export function ConvertBoqDrawer({ job, open, onOpenChange }: ConvertBoqDrawerPr
               </div>
             </div>
 
-            <div className="p-6 border-t border-soft bg-bg-subtle flex justify-end space-x-3">
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>ยกเลิก</Button>
-              <Button type="submit" variant="primary" disabled={convertMutation.isPending}>
+            <div className="p-6 border-t border-gray-200 bg-[var(--bg-subtle)] flex justify-end space-x-3">
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="text-black font-medium">ยกเลิก</Button>
+              <Button type="submit" variant="primary" disabled={convertMutation.isPending} className="text-black font-semibold">
                 {convertMutation.isPending ? 'กำลังแปลง...' : 'ยืนยันการแปลง'}
               </Button>
             </div>
