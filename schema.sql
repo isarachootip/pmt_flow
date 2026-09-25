@@ -122,6 +122,10 @@ CREATE TABLE IF NOT EXISTS core_jobs (
     remarks_data          JSONB DEFAULT '{}'::jsonb,
     file_int_image        TEXT,
     raw_payload           JSONB DEFAULT '{}'::jsonb,
+    areas                 JSONB DEFAULT '[]'::jsonb,
+    qc_manual_questions   JSONB DEFAULT '[]'::jsonb,
+    escalated_at          TIMESTAMP WITH TIME ZONE,
+    escalated_reason      TEXT,
     created_at            TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at            TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -254,6 +258,59 @@ CREATE TABLE IF NOT EXISTS staging_survey_reports (
 
 CREATE INDEX IF NOT EXISTS idx_staging_job_no ON staging_survey_reports(job_number);
 CREATE INDEX IF NOT EXISTS idx_staging_status ON staging_survey_reports(process_status);
+
+-- =============================================================================
+-- 3.1 SYSTEM AUDIT LOGS & STK OUTBOUND SYNC LOGS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS core_audit_logs (
+    id            BIGSERIAL PRIMARY KEY,
+    timestamp     TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    user_id       BIGINT,
+    username      VARCHAR(50),
+    full_name     VARCHAR(150),
+    role          VARCHAR(50),
+    action        VARCHAR(100) NOT NULL,
+    entity_type   VARCHAR(50) NOT NULL,
+    entity_id     VARCHAR(100) NOT NULL,
+    booking_no    VARCHAR(100),
+    old_values    JSONB DEFAULT '{}'::jsonb,
+    new_values    JSONB DEFAULT '{}'::jsonb,
+    metadata      JSONB DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_booking ON core_audit_logs(booking_no);
+CREATE INDEX IF NOT EXISTS idx_audit_entity  ON core_audit_logs(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_time    ON core_audit_logs(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_action  ON core_audit_logs(action);
+
+CREATE TABLE IF NOT EXISTS stk_sync_logs (
+    id               BIGSERIAL PRIMARY KEY,
+    idempotency_key  VARCHAR(255) UNIQUE NOT NULL,
+    booking_no       VARCHAR(100) NOT NULL,
+    job_type         VARCHAR(20) NOT NULL,
+    area_id          VARCHAR(100),
+    area_name        VARCHAR(255),
+    task_id          VARCHAR(100),
+    task_name        VARCHAR(255),
+    assigned_tech    VARCHAR(150),
+    assigned_qc      VARCHAR(150),
+    final_score      INT NOT NULL,
+    rework_count     INT DEFAULT 0,
+    status           VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    payload          JSONB NOT NULL DEFAULT '{}'::jsonb,
+    response_body    JSONB,
+    retry_count      INT DEFAULT 0,
+    max_retries      INT DEFAULT 3,
+    last_error       TEXT,
+    last_attempt_at  TIMESTAMP WITH TIME ZONE,
+    sent_at          TIMESTAMP WITH TIME ZONE,
+    created_at       TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_stk_sync_booking ON stk_sync_logs(booking_no);
+CREATE INDEX IF NOT EXISTS idx_stk_sync_status  ON stk_sync_logs(status);
+CREATE INDEX IF NOT EXISTS idx_stk_sync_key     ON stk_sync_logs(idempotency_key);
 
 -- =============================================================================
 -- 4. RECURRING MAINTENANCE / MA CONTRACTS & ROUNDS (สัญญา MA)

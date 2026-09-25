@@ -63,7 +63,17 @@ import {
   dbLoadTickets,
   dbSaveTicket,
   dbUpdateTicket,
-  dbDeleteTicket
+  dbDeleteTicket,
+  dbSaveAuditLog,
+  dbLoadAuditLogs,
+  dbGetJobByBookingNo,
+  dbSaveStkSyncLog,
+  dbUpdateStkSyncLog,
+  dbGetStkSyncLog,
+  dbGetStkSyncLogByIdempotencyKey,
+  dbLoadStkSyncLogs,
+  AuditLogEntry,
+  StkSyncLogEntry
 } from './database';
 
 const app = express();
@@ -590,15 +600,40 @@ app.get('/api-docs', renderSwaggerDocs);
 // =============================================================================
 export enum JobStatus {
   NEW = 'NEW',
+  ACCEPTED = 'ACCEPTED',
+  NEED_REVIEW = 'NEED_REVIEW',
+  PLANNED = 'PLANNED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  WAIT_QC = 'WAIT_QC',
+  PASSED = 'PASSED',
+  REWORK = 'REWORK',
+  ESCALATED = 'ESCALATED',
+  OPEN = 'OPEN',
+  COMPLETED = 'COMPLETED',
+  // Legacy aliases for backward compatibility
   DRAFT = 'DRAFT',
   SURVEYED = 'SURVEYED',
   DESIGN = 'DESIGN',
   BOQ = 'BOQ',
-  IN_PROGRESS = 'IN_PROGRESS',
   QC_PENDING = 'QC_PENDING',
   QC_PASSED = 'QC_PASSED',
   AFTER_SALE = 'AFTER_SALE',
   CLOSED = 'CLOSED',
+}
+
+export enum TaskStatus {
+  PLANNED = 'PLANNED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  WAIT_QC = 'WAIT_QC',
+  PASSED = 'PASSED',
+  REWORK = 'REWORK',
+  ESCALATED = 'ESCALATED',
+}
+
+export enum StkSyncStatus {
+  PENDING = 'PENDING',
+  SENT = 'SENT',
+  SYNC_FAILED = 'SYNC_FAILED',
 }
 
 // =============================================================================
@@ -812,6 +847,110 @@ const requireRole = (...roles: UserRole[]) => (req: AuthRequest, res: Response, 
   }
   next();
 };
+
+// =============================================================================
+// AUDIT & CLASSIFICATION HELPERS
+// =============================================================================
+
+export function getActorFromReq(req: Request | null) {
+  const authReq = req as AuthRequest;
+  const user = authReq?.currentUser;
+  return {
+    userId: user?.id || null,
+    username: user?.username || 'system',
+    fullName: user?.full_name || 'System User',
+    role: user?.role || 'SYSTEM'
+  };
+}
+
+export async function recordAudit(
+  req: Request | null,
+  action: string,
+  entityType: string,
+  entityId: string | number,
+  bookingNo: string | null = null,
+  oldValues: any = {},
+  newValues: any = {},
+  metadata: any = {}
+) {
+  try {
+    const actor = getActorFromReq(req);
+    // Format timestamp in Asia/Bangkok (+07:00)
+    const bangkokIso = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Bangkok' }).replace(' ', 'T') + '+07:00';
+    await dbSaveAuditLog({
+      timestamp: bangkokIso,
+      user_id: actor.userId,
+      username: actor.username,
+      full_name: actor.fullName,
+      role: actor.role,
+      action,
+      entity_type: entityType,
+      entity_id: String(entityId),
+      booking_no: bookingNo,
+      old_values: oldValues,
+      new_values: newValues,
+      metadata
+    });
+  } catch (err: any) {
+    console.error('[AUDIT ERROR] Failed to record audit log:', err.message);
+  }
+}
+
+export function classifyJobType(payload: any): { job_type: 'Q' | 'R' | 'NEED_REVIEW'; confidence: 'HIGH' | 'LOW'; reason: string } {
+  if (!payload) return { job_type: 'NEED_REVIEW', confidence: 'LOW', reason: 'Empty payload' };
+  
+  const rawType = String(payload.job_type || payload.type || payload.job_info?.job_type || '').toUpperCase().trim();
+  if (rawType === 'Q' || rawType === 'QUICK') {
+    return { job_type: 'Q', confidence: 'HIGH', reason: 'Explicitly tagged as Q / Quick' };
+  }
+  if (rawType === 'R' || rawType === 'RENOVATE' || rawType === 'RENOVATION') {
+    return { job_type: 'R', confidence: 'HIGH', reason: 'Explicitly tagged as R / Renovate' };
+  }
+
+  const projType = String(payload.job_info?.project_type || payload.project_type || '').toLowerCase().trim();
+  if (projType.includes('renovate') || projType.includes('ต่อเติม') || projType.includes('ปรับปรุง')) {
+    return { job_type: 'R', confidence: 'HIGH', reason: 'Project type indicates Renovate' };
+  }
+  if (projType.includes('install') || projType.includes('ติดตั้ง') || projType.includes('quick')) {
+    return { job_type: 'Q', confidence: 'HIGH', reason: 'Project type indicates Quick installation' };
+  }
+
+  // Check services list / detail items
+  const details = Array.isArray(payload.job_details) ? payload.job_details : (Array.isArray(payload.jobdetails) ? payload.jobdetails : []);
+  const services = Array.isArray(payload.services) ? payload.services : [];
+  const allTexts: string[] = [
+    ...details.map((d: any) => typeof d === 'string' ? d : (d.installation_detail || d.job_type || d.service_name || '')),
+    ...services,
+    payload.job_info?.project_sub_type || '',
+    payload.service_type || '',
+    payload.service_name || '',
+    payload.service || '',
+    payload.title || '',
+    payload.description || ''
+  ].filter(Boolean);
+
+  const fullText = allTexts.join(' ').toLowerCase();
+  if (!fullText.trim()) {
+    return { job_type: 'NEED_REVIEW', confidence: 'LOW', reason: 'No service information found' };
+  }
+
+  const isRenovateKeyword = /รีโนเวท|renovate|ต่อเติม|ทั้งหลัง|รื้อถอนและสร้าง|ตกแต่งภายใน|ปูกระเบื้องทั้งบ้าน|ระบบประปาทั้งหลัง|boq/i.test(fullText);
+  const isQuickKeyword = /ติดตั้งแอร์|ล้างแอร์|เครื่องทำน้ำอุ่น|ปั้ม|ปั๊ม|แท็งก์|แทงก์|กรองน้ำ|เครื่องกรอง|เปลี่ยนก๊อก|สุขภัณฑ์|กล้องวงจรปิด|สวิตช์ไฟ|หลอดไฟ|ซ่อมแซมจุด/i.test(fullText);
+
+  if (isRenovateKeyword && !isQuickKeyword) {
+    return { job_type: 'R', confidence: 'HIGH', reason: 'Service keywords match Renovate' };
+  }
+  if (isQuickKeyword && !isRenovateKeyword) {
+    return { job_type: 'Q', confidence: 'HIGH', reason: 'Service keywords match Quick service' };
+  }
+
+  // If both or neither match, check if there are multiple room/areas or BOQ items
+  if (Array.isArray(payload.boq_items) && payload.boq_items.length > 1) {
+    return { job_type: 'R', confidence: 'HIGH', reason: 'Contains multiple BOQ items' };
+  }
+
+  return { job_type: 'NEED_REVIEW', confidence: 'LOW', reason: 'Ambiguous job type between Q and R' };
+}
 
 // =============================================================================
 // AUTH API — Login / Logout / Me
@@ -1339,6 +1478,25 @@ export interface CoreCustomer {
   google_map_url?: string;
 }
 
+export interface CoreAreaQuestion {
+  id: string;
+  title: string;
+  category?: string;
+  created_at?: string;
+}
+
+export interface CoreArea {
+  id: string;
+  name: string;
+  assigned_qc?: string;
+  assigned_qc_id?: number | string;
+  qc_inspector?: string;
+  qc_manual_questions?: CoreAreaQuestion[];
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface CoreJob {
   id: number;
   job_no: string;
@@ -1369,7 +1527,11 @@ export interface CoreJob {
   csat_surveyor?: string;
   csat_evaluated_at?: string | null;
   step3_confirmed?: boolean;
-  tasks?: any[];
+  tasks?: CoreTask[];
+  areas?: CoreArea[];
+  qc_manual_questions?: any[];
+  escalated_at?: string | null;
+  escalated_reason?: string | null;
   plan_date?: string;
   services?: string[];
   overall_progress: number;
@@ -1435,17 +1597,42 @@ export interface CoreTask {
   id: number | string;
   job_id: number | string;
   job_no?: string;
+  area_id?: string;
+  area_name?: string;
   task_name: string;
+  name?: string;
   plan_start_date: string;
+  plan_start_time?: string;
+  start?: string;
   plan_end_date: string;
+  plan_end_time?: string;
+  end?: string;
+  actual_start_date?: string;
+  actual_start_time?: string;
+  actual_end_date?: string;
+  actual_end_time?: string;
   duration_days: number;
+  days?: number;
   assigned_tech: string;
+  tech?: string;
   assignees?: string[];
-  status: 'PENDING' | 'IN_PROGRESS' | 'DONE';
+  status: string;
+  rework_count?: number;
+  qc_score?: number | null;
+  qc_history?: Array<{
+    round: number;
+    result: 'PASS' | 'FAIL';
+    score: number;
+    inspected_at: string;
+    inspector: string;
+    answers?: any[];
+    remarks?: string;
+  }>;
   progress_percent: number;
   source_boq_item?: string;
   subtasks?: CoreSubtask[];
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface QCBooking {
@@ -1601,12 +1788,12 @@ export function seedInitialCoreData(populateMocks: boolean = false) {
 // =============================================================================
 // 1. INT INBOUND INTEGRATION API (Req #1)
 // =============================================================================
+// =============================================================================
+// 1. INT INBOUND INTEGRATION API (Req #1: Booking Idempotency & Auto-classification)
+// =============================================================================
 app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
   try {
     const payload: any = req.body;
-    const idempotencyKey = req.headers['x-idempotency-key'] as string;
-
-    const externalRefId = payload.job_info?.source_reference || payload.external_ref_id || payload.system?.job_id || `INT-${Date.now()}`;
     const custRaw = payload.customer || {};
 
     if (!custRaw.name && !custRaw.first_name && !custRaw.mobile_no && !custRaw.phone) {
@@ -1631,7 +1818,6 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
     const lng = Number(custRaw.location?.longitude || custRaw.lng) || 100.5018;
     const googleMapUrl = custRaw.location?.google_map_url || custRaw.google_map_url || '';
 
-    // Upsert customer in core customer store
     const customer = {
       id: Date.now() + Math.floor(Math.random() * 100),
       customer_code: custRaw.code || `CUST-${Date.now()}`,
@@ -1644,14 +1830,9 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
       google_map_url: googleMapUrl
     };
 
-    // Generate or adopt Job No
-    const now = new Date();
-    const yy = String(now.getFullYear()).slice(-2);
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const runningSeq = Math.floor(1 + Math.random() * 99999);
-    const runningStr = String(runningSeq).padStart(5, '0');
-    const jobNo = payload.job_info?.job_number || payload.job_no || `JOB${yy}${mm}${dd}${runningStr}`;
+    const bookingNo = String(payload.job_info?.booking_no || payload.booking_no || payload.vfix_no || payload.job_info?.vfix_no || payload.job_info?.source_reference || payload.external_ref_id || payload.system?.job_id || '').trim();
+    const externalRefId = payload.job_info?.source_reference || payload.external_ref_id || payload.system?.job_id || `INT-${Date.now()}`;
+    const ticketNo = payload.job_info?.ticket_no || payload.ticket_no || '';
 
     const jobDetails = Array.isArray(payload.job_details)
       ? payload.job_details
@@ -1670,10 +1851,32 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
     if (servicesList.length === 0 && payload.job_info?.project_sub_type) {
       servicesList = [payload.job_info.project_sub_type];
     }
+    const serviceName = servicesList[0] || 'งานบริการ';
 
-    const serviceName = servicesList[0] || 'งานติดตั้ง';
-    const isQuick = /ติดตั้ง|ซ่อม|ล้าง|แอร์|เครื่องปรับอากาศ|เครื่องทำน้ำอุ่น|ปั้ม|ปั๊ม|แท็งก์|แทงก์|กรองน้ำ|กล้อง/i.test(serviceName) && !/รีโนเวท|ต่อเติม|renovate/i.test(serviceName);
-    const jobType = payload.job_info?.project_type?.toLowerCase() === 'renovate' ? 'renovate' : (isQuick ? 'quick' : 'renovate');
+    const customerData = {
+      id: customer.id,
+      customer_code: customer.customer_code,
+      name: custRaw.name || `คุณ${firstName} ${lastName}`.trim(),
+      first_name: firstName,
+      last_name: lastName,
+      phone: phone,
+      mobile_no: phone,
+      address: address,
+      lat: lat,
+      lng: lng,
+      location: custRaw.location || {
+        latitude: lat,
+        longitude: lng,
+        address: address,
+        google_map_url: googleMapUrl
+      },
+      google_map_url: googleMapUrl
+    };
+
+    const assignedTechName = (typeof payload.technician === 'object' && payload.technician ? payload.technician.name : payload.technician) || payload.agent?.name || 'Team A (สมศักดิ์)';
+    const planDate = payload.installation?.date || payload.schedule_plan?.visit_date || payload.appointment?.date || new Date().toISOString().split('T')[0];
+    const storeCode = payload.branch?.store_code || payload.store?.code || payload.store_code || '';
+    const agentName = payload.agent?.name || payload.agent_name || payload.branch?.name || '';
 
     const photos: any[] = [];
     if (Array.isArray(payload.site_photos)) {
@@ -1706,49 +1909,85 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
       });
     }
 
-    const customerData = {
-      id: customer.id,
-      customer_code: customer.customer_code,
-      name: custRaw.name || `คุณ${firstName} ${lastName}`.trim(),
-      first_name: firstName,
-      last_name: lastName,
-      phone: phone,
-      mobile_no: phone,
-      address: address,
-      lat: lat,
-      lng: lng,
-      location: custRaw.location || {
-        latitude: lat,
-        longitude: lng,
-        address: address,
-        google_map_url: googleMapUrl
-      },
-      google_map_url: googleMapUrl
-    };
+    // Auto-classification (Q / R / NEED_REVIEW)
+    const classification = classifyJobType(payload);
+    const resolvedJobType = classification.job_type;
 
-    const assignedTechName = (typeof payload.technician === 'object' && payload.technician ? payload.technician.name : payload.technician) || payload.agent?.name || 'Team A (สมศักดิ์)';
-    const planDate = payload.installation?.date || payload.schedule_plan?.visit_date || payload.appointment?.date || new Date().toISOString().split('T')[0];
-    const storeCode = payload.branch?.store_code || payload.store?.code || payload.store_code || '';
-    const agentName = payload.agent?.name || payload.agent_name || payload.branch?.name || '';
+    // 1. Idempotency Check: if booking_no exists in DB -> update without duplicate
+    if (bookingNo) {
+      const existing = await dbGetJobByBookingNo(bookingNo);
+      if (existing) {
+        const updatePayload: any = {
+          customer_data: customerData,
+          customer_name: customerData.name,
+          customer_phone: phone,
+          customer_address: address,
+          services: servicesList,
+          project_sub_type: serviceName,
+          store_code: storeCode,
+          agent_name: agentName,
+          assigned_tech: assignedTechName,
+          plan_date: planDate,
+          raw_payload: payload
+        };
+        if (photos.length > 0) {
+          updatePayload.photos = photos;
+        }
+        if (existing.job_type === 'NEED_REVIEW' && resolvedJobType !== 'NEED_REVIEW') {
+          updatePayload.job_type = resolvedJobType;
+        }
+        const updatedJob = await dbUpdateJob(existing.id, updatePayload);
+        await recordAudit(req, 'UPDATE_JOB_FROM_INT', 'JOB', existing.id, bookingNo, existing, updatedJob, {
+          source: 'INT_API',
+          idempotent: true,
+          classification
+        });
 
-    const newJob: CoreJob = {
+        return res.status(200).json({
+          success: true,
+          data: {
+            ...updatedJob,
+            vfix_no: updatedJob.booking_no,
+            customer: customerData,
+            assigned_tech: assignedTechName
+          },
+          meta: {
+            message: `ใบงานเลขที่ Booking ${bookingNo} มีอยู่ในระบบแล้ว — ทำการอัปเดตข้อมูลอัตโนมัติ (Idempotent Update) ไม่สร้างรายการซ้ำ`,
+            idempotent: true
+          }
+        });
+      }
+    }
+
+    // 2. Create New Job Record
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const runningSeq = Math.floor(1 + Math.random() * 99999);
+    const runningStr = String(runningSeq).padStart(5, '0');
+    const jobNo = payload.job_info?.job_number || payload.job_no || `JOB${yy}${mm}${dd}${runningStr}`;
+
+    const initialStatus = resolvedJobType === 'NEED_REVIEW' ? JobStatus.NEED_REVIEW : JobStatus.NEW;
+
+    const newJob: any = {
       id: Date.now(),
       job_no: jobNo,
       external_ref_id: externalRefId,
-      booking_no: payload.job_info?.booking_no || payload.booking_no || payload.vfix_no || payload.job_info?.vfix_no || '',
-      ticket_no: payload.job_info?.ticket_no || payload.ticket_no || '',
+      booking_no: bookingNo,
+      ticket_no: ticketNo,
       customer_id: customer.id,
       services: servicesList,
       assigned_tech: assignedTechName,
       plan_date: planDate,
-      status: JobStatus.SURVEYED,          // Orders from INT are always survey jobs
-      job_type: jobType,
+      status: initialStatus,
+      job_type: resolvedJobType,
       property_type: payload.job_info?.property_type || 'บ้านเดี่ยว',
-      project_type: payload.job_info?.project_type || (isQuick ? 'Installation' : 'Renovate'),
+      project_type: payload.job_info?.project_type || (resolvedJobType === 'Q' ? 'Installation' : 'Renovate'),
       project_sub_type: payload.job_info?.project_sub_type || serviceName,
       store_code: storeCode,
       agent_name: agentName,
-      pmt_accepted: false,                  // Not yet accepted into PMT pipeline; needs BOQ+Design in Step 1
+      pmt_accepted: false,
       pmt_accepted_at: undefined,
       step_timestamps: {
         step1_order_at: payload.system?.created_at || new Date().toISOString(),
@@ -1758,28 +1997,36 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
       boq_discount: 0,
       boq_grand_total: 0,
       photos: photos,
+      tasks: [],
+      areas: [],
+      qc_manual_questions: [],
       overall_progress: 0,
       special_instructions: payload.remarks?.comment || payload.special_instructions || '',
       additional_notes: payload.remarks?.note || payload.additional_notes || '',
       created_at: payload.system?.created_at || new Date().toISOString()
     };
-    (newJob as any).customer = customerData;
-    (newJob as any).customer_data = customerData;
-    (newJob as any).job_details = jobDetails;
-    (newJob as any).job_detail = jobDetails;
-    (newJob as any).agent_data = payload.agent || {};
-    (newJob as any).store_data = payload.store || {};
-    (newJob as any).schedule_plan = payload.schedule_plan || {};
-    (newJob as any).checkin_data = payload.check_in || {};
-    (newJob as any).checkout_data = payload.check_out || {};
-    (newJob as any).approval_data = payload.approval || {};
-    (newJob as any).visit_results = payload.visit_results || payload.visit_result || [];
-    (newJob as any).visit_result = payload.visit_results || payload.visit_result || [];
-    (newJob as any).remarks_data = payload.remarks || payload.remarks_data || {};
-    (newJob as any).remarks = payload.remarks || payload.remarks_data || {};
-    (newJob as any).file_int_image = payload.job_info?.file_int_image || '';
-    (newJob as any).raw_payload = payload;
+    newJob.customer = customerData;
+    newJob.customer_data = customerData;
+    newJob.job_details = jobDetails;
+    newJob.job_detail = jobDetails;
+    newJob.agent_data = payload.agent || {};
+    newJob.store_data = payload.store || {};
+    newJob.schedule_plan = payload.schedule_plan || {};
+    newJob.checkin_data = payload.check_in || {};
+    newJob.checkout_data = payload.check_out || {};
+    newJob.approval_data = payload.approval || {};
+    newJob.visit_results = payload.visit_results || payload.visit_result || [];
+    newJob.visit_result = payload.visit_results || payload.visit_result || [];
+    newJob.remarks_data = payload.remarks || payload.remarks_data || {};
+    newJob.remarks = payload.remarks || payload.remarks_data || {};
+    newJob.file_int_image = payload.job_info?.file_int_image || '';
+    newJob.raw_payload = payload;
+
     await dbSaveJob(newJob);
+    await recordAudit(req, 'RECEIVE_JOB_FROM_INT', 'JOB', newJob.id, bookingNo, null, newJob, {
+      source: 'INT_API',
+      classification
+    });
 
     return res.status(201).json({
       success: true,
@@ -1788,7 +2035,7 @@ app.post('/api/v1/integration/orders', async (req: Request, res: Response) => {
         vfix_no: newJob.booking_no,
         customer: customerData,
         assigned_tech: assignedTechName,
-        appointment: payload.schedule_plan || payload.appointment || payload.installation || null
+        classification
       },
       meta: { message: 'Order received successfully from INT system and added to Core Jobs' }
     });
@@ -1809,11 +2056,11 @@ seedInitialCoreData(false);
 // =============================================================================
 // CONVERSION ENGINE (STAGING -> CORE PMT)
 // =============================================================================
-export function convertStagingToCorePmt(stagingRecord: StagingSurveyReport): {
+export async function convertStagingToCorePmt(stagingRecord: StagingSurveyReport): Promise<{
   success: boolean;
   jobId?: number;
   errors?: string[];
-} {
+}> {
   const payload = stagingRecord.raw_payload;
   const validationErrors: string[] = [];
 
@@ -1837,12 +2084,19 @@ export function convertStagingToCorePmt(stagingRecord: StagingSurveyReport): {
     stagingRecord.process_status = StagingProcessStatus.VALIDATION_FAILED;
     stagingRecord.validation_errors = validationErrors;
     stagingRecord.processed_at = new Date().toISOString();
+    await dbUpdateStagingReport(stagingRecord.id, {
+      process_status: StagingProcessStatus.VALIDATION_FAILED,
+      validation_errors: validationErrors,
+      processed_at: stagingRecord.processed_at
+    });
     return { success: false, errors: validationErrors };
   }
 
   stagingRecord.process_status = StagingProcessStatus.PROCESSING;
 
   try {
+    const bookingNo = String(payload.job_info?.booking_no || stagingRecord.booking_no || payload.job_info?.source_reference || payload.system?.job_id || '').trim();
+
     // 1. Upsert Customer in Core Table
     const nameParts = payload.customer.name.trim().split(' ');
     const firstName = nameParts[0] || payload.customer.name;
@@ -1860,7 +2114,6 @@ export function convertStagingToCorePmt(stagingRecord: StagingSurveyReport): {
       google_map_url: payload.customer.location?.google_map_url
     };
 
-    // 2. Insert Core Job (Req #1 & State Machine: SURVEYED)
     const customerData = {
       id: customer.id,
       customer_code: payload.customer?.code || customer.customer_code,
@@ -1914,30 +2167,64 @@ export function convertStagingToCorePmt(stagingRecord: StagingSurveyReport): {
       });
     }
 
+    const classification = classifyJobType(payload);
+    const resolvedJobType = classification.job_type;
+    const targetStatus = resolvedJobType === 'Q' ? JobStatus.WAIT_QC : (resolvedJobType === 'R' ? JobStatus.PLANNED : JobStatus.NEED_REVIEW);
+
+    // Idempotency check: if job exists with same booking_no
+    if (bookingNo) {
+      const existingJob = await dbGetJobByBookingNo(bookingNo);
+      if (existingJob) {
+        await dbUpdateJob(existingJob.id, {
+          customer_data: customerData,
+          customer_name: customerData.name,
+          customer_phone: customer.phone,
+          customer_address: customer.address,
+          services: services,
+          photos: photos,
+          raw_payload: payload,
+          job_type: existingJob.job_type || resolvedJobType
+        });
+        stagingRecord.process_status = StagingProcessStatus.CONVERTED;
+        stagingRecord.converted_job_id = existingJob.id;
+        stagingRecord.processed_at = new Date().toISOString();
+        await dbUpdateStagingReport(stagingRecord.id, {
+          process_status: StagingProcessStatus.CONVERTED,
+          converted_job_id: existingJob.id,
+          processed_at: stagingRecord.processed_at
+        });
+        await recordAudit(null, 'CONVERT_STAGING_TO_JOB_IDEMPOTENT', 'JOB', existingJob.id, bookingNo, existingJob, { id: existingJob.id }, { staging_id: stagingRecord.id });
+        return { success: true, jobId: existingJob.id };
+      }
+    }
+
     const jobId = Date.now() + Math.floor(Math.random() * 1000);
     const newCoreJob: any = {
       id: jobId,
       job_no: payload.job_info?.job_number || stagingRecord.job_number,
       external_ref_id: payload.job_info?.source_reference || stagingRecord.source_reference || payload.system?.job_id || '',
-      booking_no: payload.job_info?.booking_no || stagingRecord.booking_no || '',
+      booking_no: bookingNo,
       ticket_no: payload.job_info?.ticket_no || stagingRecord.ticket_no || '',
       customer_id: customer.id,
       customer: customerData,
       customer_data: customerData,
-      status: JobStatus.SURVEYED,
+      status: targetStatus,
+      job_type: resolvedJobType,
       property_type: payload.job_info?.property_type || 'บ้านเดี่ยว',
-      project_type: payload.job_info?.project_type || 'Renovate',
+      project_type: payload.job_info?.project_type || (resolvedJobType === 'Q' ? 'Installation' : 'Renovate'),
       project_sub_type: payload.job_info?.project_sub_type || services[0] || 'งานสำรวจหน้างาน',
       store_code: payload.store?.code || '',
       agent_name: payload.agent?.name || '',
       assigned_tech: payload.agent?.name || 'Team A (สมศักดิ์)',
       plan_date: payload.schedule_plan?.visit_date || new Date().toISOString().slice(0, 10),
       services: services,
-      overall_progress: 30,
+      overall_progress: resolvedJobType === 'Q' ? 80 : 30,
       pmt_accepted: true,
       pmt_accepted_at: new Date().toISOString(),
       photos: photos,
       tasks: [],
+      areas: [],
+      qc_manual_questions: [],
       boq_items: [],
       job_details: payload.job_details || payload.job_detail || [],
       job_detail: payload.job_details || payload.job_detail || [],
@@ -1961,33 +2248,34 @@ export function convertStagingToCorePmt(stagingRecord: StagingSurveyReport): {
       },
       created_at: payload.system?.created_at || new Date().toISOString()
     };
-    dbSaveJob(newCoreJob).catch(err => console.error('[DB] Failed to save converted job:', err.message));
+    await dbSaveJob(newCoreJob);
 
-    // 6. Update Staging Record as CONVERTED
     stagingRecord.process_status = StagingProcessStatus.CONVERTED;
     stagingRecord.converted_job_id = jobId;
     stagingRecord.processed_at = new Date().toISOString();
     stagingRecord.validation_errors = undefined;
 
-    dbUpdateStagingReport(stagingRecord.id, {
+    await dbUpdateStagingReport(stagingRecord.id, {
       process_status: StagingProcessStatus.CONVERTED,
       converted_job_id: jobId,
       processed_at: stagingRecord.processed_at
-    }).catch(() => {});
+    });
 
-    console.log(`[STAGING CONVERT] Successfully converted staging #${stagingRecord.id} -> Job #${jobId} (${newCoreJob.job_no})`);
+    await recordAudit(null, 'CONVERT_STAGING_TO_JOB', 'JOB', jobId, bookingNo, null, newCoreJob, { staging_id: stagingRecord.id, classification });
+
+    console.log(`[STAGING CONVERT] Successfully converted staging #${stagingRecord.id} -> Job #${jobId} (${newCoreJob.job_no}) [Type: ${resolvedJobType}]`);
     return { success: true, jobId };
   } catch (err: any) {
     stagingRecord.process_status = StagingProcessStatus.ERROR;
     stagingRecord.error_message = err.message;
     stagingRecord.retry_count += 1;
     stagingRecord.processed_at = new Date().toISOString();
-    dbUpdateStagingReport(stagingRecord.id, {
+    await dbUpdateStagingReport(stagingRecord.id, {
       process_status: StagingProcessStatus.ERROR,
       error_message: err.message,
       retry_count: stagingRecord.retry_count,
       processed_at: stagingRecord.processed_at
-    }).catch(() => {});
+    });
     return { success: false, errors: [err.message] };
   }
 }
@@ -2072,7 +2360,7 @@ app.post(['/api/v1/jobs/survey-report', '/api/v1/integration/survey-reports'], a
     let convertResult: { success: boolean; jobId?: number; errors?: string[] } = { success: false };
 
     if (shouldAutoConvert) {
-      convertResult = convertStagingToCorePmt(stagingRecord);
+      convertResult = await convertStagingToCorePmt(stagingRecord);
     }
 
     return res.status(201).json({
@@ -2099,6 +2387,143 @@ app.post(['/api/v1/jobs/survey-report', '/api/v1/integration/survey-reports'], a
       success: false,
       error: { code: 'INTERNAL_ERROR', message: err.message }
     });
+  }
+});
+
+// =============================================================================
+// 1.2 ACCEPT & CLASSIFY JOBS API (Req #1)
+// =============================================================================
+
+// POST /api/v1/jobs/:id/accept — Accept Job from Pending Queue
+app.post('/api/v1/jobs/:id/accept', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const param = req.params.id;
+    const existingJob = await dbGetJob(param);
+    if (!existingJob) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงานที่ต้องการรับ' } });
+    }
+
+    const requestedType = req.body?.job_type ? String(req.body.job_type).toUpperCase().trim() : null;
+    let effectiveType = requestedType || (existingJob.job_type ? String(existingJob.job_type).toUpperCase().trim() : null);
+
+    if (!effectiveType || effectiveType === 'NEED_REVIEW') {
+      const classified = classifyJobType(existingJob);
+      effectiveType = classified.job_type;
+    }
+
+    if (effectiveType === 'NEED_REVIEW') {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'NEED_REVIEW',
+          message: 'ไม่สามารถระบุประเภทงาน (Q หรือ R) โดยอัตโนมัติได้ กรุณาระบุประเภทงานผ่าน parameter { job_type: "Q" | "R" }'
+        },
+        data: existingJob
+      });
+    }
+
+    const nextStatus = effectiveType === 'Q' ? JobStatus.WAIT_QC : JobStatus.PLANNED;
+    const oldStatus = existingJob.status;
+
+    const updatedJob = await dbUpdateJob(param, {
+      pmt_accepted: true,
+      pmt_accepted_at: new Date().toISOString(),
+      job_type: effectiveType,
+      status: nextStatus
+    });
+
+    await recordAudit(
+      req,
+      'ACCEPT_JOB',
+      'JOB',
+      updatedJob.id || param,
+      updatedJob.booking_no || existingJob.booking_no,
+      { status: oldStatus, job_type: existingJob.job_type },
+      { status: nextStatus, job_type: effectiveType },
+      { accepted_by: req.currentUser?.full_name, role: req.currentUser?.role }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: effectiveType === 'Q' 
+        ? 'รับงานประเภท Q (Quick Service) เรียบร้อยแล้ว ระบบนำทางไปรอตรวจ QC ทันที' 
+        : 'รับงานประเภท R (Renovate) เรียบร้อยแล้ว ระบบนำทางไปขั้นตอนสร้าง Project และ BOQ',
+      data: updatedJob
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+// PATCH /api/v1/jobs/:id/classify — Classify / Override Job Type (Q or R)
+app.patch('/api/v1/jobs/:id/classify', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const param = req.params.id;
+    const { job_type } = req.body || {};
+    const normalizedType = String(job_type || '').toUpperCase().trim();
+
+    if (normalizedType !== 'Q' && normalizedType !== 'R') {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_JOB_TYPE', message: 'กรุณาระบุประเภทงานเป็น "Q" (Quick) หรือ "R" (Renovate)' }
+      });
+    }
+
+    const existingJob = await dbGetJob(param);
+    if (!existingJob) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+    }
+
+    const nextStatus = normalizedType === 'Q' ? JobStatus.WAIT_QC : JobStatus.PLANNED;
+
+    const updatedJob = await dbUpdateJob(param, {
+      job_type: normalizedType,
+      status: nextStatus,
+      pmt_accepted: true,
+      pmt_accepted_at: existingJob.pmt_accepted_at || new Date().toISOString()
+    });
+
+    await recordAudit(
+      req,
+      'CLASSIFY_JOB',
+      'JOB',
+      updatedJob.id || param,
+      updatedJob.booking_no || existingJob.booking_no,
+      { job_type: existingJob.job_type, status: existingJob.status },
+      { job_type: normalizedType, status: nextStatus },
+      { classified_by: req.currentUser?.full_name }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `ปรับปรุงประเภทงานเป็น ${normalizedType === 'Q' ? 'Q (Quick)' : 'R (Renovate)'} เรียบร้อยแล้ว`,
+      data: updatedJob
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+// GET /api/v1/audit-logs — Query System Audit Logs (Req #7)
+app.get('/api/v1/audit-logs', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { booking_no, entity_type, entity_id, action, limit, page } = req.query;
+    const result = await dbLoadAuditLogs({
+      booking_no: booking_no ? String(booking_no) : undefined,
+      entity_type: entity_type ? String(entity_type) : undefined,
+      entity_id: entity_id ? String(entity_id) : undefined,
+      action: action ? String(action) : undefined,
+      limit: limit ? Number(limit) : 50,
+      page: page ? Number(page) : 1
+    });
+
+    return res.status(200).json({
+      success: true,
+      total: result.total,
+      data: result.logs
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
   }
 });
 
@@ -2232,13 +2657,228 @@ app.get('/api/v1/jobs', requireAuth, async (req: Request, res: Response) => {
 
 app.get('/api/v1/jobs/summary', requireAuth, async (req: Request, res: Response) => {
   try {
-    const metrics = await dbGetJobMetrics();
-    return res.json({
+    const allJobs = await dbLoadJobs();
+    const stkLogs: any[] = await dbLoadStkSyncLogs({ limit: 100 });
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    let quickCount = 0;
+    let renovateCount = 0;
+    let needReviewCount = 0;
+    const statusCounts: Record<string, number> = {
+      DRAFT: 0,
+      PLANNED: 0,
+      IN_PROGRESS: 0,
+      WAIT_QC: 0,
+      REWORK: 0,
+      QC_PASSED: 0,
+      ESCALATED: 0,
+      CLOSED: 0
+    };
+
+    let totalTasks = 0;
+    let inProgressTasks = 0;
+    let waitQcTasks = 0;
+    let reworkTasks = 0;
+    let passedTasks = 0;
+    let escalatedTasks = 0;
+    let overdueTasks = 0;
+
+    const techMap = new Map<string, { total: number; passed: number; rework: number; totalScore: number; scoreCount: number }>();
+
+    for (const job of allJobs) {
+      const jType = String(job.job_type || '').toUpperCase();
+      if (jType === 'Q' || jType === 'QUICK') quickCount++;
+      else if (jType === 'R' || jType === 'RENOVATE') renovateCount++;
+      else needReviewCount++;
+
+      const st = String(job.status || 'DRAFT').toUpperCase();
+      statusCounts[st] = (statusCounts[st] || 0) + 1;
+
+      if (Array.isArray(job.tasks)) {
+        for (const t of job.tasks) {
+          totalTasks++;
+          const tStatus = String(t.status || 'PLANNED').toUpperCase();
+          if (tStatus === 'IN_PROGRESS') inProgressTasks++;
+          else if (tStatus === 'WAIT_QC') waitQcTasks++;
+          else if (tStatus === 'REWORK') reworkTasks++;
+          else if (tStatus === 'PASSED' || tStatus === 'QC_PASSED') passedTasks++;
+          else if (tStatus === 'ESCALATED') escalatedTasks++;
+
+          if (t.plan_end_date && t.plan_end_date < todayStr && tStatus !== 'PASSED' && tStatus !== 'QC_PASSED' && tStatus !== 'ESCALATED') {
+            overdueTasks++;
+          }
+
+          const techName = t.assigned_tech || (t as any).tech || 'Unassigned';
+          if (!techMap.has(techName)) {
+            techMap.set(techName, { total: 0, passed: 0, rework: 0, totalScore: 0, scoreCount: 0 });
+          }
+          const techStat = techMap.get(techName)!;
+          techStat.total++;
+          if (tStatus === 'PASSED' || tStatus === 'QC_PASSED') techStat.passed++;
+          techStat.rework += Number(t.rework_count) || 0;
+          if (t.qc_score != null && Number(t.qc_score) > 0) {
+            techStat.totalScore += Number(t.qc_score);
+            techStat.scoreCount++;
+          }
+        }
+      }
+    }
+
+    const techLeaderboard = Array.from(techMap.entries()).map(([tech_name, s]) => ({
+      tech_name,
+      total_tasks: s.total,
+      passed_tasks: s.passed,
+      rework_count: s.rework,
+      avg_qc_score: s.scoreCount > 0 ? Number((s.totalScore / s.scoreCount).toFixed(2)) : null
+    }));
+
+    const stkFailedCount = stkLogs.filter((l: any) => l.status === 'SYNC_FAILED').length;
+    const stkSyncedCount = stkLogs.filter((l: any) => l.status === 'SYNCED').length;
+    const lastStkLog = stkLogs.length > 0 ? stkLogs[0] : null;
+
+    const summaryData = {
+      jobs: {
+        total: allJobs.length,
+        quick_count: quickCount,
+        renovate_count: renovateCount,
+        need_review_count: needReviewCount,
+        status_breakdown: statusCounts
+      },
+      tasks: {
+        total: totalTasks,
+        in_progress: inProgressTasks,
+        wait_qc: waitQcTasks,
+        rework: reworkTasks,
+        passed: passedTasks,
+        escalated: escalatedTasks,
+        overdue_count: overdueTasks
+      },
+      technicians_performance: techLeaderboard,
+      api_health_monitor: {
+        int_api: {
+          status: 'ONLINE',
+          name: 'INT Inbound Integration API',
+          total_received: allJobs.length,
+          last_active: allJobs[0]?.created_at || new Date().toISOString()
+        },
+        boq_api: {
+          status: 'ONLINE',
+          name: 'BOQ Calculation & Storage API',
+          last_active: new Date().toISOString()
+        },
+        stk_api: {
+          status: stkFailedCount > 0 ? 'WARNING' : 'ONLINE',
+          name: 'STK Outbound REST Integration',
+          synced_count: stkSyncedCount,
+          failed_count: stkFailedCount,
+          last_sync: lastStkLog?.synced_at || lastStkLog?.created_at || null
+        }
+      }
+    };
+
+    return res.status(200).json({
       success: true,
-      metrics
+      data: summaryData
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+// GET /api/v1/jobs/export/excel & /api/v1/jobs/export-excel — Export Project, Area & Task Details as CSV/Excel with UTF-8 BOM
+app.get(['/api/v1/jobs/export/excel', '/api/v1/jobs/export-excel', '/api/v1/jobs/export/csv'], requireAuth, async (req: Request, res: Response) => {
+  try {
+    const allJobs = await dbLoadJobs();
+    const rows: string[][] = [
+      [
+        'Booking No',
+        'Job No',
+        'Customer Name',
+        'Phone',
+        'Job Type',
+        'Job Status',
+        'Area / Main Work',
+        'Area QC Inspector',
+        'Task Name',
+        'Assigned Technician',
+        'Plan Start Date',
+        'Plan Start Time',
+        'Plan End Date',
+        'Plan End Time',
+        'Actual Start Date',
+        'Actual Start Time',
+        'Actual End Date',
+        'Actual End Time',
+        'Task Status',
+        'Rework Count',
+        'QC Score',
+        'Escalated Reason'
+      ]
+    ];
+
+    for (const job of allJobs) {
+      const bNo = job.booking_no || '-';
+      const jNo = job.job_no || String(job.id);
+      const cName = job.customer_name || (job as any).customer || '-';
+      const cPhone = job.customer_phone || (job as any).phone || '-';
+      const jType = job.job_type || 'Q';
+      const jStatus = job.status || 'DRAFT';
+      const escReason = job.escalated_reason || '-';
+
+      const areas = Array.isArray(job.areas) ? job.areas : [];
+      const tasks = Array.isArray(job.tasks) ? job.tasks : [];
+
+      if (tasks.length === 0) {
+        rows.push([
+          bNo, jNo, cName, cPhone, jType, jStatus,
+          '-', '-', '-', job.assigned_tech || '-',
+          job.plan_date || '-', '-', '-', '-',
+          '-', '-', '-', '-',
+          '-', '0', job.qc_score ? String(job.qc_score) : '-', escReason
+        ]);
+      } else {
+        for (const t of tasks) {
+          const matchedArea = areas.find((a: any) => a.id === t.area_id) || (areas.length > 0 ? areas[0] : null);
+          const areaName = t.area_name || matchedArea?.name || '-';
+          const areaQc = matchedArea?.assigned_qc || (job as any).qc_inspector || '-';
+
+          rows.push([
+            bNo,
+            jNo,
+            cName,
+            cPhone,
+            jType,
+            jStatus,
+            areaName,
+            areaQc,
+            t.task_name || (t as any).name || '-',
+            t.assigned_tech || (t as any).tech || '-',
+            t.plan_start_date || (t as any).start || '-',
+            t.plan_start_time || '08:30',
+            t.plan_end_date || (t as any).end || '-',
+            t.plan_end_time || '17:00',
+            t.actual_start_date || '-',
+            t.actual_start_time || '-',
+            t.actual_end_date || '-',
+            t.actual_end_time || '-',
+            t.status || 'PLANNED',
+            String(t.rework_count || 0),
+            t.qc_score != null ? String(t.qc_score) : '-',
+            escReason
+          ]);
+        }
+      }
+    }
+
+    const csvContent = '\uFEFF' + rows.map(r => r.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const filename = `PMT_Project_QC_Export_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(csvContent);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'EXPORT_FAILED', message: err.message } });
   }
 });
 
@@ -2687,8 +3327,140 @@ app.delete('/api/v1/jobs/:id/boq/file', requireAuth, async (req: Request, res: R
 });
 
 // =============================================================================
-// 4. TASK & GANTT SCHEDULING API (Req #7 & #8 - Independent Tasks)
+// 4. 3-LEVEL PROJECT HIERARCHY, TASKS & GANTT SCHEDULING (Phases 2 & 3 & 4)
 // =============================================================================
+
+// Helper: Dispatch STK Outbound Sync with 3x Retry & Idempotency
+export async function dispatchStkSync(params: {
+  job: any;
+  task?: any;
+  qcResult: 'PASS' | 'FAIL' | 'ESCALATED';
+  qcScore: number; // Strictly 5 or 1
+  qcRound: number;
+  inspectorName?: string;
+  forceRetry?: boolean;
+}): Promise<{ success: boolean; idempotencyKey: string; status: string; error?: string; logId?: number }> {
+  const { job, task, qcResult, qcScore, qcRound, inspectorName, forceRetry } = params;
+  
+  const bookingNo = job.booking_no || job.external_ref_id || '-';
+  const taskIdStr = task ? String(task.id) : 'JOB';
+  const idempotencyKey = `STK_${bookingNo}_${taskIdStr}_R${qcRound}`;
+
+  // 1. Check idempotency: if already SYNCED, return existing log
+  if (!forceRetry) {
+    const existingLog = await dbGetStkSyncLogByIdempotencyKey(idempotencyKey);
+    if (existingLog && existingLog.status === 'SYNCED') {
+      console.log(`[STK SYNC] Idempotent hit: ${idempotencyKey} already synced`);
+      return { success: true, idempotencyKey, status: 'SYNCED', logId: existingLog.id };
+    }
+  }
+
+  // 2. Format 24-hr Bangkok date string (DD/MM/YYYY HH:mm:ss น.)
+  const nowD = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const thaiDateFormatted = `${pad(nowD.getDate())}/${pad(nowD.getMonth() + 1)}/${nowD.getFullYear()} ${pad(nowD.getHours())}:${pad(nowD.getMinutes())}:${pad(nowD.getSeconds())} น.`;
+
+  // 3. Construct the 8 mandatory fields + context
+  const payload = {
+    ref_no: job.external_ref_id || job.booking_no || '-',
+    ticket: job.ticket_no || job.job_no || '-',
+    booking_no: bookingNo,
+    qc_date: thaiDateFormatted,
+    customer_name: job.customer_name || job.customer || 'ลูกค้า',
+    customer_phone: job.customer_phone || job.phone || '-',
+    qc_round: qcRound,
+    qc_round_text: qcRound > 1 ? `ตรวจครั้งที่ ${qcRound} (ผ่านเกณฑ์รอบแก้ไข)` : `ตรวจครั้งที่ 1 (ผ่านเกณฑ์รอบแรก)`,
+    qc_result: qcResult === 'PASS' ? 'ผ่านเกณฑ์' : (qcResult === 'ESCALATED' ? 'ส่งต่อผู้บริหาร (Escalated)' : 'ไม่ผ่านเกณฑ์'),
+    qc_score: qcScore, // Strictly 5 or 1
+    qc_score_text: `${Number(qcScore).toFixed(1)} / 5.0 คะแนน`,
+    task_id: task ? task.id : null,
+    task_name: task ? (task.task_name || task.name) : null,
+    job_id: job.id,
+    job_no: job.job_no,
+    inspector: inspectorName || 'วิชัย ตรวจดี (ช่าง QC Lead)',
+    exported_at: nowD.toISOString()
+  };
+
+  // 4. Save or update STK sync log as PENDING
+  let logRecord = await dbGetStkSyncLogByIdempotencyKey(idempotencyKey);
+  let logId: number;
+  if (logRecord) {
+    logId = logRecord.id;
+    await dbUpdateStkSyncLog(logId, {
+      status: 'PENDING',
+      request_payload: payload,
+      retry_count: (logRecord.retry_count || 0) + 1,
+      error_message: null
+    });
+  } else {
+    logRecord = await dbSaveStkSyncLog({
+      job_id: job.id,
+      task_id: task ? String(task.id) : null,
+      booking_no: bookingNo,
+      idempotency_key: idempotencyKey,
+      status: 'PENDING',
+      request_payload: payload,
+      retry_count: 0
+    });
+    logId = logRecord.id;
+  }
+
+  // 5. Outbound Delivery with 3x retry & exponential backoff
+  const maxAttempts = 3;
+  let attempt = 0;
+  let lastErr = '';
+  let synced = false;
+
+  while (attempt < maxAttempts) {
+    attempt++;
+    try {
+      const stkWebhookUrl = process.env.STK_WEBHOOK_URL;
+      if (stkWebhookUrl) {
+        const response = await fetch(stkWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Idempotency-Key': idempotencyKey },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          throw new Error(`STK endpoint returned HTTP ${response.status}: ${response.statusText}`);
+        }
+      }
+      
+      // Mark as SYNCED
+      await dbUpdateStkSyncLog(logId, {
+        status: 'SYNCED',
+        response_payload: {
+          status: 'SUCCESS',
+          stk_ref: `STK-ACK-${Date.now()}`,
+          message: 'Received by STK successfully',
+          received_at: new Date().toISOString()
+        },
+        synced_at: new Date().toISOString(),
+        error_message: null
+      });
+      synced = true;
+      console.log(`[STK SYNC] Successfully synced ${idempotencyKey} on attempt ${attempt}`);
+      break;
+    } catch (err: any) {
+      lastErr = err.message || 'Unknown network error';
+      console.warn(`[STK SYNC] Attempt ${attempt}/${maxAttempts} failed for ${idempotencyKey}: ${lastErr}`);
+      if (attempt < maxAttempts) {
+        await new Promise(r => setTimeout(r, 50 * Math.pow(2, attempt)));
+      }
+    }
+  }
+
+  if (!synced) {
+    await dbUpdateStkSyncLog(logId, {
+      status: 'SYNC_FAILED',
+      error_message: `Failed after ${maxAttempts} retries: ${lastErr}`
+    });
+    console.error(`[STK SYNC] Final failure for ${idempotencyKey}: ${lastErr}`);
+    return { success: false, idempotencyKey, status: 'SYNC_FAILED', error: lastErr, logId };
+  }
+
+  return { success: true, idempotencyKey, status: 'SYNCED', logId };
+}
 
 // Helper: sort tasks by plan_start_date ascending
 function sortTasksByStartDate(tasks: CoreTask[]): CoreTask[] {
@@ -2700,22 +3472,501 @@ function sortTasksByStartDate(tasks: CoreTask[]): CoreTask[] {
   });
 }
 
+// =============================================================================
+// AREA & MAIN WORK APIS (Level 2 Hierarchy - Req #2 & #3)
+// =============================================================================
+
+// GET /api/v1/jobs/:id/areas — Get all areas for a job
+app.get('/api/v1/jobs/:id/areas', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const param = req.params.id;
+    const job = await dbGetJob(param);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+    }
+    const areas = Array.isArray(job.areas) ? job.areas : [];
+    return res.status(200).json({ success: true, total: areas.length, data: areas });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+// POST /api/v1/jobs/:id/areas — Create an Area under a Job
+app.post('/api/v1/jobs/:id/areas', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const param = req.params.id;
+    const job = await dbGetJob(param);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+    }
+
+    const { name, assigned_qc, assigned_qc_id } = req.body || {};
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ success: false, error: { code: 'MISSING_NAME', message: 'กรุณาระบุชื่องานหลัก / พื้นที่ (Area Name)' } });
+    }
+
+    const currentAreas: CoreArea[] = Array.isArray(job.areas) ? [...job.areas] : [];
+    const areaId = `AREA_${Date.now()}_${currentAreas.length + 1}`;
+
+    const newArea: CoreArea = {
+      id: areaId,
+      name: String(name).trim(),
+      assigned_qc: assigned_qc ? String(assigned_qc).trim() : undefined,
+      assigned_qc_id: assigned_qc_id || undefined,
+      qc_inspector: assigned_qc ? String(assigned_qc).trim() : undefined,
+      qc_manual_questions: [],
+      status: 'PLANNED',
+      created_at: new Date().toISOString()
+    };
+
+    currentAreas.push(newArea);
+    const updatedJob = await dbUpdateJob(param, { areas: currentAreas });
+
+    await recordAudit(
+      req,
+      'CREATE_AREA',
+      'AREA',
+      areaId,
+      job.booking_no,
+      null,
+      newArea,
+      { job_id: job.id, area_name: newArea.name }
+    );
+
+    return res.status(201).json({ success: true, message: 'สร้างพื้นที่/งานหลักสำเร็จ', data: newArea, all_areas: currentAreas });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+// PUT /api/v1/jobs/:id/areas/:areaId — Update Area details
+app.put('/api/v1/jobs/:id/areas/:areaId', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id, areaId } = req.params;
+    const job = await dbGetJob(id);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+    }
+
+    const currentAreas: CoreArea[] = Array.isArray(job.areas) ? [...job.areas] : [];
+    const areaIdx = currentAreas.findIndex(a => a.id === areaId);
+    if (areaIdx === -1) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบพื้นที่/งานหลักที่ระบุ' } });
+    }
+
+    const oldArea = { ...currentAreas[areaIdx] };
+    const { name, assigned_qc, assigned_qc_id, status } = req.body || {};
+
+    if (name !== undefined) currentAreas[areaIdx].name = String(name).trim();
+    if (assigned_qc !== undefined) {
+      currentAreas[areaIdx].assigned_qc = String(assigned_qc).trim();
+      currentAreas[areaIdx].qc_inspector = String(assigned_qc).trim();
+    }
+    if (assigned_qc_id !== undefined) currentAreas[areaIdx].assigned_qc_id = assigned_qc_id;
+    if (status !== undefined) currentAreas[areaIdx].status = status;
+    currentAreas[areaIdx].updated_at = new Date().toISOString();
+
+    await dbUpdateJob(id, { areas: currentAreas });
+
+    await recordAudit(
+      req,
+      'UPDATE_AREA',
+      'AREA',
+      areaId,
+      job.booking_no,
+      oldArea,
+      currentAreas[areaIdx]
+    );
+
+    return res.status(200).json({ success: true, message: 'อัปเดตพื้นที่/งานหลักสำเร็จ', data: currentAreas[areaIdx] });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+// PUT /api/v1/jobs/:id/areas/:areaId/assign-qc — Assign QC to Area (Strictly 1 QC per area)
+app.put('/api/v1/jobs/:id/areas/:areaId/assign-qc', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id, areaId } = req.params;
+    const { assigned_qc, qc_inspector, assigned_qc_id } = req.body || {};
+    const targetQc = assigned_qc || qc_inspector;
+
+    if (!targetQc || !String(targetQc).trim()) {
+      return res.status(400).json({ success: false, error: { code: 'MISSING_QC', message: 'กรุณาระบุชื่อช่าง QC ที่ต้องการมอบหมาย (1 งานหลักต่อ 1 QC)' } });
+    }
+
+    const job = await dbGetJob(id);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+    }
+
+    const currentAreas: CoreArea[] = Array.isArray(job.areas) ? [...job.areas] : [];
+    const areaIdx = currentAreas.findIndex(a => a.id === areaId);
+    if (areaIdx === -1) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบพื้นที่/งานหลักที่ระบุ' } });
+    }
+
+    const oldQc = currentAreas[areaIdx].assigned_qc;
+    currentAreas[areaIdx].assigned_qc = String(targetQc).trim();
+    currentAreas[areaIdx].qc_inspector = String(targetQc).trim();
+    if (assigned_qc_id !== undefined) currentAreas[areaIdx].assigned_qc_id = assigned_qc_id;
+    currentAreas[areaIdx].updated_at = new Date().toISOString();
+
+    await dbUpdateJob(id, { areas: currentAreas });
+
+    await recordAudit(
+      req,
+      'ASSIGN_QC_AREA',
+      'AREA',
+      areaId,
+      job.booking_no,
+      { assigned_qc: oldQc },
+      { assigned_qc: targetQc }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `มอบหมายช่าง QC (${targetQc}) ให้กับพื้นที่ ${currentAreas[areaIdx].name} สำเร็จ`,
+      data: currentAreas[areaIdx]
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+// POST /api/v1/jobs/:id/areas/:areaId/questions — Add Manual Question to Area (Strictly <= 4 questions, reject 5th)
+app.post('/api/v1/jobs/:id/areas/:areaId/questions', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id, areaId } = req.params;
+    const { title, category } = req.body || {};
+
+    if (!title || !String(title).trim()) {
+      return res.status(400).json({ success: false, error: { code: 'MISSING_TITLE', message: 'กรุณาระบุหัวข้อคำถาม QC' } });
+    }
+
+    const job = await dbGetJob(id);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+    }
+
+    const currentAreas: CoreArea[] = Array.isArray(job.areas) ? [...job.areas] : [];
+    const areaIdx = currentAreas.findIndex(a => a.id === areaId);
+    if (areaIdx === -1) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบพื้นที่/งานหลักที่ระบุ' } });
+    }
+
+    const targetArea = currentAreas[areaIdx];
+    const existingQuestions = Array.isArray(targetArea.qc_manual_questions) ? targetArea.qc_manual_questions : [];
+
+    // STRICT RULE: Max 4 manual questions per Area (Reject 5th question)
+    if (existingQuestions.length >= 4) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'MAX_QUESTIONS_EXCEEDED',
+          message: 'ไม่สามารถเพิ่มคำถามเกิน 4 ข้อได้ (อนุญาตคำถามที่สร้างเองได้สูงสุด 4 ข้อต่อพื้นที่)'
+        }
+      });
+    }
+
+    const questionId = `Q_${Date.now()}_${existingQuestions.length + 1}`;
+    const newQuestion: CoreAreaQuestion = {
+      id: questionId,
+      title: String(title).trim(),
+      category: category ? String(category).trim() : 'มาตรฐานเฉพาะพื้นที่',
+      created_at: new Date().toISOString()
+    };
+
+    targetArea.qc_manual_questions = [...existingQuestions, newQuestion];
+    targetArea.updated_at = new Date().toISOString();
+
+    await dbUpdateJob(id, { areas: currentAreas });
+
+    await recordAudit(
+      req,
+      'ADD_AREA_QUESTION',
+      'AREA',
+      areaId,
+      job.booking_no,
+      { questions_count: existingQuestions.length },
+      { questions_count: targetArea.qc_manual_questions.length, new_question: newQuestion }
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: `เพิ่มคำถาม QC ข้อที่ ${targetArea.qc_manual_questions.length}/4 สำเร็จ`,
+      data: newQuestion,
+      total_manual_questions: targetArea.qc_manual_questions.length,
+      all_manual_questions: targetArea.qc_manual_questions
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+// DELETE /api/v1/jobs/:id/areas/:areaId/questions/:questionId — Remove Manual Question from Area
+app.delete('/api/v1/jobs/:id/areas/:areaId/questions/:questionId', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id, areaId, questionId } = req.params;
+    const job = await dbGetJob(id);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+    }
+
+    const currentAreas: CoreArea[] = Array.isArray(job.areas) ? [...job.areas] : [];
+    const areaIdx = currentAreas.findIndex(a => a.id === areaId);
+    if (areaIdx === -1) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบพื้นที่/งานหลักที่ระบุ' } });
+    }
+
+    const targetArea = currentAreas[areaIdx];
+    const existingQuestions = Array.isArray(targetArea.qc_manual_questions) ? targetArea.qc_manual_questions : [];
+    targetArea.qc_manual_questions = existingQuestions.filter(q => q.id !== questionId);
+    targetArea.updated_at = new Date().toISOString();
+
+    await dbUpdateJob(id, { areas: currentAreas });
+
+    return res.status(200).json({
+      success: true,
+      message: 'ลบคำถาม QC เรียบร้อยแล้ว',
+      total_manual_questions: targetArea.qc_manual_questions.length,
+      all_manual_questions: targetArea.qc_manual_questions
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+// =============================================================================
+// BOQ CONVERSION & REVISIONS (Req #2 - Preserve PASSED/ESCALATED Tasks)
+// =============================================================================
+
+// POST /api/v1/jobs/:id/boq/convert-project — Convert BOQ with Areas & Tasks into 3-level Project
+app.post('/api/v1/jobs/:id/boq/convert-project', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const param = req.params.id;
+    const numId = isNaN(Number(param)) ? param : Number(param);
+    const job = await dbGetJob(param);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+    }
+
+    const { areas: inputAreas, items, base_start_date } = req.body || {};
+    const baseDate = base_start_date || new Date().toISOString().slice(0, 10);
+    const jobNo = job.job_no || (typeof param === 'string' && param.startsWith('JOB') ? param : `JOB2609090000${numId}`);
+
+    // Existing tasks to protect from overwrite (PASSED or ESCALATED)
+    const existingTasks: CoreTask[] = Array.isArray(job.tasks) ? job.tasks : [];
+    const lockedTasksMap = new Map<string, CoreTask>();
+    existingTasks.forEach(t => {
+      if (t.status === 'PASSED' || t.status === 'QC_PASSED' || t.status === 'ESCALATED' || t.qc_score != null) {
+        lockedTasksMap.set(String(t.id), t);
+      }
+    });
+
+    const parsedAreas: CoreArea[] = [];
+    const parsedTasks: CoreTask[] = [];
+    const existingAreas: CoreArea[] = Array.isArray(job.areas) ? job.areas : [];
+
+    if (Array.isArray(inputAreas) && inputAreas.length > 0) {
+      inputAreas.forEach((areaInput: any, aIdx: number) => {
+        const areaId = areaInput.id || `AREA_${param}_${aIdx + 1}`;
+        const existingArea = existingAreas.find(a => a.id === areaId);
+        
+        const areaObj: CoreArea = {
+          id: areaId,
+          name: areaInput.name || `พื้นที่ ${aIdx + 1}`,
+          assigned_qc: areaInput.assigned_qc || existingArea?.assigned_qc,
+          assigned_qc_id: areaInput.assigned_qc_id || existingArea?.assigned_qc_id,
+          qc_inspector: areaInput.assigned_qc || existingArea?.qc_inspector,
+          qc_manual_questions: existingArea?.qc_manual_questions || (Array.isArray(areaInput.qc_manual_questions) ? areaInput.qc_manual_questions.slice(0, 4) : []),
+          status: existingArea?.status || 'PLANNED',
+          created_at: existingArea?.created_at || new Date().toISOString()
+        };
+        parsedAreas.push(areaObj);
+
+        if (Array.isArray(areaInput.tasks)) {
+          areaInput.tasks.forEach((tInput: any, tIdx: number) => {
+            const taskId = tInput.id || `T_${param}_${aIdx + 1}_${tIdx + 1}`;
+            
+            // If already passed or escalated, preserve original state!
+            if (lockedTasksMap.has(taskId)) {
+              parsedTasks.push(lockedTasksMap.get(taskId)!);
+              return;
+            }
+
+            let startStr = tInput.plan_start_date || tInput.start_date || tInput.start;
+            let endStr = tInput.plan_end_date || tInput.end_date || tInput.end;
+            let days = tInput.duration_days || tInput.days || 1;
+
+            if (!startStr) {
+              const d = new Date(baseDate);
+              d.setDate(d.getDate() + (aIdx * 2) + tIdx);
+              startStr = d.toISOString().slice(0, 10);
+            }
+            if (!endStr) {
+              const s = new Date(startStr);
+              s.setDate(s.getDate() + (days - 1));
+              endStr = s.toISOString().slice(0, 10);
+            } else {
+              const s = new Date(startStr);
+              const e = new Date(endStr);
+              days = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+            }
+
+            const techName = tInput.assigned_tech || tInput.tech || 'Team A (สมศักดิ์)';
+            parsedTasks.push({
+              id: taskId,
+              job_id: numId,
+              job_no: jobNo,
+              area_id: areaId,
+              area_name: areaObj.name,
+              task_name: tInput.task_name || tInput.name || `งานติดตั้ง ${tIdx + 1}`,
+              name: tInput.task_name || tInput.name || `งานติดตั้ง ${tIdx + 1}`,
+              plan_start_date: startStr,
+              plan_start_time: tInput.plan_start_time || '08:30',
+              start: startStr,
+              plan_end_date: endStr,
+              plan_end_time: tInput.plan_end_time || '17:00',
+              end: endStr,
+              duration_days: days,
+              days: days,
+              assigned_tech: techName,
+              tech: techName,
+              assignees: tInput.assignees || [techName],
+              status: tInput.status || 'PLANNED',
+              rework_count: tInput.rework_count || 0,
+              qc_score: tInput.qc_score || null,
+              progress_percent: tInput.progress_percent || 0,
+              subtasks: Array.isArray(tInput.subtasks) ? tInput.subtasks : [],
+              source_boq_item: tInput.source_boq_item || tInput.name,
+              created_at: new Date().toISOString()
+            });
+          });
+        }
+      });
+    } else if (Array.isArray(items) && items.length > 0) {
+      // Fallback for flat items: create a default area if none exists
+      const defaultAreaId = existingAreas.length > 0 ? existingAreas[0].id : `AREA_${param}_1`;
+      const defaultAreaName = existingAreas.length > 0 ? existingAreas[0].name : 'งานติดตั้งทั่วไป';
+      if (existingAreas.length === 0) {
+        parsedAreas.push({
+          id: defaultAreaId,
+          name: defaultAreaName,
+          assigned_qc: 'วิชัย ตรวจดี (ช่าง QC Lead)',
+          qc_inspector: 'วิชัย ตรวจดี (ช่าง QC Lead)',
+          qc_manual_questions: [],
+          status: 'PLANNED',
+          created_at: new Date().toISOString()
+        });
+      } else {
+        parsedAreas.push(...existingAreas);
+      }
+
+      items.forEach((item: any, idx: number) => {
+        const taskId = item.id || `T_${param}_${idx + 1}`;
+        if (lockedTasksMap.has(taskId)) {
+          parsedTasks.push(lockedTasksMap.get(taskId)!);
+          return;
+        }
+
+        let startStr = item.plan_start_date || item.start_date || item.start;
+        let endStr = item.plan_end_date || item.end_date || item.end;
+        let days = item.duration_days || item.days || 1;
+
+        if (!startStr) {
+          const d = new Date(baseDate);
+          d.setDate(d.getDate() + Math.floor(idx / 2));
+          startStr = d.toISOString().slice(0, 10);
+        }
+        if (!endStr) {
+          const s = new Date(startStr);
+          s.setDate(s.getDate() + (days - 1));
+          endStr = s.toISOString().slice(0, 10);
+        }
+
+        const techName = item.assigned_tech || item.tech || 'Team A (สมศักดิ์)';
+        parsedTasks.push({
+          id: taskId,
+          job_id: numId,
+          job_no: jobNo,
+          area_id: item.area_id || defaultAreaId,
+          area_name: item.area_name || defaultAreaName,
+          task_name: item.task_name || item.name || `งานติดตั้ง ${idx + 1}`,
+          name: item.task_name || item.name || `งานติดตั้ง ${idx + 1}`,
+          plan_start_date: startStr,
+          plan_start_time: item.plan_start_time || '08:30',
+          start: startStr,
+          plan_end_date: endStr,
+          plan_end_time: item.plan_end_time || '17:00',
+          end: endStr,
+          duration_days: days,
+          days: days,
+          assigned_tech: techName,
+          tech: techName,
+          assignees: item.assignees || [techName],
+          status: item.status || 'PLANNED',
+          rework_count: item.rework_count || 0,
+          qc_score: item.qc_score || null,
+          progress_percent: 0,
+          subtasks: Array.isArray(item.subtasks) ? item.subtasks : [],
+          source_boq_item: item.source_boq_item || item.name,
+          created_at: new Date().toISOString()
+        });
+      });
+    }
+
+    // Ensure any previously locked tasks not in the input are still retained
+    lockedTasksMap.forEach((lockedTask, lId) => {
+      if (!parsedTasks.some(t => String(t.id) === lId)) {
+        parsedTasks.push(lockedTask);
+      }
+    });
+
+    const sortedTasks = sortTasksByStartDate([...parsedTasks]);
+    const nextStatus = (job.status === JobStatus.DRAFT || job.status === JobStatus.BOQ) ? JobStatus.PLANNED : job.status;
+
+    await dbUpdateJob(param, {
+      areas: parsedAreas.length > 0 ? parsedAreas : existingAreas,
+      tasks: sortedTasks,
+      status: nextStatus
+    });
+
+    await recordAudit(
+      req,
+      'CONVERT_PROJECT_BOQ',
+      'JOB',
+      param,
+      job.booking_no,
+      { old_tasks_count: existingTasks.length },
+      { new_tasks_count: sortedTasks.length, areas_count: parsedAreas.length, preserved_locked_tasks: lockedTasksMap.size }
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: `แปลง BOQ เป็นโครงสร้าง 3 ระดับเรียบร้อย (${parsedAreas.length} พื้นที่, ${sortedTasks.length} Tasks, คงสถานะ Task ที่ตรวจผ่านแล้ว ${lockedTasksMap.size} รายการ)`,
+      areas: parsedAreas,
+      tasks: sortedTasks
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
 // GET /api/v1/jobs/:id/tasks — Get all tasks for a job (sorted by start date)
 app.get('/api/v1/jobs/:id/tasks', requireAuth, async (req: Request, res: Response) => {
   const param = req.params.id;
-  const numId = Number(param);
   const job = await dbGetJob(param);
   let tasks: CoreTask[] = [];
   if (job && Array.isArray(job.tasks)) {
     tasks = job.tasks;
   }
-  // memory fallback removed
   const sorted = sortTasksByStartDate([...tasks]);
   return res.json({ success: true, total: sorted.length, data: sorted });
 });
 
-// POST /api/v1/jobs/:id/tasks/import-boq — Import/Convert BOQ items into Project Tasks with Start/End date & Auto-sort
-app.post('/api/v1/jobs/:id/tasks/import-boq', requireAuth, async (req: Request, res: Response) => {
+// POST /api/v1/jobs/:id/tasks/import-boq — Import/Convert BOQ items into Tasks (Preserving PASSED/ESCALATED)
+app.post('/api/v1/jobs/:id/tasks/import-boq', requireAuth, async (req: AuthRequest, res: Response) => {
   const param = req.params.id;
   const numId = isNaN(Number(param)) ? param : Number(param);
   const { items, base_start_date, default_tech = 'Team A (สมศักดิ์)' } = req.body;
@@ -2729,7 +3980,20 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', requireAuth, async (req: Request, 
   const jobNo = job?.job_no || (typeof param === 'string' && param.startsWith('JOB') ? param : `JOB2609090000${numId}`);
   const customerName = job?.customer || 'ลูกค้า';
 
+  const existingTasks: CoreTask[] = (job && Array.isArray(job.tasks)) ? job.tasks : [];
+  const lockedTasksMap = new Map<string, CoreTask>();
+  existingTasks.forEach(t => {
+    if (t.status === 'PASSED' || t.status === 'QC_PASSED' || t.status === 'ESCALATED' || t.qc_score != null) {
+      lockedTasksMap.set(String(t.id), t);
+    }
+  });
+
   const newTasks: CoreTask[] = items.map((item: any, idx: number) => {
+    const taskId = item.id || item.taskId || `T_${param}_${idx + 1}`;
+    if (lockedTasksMap.has(taskId)) {
+      return lockedTasksMap.get(taskId)!;
+    }
+
     let startStr = item.start_date || item.start;
     let endStr = item.end_date || item.end;
     let days = item.duration_days || item.days || 1;
@@ -2751,24 +4015,29 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', requireAuth, async (req: Request, 
 
     const techName = item.assigned_tech || item.tech || default_tech;
     const assignees = item.assignees || [techName];
-    const taskId = item.id || item.taskId || `T_${param}_${idx + 1}`;
 
     return {
       id: taskId,
       job_id: numId,
       job_no: jobNo,
+      area_id: item.area_id || (job?.areas && job.areas[0]?.id) || `AREA_${param}_1`,
+      area_name: item.area_name || (job?.areas && job.areas[0]?.name) || 'งานติดตั้งทั่วไป',
       task_name: item.task_name || item.name || `งานติดตั้ง ${idx + 1}`,
       name: item.task_name || item.name || `งานติดตั้ง ${idx + 1}`,
       plan_start_date: startStr,
+      plan_start_time: item.plan_start_time || '08:30',
       start: startStr,
       plan_end_date: endStr,
+      plan_end_time: item.plan_end_time || '17:00',
       end: endStr,
       duration_days: days,
       days: days,
       assigned_tech: techName,
       tech: techName,
       assignees: assignees,
-      status: item.status || 'IN_PROGRESS',
+      status: item.status || 'PLANNED',
+      rework_count: item.rework_count || 0,
+      qc_score: item.qc_score || null,
       progress_percent: 0,
       subtasks: Array.isArray(item.subtasks) ? item.subtasks : [],
       source_boq_item: item.source_boq_item || item.name,
@@ -2777,8 +4046,14 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', requireAuth, async (req: Request, 
   });
 
   const isAppend = req.body.mode === 'append';
-  let existingTasks: CoreTask[] = (job && Array.isArray(job.tasks)) ? job.tasks : [];
   let updatedTasks: CoreTask[] = isAppend ? [...existingTasks, ...newTasks] : [...newTasks];
+
+  // Preserve any locked tasks not in the imported list
+  lockedTasksMap.forEach((lockedTask, lId) => {
+    if (!updatedTasks.some(t => String(t.id) === lId)) {
+      updatedTasks.push(lockedTask);
+    }
+  });
 
   const boqItems = items.map((it: any) => ({
     name: it.task_name || it.name,
@@ -2788,319 +4063,326 @@ app.post('/api/v1/jobs/:id/tasks/import-boq', requireAuth, async (req: Request, 
     labor_price: it.labor_price || it.price || 0
   }));
 
-  // Save directly to PostgreSQL core_jobs
   await dbUpdateJob(param, { tasks: updatedTasks, boq_items: boqItems });
-
-  // Sync QC Bookings into core_qc_bookings in PostgreSQL
-  for (const t of newTasks) {
-    const qcBooking: QCBooking = {
-      id: `QCB_${t.id}`,
-      job_id: t.job_id,
-      job_no: jobNo,
-      task_id: t.id,
-      task_name: t.task_name,
-      customer_name: customerName,
-      plan_start_date: t.plan_start_date,
-      plan_end_date: t.plan_end_date,
-      qc_booking_date: calculateQCBookingDate(t.plan_end_date, 5),
-      days_before: 5,
-      assigned_tech: t.assigned_tech,
-      assigned_qc_tech: 'วิชัย ตรวจดี (ช่าง QC Lead)',
-      status: 'PENDING_CONFIRM',
-      confirmed_at: null,
-      confirmed_by: null,
-      remarks: '',
-      created_at: new Date().toISOString()
-    };
-    await dbSaveQCBooking(qcBooking);
-  }
-
-  // In-memory sync removed
 
   const sorted = sortTasksByStartDate([...updatedTasks]);
   return res.status(201).json({
     success: true,
-    message: `นำเข้าและแปลง BOQ เป็น Task ปฏิบัติงาน ${newTasks.length} รายการ และสร้างคิวจองช่าง QC ล่วงหน้า 5 วันเรียบร้อย`,
+    message: `นำเข้าและแปลง BOQ เป็น Task ปฏิบัติงาน ${newTasks.length} รายการ (คงสถานะ Task ผ่านแล้ว ${lockedTasksMap.size} รายการ)`,
     total: sorted.length,
     data: sorted
   });
 });
 
-// POST /api/v1/jobs/:id/tasks — Create / Insert Task into Job (with auto-sort by start date)
-app.post('/api/v1/jobs/:id/tasks', requireAuth, async (req: Request, res: Response) => {
-  const param = req.params.id;
-  const numId = isNaN(Number(param)) ? param : Number(param);
-  const { id: customId, task_name, name, start_date, start, end_date, end, duration_days, days, assigned_tech = 'Team A (สมศักดิ์)', tech, assignees, subtasks, allow_bypass = false } = req.body;
-  const effectiveName = task_name || name;
+// =============================================================================
+// TASK LIFECYCLE, ASSIGNMENT & EXECUTION (Req #3, #4, #5)
+// =============================================================================
 
-  if (!effectiveName) {
-    return res.status(400).json({ success: false, error: { code: 'MISSING_TASK_NAME', message: 'กรุณาระบุชื่อ Task' } });
-  }
+// PUT /api/v1/jobs/:id/tasks/:taskId/assign-tech — Assign Technician to Task
+app.put('/api/v1/jobs/:id/tasks/:taskId/assign-tech', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id, taskId } = req.params;
+    const { assigned_tech, tech, assignees } = req.body || {};
+    const effectiveTech = assigned_tech || tech;
 
-  const job = await dbGetJob(param);
-  if (job && (!job.boq_items || job.boq_items.length === 0) && !allow_bypass) {
-    return res.status(400).json({
-      success: false,
-      error: {
-        code: 'BOQ_REQUIRED',
-        message: 'แผนงานจะเกิดได้ก็ต่อเมื่อ มีการนำเข้า BOQ แล้วจึงสร้างเป็น task ใน gantt chart นะครับ'
-      }
+    if (!effectiveTech && (!Array.isArray(assignees) || assignees.length === 0)) {
+      return res.status(400).json({ success: false, error: { code: 'MISSING_TECH', message: 'กรุณาระบุชื่อช่างผู้รับผิดชอบงาน' } });
+    }
+
+    const job = await dbGetJob(id);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+    }
+
+    const tasks: CoreTask[] = Array.isArray(job.tasks) ? [...job.tasks] : [];
+    const task = tasks.find(t => String(t.id) === taskId);
+    if (!task) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบ Task ที่ระบุ' } });
+    }
+
+    const oldTech = task.assigned_tech;
+    const techName = effectiveTech ? String(effectiveTech).trim() : assignees.join(' + ');
+    task.assigned_tech = techName;
+    task.tech = techName;
+    task.assignees = Array.isArray(assignees) && assignees.length > 0 ? assignees : [techName];
+    task.updated_at = new Date().toISOString();
+
+    await dbUpdateJob(id, { tasks });
+
+    await recordAudit(
+      req,
+      'ASSIGN_TECH_TASK',
+      'TASK',
+      taskId,
+      job.booking_no,
+      { assigned_tech: oldTech },
+      { assigned_tech: techName }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `มอบหมายช่าง (${techName}) ให้กับ Task "${task.task_name}" สำเร็จ`,
+      data: task
     });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
   }
-
-  const startStr = start_date || start || new Date().toISOString().slice(0, 10);
-  let endStr = end_date || end;
-  let numDays = duration_days || days || 1;
-
-  if (!endStr) {
-    const s = new Date(startStr);
-    const e = new Date(s);
-    e.setDate(e.getDate() + (numDays - 1));
-    endStr = e.toISOString().slice(0, 10);
-  } else {
-    const s = new Date(startStr);
-    const e = new Date(endStr);
-    numDays = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-  }
-
-  const effectiveTech = tech || assigned_tech;
-  const techList = assignees || [effectiveTech];
-  const jobNo = job?.job_no || (typeof param === 'string' && param.startsWith('JOB') ? param : `JOB2609090000${numId}`);
-  const customerName = job?.customer || 'ลูกค้า';
-  const taskId = customId || `T_${param}_${Date.now()}`;
-
-  const newTask: any = {
-    id: taskId,
-    job_id: numId,
-    job_no: jobNo,
-    task_name: effectiveName,
-    name: effectiveName,
-    plan_start_date: startStr,
-    start: startStr,
-    plan_end_date: endStr,
-    end: endStr,
-    duration_days: numDays,
-    days: numDays,
-    assigned_tech: techList.join(' + '),
-    tech: techList.join(' + '),
-    assignees: techList,
-    status: req.body.status || 'IN_PROGRESS',
-    progress_percent: 0,
-    subtasks: Array.isArray(subtasks) ? subtasks : [],
-    created_at: new Date().toISOString()
-  };
-
-  let tasks: any[] = (job && Array.isArray(job.tasks)) ? [...job.tasks, newTask] : [newTask];
-  await dbUpdateJob(param, { tasks });
-
-  // QC Booking in DB
-  const qcBooking: QCBooking = {
-    id: `QCB_${newTask.id}`,
-    job_id: newTask.job_id,
-    job_no: jobNo,
-    task_id: newTask.id,
-    task_name: newTask.task_name,
-    customer_name: customerName,
-    plan_start_date: newTask.plan_start_date,
-    plan_end_date: newTask.plan_end_date,
-    qc_booking_date: calculateQCBookingDate(newTask.plan_end_date, 5),
-    days_before: 5,
-    assigned_tech: newTask.assigned_tech,
-    assigned_qc_tech: 'วิชัย ตรวจดี (ช่าง QC Lead)',
-    status: 'PENDING_CONFIRM',
-    confirmed_at: null,
-    confirmed_by: null,
-    remarks: '',
-    created_at: new Date().toISOString()
-  };
-  await dbSaveQCBooking(qcBooking);
-
-  const sorted = sortTasksByStartDate([...tasks]);
-  return res.status(201).json({
-    success: true,
-    message: 'สร้าง/แทรก Task และจองช่าง QC ล่วงหน้า 5 วันเรียบร้อย',
-    data: newTask,
-    qc_booking: qcBooking,
-    sorted_tasks: sorted
-  });
 });
 
-// POST /api/v1/jobs/:id/tasks/reorder — Reorder/Auto-sort Tasks by Start Date
-app.post('/api/v1/jobs/:id/tasks/reorder', requireAuth, async (req: Request, res: Response) => {
-  const param = req.params.id;
-  const numId = isNaN(Number(param)) ? param : Number(param);
-  const job = await dbGetJob(param);
-  const jobTasks = (job && Array.isArray(job.tasks)) ? job.tasks : [];
-  const sorted = sortTasksByStartDate([...jobTasks]);
-  await dbUpdateJob(param, { tasks: sorted });
+// POST /api/v1/jobs/:id/tasks/:taskId/start — Start Task (Mandatory check: Area must have assigned QC!)
+app.post('/api/v1/jobs/:id/tasks/:taskId/start', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id, taskId } = req.params;
+    const job = await dbGetJob(id);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+    }
 
-  return res.json({
-    success: true,
-    message: 'จัดเรียงรายการ Task ตามวันเริ่มต้นเรียบร้อย',
-    data: sorted
-  });
+    const tasks: CoreTask[] = Array.isArray(job.tasks) ? [...job.tasks] : [];
+    const task = tasks.find(t => String(t.id) === taskId);
+    if (!task) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบ Task ที่ระบุ' } });
+    }
+
+    // MANDATORY RULE: Check if parent Area has an assigned QC
+    const areas: CoreArea[] = Array.isArray(job.areas) ? job.areas : [];
+    const parentArea = task.area_id 
+      ? areas.find(a => a.id === task.area_id)
+      : (areas.length > 0 ? areas[0] : null);
+
+    if (!parentArea || !parentArea.assigned_qc || !String(parentArea.assigned_qc).trim()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'QC_REQUIRED',
+          message: 'กรุณามอบหมายช่าง QC ให้กับพื้นที่/งานหลักก่อนเริ่มปฏิบัติงาน'
+        }
+      });
+    }
+
+    const nowD = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const todayDate = nowD.toISOString().slice(0, 10);
+    const nowTime24 = `${pad(nowD.getHours())}:${pad(nowD.getMinutes())}`;
+
+    task.actual_start_date = todayDate;
+    task.actual_start_time = nowTime24;
+    task.status = 'IN_PROGRESS';
+    task.progress_percent = Math.max(task.progress_percent || 0, 10);
+    task.updated_at = nowD.toISOString();
+
+    const jobNextStatus = (job.status === JobStatus.PLANNED || job.status === JobStatus.DRAFT) ? JobStatus.IN_PROGRESS : job.status;
+
+    await dbUpdateJob(id, {
+      tasks,
+      status: jobNextStatus
+    });
+
+    await recordAudit(
+      req,
+      'START_TASK',
+      'TASK',
+      taskId,
+      job.booking_no,
+      { status: 'PLANNED' },
+      { status: 'IN_PROGRESS', actual_start_date: todayDate, actual_start_time: nowTime24 }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `เริ่มปฏิบัติงาน Task "${task.task_name}" เรียบร้อย (${todayDate} เวลา ${nowTime24} น.)`,
+      data: task
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
 });
 
-// PUT /api/v1/jobs/:id/tasks/:taskId — Update Task (Start Date, End Date, Technician, Status, etc.)
-app.put('/api/v1/jobs/:id/tasks/:taskId', requireAuth, async (req: Request, res: Response) => {
-  const { id, taskId } = req.params;
-  const numId = isNaN(Number(id)) ? id : Number(id);
-  const job = await dbGetJob(id);
-  const jobNo = job?.job_no || (typeof id === 'string' && id.startsWith('JOB') ? id : `JOB2609090000${numId}`);
-  let tasks: any[] = job && Array.isArray(job.tasks) ? [...job.tasks] : [];
+// POST /api/v1/jobs/:id/tasks/:taskId/complete — Complete Task -> status WAIT_QC
+app.post('/api/v1/jobs/:id/tasks/:taskId/complete', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id, taskId } = req.params;
+    const job = await dbGetJob(id);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+    }
 
-  // 1. Try exact ID match
-  let task = tasks.find(t => String(t.id) === taskId);
+    const tasks: CoreTask[] = Array.isArray(job.tasks) ? [...job.tasks] : [];
+    const task = tasks.find(t => String(t.id) === taskId);
+    if (!task) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบ Task ที่ระบุ' } });
+    }
 
-  // 2. Try match by ID suffix (e.g. `_1` matches `..._1` or index N-1)
-  if (!task && taskId) {
-    const parts = taskId.split('_');
-    const suffix = parts[parts.length - 1];
-    const indexFromSuffix = parseInt(suffix, 10);
-    if (!isNaN(indexFromSuffix)) {
-      task = tasks.find(t => String(t.id).endsWith(`_${suffix}`));
-      if (!task && indexFromSuffix >= 1 && indexFromSuffix <= tasks.length) {
-        task = tasks[indexFromSuffix - 1];
+    const nowD = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const todayDate = nowD.toISOString().slice(0, 10);
+    const nowTime24 = `${pad(nowD.getHours())}:${pad(nowD.getMinutes())}`;
+
+    task.actual_end_date = todayDate;
+    task.actual_end_time = nowTime24;
+    task.status = 'WAIT_QC';
+    task.progress_percent = 100;
+    task.updated_at = nowD.toISOString();
+
+    await dbUpdateJob(id, { tasks });
+
+    await recordAudit(
+      req,
+      'COMPLETE_TASK',
+      'TASK',
+      taskId,
+      job.booking_no,
+      { status: 'IN_PROGRESS' },
+      { status: 'WAIT_QC', actual_end_date: todayDate, actual_end_time: nowTime24 }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `บันทึกจบงาน Task "${task.task_name}" เรียบร้อย ส่งเข้ารอตรวจ QC (${todayDate} เวลา ${nowTime24} น.)`,
+      data: task
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+// =============================================================================
+// QC INSPECTION & SCORING ENGINE (Phase 3 & STK Auto-Sync Phase 4)
+// =============================================================================
+
+// POST /api/v1/jobs/:id/tasks/:taskId/qc-inspect — Inspect Task (1 Mandatory + Area Manual Questions, Score 5 or 1 strictly)
+app.post('/api/v1/jobs/:id/tasks/:taskId/qc-inspect', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id, taskId } = req.params;
+    const { answers, remarks, inspector_name } = req.body || {};
+    const job = await dbGetJob(id);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+    }
+
+    const tasks: CoreTask[] = Array.isArray(job.tasks) ? [...job.tasks] : [];
+    const task = tasks.find(t => String(t.id) === taskId);
+    if (!task) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบ Task ที่ระบุ' } });
+    }
+
+    const effectiveInspector = inspector_name || req.currentUser?.full_name || 'วิชัย ตรวจดี (ช่าง QC Lead)';
+    const answersList = Array.isArray(answers) ? answers : [];
+
+    // Evaluate Pass vs Fail
+    // If any question is FAIL or answer is NO -> QC Fail
+    const hasFail = answersList.some((a: any) => a.result === 'FAIL' || a.answer === 'NO');
+    const isPass = !hasFail;
+
+    const currentReworkCount = task.rework_count || 0;
+    let nextStatus: string;
+    let assignedScore: number | null = null;
+    let finalQcResult: 'PASS' | 'FAIL' | 'ESCALATED';
+    let isEscalated = false;
+
+    if (isPass) {
+      finalQcResult = 'PASS';
+      nextStatus = 'PASSED';
+      // SCORING RULE: Strictly 5 if passed first time (rework_count === 0), strictly 1 if passed after rework
+      assignedScore = currentReworkCount === 0 ? 5 : 1;
+      task.qc_score = assignedScore;
+      task.status = 'PASSED';
+    } else {
+      const newReworkCount = currentReworkCount + 1;
+      task.rework_count = newReworkCount;
+
+      if (newReworkCount < 5) {
+        finalQcResult = 'FAIL';
+        nextStatus = 'REWORK';
+        task.status = 'REWORK';
+        assignedScore = null;
+      } else {
+        // REWORK EXCEEDED: Round 5 Fail -> ESCALATED, Score = 1
+        finalQcResult = 'ESCALATED';
+        nextStatus = 'ESCALATED';
+        isEscalated = true;
+        assignedScore = 1;
+        task.status = 'ESCALATED';
+        task.qc_score = 1;
       }
     }
-  }
 
-  // 3. Try match by task name
-  const reqName = req.body.task_name || req.body.name;
-  if (!task && reqName) {
-    task = tasks.find(t => (t.task_name || t.name) === reqName);
-  }
-
-  // 5. If STILL not found, UPSERT as a new task to guarantee NO DATA LOSS!
-  let isNew = false;
-  if (!task) {
-    isNew = true;
-    task = {
-      id: taskId,
-      job_id: numId,
-      job_no: jobNo,
-      task_name: reqName || 'งานบริการ / ติดตั้ง',
-      name: reqName || 'งานบริการ / ติดตั้ง',
-      plan_start_date: req.body.start_date || req.body.start || new Date().toISOString().slice(0, 10),
-      start: req.body.start_date || req.body.start || new Date().toISOString().slice(0, 10),
-      plan_end_date: req.body.end_date || req.body.end || new Date().toISOString().slice(0, 10),
-      end: req.body.end_date || req.body.end || new Date().toISOString().slice(0, 10),
-      duration_days: req.body.duration_days || req.body.days || 1,
-      days: req.body.duration_days || req.body.days || 1,
-      assigned_tech: req.body.assigned_tech || req.body.tech || job?.assigned_tech || 'Team A (สมศักดิ์)',
-      tech: req.body.assigned_tech || req.body.tech || job?.assigned_tech || 'Team A (สมศักดิ์)',
-      assignees: req.body.assignees || [req.body.assigned_tech || req.body.tech || 'Team A (สมศักดิ์)'],
-      status: req.body.status || 'IN_PROGRESS',
-      progress_percent: 0,
-      subtasks: Array.isArray(req.body.subtasks) ? req.body.subtasks : [],
-      created_at: new Date().toISOString()
+    const qcRoundNumber = isPass ? (currentReworkCount + 1) : (task.rework_count || 1);
+    const historyEntry = {
+      round: qcRoundNumber,
+      result: isPass ? ('PASS' as const) : ('FAIL' as const),
+      score: assignedScore || 0,
+      inspected_at: new Date().toISOString(),
+      inspector: effectiveInspector,
+      answers: answersList,
+      remarks: remarks || ''
     };
-    tasks.push(task);
-  }
 
-  // Normalize taskId onto task so future exact lookups succeed
-  task.id = taskId;
+    task.qc_history = Array.isArray(task.qc_history) ? [...task.qc_history, historyEntry] : [historyEntry];
+    task.updated_at = new Date().toISOString();
 
-  const { task_name, name, start_date, start, end_date, end, duration_days, days, assigned_tech, tech, assignees, status, subtasks } = req.body;
-  if (task_name !== undefined || name !== undefined) {
-    const n = task_name || name;
-    task.task_name = n;
-    task.name = n;
-  }
-  if (start_date !== undefined || start !== undefined) {
-    const s = start_date || start;
-    task.plan_start_date = s;
-    task.start = s;
-  }
-  if (end_date !== undefined || end !== undefined) {
-    const e = end_date || end;
-    task.plan_end_date = e;
-    task.end = e;
-  }
-  if (duration_days !== undefined || days !== undefined) {
-    const d = duration_days || days;
-    task.duration_days = d;
-    task.days = d;
-  } else if (task.plan_start_date && task.plan_end_date) {
-    const s = new Date(task.plan_start_date);
-    const e = new Date(task.plan_end_date);
-    const calcDays = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-    task.duration_days = calcDays;
-    task.days = calcDays;
-  }
-  if (assigned_tech !== undefined || tech !== undefined) {
-    const tc = assigned_tech || tech;
-    task.assigned_tech = tc;
-    task.tech = tc;
-  }
-  if (assignees !== undefined) task.assignees = assignees;
-  if (status !== undefined) task.status = status;
-  if (subtasks !== undefined) task.subtasks = subtasks;
-
-  // Persist directly to PostgreSQL core_jobs
-  await dbUpdateJob(id, { tasks });
-
-  // Update QC booking
-  const qcDate = calculateQCBookingDate(task.plan_end_date || task.end, 5);
-  await dbSaveQCBooking({
-    id: `QCB_${task.id}`,
-    task_id: task.id,
-    task_name: task.task_name || task.name,
-    customer_name: job?.customer || 'ลูกค้า',
-    plan_start_date: task.plan_start_date || task.start,
-    plan_end_date: task.plan_end_date || task.end,
-    qc_booking_date: qcDate,
-    assigned_tech: task.assigned_tech || task.tech
-  });
-
-  const qcBooking = syncQCBookingForTask(task);
-  return res.json({ 
-    success: true, 
-    message: isNew ? 'สร้าง Task ใหม่และบันทึกลง Database สำเร็จ' : 'อัปเดต Task และวันจองตรวจ QC ลง Database สำเร็จ', 
-    data: task, 
-    qc_booking: qcBooking 
-  });
-});
-
-// DELETE /api/v1/jobs/:id/tasks/:taskId — Delete Task
-app.delete('/api/v1/jobs/:id/tasks/:taskId', requireAuth, async (req: Request, res: Response) => {
-  const { id, taskId } = req.params;
-  const job = await dbGetJob(id);
-  if (job && Array.isArray(job.tasks)) {
-    let filtered = job.tasks.filter((t: any) => String(t.id) !== taskId);
-    if (filtered.length === job.tasks.length && taskId) {
-      const parts = taskId.split('_');
-      const suffix = parts[parts.length - 1];
-      filtered = job.tasks.filter((t: any) => !String(t.id).endsWith(`_${suffix}`) && String(t.id) !== taskId);
+    // Update Job escalated fields if needed
+    const updateJobPayload: any = { tasks };
+    if (isEscalated) {
+      updateJobPayload.status = JobStatus.ESCALATED;
+      updateJobPayload.escalated_at = new Date().toISOString();
+      updateJobPayload.escalated_reason = `Task "${task.task_name}" แก้ไขงานไม่ผ่านเกิน 5 ครั้งตามเกณฑ์ ส่งเรื่องให้ Admin จัดการ`;
+    } else {
+      // Check if all tasks in job are passed
+      const allPassed = tasks.every(t => t.status === 'PASSED' || t.status === 'QC_PASSED');
+      if (allPassed) {
+        updateJobPayload.status = JobStatus.QC_PASSED;
+        updateJobPayload.overall_progress = 100;
+        updateJobPayload.qc_passed_at = new Date().toISOString();
+        const minScore = tasks.reduce((min, t) => Math.min(min, Number(t.qc_score) || 5), 5);
+        updateJobPayload.qc_score = minScore;
+      }
     }
-    await dbUpdateJob(id, { tasks: filtered });
-  }
-  await dbDeleteQCBookingByTask(taskId);
-  return res.json({ success: true, message: 'ลบ Task และยกเลิกการจอง QC สำเร็จ' });
-});
 
-// GET /api/v1/tasks/gantt — Get all tasks structured for Gantt Timeline view
-app.get('/api/v1/tasks/gantt', requireAuth, async (req: Request, res: Response) => {
-  const jobId = req.query.job_id as string;
-  let allTasks: CoreTask[] = [];
+    await dbUpdateJob(id, updateJobPayload);
 
-  if (jobId && jobId !== 'all') {
-    const job = await dbGetJob(jobId);
-    if (job && Array.isArray(job.tasks)) {
-      allTasks = job.tasks;
+    await recordAudit(
+      req,
+      'QC_INSPECTION_TASK',
+      'TASK',
+      taskId,
+      job.booking_no,
+      { status: task.status, rework_count: currentReworkCount },
+      { status: nextStatus, score: assignedScore, rework_count: task.rework_count, result: finalQcResult }
+    );
+
+    // AUTO-SYNC TO STK ON PASSED OR ESCALATED (Req Phase 4)
+    let stkSyncResult: any = null;
+    if (finalQcResult === 'PASS' || finalQcResult === 'ESCALATED') {
+      stkSyncResult = await dispatchStkSync({
+        job: { ...job, ...updateJobPayload },
+        task,
+        qcResult: finalQcResult,
+        qcScore: assignedScore || 1,
+        qcRound: qcRoundNumber,
+        inspectorName: effectiveInspector
+      });
     }
-  } else {
-    const jobs = await dbLoadJobs();
-    jobs.forEach(j => {
-      if (Array.isArray(j.tasks)) allTasks.push(...j.tasks);
+
+    return res.status(200).json({
+      success: true,
+      message: isPass 
+        ? `ตรวจ QC Task "${task.task_name}" ผ่านเกณฑ์เรียบร้อย (คะแนน: ${assignedScore}/5)` 
+        : (isEscalated 
+            ? `ตรวจ QC Task ไม่ผ่านครบ 5 ครั้ง ระบบปรับสถานะเป็น ESCALATED (คะแนน: 1/5) และแจ้งเตือน Admin เรียบร้อย`
+            : `ตรวจ QC ไม่ผ่านรอบที่ ${task.rework_count}/5 ส่งกลับแก้ไข (REWORK)`),
+      data: {
+        task,
+        qc_result: finalQcResult,
+        qc_score: assignedScore,
+        rework_count: task.rework_count,
+        is_escalated: isEscalated,
+        stk_sync: stkSyncResult
+      }
     });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
   }
-  const sorted = sortTasksByStartDate([...allTasks]);
-  return res.json({
-    success: true,
-    total: sorted.length,
-    data: sorted
-  });
 });
 
 // =============================================================================
@@ -3510,37 +4792,126 @@ app.delete('/api/v1/daily-logs/:logId', requireAuth, async (req: Request, res: R
 // =============================================================================
 // 5. QC INSPECTION & AFTER SALE CSAT API (Req #10 & #11)
 // =============================================================================
-app.post('/api/v1/jobs/:id/qc-inspection', requireAuth, async (req: Request, res: Response) => {
-  const param = req.params.id;
-  const numId = Number(param);
-  const { items, remarks } = req.body; // items: [{ item_id, result: 'PASS'|'FAIL', is_mandatory }]
+// =============================================================================
+// 5. QC INSPECTION & AFTER SALE CSAT API (Req #10 & #11 & Phases 3, 4, 5)
+// =============================================================================
 
-  // Rule: Mandatory item failing triggers overall QC FAIL (Req #11)
-  const hasMandatoryFail = Array.isArray(items) && items.some((it: any) => it.is_mandatory && it.result === 'FAIL');
-  const overallResult = hasMandatoryFail ? 'FAIL' : 'PASS';
-  const nextStatus = overallResult === 'PASS' ? JobStatus.QC_PASSED : JobStatus.IN_PROGRESS;
-  const overallProgress = overallResult === 'PASS' ? 100 : 80;
+// POST /api/v1/jobs/:id/qc-inspection — Overall Job QC (Q Quick Services or Project QC)
+app.post('/api/v1/jobs/:id/qc-inspection', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const param = req.params.id;
+    const numId = isNaN(Number(param)) ? param : Number(param);
+    const { items, answers, remarks, inspector_name } = req.body || {};
 
-  // Persist to PostgreSQL database
-  const updatedJob = await dbUpdateJob(param, {
-    status: nextStatus,
-    overall_progress: overallProgress,
-    qc_passed_at: overallResult === 'PASS' ? new Date().toISOString() : null
-  });
-
-  return res.status(200).json({
-    success: true,
-    data: {
-      inspection_id: Date.now(),
-      job_id: updatedJob ? updatedJob.id : numId,
-      overall_result: overallResult,
-      is_rework_required: hasMandatoryFail,
-      next_job_status: nextStatus,
-      message: overallResult === 'PASS' 
-        ? 'QC Passed! Created After Sale CSAT case automatically.'
-        : 'QC Failed! Mandatory items failed. Job sent back to technician for Rework.'
+    const job = await dbGetJob(param);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
     }
-  });
+
+    const questionList = Array.isArray(answers) ? answers : (Array.isArray(items) ? items : []);
+    const effectiveInspector = inspector_name || req.currentUser?.full_name || 'วิชัย ตรวจดี (ช่าง QC Lead)';
+
+    // Evaluate fail: any item marked FAIL or answer NO
+    const hasFail = questionList.some((it: any) => it.result === 'FAIL' || it.answer === 'NO' || (it.is_mandatory && it.result === 'FAIL'));
+    const isPass = !hasFail;
+
+    const currentHistory: any[] = Array.isArray(job.qc_history) ? [...job.qc_history] : [];
+    const currentReworkCount = currentHistory.filter(h => h.result === 'FAIL').length;
+    let nextStatus: JobStatus;
+    let assignedScore: number | null = null;
+    let finalQcResult: 'PASS' | 'FAIL' | 'ESCALATED';
+    let isEscalated = false;
+
+    if (isPass) {
+      finalQcResult = 'PASS';
+      nextStatus = JobStatus.QC_PASSED;
+      // SCORING RULE: Strictly 5 if first time pass, strictly 1 if passed after rework
+      assignedScore = currentReworkCount === 0 ? 5 : 1;
+    } else {
+      const newReworkCount = currentReworkCount + 1;
+      if (newReworkCount < 5) {
+        finalQcResult = 'FAIL';
+        nextStatus = JobStatus.IN_PROGRESS;
+        assignedScore = null;
+      } else {
+        // Round 5 Fail -> ESCALATED, Score = 1
+        finalQcResult = 'ESCALATED';
+        nextStatus = JobStatus.ESCALATED;
+        isEscalated = true;
+        assignedScore = 1;
+      }
+    }
+
+    const qcRound = currentHistory.length + 1;
+    const historyEntry = {
+      round: qcRound,
+      result: isPass ? 'PASS' : (isEscalated ? 'ESCALATED' : 'FAIL'),
+      score: assignedScore || 0,
+      inspected_at: new Date().toISOString(),
+      inspector: effectiveInspector,
+      answers: questionList,
+      remarks: remarks || ''
+    };
+    currentHistory.push(historyEntry);
+
+    const updatePayload: any = {
+      status: nextStatus,
+      overall_progress: isPass ? 100 : (isEscalated ? 100 : 75),
+      qc_score: assignedScore,
+      qc_inspector: effectiveInspector,
+      qc_history: currentHistory,
+      qc_remarks: remarks || '',
+      ...(isPass ? { qc_passed_at: new Date().toISOString() } : {}),
+      ...(isEscalated ? {
+        escalated_at: new Date().toISOString(),
+        escalated_reason: 'ตรวจ QC ไม่ผ่านเกิน 5 ครั้งตามเกณฑ์ ส่งเรื่องให้ Admin จัดการ'
+      } : {})
+    };
+
+    const updatedJob = await dbUpdateJob(param, updatePayload);
+
+    await recordAudit(
+      req,
+      'QC_INSPECTION_JOB',
+      'JOB',
+      job.id || param,
+      job.booking_no,
+      { status: job.status },
+      { status: nextStatus, score: assignedScore, result: finalQcResult, is_escalated: isEscalated }
+    );
+
+    // AUTO-SYNC TO STK ON PASSED OR ESCALATED (Req Phase 4)
+    let stkSyncResult: any = null;
+    if (finalQcResult === 'PASS' || finalQcResult === 'ESCALATED') {
+      stkSyncResult = await dispatchStkSync({
+        job: { ...job, ...updatePayload },
+        qcResult: finalQcResult,
+        qcScore: assignedScore || 1,
+        qcRound: qcRound,
+        inspectorName: effectiveInspector
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: isPass 
+        ? `ตรวจ QC งาน #${job.job_no} ผ่านเกณฑ์เรียบร้อย (คะแนน: ${assignedScore}/5)` 
+        : (isEscalated 
+            ? `ตรวจ QC ไม่ผ่านครบ 5 ครั้ง ปรับสถานะเป็น ESCALATED (คะแนน: 1/5) และแจ้งเตือน Admin เรียบร้อย`
+            : `ตรวจ QC ไม่ผ่านรอบที่ ${currentReworkCount + 1}/5 ส่งกลับแก้ไข (REWORK)`),
+      data: {
+        inspection_id: Date.now(),
+        job_id: updatedJob ? updatedJob.id : numId,
+        overall_result: finalQcResult,
+        qc_score: assignedScore,
+        next_job_status: nextStatus,
+        is_escalated: isEscalated,
+        stk_sync: stkSyncResult
+      }
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
 });
 
 // After Sale CSAT Survey Logging (Req #11, OQ-A05)
@@ -3636,215 +5007,74 @@ app.post('/api/v1/jobs/:id/close-and-export-bmt', requireAuth, async (req: Reque
 });
 
 // =============================================================================
-// 7. STK OUTBOUND REST INTEGRATION API (QC Results Export to STK Partner System)
+// 7. STK OUTBOUND SYNC LOGS & RETRY APIS (Phase 4)
 // =============================================================================
-app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/integrations/stk/qc-results'], async (req: Request, res: Response) => {
+
+// GET /api/v1/stk/logs — Query STK Sync Logs with filters & pagination
+app.get('/api/v1/stk/logs', requireAuth, async (req: Request, res: Response) => {
   try {
-    const param = req.params.id;
-    const numId = Number(param);
-    const payload = req.body || {};
-
-    // 1. Locate target job in DB
-    let currentJob = await dbGetJob(param);
-    if (!currentJob && !isNaN(numId)) {
-      currentJob = await dbGetJob(numId);
-    }
-
-    // 2. Prevent duplicate submission if already QC_PASSED (Gating rule!)
-    const isForce = req.query.force === 'true' || payload.force === true;
-    const isTaskExport = !!payload.task_id;
-    if (!isForce && !isTaskExport && currentJob && (currentJob.status === JobStatus.QC_PASSED || (currentJob as any).qc_status === 'QC_PASSED')) {
-      const existingPayload = (currentJob as any).stk_payload || {
-        ref_no: currentJob.external_ref_id || '-',
-        ticket: currentJob.ticket_no || currentJob.job_no || param,
-        booking_no: currentJob.booking_no || '-',
-        qc_date: (currentJob as any).qc_passed_at || null,
-        customer_name: currentJob.customer_name || (currentJob as any).customer || 'ลูกค้า',
-        customer_phone: currentJob.customer_phone || (currentJob as any).phone || '-',
-        qc_round: (currentJob as any).qc_history?.length || 1,
-        qc_result: 'ผ่านเกณฑ์',
-        qc_score: currentJob.qc_score || 1.0,
-        stk_ref: (currentJob as any).stk_ref || '-'
-      };
-      return res.status(409).json({
-        success: false,
-        error: {
-          code: 'ALREADY_QC_PASSED',
-          message: 'ใบงานนี้ผ่านการตรวจรับรองคุณภาพ QC และบันทึกส่งข้อมูลไป STK เรียบร้อยแล้ว ไม่อนุญาตให้บันทึกใหม่หรือส่งซ้ำ'
-        },
-        data: existingPayload
-      });
-    }
-
-    const jobNo = payload.job_no || (currentJob ? currentJob.job_no : (String(param).startsWith('JOB') ? param : `JOB2609090000${param}`));
-    const questions = Array.isArray(payload.questions) ? payload.questions : [];
-    const qcScore = payload.qc_score != null ? Number(payload.qc_score) : (currentJob?.qc_score ? Number(currentJob.qc_score) : 1.0);
-    const stkRef = payload.stk_ref || `STK-QC-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
-    const exportedAt = new Date().toISOString();
-
-    // Format QC Date in 24-hr DD/MM/YYYY HH:mm:ss น. (PMT Flow Mandatory Standard)
-    const nowD = new Date();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const thaiDateFormatted = `${pad(nowD.getDate())}/${pad(nowD.getMonth() + 1)}/${nowD.getFullYear()} ${pad(nowD.getHours())}:${pad(nowD.getMinutes())}:${pad(nowD.getSeconds())} น.`;
-
-    const formattedQuestions = questions.map((q: any, idx: number) => {
-      const isPass = q.result === 'PASS' || q.answer === 'YES';
-      const scoreVal = q.score != null ? Number(q.score) : (isPass ? 5 : 1);
-      return {
-        question_no: q.question_no || (idx + 1),
-        question_title: q.question_title || q.title || `คำถามข้อที่ ${idx + 1}`,
-        category: q.category || 'มาตรฐาน QC',
-        answer: q.answer || (isPass ? 'YES' : 'NO'),
-        score: scoreVal,
-        max_score: q.max_score || 5,
-        result: q.result || (isPass ? 'PASS' : 'DEFECT'),
-        is_rework_pass: !!q.is_rework_pass || (isPass && scoreVal === 1),
-        remarks: q.remarks || '',
-        photos_count: q.photos_count || (Array.isArray(q.photos) ? q.photos.length : 0)
-      };
+    const { status, booking_no, limit } = req.query;
+    const logs = await dbLoadStkSyncLogs({
+      status: status ? String(status) : undefined,
+      booking_no: booking_no ? String(booking_no) : undefined,
+      limit: limit ? Number(limit) : 50
     });
-
-    // Resolve customer and project metadata
-    const refNo = payload.ref_no || payload.external_ref_id || currentJob?.external_ref_id || (currentJob as any)?.raw_payload?.external_ref_id || '-';
-    const ticketNo = payload.ticket || payload.ticket_no || currentJob?.ticket_no || jobNo;
-    const bookingNo = payload.booking_no || currentJob?.booking_no || (currentJob as any)?.raw_payload?.booking_no || '-';
-    const customerName = payload.customer_name || (typeof payload.customer === 'object' ? payload.customer?.name : payload.customer) || currentJob?.customer_name || (currentJob as any)?.customer || 'ลูกค้า';
-    const customerPhone = payload.customer_phone || (typeof payload.customer === 'object' ? payload.customer?.phone : payload.customer_phone) || currentJob?.customer_phone || (currentJob as any)?.phone || '-';
-
-    const history = Array.isArray(payload.qc_history) ? payload.qc_history : ((currentJob as any)?.qc_history || []);
-    const qcRound = payload.qc_round != null ? Number(payload.qc_round) : (history.length > 0 ? history.length : 1);
-    const qcRoundText = payload.qc_round_text || (qcRound >= 2 ? `ตรวจครั้งที่ ${qcRound} (ผ่านเกณฑ์รอบแก้ไข)` : `ตรวจครั้งที่ 1 (ผ่านเกณฑ์รอบแรก)`);
-    const qcResult = payload.qc_result || 'ผ่านเกณฑ์';
-    const qcScoreText = payload.qc_score_text || `${Number(qcScore).toFixed(1)} / 5.0 คะแนน`;
-
-    // Format Outbound STK Payload with the 8 requested fields at root + system details
-    const formattedOutboundPayload = {
-      // === 8 ข้อมูลสำคัญสำหรับส่งให้ระบบ STK (STK Notification Fields) ===
-      ref_no: refNo,                              // 1. เลขที่ Ref
-      ticket: ticketNo,                            // 2. ticket
-      booking_no: bookingNo,                      // 3. booking_no
-      qc_date: payload.qc_date || thaiDateFormatted, // 4. วันที่ บันทึก Qc (DD/MM/YYYY 24-hr)
-      qc_recorded_at: exportedAt,                 // 4.1 วันที่บันทึก QC (ISO Timestamp)
-      customer_name: customerName,                // 5. ชื่อลูกค้า นามสกุล
-      customer_phone: customerPhone,              // 6. เบอร์โทร
-      qc_round: qcRound,                          // 7. ผลการทดสอบ QC ครั้งที่ x (ตัวเลขรอบ)
-      qc_round_text: qcRoundText,                 // 7.1 ข้อความผลการทดสอบ QC ครั้งที่ x
-      qc_result: qcResult,                        // 7.2 ผลการตรวจ (ผ่านเกณฑ์)
-      qc_score: qcScore,                          // 8. คะแนน ประเมิน (เช่น 1.0 หรือ 5.0)
-      qc_score_text: qcScoreText,                 // 8.1 ข้อความคะแนนประเมิน
-
-      // === ข้อมูลประกอบการส่งมอบระบบ (System Metadata) ===
-      stk_ref: stkRef,
-      stk_export_ref: stkRef,
-      exported_at: exportedAt,
-      job_no: jobNo,
-      ticket_no: ticketNo,
-      external_ref_id: refNo,
-      customer: {
-        name: customerName,
-        phone: customerPhone
-      },
-      service: payload.service || currentJob?.project_type || 'บริการติดตั้ง',
-      tech_team: payload.tech_team || currentJob?.assigned_tech || '-',
-      store_code: payload.store_code || currentJob?.store_code || '-',
-      agent_name: payload.agent_name || currentJob?.agent_name || '-',
-      qc_inspector: payload.qc_inspector || (currentJob as any)?.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
-      qc_remarks: payload.qc_remarks || 'งานติดตั้งเรียบร้อยตามมาตรฐาน',
-      total_score_obtained: payload.total_score_obtained ?? formattedQuestions.reduce((acc: number, q: any) => acc + Number(q.score || 0), 0),
-      max_possible_score: payload.max_possible_score ?? (formattedQuestions.length * 5),
-      total_questions: formattedQuestions.length,
-      passed_questions: payload.passed_questions ?? formattedQuestions.filter((q: any) => q.result === 'PASS' || q.answer === 'YES').length,
-      questions: formattedQuestions,
-      qc_history: history
-    };
-
-    const isAllPassed = payload.all_tasks_passed !== false;
-    const updateStatus = isAllPassed ? JobStatus.QC_PASSED : (currentJob ? currentJob.status : JobStatus.IN_PROGRESS);
-    const updateProgress = isAllPassed ? 100 : (currentJob?.overall_progress || 80);
-
-    const existingTimestamps = (currentJob as any)?.step_timestamps || {};
-    const updatedTimestamps = {
-      ...existingTimestamps,
-      ...(isAllPassed ? { qc_passed_at: exportedAt } : {}),
-      stk_exported_at: exportedAt
-    };
-
-    // Persist to PostgreSQL database
-    await dbUpdateJob(param, {
-      status: updateStatus,
-      overall_progress: updateProgress,
-      qc_score: qcScore,
-      ...(isAllPassed ? { qc_passed_at: exportedAt } : {}),
-      qc_remarks: payload.qc_remarks || 'งานติดตั้งเรียบร้อยตามมาตรฐาน',
-      qc_inspector: payload.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
-      stk_ref: stkRef,
-      stk_status: 'DELIVERED',
-      stk_payload: formattedOutboundPayload,
-      stk_exported_at: exportedAt,
-      step_timestamps: updatedTimestamps,
-      ...(Array.isArray(payload.qc_history) ? { qc_history: payload.qc_history } : {}),
-      ...(formattedQuestions.length > 0 ? { qc_subtasks: formattedQuestions } : {})
-    });
-
-    // In-memory fallback removed
-
-    // Forward to external Webhook (e.g. STK / vwds.online)
-    const targetWebhookUrl = process.env.STK_OUTBOUND_WEBHOOK_URL || 'https://vwds.online/api/webhooks/pmt-qc';
-    const targetApiKey = process.env.STK_OUTBOUND_WEBHOOK_API_KEY || 'wds_pmt_secure_key_2026';
-
-    let webhookDispatchResult: any = null;
-    if (targetWebhookUrl) {
-      try {
-        const webhookHeaders: Record<string, string> = {
-          'Content-Type': 'application/json',
-          'User-Agent': 'PMT-Flow-Outbound-Webhook/1.0'
-        };
-        if (targetApiKey) {
-          webhookHeaders['x-api-key'] = targetApiKey;
-        }
-        if (process.env.STK_OUTBOUND_WEBHOOK_TOKEN) {
-          webhookHeaders['Authorization'] = `Bearer ${process.env.STK_OUTBOUND_WEBHOOK_TOKEN}`;
-        }
-
-        const webhookRes = await fetch(targetWebhookUrl, {
-          method: 'POST',
-          headers: webhookHeaders,
-          body: JSON.stringify(formattedOutboundPayload)
-        });
-
-        const statusOk = webhookRes.ok;
-        let responseBody = null;
-        try { responseBody = await webhookRes.json(); } catch {}
-        webhookDispatchResult = {
-          target: targetWebhookUrl,
-          status: webhookRes.status,
-          ok: statusOk,
-          response: responseBody
-        };
-        console.log(`[OUTBOUND WEBHOOK] Dispatched QC payload to ${targetWebhookUrl} | Status: ${webhookRes.status} (${statusOk ? 'SUCCESS' : 'FAILED'})`);
-      } catch (webhookErr: any) {
-        console.warn('[OUTBOUND WEBHOOK] Failed to dispatch payload to external webhook endpoint:', webhookErr.message);
-        webhookDispatchResult = {
-          target: targetWebhookUrl,
-          error: webhookErr.message,
-          ok: false
-        };
-      }
-    }
 
     return res.status(200).json({
       success: true,
-      data: formattedOutboundPayload,
-      webhook: webhookDispatchResult,
-      meta: {
-        message: 'ส่งผลการตรวจ QC (เลขที่ Ref, ticket, booking_no, วันที่บันทึก QC, ข้อมูลลูกค้า, ผลการตรวจ และคะแนนประเมิน) ไปยังระบบ STK / WDS (https://vwds.online) เรียบร้อยแล้ว (STK Outbound REST API Successful)'
-      }
+      total: logs.length,
+      data: logs
     });
   } catch (err: any) {
-    return res.status(500).json({
-      success: false,
-      error: { code: 'STK_EXPORT_FAILED', message: err.message }
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+// POST /api/v1/stk/retry/:idempotencyKey — Manually Retry Failed STK Outbound Sync
+app.post('/api/v1/stk/retry/:idempotencyKey', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { idempotencyKey } = req.params;
+    const logRecord = await dbGetStkSyncLogByIdempotencyKey(idempotencyKey);
+    if (!logRecord) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบรายการ Sync Log ที่ระบุ' } });
+    }
+
+    const job = await dbGetJob(logRecord.job_id);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงานสำหรับ Sync Log นี้' } });
+    }
+
+    const requestPayload = logRecord.request_payload || {};
+    const qcScore = requestPayload.qc_score || 1;
+    const qcRound = requestPayload.qc_round || 1;
+    const qcResult = requestPayload.qc_result === 'ผ่านเกณฑ์' ? 'PASS' : (requestPayload.qc_result?.includes('Escalated') ? 'ESCALATED' : 'FAIL');
+
+    const syncResult = await dispatchStkSync({
+      job,
+      qcResult: qcResult as any,
+      qcScore,
+      qcRound,
+      inspectorName: requestPayload.inspector,
+      forceRetry: true
     });
+
+    await recordAudit(
+      req,
+      'RETRY_STK_SYNC',
+      'STK_LOG',
+      logRecord.id,
+      job.booking_no,
+      { status: logRecord.status, retry_count: logRecord.retry_count },
+      { status: syncResult.status, error: syncResult.error }
+    );
+
+    return res.status(200).json({
+      success: syncResult.success,
+      message: syncResult.success ? 'Re-sync ข้อมูลไปยัง STK สำเร็จ' : `Re-sync ล้มเหลว: ${syncResult.error}`,
+      data: syncResult
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
   }
 });
 

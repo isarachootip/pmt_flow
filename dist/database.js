@@ -19,6 +19,14 @@ exports.dbLoadJobs = dbLoadJobs;
 exports.dbGetJob = dbGetJob;
 exports.dbSaveJob = dbSaveJob;
 exports.dbUpdateJob = dbUpdateJob;
+exports.dbSaveAuditLog = dbSaveAuditLog;
+exports.dbLoadAuditLogs = dbLoadAuditLogs;
+exports.dbGetJobByBookingNo = dbGetJobByBookingNo;
+exports.dbSaveStkSyncLog = dbSaveStkSyncLog;
+exports.dbUpdateStkSyncLog = dbUpdateStkSyncLog;
+exports.dbGetStkSyncLog = dbGetStkSyncLog;
+exports.dbGetStkSyncLogByIdempotencyKey = dbGetStkSyncLogByIdempotencyKey;
+exports.dbLoadStkSyncLogs = dbLoadStkSyncLogs;
 exports.dbDeleteJob = dbDeleteJob;
 exports.dbResetJobStatus = dbResetJobStatus;
 exports.dbWipeAllTransactions = dbWipeAllTransactions;
@@ -312,6 +320,48 @@ async function initDatabase() {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
+      CREATE SEQUENCE IF NOT EXISTS core_audit_logs_id_seq;
+      CREATE TABLE IF NOT EXISTS core_audit_logs (
+        id BIGINT PRIMARY KEY DEFAULT nextval('core_audit_logs_id_seq'),
+        timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        user_id BIGINT,
+        username VARCHAR(50),
+        full_name VARCHAR(150),
+        role VARCHAR(50),
+        action VARCHAR(100) NOT NULL,
+        entity_type VARCHAR(50) NOT NULL,
+        entity_id VARCHAR(100) NOT NULL,
+        booking_no VARCHAR(100),
+        old_values JSONB DEFAULT '{}'::jsonb,
+        new_values JSONB DEFAULT '{}'::jsonb,
+        metadata JSONB DEFAULT '{}'::jsonb
+      );
+
+      CREATE SEQUENCE IF NOT EXISTS stk_sync_logs_id_seq;
+      CREATE TABLE IF NOT EXISTS stk_sync_logs (
+        id BIGINT PRIMARY KEY DEFAULT nextval('stk_sync_logs_id_seq'),
+        idempotency_key VARCHAR(255) UNIQUE NOT NULL,
+        booking_no VARCHAR(100) NOT NULL,
+        job_type VARCHAR(20) NOT NULL,
+        area_id VARCHAR(100),
+        area_name VARCHAR(255),
+        task_id VARCHAR(100),
+        task_name VARCHAR(255),
+        assigned_tech VARCHAR(150),
+        assigned_qc VARCHAR(150),
+        final_score INT NOT NULL,
+        rework_count INT DEFAULT 0,
+        status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+        payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+        response_body JSONB,
+        retry_count INT DEFAULT 0,
+        max_retries INT DEFAULT 3,
+        last_error TEXT,
+        last_attempt_at TIMESTAMP WITH TIME ZONE,
+        sent_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
       ALTER TABLE core_jobs 
         ALTER COLUMN customer_id TYPE BIGINT,
         ALTER COLUMN project_sub_type TYPE TEXT,
@@ -356,7 +406,11 @@ async function initDatabase() {
         ADD COLUMN IF NOT EXISTS stk_status VARCHAR(50),
         ADD COLUMN IF NOT EXISTS stk_payload JSONB DEFAULT '{}'::jsonb,
         ADD COLUMN IF NOT EXISTS stk_exported_at TIMESTAMP WITH TIME ZONE,
-        ADD COLUMN IF NOT EXISTS raw_payload JSONB DEFAULT '{}'::jsonb;
+        ADD COLUMN IF NOT EXISTS raw_payload JSONB DEFAULT '{}'::jsonb,
+        ADD COLUMN IF NOT EXISTS areas JSONB DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS qc_manual_questions JSONB DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMP WITH TIME ZONE,
+        ADD COLUMN IF NOT EXISTS escalated_reason TEXT;
 
       ALTER TABLE core_daily_work_logs
         ADD COLUMN IF NOT EXISTS additional_details TEXT,
@@ -399,6 +453,13 @@ async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_core_jobs_created_id      ON core_jobs(created_at DESC, id DESC);
       CREATE INDEX IF NOT EXISTS idx_core_blueprints_job_id    ON core_blueprints(job_id);
       CREATE INDEX IF NOT EXISTS idx_core_tickets_job_id       ON core_tickets(job_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_booking             ON core_audit_logs(booking_no);
+      CREATE INDEX IF NOT EXISTS idx_audit_entity              ON core_audit_logs(entity_type, entity_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_time                ON core_audit_logs(timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_audit_action              ON core_audit_logs(action);
+      CREATE INDEX IF NOT EXISTS idx_stk_sync_booking          ON stk_sync_logs(booking_no);
+      CREATE INDEX IF NOT EXISTS idx_stk_sync_status           ON stk_sync_logs(status);
+      CREATE INDEX IF NOT EXISTS idx_stk_sync_key              ON stk_sync_logs(idempotency_key);
     `);
         // 2. Ensure default users exist in sys_users
         await client.query(`
@@ -626,6 +687,10 @@ function mapDbJobRow(row) {
         stk_status: row.stk_status || row.raw_payload?.stk_status || '',
         stk_payload: row.stk_payload || row.raw_payload?.stk_payload || null,
         stk_exported_at: row.stk_exported_at || row.raw_payload?.stk_exported_at || null,
+        areas: Array.isArray(row.areas) ? row.areas : (Array.isArray(row.raw_payload?.areas) ? row.raw_payload.areas : []),
+        qc_manual_questions: Array.isArray(row.qc_manual_questions) ? row.qc_manual_questions : (Array.isArray(row.raw_payload?.qc_manual_questions) ? row.raw_payload.qc_manual_questions : []),
+        escalated_at: row.escalated_at || row.raw_payload?.escalated_at || null,
+        escalated_reason: row.escalated_reason || row.raw_payload?.escalated_reason || '',
         job_type: row.job_type || 'quick',
         step_timestamps: row.step_timestamps || {},
         created_at: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
@@ -679,6 +744,10 @@ exports.LEAN_JOB_COLUMNS = `
   stk_status,
   stk_payload,
   stk_exported_at,
+  areas,
+  qc_manual_questions,
+  escalated_at,
+  escalated_reason,
   created_at,
   updated_at,
   CASE 
@@ -1045,10 +1114,10 @@ async function dbSaveJob(job) {
         special_instructions, additional_notes, customer_data, customer_name, customer_phone, customer_address, tasks, photos,
         boq_items, boq_discount, boq_subtotal, boq_grand_total, pmt_accepted, pmt_accepted_at, step3_confirmed,
         job_details, agent_data, store_data, schedule_plan, checkin_data, checkout_data, approval_data,
-        visit_results, remarks_data, file_int_image, raw_payload, created_at
+        visit_results, remarks_data, file_int_image, raw_payload, areas, qc_manual_questions, escalated_at, escalated_reason, created_at
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29,
-        $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, COALESCE($44::timestamptz, CURRENT_TIMESTAMP)
+        $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, COALESCE($48::timestamptz, CURRENT_TIMESTAMP)
       ) ON CONFLICT (job_no) DO UPDATE SET
         external_ref_id = EXCLUDED.external_ref_id,
         booking_no = EXCLUDED.booking_no,
@@ -1092,6 +1161,10 @@ async function dbSaveJob(job) {
         remarks_data = EXCLUDED.remarks_data,
         file_int_image = EXCLUDED.file_int_image,
         raw_payload = EXCLUDED.raw_payload,
+        areas = EXCLUDED.areas,
+        qc_manual_questions = EXCLUDED.qc_manual_questions,
+        escalated_at = EXCLUDED.escalated_at,
+        escalated_reason = EXCLUDED.escalated_reason,
         updated_at = CURRENT_TIMESTAMP`, [
             job.job_no,
             job.external_ref_id || null,
@@ -1136,6 +1209,10 @@ async function dbSaveJob(job) {
             JSON.stringify(remarksData),
             job.file_int_image || null,
             JSON.stringify(rawPayload),
+            JSON.stringify(job.areas || []),
+            JSON.stringify(job.qc_manual_questions || []),
+            job.escalated_at ? new Date(job.escalated_at) : null,
+            job.escalated_reason || null,
             job.created_at || null
         ]);
         cachedMetrics = null;
@@ -1155,18 +1232,18 @@ async function dbUpdateJob(jobNoOrId, updates) {
             'step_timestamps', 'services', 'customer_data', 'tasks', 'photos', 'boq_items', 'csat_photos',
             'job_details', 'agent_data', 'store_data', 'schedule_plan', 'checkin_data', 'checkout_data',
             'approval_data', 'visit_results', 'remarks_data', 'raw_payload', 'qc_history', 'qc_subtasks',
-            'stk_payload', 'boq_original_file'
+            'stk_payload', 'boq_original_file', 'areas', 'qc_manual_questions'
         ];
         const stringFields = [
             'external_ref_id', 'booking_no', 'ticket_no', 'status', 'job_type',
             'property_type', 'project_type', 'project_sub_type', 'store_code',
             'agent_name', 'assigned_tech', 'plan_date', 'special_instructions',
             'additional_notes', 'qc_inspection_type', 'csat_remarks', 'csat_surveyor', 'file_int_image',
-            'qc_remarks', 'qc_inspector', 'stk_ref', 'stk_status'
+            'qc_remarks', 'qc_inspector', 'stk_ref', 'stk_status', 'escalated_reason'
         ];
         const numFields = ['customer_id', 'overall_progress', 'boq_discount', 'boq_subtotal', 'boq_grand_total', 'qc_score', 'csat_score', 'rework_count', 'qc_rework_count'];
         const boolFields = ['pmt_accepted', 'step3_confirmed', 'has_rework'];
-        const dateFields = ['pmt_accepted_at', 'qc_passed_at', 'csat_evaluated_at', 'stk_exported_at'];
+        const dateFields = ['pmt_accepted_at', 'qc_passed_at', 'csat_evaluated_at', 'stk_exported_at', 'escalated_at'];
         for (const [key, val] of Object.entries(updates)) {
             if (val === undefined)
                 continue;
@@ -1238,6 +1315,236 @@ async function dbUpdateJob(jobNoOrId, updates) {
     catch (err) {
         console.error('[DB] Error updating job:', err.message);
         return null;
+    }
+}
+async function dbSaveAuditLog(entry) {
+    try {
+        const ts = entry.timestamp ? new Date(entry.timestamp) : new Date();
+        await exports.pool.query(`INSERT INTO core_audit_logs (
+        timestamp, user_id, username, full_name, role, action, entity_type, entity_id, booking_no, old_values, new_values, metadata
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [
+            ts,
+            entry.user_id ? Number(entry.user_id) : null,
+            entry.username || null,
+            entry.full_name || null,
+            entry.role || null,
+            entry.action,
+            entry.entity_type,
+            String(entry.entity_id),
+            entry.booking_no || null,
+            JSON.stringify(entry.old_values || {}),
+            JSON.stringify(entry.new_values || {}),
+            JSON.stringify(entry.metadata || {})
+        ]);
+    }
+    catch (err) {
+        console.error('[DB AUDIT LOG] Error saving audit log:', err.message);
+    }
+}
+async function dbLoadAuditLogs(filters) {
+    try {
+        const whereClauses = [];
+        const params = [];
+        let idx = 1;
+        if (filters?.booking_no) {
+            whereClauses.push(`booking_no = $${idx++}`);
+            params.push(filters.booking_no);
+        }
+        if (filters?.entity_type) {
+            whereClauses.push(`entity_type = $${idx++}`);
+            params.push(filters.entity_type);
+        }
+        if (filters?.entity_id) {
+            whereClauses.push(`entity_id = $${idx++}`);
+            params.push(filters.entity_id);
+        }
+        if (filters?.action) {
+            whereClauses.push(`action = $${idx++}`);
+            params.push(filters.action);
+        }
+        const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+        const countRes = await exports.pool.query(`SELECT COUNT(*)::int AS total FROM core_audit_logs ${whereSql}`, params);
+        const total = Number(countRes.rows[0]?.total) || 0;
+        const limit = Math.min(200, Math.max(1, Number(filters?.limit) || 50));
+        const page = Math.max(1, Number(filters?.page) || 1);
+        const offset = (page - 1) * limit;
+        const querySql = `
+      SELECT * FROM core_audit_logs
+      ${whereSql}
+      ORDER BY timestamp DESC, id DESC
+      LIMIT $${idx++} OFFSET $${idx++}
+    `;
+        const res = await exports.pool.query(querySql, [...params, limit, offset]);
+        return {
+            logs: res.rows.map(r => ({
+                ...r,
+                timestamp: r.timestamp ? new Date(r.timestamp).toISOString() : new Date().toISOString()
+            })),
+            total
+        };
+    }
+    catch (err) {
+        console.error('[DB AUDIT LOG] Error loading audit logs:', err.message);
+        return { logs: [], total: 0 };
+    }
+}
+// =============================================================================
+// BOOKING LOOKUP & IDEMPOTENCY
+// =============================================================================
+async function dbGetJobByBookingNo(bookingNo) {
+    try {
+        if (!bookingNo || !bookingNo.trim())
+            return null;
+        const res = await exports.pool.query('SELECT * FROM core_jobs WHERE booking_no = $1 OR external_ref_id = $1 OR job_no = $1 LIMIT 1', [bookingNo.trim()]);
+        if (res.rows.length === 0)
+            return null;
+        return mapDbJobRow(res.rows[0]);
+    }
+    catch (err) {
+        console.error('[DB] Error getting job by booking no:', err.message);
+        return null;
+    }
+}
+async function dbSaveStkSyncLog(syncLog) {
+    try {
+        const effectivePayload = syncLog.request_payload || syncLog.payload || {};
+        const effectiveResponse = syncLog.response_payload || syncLog.response_body || null;
+        const effectiveError = syncLog.error_message || syncLog.last_error || null;
+        const effectiveSent = syncLog.synced_at || syncLog.sent_at || null;
+        const res = await exports.pool.query(`INSERT INTO stk_sync_logs (
+        idempotency_key, booking_no, job_type, area_id, area_name, task_id, task_name,
+        assigned_tech, assigned_qc, final_score, rework_count, status, payload,
+        response_body, retry_count, max_retries, last_error, last_attempt_at, sent_at, created_at
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, CURRENT_TIMESTAMP
+      ) ON CONFLICT (idempotency_key) DO UPDATE SET
+        status = EXCLUDED.status,
+        payload = EXCLUDED.payload,
+        response_body = EXCLUDED.response_body,
+        retry_count = EXCLUDED.retry_count,
+        last_error = EXCLUDED.last_error,
+        last_attempt_at = EXCLUDED.last_attempt_at,
+        sent_at = EXCLUDED.sent_at
+      RETURNING *`, [
+            syncLog.idempotency_key,
+            syncLog.booking_no,
+            syncLog.job_type || 'R',
+            syncLog.area_id || null,
+            syncLog.area_name || null,
+            syncLog.task_id || null,
+            syncLog.task_name || null,
+            syncLog.assigned_tech || null,
+            syncLog.assigned_qc || null,
+            Number(syncLog.final_score || effectivePayload.qc_score || 1),
+            Number(syncLog.rework_count || 0),
+            syncLog.status || 'PENDING',
+            JSON.stringify(effectivePayload),
+            effectiveResponse ? JSON.stringify(effectiveResponse) : null,
+            Number(syncLog.retry_count || 0),
+            Number(syncLog.max_retries || 3),
+            effectiveError,
+            syncLog.last_attempt_at ? new Date(syncLog.last_attempt_at) : null,
+            effectiveSent ? new Date(effectiveSent) : null
+        ]);
+        return res.rows[0] || syncLog;
+    }
+    catch (err) {
+        console.error('[DB STK LOG] Error saving STK sync log:', err.message);
+        return syncLog;
+    }
+}
+async function dbUpdateStkSyncLog(idOrKey, updates) {
+    try {
+        const isNum = typeof idOrKey === 'number' || (!isNaN(Number(idOrKey)) && !String(idOrKey).includes('-') && !String(idOrKey).startsWith('STK_'));
+        const setClauses = [];
+        const values = [];
+        let idx = 1;
+        for (const [key, val] of Object.entries(updates)) {
+            if (val === undefined)
+                continue;
+            if (['payload', 'request_payload'].includes(key)) {
+                setClauses.push(`payload = $${idx++}`);
+                values.push(JSON.stringify(val));
+            }
+            else if (['response_body', 'response_payload'].includes(key)) {
+                setClauses.push(`response_body = $${idx++}`);
+                values.push(val ? JSON.stringify(val) : null);
+            }
+            else if (['retry_count', 'final_score', 'rework_count', 'max_retries'].includes(key)) {
+                setClauses.push(`${key} = $${idx++}`);
+                values.push(Number(val));
+            }
+            else if (['last_error', 'error_message'].includes(key)) {
+                setClauses.push(`last_error = $${idx++}`);
+                values.push(val);
+            }
+            else if (['sent_at', 'synced_at'].includes(key)) {
+                setClauses.push(`sent_at = $${idx++}`);
+                values.push(val ? new Date(val) : null);
+            }
+            else if (key === 'last_attempt_at') {
+                setClauses.push(`last_attempt_at = $${idx++}`);
+                values.push(val ? new Date(val) : null);
+            }
+            else if (key !== 'job_id' && key !== 'idempotency_key') {
+                setClauses.push(`${key} = $${idx++}`);
+                values.push(val);
+            }
+        }
+        if (setClauses.length === 0)
+            return;
+        values.push(idOrKey);
+        const whereClause = isNum ? `id = $${idx}` : `idempotency_key = $${idx}`;
+        await exports.pool.query(`UPDATE stk_sync_logs SET ${setClauses.join(', ')} WHERE ${whereClause}`, values);
+    }
+    catch (err) {
+        console.error('[DB STK LOG] Error updating STK sync log:', err.message);
+    }
+}
+async function dbGetStkSyncLog(idOrKey) {
+    try {
+        const isNum = typeof idOrKey === 'number' || (!isNaN(Number(idOrKey)) && !String(idOrKey).includes('-'));
+        const whereClause = isNum ? 'id = $1' : 'idempotency_key = $1';
+        const res = await exports.pool.query(`SELECT * FROM stk_sync_logs WHERE ${whereClause} LIMIT 1`, [idOrKey]);
+        return res.rows[0] || null;
+    }
+    catch (err) {
+        console.error('[DB STK LOG] Error getting STK sync log:', err.message);
+        return null;
+    }
+}
+async function dbGetStkSyncLogByIdempotencyKey(key) {
+    try {
+        const res = await exports.pool.query('SELECT * FROM stk_sync_logs WHERE idempotency_key = $1 LIMIT 1', [key]);
+        return res.rows[0] || null;
+    }
+    catch (err) {
+        console.error('[DB STK LOG] Error getting STK sync log by key:', err.message);
+        return null;
+    }
+}
+async function dbLoadStkSyncLogs(filters) {
+    try {
+        const whereClauses = [];
+        const params = [];
+        let idx = 1;
+        if (filters?.status && filters.status !== 'all') {
+            whereClauses.push(`status = $${idx++}`);
+            params.push(filters.status);
+        }
+        if (filters?.booking_no) {
+            whereClauses.push(`booking_no = $${idx++}`);
+            params.push(filters.booking_no);
+        }
+        const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+        const limit = Math.min(200, Math.max(1, Number(filters?.limit) || 50));
+        params.push(limit);
+        const res = await exports.pool.query(`SELECT * FROM stk_sync_logs ${whereSql} ORDER BY created_at DESC, id DESC LIMIT $${idx}`, params);
+        return res.rows;
+    }
+    catch (err) {
+        console.error('[DB STK LOG] Error loading STK sync logs:', err.message);
+        return [];
     }
 }
 async function dbDeleteJob(jobNoOrId) {
