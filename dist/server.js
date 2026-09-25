@@ -2187,6 +2187,75 @@ app.get(['/api/v1/jobs/export/excel', '/api/v1/jobs/export-excel', '/api/v1/jobs
         return res.status(500).json({ success: false, error: { code: 'EXPORT_FAILED', message: err.message } });
     }
 });
+// System Reset & Clear Data Endpoint (Resets all orders to DRAFT and clears operational logs)
+app.post('/api/v1/system/reset-data', requireAuth, async (req, res) => {
+    try {
+        const client = await database_1.pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query(`
+        TRUNCATE TABLE 
+          core_daily_work_logs, 
+          core_qc_bookings, 
+          core_tickets, 
+          core_blueprints, 
+          staging_survey_reports, 
+          core_audit_logs, 
+          stk_sync_logs, 
+          inbound_api_logs, 
+          ma_rounds, 
+          ma_contracts 
+        CASCADE;
+      `);
+            const { rows: jobs } = await client.query('SELECT id, tasks, areas FROM core_jobs');
+            for (const job of jobs) {
+                let tasks = Array.isArray(job.tasks) ? job.tasks : [];
+                let areas = Array.isArray(job.areas) ? job.areas : [];
+                const resetTasks = tasks.map((t, idx) => ({
+                    ...t,
+                    id: t.id || `task-${job.id}-${idx + 1}`,
+                    status: 'PLANNED',
+                    progress_percent: 0,
+                    actual_start_date: null,
+                    actual_end_date: null,
+                    actual_start_time: null,
+                    actual_end_time: null,
+                    qc_score: null,
+                    rework_count: 0
+                }));
+                const resetAreas = areas.map((a) => ({
+                    ...a,
+                    status: 'OPEN'
+                }));
+                await client.query(`
+          UPDATE core_jobs SET
+            status = 'DRAFT',
+            overall_progress = 0,
+            ticket_no = NULL,
+            step_timestamps = '{}'::jsonb,
+            escalated_at = NULL,
+            escalated_reason = NULL,
+            tasks = $1::jsonb,
+            areas = $2::jsonb,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = $3
+        `, [JSON.stringify(resetTasks), JSON.stringify(resetAreas), job.id]);
+            }
+            await client.query('COMMIT');
+            return res.json({ success: true, message: `Successfully reset ${jobs.length} jobs to DRAFT and cleared transaction logs.` });
+        }
+        catch (dbErr) {
+            await client.query('ROLLBACK');
+            throw dbErr;
+        }
+        finally {
+            client.release();
+        }
+    }
+    catch (err) {
+        return res.status(500).json({ success: false, error: { code: 'RESET_FAILED', message: err.message } });
+    }
+});
 app.get('/api/v1/jobs/:id', requireAuth, async (req, res) => {
     const param = req.params.id;
     let job = await (0, database_1.dbGetJob)(param);
