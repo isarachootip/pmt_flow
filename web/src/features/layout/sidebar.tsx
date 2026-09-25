@@ -87,6 +87,21 @@ export function Sidebar({ className, onClose }: { className?: string, onClose?: 
           </div>
         ))}
       </div>
+      <div className="p-3 border-t border-surface-border mt-auto">
+        <a
+          href="/v1"
+          className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text hover:bg-surface-subtle transition-all"
+          title="สลับไปยัง PMT Flow v1 (เวอร์ชันเดิม)"
+        >
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span className="text-black font-semibold">สลับไป V1 (Legacy)</span>
+          </div>
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 border border-amber-500/20 font-bold">
+            v1.0
+          </span>
+        </a>
+      </div>
     </aside>
   );
 }

@@ -43,10 +43,12 @@ const PageSkeleton = () => (
 );
 
 export function App() {
+  const basename = typeof window !== 'undefined' && window.location.pathname.startsWith('/v2') ? '/v2' : '/';
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter basename="/v2">
+        <BrowserRouter basename={basename}>
           <Routes>
             <Route path="/styleguide" element={<StyleguidePage />} />
             <Route path="/login" element={<LoginPage />} />

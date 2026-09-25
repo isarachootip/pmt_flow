@@ -281,7 +281,25 @@ app.use('/doc', express_1.default.static(path_1.default.join(__dirname, '../doc'
 app.use('/doc', express_1.default.static(path_1.default.join(__dirname, './doc')));
 app.use('/doc', express_1.default.static(path_1.default.join(process.cwd(), 'doc')));
 // =============================================================================
-// PMT Flow v2 Static Assets & SPA Route Fallback (/v2)
+// PMT Flow v1 Legacy Static & Route Handler (/v1 & /legacy)
+// =============================================================================
+const v1IndexCandidates = [
+    path_1.default.join(__dirname, '../index.html'),
+    path_1.default.join(__dirname, './index.html'),
+    path_1.default.join(process.cwd(), 'index.html')
+];
+const v1IndexHtml = v1IndexCandidates.find(p => fs_1.default.existsSync(p));
+app.get(['/v1', '/v1/*', '/legacy', '/legacy/*'], (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    if (v1IndexHtml && fs_1.default.existsSync(v1IndexHtml)) {
+        return res.sendFile(v1IndexHtml);
+    }
+    return res.status(404).send('PMT Flow v1 legacy index not found');
+});
+// =============================================================================
+// PMT Flow v2 Static Assets & SPA Route Handler (Root '/' & '/v2')
 // =============================================================================
 const v2DistCandidates = [
     path_1.default.join(__dirname, '../web/dist'),
@@ -290,8 +308,10 @@ const v2DistCandidates = [
 ];
 const v2DistDir = v2DistCandidates.find(p => fs_1.default.existsSync(p));
 if (v2DistDir) {
+    app.use('/assets', express_1.default.static(path_1.default.join(v2DistDir, 'assets')));
     app.use('/v2', express_1.default.static(v2DistDir));
-    app.get(['/v2', '/v2/*'], (req, res) => {
+    app.use(express_1.default.static(v2DistDir));
+    const v2SpaHandler = (req, res) => {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
@@ -299,32 +319,49 @@ if (v2DistDir) {
         if (fs_1.default.existsSync(indexHtml)) {
             return res.sendFile(indexHtml);
         }
-        return res.status(404).send('PMT Flow v2 build not found');
-    });
+        if (v1IndexHtml && fs_1.default.existsSync(v1IndexHtml)) {
+            return res.sendFile(v1IndexHtml);
+        }
+        return res.status(404).send('PMT Flow build not found');
+    };
+    app.get(['/v2', '/v2/*'], v2SpaHandler);
+    app.get([
+        '/',
+        '/index.html',
+        '/dashboard',
+        '/dashboard/*',
+        '/orders',
+        '/orders/*',
+        '/jobs',
+        '/jobs/*',
+        '/tickets',
+        '/tickets/*',
+        '/conversion',
+        '/conversion/*',
+        '/gantt',
+        '/gantt/*',
+        '/qc',
+        '/qc/*',
+        '/completed',
+        '/completed/*',
+        '/blueprints',
+        '/blueprints/*',
+        '/boq',
+        '/boq/*',
+        '/ma',
+        '/ma/*',
+        '/reports',
+        '/reports/*',
+        '/admin/*',
+        '/km',
+        '/km/*',
+        '/login',
+        '/styleguide'
+    ], v2SpaHandler);
 }
-// Serve static frontend files (index.html)
+// Serve static frontend files (legacy public, index.html fallback)
 app.use(express_1.default.static(path_1.default.join(__dirname, '../')));
 app.use(express_1.default.static(path_1.default.join(__dirname, './')));
-// Root Route Handler - Serve Frontend index.html
-app.get(['/', '/index.html'], (req, res) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    const rootIndex = path_1.default.join(__dirname, '../index.html');
-    const localIndex = path_1.default.join(__dirname, './index.html');
-    if (fs_1.default.existsSync(rootIndex)) {
-        return res.sendFile(rootIndex);
-    }
-    else if (fs_1.default.existsSync(localIndex)) {
-        return res.sendFile(localIndex);
-    }
-    return res.json({
-        status: 'ONLINE',
-        message: '🚀 SPMT System Backend API is running',
-        version: '1.0.1',
-        timestamp: new Date().toISOString()
-    });
-});
 // Dedicated Standalone Inbound API Monitor (/apimonitor)
 app.get(['/apimonitor', '/apimonitor.html', '/api-monitor', '/monitor'], (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
