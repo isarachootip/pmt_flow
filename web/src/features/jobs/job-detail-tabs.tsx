@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Job, useJobTasks } from '@/features/jobs/api';
@@ -19,31 +18,20 @@ interface JobDetailTabsProps {
   onClose?: () => void;
 }
 
-interface PettyCashItem {
-  id: string;
-  date: string;
-  description: string;
-  category: string;
-  amount: number;
-  requestedBy: string;
-  status: 'APPROVED' | 'PENDING';
-}
-
 export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTabsProps) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Map legacy / URL tabs to the 5 pipeline steps:
-  // [งาน/Task] -> [BOQ] -> [เงินสำรอง] -> [QC] -> [ส่งออก STK]
+  // Map legacy / URL tabs to the 4 pipeline steps:
+  // [งาน/Task] -> [BOQ] -> [QC] -> [ส่งออก STK]
   const rawTab = (searchParams.get('tab') || defaultTab).toLowerCase().trim();
   let normalizedTab = rawTab;
-  if (rawTab === 'log' || rawTab === 'pettycash' || rawTab === 'advance' || rawTab === 'cash' || rawTab === 'เงินสำรอง') normalizedTab = 'petty_cash';
-  else if (rawTab === 'history' || rawTab === 'inspection' || rawTab === 'qc') normalizedTab = 'qc';
+  if (rawTab === 'history' || rawTab === 'inspection' || rawTab === 'qc') normalizedTab = 'qc';
   else if (rawTab === 'finance' || rawTab === 'export' || rawTab === 'stk' || rawTab === 'ส่งออก') normalizedTab = 'stk';
   else if (rawTab === 'blueprint' || rawTab === 'tasks' || rawTab === 'task' || rawTab === 'งาน') normalizedTab = 'task';
   else if (rawTab === 'boq' || rawTab === 'pricing') normalizedTab = 'boq';
   
-  const validTabs = ['task', 'boq', 'petty_cash', 'qc', 'stk'];
+  const validTabs = ['task', 'boq', 'qc', 'stk'];
   const activeTab = validTabs.includes(normalizedTab) ? normalizedTab : 'task';
 
   const { data: tasksData, isLoading: isLoadingTasks } = useJobTasks(job.id);
@@ -53,67 +41,12 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
   // QC modal state
   const [showQcModal, setShowQcModal] = useState(false);
 
-  // Petty cash advance state
-  const [pettyCashItems, setPettyCashItems] = useState<PettyCashItem[]>([
-    {
-      id: 'PC-001',
-      date: '24/09/2026',
-      description: 'ค่าน้ำมันและค่าเดินทางหน้างาน',
-      category: 'ค่าเดินทาง',
-      amount: 650,
-      requestedBy: job.assigned_tech || 'ช่างสมศักดิ์',
-      status: 'APPROVED',
-    },
-    {
-      id: 'PC-002',
-      date: '25/09/2026',
-      description: 'ซื้อท่อร้อยสายไฟและข้อต่อฉุกเฉิน',
-      category: 'วัสดุฉุกเฉิน',
-      amount: 1200,
-      requestedBy: job.assigned_tech || 'ช่างสมศักดิ์',
-      status: 'APPROVED',
-    },
-  ]);
-  const [showPettyCashModal, setShowPettyCashModal] = useState(false);
-  const [newExpenseDesc, setNewExpenseDesc] = useState('');
-  const [newExpenseAmount, setNewExpenseAmount] = useState('');
-  const [newExpenseCategory, setNewExpenseCategory] = useState('ค่าเดินทาง');
-
-  const totalPettyCash = pettyCashItems.reduce((acc, curr) => acc + curr.amount, 0);
-  const pettyCashBudget = 5000;
-  const remainingBudget = Math.max(0, pettyCashBudget - totalPettyCash);
-
   const handleTabChange = (value: string) => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       next.set('tab', value);
       return next;
     });
-  };
-
-  const handleAddPettyCash = (e: React.FormEvent) => {
-    e.preventDefault();
-    const amt = parseFloat(newExpenseAmount);
-    if (!newExpenseDesc.trim() || isNaN(amt) || amt <= 0) {
-      toast.error('กรุณาระบุรายละเอียดและจำนวนเงินที่ถูกต้อง');
-      return;
-    }
-
-    const newItem: PettyCashItem = {
-      id: `PC-${String(pettyCashItems.length + 1).padStart(3, '0')}`,
-      date: formatDMY(new Date()),
-      description: newExpenseDesc.trim(),
-      category: newExpenseCategory,
-      amount: amt,
-      requestedBy: job.assigned_tech || 'ช่างเทคนิค',
-      status: 'APPROVED',
-    };
-
-    setPettyCashItems([...pettyCashItems, newItem]);
-    setNewExpenseDesc('');
-    setNewExpenseAmount('');
-    setShowPettyCashModal(false);
-    toast.success('บันทึกขอเบิกเงินสำรองสำเร็จ');
   };
 
   const handleQcSubmit = (data: any) => {
@@ -220,12 +153,6 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                 BOQ
               </TabsTrigger>
               <TabsTrigger 
-                value="petty_cash" 
-                className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-black text-black font-semibold rounded-none shadow-none px-4 py-3"
-              >
-                เงินสำรอง
-              </TabsTrigger>
-              <TabsTrigger 
                 value="qc" 
                 className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-black text-black font-semibold rounded-none shadow-none px-4 py-3"
               >
@@ -291,76 +218,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
               <BoqTab job={job} />
             </TabsContent>
 
-            {/* 3. เงินสำรอง */}
-            <TabsContent value="petty_cash" className="h-full m-0 data-[state=active]:flex flex-col space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3 bg-white border border-[var(--border-soft)] rounded-lg shadow-sm">
-                  <span className="text-xs text-black block">วงเงินสำรองตั้งต้น</span>
-                  <span className="text-lg font-bold text-black">{pettyCashBudget.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</span>
-                </div>
-                <div className="p-3 bg-white border border-[var(--border-soft)] rounded-lg shadow-sm">
-                  <span className="text-xs text-black block">ยอดเบิกจ่ายแล้ว</span>
-                  <span className="text-lg font-bold text-black">{totalPettyCash.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</span>
-                </div>
-                <div className="p-3 bg-white border border-[var(--border-soft)] rounded-lg shadow-sm">
-                  <span className="text-xs text-black block">วงเงินคงเหลือ</span>
-                  <span className="text-lg font-bold text-black">{remainingBudget.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</span>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center pt-2">
-                <h4 className="font-semibold text-black text-sm">รายการเบิกเงินสำรอง (Petty Cash Records)</h4>
-                <Button 
-                  variant="primary" 
-                  size="sm" 
-                  onClick={() => setShowPettyCashModal(true)}
-                  className="text-black font-semibold"
-                >
-                  + ขอเบิกเงินสำรอง
-                </Button>
-              </div>
-
-              <div className="flex-1 overflow-auto border border-[var(--border-soft)] rounded-lg">
-                <table className="w-full text-left text-sm border-collapse">
-                  <thead className="bg-[var(--bg-subtle)] sticky top-0 z-10 text-black">
-                    <tr className="border-b border-[#E5E6EB]">
-                      <th className="p-2.5 font-semibold text-black">รหัสรายการ</th>
-                      <th className="p-2.5 font-semibold text-black">วันที่</th>
-                      <th className="p-2.5 font-semibold text-black">รายการค่าใช้จ่าย</th>
-                      <th className="p-2.5 font-semibold text-black">หมวดหมู่</th>
-                      <th className="p-2.5 font-semibold text-black">ผู้ขอเบิก</th>
-                      <th className="p-2.5 font-semibold text-right text-black">จำนวนเงิน</th>
-                      <th className="p-2.5 font-semibold text-center text-black">สถานะ</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-black divide-y divide-[#E5E6EB]">
-                    {pettyCashItems.map((item) => (
-                      <tr key={item.id} className="hover:bg-[var(--bg-subtle)]">
-                        <td className="p-2.5 font-mono text-black font-medium">{item.id}</td>
-                        <td className="p-2.5 text-black font-medium">{item.date}</td>
-                        <td className="p-2.5 text-black font-medium">{item.description}</td>
-                        <td className="p-2.5 text-black">
-                          <span className="inline-block px-2 py-0.5 rounded text-xs bg-gray-100 border border-gray-300 text-black font-medium">
-                            {item.category}
-                          </span>
-                        </td>
-                        <td className="p-2.5 text-black">{item.requestedBy}</td>
-                        <td className="p-2.5 text-right font-mono font-bold text-black">
-                          {item.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿
-                        </td>
-                        <td className="p-2.5 text-center">
-                          <span className="inline-block px-2 py-0.5 rounded text-xs bg-green-50 border border-green-300 text-black font-semibold">
-                            {item.status === 'APPROVED' ? 'อนุมัติแล้ว' : 'รออนุมัติ'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </TabsContent>
-
-            {/* 4. QC */}
+            {/* 3. QC */}
             <TabsContent value="qc" className="h-full m-0 data-[state=active]:flex flex-col space-y-4">
               <div className="flex items-center justify-between bg-[var(--bg-subtle)] p-3 rounded-lg border border-[var(--border-soft)]">
                 <div className="flex items-center space-x-4">
@@ -417,7 +275,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
               </div>
             </TabsContent>
 
-            {/* 5. ส่งออก STK */}
+            {/* 4. ส่งออก STK */}
             <TabsContent value="stk" className="h-full m-0 data-[state=active]:flex flex-col space-y-4">
               <div className="bg-[var(--bg-subtle)] p-4 rounded-lg border border-[var(--border-soft)] space-y-3">
                 <div className="flex justify-between items-start">
@@ -461,22 +319,10 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
 
               <div className="p-4 bg-white border border-[var(--border-soft)] rounded-lg space-y-2">
                 <h4 className="font-semibold text-black text-sm">สรุปยอดรวมทางการเงินเพื่อเบิกจ่าย</h4>
-                <div className="flex justify-between py-1 border-b border-[var(--border-soft)]">
-                  <span className="text-black">มูลค่างานรวมตาม BOQ:</span>
-                  <span className="font-bold text-black">
-                    {Number(job.grand_total || (job as any).boq_grand_total || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿
-                  </span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-[var(--border-soft)]">
-                  <span className="text-black">ยอดเบิกเงินสำรองสะสม:</span>
-                  <span className="font-bold text-black">
-                    {totalPettyCash.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿
-                  </span>
-                </div>
                 <div className="flex justify-between py-2 text-base font-bold text-black">
-                  <span>ยอดสุทธิรวมทั้งสิ้น:</span>
+                  <span>ยอดสุทธิรวมตาม BOQ:</span>
                   <span className="text-lg">
-                    {(Number(job.grand_total || (job as any).boq_grand_total || 0) + totalPettyCash).toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿
+                    {Number(job.grand_total || (job as any).boq_grand_total || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿
                   </span>
                 </div>
               </div>
@@ -484,60 +330,6 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
           </div>
         </Tabs>
       </div>
-
-      {/* Petty Cash Modal Dialog */}
-      <Dialog open={showPettyCashModal} onOpenChange={setShowPettyCashModal}>
-        <DialogContent className="sm:max-w-[450px] bg-white text-black p-6">
-          <h3 className="text-lg font-bold text-black mb-4">ขอเบิกเงินสำรอง (Petty Cash Request)</h3>
-          <form onSubmit={handleAddPettyCash} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-black mb-1">รายการค่าใช้จ่าย</label>
-              <input
-                type="text"
-                value={newExpenseDesc}
-                onChange={(e) => setNewExpenseDesc(e.target.value)}
-                placeholder="เช่น ค่าน้ำมัน, ค่าอุปกรณ์ด่วน"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black focus:outline-none focus:ring-1 focus:ring-primary"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-black mb-1">หมวดหมู่</label>
-              <select
-                value={newExpenseCategory}
-                onChange={(e) => setNewExpenseCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black focus:outline-none focus:ring-1 focus:ring-primary bg-white"
-              >
-                <option value="ค่าเดินทาง">ค่าเดินทาง / ค่าน้ำมัน</option>
-                <option value="วัสดุฉุกเฉิน">วัสดุและอุปกรณ์ฉุกเฉิน</option>
-                <option value="ค่าที่จอดรถ">ค่าที่จอดรถ</option>
-                <option value="เบ็ดเตล็ด">ค่าใช้จ่ายเบ็ดเตล็ด</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-black mb-1">จำนวนเงิน (บาท)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="1"
-                value={newExpenseAmount}
-                onChange={(e) => setNewExpenseAmount(e.target.value)}
-                placeholder="0.00"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black focus:outline-none focus:ring-1 focus:ring-primary font-mono"
-                required
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setShowPettyCashModal(false)} className="text-black">
-                ยกเลิก
-              </Button>
-              <Button type="submit" variant="primary" className="text-black font-semibold">
-                บันทึกการเบิก
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* QC Form Modal Dialog */}
       <Dialog open={showQcModal} onOpenChange={setShowQcModal}>

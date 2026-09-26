@@ -158,29 +158,17 @@ function renderWithProviders(ui: React.ReactElement) {
 describe('JobDetailTabs - Core Workflow Pipeline Alignment (R4)', () => {
   const sampleJob = mockJobs[0];
 
-  it('renders all 5 detail tabs strictly in order: [งาน/Task] -> [BOQ] -> [เงินสำรอง] -> [QC] -> [ส่งออก STK]', () => {
+  it('renders all 4 detail tabs strictly in order: [งาน/Task] -> [BOQ] -> [QC] -> [ส่งออก STK]', () => {
     renderWithProviders(<JobDetailTabs job={sampleJob} />);
 
     // Get all tab triggers
     const tabTriggers = screen.getAllByRole('tab');
-    expect(tabTriggers).toHaveLength(5);
+    expect(tabTriggers).toHaveLength(4);
 
     expect(tabTriggers[0]).toHaveTextContent('งาน/Task');
     expect(tabTriggers[1]).toHaveTextContent('BOQ');
-    expect(tabTriggers[2]).toHaveTextContent('เงินสำรอง');
-    expect(tabTriggers[3]).toHaveTextContent('QC');
-    expect(tabTriggers[4]).toHaveTextContent('ส่งออก STK');
-  });
-
-  it('navigates to "เงินสำรอง" (Petty Cash) tab and displays advance budget and records', () => {
-    renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="petty_cash" />);
-
-    // Check Petty Cash tab content
-    expect(screen.getByText('วงเงินสำรองตั้งต้น')).toBeInTheDocument();
-    expect(screen.getByText('ยอดเบิกจ่ายแล้ว')).toBeInTheDocument();
-    expect(screen.getByText('วงเงินคงเหลือ')).toBeInTheDocument();
-    expect(screen.getByText('+ ขอเบิกเงินสำรอง')).toBeInTheDocument();
-    expect(screen.getByText('ค่าน้ำมันและค่าเดินทางหน้างาน')).toBeInTheDocument();
+    expect(tabTriggers[2]).toHaveTextContent('QC');
+    expect(tabTriggers[3]).toHaveTextContent('ส่งออก STK');
   });
 
   it('navigates to "QC" tab and displays inspection checklist with pass indicators', () => {
@@ -227,26 +215,18 @@ describe('JobDetailTabs - Core Workflow Pipeline Alignment (R4)', () => {
     expect(screen.getByText('รายการประเมินราคา')).toBeInTheDocument();
   });
 
-  it('supports all pipeline tab aliases (pettycash, advance, pricing, inspection, export)', () => {
-    const { unmount: u1 } = renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="pettycash" />);
-    expect(screen.getByText('รายการเบิกเงินสำรอง (Petty Cash Records)')).toBeInTheDocument();
+  it('supports all pipeline tab aliases (pricing, inspection, export)', () => {
+    const { unmount: u1 } = renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="pricing" />);
+    expect(screen.getByText('รายการประเมินราคา')).toBeInTheDocument();
     u1();
 
-    const { unmount: u2 } = renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="advance" />);
-    expect(screen.getByText('วงเงินสำรองตั้งต้น')).toBeInTheDocument();
+    const { unmount: u2 } = renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="inspection" />);
+    expect(screen.getByText('Checklist คุณภาพงานมาตรฐาน (QC Checklist)')).toBeInTheDocument();
     u2();
 
-    const { unmount: u3 } = renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="pricing" />);
-    expect(screen.getByText('รายการประเมินราคา')).toBeInTheDocument();
-    u3();
-
-    const { unmount: u4 } = renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="inspection" />);
-    expect(screen.getByText('Checklist คุณภาพงานมาตรฐาน (QC Checklist)')).toBeInTheDocument();
-    u4();
-
-    const { unmount: u5 } = renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="export" />);
+    const { unmount: u3 } = renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="export" />);
     expect(screen.getByText('การส่งออกข้อมูลไปยังระบบ STK / BMT')).toBeInTheDocument();
-    u5();
+    u3();
   });
 });
 
@@ -561,34 +541,4 @@ describe('OrdersPage - Master List Features (R1, R2, R3, R5)', () => {
   });
 });
 
-describe('JobDetailTabs - Petty Cash Interaction & Query Params', () => {
-  const sampleJob = mockJobs[0];
 
-  it('submits a new petty cash request and updates list and budget', async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="petty_cash" />);
-
-    // Initial budget: 5,000, Initial spent: 1,850, Initial remaining: 3,150
-    expect(screen.getByText('3,150.00 ฿')).toBeInTheDocument();
-
-    const openModalBtn = screen.getByText('+ ขอเบิกเงินสำรอง');
-    await user.click(openModalBtn);
-
-    // Form inputs in modal
-    const descInput = screen.getByPlaceholderText('เช่น ค่าน้ำมัน, ค่าอุปกรณ์ด่วน');
-    const amtInput = screen.getByPlaceholderText('0.00');
-
-    await user.type(descInput, 'ค่าซื้อหลอดไฟ LED ทดแทน');
-    await user.type(amtInput, '350');
-
-    const submitBtn = screen.getByText('บันทึกการเบิก');
-    await user.click(submitBtn);
-
-    // Verify new record appears in table
-    expect(screen.getByText('ค่าซื้อหลอดไฟ LED ทดแทน')).toBeInTheDocument();
-    expect(screen.getByText('350.00 ฿')).toBeInTheDocument();
-
-    // Verify remaining budget updated: 3,150 - 350 = 2,800
-    expect(screen.getByText('2,800.00 ฿')).toBeInTheDocument();
-  });
-});
