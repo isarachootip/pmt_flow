@@ -1,136 +1,259 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useMAContracts, useCreateMAContract, MAContract } from '@/features/ma/api';
-import { format } from 'date-fns';
+import { MasterDetailLayout } from '@/components/ui/master-detail-layout';
+import { PageHeader } from '@/components/ui/page-header';
+import { DataGrid, ColumnDef } from '@/components/ui/data-grid';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Search, Plus } from 'lucide-react';
+import { formatDMY } from '@/lib/date';
 import { DatePicker } from '@/components/ui/date-picker';
 
 export default function MAPage() {
-  const { data: contracts, isLoading } = useMAContracts();
+  const { data: rawContracts, isLoading } = useMAContracts();
   const createContract = useCreateMAContract();
   
+  const contracts: MAContract[] = Array.isArray(rawContracts) ? rawContracts : ((rawContracts as any)?.data || []);
   const [selectedContract, setSelectedContract] = useState<MAContract | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<MAContract>>({});
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleCreate = async () => {
     await createContract.mutateAsync(formData);
     setIsCreateOpen(false);
+    setFormData({});
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ACTIVE': return 'bg-green-100 text-green-800';
-      case 'EXPIRED': return 'bg-gray-100 text-gray-800';
-      case 'CANCELLED': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const filteredContracts = useMemo(() => {
+    if (!searchQuery.trim()) return contracts;
+    const q = searchQuery.toLowerCase().trim();
+    return contracts.filter((c: MAContract) => {
+      const contractNo = String(c.contract_no || '').toLowerCase();
+      const cust = String(c.customer_name || '').toLowerCase();
+      const phone = String(c.phone || '').toLowerCase();
+      return contractNo.includes(q) || cust.includes(q) || phone.includes(q);
+    });
+  }, [contracts, searchQuery]);
+
+  const columns: ColumnDef<MAContract>[] = [
+    { 
+      id: 'contract_no', 
+      header: 'เลขที่สัญญา', 
+      width: 140,
+      cell: ({ row }) => <span className="font-semibold text-primary">{row.contract_no}</span>
+    },
+    { id: 'customer_name', header: 'ลูกค้า', accessorKey: 'customer_name', width: 180 },
+    { id: 'phone', header: 'เบอร์โทร', accessorKey: 'phone', width: 130 },
+    { 
+      id: 'period', 
+      header: 'ระยะเวลาสัญญา', 
+      width: 200,
+      cell: ({ row }) => (
+        <span className="text-black font-medium">
+          {formatDMY(row.start_date)} - {formatDMY(row.end_date)}
+        </span>
+      )
+    },
+    { 
+      id: 'contract_value', 
+      header: 'มูลค่าสัญญา', 
+      width: 140,
+      cell: ({ row }) => (
+        <span className="font-mono font-bold text-black">
+          {row.contract_value?.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿
+        </span>
+      )
+    },
+    { 
+      id: 'rounds_per_year', 
+      header: 'รอบบริการ/ปี', 
+      width: 110,
+      cell: ({ row }) => (
+        <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 border border-blue-200 text-black">
+          {row.rounds_per_year} รอบ
+        </span>
+      )
+    },
+    { 
+      id: 'status', 
+      header: 'สถานะ', 
+      width: 120,
+      cell: ({ row }) => {
+        const isAct = row.status === 'ACTIVE';
+        return (
+          <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${isAct ? 'bg-emerald-50 border border-emerald-300 text-black' : 'bg-gray-100 border border-gray-300 text-black'}`}>
+            {isAct ? 'ใช้งานอยู่ (ACTIVE)' : row.status}
+          </span>
+        );
+      }
     }
-  };
+  ];
 
-  if (isLoading) return <div>Loading...</div>;
+  const actions = (
+    <Button 
+      variant="primary" 
+      onClick={() => setIsCreateOpen(true)}
+      className="text-black font-semibold flex items-center gap-1.5"
+    >
+      <Plus className="w-4 h-4" />
+      <span>+ สร้างสัญญา MA</span>
+    </Button>
+  );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6 flex gap-6 overflow-auto h-full w-full">
-      {/* Master List */}
-      <div className={`flex-1 space-y-4 ${selectedContract ? 'w-2/3 hidden md:block' : 'w-full'}`}>
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">สัญญา MA</h1>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-md" onClick={() => setIsCreateOpen(true)}>สร้างสัญญา</button>
+    <div className="flex flex-col h-full bg-subtle p-6 overflow-hidden">
+      <PageHeader title="สัญญา MA (บริการหลังการขาย)" pageKey="ma" actions={actions} />
+
+      {/* Search & Filter Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 py-3 px-1">
+        <div className="flex items-center gap-3">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="ค้นหา (เลขสัญญา, ลูกค้า, เบอร์โทร)..."
+              className="pl-9 h-9 text-sm text-black placeholder:text-gray-500 bg-white border-gray-300"
+            />
+          </div>
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSearchQuery('')}
+              className="h-9 text-xs text-black font-medium hover:bg-gray-100"
+            >
+              ล้างตัวกรอง
+            </Button>
+          )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 font-semibold">เลขสัญญา</th>
-                <th className="px-4 py-3 font-semibold">ลูกค้า</th>
-                <th className="px-4 py-3 font-semibold">เบอร์โทร</th>
-                <th className="px-4 py-3 font-semibold">เริ่ม-สิ้นสุด</th>
-                <th className="px-4 py-3 font-semibold text-right">มูลค่า</th>
-                <th className="px-4 py-3 font-semibold text-center">รอบ/ปี</th>
-                <th className="px-4 py-3 font-semibold">สถานะ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {(Array.isArray(contracts) ? contracts : ((contracts as any)?.data || [])).map((contract: MAContract) => (
-                <tr 
-                  key={contract.id} 
-                  className={`cursor-pointer hover:bg-gray-50 ${selectedContract?.id === contract.id ? 'bg-blue-50' : ''}`}
-                  onClick={() => setSelectedContract(contract)}
-                >
-                  <td className="px-4 py-3 font-medium text-blue-600">{contract.contract_no}</td>
-                  <td className="px-4 py-3">{contract.customer_name}</td>
-                  <td className="px-4 py-3">{contract.phone}</td>
-                  <td className="px-4 py-3 text-xs">
-                    {format(new Date(contract.start_date), 'dd/MM/yyyy')} - {format(new Date(contract.end_date), 'dd/MM/yyyy')}
-                  </td>
-                  <td className="px-4 py-3 text-right">{contract.contract_value.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-center">{contract.rounds_per_year}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-block px-2 py-1 rounded-md text-xs font-semibold ${getStatusColor(contract.status)}`}>
-                      {contract.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {contracts.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
-                    ไม่มีข้อมูลสัญญา MA
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="text-xs text-black font-medium">
+          แสดง <span className="font-bold text-black">{filteredContracts.length}</span> จากทั้งหมด <span className="font-bold text-black">{contracts.length}</span> รายการ
         </div>
       </div>
 
-      {/* Detail View */}
-      {selectedContract && (
-        <div className="w-1/3 bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-6">
-          <div className="flex justify-between items-start">
-            <div>
-              <h2 className="text-xl font-bold">{selectedContract.contract_no}</h2>
-              <p className="text-gray-500">{selectedContract.customer_name}</p>
-            </div>
-            <button className="text-gray-400 hover:text-gray-600" onClick={() => setSelectedContract(null)}>✕</button>
-          </div>
-          
-          <div className="space-y-4">
-            <h3 className="font-semibold border-b pb-2">รายละเอียดสัญญา</h3>
-            <div className="text-sm space-y-2">
-              <div className="flex justify-between"><span className="text-gray-500">ที่อยู่</span><span className="text-right w-2/3">{selectedContract.address}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">บริการ</span><span className="text-right">{selectedContract.services.join(', ')}</span></div>
-            </div>
-            
-            <h3 className="font-semibold border-b pb-2 pt-4">รอบการเข้าบริการ (MA Rounds)</h3>
-            <div className="text-sm text-gray-500 italic text-center py-4">
-              [Placeholder for MA Rounds list]
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="flex-1 min-h-0 mt-2">
+        <MasterDetailLayout
+          pageKey="ma"
+          masterContent={
+            <DataGrid
+              columns={columns}
+              data={filteredContracts}
+              isLoading={isLoading}
+              onRowSelect={(row: any) => setSelectedContract(row)}
+              getRowId={(row) => String(row.id || row.contract_no)}
+              selectedRowId={selectedContract ? String(selectedContract.id || selectedContract.contract_no) : undefined}
+            />
+          }
+          detailContent={
+            selectedContract ? (
+              <div className="flex flex-col h-full p-6 bg-card border border-soft rounded-xl shadow-card text-black space-y-4 overflow-y-auto">
+                <div className="flex justify-between items-start border-b border-soft pb-3">
+                  <div>
+                    <h3 className="text-lg font-bold text-black">{selectedContract.contract_no} • {selectedContract.customer_name}</h3>
+                    <p className="text-xs text-black">เบอร์โทร: {selectedContract.phone} | ที่อยู่: {selectedContract.address}</p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedContract(null)} className="text-black">ปิด</Button>
+                </div>
 
-      {/* Create Drawer/Modal */}
-      {isCreateOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-[500px] space-y-4">
-            <h2 className="text-xl font-bold">สร้างสัญญา MA ใหม่</h2>
-            <div className="space-y-3">
-              <input placeholder="เลขสัญญา" className="w-full border p-2 rounded-md" onChange={e => setFormData({ ...formData, contract_no: e.target.value })} />
-              <input placeholder="ชื่อลูกค้า" className="w-full border p-2 rounded-md" onChange={e => setFormData({ ...formData, customer_name: e.target.value })} />
-              <input placeholder="เบอร์โทรศัพท์" className="w-full border p-2 rounded-md" onChange={e => setFormData({ ...formData, phone: e.target.value })} />
-              <textarea placeholder="ที่อยู่" className="w-full border p-2 rounded-md" onChange={e => setFormData({ ...formData, address: e.target.value })} />
-              <div className="flex gap-2">
-                <DatePicker placeholder="วันเริ่มสัญญา" value={formData.start_date} onChange={(v) => setFormData({ ...formData, start_date: v })} />
-                <DatePicker placeholder="วันสิ้นสุดสัญญา" value={formData.end_date} onChange={(v) => setFormData({ ...formData, end_date: v })} />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3 bg-white border border-soft rounded-lg shadow-sm">
+                    <span className="text-xs text-black block">ระยะเวลาสัญญา</span>
+                    <span className="font-bold text-black text-sm">{formatDMY(selectedContract.start_date)} ถึง {formatDMY(selectedContract.end_date)}</span>
+                  </div>
+                  <div className="p-3 bg-white border border-soft rounded-lg shadow-sm">
+                    <span className="text-xs text-black block">มูลค่าสัญญารวม</span>
+                    <span className="font-bold text-black text-sm">{selectedContract.contract_value?.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</span>
+                  </div>
+                  <div className="p-3 bg-white border border-soft rounded-lg shadow-sm">
+                    <span className="text-xs text-black block">ความถี่การบำรุงรักษา</span>
+                    <span className="font-bold text-black text-sm">{selectedContract.rounds_per_year} รอบต่อปี</span>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-white border border-soft rounded-lg space-y-3">
+                  <h4 className="font-semibold text-black text-sm">บริการในสัญญา MA</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.isArray(selectedContract.services) && selectedContract.services.map((s, idx) => (
+                      <span key={idx} className="px-2.5 py-1 rounded bg-blue-50 border border-blue-200 text-black text-xs font-medium">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <input type="number" placeholder="มูลค่าสัญญา" className="w-full border p-2 rounded-md" onChange={e => setFormData({ ...formData, contract_value: Number(e.target.value) })} />
-                <input type="number" placeholder="จำนวนรอบ/ปี" className="w-full border p-2 rounded-md" onChange={e => setFormData({ ...formData, rounds_per_year: Number(e.target.value) })} />
+            ) : (
+              <div className="flex h-full items-center justify-center text-black bg-card border border-soft rounded-xl shadow-card font-medium">
+                เลือกสัญญา MA เพื่อดูรายละเอียดรอบบริการและการเข้าดูแล
+              </div>
+            )
+          }
+        />
+      </div>
+
+      {/* Create Modal */}
+      {isCreateOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg space-y-4 shadow-xl">
+            <h2 className="text-lg font-bold text-black">สร้างสัญญา MA ใหม่</h2>
+            <div className="space-y-3 text-sm">
+              <input 
+                placeholder="เลขสัญญา (เช่น MA-2026-001)" 
+                className="w-full border border-gray-300 p-2.5 rounded-lg text-black" 
+                onChange={e => setFormData({ ...formData, contract_no: e.target.value })} 
+              />
+              <input 
+                placeholder="ชื่อลูกค้า" 
+                className="w-full border border-gray-300 p-2.5 rounded-lg text-black" 
+                onChange={e => setFormData({ ...formData, customer_name: e.target.value })} 
+              />
+              <input 
+                placeholder="เบอร์โทรศัพท์" 
+                className="w-full border border-gray-300 p-2.5 rounded-lg text-black" 
+                onChange={e => setFormData({ ...formData, phone: e.target.value })} 
+              />
+              <textarea 
+                placeholder="ที่อยู่หน้างาน" 
+                className="w-full border border-gray-300 p-2.5 rounded-lg text-black" 
+                rows={2}
+                onChange={e => setFormData({ ...formData, address: e.target.value })} 
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-black block mb-1">วันเริ่มสัญญา</label>
+                  <DatePicker value={formData.start_date} onChange={(v) => setFormData({ ...formData, start_date: v })} />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-black block mb-1">วันสิ้นสุดสัญญา</label>
+                  <DatePicker value={formData.end_date} onChange={(v) => setFormData({ ...formData, end_date: v })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-black block mb-1">มูลค่าสัญญา (บาท)</label>
+                  <input 
+                    type="number" 
+                    placeholder="0.00" 
+                    className="w-full border border-gray-300 p-2 rounded-lg text-black font-mono" 
+                    onChange={e => setFormData({ ...formData, contract_value: Number(e.target.value) })} 
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-black block mb-1">จำนวนรอบ/ปี</label>
+                  <input 
+                    type="number" 
+                    placeholder="4" 
+                    className="w-full border border-gray-300 p-2 rounded-lg text-black font-mono" 
+                    onChange={e => setFormData({ ...formData, rounds_per_year: Number(e.target.value) })} 
+                  />
+                </div>
               </div>
             </div>
-            <div className="flex justify-end space-x-2 pt-4">
-              <button className="px-4 py-2 border rounded-md" onClick={() => setIsCreateOpen(false)}>ยกเลิก</button>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-md" onClick={handleCreate}>บันทึก</button>
+            <div className="flex justify-end space-x-2 pt-3 border-t border-gray-200">
+              <Button variant="ghost" onClick={() => setIsCreateOpen(false)} className="text-black">ยกเลิก</Button>
+              <Button variant="primary" onClick={handleCreate} className="text-black font-semibold">บันทึกสัญญา</Button>
             </div>
           </div>
         </div>
