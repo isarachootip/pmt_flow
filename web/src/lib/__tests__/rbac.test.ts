@@ -13,9 +13,9 @@ describe('RBAC', () => {
     expect(canAccess('AE', '/admin/settings')).toBe(false);
   });
 
-  it('QC can access /qc but not /tickets', () => {
+  it('QC can access /qc but not /conversion', () => {
     expect(canAccess('QC', '/qc')).toBe(true);
-    expect(canAccess('QC', '/tickets')).toBe(false);
+    expect(canAccess('QC', '/conversion')).toBe(false);
   });
 
   it('CONTACT_CENTER has limited menu', () => {
@@ -26,7 +26,7 @@ describe('RBAC', () => {
     
     // Denied access to others
     expect(canAccess('CONTACT_CENTER', '/admin/users')).toBe(false);
-    expect(canAccess('CONTACT_CENTER', '/tickets')).toBe(false);
+    expect(canAccess('CONTACT_CENTER', '/conversion')).toBe(false);
   });
 
   it('getMenuForRole returns correct items per role', () => {

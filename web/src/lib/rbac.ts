@@ -2,7 +2,6 @@ import { UserRole } from './auth';
 import { 
   LayoutDashboard, 
   Inbox, 
-  Ticket, 
   Briefcase, 
   GanttChartSquare, 
   CheckSquare, 
@@ -44,11 +43,10 @@ export const MENU_STRUCTURE: MenuGroup[] = [
     group: 'ขั้นตอนงาน (Pipeline)',
     items: [
       { key: 'orders', label: 'รับงาน & คิวงาน', icon: Inbox, path: '/orders', roles: ['ADMIN', 'AE', 'QC', 'CONTACT_CENTER'], step: 1 },
-      { key: 'tickets', label: 'Ticket & ใบเสร็จ', icon: Ticket, path: '/tickets', roles: ['ADMIN', 'AE'], step: 2 },
-      { key: 'conversion', label: 'โปรเจกต์ & BOQ', icon: Briefcase, path: '/conversion', roles: ['ADMIN', 'AE'], step: 3 },
-      { key: 'gantt', label: 'แผนงาน Gantt', icon: GanttChartSquare, path: '/gantt', roles: ['ADMIN', 'AE', 'QC', 'CONTACT_CENTER'], step: 4 },
-      { key: 'qc', label: 'ตรวจรับงาน QC', icon: CheckSquare, path: '/qc', roles: ['ADMIN', 'QC'], step: 5 },
-      { key: 'completed', label: 'ปิดงาน & ส่ง STK', icon: CheckCircle2, path: '/completed', roles: ['ADMIN', 'AE'], step: 6 }
+      { key: 'conversion', label: 'โปรเจกต์ & BOQ', icon: Briefcase, path: '/conversion', roles: ['ADMIN', 'AE'], step: 2 },
+      { key: 'gantt', label: 'แผนงาน Gantt', icon: GanttChartSquare, path: '/gantt', roles: ['ADMIN', 'AE', 'QC', 'CONTACT_CENTER'], step: 3 },
+      { key: 'qc', label: 'ตรวจรับงาน QC', icon: CheckSquare, path: '/qc', roles: ['ADMIN', 'QC'], step: 4 },
+      { key: 'completed', label: 'ปิดงาน & ส่ง STK', icon: CheckCircle2, path: '/completed', roles: ['ADMIN', 'AE'], step: 5 }
     ]
   },
   {
