@@ -11,6 +11,7 @@ import { QcInspectionForm } from '@/features/qc/qc-inspection-form';
 import { useQCInspection, useExportSTK } from '@/features/qc/api';
 import { formatDMY, formatDateTimeDMY, format24HourTimeBadge } from '@/lib/date';
 import { toast } from 'sonner';
+import { JobActiveWorkspace } from '@/features/jobs/job-active-workspace';
 
 interface JobDetailTabsProps {
   job: Job;
@@ -40,6 +41,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
 
   // QC modal state
   const [showQcModal, setShowQcModal] = useState(false);
+  const [taskViewMode, setTaskViewMode] = useState<'workspace' | 'tasks'>('workspace');
 
   const handleTabChange = (value: string) => {
     setSearchParams(prev => {
@@ -203,14 +205,61 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                   <span className="font-semibold text-black text-sm">{job.assigned_tech || 'รอระบุทีมช่าง'}</span>
                 </div>
               </div>
-              <div className="flex-1 min-h-[200px]">
-                <DataGrid 
-                  columns={taskCols} 
-                  data={Array.isArray(tasksData) ? tasksData : (tasksData?.data || job.tasks || [])} 
-                  isLoading={isLoadingTasks}
-                  getRowId={(row: any) => String(row.id)}
-                />
-              </div>
+              {(() => {
+                const tasks = Array.isArray(tasksData) ? tasksData : (tasksData?.data || job.tasks || []);
+                if (tasks.length === 0) {
+                  return (
+                    <div className="flex-1 min-h-[200px] flex flex-col">
+                      <JobActiveWorkspace
+                        job={job}
+                        onTabChange={handleTabChange}
+                        onClose={onClose}
+                      />
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-4 flex-1 flex flex-col min-h-0">
+                    <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          size="sm"
+                          variant={taskViewMode === 'workspace' ? 'primary' : 'ghost'}
+                          onClick={() => setTaskViewMode('workspace')}
+                          className="text-black font-semibold text-xs"
+                        >
+                          พื้นที่ทำงาน & รูปภาพ (Active Workspace)
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={taskViewMode === 'tasks' ? 'primary' : 'ghost'}
+                          onClick={() => setTaskViewMode('tasks')}
+                          className="text-black font-semibold text-xs"
+                        >
+                          รายการงานย่อย ({tasks.length})
+                        </Button>
+                      </div>
+                    </div>
+                    {taskViewMode === 'tasks' ? (
+                      <div className="flex-1 min-h-[200px]">
+                        <DataGrid 
+                          columns={taskCols} 
+                          data={tasks} 
+                          isLoading={isLoadingTasks}
+                          getRowId={(row: any) => String(row.id)}
+                        />
+                      </div>
+                    ) : (
+                      <JobActiveWorkspace
+                        job={job}
+                        onTabChange={handleTabChange}
+                        onClose={onClose}
+                      />
+                    )}
+                  </div>
+                );
+              })()}
             </TabsContent>
 
             {/* 2. BOQ */}
