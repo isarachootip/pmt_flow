@@ -8,7 +8,6 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
-import { ConvertBoqDrawer } from '@/features/jobs/convert-boq-drawer';
 import { formatDMY } from '@/lib/date';
 
 export default function ConversionPage() {
@@ -17,7 +16,6 @@ export default function ConversionPage() {
   const allJobs: Job[] = Array.isArray(jobsData) ? jobsData : (jobsData?.data || []);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const filteredJobs = useMemo(() => {
     let result = allJobs.filter((job: Job) => 
@@ -100,22 +98,9 @@ export default function ConversionPage() {
     }
   ];
 
-  const actions = (
-    <div className="flex gap-2">
-      <Button 
-        variant="primary" 
-        disabled={!selectedJob} 
-        onClick={() => setDrawerOpen(true)}
-        className="text-black font-semibold"
-      >
-        แปลง BOQ เป็น Task
-      </Button>
-    </div>
-  );
-
   return (
     <div className="flex flex-col h-full bg-subtle p-6 overflow-hidden">
-      <PageHeader title="โปรเจกต์ & BOQ" pageKey="conversion" actions={actions} />
+      <PageHeader title="โปรเจกต์ & BOQ" pageKey="conversion" />
 
       {/* Search & Filter Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-4 py-3 px-1">
@@ -174,14 +159,6 @@ export default function ConversionPage() {
           }
         />
       </div>
-
-      {selectedJob && (
-        <ConvertBoqDrawer
-          job={selectedJob}
-          open={drawerOpen}
-          onOpenChange={setDrawerOpen}
-        />
-      )}
     </div>
   );
 }

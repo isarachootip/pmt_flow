@@ -12,9 +12,33 @@ export interface Job {
     phone: string;
     address: string;
   } | string;
-  status: 'SURVEYED'|'DESIGNING'|'BOQ'|'IN_PROGRESS'|'QC_PENDING'|'QC_PASS'|'REWORK'|'COMPLETED'|'CLOSED';
+  status: 
+    | 'NEW'
+    | 'ACCEPTED'
+    | 'NEED_REVIEW'
+    | 'WAIT_QC'
+    | 'PLANNED'
+    | 'IN_PROGRESS'
+    | 'PASSED'
+    | 'QC_PENDING'
+    | 'QC_PASS'
+    | 'QC_PASSED'
+    | 'REWORK'
+    | 'ESCALATED'
+    | 'COMPLETED'
+    | 'CLOSED'
+    | 'SENT'
+    | 'SYNC_FAILED'
+    | 'DRAFT'
+    | 'SURVEYED'
+    | 'DESIGNING'
+    | 'BOQ'
+    | (string & {});
   property_type: string;
-  project_type: 'Renovate'|'Quick Service';
+  project_type: 'Renovate' | 'Quick Service' | 'Q' | 'R' | (string & {});
+  job_type?: string;
+  pmt_accepted?: boolean;
+  pmt_accepted_at?: string;
   project_sub_type?: string;
   services: string[];
   assigned_tech?: string;
@@ -152,3 +176,32 @@ export const useDeleteTask = () => {
     },
   });
 };
+
+export const useAcceptJob = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, job_type }: { id: number | string; job_type?: 'Q' | 'R' }) => {
+      const res = await api.post<any>(`/api/v1/jobs/${id}/accept`, { job_type });
+      return res;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['job', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['jobSummary'] });
+      queryClient.invalidateQueries({ queryKey: ['jobAuditLogs', variables.id] });
+    },
+  });
+};
+
+export const useJobAuditLogs = (jobId: number | string) => {
+  return useQuery({
+    queryKey: ['jobAuditLogs', jobId],
+    queryFn: async () => {
+      if (!jobId) return [];
+      const res = await api.get<any>(`/api/v1/jobs/${jobId}/audit-logs`);
+      return Array.isArray(res) ? res : (res?.data || []);
+    },
+    enabled: !!jobId,
+  });
+};
+

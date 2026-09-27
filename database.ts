@@ -75,8 +75,8 @@ export async function initDatabase(): Promise<boolean> {
         customer_name VARCHAR(150),
         customer_phone VARCHAR(50),
         customer_address TEXT,
-        status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
-        job_type VARCHAR(50) DEFAULT 'quick',
+        status VARCHAR(50) NOT NULL DEFAULT 'NEW',
+        job_type VARCHAR(50) DEFAULT 'Q',
         step_timestamps JSONB DEFAULT '{}'::jsonb,
         property_type VARCHAR(50),
         project_type VARCHAR(100),
@@ -608,7 +608,7 @@ export function mapDbJobRow(row: any): any {
     remarks: row.remarks_data || row.remarks || { comment: row.special_instructions, note: row.additional_notes },
     file_int_image: row.file_int_image || '',
     raw_payload: row.raw_payload || {},
-    status: row.status || 'DRAFT',
+    status: row.status || 'NEW',
     plan_date: row.plan_date || (row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : '2026-09-08'),
     date: row.plan_date || (row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : '2026-09-08'),
     progress: row.overall_progress || 0,
@@ -770,15 +770,15 @@ export async function dbGetJobMetrics(): Promise<JobMetrics> {
     const res = await pool.query(`
       SELECT 
         COUNT(*)::int AS total,
-        COUNT(*) FILTER (WHERE UPPER(status) IN ('SURVEYED', 'DRAFT', 'NEW') AND (pmt_accepted IS FALSE OR pmt_accepted IS NULL))::int AS step1,
-        COUNT(*) FILTER (WHERE UPPER(status) = 'QC_PENDING')::int AS qc_pending,
-        COUNT(*) FILTER (WHERE UPPER(status) IN ('IN_PROGRESS', 'CONVERTED'))::int AS in_progress,
-        COUNT(*) FILTER (WHERE UPPER(status) IN ('QC_PASSED', 'CLOSED', 'AFTER_SALE'))::int AS completed,
-        COUNT(*) FILTER (WHERE UPPER(status) = 'QC_PASSED')::int AS qc_passed,
+        COUNT(*) FILTER (WHERE UPPER(status) IN ('SURVEYED', 'DRAFT', 'NEW', 'NEW_ORDER', 'NEED_REVIEW') AND (pmt_accepted IS FALSE OR pmt_accepted IS NULL))::int AS step1,
+        COUNT(*) FILTER (WHERE UPPER(status) IN ('WAIT_QC', 'QC_PENDING', 'QC_INSPECTING', 'QC_REWORK', 'REWORK'))::int AS qc_pending,
+        COUNT(*) FILTER (WHERE UPPER(status) IN ('IN_PROGRESS', 'CONVERTED', 'PLANNED'))::int AS in_progress,
+        COUNT(*) FILTER (WHERE UPPER(status) IN ('COMPLETED', 'CLOSED', 'QC_PASSED', 'PASSED', 'AFTER_SALE'))::int AS completed,
+        COUNT(*) FILTER (WHERE UPPER(status) IN ('COMPLETED', 'QC_PASSED', 'PASSED'))::int AS qc_passed,
         COUNT(*) FILTER (WHERE UPPER(status) IN ('AFTER_SALE', 'CLOSED'))::int AS after_sale,
         COUNT(*) FILTER (WHERE UPPER(status) IN ('CANCELLED', 'CLOSED_LOST'))::int AS cancelled,
-        COUNT(*) FILTER (WHERE LOWER(job_type) = 'quick')::int AS quick,
-        COUNT(*) FILTER (WHERE LOWER(job_type) = 'renovate')::int AS renovate,
+        COUNT(*) FILTER (WHERE LOWER(job_type) = 'quick' OR LOWER(job_type) = 'q')::int AS quick,
+        COUNT(*) FILTER (WHERE LOWER(job_type) = 'renovate' OR LOWER(job_type) = 'r')::int AS renovate,
         COUNT(*) FILTER (WHERE LOWER(job_type) = 'ma')::int AS ma,
         COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE)::int AS today
       FROM core_jobs
@@ -863,13 +863,25 @@ export async function dbLoadJobsPaginated(options: DbLoadJobsPaginatedOptions = 
     let paramIdx = 1;
 
     if (options.status && options.status !== 'all') {
-      const st = options.status.toLowerCase();
-      if (st === 'step1_queue') {
-        whereClauses.push(`(UPPER(status) IN ('SURVEYED', 'DRAFT', 'NEW', 'NEW_ORDER') AND (pmt_accepted IS FALSE OR pmt_accepted IS NULL))`);
+      const rawStatus = options.status.trim();
+      const st = rawStatus.toLowerCase();
+      if (rawStatus.includes(',')) {
+        const statuses = rawStatus.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+        const placeholders = statuses.map(() => `$${paramIdx++}`).join(', ');
+        whereClauses.push(`UPPER(status) IN (${placeholders})`);
+        params.push(...statuses);
+      } else if (st === 'step1_queue') {
+        whereClauses.push(`(UPPER(status) IN ('SURVEYED', 'DRAFT', 'NEW', 'NEW_ORDER', 'NEED_REVIEW') AND (pmt_accepted IS FALSE OR pmt_accepted IS NULL))`);
       } else if (st === 'transferred') {
-        whereClauses.push(`(pmt_accepted IS TRUE OR UPPER(status) NOT IN ('SURVEYED', 'DRAFT', 'NEW', 'NEW_ORDER'))`);
+        whereClauses.push(`(pmt_accepted IS TRUE OR UPPER(status) NOT IN ('SURVEYED', 'DRAFT', 'NEW', 'NEW_ORDER', 'NEED_REVIEW'))`);
       } else if (st === 'new') {
-        whereClauses.push(`(LOWER(status) IN ('new', 'draft', 'new_order') AND (assigned_tech IS NULL OR assigned_tech = '' OR assigned_tech = 'รอระบุช่าง') AND (pmt_accepted IS FALSE OR pmt_accepted IS NULL))`);
+        whereClauses.push(`UPPER(status) IN ('NEW', 'NEED_REVIEW', 'DRAFT', 'NEW_ORDER')`);
+      } else if (st === 'completed') {
+        whereClauses.push(`UPPER(status) IN ('COMPLETED', 'CLOSED', 'QC_PASSED', 'QC_PASS', 'PASSED')`);
+      } else if (st === 'wait_qc' || st === 'qc') {
+        whereClauses.push(`UPPER(status) IN ('WAIT_QC', 'QC_PENDING', 'QC_INSPECTING', 'QC_REWORK', 'REWORK')`);
+      } else if (st === 'planned') {
+        whereClauses.push(`UPPER(status) IN ('PLANNED', 'BOQ', 'DESIGN')`);
       } else if (st === 'assigned') {
         whereClauses.push(`(assigned_tech IS NOT NULL AND assigned_tech != '' AND assigned_tech != 'รอระบุช่าง' AND LOWER(status) NOT IN ('surveyed', 'cancelled', 'closed_lost') AND (pmt_accepted IS FALSE OR pmt_accepted IS NULL))`);
       } else if (st === 'surveyed') {
@@ -883,15 +895,15 @@ export async function dbLoadJobsPaginated(options: DbLoadJobsPaginatedOptions = 
     if (options.step && options.step !== 'all') {
       const stp = options.step.toLowerCase();
       if (stp === 'step1') {
-        whereClauses.push(`(UPPER(status) IN ('SURVEYED', 'DRAFT', 'NEW', 'NEW_ORDER') AND (pmt_accepted IS FALSE OR pmt_accepted IS NULL))`);
+        whereClauses.push(`(UPPER(status) IN ('SURVEYED', 'DRAFT', 'NEW', 'NEW_ORDER', 'NEED_REVIEW') AND (pmt_accepted IS FALSE OR pmt_accepted IS NULL))`);
       } else if (stp === 'step2') {
-        whereClauses.push(`(pmt_accepted IS TRUE AND UPPER(status) IN ('IN_PROGRESS', 'PENDING_TICKET', 'TICKET_ISSUED', 'DESIGNED'))`);
+        whereClauses.push(`(pmt_accepted IS TRUE AND UPPER(status) IN ('IN_PROGRESS', 'PENDING_TICKET', 'TICKET_ISSUED', 'DESIGNED', 'PLANNED'))`);
       } else if (stp === 'step4') {
         whereClauses.push(`(UPPER(status) IN ('IN_PROGRESS', 'INSTALLING', 'GANTT_ACTIVE'))`);
       } else if (stp === 'step5' || stp === 'qc') {
-        whereClauses.push(`(UPPER(status) IN ('QC_PENDING', 'QC_INSPECTING', 'QC_REWORK', 'QC_PASSED', 'QC_CONFIRMED', 'DRAFT_QC'))`);
-      } else if (stp === 'step6' || stp === 'closed') {
-        whereClauses.push(`(UPPER(status) IN ('QC_PASSED', 'CLOSED'))`);
+        whereClauses.push(`(UPPER(status) IN ('WAIT_QC', 'QC_PENDING', 'QC_INSPECTING', 'QC_REWORK', 'REWORK', 'QC_PASSED', 'QC_CONFIRMED', 'DRAFT_QC'))`);
+      } else if (stp === 'step6' || stp === 'closed' || stp === 'completed') {
+        whereClauses.push(`(UPPER(status) IN ('COMPLETED', 'CLOSED', 'QC_PASSED', 'PASSED'))`);
       } else if (stp === 'step7' || stp === 'ma') {
         whereClauses.push(`(UPPER(status) = 'AFTER_SALE' OR LOWER(job_type) = 'ma')`);
       }
@@ -899,10 +911,10 @@ export async function dbLoadJobsPaginated(options: DbLoadJobsPaginatedOptions = 
 
     if (options.service && options.service !== 'all') {
       const s = options.service.toLowerCase();
-      if (s === 'quick') {
-        whereClauses.push(`(LOWER(job_type) = 'quick' OR services::text ILIKE '%quick%')`);
-      } else if (s === 'renovate') {
-        whereClauses.push(`(LOWER(job_type) = 'renovate' OR services::text ILIKE '%renovate%' OR project_sub_type ILIKE '%renovate%')`);
+      if (s === 'quick' || s === 'q') {
+        whereClauses.push(`(LOWER(job_type) = 'quick' OR LOWER(job_type) = 'q' OR services::text ILIKE '%quick%')`);
+      } else if (s === 'renovate' || s === 'r') {
+        whereClauses.push(`(LOWER(job_type) = 'renovate' OR LOWER(job_type) = 'r' OR services::text ILIKE '%renovate%' OR project_sub_type ILIKE '%renovate%')`);
       } else if (s === 'ma') {
         whereClauses.push(`(LOWER(job_type) = 'ma' OR services::text ILIKE '%ma%' OR project_sub_type ILIKE '%ma%')`);
       } else {

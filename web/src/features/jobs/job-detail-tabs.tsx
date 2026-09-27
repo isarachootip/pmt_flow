@@ -9,9 +9,12 @@ import { BoqTab } from '@/features/boq/boq-tab';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { QcInspectionForm } from '@/features/qc/qc-inspection-form';
 import { useQCInspection, useExportSTK } from '@/features/qc/api';
+import { useAcceptJob } from '@/features/jobs/api';
+import { JobTimeline } from '@/features/jobs/job-timeline';
 import { formatDMY, formatDateTimeDMY, format24HourTimeBadge } from '@/lib/date';
 import { toast } from 'sonner';
 import { JobActiveWorkspace } from '@/features/jobs/job-active-workspace';
+import { UserCheck } from 'lucide-react';
 
 interface JobDetailTabsProps {
   job: Job;
@@ -31,16 +34,20 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
   else if (rawTab === 'finance' || rawTab === 'export' || rawTab === 'stk' || rawTab === 'ส่งออก') normalizedTab = 'stk';
   else if (rawTab === 'blueprint' || rawTab === 'tasks' || rawTab === 'task' || rawTab === 'งาน') normalizedTab = 'task';
   else if (rawTab === 'boq' || rawTab === 'pricing') normalizedTab = 'boq';
+  else if (rawTab === 'timeline' || rawTab === 'audit' || rawTab === 'logs') normalizedTab = 'timeline';
   
-  const validTabs = ['task', 'boq', 'qc', 'stk'];
+  const validTabs = ['task', 'boq', 'qc', 'stk', 'timeline'];
   const activeTab = validTabs.includes(normalizedTab) ? normalizedTab : 'task';
 
   const { data: tasksData, isLoading: isLoadingTasks } = useJobTasks(job.id);
   const qcMutation = useQCInspection();
   const stkMutation = useExportSTK();
+  const acceptMutation = useAcceptJob();
 
-  // QC modal state
+  // QC modal & Accept review modal state
   const [showQcModal, setShowQcModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedReviewType, setSelectedReviewType] = useState<'Q' | 'R'>('Q');
   const [taskViewMode, setTaskViewMode] = useState<'workspace' | 'tasks'>('workspace');
 
   const handleTabChange = (value: string) => {
@@ -49,6 +56,39 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
       next.set('tab', value);
       return next;
     });
+  };
+
+  const handleAcceptJob = () => {
+    if (job.status === 'NEED_REVIEW' || (job as any).job_type === 'NEED_REVIEW') {
+      setShowReviewModal(true);
+      return;
+    }
+    acceptMutation.mutate(
+      { id: job.id },
+      {
+        onSuccess: (res: any) => {
+          toast.success(res?.message || 'รับงานเข้าสู่ระบบเรียบร้อยแล้ว');
+        },
+        onError: (err: any) => {
+          toast.error(err.message || 'ไม่สามารถรับงานได้ กรุณาลองใหม่อีกครั้ง');
+        }
+      }
+    );
+  };
+
+  const handleConfirmReviewAccept = () => {
+    acceptMutation.mutate(
+      { id: job.id, job_type: selectedReviewType },
+      {
+        onSuccess: (res: any) => {
+          setShowReviewModal(false);
+          toast.success(res?.message || `รับงานและระบุประเภท ${selectedReviewType} เรียบร้อยแล้ว`);
+        },
+        onError: (err: any) => {
+          toast.error(err.message || 'ไม่สามารถรับงานได้');
+        }
+      }
+    );
   };
 
   const handleQcSubmit = (data: any) => {
@@ -126,6 +166,18 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
           <StatusBadge status={job.status === 'QC_PENDING' ? 'PENDING' : job.status} />
         </div>
         <div className="flex items-center space-x-2">
+          {(job.status === 'NEW' || job.status === 'NEED_REVIEW' || !(job as any).pmt_accepted) && (
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={acceptMutation.isPending}
+              onClick={handleAcceptJob}
+              className="bg-green-600 hover:bg-green-700 text-white font-bold px-3 py-1.5 text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-white" />
+              <span>{acceptMutation.isPending ? 'กำลังรับงาน...' : 'รับงาน'}</span>
+            </Button>
+          )}
           {onClose && (
             <Button variant="ghost" onClick={onClose} size="sm" className="text-black font-medium">
               ปิด
@@ -165,6 +217,12 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                 className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-black text-black font-semibold rounded-none shadow-none px-4 py-3"
               >
                 ส่งออก STK
+              </TabsTrigger>
+              <TabsTrigger 
+                value="timeline" 
+                className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-black text-black font-semibold rounded-none shadow-none px-4 py-3"
+              >
+                ประวัติ (Timeline)
               </TabsTrigger>
             </TabsList>
           </div>
@@ -376,6 +434,11 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                 </div>
               </div>
             </TabsContent>
+
+            {/* 5. ประวัติการดำเนินงาน (Timeline) */}
+            <TabsContent value="timeline" className="h-full m-0 data-[state=active]:flex flex-col space-y-4">
+              <JobTimeline jobId={job.id} bookingNo={job.booking_no || (job as any).external_ref_id} />
+            </TabsContent>
           </div>
         </Tabs>
       </div>
@@ -388,6 +451,93 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
             onSubmit={handleQcSubmit}
             onCancel={() => setShowQcModal(false)}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Need Review Accept Modal Dialog */}
+      <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
+        <DialogContent className="sm:max-w-[480px] bg-white text-black p-6 space-y-4">
+          <div>
+            <h3 className="text-lg font-bold text-black flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-purple-600" />
+              <span>ระบุประเภทงานก่อนกดรับงาน</span>
+            </h3>
+            <p className="text-xs text-black mt-1">
+              ระบบตรวจสอบข้อมูลต้นทางแล้วพบว่าประเภทงานไม่ชัดเจน (NEED_REVIEW) กรุณาเลือกประเภทงานเพื่อดำเนินการต่อ
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <label 
+              className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition ${
+                selectedReviewType === 'Q' 
+                  ? 'border-amber-500 bg-amber-50/60 ring-1 ring-amber-500' 
+                  : 'border-gray-200 bg-white hover:bg-gray-50'
+              }`}
+              onClick={() => setSelectedReviewType('Q')}
+            >
+              <input 
+                type="radio" 
+                name="reviewType" 
+                value="Q" 
+                checked={selectedReviewType === 'Q'} 
+                onChange={() => setSelectedReviewType('Q')}
+                className="mt-1 accent-amber-600" 
+              />
+              <div>
+                <span className="font-bold text-sm text-black block">Q — Quick Service (งานด่วน/ติดตั้ง)</span>
+                <span className="text-xs text-black">
+                  ข้ามขั้นตอนออกแบบ/BOQ และส่งไปขั้นตอนรอตรวจ QC (WAIT_QC) ทันที
+                </span>
+              </div>
+            </label>
+
+            <label 
+              className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition ${
+                selectedReviewType === 'R' 
+                  ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-500' 
+                  : 'border-gray-200 bg-white hover:bg-gray-50'
+              }`}
+              onClick={() => setSelectedReviewType('R')}
+            >
+              <input 
+                type="radio" 
+                name="reviewType" 
+                value="R" 
+                checked={selectedReviewType === 'R'} 
+                onChange={() => setSelectedReviewType('R')}
+                className="mt-1 accent-blue-600" 
+              />
+              <div>
+                <span className="font-bold text-sm text-black block">R — Renovate (งานปรับปรุง/ต่อเติม)</span>
+                <span className="text-xs text-black">
+                  เข้าสู่ขั้นตอนสร้าง Project (3 ระดับ), จัดการ BOQ และมอบหมายช่าง/QC ประจำพื้นที่
+                </span>
+              </div>
+            </label>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border-soft)]">
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowReviewModal(false)}
+              className="text-black font-semibold text-xs"
+            >
+              ยกเลิก
+            </Button>
+            <Button 
+              type="button" 
+              variant="primary" 
+              size="sm"
+              disabled={acceptMutation.isPending}
+              onClick={handleConfirmReviewAccept}
+              className="bg-primary hover:bg-primary-hover text-black font-bold px-4 py-2 text-xs"
+            >
+              {acceptMutation.isPending ? 'กำลังบันทึก...' : `ยืนยันรับงานประเภท ${selectedReviewType}`}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

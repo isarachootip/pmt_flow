@@ -21,6 +21,7 @@ export default function OrdersPage() {
   
   // State for search, date range filters, and create drawer
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [statusFilter, setStatusFilter] = React.useState<string>('all');
   const [startDate, setStartDate] = React.useState(''); // ISO YYYY-MM-DD
   const [endDate, setEndDate] = React.useState(''); // ISO YYYY-MM-DD
   const [showCreateDrawer, setShowCreateDrawer] = React.useState(false);
@@ -53,9 +54,36 @@ export default function OrdersPage() {
     }
   };
 
+  // State Machine Status Counts
+  const statusCounts = React.useMemo(() => {
+    const counts = { all: allJobs.length, NEW: 0, WAIT_QC: 0, PLANNED: 0, COMPLETED: 0 };
+    for (const j of allJobs) {
+      if (j.status === 'NEW' || j.status === 'NEED_REVIEW' || !(j as any).pmt_accepted) counts.NEW++;
+      else if (j.status === 'WAIT_QC' || j.status === 'QC_PENDING' || j.status === 'REWORK') counts.WAIT_QC++;
+      else if (j.status === 'PLANNED' || j.status === 'BOQ') counts.PLANNED++;
+      else if (j.status === 'COMPLETED' || j.status === 'PASSED' || j.status === 'CLOSED') counts.COMPLETED++;
+    }
+    return counts;
+  }, [allJobs]);
+
   // Multi-Field Search + Date Range Filter + Creation Date Sorting
   const filteredAndSortedJobs = React.useMemo(() => {
     let result = [...allJobs];
+
+    // 0. State Machine Status Filter
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'NEW') {
+        result = result.filter(j => j.status === 'NEW' || j.status === 'NEED_REVIEW' || !(j as any).pmt_accepted);
+      } else if (statusFilter === 'PLANNED') {
+        result = result.filter(j => j.status === 'PLANNED' || j.status === 'BOQ');
+      } else if (statusFilter === 'WAIT_QC') {
+        result = result.filter(j => j.status === 'WAIT_QC' || j.status === 'QC_PENDING' || j.status === 'REWORK');
+      } else if (statusFilter === 'COMPLETED') {
+        result = result.filter(j => j.status === 'COMPLETED' || j.status === 'PASSED' || j.status === 'CLOSED');
+      } else {
+        result = result.filter(j => j.status === statusFilter);
+      }
+    }
 
     // 1. Multi-Field Search across Customer Name, Phone, Booking No, Ref ID, Job No, Tech, Services, Project Type
     const q = searchQuery.trim().toLowerCase();
@@ -146,7 +174,7 @@ export default function OrdersPage() {
     });
 
     return result;
-  }, [allJobs, searchQuery, startDate, endDate]);
+  }, [allJobs, searchQuery, startDate, endDate, statusFilter]);
 
   const columns: ColumnDef<Job>[] = [
     { 
@@ -280,6 +308,27 @@ export default function OrdersPage() {
       width: 160, 
       cell: ({ row }) => <span className="text-black">{row.assigned_tech || '-'}</span> 
     },
+    {
+      id: 'action_btn',
+      header: 'จัดการ',
+      width: 90,
+      cell: ({ row }) => (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRowClick(row);
+          }}
+          className={`text-xs px-2.5 py-1 rounded font-semibold border transition-colors cursor-pointer ${
+            row.status === 'NEW' || row.status === 'NEED_REVIEW'
+              ? 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100'
+              : 'bg-gray-50 text-black border-gray-300 hover:bg-gray-100'
+          }`}
+        >
+          {row.status === 'NEW' || row.status === 'NEED_REVIEW' ? 'รับงาน' : 'ดูข้อมูล'}
+        </button>
+      )
+    },
   ];
 
   const handleExportCSV = () => {
@@ -358,6 +407,39 @@ export default function OrdersPage() {
     <div className="flex flex-col h-full bg-subtle p-6 overflow-hidden">
       <PageHeader title="รับงาน & คิวงาน" pageKey="orders" actions={actions} />
       
+      {/* State Machine Status Filter Pills */}
+      <div className="flex flex-wrap items-center gap-2 pt-2 pb-3 border-b border-soft">
+        {[
+          { key: 'all', label: 'ทั้งหมด', count: statusCounts.all },
+          { key: 'NEW', label: 'รอรับงาน (NEW)', count: statusCounts.NEW },
+          { key: 'WAIT_QC', label: 'รอตรวจ QC (WAIT_QC)', count: statusCounts.WAIT_QC },
+          { key: 'PLANNED', label: 'วางแผน (PLANNED)', count: statusCounts.PLANNED },
+          { key: 'COMPLETED', label: 'เสร็จสิ้น (COMPLETED)', count: statusCounts.COMPLETED },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setStatusFilter(tab.key)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              statusFilter === tab.key
+                ? 'bg-blue-600 text-white shadow-xs font-bold'
+                : 'bg-white text-black border border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+            }`}
+          >
+            <span>{tab.label}</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+                statusFilter === tab.key
+                  ? 'bg-blue-700 text-white'
+                  : 'bg-gray-200 text-black'
+              }`}
+            >
+              {tab.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
       {/* Search & Filter Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-4 py-3 px-1">
         <div className="flex flex-wrap items-center gap-3">
@@ -385,7 +467,7 @@ export default function OrdersPage() {
           </div>
 
           {/* Reset button if filter is active */}
-          {(searchQuery || startDate || endDate) && (
+          {(searchQuery || startDate || endDate || statusFilter !== 'all') && (
             <Button
               variant="ghost"
               size="sm"
@@ -393,6 +475,7 @@ export default function OrdersPage() {
                 setSearchQuery('');
                 setStartDate('');
                 setEndDate('');
+                setStatusFilter('all');
               }}
               className="h-9 text-xs text-black font-medium hover:bg-gray-100"
             >

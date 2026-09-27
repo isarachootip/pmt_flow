@@ -2567,6 +2567,50 @@ app.get('/api/v1/audit-logs', requireAuth, async (req: Request, res: Response) =
   }
 });
 
+// GET /api/v1/jobs/:id/audit-logs & /api/v1/jobs/:id/timeline — Get Job Audit Timeline (Req #7)
+app.get(['/api/v1/jobs/:id/audit-logs', '/api/v1/jobs/:id/timeline'], requireAuth, async (req: Request, res: Response) => {
+  try {
+    const param = req.params.id;
+    const job = await dbGetJob(param);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+    }
+
+    const bookingNo = job.booking_no || job.external_ref_id || '';
+    const jobIdStr = String(job.id);
+    const jobNo = job.job_no || '';
+
+    const client = await pool.connect();
+    try {
+      const querySql = `
+        SELECT *
+        FROM core_audit_logs
+        WHERE (booking_no = $1 AND $1 != '')
+           OR (entity_type = 'JOB' AND (entity_id = $2 OR entity_id = $3))
+           OR (entity_type = 'TASK' AND booking_no = $1 AND $1 != '')
+        ORDER BY timestamp ASC, id ASC
+      `;
+      const result = await client.query(querySql, [bookingNo, jobIdStr, jobNo]);
+      const timeline = result.rows.map(r => ({
+        ...r,
+        timestamp: r.timestamp ? new Date(r.timestamp).toISOString() : new Date().toISOString()
+      }));
+
+      return res.status(200).json({
+        success: true,
+        job_id: job.id,
+        booking_no: bookingNo,
+        total: timeline.length,
+        data: timeline
+      });
+    } finally {
+      client.release();
+    }
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
 // =============================================================================
 // STAGING MANAGEMENT APIS (List, Get, Convert/Retry)
 // =============================================================================
@@ -3159,9 +3203,9 @@ app.post('/api/v1/jobs', requireAuth, async (req: Request, res: Response) => {
       services: [service || 'งานติดตั้ง'],
       assigned_tech: tech || 'Team A (สมศักดิ์)',
       plan_date: date || new Date().toISOString().split('T')[0],
-      status: JobStatus.DRAFT,
+      status: JobStatus.NEW,
       overall_progress: 0,
-      job_type: job_type || 'quick',
+      job_type: (job_type === 'renovate' || job_type === 'R') ? 'R' : 'Q',
       tasks: [],
       photos: formattedPhotos,
       boq_items: [],
@@ -3173,6 +3217,9 @@ app.post('/api/v1/jobs', requireAuth, async (req: Request, res: Response) => {
       created_at: new Date().toISOString()
     };
     await dbSaveJob(newJob);
+    await recordAudit(req, 'CREATE_JOB_MANUAL', 'JOB', newJob.id, newJob.booking_no, null, newJob, {
+      source: 'MANUAL_ENTRY'
+    });
 
     return res.status(201).json({
       success: true,

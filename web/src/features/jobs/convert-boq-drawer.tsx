@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Job } from './api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,19 +14,34 @@ interface ConvertBoqDrawerProps {
   job: Job;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialItems?: any[];
 }
 
-export function ConvertBoqDrawer({ job, open, onOpenChange }: ConvertBoqDrawerProps) {
+export function ConvertBoqDrawer({ job, open, onOpenChange, initialItems }: ConvertBoqDrawerProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [baseStartDate, setBaseStartDate] = useState<string | undefined>(new Date().toISOString().split('T')[0]);
   
-  // Dummy items for now, ideally fetched from BOQ API
   const [items, setItems] = useState([
     { name: 'งานติดตั้งท่อ', unit: 'เมตร', qty: 10, unit_price: 100, duration_days: 2, tech: '' },
     { name: 'งานเดินสายไฟ', unit: 'เมตร', qty: 20, unit_price: 50, duration_days: 1, tech: '' },
   ]);
+
+  useEffect(() => {
+    if (open && initialItems && initialItems.length > 0) {
+      setItems(
+        initialItems.map((item: any) => ({
+          name: item.name || '',
+          unit: item.unit || 'รายการ',
+          qty: item.qty || 1,
+          unit_price: item.unit_price || 0,
+          duration_days: item.duration_days || 1,
+          tech: item.tech || job.assigned_tech || ''
+        }))
+      );
+    }
+  }, [open, initialItems, job.assigned_tech]);
 
   const convertMutation = useMutation({
     mutationFn: async (payload: any) => {

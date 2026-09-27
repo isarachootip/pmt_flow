@@ -4874,6 +4874,26 @@
 
                         <!-- Training Modules Cards Grid (6-Step Pipeline + Supporting Modules) -->
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                            <!-- Module 0: Orders & State Machine Intake -->
+                            <div class="artifact-card p-4 rounded-2xl border border-border hover:border-blue-500/40 transition-all space-y-3 flex flex-col justify-between group">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded bg-blue-500/15 text-blue-700 font-mono text-[10px] font-bold border border-blue-500/20">TRN-PMT-QUEUE01</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">Phase 1 (Intake)</span>
+                                    </div>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-blue-600 transition">รับงาน & คิวงาน State Machine V2</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">ศูนย์รับคำสั่งซื้อ INT, คัดกรอง Q/R อัตโนมัติ, การรับงาน (Accept Job) สู่ WAIT_QC หรือ PLANNED พร้อม Audit Trail 100%</p>
+                                </div>
+                                <div class="pt-2 border-t border-border flex items-center gap-2">
+                                    <button onclick="window.open('/orders', '_blank')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
+                                    </button>
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_PMT_Flow_V2_Orders_Queue.md', 'คู่มือ: รับงาน & คิวงาน State Machine V2')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-[11px] font-semibold text-blue-600 flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-book-open"></i> อ่านคู่มือ
+                                    </button>
+                                </div>
+                            </div>
+
                             <!-- Module 1: Step 1 -->
                             <div class="artifact-card p-4 rounded-2xl border border-border hover:border-indigo-500/40 transition-all space-y-3 flex flex-col justify-between group">
                                 <div class="space-y-2">

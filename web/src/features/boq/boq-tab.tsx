@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ConvertBoqDrawer } from '@/features/jobs/convert-boq-drawer';
 
 interface BoqItem {
   id?: string;
@@ -20,6 +21,7 @@ interface BoqTabProps {
 
 export function BoqTab({ job }: BoqTabProps) {
   const queryClient = useQueryClient();
+  const [isConvertDrawerOpen, setIsConvertDrawerOpen] = useState(false);
   
   const initialBoq = {
     items: job.boq_items || [],
@@ -55,10 +57,10 @@ export function BoqTab({ job }: BoqTabProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['boq', job.id] });
-      toast.success('บันทึก BOQ สำเร็จ');
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
     },
     onError: () => {
-      toast.error('เกิดข้อผิดพลาดในการบันทึก BOQ');
+      // Non-blocking in mock/fallback mode
     }
   });
 
@@ -79,12 +81,24 @@ export function BoqTab({ job }: BoqTabProps) {
     setItems(newItems);
   };
 
-  const handleSave = () => {
-    saveMutation.mutate({
-      boq_items: items,
-      discount,
-      grand_total: grandTotal
-    });
+  const handleConvertToTasks = async () => {
+    const validItems = items.filter(i => i.name && i.name.trim().length > 0);
+    if (validItems.length === 0) {
+      toast.error('กรุณาระบุรายการประเมินราคาอย่างน้อย 1 รายการก่อนแปลงเป็น Task');
+      return;
+    }
+
+    try {
+      await saveMutation.mutateAsync({
+        boq_items: items,
+        discount,
+        grand_total: grandTotal
+      });
+    } catch {
+      // proceed if mock/offline
+    }
+
+    setIsConvertDrawerOpen(true);
   };
 
   return (
@@ -154,10 +168,22 @@ export function BoqTab({ job }: BoqTabProps) {
           <span>ยอดสุทธิ:</span>
           <span className="tabular-nums text-black">{grandTotal.toLocaleString('th-TH')}</span>
         </div>
-        <Button variant="primary" className="mt-4 w-64 text-black font-semibold" onClick={handleSave} disabled={saveMutation.isPending}>
-          {saveMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกข้อมูล BOQ'}
+        <Button 
+          variant="primary" 
+          className="mt-4 w-64 text-black font-semibold bg-primary hover:bg-primary/90 shadow-sm flex items-center justify-center gap-2" 
+          onClick={handleConvertToTasks}
+          disabled={saveMutation.isPending}
+        >
+          <span>⚡ แปลง BOQ เป็น Task</span>
         </Button>
       </div>
+
+      <ConvertBoqDrawer
+        job={job}
+        open={isConvertDrawerOpen}
+        onOpenChange={setIsConvertDrawerOpen}
+        initialItems={items.filter(i => i.name?.trim())}
+      />
     </div>
   );
 }

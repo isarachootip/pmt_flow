@@ -9,7 +9,8 @@
     "build": "node scripts/check-syntax.js && npm run build:web && tsc",
     "start": "node dist/server.js",
     "dev": "ts-node server.ts",
-    "test": "node test_boq_import_scenario.js && node test_daily_work_log_and_qc_pipeline.js"
+    "test": "node test_boq_import_scenario.js && node test_daily_work_log_and_qc_pipeline.js",
+    "test:phase1": "ts-node test_phase1.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

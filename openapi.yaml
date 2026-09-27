@@ -294,7 +294,7 @@ paths:
           name: status
           schema:
             type: string
-            enum: [all, DRAFT, NEW, SURVEYED, DESIGN, BOQ, IN_PROGRESS, QC_PENDING, QC_PASSED, AFTER_SALE, CLOSED]
+            enum: [all, NEW, ACCEPTED, NEED_REVIEW, WAIT_QC, PLANNED, IN_PROGRESS, PASSED, REWORK, ESCALATED, COMPLETED, SENT, SYNC_FAILED, DRAFT, CLOSED]
         - in: query
           name: search
           schema:
@@ -354,6 +354,87 @@ paths:
       responses:
         '200':
           description: Job updated successfully
+
+  /jobs/{id}/accept:
+    post:
+      summary: Accept Job & Route Workflow (Phase 1 State Machine)
+      description: |
+        Transition job from NEW/NEED_REVIEW to ACCEPTED, then automatically route:
+        - Quick Service (Q) -> WAIT_QC
+        - Renovate Service (R) -> PLANNED
+        If job is NEED_REVIEW, caller must explicitly supply project_type ('Q' or 'R').
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "123"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                project_type:
+                  type: string
+                  enum: [Q, R]
+                  description: Mandatory if job is NEED_REVIEW
+                notes:
+                  type: string
+                  example: "ตรวจสอบและรับงานเรียบร้อย"
+      responses:
+        '200':
+          description: Job accepted and transitioned to next status
+        '400':
+          description: Job requires manual review or invalid transition
+        '404':
+          description: Job not found
+
+  /jobs/{id}/classify:
+    post:
+      summary: Re-classify Job Service Type (Q vs R vs NEED_REVIEW)
+      description: Re-evaluates rule-engine against booking_no, service description, and items.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Classification result returned
+        '404':
+          description: Job not found
+
+  /jobs/{id}/audit-logs:
+    get:
+      summary: Get Job Audit Trail Logs (Asia/Bangkok)
+      description: Returns all chronological audit logs, status changes, and actor metadata.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of audit log records returned
+
+  /jobs/{id}/timeline:
+    get:
+      summary: Get Consolidated Job Timeline
+      description: Returns unified timeline events for status changes, check-ins, QC, and exports.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Chronological list of timeline items
 
   /jobs/{id}/checkin:
     post:
