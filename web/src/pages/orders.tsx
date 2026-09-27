@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useJobs, Job } from '@/features/jobs/api';
+import { useJobs, useAcceptJob, Job } from '@/features/jobs/api';
 import { PageHeader } from '@/components/ui/page-header';
 import { MasterDetailLayout } from '@/components/ui/master-detail-layout';
 import { DataGrid, ColumnDef } from '@/components/ui/data-grid';
@@ -9,7 +9,7 @@ import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Input } from '@/components/ui/input';
 import { formatDMY, toDateTime, toISODate, format24HourTimeBadge } from '@/lib/date';
 import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
+import { Search, Camera } from 'lucide-react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CreateJobDrawer } from '@/features/jobs/create-job-drawer';
 import { toast } from 'sonner';
@@ -25,6 +25,45 @@ export default function OrdersPage() {
   const [startDate, setStartDate] = React.useState(''); // ISO YYYY-MM-DD
   const [endDate, setEndDate] = React.useState(''); // ISO YYYY-MM-DD
   const [showCreateDrawer, setShowCreateDrawer] = React.useState(false);
+
+  // Accept job mutation (used by "รับงาน" button in the list)
+  const acceptMutation = useAcceptJob();
+
+  /** Detect project type → 'Q' = Quick Service, 'R' = Renovate */
+  const getJobType = (job: Job): 'Q' | 'R' | null => {
+    const pt = String(job.project_type || (job as any).job_type || '').toLowerCase();
+    if (pt.includes('quick') || pt === 'q') return 'Q';
+    if (pt.includes('renovate') || pt === 'r') return 'R';
+    return null;
+  };
+
+  /** Accept a NEW/NEED_REVIEW job and navigate based on type */
+  const handleAcceptFromList = (job: Job, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const jt = getJobType(job);
+    acceptMutation.mutate(
+      { id: job.id, job_type: jt ?? undefined },
+      {
+        onSuccess: (res: any) => {
+          toast.success(res?.message || 'รับงานเข้าสู่ระบบเรียบร้อยแล้ว');
+          if (jt === 'Q') {
+            // Quick Service → step 5 QC
+            navigate(`/qc`);
+          } else if (jt === 'R') {
+            // Renovate → step 4 Gantt / Project
+            navigate(`/gantt`);
+          } else {
+            // Unknown type → open detail panel
+            setSelectedJob(job);
+            if (job.job_no) navigate(`/orders/${job.job_no}${location.search}`, { replace: true });
+          }
+        },
+        onError: (err: any) => {
+          toast.error(err.message || 'ไม่สามารถรับงานได้ กรุณาลองใหม่อีกครั้ง');
+        }
+      }
+    );
+  };
 
   // Fetch jobs defaulting to created_at descending
   const { data, isLoading } = useJobs({ 
@@ -178,42 +217,32 @@ export default function OrdersPage() {
 
   const columns: ColumnDef<Job>[] = [
     { 
+      id: 'project_type', 
+      header: 'ประเภท', 
+      width: 70, 
+      cell: ({ row }) => {
+        const jt = getJobType(row);
+        if (jt === 'Q') return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 border border-blue-400 text-black" title="Quick Service">
+            Q
+          </span>
+        );
+        if (jt === 'R') return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-orange-100 border border-orange-400 text-black" title="Renovate">
+            R
+          </span>
+        );
+        const raw = row.project_type || (row as any).job_type || '-';
+        return <span className="text-black text-xs">{raw}</span>;
+      }
+    },
+    { 
       id: 'job_no', 
       header: 'รหัสงาน', 
       width: 140,
       cell: ({ row }) => (
         <span className="font-semibold text-black">{row.job_no}</span>
       )
-    },
-    { 
-      id: 'booking_no', 
-      header: 'Booking No', 
-      width: 140, 
-      cell: ({ row }) => {
-        const val = row.booking_no || (row as any).bookingNo || (row as any).vfix_no;
-        return val ? (
-          <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-100 border border-gray-300 text-black font-medium">
-            {val}
-          </span>
-        ) : (
-          <span className="text-black">-</span>
-        );
-      } 
-    },
-    { 
-      id: 'ref_id', 
-      header: 'Ref ID', 
-      width: 140, 
-      cell: ({ row }) => {
-        const val = row.external_ref_id || (row as any).ref_id || (row as any).stk_ref || (row as any).externalRefId;
-        return val ? (
-          <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-100 border border-gray-300 text-black font-medium">
-            {val}
-          </span>
-        ) : (
-          <span className="text-black">-</span>
-        );
-      } 
     },
     { 
       id: 'customer_name', 
@@ -238,22 +267,34 @@ export default function OrdersPage() {
       } 
     },
     { 
-      id: 'services', 
-      header: 'บริการ', 
-      width: 240, 
+      id: 'booking_no', 
+      header: 'Booking No', 
+      width: 130, 
       cell: ({ row }) => {
-        const text = Array.isArray(row.services) ? row.services.join(', ') : (row.services || (row as any).project_sub_type || '-');
-        return <div className="truncate max-w-[230px] text-black" title={text}>{text}</div>;
+        const val = row.booking_no || (row as any).bookingNo || (row as any).vfix_no;
+        return val ? (
+          <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-100 border border-gray-300 text-black font-medium">
+            {val}
+          </span>
+        ) : (
+          <span className="text-black">-</span>
+        );
       } 
     },
     { 
-      id: 'project_type', 
-      header: 'ประเภท', 
-      accessorKey: 'project_type', 
-      width: 110, 
-      cell: ({ row }) => (
-        <span className="text-black">{row.project_type || (row as any).job_type || '-'}</span>
-      )
+      id: 'ticket_no', 
+      header: 'Ticket', 
+      width: 120, 
+      cell: ({ row }) => {
+        const val = row.ticket_no || (row as any).ticketNo || (row as any).ticket_number;
+        return val ? (
+          <span className="font-mono text-xs px-2 py-0.5 rounded bg-yellow-50 border border-yellow-300 text-black font-medium">
+            {val}
+          </span>
+        ) : (
+          <span className="text-black">-</span>
+        );
+      } 
     },
     { 
       id: 'plan_date', 
@@ -283,6 +324,54 @@ export default function OrdersPage() {
       } 
     },
     { 
+      id: 'store', 
+      header: 'สาขา/Store', 
+      width: 130, 
+      cell: ({ row }) => {
+        const branch = row.branch_name || (row as any).store?.name || (row as any).branch || '';
+        const code = row.store_code || (row as any).store?.code || row.branch_code || '';
+        const display = branch || code || '-';
+        return (
+          <span className="text-black text-xs truncate block max-w-[120px]" title={display}>
+            {display}
+          </span>
+        );
+      }
+    },
+    { 
+      id: 'services', 
+      header: 'บริการ', 
+      width: 200, 
+      cell: ({ row }) => {
+        const text = Array.isArray(row.services) ? row.services.join(', ') : (row.services || (row as any).project_sub_type || '-');
+        return <div className="truncate max-w-[190px] text-black" title={text}>{text}</div>;
+      } 
+    },
+    { 
+      id: 'photos', 
+      header: 'รูป', 
+      width: 60, 
+      cell: ({ row }) => {
+        const photos = Array.isArray(row.photos) ? row.photos : [];
+        const photoCount = photos.length;
+        return photoCount > 0 ? (
+          <span className="inline-flex items-center gap-1 text-black font-mono text-xs" title={`มีรูปภาพ ${photoCount} รูป`}>
+            <Camera className="w-3.5 h-3.5 text-black" />
+            {photoCount}
+          </span>
+        ) : (
+          <span className="text-black opacity-40 text-xs">-</span>
+        );
+      }
+    },
+    { 
+      id: 'assigned_tech', 
+      header: 'ช่าง', 
+      accessorKey: 'assigned_tech', 
+      width: 150, 
+      cell: ({ row }) => <span className="text-black">{row.assigned_tech || '-'}</span> 
+    },
+    { 
       id: 'status', 
       header: 'สถานะ', 
       width: 130, 
@@ -301,33 +390,46 @@ export default function OrdersPage() {
         );
       }
     },
-    { 
-      id: 'assigned_tech', 
-      header: 'ช่าง', 
-      accessorKey: 'assigned_tech', 
-      width: 160, 
-      cell: ({ row }) => <span className="text-black">{row.assigned_tech || '-'}</span> 
-    },
     {
       id: 'action_btn',
       header: 'จัดการ',
-      width: 90,
-      cell: ({ row }) => (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleRowClick(row);
-          }}
-          className={`text-xs px-2.5 py-1 rounded font-semibold border transition-colors cursor-pointer ${
-            row.status === 'NEW' || row.status === 'NEED_REVIEW'
-              ? 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100'
-              : 'bg-gray-50 text-black border-gray-300 hover:bg-gray-100'
-          }`}
-        >
-          {row.status === 'NEW' || row.status === 'NEED_REVIEW' ? 'รับงาน' : 'ดูข้อมูล'}
-        </button>
-      )
+      width: 110,
+      cell: ({ row }) => {
+        const isNew = row.status === 'NEW' || row.status === 'NEED_REVIEW' || !(row as any).pmt_accepted;
+        const jt = getJobType(row);
+        if (isNew) {
+          return (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={(e) => handleAcceptFromList(row, e)}
+                disabled={acceptMutation.isPending}
+                className={`text-xs px-2 py-1 rounded font-bold border transition-colors cursor-pointer whitespace-nowrap ${
+                  jt === 'Q'
+                    ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
+                    : jt === 'R'
+                    ? 'bg-orange-600 text-white border-orange-700 hover:bg-orange-700'
+                    : 'bg-green-600 text-white border-green-700 hover:bg-green-700'
+                }`}
+              >
+                {acceptMutation.isPending ? '...' : jt === 'Q' ? '✓ รับ (Q→QC)' : jt === 'R' ? '✓ รับ (R→Gantt)' : 'รับงาน'}
+              </button>
+            </div>
+          );
+        }
+        return (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRowClick(row);
+            }}
+            className="text-xs px-2.5 py-1 rounded font-semibold border transition-colors cursor-pointer bg-gray-50 text-black border-gray-300 hover:bg-gray-100"
+          >
+            ดูข้อมูล
+          </button>
+        );
+      }
     },
   ];
 

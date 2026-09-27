@@ -60,16 +60,34 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
     });
   };
 
+  /** Determine project type from job data */
+  const getJobType = (j: Job): 'Q' | 'R' | null => {
+    const pt = String(j.project_type || (j as any).job_type || '').toLowerCase();
+    if (pt.includes('quick') || pt === 'q') return 'Q';
+    if (pt.includes('renovate') || pt === 'r') return 'R';
+    return null;
+  };
+
   const handleAcceptJob = () => {
     if (job.status === 'NEED_REVIEW' || (job as any).job_type === 'NEED_REVIEW') {
       setShowReviewModal(true);
       return;
     }
+    const jt = getJobType(job);
     acceptMutation.mutate(
-      { id: job.id },
+      { id: job.id, job_type: jt ?? undefined },
       {
         onSuccess: (res: any) => {
           toast.success(res?.message || 'รับงานเข้าสู่ระบบเรียบร้อยแล้ว');
+          if (jt === 'Q') {
+            // Quick Service → jump straight to QC tab
+            toast.info('งาน Quick Service: นำเข้าคิว QC อัตโนมัติ');
+            handleTabChange('qc');
+          } else if (jt === 'R') {
+            // Renovate → import tasks into Gantt
+            toast.info('งาน Renovate: นำเข้า Tasks และ BOQ เข้า Gantt Chart');
+            navigate('/gantt');
+          }
         },
         onError: (err: any) => {
           toast.error(err.message || 'ไม่สามารถรับงานได้ กรุณาลองใหม่อีกครั้ง');
@@ -79,12 +97,20 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
   };
 
   const handleConfirmReviewAccept = () => {
+    const jt = selectedReviewType;
     acceptMutation.mutate(
-      { id: job.id, job_type: selectedReviewType },
+      { id: job.id, job_type: jt },
       {
         onSuccess: (res: any) => {
           setShowReviewModal(false);
-          toast.success(res?.message || `รับงานและระบุประเภท ${selectedReviewType} เรียบร้อยแล้ว`);
+          toast.success(res?.message || `รับงานและระบุประเภท ${jt} เรียบร้อยแล้ว`);
+          if (jt === 'Q') {
+            toast.info('งาน Quick Service: นำเข้าคิว QC อัตโนมัติ');
+            handleTabChange('qc');
+          } else if (jt === 'R') {
+            toast.info('งาน Renovate: นำเข้า Tasks และ BOQ เข้า Gantt Chart');
+            navigate('/gantt');
+          }
         },
         onError: (err: any) => {
           toast.error(err.message || 'ไม่สามารถรับงานได้');
