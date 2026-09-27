@@ -1,16 +1,16 @@
 import { pool, initDatabase } from '../database';
 
-async function resetAllOrdersAndCleanData() {
+export async function resetAllOrdersAndCleanData() {
   console.log('[RESET] Connecting to database...');
   await initDatabase();
   const client = await pool.connect();
 
   try {
-    console.log('[RESET] Starting database transaction to reset orders and wipe transaction data...');
+    console.log('[RESET] Starting database transaction to reset all orders to "NEW" (รอรับงาน) and wipe all state data...');
     await client.query('BEGIN');
 
-    // 1. Truncate transaction and log tables
-    console.log('[RESET] Truncating operational logs and temporary tables...');
+    // 1. Truncate transaction, log, and state tables
+    console.log('[RESET] Truncating operational logs, blueprints, tickets, and temporary tables...');
     await client.query(`
       TRUNCATE TABLE 
         core_daily_work_logs, 
@@ -20,57 +20,63 @@ async function resetAllOrdersAndCleanData() {
         staging_survey_reports, 
         core_audit_logs, 
         stk_sync_logs, 
-        inbound_api_logs, 
         ma_rounds, 
         ma_contracts 
       CASCADE;
     `);
 
-    // 2. Fetch all existing jobs in core_jobs
-    const { rows: jobs } = await client.query('SELECT id, job_no, tasks, areas FROM core_jobs');
-    console.log(`[RESET] Found ${jobs.length} jobs in core_jobs. Resetting to initial state...`);
-
-    for (const job of jobs) {
-      let tasks = Array.isArray(job.tasks) ? job.tasks : [];
-      let areas = Array.isArray(job.areas) ? job.areas : [];
-
-      // Reset tasks inside job
-      const resetTasks = tasks.map((t: any, idx: number) => ({
-        ...t,
-        id: t.id || `task-${job.id}-${idx + 1}`,
-        status: 'PLANNED',
-        progress_percent: 0,
-        actual_start_date: null,
-        actual_end_date: null,
-        actual_start_time: null,
-        actual_end_time: null,
-        qc_score: null,
-        rework_count: 0
-      }));
-
-      // Reset areas inside job
-      const resetAreas = areas.map((a: any) => ({
-        ...a,
-        status: 'OPEN'
-      }));
-
-      await client.query(`
-        UPDATE core_jobs SET
-          status = 'DRAFT',
-          overall_progress = 0,
-          ticket_no = NULL,
-          step_timestamps = '{}'::jsonb,
-          escalated_at = NULL,
-          escalated_reason = NULL,
-          tasks = $1::jsonb,
-          areas = $2::jsonb,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = $3
-      `, [JSON.stringify(resetTasks), JSON.stringify(resetAreas), job.id]);
-    }
+    // 2. Reset all orders in core_jobs to "NEW" (รอรับงาน) and clear all state-specific data
+    console.log('[RESET] Updating all core_jobs to status = "NEW" (รอรับงาน) and wiping state data...');
+    const result = await client.query(`
+      UPDATE core_jobs SET
+        status = 'NEW',
+        overall_progress = 0,
+        pmt_accepted = false,
+        pmt_accepted_at = NULL,
+        ticket_no = NULL,
+        step_timestamps = '{}'::jsonb,
+        step3_confirmed = false,
+        tasks = '[]'::jsonb,
+        areas = '[]'::jsonb,
+        boq_items = '[]'::jsonb,
+        boq_discount = 0,
+        boq_subtotal = 0,
+        boq_grand_total = 0,
+        boq_original_file = NULL,
+        boq_version = 1,
+        boq_revisions = '[]'::jsonb,
+        checkin_data = '{}'::jsonb,
+        checkout_data = '{}'::jsonb,
+        approval_data = '{}'::jsonb,
+        visit_results = '[]'::jsonb,
+        qc_inspection_type = NULL,
+        qc_passed_at = NULL,
+        qc_score = NULL,
+        qc_history = '[]'::jsonb,
+        qc_subtasks = '[]'::jsonb,
+        rework_count = 0,
+        qc_rework_count = 0,
+        has_rework = false,
+        qc_remarks = NULL,
+        qc_inspector = NULL,
+        qc_manual_questions = '[]'::jsonb,
+        csat_score = NULL,
+        csat_remarks = NULL,
+        csat_photos = '[]'::jsonb,
+        csat_surveyor = NULL,
+        csat_evaluated_at = NULL,
+        stk_ref = NULL,
+        stk_status = NULL,
+        stk_payload = '{}'::jsonb,
+        stk_exported_at = NULL,
+        escalated_at = NULL,
+        escalated_reason = NULL,
+        updated_at = CURRENT_TIMESTAMP;
+    `);
 
     await client.query('COMMIT');
-    console.log(`[RESET SUCCESS] Successfully reset ${jobs.length} orders back to DRAFT / Initial state, and cleared all daily logs, QC logs, STK logs, tickets, blueprints, and audit logs.`);
+    console.log(`[RESET SUCCESS] Successfully reset ${result.rowCount} orders back to "รอรับงาน (NEW)" and wiped all state data completely.`);
+    return result.rowCount;
 
   } catch (err: any) {
     await client.query('ROLLBACK');
@@ -78,11 +84,18 @@ async function resetAllOrdersAndCleanData() {
     throw err;
   } finally {
     client.release();
-    await pool.end();
   }
 }
 
-resetAllOrdersAndCleanData().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
+// Execute if run directly from CLI
+if (require.main === module) {
+  resetAllOrdersAndCleanData()
+    .then((count) => {
+      console.log(`[DONE] ${count} orders reset to "รอรับงาน (NEW)".`);
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+}

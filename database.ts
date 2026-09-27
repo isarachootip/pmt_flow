@@ -1663,18 +1663,64 @@ export async function dbDeleteJob(jobNoOrId: string | number): Promise<void> {
 export async function dbResetJobStatus(): Promise<number> {
   try {
     const res = await pool.query(`
-      UPDATE core_jobs 
-      SET status = 'SURVEYED', 
-          overall_progress = 25, 
-          pmt_accepted = false, 
-          pmt_accepted_at = null,
-          step3_confirmed = false,
-          tasks = '[]'::jsonb,
-          boq_items = '[]'::jsonb,
-          updated_at = CURRENT_TIMESTAMP;
+      UPDATE core_jobs SET
+        status = 'NEW',
+        overall_progress = 0,
+        pmt_accepted = false,
+        pmt_accepted_at = NULL,
+        ticket_no = NULL,
+        step_timestamps = '{}'::jsonb,
+        step3_confirmed = false,
+        tasks = '[]'::jsonb,
+        areas = '[]'::jsonb,
+        boq_items = '[]'::jsonb,
+        boq_discount = 0,
+        boq_subtotal = 0,
+        boq_grand_total = 0,
+        boq_original_file = NULL,
+        boq_version = 1,
+        boq_revisions = '[]'::jsonb,
+        checkin_data = '{}'::jsonb,
+        checkout_data = '{}'::jsonb,
+        approval_data = '{}'::jsonb,
+        visit_results = '[]'::jsonb,
+        qc_inspection_type = NULL,
+        qc_passed_at = NULL,
+        qc_score = NULL,
+        qc_history = '[]'::jsonb,
+        qc_subtasks = '[]'::jsonb,
+        rework_count = 0,
+        qc_rework_count = 0,
+        has_rework = false,
+        qc_remarks = NULL,
+        qc_inspector = NULL,
+        qc_manual_questions = '[]'::jsonb,
+        csat_score = NULL,
+        csat_remarks = NULL,
+        csat_photos = '[]'::jsonb,
+        csat_surveyor = NULL,
+        csat_evaluated_at = NULL,
+        stk_ref = NULL,
+        stk_status = NULL,
+        stk_payload = '{}'::jsonb,
+        stk_exported_at = NULL,
+        escalated_at = NULL,
+        escalated_reason = NULL,
+        updated_at = CURRENT_TIMESTAMP;
     `);
-    await pool.query('DELETE FROM core_daily_work_logs;');
-    await pool.query('DELETE FROM core_qc_bookings;');
+    await pool.query(`
+      TRUNCATE TABLE 
+        core_daily_work_logs, 
+        core_qc_bookings, 
+        core_tickets, 
+        core_blueprints, 
+        staging_survey_reports, 
+        core_audit_logs, 
+        stk_sync_logs, 
+        ma_rounds, 
+        ma_contracts 
+      CASCADE;
+    `);
     return res.rowCount || 0;
   } catch (err: any) {
     console.error('[DB] Error resetting job status:', err.message);
