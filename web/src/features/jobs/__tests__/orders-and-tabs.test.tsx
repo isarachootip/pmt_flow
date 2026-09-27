@@ -187,7 +187,7 @@ describe('JobDetailTabs - Core Workflow Pipeline Alignment (R4)', () => {
     renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="stk" />);
 
     expect(screen.getByText('การส่งออกข้อมูลไปยังระบบ STK / BMT')).toBeInTheDocument();
-    expect(screen.getByText('เลขที่อ้างอิง STK (Ref)')).toBeInTheDocument();
+    expect(screen.getByText(/เลขที่อ้างอิง STK \(Ref\)/)).toBeInTheDocument();
     expect(screen.getByText('🚀 ส่งออก STK')).toBeInTheDocument();
     expect(screen.getByText('สรุปยอดรวมทางการเงินเพื่อเบิกจ่าย')).toBeInTheDocument();
   });
@@ -201,14 +201,14 @@ describe('JobDetailTabs - Core Workflow Pipeline Alignment (R4)', () => {
   it('renders "-" under วันนัดหมาย for unscheduled job (does NOT show created_at)', () => {
     const unscheduledJob = mockJobs[3]; // JOB-2026-004 has plan_date: null
     renderWithProviders(<JobDetailTabs job={unscheduledJob} />);
-    const appointmentSection = screen.getByText('วันนัดหมาย').parentElement;
+    const appointmentSection = screen.getByText(/วันนัดหมาย/).parentElement;
     expect(appointmentSection).toHaveTextContent('-');
     expect(appointmentSection).not.toHaveTextContent('24/09/2026');
   });
 
   it('renders DD/MM/YYYY and 24-hr badge under วันนัดหมาย for scheduled job', () => {
     renderWithProviders(<JobDetailTabs job={sampleJob} />);
-    const appointmentSection = screen.getByText('วันนัดหมาย').parentElement;
+    const appointmentSection = screen.getByText(/วันนัดหมาย/).parentElement;
     expect(appointmentSection).toHaveTextContent('25/09/2026');
     expect(appointmentSection).toHaveTextContent('09:00 น.');
   });
@@ -604,14 +604,19 @@ describe('Job Detail Refactoring (2026-09-27 Specification)', () => {
     expect(screen.queryByText('(ก่อนเริ่มงาน, ระหว่างทำ 1, ระหว่างทำ 2, ทดสอบระบบ, หลังเสร็จสิ้น)')).not.toBeInTheDocument();
   });
 
-  it('renders Tab 1 summary row with clean white background and neutral time badge', () => {
+  it('renders Tab 1 summary row with clean white background and neutral time badge in compact Grid layout', () => {
     renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="task" />);
 
-    // Appointment label must be intact
-    const appointmentSection = screen.getByText('วันนัดหมาย').parentElement;
+    // Appointment label must be intact with colon format matching top summary
+    const appointmentSection = screen.getByText('วันนัดหมาย:').parentElement;
     expect(appointmentSection).toBeInTheDocument();
     expect(appointmentSection).toHaveTextContent('25/09/2026');
     expect(appointmentSection).toHaveTextContent('09:00 น.');
+
+    // Tab 1 Grid labels must be present with colons matching OrderCustomerSummary
+    expect(screen.getAllByText('ประเภทงาน:').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('บริการ:')).toBeInTheDocument();
+    expect(screen.getByText('ช่างผู้รับผิดชอบ:')).toBeInTheDocument();
 
     // Time badge must have bg-gray-100 and text-black (not bg-blue-50)
     const timeBadge = screen.getByText('09:00 น.');

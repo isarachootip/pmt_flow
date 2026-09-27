@@ -310,27 +310,29 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
           <div className="flex-1 p-4 overflow-auto bg-white text-black">
             {/* 1. งาน/Task */}
             <TabsContent value="task" className="h-full m-0 data-[state=active]:flex flex-col space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 py-2 border-b border-gray-200 bg-white text-black">
-                <div>
-                  <span className="text-xs text-black block">ประเภทงาน</span>
-                  <span className="font-semibold text-black text-sm">{job.project_type || (job as any).job_type || '-'}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-2 text-xs py-2.5 border-b border-gray-200 bg-white text-black">
+                <div className="flex items-start gap-1.5 min-w-0">
+                  <span className="font-bold text-black shrink-0">ประเภทงาน:</span>
+                  <span className="text-black truncate font-normal">{job.project_type || (job as any).job_type || '-'}</span>
                 </div>
-                <div>
-                  <span className="text-xs text-black block">บริการ</span>
-                  <span className="font-semibold text-black text-sm">{Array.isArray(job.services) ? job.services.join(', ') : (job.services || job.project_sub_type || '-')}</span>
+                <div className="flex items-start gap-1.5 min-w-0">
+                  <span className="font-bold text-black shrink-0">บริการ:</span>
+                  <span className="text-black truncate font-normal" title={Array.isArray(job.services) ? job.services.join(', ') : (job.services || job.project_sub_type || '-')}>
+                    {Array.isArray(job.services) ? job.services.join(', ') : (job.services || job.project_sub_type || '-')}
+                  </span>
                 </div>
-                <div>
-                  <span className="text-xs text-black block">วันนัดหมาย</span>
+                <div className="flex items-start gap-1.5 min-w-0">
+                  <span className="font-bold text-black shrink-0">วันนัดหมาย:</span>
                   {(() => {
                     const rawAppointment = job.plan_date || (job as any).appointment_date || (job as any).survey_date || (job as any).date;
                     if (!rawAppointment || formatDMY(rawAppointment) === '-') {
-                      return <span className="font-semibold text-black text-sm">-</span>;
+                      return <span className="text-black font-normal">-</span>;
                     }
                     const rawTime = (job.plan_time || (job as any).time_slot || (job as any).survey_time || (job as any).time || (job as any).appointment_time || '') as string;
                     const displayTime = format24HourTimeBadge(rawTime, rawAppointment);
                     return (
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="font-semibold text-black text-sm">{formatDMY(rawAppointment)}</span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-black font-normal">{formatDMY(rawAppointment)}</span>
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold bg-gray-100 border border-gray-300 text-black">
                           {displayTime}
                         </span>
@@ -338,9 +340,9 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                     );
                   })()}
                 </div>
-                <div>
-                  <span className="text-xs text-black block">ช่างผู้รับผิดชอบ</span>
-                  <span className="font-semibold text-black text-sm">{job.assigned_tech || 'รอระบุทีมช่าง'}</span>
+                <div className="flex items-start gap-1.5 min-w-0">
+                  <span className="font-bold text-black shrink-0">ช่างผู้รับผิดชอบ:</span>
+                  <span className="text-black truncate font-normal">{job.assigned_tech || 'รอระบุทีมช่าง'}</span>
                 </div>
               </div>
               {/* Toggle Buttons & View Content: พื้นที่ทำงาน & รูปภาพ (Active Workspace) vs รายการงานย่อย (Grid View) */}
@@ -399,28 +401,28 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
 
             {/* 3. QC */}
             <TabsContent value="qc" className="h-full m-0 data-[state=active]:flex flex-col space-y-4">
-              <div className="flex items-center justify-between bg-[var(--bg-subtle)] p-3 rounded-lg border border-[var(--border-soft)]">
-                <div className="flex items-center space-x-4">
-                  <div>
-                    <span className="text-xs text-black block">สถานะการตรวจ QC</span>
-                    <span className="font-bold text-black text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3 py-2.5 px-3 border-b border-gray-200 bg-white text-black">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 text-xs flex-1 min-w-0">
+                  <div className="flex items-start gap-1.5 min-w-0">
+                    <span className="font-bold text-black shrink-0">สถานะการตรวจ QC:</span>
+                    <span className="font-bold text-black">
                       {job.status === 'QC_PASS' ? '✅ ผ่านการตรวจ QC เรียบร้อย' : '⏳ รอการตรวจสอบ QC หน้างาน'}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-xs text-black block">ผู้ตรวจ QC</span>
-                    <span className="font-semibold text-black text-sm">{job.assigned_tech || 'QC Inspector (สถาพร)'}</span>
+                  <div className="flex items-start gap-1.5 min-w-0">
+                    <span className="font-bold text-black shrink-0">ผู้ตรวจ QC:</span>
+                    <span className="text-black truncate font-normal">{job.assigned_tech || 'QC Inspector (สถาพร)'}</span>
                   </div>
-                  <div>
-                    <span className="text-xs text-black block">วันที่ตรวจ</span>
-                    <span className="font-semibold text-black text-sm">{formatDateTimeDMY(job.updated_at || new Date().toISOString())}</span>
+                  <div className="flex items-start gap-1.5 min-w-0">
+                    <span className="font-bold text-black shrink-0">วันที่ตรวจ:</span>
+                    <span className="text-black font-normal">{formatDateTimeDMY(job.updated_at || new Date().toISOString())}</span>
                   </div>
                 </div>
                 <Button 
                   variant="primary" 
                   size="sm" 
                   onClick={() => setShowQcModal(true)}
-                  className="text-black font-semibold"
+                  className="text-black font-semibold shrink-0"
                 >
                   เปิดแบบฟอร์มตรวจ QC
                 </Button>
@@ -456,7 +458,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
 
             {/* 4. ส่งออก STK */}
             <TabsContent value="stk" className="h-full m-0 data-[state=active]:flex flex-col space-y-4">
-              <div className="bg-[var(--bg-subtle)] p-4 rounded-lg border border-[var(--border-soft)] space-y-3">
+              <div className="p-4 border-b border-gray-200 bg-white text-black space-y-3">
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="text-base font-bold text-black">การส่งออกข้อมูลไปยังระบบ STK / BMT</h4>
@@ -474,22 +476,22 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                  <div className="p-3 bg-white border border-[var(--border-soft)] rounded-md">
-                    <span className="text-xs text-black block">เลขที่อ้างอิง STK (Ref)</span>
-                    <span className="text-base font-mono font-bold text-black">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 text-xs pt-2">
+                  <div className="flex items-start gap-1.5 min-w-0">
+                    <span className="font-bold text-black shrink-0">เลขที่อ้างอิง STK (Ref):</span>
+                    <span className="font-mono font-bold text-black">
                       {job.external_ref_id || (job as any).stk_ref || `STK-${job.job_no.replace(/\D/g, '').slice(-8) || '20260901'}`}
                     </span>
                   </div>
-                  <div className="p-3 bg-white border border-[var(--border-soft)] rounded-md">
-                    <span className="text-xs text-black block">สถานะการส่งออก</span>
-                    <span className="text-base font-bold text-black">
+                  <div className="flex items-start gap-1.5 min-w-0">
+                    <span className="font-bold text-black shrink-0">สถานะการส่งออก:</span>
+                    <span className="font-bold text-black">
                       {(job as any).stk_status || 'พร้อมส่งออก (READY)'}
                     </span>
                   </div>
-                  <div className="p-3 bg-white border border-[var(--border-soft)] rounded-md">
-                    <span className="text-xs text-black block">เวลาที่ส่งออกล่าสุด</span>
-                    <span className="text-base font-bold text-black">
+                  <div className="flex items-start gap-1.5 min-w-0">
+                    <span className="font-bold text-black shrink-0">เวลาที่ส่งออกล่าสุด:</span>
+                    <span className="font-bold text-black">
                       {formatDateTimeDMY((job as any).stk_exported_at || new Date().toISOString())}
                     </span>
                   </div>
