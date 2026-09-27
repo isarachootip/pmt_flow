@@ -13,9 +13,9 @@ describe('RBAC', () => {
     expect(canAccess('AE', '/admin/settings')).toBe(false);
   });
 
-  it('QC can access /qc but not /conversion', () => {
+  it('QC can access /qc but not /reports', () => {
     expect(canAccess('QC', '/qc')).toBe(true);
-    expect(canAccess('QC', '/conversion')).toBe(false);
+    expect(canAccess('QC', '/reports')).toBe(false);
   });
 
   it('CONTACT_CENTER has limited menu', () => {
@@ -26,7 +26,7 @@ describe('RBAC', () => {
     
     // Denied access to others
     expect(canAccess('CONTACT_CENTER', '/admin/users')).toBe(false);
-    expect(canAccess('CONTACT_CENTER', '/conversion')).toBe(false);
+    expect(canAccess('CONTACT_CENTER', '/reports')).toBe(false);
   });
 
   it('getMenuForRole returns correct items per role', () => {
@@ -43,8 +43,8 @@ describe('RBAC', () => {
     const qcMenu = getMenuForRole('QC');
     // QC doesn't have "รายงาน"
     expect(qcMenu.some(g => g.group === 'รายงาน')).toBe(false);
-    // In Pipeline, QC has orders, gantt, qc
-    const pipelineGroupQC = qcMenu.find(g => g.group === 'ขั้นตอนงาน (Pipeline)');
-    expect(pipelineGroupQC?.items.map(i => i.key)).toEqual(['orders', 'gantt', 'qc']);
+    // In Pipeline, QC has orders, gantt, qc, completed
+    const pipelineGroupQC = qcMenu.find(g => g.group === 'Pipeline');
+    expect(pipelineGroupQC?.items.map(i => i.key)).toEqual(['orders', 'gantt', 'qc', 'completed']);
   });
 });

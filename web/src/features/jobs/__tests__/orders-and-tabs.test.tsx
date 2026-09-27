@@ -241,18 +241,16 @@ describe('OrdersPage - Master List Features (R1, R2, R3, R5)', () => {
     } as any);
   });
 
-  it('displays Ref ID and Booking No columns visibly in the master table (R1)', () => {
+  it('displays Booking No and Ticket columns visibly in the master table (R1)', () => {
     renderWithProviders(<OrdersPage />);
 
     // Headers
     expect(screen.getByText('Booking No')).toBeInTheDocument();
-    expect(screen.getByText('Ref ID')).toBeInTheDocument();
+    expect(screen.getByText('Ticket')).toBeInTheDocument();
 
     // Data rows
     expect(screen.getByText('BK-88991')).toBeInTheDocument();
-    expect(screen.getByText('REF-10001')).toBeInTheDocument();
     expect(screen.getByText('BK-99002')).toBeInTheDocument();
-    expect(screen.getByText('REF-20002')).toBeInTheDocument();
   });
 
   it('defaults table sorting to created_at descending with secondary sort by id descending (R2)', () => {

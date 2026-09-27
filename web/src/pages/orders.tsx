@@ -219,61 +219,66 @@ export default function OrdersPage() {
     { 
       id: 'project_type', 
       header: 'ประเภท', 
-      width: 70, 
+      width: 65, 
+      minWidth: 55,
       cell: ({ row }) => {
         const jt = getJobType(row);
         if (jt === 'Q') return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 border border-blue-400 text-black" title="Quick Service">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 border border-blue-400 text-black whitespace-nowrap" title="Quick Service">
             Q
           </span>
         );
         if (jt === 'R') return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-orange-100 border border-orange-400 text-black" title="Renovate">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-orange-100 border border-orange-400 text-black whitespace-nowrap" title="Renovate">
             R
           </span>
         );
         const raw = row.project_type || (row as any).job_type || '-';
-        return <span className="text-black text-xs">{raw}</span>;
+        return <span className="text-black text-xs font-semibold whitespace-nowrap">{raw}</span>;
       }
     },
     { 
       id: 'job_no', 
       header: 'รหัสงาน', 
-      width: 140,
+      width: 135,
+      minWidth: 110,
       cell: ({ row }) => (
-        <span className="font-semibold text-black">{row.job_no}</span>
+        <span className="font-semibold text-black font-mono whitespace-nowrap">{row.job_no}</span>
       )
     },
     { 
       id: 'customer_name', 
       header: 'ลูกค้า', 
-      width: 170, 
+      width: 165, 
+      minWidth: 130,
       cell: ({ row }) => {
         const name = typeof row.customer === 'string' ? row.customer : (row.customer?.name || (row as any).customer_name || '-');
-        return <span className="text-black font-medium" title={name}>{name}</span>;
+        return <span className="text-black font-medium truncate block max-w-[155px]" title={name}>{name}</span>;
       } 
     },
     { 
       id: 'customer_phone', 
       header: 'เบอร์โทร', 
-      width: 120, 
+      width: 115, 
+      minWidth: 100,
       cell: ({ row }) => {
         let phone = '-';
         if (typeof row.customer === 'object' && row.customer?.phone) phone = row.customer.phone;
         else if ((row as any).customer_phone) phone = (row as any).customer_phone;
         else if ((row as any).customerPhone) phone = (row as any).customerPhone;
         else if ((row as any).phone) phone = (row as any).phone;
-        return <span className="text-black font-mono">{phone}</span>;
+        return <span className="text-black font-mono whitespace-nowrap">{phone}</span>;
       } 
     },
     { 
       id: 'booking_no', 
       header: 'Booking No', 
-      width: 130, 
+      width: 195, 
+      minWidth: 175,
       cell: ({ row }) => {
         const val = row.booking_no || (row as any).bookingNo || (row as any).vfix_no;
         return val ? (
-          <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-100 border border-gray-300 text-black font-medium">
+          <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-100 border border-gray-300 text-black font-medium whitespace-nowrap block w-fit">
             {val}
           </span>
         ) : (
@@ -284,11 +289,12 @@ export default function OrdersPage() {
     { 
       id: 'ticket_no', 
       header: 'Ticket', 
-      width: 120, 
+      width: 90, 
+      minWidth: 70,
       cell: ({ row }) => {
         const val = row.ticket_no || (row as any).ticketNo || (row as any).ticket_number;
         return val ? (
-          <span className="font-mono text-xs px-2 py-0.5 rounded bg-yellow-50 border border-yellow-300 text-black font-medium">
+          <span className="font-mono text-xs px-2 py-0.5 rounded bg-yellow-50 border border-yellow-300 text-black font-medium whitespace-nowrap">
             {val}
           </span>
         ) : (
@@ -299,7 +305,8 @@ export default function OrdersPage() {
     { 
       id: 'plan_date', 
       header: 'วันนัด', 
-      width: 180, 
+      width: 170, 
+      minWidth: 150,
       cell: ({ row }) => {
         const rawDate = row.plan_date || (row as any).appointment_date || (row as any).survey_date || (row as any).date;
         if (!rawDate) {
@@ -327,6 +334,7 @@ export default function OrdersPage() {
       id: 'store', 
       header: 'สาขา/Store', 
       width: 130, 
+      minWidth: 105,
       cell: ({ row }) => {
         const branch = row.branch_name || (row as any).store?.name || (row as any).branch || '';
         const code = row.store_code || (row as any).store?.code || row.branch_code || '';
@@ -341,28 +349,31 @@ export default function OrdersPage() {
     { 
       id: 'services', 
       header: 'บริการ', 
-      width: 200, 
+      width: 190, 
+      minWidth: 140,
       cell: ({ row }) => {
         const text = Array.isArray(row.services) ? row.services.join(', ') : (row.services || (row as any).project_sub_type || '-');
-        return <div className="truncate max-w-[190px] text-black" title={text}>{text}</div>;
+        return <div className="truncate max-w-[180px] text-black" title={text}>{text}</div>;
       } 
     },
     { 
       id: 'status', 
       header: 'สถานะ', 
-      width: 130, 
+      width: 180, 
+      minWidth: 160,
       cell: ({ row }) => <StatusBadge status={row.status === 'QC_PENDING' ? 'PENDING' : row.status} /> 
     },
     {
       id: 'action_btn',
       header: 'จัดการ',
-      width: 110,
+      width: 130,
+      minWidth: 115,
       cell: ({ row }) => {
         const isNew = row.status === 'NEW' || row.status === 'NEED_REVIEW' || !(row as any).pmt_accepted;
         const jt = getJobType(row);
         if (isNew) {
           return (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 whitespace-nowrap">
               <button
                 type="button"
                 onClick={(e) => handleAcceptFromList(row, e)}
@@ -387,7 +398,7 @@ export default function OrdersPage() {
               e.stopPropagation();
               handleRowClick(row);
             }}
-            className="text-xs px-2.5 py-1 rounded font-semibold border transition-colors cursor-pointer bg-gray-50 text-black border-gray-300 hover:bg-gray-100"
+            className="text-xs px-2.5 py-1 rounded font-semibold border transition-colors cursor-pointer bg-gray-50 text-black border-gray-300 hover:bg-gray-100 whitespace-nowrap"
           >
             ดูข้อมูล
           </button>

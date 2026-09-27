@@ -40,6 +40,30 @@ function DataGrid<TData>({
     return initial;
   });
 
+  const userResizedRef = React.useRef<Set<string>>(new Set());
+
+  // Keep column widths in sync with column definitions when they change (unless manually resized by user)
+  React.useEffect(() => {
+    setColumnWidths(prev => {
+      const next = { ...prev };
+      let hasChanges = false;
+      columns.forEach(col => {
+        if (col.width && !userResizedRef.current.has(col.id) && next[col.id] !== col.width) {
+          next[col.id] = col.width;
+          hasChanges = true;
+        }
+      });
+      return hasChanges ? next : prev;
+    });
+  }, [columns]);
+
+  const totalTableWidth = React.useMemo(() => {
+    return columns.reduce((acc, col) => {
+      const w = columnWidths[col.id] || col.width || 150;
+      return acc + w;
+    }, 48); // 48px for '#' column
+  }, [columns, columnWidths]);
+
   const resizingRef = React.useRef<{
     colId: string;
     startX: number;
@@ -61,7 +85,8 @@ function DataGrid<TData>({
     const handleMouseMove = (moveEvent: MouseEvent) => {
       if (!resizingRef.current) return;
       const delta = moveEvent.clientX - resizingRef.current.startX;
-      const newWidth = Math.max(60, resizingRef.current.startWidth + delta);
+      const newWidth = Math.max(50, resizingRef.current.startWidth + delta);
+      userResizedRef.current.add(resizingRef.current.colId);
       setColumnWidths(prev => ({
         ...prev,
         [resizingRef.current!.colId]: newWidth
@@ -103,7 +128,10 @@ function DataGrid<TData>({
 
   return (
     <div className={cn('relative h-full overflow-auto border border-[var(--border-soft)] bg-white select-text', className)}>
-      <table className="w-full caption-bottom text-sm border-collapse table-fixed">
+      <table 
+        className="w-full caption-bottom text-sm border-collapse table-fixed"
+        style={{ minWidth: `${totalTableWidth}px` }}
+      >
         <thead className="sticky top-0 z-10 bg-[var(--bg-subtle)] text-[13px] font-semibold text-black shadow-[0_1px_0_var(--border-soft)]">
           <tr className="border-b border-[#E5E6EB]">
             <th className="h-9 w-12 border-r border-[#E5E6EB] px-2 font-semibold text-center sticky left-0 bg-[var(--bg-subtle)] z-20 shrink-0">
@@ -118,7 +146,7 @@ function DataGrid<TData>({
                     'relative h-9 border-r border-[#E5E6EB] px-3 font-semibold text-left last:border-r-0 select-none group',
                     onSort && 'cursor-pointer hover:bg-[var(--border-soft)]'
                   )}
-                  style={{ width: `${width}px`, minWidth: `${col.minWidth || 60}px` }}
+                  style={{ width: `${width}px`, minWidth: `${col.minWidth || 50}px` }}
                   onClick={() => onSort?.(col.id)}
                 >
                   <div className="truncate pr-2">{col.header}</div>
@@ -126,8 +154,19 @@ function DataGrid<TData>({
                   <div
                     className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize z-30 hover:bg-[var(--primary)] active:bg-[var(--primary)] transition-colors opacity-0 group-hover:opacity-100"
                     onMouseDown={(e) => handleMouseDown(e, col.id, width)}
+                    onDoubleClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (col.width) {
+                        userResizedRef.current.delete(col.id);
+                        setColumnWidths(prev => ({
+                          ...prev,
+                          [col.id]: col.width!
+                        }));
+                      }
+                    }}
                     onClick={(e) => e.stopPropagation()}
-                    title="ลากเพื่อปรับขนาดคอลัมน์"
+                    title="ลากเพื่อปรับขนาด (ดับเบิลคลิกเพื่อรีเซ็ตขนาดเดิม)"
                   />
                 </th>
               );
@@ -159,10 +198,10 @@ function DataGrid<TData>({
                   return (
                     <td
                       key={col.id}
-                      className="border-r border-[#E5E6EB] px-3 py-1.5 last:border-r-0 truncate"
+                      className="border-r border-[#E5E6EB] px-3 py-1.5 last:border-r-0 overflow-hidden"
                       style={{ width: `${width}px`, maxWidth: `${width}px` }}
                     >
-                      {col.cell ? col.cell({ row, index: idx }) : (col.accessorKey ? String(row[col.accessorKey] ?? '-') : null)}
+                      {col.cell ? col.cell({ row, index: idx }) : (col.accessorKey ? <div className="truncate">{String(row[col.accessorKey] ?? '-')}</div> : null)}
                     </td>
                   );
                 })}
