@@ -2,7 +2,6 @@ import { UserRole } from './auth';
 import { 
   LayoutDashboard, 
   Inbox, 
-  Briefcase, 
   GanttChartSquare, 
   CheckSquare, 
   CheckCircle2, 
@@ -40,21 +39,20 @@ export const MENU_STRUCTURE: MenuGroup[] = [
     ]
   },
   {
-    group: 'ขั้นตอนงาน (Pipeline)',
+    group: 'Pipeline',
     items: [
-      { key: 'orders', label: 'รับงาน & คิวงาน', icon: Inbox, path: '/orders', roles: ['ADMIN', 'AE', 'QC', 'CONTACT_CENTER'], step: 1 },
-      { key: 'conversion', label: 'โปรเจกต์ & BOQ', icon: Briefcase, path: '/conversion', roles: ['ADMIN', 'AE'], step: 2 },
-      { key: 'gantt', label: 'แผนงาน Gantt', icon: GanttChartSquare, path: '/gantt', roles: ['ADMIN', 'AE', 'QC', 'CONTACT_CENTER'], step: 3 },
-      { key: 'qc', label: 'ตรวจรับงาน QC', icon: CheckSquare, path: '/qc', roles: ['ADMIN', 'QC'], step: 4 },
-      { key: 'completed', label: 'ปิดงาน & ส่ง STK', icon: CheckCircle2, path: '/completed', roles: ['ADMIN', 'AE'], step: 5 }
+      { key: 'orders',    label: 'รับงาน',         icon: Inbox,            path: '/orders',    roles: ['ADMIN', 'AE', 'QC', 'CONTACT_CENTER'], step: 1 },
+      { key: 'gantt',     label: 'Project & Gantt', icon: GanttChartSquare, path: '/gantt',     roles: ['ADMIN', 'AE', 'QC', 'CONTACT_CENTER'], step: 2 },
+      { key: 'qc',        label: 'QC',              icon: CheckSquare,      path: '/qc',        roles: ['ADMIN', 'AE', 'QC', 'CONTACT_CENTER'], step: 3 },
+      { key: 'completed', label: 'ปิดงาน',          icon: CheckCircle2,     path: '/completed', roles: ['ADMIN', 'AE', 'QC', 'CONTACT_CENTER'], step: 4 },
     ]
   },
   {
     group: 'คลังข้อมูล',
     items: [
-      { key: 'blueprints', label: 'แบบติดตั้ง', icon: FolderOpen, path: '/blueprints', roles: ['ADMIN', 'AE'] },
-      { key: 'boq', label: 'คลัง BOQ กลาง', icon: Calculator, path: '/boq', roles: ['ADMIN', 'AE'] },
-      { key: 'ma', label: 'สัญญา MA', icon: FileSignature, path: '/ma', roles: ['ADMIN', 'AE'] }
+      { key: 'blueprints', label: 'แบบติดตั้ง',    icon: FolderOpen,    path: '/blueprints', roles: ['ADMIN', 'AE'] },
+      { key: 'boq',        label: 'คลัง BOQ กลาง',  icon: Calculator,    path: '/boq',        roles: ['ADMIN', 'AE'] },
+      { key: 'ma',         label: 'สัญญา MA',        icon: FileSignature, path: '/ma',         roles: ['ADMIN', 'AE'] }
     ]
   },
   {
@@ -66,10 +64,10 @@ export const MENU_STRUCTURE: MenuGroup[] = [
   {
     group: 'ระบบ',
     items: [
-      { key: 'users', label: 'ผู้ใช้งาน', icon: Users, path: '/admin/users', roles: ['ADMIN'] },
-      { key: 'api-logs', label: 'API Monitor', icon: Activity, path: '/admin/api-logs', roles: ['ADMIN'] },
-      { key: 'settings', label: 'ตั้งค่า', icon: Settings, path: '/admin/settings', roles: ['ADMIN'] },
-      { key: 'km', label: 'KM คลังความรู้', icon: BookOpen, path: '/km', roles: ['ADMIN', 'AE', 'QC', 'CONTACT_CENTER'] }
+      { key: 'users',    label: 'ผู้ใช้งาน',      icon: Users,    path: '/admin/users',    roles: ['ADMIN'] },
+      { key: 'api-logs', label: 'API Monitor',   icon: Activity, path: '/admin/api-logs', roles: ['ADMIN'] },
+      { key: 'settings', label: 'ตั้งค่า',         icon: Settings, path: '/admin/settings', roles: ['ADMIN'] },
+      { key: 'km',       label: 'KM คลังความรู้',  icon: BookOpen, path: '/km',             roles: ['ADMIN', 'AE', 'QC', 'CONTACT_CENTER'] }
     ]
   }
 ];
