@@ -353,19 +353,6 @@ export default function OrdersPage() {
       width: 130, 
       cell: ({ row }) => <StatusBadge status={row.status === 'QC_PENDING' ? 'PENDING' : row.status} /> 
     },
-    { 
-      id: 'grand_total', 
-      header: 'ยอดสุทธิ', 
-      width: 120, 
-      cell: ({ row }) => {
-        const amt = Number(row.grand_total || (row as any).boq_grand_total || 0);
-        return (
-          <span className="text-black font-mono font-medium">
-            {amt > 0 ? amt.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}
-          </span>
-        );
-      }
-    },
     {
       id: 'action_btn',
       header: 'จัดการ',

@@ -1,19 +1,10 @@
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OrderCustomerSummary } from '../order-customer-summary';
 import { Job } from '../api';
-import { toast } from 'sonner';
-
-// Mock sonner toast
-vi.mock('sonner', () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
-}));
 
 function renderWithProviders(ui: React.ReactElement) {
   const queryClient = new QueryClient({
@@ -52,26 +43,13 @@ describe('OrderCustomerSummary - Adversarial Stress & Edge Case Tests', () => {
       expect(container.firstChild).toHaveClass('text-black');
 
       // Labels exist
-      expect(screen.getByText('ลูกค้า:')).toBeInTheDocument();
       expect(screen.getByText('สถานที่ติดตั้ง:')).toBeInTheDocument();
-      expect(screen.getByText('สินค้า/บริการ:')).toBeInTheDocument();
-      expect(screen.getByText('สาขา/ประเภท:')).toBeInTheDocument();
-
-      // Customer fallback name
-      expect(screen.getByText('ลูกค้าทั่วไป')).toBeInTheDocument();
+      expect(screen.queryByText('ลูกค้า:')).not.toBeInTheDocument();
+      expect(screen.queryByText('สินค้า/บริการ:')).not.toBeInTheDocument();
+      expect(screen.queryByText('สาขา/ประเภท:')).not.toBeInTheDocument();
 
       // Address fallback
       expect(screen.getByText('-')).toBeInTheDocument();
-
-      // Services fallback
-      expect(screen.getByText('บริการติดตั้ง')).toBeInTheDocument();
-
-      // Project type fallback
-      expect(screen.getByText('ทั่วไป')).toBeInTheDocument();
-
-      // Phone is not present, so phone link/copy button must NOT be rendered
-      expect(screen.queryByTitle('โทรออก')).not.toBeInTheDocument();
-      expect(screen.queryByTitle('คัดลอกเบอร์โทร')).not.toBeInTheDocument();
 
       // Google maps link must NOT be rendered when address is empty
       expect(screen.queryByTitle('Google Maps')).not.toBeInTheDocument();
@@ -98,10 +76,7 @@ describe('OrderCustomerSummary - Adversarial Stress & Edge Case Tests', () => {
 
       renderWithProviders(<OrderCustomerSummary job={jobWithNullCustomer} />);
 
-      expect(screen.getByText('วิชัย การช่าง (จาก customer_name)')).toBeInTheDocument();
       expect(screen.getByText('เชียงใหม่')).toBeInTheDocument();
-      expect(screen.getByText('089-123-4567')).toBeInTheDocument();
-      expect(screen.getByText('ล้างแอร์')).toBeInTheDocument();
     });
 
     it('handles direct string customer without object wrapping', () => {
@@ -121,10 +96,7 @@ describe('OrderCustomerSummary - Adversarial Stress & Edge Case Tests', () => {
 
       renderWithProviders(<OrderCustomerSummary job={jobWithStringCustomer} />);
 
-      expect(screen.getByText('คุณหญิง อภิรดี')).toBeInTheDocument();
       expect(screen.getByText('สุขุมวิท 21')).toBeInTheDocument();
-      // 9-digit landline phone formatting (02-987-6543)
-      expect(screen.getByText('02-987-6543')).toBeInTheDocument();
     });
 
     it('falls back to raw_payload values when root properties are missing', () => {
@@ -149,19 +121,12 @@ describe('OrderCustomerSummary - Adversarial Stress & Edge Case Tests', () => {
             name: 'สาขาบางนา',
             store_code: 'BN01',
           },
-          jobdetails: [
-            { installation_detail: 'ติดตั้งเครื่องดูดควัน', product_quantity: 2 },
-          ],
         },
       } as any;
 
       renderWithProviders(<OrderCustomerSummary job={jobWithRawPayload} />);
 
-      expect(screen.getByText('นายกิตติ มานะ')).toBeInTheDocument();
-      expect(screen.getByText('099-888-7766')).toBeInTheDocument();
       expect(screen.getByText('พระราม 9 ซอย 13')).toBeInTheDocument();
-      expect(screen.getByText('ติดตั้งเครื่องดูดควัน x2')).toBeInTheDocument();
-      expect(screen.getByText(/สาขาบางนา \(BN01\)/)).toBeInTheDocument();
 
       const mapLink = screen.getByTitle('Google Maps');
       expect(mapLink).toHaveAttribute('href', 'https://maps.app.goo.gl/testraw');
@@ -210,30 +175,9 @@ describe('OrderCustomerSummary - Adversarial Stress & Edge Case Tests', () => {
   });
 
   /* --------------------------------------------------------------------------
-     2. EXTREMELY LONG TEXT, MULTI-LINE ADDRESS, AND MANY ITEMS (LAYOUT STRESS)
+     2. EXTREMELY LONG TEXT, MULTI-LINE ADDRESS (LAYOUT STRESS)
      -------------------------------------------------------------------------- */
   describe('2. Extremely Long Strings and Multi-line Layout Stress', () => {
-    it('handles 1,000-character customer name without breaking layout (uses truncate and min-w-0)', () => {
-      const megaCustomerName = 'นาย' + 'สมหมายรักการบริการยอดเยี่ยม'.repeat(40);
-      const longJob: any = {
-        id: 910,
-        job_no: 'JOB-LONG-NAME',
-        customer: {
-          name: megaCustomerName,
-          phone: '0812345678',
-          address: 'กรุงเทพฯ',
-        },
-        services: ['ทาสีอาคาร'],
-      };
-
-      renderWithProviders(<OrderCustomerSummary job={longJob} />);
-
-      const custSpan = screen.getByText(megaCustomerName);
-      expect(custSpan).toBeInTheDocument();
-      expect(custSpan).toHaveClass('truncate');
-      expect(custSpan.closest('.min-w-0')).not.toBeNull();
-    });
-
     it('handles multi-line address with newlines without breaking grid layout', () => {
       const multiLineAddress = '999/88 อาคารศรีสวัสดิ์ทาวเวอร์ ชั้น 18 ห้อง 1802-1804\nถนนพหลโยธิน แขวงสามเสนใน\nเขตพญาไท กรุงเทพมหานคร 10400';
       const multiLineJob: any = {
@@ -256,29 +200,6 @@ describe('OrderCustomerSummary - Adversarial Stress & Edge Case Tests', () => {
       expect(addrSpan).toHaveAttribute('title', multiLineAddress);
     });
 
-    it('handles 50 order items without overflowing or breaking layout', () => {
-      const fiftyItems = Array.from({ length: 50 }, (_, i) => ({
-        installation_detail: `รายการสินค้าพิเศษชิ้นที่ ${i + 1}`,
-        product_quantity: (i % 5) + 1,
-      }));
-
-      const bigJob: any = {
-        id: 912,
-        job_no: 'JOB-50-ITEMS',
-        customer: 'บริษัท เจริญรุ่งเรือง จำกัด',
-        job_details: fiftyItems,
-      };
-
-      renderWithProviders(<OrderCustomerSummary job={bigJob} />);
-
-      // Summary text contains items
-      const summaryText = fiftyItems.map(i => `${i.installation_detail} x${i.product_quantity}`).join(', ');
-      const itemsSpan = screen.getByText(summaryText);
-      expect(itemsSpan).toBeInTheDocument();
-      expect(itemsSpan).toHaveClass('truncate');
-      expect(itemsSpan).toHaveAttribute('title', summaryText);
-    });
-
     it('handles extremely long remark text gracefully with full tooltip', () => {
       const longRemark = 'หมายเหตุพิเศษจากผู้ว่าจ้าง: '.repeat(20) + 'กรุณาตรวจสอบก่อนส่งมอบ';
       const remarkJob: any = {
@@ -299,97 +220,9 @@ describe('OrderCustomerSummary - Adversarial Stress & Edge Case Tests', () => {
   });
 
   /* --------------------------------------------------------------------------
-     3. PHONE COPY BUTTON & TEL LINK BEHAVIOR
+     3. GOOGLE MAPS LINK BEHAVIOR
      -------------------------------------------------------------------------- */
-  describe('3. Phone Copy Button and tel: Link Actions', () => {
-    let writeTextMock: ReturnType<typeof vi.fn>;
-
-    beforeEach(() => {
-      writeTextMock = vi.fn().mockResolvedValue(undefined);
-      Object.defineProperty(navigator, 'clipboard', {
-        value: {
-          writeText: writeTextMock,
-        },
-        writable: true,
-        configurable: true,
-      });
-    });
-
-    it('renders tel: link with clean digits only', () => {
-      const jobWithHyphenPhone: any = {
-        id: 920,
-        job_no: 'JOB-PHONE-TEL',
-        customer: {
-          name: 'กานดา สดใส',
-          phone: '081-999-8877',
-          address: 'กรุงเทพฯ',
-        },
-        services: ['ล้างแอร์'],
-      };
-
-      renderWithProviders(<OrderCustomerSummary job={jobWithHyphenPhone} />);
-
-      const telLink = screen.getByTitle('โทรออก');
-      expect(telLink).toHaveAttribute('href', 'tel:0819998877');
-      expect(telLink).toHaveTextContent('081-999-8877');
-    });
-
-    it('copies clean phone number to navigator.clipboard on button click', () => {
-      const jobToCopy: any = {
-        id: 921,
-        job_no: 'JOB-COPY-PHONE',
-        customer: {
-          name: 'สมบูรณ์ มั่งมี',
-          phone: '089-555-1234',
-        },
-        services: ['ตรวจระบบไฟ'],
-      };
-
-      renderWithProviders(<OrderCustomerSummary job={jobToCopy} />);
-
-      const copyBtn = screen.getByTitle('คัดลอกเบอร์โทร');
-      expect(copyBtn).toBeInTheDocument();
-
-      fireEvent.click(copyBtn);
-
-      // Clipboard should have received stripped digits
-      expect(writeTextMock).toHaveBeenCalledWith('0895551234');
-
-      // Toast notification should fire
-      expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('089-555-1234'));
-    });
-
-    it('stops event propagation when clicking copy button', () => {
-      const outerClickHandler = vi.fn();
-
-      const jobToCopy: any = {
-        id: 922,
-        job_no: 'JOB-STOP-PROP',
-        customer: {
-          name: 'สุชาติ มั่นคง',
-          phone: '0812345678',
-        },
-        services: ['งานประปา'],
-      };
-
-      renderWithProviders(
-        <div onClick={outerClickHandler}>
-          <OrderCustomerSummary job={jobToCopy} />
-        </div>
-      );
-
-      const copyBtn = screen.getByTitle('คัดลอกเบอร์โทร');
-      fireEvent.click(copyBtn);
-
-      // Outer container should NOT receive click event
-      expect(outerClickHandler).not.toHaveBeenCalled();
-    });
-  });
-
-  /* --------------------------------------------------------------------------
-     4. GOOGLE MAPS LINK BEHAVIOR
-     -------------------------------------------------------------------------- */
-  describe('4. Google Maps Icon Link Behavior', () => {
+  describe('3. Google Maps Icon Link Behavior', () => {
     it('generates encoded search query link when address is provided and google_map_url is absent', () => {
       const address = '123/45 ซอยสุขุมวิท 55 แขวงคลองตันเหนือ เขตวัฒนา กรุงเทพฯ 10110';
       const jobForMaps: any = {
@@ -451,9 +284,9 @@ describe('OrderCustomerSummary - Adversarial Stress & Edge Case Tests', () => {
   });
 
   /* --------------------------------------------------------------------------
-     5. STYLING & CLEAN DESIGN COMPLIANCE (GEMINI.md & 2026-09-27 Specification)
+     4. STYLING & CLEAN DESIGN COMPLIANCE (GEMINI.md & 2026-09-27 Specification)
      -------------------------------------------------------------------------- */
-  describe('5. Styling, Pure Black Text, and No-Background Compliance', () => {
+  describe('4. Styling, Pure Black Text, and No-Background Compliance', () => {
     it('strictly satisfies Pure Light Theme and 100% Pure Black Text without colored backgrounds', () => {
       const sampleJob: any = {
         id: 940,

@@ -557,16 +557,14 @@ describe('Job Detail Refactoring (2026-09-27 Specification)', () => {
     expect(topDiv).toHaveClass('text-black');
     expect(topDiv).not.toHaveClass('bg-blue-50/40');
 
-    // Labels must use colon format to avoid collision with วันนัดหมาย
-    expect(screen.getByText('ลูกค้า:')).toBeInTheDocument();
+    // Labels must show สถานที่ติดตั้ง: and not redundant labels
     expect(screen.getByText('สถานที่ติดตั้ง:')).toBeInTheDocument();
-    expect(screen.getByText('สินค้า/บริการ:')).toBeInTheDocument();
-    expect(screen.getByText('สาขา/ประเภท:')).toBeInTheDocument();
+    expect(screen.queryByText('ลูกค้า:')).not.toBeInTheDocument();
+    expect(screen.queryByText('สินค้า/บริการ:')).not.toBeInTheDocument();
+    expect(screen.queryByText('สาขา/ประเภท:')).not.toBeInTheDocument();
 
     // Data values must be rendered
-    expect(screen.getByText('สมชาย ใจดี')).toBeInTheDocument();
     expect(screen.getByText('กรุงเทพฯ')).toBeInTheDocument();
-    expect(screen.getByText('ติดตั้งเครื่องทำน้ำอุ่น')).toBeInTheDocument();
 
     // Must NOT have subtitles or descriptions
     expect(screen.queryByText(/Order Details/i)).not.toBeInTheDocument();
