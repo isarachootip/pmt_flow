@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ConvertBoqDrawer } from '@/features/jobs/convert-boq-drawer';
+import { Package, Download, Plus } from 'lucide-react';
 
 interface BoqItem {
   id?: string;
@@ -100,6 +101,45 @@ export function BoqTab({ job }: BoqTabProps) {
     }
   };
 
+  const handleImportFromOrder = () => {
+    const rawDetails = (job.job_details && job.job_details.length > 0)
+      ? job.job_details
+      : ((job as any).raw_payload?.jobdetails || []);
+
+    if (rawDetails.length > 0) {
+      const newItems: BoqItem[] = rawDetails.map((d: any) => ({
+        name: d.installation_detail || d.job_type || d.product_name || 'บริการตามออเดอร์',
+        unit: 'งาน',
+        qty: Number(d.product_quantity) || 1,
+        unit_price: 0
+      }));
+      setItems(prev => [...prev.filter(i => i.name.trim()), ...newItems]);
+      toast.success(`ดึง ${newItems.length} รายการจากคำสั่งซื้อเข้าสู่ตาราง BOQ สำเร็จ`);
+      return;
+    }
+
+    if (Array.isArray(job.services) && job.services.length > 0) {
+      const newItems: BoqItem[] = job.services.map(s => ({
+        name: s,
+        unit: 'งาน',
+        qty: 1,
+        unit_price: 0
+      }));
+      setItems(prev => [...prev.filter(i => i.name.trim()), ...newItems]);
+      toast.success(`ดึงบริการ ${job.services.length} รายการจากคำสั่งซื้อเรียบร้อยแล้ว`);
+      return;
+    }
+
+    const fallbackName = job.project_sub_type || (job as any).service || 'บริการติดตั้งตามคำสั่งซื้อ';
+    setItems(prev => [...prev.filter(i => i.name.trim()), {
+      name: fallbackName,
+      unit: 'งาน',
+      qty: 1,
+      unit_price: 0
+    }]);
+    toast.success('ดึงรายการบริการจากคำสั่งซื้อเรียบร้อยแล้ว');
+  };
+
   const handleConvertToTasks = async () => {
     const validItems = items.filter(i => i.name && i.name.trim().length > 0);
     if (validItems.length === 0) {
@@ -135,11 +175,21 @@ export function BoqTab({ job }: BoqTabProps) {
           <Button 
             variant="primary" 
             size="sm" 
+            onClick={handleImportFromOrder}
+            className="text-black font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center gap-1.5"
+            title="ดึงรายการสินค้าและบริการจาก Order ต้นทางลงตาราง BOQ"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>📥 ดึงรายการจาก Order</span>
+          </Button>
+          <Button 
+            variant="primary" 
+            size="sm" 
             onClick={handleFetchBoq} 
             disabled={isFetchingBoq}
             className="text-black font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5"
           >
-            <span>📥 ดึง BOQ</span>
+            <span>Preview โครงสร้าง</span>
           </Button>
           <Button variant="secondary" size="sm" onClick={handleAddItem} className="text-black font-medium">
             + เพิ่มรายการ
@@ -187,7 +237,39 @@ export function BoqTab({ job }: BoqTabProps) {
             })}
             {items.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-black font-medium">ไม่มีข้อมูล</td>
+                <td colSpan={6} className="p-8 text-center text-black">
+                  <div className="max-w-md mx-auto py-4 flex flex-col items-center justify-center space-y-2.5">
+                    <Package className="w-10 h-10 text-blue-600" />
+                    <div className="text-sm font-bold text-black">
+                      ยังไม่มีรายการประเมินราคา BOQ สำหรับใบงานนี้
+                    </div>
+                    <p className="text-xs text-gray-700 max-w-sm">
+                      คุณสามารถดึงรายการสินค้าหรือบริการจากคำสั่งซื้อ (Order) มาเป็นรายการตั้งต้นในตาราง BOQ ได้ทันที หรือกดเพิ่มรายการประเมินราคาเอง
+                    </p>
+                    <div className="flex items-center gap-2 pt-2">
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        onClick={handleImportFromOrder}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>ดึงรายการจากคำสั่งซื้อ</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleAddItem}
+                        className="text-black font-medium text-xs border border-gray-300"
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1" />
+                        <span>เพิ่มรายการเอง</span>
+                      </Button>
+                    </div>
+                  </div>
+                </td>
               </tr>
             )}
           </tbody>

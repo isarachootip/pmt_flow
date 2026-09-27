@@ -49,6 +49,24 @@ export interface Job {
   overall_progress: number;
   grand_total: number;
   areas?: any[];
+  customer_name?: string;
+  customer_phone?: string;
+  customer_address?: string;
+  phone?: string;
+  address?: string;
+  google_map_url?: string;
+  branch_name?: string;
+  branch_code?: string;
+  store_code?: string;
+  job_details?: Array<{
+    job_type?: string;
+    installation_detail?: string;
+    product_quantity?: number;
+    remark?: string;
+  }>;
+  special_instructions?: string;
+  additional_notes?: string;
+  remarks?: any;
   tasks?: Task[];
   boq_items?: any[];
   photos?: any[];

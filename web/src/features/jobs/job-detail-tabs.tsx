@@ -14,6 +14,7 @@ import { JobTimeline } from '@/features/jobs/job-timeline';
 import { formatDMY, formatDateTimeDMY, format24HourTimeBadge } from '@/lib/date';
 import { toast } from 'sonner';
 import { JobActiveWorkspace } from '@/features/jobs/job-active-workspace';
+import { OrderCustomerSummary } from '@/features/jobs/order-customer-summary';
 import { UserCheck } from 'lucide-react';
 
 interface JobDetailTabsProps {
@@ -188,6 +189,9 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
           </Button>
         </div>
       </div>
+
+      {/* Order & Customer Summary Details (Site address, phone, Google Maps, items, 24-hr schedule) */}
+      <OrderCustomerSummary job={job} />
 
       {/* Tabs Container */}
       <div className="flex-1 flex flex-col min-h-0 bg-white">
