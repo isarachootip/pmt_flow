@@ -127,8 +127,9 @@ describe('Tier 1: Feature Coverage (F1 - F8)', () => {
       renderWithProviders(<JobDetailTabs job={job} defaultTab="task" />);
 
       expect(screen.queryByText('ไม่มีข้อมูล')).not.toBeInTheDocument();
+      expect(screen.getByText(/ตารางรายการย่อย/i)).toBeInTheDocument();
       expect(
-        screen.getByText('บันทึกความคืบหน้า & ความคิดเห็นหน้างาน (Progress Notes & Comments)')
+        screen.getByText('รูปถ่ายการปฏิบัติงาน 5 ขั้นตอน (PhotoSlots 5)')
       ).toBeInTheDocument();
     });
 
@@ -179,8 +180,7 @@ describe('Tier 1: Feature Coverage (F1 - F8)', () => {
       });
     });
 
-    it('F1.6: Mounts JobActiveWorkspace when switching view mode to workspace even if tasks exist', async () => {
-      const user = userEvent.setup();
+    it('F1.6: Directly renders Grid View and PhotoSlots 5 in Tab 1 ("งาน/Task")', async () => {
       const mockTasks = [
         {
           id: 1,
@@ -195,15 +195,14 @@ describe('Tier 1: Feature Coverage (F1 - F8)', () => {
       const job = createQuickJob({ tasks: mockTasks });
       renderWithProviders(<JobDetailTabs job={job} defaultTab="task" />);
 
-      // Switch to workspace mode
-      const workspaceBtn = screen.getByRole('button', {
-        name: /พื้นที่ทำงาน & รูปภาพ \(Active Workspace\)/i,
+      expect(screen.getByText(/ตารางรายการย่อย/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('งานทดสอบ 1')).toBeInTheDocument();
       });
-      await user.click(workspaceBtn);
-
       expect(
-        screen.getByText('บันทึกความคืบหน้า & ความคิดเห็นหน้างาน (Progress Notes & Comments)')
+        screen.getByText('รูปถ่ายการปฏิบัติงาน 5 ขั้นตอน (PhotoSlots 5)')
       ).toBeInTheDocument();
+      expect(screen.queryByText('Quick Tags:')).not.toBeInTheDocument();
     });
   });
 

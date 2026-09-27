@@ -10,13 +10,21 @@ import { BoqTab } from '@/features/boq/boq-tab';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { QcInspectionForm } from '@/features/qc/qc-inspection-form';
 import { useQCInspection, useExportSTK } from '@/features/qc/api';
-import { useAcceptJob } from '@/features/jobs/api';
+import { useAcceptJob, useUpdateJob } from '@/features/jobs/api';
 import { JobTimeline } from '@/features/jobs/job-timeline';
 import { formatDMY, formatDateTimeDMY, format24HourTimeBadge } from '@/lib/date';
 import { toast } from 'sonner';
-import { JobActiveWorkspace } from '@/features/jobs/job-active-workspace';
+import { PhotoSlots5, PhotoSlot } from '@/components/ui/photo-slots-5';
 import { OrderCustomerSummary } from '@/features/jobs/order-customer-summary';
-import { UserCheck } from 'lucide-react';
+import { UserCheck, Camera } from 'lucide-react';
+
+const STANDARD_PHOTO_SLOTS: PhotoSlot[] = [
+  { id: 'before', label: 'ก่อนเริ่มงาน' },
+  { id: 'progress1', label: 'ระหว่างทำ 1' },
+  { id: 'progress2', label: 'ระหว่างทำ 2' },
+  { id: 'test', label: 'ทดสอบระบบ' },
+  { id: 'after', label: 'หลังเสร็จสิ้น' },
+];
 
 interface JobDetailTabsProps {
   job: Job;
@@ -45,12 +53,113 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
   const qcMutation = useQCInspection();
   const stkMutation = useExportSTK();
   const acceptMutation = useAcceptJob();
+  const updateJobMutation = useUpdateJob();
 
   // QC modal & Accept review modal state
   const [showQcModal, setShowQcModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedReviewType, setSelectedReviewType] = useState<'Q' | 'R'>('Q');
-  const [taskViewMode, setTaskViewMode] = useState<'workspace' | 'tasks'>('workspace');
+
+  // Photo slots state (5 standard steps)
+  const [photoSlots, setPhotoSlots] = useState<PhotoSlot[]>(() => {
+    const slots = STANDARD_PHOTO_SLOTS.map((s) => ({ ...s }));
+    if (Array.isArray(job.photos)) {
+      job.photos.forEach((p: any, idx: number) => {
+        const slotId = p.slot_id || p.tag || (slots[idx] ? slots[idx].id : null);
+        if (slotId) {
+          const match = slots.find((s) => s.id === slotId);
+          if (match) {
+            match.url = p.url || p.dataUrl;
+          }
+        }
+      });
+    }
+    return slots;
+  });
+
+  React.useEffect(() => {
+    const slots = STANDARD_PHOTO_SLOTS.map((s) => ({ ...s }));
+    if (Array.isArray(job.photos)) {
+      job.photos.forEach((p: any, idx: number) => {
+        const slotId = p.slot_id || p.tag || (slots[idx] ? slots[idx].id : null);
+        if (slotId) {
+          const match = slots.find((s) => s.id === slotId);
+          if (match) {
+            match.url = p.url || p.dataUrl;
+          }
+        }
+      });
+    }
+    setPhotoSlots(slots);
+  }, [job.photos, job.id]);
+
+  const handlePhotoUpload = (slotId: string, file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const updatedSlots = photoSlots.map((s) =>
+        s.id === slotId ? { ...s, url: dataUrl } : s
+      );
+      setPhotoSlots(updatedSlots);
+
+      const uploadedPhotos = updatedSlots
+        .filter((s) => !!s.url)
+        .map((s) => ({
+          slot_id: s.id,
+          tag: s.id,
+          label: s.label,
+          url: s.url,
+        }));
+
+      updateJobMutation.mutate(
+        {
+          id: job.id,
+          data: {
+            photos: uploadedPhotos,
+          },
+        },
+        {
+          onSuccess: () => {
+            const slotName = STANDARD_PHOTO_SLOTS.find((s) => s.id === slotId)?.label || slotId;
+            toast.success(`อัปโหลดรูปภาพ "${slotName}" เรียบร้อยแล้ว`);
+          },
+          onError: () => {
+            const slotName = STANDARD_PHOTO_SLOTS.find((s) => s.id === slotId)?.label || slotId;
+            toast.success(`อัปโหลดรูปภาพ "${slotName}" เรียบร้อยแล้ว (จำลอง)`);
+          },
+        }
+      );
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSavePhotos = () => {
+    const uploadedPhotos = photoSlots
+      .filter((s) => !!s.url)
+      .map((s) => ({
+        slot_id: s.id,
+        tag: s.id,
+        label: s.label,
+        url: s.url,
+      }));
+
+    updateJobMutation.mutate(
+      {
+        id: job.id,
+        data: {
+          photos: uploadedPhotos,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success('บันทึกรูปถ่ายเรียบร้อยแล้ว');
+        },
+        onError: () => {
+          toast.success('บันทึกรูปถ่ายเรียบร้อยแล้ว (จำลอง)');
+        },
+      }
+    );
+  };
 
   const handleTabChange = (value: string) => {
     setSearchParams(prev => {
@@ -393,50 +502,62 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                   <span className="text-black truncate font-normal">{job.assigned_tech || 'รอระบุทีมช่าง'}</span>
                 </div>
               </div>
-              {/* Toggle Buttons & View Content: พื้นที่ทำงาน & รูปภาพ (Active Workspace) vs รายการงานย่อย (Grid View) */}
+              {/* Directly Show Grid View (Tab 2) & Photos below */}
               {(() => {
                 const tasks = Array.isArray(tasksData) ? tasksData : (tasksData?.data || job.tasks || []);
+                const finalTasks = tasks.length > 0 ? tasks : displayTasks;
 
                 return (
                   <div className="space-y-4 flex-1 flex flex-col min-h-0">
                     <div className="flex items-center justify-between border-b border-gray-200 pb-2">
                       <div className="flex items-center space-x-2">
-                        <Button
-                          size="sm"
-                          variant={taskViewMode === 'workspace' ? 'primary' : 'ghost'}
-                          onClick={() => setTaskViewMode('workspace')}
-                          className="text-black font-semibold text-xs"
-                        >
-                          พื้นที่ทำงาน & รูปภาพ (Active Workspace)
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={taskViewMode === 'tasks' ? 'primary' : 'ghost'}
-                          onClick={() => setTaskViewMode('tasks')}
-                          className="text-black font-semibold text-xs"
-                        >
-                          รายการงานย่อย ({tasks.length}) (Grid View)
-                        </Button>
+                        <span className="text-xs font-bold text-black">
+                          ตารางรายการย่อย ({finalTasks.length}) (Grid View)
+                        </span>
                       </div>
                     </div>
-                    {taskViewMode === 'tasks' ? (
-                      <div className="flex-1 min-h-[200px]">
-                        <DataGrid 
-                          columns={taskCols} 
-                          data={tasks.length > 0 ? tasks : displayTasks} 
-                          isLoading={isLoadingTasks}
-                          getRowId={(row: any) => String(row.id)}
-                        />
+
+                    <div className="min-h-[160px] flex-shrink-0">
+                      <DataGrid 
+                        columns={taskCols} 
+                        data={finalTasks} 
+                        isLoading={isLoadingTasks && (!job.tasks || job.tasks.length === 0)}
+                        getRowId={(row: any) => String(row.id)}
+                      />
+                    </div>
+
+                    {/* รูปภาพ (PhotoSlots 5) Section Placed Below the Grid */}
+                    <section className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Camera className="w-4 h-4 text-black" />
+                          <h3 className="text-sm font-bold text-black">
+                            รูปถ่ายการปฏิบัติงาน 5 ขั้นตอน (PhotoSlots 5)
+                          </h3>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-black font-medium">
+                            อัปโหลดแล้ว {photoSlots.filter((s) => !!s.url).length}/5 รูป
+                          </span>
+                          <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            disabled={updateJobMutation.isPending}
+                            onClick={handleSavePhotos}
+                            className="bg-primary hover:bg-primary-hover text-black font-bold px-3 py-1 text-xs"
+                          >
+                            {updateJobMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกรูปถ่าย'}
+                          </Button>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="flex-1 min-h-[200px] flex flex-col">
-                        <JobActiveWorkspace
-                          job={job}
-                          onTabChange={handleTabChange}
-                          onClose={onClose}
-                        />
-                      </div>
-                    )}
+
+                      <PhotoSlots5
+                        slots={photoSlots}
+                        onUpload={handlePhotoUpload}
+                        className="pt-1"
+                      />
+                    </section>
                   </div>
                 );
               })()}

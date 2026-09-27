@@ -341,27 +341,27 @@ describe('JobActiveWorkspace Component', () => {
   });
 });
 
-describe('JobDetailTabs Integration with JobActiveWorkspace', () => {
+describe('JobDetailTabs Integration with Grid View & PhotoSlots 5', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(api, 'patch').mockResolvedValue({ success: true, data: {} });
     vi.spyOn(api, 'get').mockResolvedValue({ success: true, data: [] });
   });
 
-  it('mounts JobActiveWorkspace in Tab 1 ("งาน/Task") replacing empty state when tasks is empty', () => {
+  it('mounts Grid View and PhotoSlots 5 directly in Tab 1 ("งาน/Task") without quick tags', () => {
     // When job has no tasks, tasksData is empty
     renderWithProviders(<JobDetailTabs job={mockQuickJob} />);
 
     // Must NOT have empty state box
     expect(screen.queryByText('ไม่มีข้อมูล')).not.toBeInTheDocument();
 
-    // Must display Active Workspace form directly
-    expect(
-      screen.getByText('บันทึกความคืบหน้า & ความคิดเห็นหน้างาน (Progress Notes & Comments)')
-    ).toBeInTheDocument();
+    // Must display Grid View directly
+    expect(screen.getByText(/ตารางรายการย่อย/i)).toBeInTheDocument();
+    // Must display PhotoSlots 5 below grid
     expect(
       screen.getByText('รูปถ่ายการปฏิบัติงาน 5 ขั้นตอน (PhotoSlots 5)')
     ).toBeInTheDocument();
-    expect(screen.getByText('อัปเดตและบันทึกข้อมูล')).toBeInTheDocument();
+    // Must NOT have Quick Tags
+    expect(screen.queryByText('Quick Tags:')).not.toBeInTheDocument();
   });
 });

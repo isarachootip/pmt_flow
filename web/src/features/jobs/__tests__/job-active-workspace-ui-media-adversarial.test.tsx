@@ -489,17 +489,12 @@ describe('Mission 4: Empty State Replacement in Tab 1', () => {
     const inboxIcon = document.querySelector('svg.lucide-inbox');
     expect(inboxIcon).toBeNull();
 
-    // 3. Assert Active Workspace is mounted directly in Tab 1
-    expect(
-      screen.getByText('บันทึกความคืบหน้า & ความคิดเห็นหน้างาน (Progress Notes & Comments)')
-    ).toBeInTheDocument();
+    // 3. Assert Grid View & PhotoSlots 5 are mounted directly in Tab 1
+    expect(screen.getByText(/ตารางรายการย่อย/i)).toBeInTheDocument();
     expect(
       screen.getByText('รูปถ่ายการปฏิบัติงาน 5 ขั้นตอน (PhotoSlots 5)')
     ).toBeInTheDocument();
-    expect(
-      screen.getByText('ประวัติกิจกรรมหน้างาน (Activity Timeline)')
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /อัปเดตและบันทึกข้อมูล/i })).toBeInTheDocument();
+    expect(screen.queryByText('Quick Tags:')).not.toBeInTheDocument();
   });
 
   it('guarantees no empty state when tasks is null or undefined on job object', () => {
@@ -512,13 +507,13 @@ describe('Mission 4: Empty State Replacement in Tab 1', () => {
 
     expect(screen.queryByText('ไม่มีข้อมูล')).not.toBeInTheDocument();
     expect(document.querySelector('svg.lucide-inbox')).toBeNull();
+    expect(screen.getByText(/ตารางรายการย่อย/i)).toBeInTheDocument();
     expect(
-      screen.getByText('บันทึกความคืบหน้า & ความคิดเห็นหน้างาน (Progress Notes & Comments)')
+      screen.getByText('รูปถ่ายการปฏิบัติงาน 5 ขั้นตอน (PhotoSlots 5)')
     ).toBeInTheDocument();
   });
 
-  it('allows smooth toggling between Active Workspace and Task List when tasks exist', async () => {
-    const user = userEvent.setup();
+  it('directly displays Grid View with tasks and PhotoSlots 5 below', async () => {
     const jobWithTasks: Job = {
       ...baseJob,
       tasks: [
@@ -531,40 +526,19 @@ describe('Mission 4: Empty State Replacement in Tab 1', () => {
 
     renderWithProviders(<JobDetailTabs job={jobWithTasks} />);
 
-    // In Tab 1, toggle buttons should be visible
-    const workspaceToggleBtn = screen.getByRole('button', {
-      name: /พื้นที่ทำงาน & รูปภาพ \(Active Workspace\)/i,
-    });
-    const tasksToggleBtn = screen.getByRole('button', {
-      name: /รายการงานย่อย \(2\)/i,
-    });
-
-    expect(workspaceToggleBtn).toBeInTheDocument();
-    expect(tasksToggleBtn).toBeInTheDocument();
-
-    // Initial view is Active Workspace
-    expect(
-      screen.getByText('บันทึกความคืบหน้า & ความคิดเห็นหน้างาน (Progress Notes & Comments)')
-    ).toBeInTheDocument();
-
-    // Switch to Task List view
-    await user.click(tasksToggleBtn);
-
-    // Active workspace is replaced by Task DataGrid
+    // In Tab 1, Grid View is visible directly
+    expect(screen.getByText(/ตารางรายการย่อย/i)).toBeInTheDocument();
     await waitFor(() => {
-      expect(
-        screen.queryByText('บันทึกความคืบหน้า & ความคิดเห็นหน้างาน (Progress Notes & Comments)')
-      ).not.toBeInTheDocument();
       expect(screen.getByText('สำรวจระบบไฟฟ้าเดิม')).toBeInTheDocument();
       expect(screen.getByText('ติดตั้งตู้เมนสวิตช์')).toBeInTheDocument();
     });
 
-    // Switch back to Active Workspace
-    await user.click(workspaceToggleBtn);
-    await waitFor(() => {
-      expect(
-        screen.getByText('บันทึกความคืบหน้า & ความคิดเห็นหน้างาน (Progress Notes & Comments)')
-      ).toBeInTheDocument();
-    });
+    // PhotoSlots 5 is mounted directly below
+    expect(
+      screen.getByText('รูปถ่ายการปฏิบัติงาน 5 ขั้นตอน (PhotoSlots 5)')
+    ).toBeInTheDocument();
+
+    // Zero Quick Tags
+    expect(screen.queryByText('Quick Tags:')).not.toBeInTheDocument();
   });
 });
