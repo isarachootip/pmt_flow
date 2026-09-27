@@ -188,6 +188,39 @@ sequenceDiagram
 
 ---
 
+## 🏗️ โครงสร้าง 3 ระดับ (3-Level Project Hierarchy), BOQ Revisions & Validation Rules (Phase 2 Standard)
+
+ตามข้อกำหนดของ Phase 2 ในระบบ State Machine:
+
+### 1. โครงสร้างโครงการ 3 ระดับ (3-Level Hierarchy)
+```
+Project (อ้างอิง Booking No. และ Job No.)
+ └─ งานหลัก / พื้นที่ (Area เช่น ห้องรับแขก, ห้องครัว) → กำหนดช่าง QC ได้ 1 คนต่องานหลัก
+      └─ Task (เช่น รื้อถอน, ปูกระเบื้อง, ปูพื้นยาง, ระบบไฟ) → ช่างผู้รับผิดชอบ, วัน-เวลาเริ่ม/สิ้นสุด (ตามแผน)
+```
+- **การมอบหมาย QC ประจำงานหลัก (`PUT /api/v1/jobs/:id/areas/:areaId/assign-qc`)**: กำหนดให้ 1 งานหลัก มีช่าง QC รับผิดชอบได้ 1 คนอย่างเคร่งครัด
+- **การมอบหมายช่างประจำ Task (`PUT /api/v1/jobs/:id/tasks/:taskId/assign-tech`)**: แต่ละ Task ต้องมีช่างอย่างน้อย 1 คน
+
+### 2. กฎการตรวจสอบก่อนเริ่มปฏิบัติงาน (Work Start Validation Gatekeeper)
+ก่อนที่ช่างจะสามารถกดปุ่ม **"เริ่มงาน" (`POST /api/v1/jobs/:id/tasks/:taskId/start`)** เพื่อเปลี่ยนสถานะ Task จาก `PLANNED` สู่ `IN_PROGRESS` ระบบจะทำการตรวจสอบ 2 กฎเหล็ก:
+1. **งานหลักต้องมีช่าง QC ได้รับการมอบหมายแล้ว (`QC_REQUIRED`)**: หากยังไม่มี QC ประจำพื้นที่ ระบบจะปฏิเสธด้วยข้อความ:
+   > *"กรุณามอบหมายช่าง QC ให้กับพื้นที่/งานหลักก่อนเริ่มปฏิบัติงาน"*
+2. **Task ต้องมีช่างผู้รับผิดชอบอย่างน้อย 1 คน (`TECH_REQUIRED`)**: หากยังไม่ได้กำหนดช่าง ระบบจะปฏิเสธด้วยข้อความ:
+   > *"Task ต้องมีช่างผู้รับผิดชอบอย่างน้อย 1 คนก่อนเริ่มปฏิบัติงาน"*
+
+### 3. การเก็บวันเวลาตามแผนและวันเวลาจริง (Plan vs Actual Timestamps)
+- **วันเวลาตามแผน (Plan Timestamps)**: กำหนดจาก BOQ ได้แก่ `plan_start_date`, `plan_start_time`, `plan_end_date`, `plan_end_time`
+- **วันเวลาจริง (Actual Timestamps)**: 
+  - เมื่อช่างกด **"เริ่มงาน"**: บันทึก `actual_start_date`, `actual_start_time`, `actual_start_at` (ISO) และสถานะเปลี่ยนเป็น `IN_PROGRESS`
+  - เมื่อช่างกด **"ส่งตรวจ QC" (`POST /api/v1/jobs/:id/tasks/:taskId/complete`)**: บันทึก `actual_end_date`, `actual_end_time`, `actual_end_at` (ISO) และสถานะเปลี่ยนเป็น `WAIT_QC`
+
+### 4. การจัดการเมื่อ BOQ ถูกส่งมาใหม่ (BOQ Revision Management)
+- **การเก็บเวอร์ชันและประวัติ**: ทุกครั้งที่มีการแปลง BOQ ชุดใหม่ ระบบจะเพิ่มเลขเวอร์ชัน `boq_version` (เช่น v1 -> v2) และบันทึกประวัติการเปลี่ยนแปลงพร้อม Audit Log ลงในฟิลด์ `boq_revisions`
+- **ไม่ทับ Task ที่ QC ไปแล้ว (Preserve Locked Tasks)**: Task ใดที่เคยตรวจ QC ผ่านแล้ว (`PASSED` / `QC_PASSED`), ถูกส่งต่อเพื่อแก้ปัญหา (`ESCALATED`), หรือมีผลคะแนน QC แล้ว จะถูกล็อกคงสภาพเดิมไว้ 100% ไม่ถูกเขียนทับเด็ดขาด
+- **แจ้งความต่าง (Diff Summary)**: ในการแปลงชุดใหม่ ระบบจะรายงานผลต่าง ได้แก่ จำนวน Task ที่เพิ่มใหม่, จำนวน Task ที่ถูกอัปเดต และจำนวน Task ที่ถูกล็อกคงสภาพไว้
+
+---
+
 ## ❓ คำถามที่พบบ่อยและข้อควรระวัง (FAQ & Best Practices)
 
 > [!IMPORTANT]

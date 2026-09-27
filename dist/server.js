@@ -3244,18 +3244,67 @@ app.post('/api/v1/jobs/:id/boq/convert-project', requireAuth, async (req, res) =
             }
         });
         const sortedTasks = sortTasksByStartDate([...parsedTasks]);
-        const nextStatus = (job.status === JobStatus.DRAFT || job.status === JobStatus.BOQ) ? JobStatus.PLANNED : job.status;
+        const nextStatus = (job.status === JobStatus.DRAFT || job.status === JobStatus.BOQ || job.status === JobStatus.NEW) ? JobStatus.PLANNED : job.status;
+        // BOQ Revision tracking & diff calculation (Requirement #2)
+        const isRevision = existingTasks.length > 0;
+        const currentVersion = Number(job.boq_version) || 1;
+        const newVersion = isRevision ? currentVersion + 1 : 1;
+        const existingTaskNames = new Set(existingTasks.map(t => t.task_name || t.name));
+        const addedTasks = sortedTasks.filter(t => !existingTaskNames.has(t.task_name || t.name));
+        const diffSummary = {
+            version: newVersion,
+            is_revision: isRevision,
+            added_tasks_count: addedTasks.length,
+            preserved_locked_tasks_count: lockedTasksMap.size,
+            previous_tasks_count: existingTasks.length,
+            total_tasks_count: sortedTasks.length,
+            areas_count: parsedAreas.length
+        };
+        const revisionEntry = {
+            version: newVersion,
+            timestamp: new Date().toISOString(),
+            created_by: req.currentUser?.full_name || 'Admin/Coordinator',
+            changes: diffSummary
+        };
+        const boqRevisions = Array.isArray(job.boq_revisions) ? [...job.boq_revisions, revisionEntry] : [revisionEntry];
         await (0, database_1.dbUpdateJob)(param, {
             areas: parsedAreas.length > 0 ? parsedAreas : existingAreas,
             tasks: sortedTasks,
-            status: nextStatus
+            status: nextStatus,
+            boq_version: newVersion,
+            boq_revisions: boqRevisions
         });
-        await recordAudit(req, 'CONVERT_PROJECT_BOQ', 'JOB', param, job.booking_no, { old_tasks_count: existingTasks.length }, { new_tasks_count: sortedTasks.length, areas_count: parsedAreas.length, preserved_locked_tasks: lockedTasksMap.size });
+        await recordAudit(req, isRevision ? 'REVISE_PROJECT_BOQ' : 'CONVERT_PROJECT_BOQ', 'JOB', param, job.booking_no, { old_tasks_count: existingTasks.length, boq_version: currentVersion }, { new_tasks_count: sortedTasks.length, areas_count: parsedAreas.length, preserved_locked_tasks: lockedTasksMap.size, boq_version: newVersion });
         return res.status(201).json({
             success: true,
-            message: `แปลง BOQ เป็นโครงสร้าง 3 ระดับเรียบร้อย (${parsedAreas.length} พื้นที่, ${sortedTasks.length} Tasks, คงสถานะ Task ที่ตรวจผ่านแล้ว ${lockedTasksMap.size} รายการ)`,
+            message: isRevision
+                ? `ปรับปรุง BOQ Revision v${newVersion} เรียบร้อย (คงสถานะ Task ผ่านแล้ว ${lockedTasksMap.size} รายการ, เพิ่มใหม่ ${addedTasks.length} รายการ)`
+                : `แปลง BOQ เป็นโครงสร้าง 3 ระดับเรียบร้อย (${parsedAreas.length} พื้นที่, ${sortedTasks.length} Tasks)`,
+            boq_version: newVersion,
+            revision_diff: diffSummary,
             areas: parsedAreas,
             tasks: sortedTasks
+        });
+    }
+    catch (err) {
+        return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+    }
+});
+// GET /api/v1/jobs/:id/boq/revisions — Get BOQ Revision History & Diffs
+app.get('/api/v1/jobs/:id/boq/revisions', requireAuth, async (req, res) => {
+    try {
+        const param = req.params.id;
+        const job = await (0, database_1.dbGetJob)(param);
+        if (!job) {
+            return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+        }
+        const currentVersion = Number(job.boq_version) || 1;
+        const revisions = Array.isArray(job.boq_revisions) ? job.boq_revisions : [];
+        return res.json({
+            success: true,
+            current_version: currentVersion,
+            total_revisions: revisions.length,
+            revisions
         });
     }
     catch (err) {
@@ -3435,21 +3484,36 @@ app.post('/api/v1/jobs/:id/tasks/:taskId/start', requireAuth, async (req, res) =
                 }
             });
         }
+        // MANDATORY RULE: Check if task has at least 1 technician assigned (Requirement #2)
+        const effectiveTech = (task.assigned_tech && task.assigned_tech.trim()) ||
+            (task.tech && task.tech.trim()) ||
+            (Array.isArray(task.assignees) && task.assignees.length > 0 && String(task.assignees[0]).trim());
+        if (!effectiveTech) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: 'TECH_REQUIRED',
+                    message: 'Task ต้องมีช่างผู้รับผิดชอบอย่างน้อย 1 คนก่อนเริ่มปฏิบัติงาน'
+                }
+            });
+        }
         const nowD = new Date();
         const pad = (n) => String(n).padStart(2, '0');
         const todayDate = nowD.toISOString().slice(0, 10);
         const nowTime24 = `${pad(nowD.getHours())}:${pad(nowD.getMinutes())}`;
+        const nowIso = nowD.toISOString();
         task.actual_start_date = todayDate;
         task.actual_start_time = nowTime24;
+        task.actual_start_at = nowIso;
         task.status = 'IN_PROGRESS';
         task.progress_percent = Math.max(task.progress_percent || 0, 10);
-        task.updated_at = nowD.toISOString();
-        const jobNextStatus = (job.status === JobStatus.PLANNED || job.status === JobStatus.DRAFT) ? JobStatus.IN_PROGRESS : job.status;
+        task.updated_at = nowIso;
+        const jobNextStatus = (job.status === JobStatus.PLANNED || job.status === JobStatus.DRAFT || job.status === JobStatus.NEW) ? JobStatus.IN_PROGRESS : job.status;
         await (0, database_1.dbUpdateJob)(id, {
             tasks,
             status: jobNextStatus
         });
-        await recordAudit(req, 'START_TASK', 'TASK', taskId, job.booking_no, { status: 'PLANNED' }, { status: 'IN_PROGRESS', actual_start_date: todayDate, actual_start_time: nowTime24 });
+        await recordAudit(req, 'START_TASK', 'TASK', taskId, job.booking_no, { status: 'PLANNED' }, { status: 'IN_PROGRESS', actual_start_date: todayDate, actual_start_time: nowTime24, actual_start_at: nowIso });
         return res.status(200).json({
             success: true,
             message: `เริ่มปฏิบัติงาน Task "${task.task_name}" เรียบร้อย (${todayDate} เวลา ${nowTime24} น.)`,
@@ -3477,18 +3541,80 @@ app.post('/api/v1/jobs/:id/tasks/:taskId/complete', requireAuth, async (req, res
         const pad = (n) => String(n).padStart(2, '0');
         const todayDate = nowD.toISOString().slice(0, 10);
         const nowTime24 = `${pad(nowD.getHours())}:${pad(nowD.getMinutes())}`;
+        const nowIso = nowD.toISOString();
         task.actual_end_date = todayDate;
         task.actual_end_time = nowTime24;
+        task.actual_end_at = nowIso;
         task.status = 'WAIT_QC';
         task.progress_percent = 100;
-        task.updated_at = nowD.toISOString();
+        task.updated_at = nowIso;
         await (0, database_1.dbUpdateJob)(id, { tasks });
-        await recordAudit(req, 'COMPLETE_TASK', 'TASK', taskId, job.booking_no, { status: 'IN_PROGRESS' }, { status: 'WAIT_QC', actual_end_date: todayDate, actual_end_time: nowTime24 });
+        await recordAudit(req, 'COMPLETE_TASK', 'TASK', taskId, job.booking_no, { status: 'IN_PROGRESS' }, { status: 'WAIT_QC', actual_end_date: todayDate, actual_end_time: nowTime24, actual_end_at: nowIso });
         return res.status(200).json({
             success: true,
             message: `บันทึกจบงาน Task "${task.task_name}" เรียบร้อย ส่งเข้ารอตรวจ QC (${todayDate} เวลา ${nowTime24} น.)`,
             data: task
         });
+    }
+    catch (err) {
+        return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+    }
+});
+// GET /api/v1/tasks — Global Tasks Query across all jobs (for Technicians & Coordinators)
+app.get('/api/v1/tasks', requireAuth, async (req, res) => {
+    try {
+        const { tech, status, area_id, job_id, search } = req.query;
+        const client = await database_1.pool.connect();
+        try {
+            let query = `SELECT id, job_no, booking_no, customer_name, project_type, tasks, areas, status as job_status FROM core_jobs WHERE tasks IS NOT NULL AND jsonb_array_length(tasks) > 0`;
+            const params = [];
+            if (job_id) {
+                params.push(job_id);
+                query += ` AND (id = $${params.length} OR job_no = $${params.length})`;
+            }
+            const dbRes = await client.query(query, params);
+            let allTasks = [];
+            for (const row of dbRes.rows) {
+                const tasks = Array.isArray(row.tasks) ? row.tasks : [];
+                for (const t of tasks) {
+                    allTasks.push({
+                        ...t,
+                        job_id: row.id,
+                        job_no: row.job_no,
+                        booking_no: row.booking_no,
+                        customer_name: row.customer_name,
+                        project_type: row.project_type,
+                        job_status: row.job_status
+                    });
+                }
+            }
+            if (tech) {
+                const techStr = String(tech).toLowerCase().trim();
+                allTasks = allTasks.filter(t => String(t.assigned_tech || t.tech || '').toLowerCase().includes(techStr) ||
+                    (Array.isArray(t.assignees) && t.assignees.some((a) => String(a).toLowerCase().includes(techStr))));
+            }
+            if (status) {
+                const statusStr = String(status).toUpperCase().trim();
+                allTasks = allTasks.filter(t => String(t.status).toUpperCase() === statusStr);
+            }
+            if (area_id) {
+                allTasks = allTasks.filter(t => String(t.area_id) === String(area_id));
+            }
+            if (search) {
+                const q = String(search).toLowerCase().trim();
+                allTasks = allTasks.filter(t => String(t.task_name || '').toLowerCase().includes(q) ||
+                    String(t.job_no || '').toLowerCase().includes(q) ||
+                    String(t.booking_no || '').toLowerCase().includes(q));
+            }
+            return res.json({
+                success: true,
+                total: allTasks.length,
+                data: allTasks
+            });
+        }
+        finally {
+            client.release();
+        }
     }
     catch (err) {
         return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });

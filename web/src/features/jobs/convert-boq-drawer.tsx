@@ -45,7 +45,7 @@ export function ConvertBoqDrawer({ job, open, onOpenChange, initialItems }: Conv
 
   const convertMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const result = await api.post(`/jobs/${job.id}/tasks/import-boq`, payload);
+      const result = await api.post(`/api/v1/jobs/${job.id}/boq/convert-project`, payload);
       return result;
     },
     onSuccess: () => {

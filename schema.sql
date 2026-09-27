@@ -126,6 +126,8 @@ CREATE TABLE IF NOT EXISTS core_jobs (
     qc_manual_questions   JSONB DEFAULT '[]'::jsonb,
     escalated_at          TIMESTAMP WITH TIME ZONE,
     escalated_reason      TEXT,
+    boq_version           INT DEFAULT 1,
+    boq_revisions         JSONB DEFAULT '[]'::jsonb,
     created_at            TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at            TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

@@ -410,7 +410,9 @@ async function initDatabase() {
         ADD COLUMN IF NOT EXISTS areas JSONB DEFAULT '[]'::jsonb,
         ADD COLUMN IF NOT EXISTS qc_manual_questions JSONB DEFAULT '[]'::jsonb,
         ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMP WITH TIME ZONE,
-        ADD COLUMN IF NOT EXISTS escalated_reason TEXT;
+        ADD COLUMN IF NOT EXISTS escalated_reason TEXT,
+        ADD COLUMN IF NOT EXISTS boq_version INT DEFAULT 1,
+        ADD COLUMN IF NOT EXISTS boq_revisions JSONB DEFAULT '[]'::jsonb;
 
       ALTER TABLE core_daily_work_logs
         ADD COLUMN IF NOT EXISTS additional_details TEXT,
@@ -665,6 +667,8 @@ function mapDbJobRow(row) {
         boq_subtotal: Number(row.boq_subtotal) || 0,
         boq_grand_total: Number(row.boq_grand_total) || 0,
         boq_original_file: row.boq_original_file || row.raw_payload?.boq_original_file || null,
+        boq_version: Number(row.boq_version) || 1,
+        boq_revisions: Array.isArray(row.boq_revisions) ? row.boq_revisions : (Array.isArray(row.raw_payload?.boq_revisions) ? row.raw_payload.boq_revisions : []),
         pmt_accepted: row.pmt_accepted !== undefined && row.pmt_accepted !== null ? Boolean(row.pmt_accepted) : (row.status !== 'DRAFT' && row.status !== 'NEW' && row.status !== 'SURVEYED' && row.status !== 'Survey'),
         pmt_accepted_at: row.pmt_accepted_at || null,
         step3_confirmed: Boolean(row.step3_confirmed),
@@ -1248,7 +1252,7 @@ async function dbUpdateJob(jobNoOrId, updates) {
             'step_timestamps', 'services', 'customer_data', 'tasks', 'photos', 'boq_items', 'csat_photos',
             'job_details', 'agent_data', 'store_data', 'schedule_plan', 'checkin_data', 'checkout_data',
             'approval_data', 'visit_results', 'remarks_data', 'raw_payload', 'qc_history', 'qc_subtasks',
-            'stk_payload', 'boq_original_file', 'areas', 'qc_manual_questions'
+            'stk_payload', 'boq_original_file', 'areas', 'qc_manual_questions', 'boq_revisions'
         ];
         const stringFields = [
             'external_ref_id', 'booking_no', 'ticket_no', 'status', 'job_type',
@@ -1257,7 +1261,7 @@ async function dbUpdateJob(jobNoOrId, updates) {
             'additional_notes', 'qc_inspection_type', 'csat_remarks', 'csat_surveyor', 'file_int_image',
             'qc_remarks', 'qc_inspector', 'stk_ref', 'stk_status', 'escalated_reason'
         ];
-        const numFields = ['customer_id', 'overall_progress', 'boq_discount', 'boq_subtotal', 'boq_grand_total', 'qc_score', 'csat_score', 'rework_count', 'qc_rework_count'];
+        const numFields = ['customer_id', 'overall_progress', 'boq_discount', 'boq_subtotal', 'boq_grand_total', 'qc_score', 'csat_score', 'rework_count', 'qc_rework_count', 'boq_version'];
         const boolFields = ['pmt_accepted', 'step3_confirmed', 'has_rework'];
         const dateFields = ['pmt_accepted_at', 'qc_passed_at', 'csat_evaluated_at', 'stk_exported_at', 'escalated_at'];
         for (const [key, val] of Object.entries(updates)) {

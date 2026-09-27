@@ -497,7 +497,177 @@ paths:
                       unit_price: { type: number, example: 2500 }
       responses:
         '201':
-          description: BOQ calculated and saved
+  /jobs/{id}/boq/convert-project:
+    post:
+      summary: Convert BOQ into 3-Level Project Hierarchy & Manage Revisions (Phase 2)
+      description: |
+        Translates BOQ into 3-level structure: Project -> Area/งานหลัก (1 QC) -> Task (Tech & Plan Dates).
+        If re-sent with revisions, increments boq_version, logs diff in boq_revisions, and preserves PASSED/ESCALATED tasks.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                areas:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: { type: string, example: "ห้องรับแขก" }
+                      assigned_qc: { type: string, example: "วิชัย ตรวจดี" }
+                      tasks:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            task_name: { type: string, example: "รื้อถอนและปูกระเบื้อง" }
+                            duration_days: { type: integer, example: 3 }
+                            assigned_tech: { type: string, example: "Team A (สมศักดิ์)" }
+      responses:
+        '201':
+          description: 3-level Project converted successfully with revision tracking
+
+  /jobs/{id}/boq/revisions:
+    get:
+      summary: Get BOQ Revision History & Diffs (Phase 2)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Revision history returned
+
+  /jobs/{id}/areas/{areaId}/assign-qc:
+    put:
+      summary: Assign QC Inspector to Area / งานหลัก (Strictly 1 QC per Area)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: areaId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assigned_qc]
+              properties:
+                assigned_qc: { type: string, example: "วิชัย ตรวจดี (ช่าง QC Lead)" }
+      responses:
+        '200':
+          description: QC assigned to Area successfully
+
+  /jobs/{id}/tasks/{taskId}/assign-tech:
+    put:
+      summary: Assign Technician to Task (At least 1 Tech)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                assigned_tech: { type: string, example: "Team A (สมศักดิ์)" }
+      responses:
+        '200':
+          description: Technician assigned to task successfully
+
+  /jobs/{id}/tasks/{taskId}/start:
+    post:
+      summary: Start Task (Validates Area QC and Task Tech)
+      description: |
+        Transitions task from PLANNED to IN_PROGRESS.
+        Validates:
+        1. Parent Area MUST have an assigned QC inspector (QC_REQUIRED).
+        2. Task MUST have at least 1 assigned technician (TECH_REQUIRED).
+        Records actual_start_date, actual_start_time, and actual_start_at (ISO).
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task started successfully
+        '400':
+          description: Validation failed (QC_REQUIRED or TECH_REQUIRED)
+
+  /jobs/{id}/tasks/{taskId}/complete:
+    post:
+      summary: Complete Task -> Transitions to WAIT_QC
+      description: Transitions task from IN_PROGRESS to WAIT_QC. Records actual_end_date, actual_end_time, actual_end_at.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task completed and queued for QC inspection
+
+  /tasks:
+    get:
+      summary: Global Tasks Query across all jobs (Phase 2)
+      description: Returns tasks with filters by technician, status, area, or job.
+      parameters:
+        - in: query
+          name: tech
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [PLANNED, IN_PROGRESS, WAIT_QC, PASSED, REWORK, ESCALATED]
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Filtered tasks list returned
 
   /jobs/{id}/tasks:
     get:

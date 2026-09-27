@@ -18,9 +18,11 @@ export default function ConversionPage() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   const filteredJobs = useMemo(() => {
-    let result = allJobs.filter((job: Job) => 
-      ['BOQ', 'DESIGNING', 'SURVEYED', 'IN_PROGRESS', 'DRAFT'].includes(job.status?.toUpperCase())
-    );
+    let result = allJobs.filter((job: Job) => {
+      const s = job.status?.toUpperCase() || '';
+      const isRenovate = job.project_type === 'R' || job.project_type === 'Renovate' || (job as any).job_type === 'R';
+      return ['PLANNED', 'BOQ', 'DESIGNING', 'SURVEYED', 'IN_PROGRESS', 'DRAFT'].includes(s) || (s === 'NEW' && isRenovate);
+    });
     if (result.length === 0) result = allJobs;
 
     if (searchQuery.trim()) {
