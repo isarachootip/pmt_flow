@@ -62,6 +62,8 @@ export interface Job {
   plan_date: Date | null;       // วันนัดหมาย (Native Date Object)
   plan_time: string | null;     // เวลานัดหมาย (24 ชม. เช่น "08:30" หรือ "08:30 - 12:00")
   time_slot: string | null;     // ช่วงเวลานัดหมาย
+  plan_start_date?: string | null;
+  appointment_date?: string | null;
 
   // Assignments & Operational Status
   agent_name?: string;

@@ -3344,6 +3344,168 @@ app.post('/api/v1/jobs/:id/designs', requireAuth, async (req: Request, res: Resp
   return res.status(201).json({ success: true, data: designFile });
 });
 
+// GET /api/v1/jobs/:id/boq — Retrieve BOQ data for job
+app.get('/api/v1/jobs/:id/boq', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const param = req.params.id;
+    const job = await dbGetJob(param);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+    }
+
+    const items = Array.isArray(job.boq_items) ? job.boq_items : [];
+    const subtotal = Number(job.boq_subtotal || job.subtotal || 0);
+    const discount = Number(job.boq_discount || job.discount || 0);
+    const grandTotal = Number(job.boq_grand_total || job.grand_total || Math.max(0, subtotal - discount));
+    const version = Number(job.boq_version || 1);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: job.id,
+        booking_no: job.booking_no,
+        job_no: job.job_no,
+        version,
+        items,
+        subtotal,
+        discount,
+        grand_total: grandTotal,
+        areas: Array.isArray(job.areas) ? job.areas : [],
+        tasks: Array.isArray(job.tasks) ? job.tasks : [],
+        boq_revisions: Array.isArray(job.boq_revisions) ? job.boq_revisions : []
+      }
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+// POST /api/v1/jobs/:id/boq/preview — Preview 3-level Project structure before conversion
+app.post('/api/v1/jobs/:id/boq/preview', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const param = req.params.id;
+    const job = await dbGetJob(param);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
+    }
+
+    const { base_start_date } = req.body || {};
+    const baseDate = base_start_date || new Date().toISOString().slice(0, 10);
+
+    // Existing areas or defaults
+    let areas: CoreArea[] = Array.isArray(job.areas) && job.areas.length > 0 ? job.areas : [];
+    if (areas.length === 0) {
+      areas = [
+        {
+          id: `AREA_${job.id}_1`,
+          name: 'ห้องรับแขก (Living Room)',
+          assigned_qc: 'วิชัย ตรวจดี (ช่าง QC Lead)',
+          qc_inspector: 'วิชัย ตรวจดี (ช่าง QC Lead)',
+          qc_manual_questions: [],
+          status: 'PLANNED',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: `AREA_${job.id}_2`,
+          name: 'ห้องครัว (Kitchen)',
+          assigned_qc: 'สถาพร ตรวจการ (QC)',
+          qc_inspector: 'สถาพร ตรวจการ (QC)',
+          qc_manual_questions: [],
+          status: 'PLANNED',
+          created_at: new Date().toISOString()
+        }
+      ];
+    }
+
+    const existingTasks: CoreTask[] = Array.isArray(job.tasks) && job.tasks.length > 0 ? job.tasks : [];
+    let previewTasks: any[] = [];
+
+    if (existingTasks.length > 0) {
+      previewTasks = existingTasks;
+    } else {
+      // Sample 2 tasks for Area 1, 3 tasks for Area 2 (as specified in Prompt 2)
+      previewTasks = [
+        {
+          id: `T_${job.id}_1_1`,
+          area_id: areas[0].id,
+          area_name: areas[0].name,
+          task_name: 'รื้อถอนและเตรียมพื้นผิวห้องรับแขก',
+          duration_days: 2,
+          assigned_tech: 'สมศักดิ์ ช่างเอก',
+          tech: 'สมศักดิ์ ช่างเอก',
+          plan_start_date: baseDate,
+          status: 'PLANNED'
+        },
+        {
+          id: `T_${job.id}_1_2`,
+          area_id: areas[0].id,
+          area_name: areas[0].name,
+          task_name: 'ติดตั้งพื้นไม้ลามิเนตห้องรับแขก',
+          duration_days: 3,
+          assigned_tech: 'สมบัติ ช่างโท',
+          tech: 'สมบัติ ช่างโท',
+          plan_start_date: baseDate,
+          status: 'PLANNED'
+        },
+        {
+          id: `T_${job.id}_2_1`,
+          area_id: areas[1]?.id || areas[0].id,
+          area_name: areas[1]?.name || areas[0].name,
+          task_name: 'เดินท่อน้ำดีและท่อน้ำทิ้งห้องครัว',
+          duration_days: 2,
+          assigned_tech: 'ชาญชัย ช่างตรี',
+          tech: 'ชาญชัย ช่างตรี',
+          plan_start_date: baseDate,
+          status: 'PLANNED'
+        },
+        {
+          id: `T_${job.id}_2_2`,
+          area_id: areas[1]?.id || areas[0].id,
+          area_name: areas[1]?.name || areas[0].name,
+          task_name: 'ปูกระเบื้องผนังและเคาน์เตอร์ครัว',
+          duration_days: 3,
+          assigned_tech: 'มานพ ช่างกระเบื้อง',
+          tech: 'มานพ ช่างกระเบื้อง',
+          plan_start_date: baseDate,
+          status: 'PLANNED'
+        },
+        {
+          id: `T_${job.id}_2_3`,
+          area_id: areas[1]?.id || areas[0].id,
+          area_name: areas[1]?.name || areas[0].name,
+          task_name: 'ติดตั้งเครื่องดูดควันและซิงค์ล้างจาน',
+          duration_days: 1,
+          assigned_tech: 'อนุชา ช่างติดตั้ง',
+          tech: 'อนุชา ช่างติดตั้ง',
+          plan_start_date: baseDate,
+          status: 'PLANNED'
+        }
+      ];
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        project: {
+          id: job.id,
+          booking_no: job.booking_no,
+          job_no: job.job_no,
+          customer: typeof job.customer === 'string' ? job.customer : job.customer?.name,
+          project_type: job.project_type || 'R',
+          base_start_date: baseDate
+        },
+        areas: areas.map(a => ({
+          ...a,
+          tasks: previewTasks.filter(t => t.area_id === a.id)
+        })),
+        tasks: previewTasks
+      }
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
 app.post('/api/v1/jobs/:id/boq', requireAuth, async (req: Request, res: Response) => {
   const param = req.params.id;
   const jobId = isNaN(Number(param)) ? param : Number(param);
@@ -3762,6 +3924,29 @@ app.put('/api/v1/jobs/:id/areas/:areaId/assign-qc', requireAuth, async (req: Aut
     const areaIdx = currentAreas.findIndex(a => a.id === areaId);
     if (areaIdx === -1) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบพื้นที่/งานหลักที่ระบุ' } });
+    }
+
+    // MANDATORY RULE: QC cannot be the same person as the Technician of any task in this area
+    const currentTasks: CoreTask[] = Array.isArray(job.tasks) ? job.tasks : [];
+    const areaTasks = currentTasks.filter(t => t.area_id === areaId);
+    const targetQcLower = String(targetQc).trim().toLowerCase();
+    const hasSameTech = areaTasks.some(t => {
+      const allTechs = [
+        (t.assigned_tech || '').trim().toLowerCase(),
+        (t.tech || '').trim().toLowerCase(),
+        ...(Array.isArray(t.assignees) ? t.assignees.map((x: any) => String(x).trim().toLowerCase()) : [])
+      ].filter(Boolean);
+      return allTechs.some(tech => tech === targetQcLower || (tech.length > 2 && targetQcLower.includes(tech)) || (targetQcLower.length > 2 && tech.includes(targetQcLower)));
+    });
+
+    if (hasSameTech) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'QC_SAME_AS_TECH',
+          message: 'เจ้าหน้าที่ QC ห้ามเป็นคนเดียวกับช่างผู้ปฏิบัติงานของ Task ในพื้นที่นี้ (เพื่อความเป็นกลางในการตรวจงาน)'
+        }
+      });
     }
 
     const oldQc = currentAreas[areaIdx].assigned_qc;
@@ -4312,6 +4497,25 @@ app.put('/api/v1/jobs/:id/tasks/:taskId/assign-tech', requireAuth, async (req: A
 
     const oldTech = task.assigned_tech;
     const techName = effectiveTech ? String(effectiveTech).trim() : assignees.join(' + ');
+
+    // MANDATORY RULE: QC cannot be the same person as the Task Technician (Prompt 2 Requirement #3)
+    const parentArea = (Array.isArray(job.areas) ? job.areas : []).find((a: any) => a.id === task.area_id);
+    const assignedQc = (parentArea?.assigned_qc || '').trim().toLowerCase();
+    const candidateTechs = [
+      techName.toLowerCase(),
+      ...(Array.isArray(assignees) ? assignees.map((x: any) => String(x).trim().toLowerCase()) : [])
+    ].filter(Boolean);
+
+    if (assignedQc && candidateTechs.some(t => t === assignedQc || (t.length > 2 && assignedQc.includes(t)) || (assignedQc.length > 2 && t.includes(assignedQc)))) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'QC_SAME_AS_TECH',
+          message: 'เจ้าหน้าที่ QC ห้ามเป็นคนเดียวกับช่างผู้ปฏิบัติงานของ Task (เพื่อการตรวจสอบที่เป็นกลาง)'
+        }
+      });
+    }
+
     task.assigned_tech = techName;
     task.tech = techName;
     task.assignees = Array.isArray(assignees) && assignees.length > 0 ? assignees : [techName];
@@ -4380,6 +4584,24 @@ app.post('/api/v1/jobs/:id/tasks/:taskId/start', requireAuth, async (req: AuthRe
         error: {
           code: 'TECH_REQUIRED',
           message: 'Task ต้องมีช่างผู้รับผิดชอบอย่างน้อย 1 คนก่อนเริ่มปฏิบัติงาน'
+        }
+      });
+    }
+
+    // MANDATORY RULE: QC cannot be the same person as the Task's Technician (Prompt 2 Requirement #3)
+    const assignedQc = (parentArea.assigned_qc || '').trim().toLowerCase();
+    const allTechs = [
+      (task.assigned_tech || '').trim().toLowerCase(),
+      (task.tech || '').trim().toLowerCase(),
+      ...(Array.isArray(task.assignees) ? task.assignees.map((t: any) => String(t).trim().toLowerCase()) : [])
+    ].filter(Boolean);
+
+    if (assignedQc && allTechs.some(t => t === assignedQc || (t.length > 2 && assignedQc.includes(t)) || (assignedQc.length > 2 && t.includes(assignedQc)))) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'QC_SAME_AS_TECH',
+          message: 'เจ้าหน้าที่ QC ห้ามเป็นคนเดียวกับช่างผู้ปฏิบัติงานของ Task (เพื่อการตรวจสอบที่เป็นกลาง)'
         }
       });
     }

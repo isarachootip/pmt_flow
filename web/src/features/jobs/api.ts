@@ -44,8 +44,11 @@ export interface Job {
   assigned_tech?: string;
   plan_date?: string;
   plan_time?: string;
+  plan_start_date?: string;
+  appointment_date?: string;
   overall_progress: number;
   grand_total: number;
+  areas?: any[];
   tasks?: Task[];
   boq_items?: any[];
   photos?: any[];

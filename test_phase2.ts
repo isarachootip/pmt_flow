@@ -121,7 +121,25 @@ async function runTestSuite() {
               duration_days: 1,
               plan_start_date: '2026-10-06',
               plan_end_date: '2026-10-06',
-              assigned_tech: 'Team B (วิชัย)',
+              assigned_tech: 'Team B (ชาญชัย)',
+              status: 'PLANNED'
+            },
+            {
+              id: `T_${createdJobId}_2_2`,
+              task_name: '2.2 เดินท่อและระบบประปาครัว',
+              duration_days: 2,
+              plan_start_date: '2026-10-07',
+              plan_end_date: '2026-10-08',
+              assigned_tech: 'Team B (ชาญชัย)',
+              status: 'PLANNED'
+            },
+            {
+              id: `T_${createdJobId}_2_3`,
+              task_name: '2.3 ปูกระเบื้องและติดตั้งเคาน์เตอร์',
+              duration_days: 3,
+              plan_start_date: '2026-10-09',
+              plan_end_date: '2026-10-11',
+              assigned_tech: 'Team C (มานพ)',
               status: 'PLANNED'
             }
           ]
@@ -164,9 +182,9 @@ async function runTestSuite() {
 
       const updatedJob1 = await dbGetJob(createdJobId);
       assert.strictEqual(updatedJob1.areas.length, 2);
-      assert.strictEqual(updatedJob1.tasks.length, 3);
+      assert.strictEqual(updatedJob1.tasks.length, 5);
       assert.strictEqual(updatedJob1.boq_version, 1);
-      pass('3-Level Project converted: Project -> 2 Areas -> 3 Tasks', `areas=2, tasks=3, version=1`);
+      pass('3-Level Project converted: Project -> 2 Areas (Living: 2 tasks, Kitchen: 3 tasks)', `areas=2, tasks=5, version=1`);
 
       // ---------------------------------------------------------------------------
       // SUITE 2: Area QC Assignment (1 QC per Area)
@@ -225,7 +243,18 @@ async function runTestSuite() {
       assert.strictEqual(techGatekeeperBlocked, true);
       pass('Validation Gatekeeper: Start task blocked when Task has NO Technician (TECH_REQUIRED)');
 
-      // 4.3: Start Task 1.1 (has both Area QC and Tech assigned)
+      // 4.3: QC cannot be the same person as the Task Technician (QC_SAME_AS_TECH)
+      const sameQcTechTask = { ...targetTask, assigned_tech: updatedJob3.areas[0].assigned_qc };
+      let qcSameAsTechBlocked = false;
+      const assignedQc = (updatedJob3.areas[0].assigned_qc || '').trim().toLowerCase();
+      const techNameLower = (sameQcTechTask.assigned_tech || '').trim().toLowerCase();
+      if (assignedQc && (techNameLower === assignedQc || assignedQc.includes(techNameLower) || techNameLower.includes(assignedQc))) {
+        qcSameAsTechBlocked = true; // QC_SAME_AS_TECH rule
+      }
+      assert.strictEqual(qcSameAsTechBlocked, true);
+      pass('Validation Gatekeeper: Start task blocked when QC is same person as Technician (QC_SAME_AS_TECH)');
+
+      // 4.4: Start Task 1.1 (has both Area QC and valid Tech assigned)
       const nowIso = new Date().toISOString();
       const todayDate = nowIso.slice(0, 10);
       const time24 = new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
@@ -250,7 +279,7 @@ async function runTestSuite() {
       assert.strictEqual(updatedJob4.status, 'IN_PROGRESS');
       pass('Task started successfully -> status=IN_PROGRESS, actual_start_at recorded', `time=${time24} น.`);
 
-      // 4.4: Complete Task 1.1 -> transitions to WAIT_QC
+      // 4.5: Complete Task 1.1 -> transitions to WAIT_QC
       const completeIso = new Date().toISOString();
       startedTask.status = 'WAIT_QC';
       startedTask.actual_end_date = todayDate;
@@ -295,10 +324,8 @@ async function runTestSuite() {
           duration_days: 2,
           status: 'PLANNED' // must be protected!
         },
-        // Existing Task 1.2
-        updatedJob5.tasks[1],
-        // Existing Task 2.1
-        updatedJob5.tasks[2],
+        // Existing tasks
+        ...updatedJob5.tasks.slice(1),
         // New Task 1.3
         {
           id: `T_${createdJobId}_1_3`,
@@ -344,7 +371,7 @@ async function runTestSuite() {
 
       const updatedJob6 = await dbGetJob(createdJobId);
       assert.strictEqual(updatedJob6.boq_version, 2);
-      assert.strictEqual(updatedJob6.tasks.length, 4); // 3 + 1 new task
+      assert.strictEqual(updatedJob6.tasks.length, 6); // 5 + 1 new task
 
       // Crucial Check: Verify Task 1.1 remained PASSED and was NOT reset to PLANNED!
       const protectedTask = updatedJob6.tasks.find((t: any) => t.id === completedTask.id);

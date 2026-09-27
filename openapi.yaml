@@ -469,6 +469,21 @@ paths:
           description: Photos count less than 5
 
   /jobs/{id}/boq:
+    get:
+      summary: Retrieve BOQ and Pricing Data (Phase 2)
+      description: Returns BOQ items, subtotal, discount, grand total, version, and related areas/tasks.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "123"
+      responses:
+        '200':
+          description: BOQ details retrieved successfully
+        '404':
+          description: Job not found
     post:
       summary: Save BOQ and Pricing (Req #6)
       parameters:
@@ -497,6 +512,30 @@ paths:
                       unit_price: { type: number, example: 2500 }
       responses:
         '201':
+          description: BOQ saved successfully
+
+  /jobs/{id}/boq/preview:
+    post:
+      summary: Preview 3-Level Project Hierarchy (Phase 2)
+      description: Returns preview of Project -> Areas (with assigned QC) -> Tasks (with Tech & Plan dates) before confirming conversion.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "123"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                base_start_date: { type: string, example: "2026-10-01" }
+      responses:
+        '200':
+          description: 3-level preview data
+
   /jobs/{id}/boq/convert-project:
     post:
       summary: Convert BOQ into 3-Level Project Hierarchy & Manage Revisions (Phase 2)
@@ -610,6 +649,7 @@ paths:
         Validates:
         1. Parent Area MUST have an assigned QC inspector (QC_REQUIRED).
         2. Task MUST have at least 1 assigned technician (TECH_REQUIRED).
+        3. QC inspector MUST NOT be the same person as the Task's technician (QC_SAME_AS_TECH).
         Records actual_start_date, actual_start_time, and actual_start_at (ISO).
       parameters:
         - in: path
@@ -626,7 +666,7 @@ paths:
         '200':
           description: Task started successfully
         '400':
-          description: Validation failed (QC_REQUIRED or TECH_REQUIRED)
+          description: Validation failed (QC_REQUIRED, TECH_REQUIRED, or QC_SAME_AS_TECH)
 
   /jobs/{id}/tasks/{taskId}/complete:
     post:

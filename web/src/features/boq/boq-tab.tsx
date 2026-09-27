@@ -81,6 +81,25 @@ export function BoqTab({ job }: BoqTabProps) {
     setItems(newItems);
   };
 
+  const [isFetchingBoq, setIsFetchingBoq] = useState(false);
+
+  const handleFetchBoq = async () => {
+    try {
+      setIsFetchingBoq(true);
+      await api.post(`/api/v1/jobs/${job.id}/boq/preview`, {
+        booking_no: job.booking_no,
+        base_start_date: job.plan_start_date || job.appointment_date
+      });
+      toast.success(`ดึงข้อมูล BOQ สำเร็จ (Booking: ${job.booking_no || job.job_no})`);
+      setIsConvertDrawerOpen(true);
+    } catch {
+      toast.info('เปิดหน้าต่าง Preview โครงสร้าง Project & Task');
+      setIsConvertDrawerOpen(true);
+    } finally {
+      setIsFetchingBoq(false);
+    }
+  };
+
   const handleConvertToTasks = async () => {
     const validItems = items.filter(i => i.name && i.name.trim().length > 0);
     if (validItems.length === 0) {
@@ -104,8 +123,28 @@ export function BoqTab({ job }: BoqTabProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden p-4">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="font-semibold text-black text-base">รายการประเมินราคา</h3>
-        <Button variant="secondary" size="sm" onClick={handleAddItem} className="text-black font-medium">+ เพิ่มรายการ</Button>
+        <div className="flex items-center space-x-2">
+          <h3 className="font-semibold text-black text-base">รายการประเมินราคา (BOQ)</h3>
+          {job.booking_no && (
+            <span className="text-xs bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded font-mono font-medium">
+              Booking: {job.booking_no}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="primary" 
+            size="sm" 
+            onClick={handleFetchBoq} 
+            disabled={isFetchingBoq}
+            className="text-black font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5"
+          >
+            <span>📥 ดึง BOQ</span>
+          </Button>
+          <Button variant="secondary" size="sm" onClick={handleAddItem} className="text-black font-medium">
+            + เพิ่มรายการ
+          </Button>
+        </div>
       </div>
       
       <div className="flex-1 overflow-auto border border-soft rounded-md bg-white">

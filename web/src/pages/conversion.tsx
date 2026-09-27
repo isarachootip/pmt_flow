@@ -19,11 +19,14 @@ export default function ConversionPage() {
 
   const filteredJobs = useMemo(() => {
     let result = allJobs.filter((job: Job) => {
-      const s = job.status?.toUpperCase() || '';
+      const s = (job.status || '').toUpperCase();
       const isRenovate = job.project_type === 'R' || job.project_type === 'Renovate' || (job as any).job_type === 'R';
-      return ['PLANNED', 'BOQ', 'DESIGNING', 'SURVEYED', 'IN_PROGRESS', 'DRAFT'].includes(s) || (s === 'NEW' && isRenovate);
+      const hasNoTasks = !job.tasks || !Array.isArray(job.tasks) || job.tasks.length === 0;
+      
+      // Prompt 2 Requirement #5: Show Renovate jobs in status ACCEPTED / PLANNED / NEW that have NO tasks yet
+      const isAcceptedOrPlanned = s === 'ACCEPTED' || s === 'PLANNED' || s === 'BOQ' || s === 'NEW' || (job as any).pmt_accepted;
+      return isRenovate && isAcceptedOrPlanned && hasNoTasks;
     });
-    if (result.length === 0) result = allJobs;
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
