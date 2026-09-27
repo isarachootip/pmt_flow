@@ -120,19 +120,41 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
   };
 
   const handleQcSubmit = (data: any) => {
+    const isPass = data.outcome === 'PASS';
     qcMutation.mutate(
       { jobId: job.id, data },
       {
         onSuccess: () => {
-          setShowQcModal(false);
-          toast.success('บันทึกผลการตรวจ QC เรียบร้อยแล้ว');
+          if (isPass) {
+            toast.success(`✅ ผ่าน QC รอบที่ ${data.round} — คะแนน ${data.score.toFixed(1)}/5.0`);
+          } else {
+            toast.warning(`🔄 ส่งกลับแก้ไข (Rework) รอบที่ ${data.round} บันทึกแล้ว`);
+          }
         },
         onError: () => {
-          setShowQcModal(false);
-          toast.success('บันทึกผลการตรวจ QC เรียบร้อยแล้ว (จำลอง)');
+          if (isPass) {
+            toast.success(`✅ ผ่าน QC รอบที่ ${data.round} — คะแนน ${data.score.toFixed(1)}/5.0 (จำลอง)`);
+          } else {
+            toast.warning(`🔄 ส่งกลับแก้ไข (Rework) รอบที่ ${data.round} บันทึกแล้ว (จำลอง)`);
+          }
         },
       }
     );
+  };
+
+  /** เรียกตรง จาก QC Form เมื่อผ่าน QC → ส่ง STK ทันที (Step 6) */
+  const handleQcExportSTK = () => {
+    setShowQcModal(false);
+    stkMutation.mutate(job.id, {
+      onSuccess: () => {
+        toast.success(`🚀 ส่งออก STK สำเร็จ (ใบงาน ${job.job_no})`);
+        handleTabChange('stk');
+      },
+      onError: () => {
+        toast.success(`🚀 ส่งออก STK สำเร็จ (ใบงาน ${job.job_no}) (จำลอง)`);
+        handleTabChange('stk');
+      },
+    });
   };
 
   const handleExportStk = () => {
@@ -545,14 +567,26 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
 
       {/* QC Form Modal Dialog */}
       <Dialog open={showQcModal} onOpenChange={setShowQcModal}>
-        <DialogContent className="sm:max-w-[550px] bg-white text-black p-6">
+        <DialogContent className="sm:max-w-[600px] bg-white text-black p-6 max-h-[90vh] overflow-y-auto">
           <QcInspectionForm
             jobId={Number(job.id) || 1}
+            previousReworkCount={
+              Array.isArray((job as any).qc_history)
+                ? (job as any).qc_history.filter((h: any) => h.outcome === 'REWORK').length
+                : 0
+            }
+            reworkHistory={
+              Array.isArray((job as any).qc_history)
+                ? (job as any).qc_history
+                : []
+            }
             onSubmit={handleQcSubmit}
+            onExportSTK={handleQcExportSTK}
             onCancel={() => setShowQcModal(false)}
           />
         </DialogContent>
       </Dialog>
+
 
       {/* Need Review Accept Modal Dialog */}
       <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
