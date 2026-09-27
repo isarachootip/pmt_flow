@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Job, useJobTasks } from '@/features/jobs/api';
@@ -119,9 +120,75 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
     });
   };
 
+  // Derive items for the Grid View: job.tasks, job.job_details, or job.services
+  const displayTasks = React.useMemo(() => {
+    const rawTasks = Array.isArray(tasksData) ? tasksData : (tasksData?.data || job.tasks || []);
+    if (Array.isArray(rawTasks) && rawTasks.length > 0) {
+      return rawTasks.map((t: any, idx: number) => ({
+        id: t.id || `task-${idx}`,
+        task_name: t.task_name || t.name || `งานที่ ${idx + 1}`,
+        assigned_tech: t.assigned_tech || job.assigned_tech || 'รอระบุทีมช่าง',
+        plan_start_date: t.plan_start_date || job.plan_date || job.created_at,
+        plan_end_date: t.plan_end_date || job.plan_date || job.created_at,
+        quantity: t.quantity || t.qty || 1,
+        status: t.status || job.status || 'NEW',
+        remark: t.remark || t.notes || '-',
+      }));
+    }
+
+    if (Array.isArray(job.job_details) && job.job_details.length > 0) {
+      return job.job_details.map((d: any, idx: number) => ({
+        id: `jd-${idx}`,
+        task_name: d.installation_detail || d.job_type || d.product_name || `รายการที่ ${idx + 1}`,
+        assigned_tech: job.assigned_tech || 'รอระบุทีมช่าง',
+        plan_start_date: job.plan_date || job.created_at,
+        plan_end_date: job.plan_date || job.created_at,
+        quantity: Number(d.product_quantity || d.qty || 1),
+        status: job.status || 'NEW',
+        remark: d.remark || '-',
+      }));
+    }
+
+    const services = Array.isArray(job.services)
+      ? job.services
+      : [job.services || (job as any).project_sub_type || 'บริการติดตั้ง'];
+
+    return services.map((s: string, idx: number) => ({
+      id: `svc-${idx}`,
+      task_name: typeof s === 'string' ? s : ((s as any)?.name || 'บริการติดตั้ง'),
+      assigned_tech: job.assigned_tech || 'รอระบุทีมช่าง',
+      plan_start_date: job.plan_date || job.created_at,
+      plan_end_date: job.plan_date || job.created_at,
+      quantity: 1,
+      status: job.status || 'NEW',
+      remark: job.special_instructions || job.additional_notes || '-',
+    }));
+  }, [tasksData, job]);
+
   const taskCols: ColumnDef<any>[] = [
-    { id: 'task_name', header: 'ชื่องาน', accessorKey: 'task_name' },
-    { id: 'assigned_tech', header: 'ช่าง', accessorKey: 'assigned_tech', width: 150 },
+    { 
+      id: 'task_name', 
+      header: 'ชื่องาน', 
+      accessorKey: 'task_name',
+      cell: ({ row }) => (
+        <span className="font-semibold text-black">{row.task_name}</span>
+      )
+    },
+    { 
+      id: 'quantity', 
+      header: 'จำนวน', 
+      width: 70, 
+      cell: ({ row }) => (
+        <span className="text-black font-mono font-bold">{row.quantity || 1}</span>
+      )
+    },
+    { 
+      id: 'assigned_tech', 
+      header: 'ช่าง', 
+      accessorKey: 'assigned_tech', 
+      width: 140,
+      cell: ({ row }) => <span className="text-black">{row.assigned_tech || job.assigned_tech || '-'}</span> 
+    },
     { 
       id: 'plan_start_date', 
       header: 'วันเริ่ม', 
@@ -136,6 +203,15 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
       width: 120, 
       cell: ({ row }) => (
         <span className="text-black font-medium">{formatDMY(row.plan_end_date)}</span>
+      )
+    },
+    { 
+      id: 'remark', 
+      header: 'หมายเหตุ', 
+      cell: ({ row }) => (
+        <span className="text-black truncate block max-w-[180px]" title={row.remark || '-'}>
+          {row.remark || '-'}
+        </span>
       )
     },
   ];
@@ -267,19 +343,9 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                   <span className="font-semibold text-black text-sm">{job.assigned_tech || 'รอระบุทีมช่าง'}</span>
                 </div>
               </div>
+              {/* Toggle Buttons & View Content: พื้นที่ทำงาน & รูปภาพ (Active Workspace) vs รายการงานย่อย (Grid View) */}
               {(() => {
                 const tasks = Array.isArray(tasksData) ? tasksData : (tasksData?.data || job.tasks || []);
-                if (tasks.length === 0) {
-                  return (
-                    <div className="flex-1 min-h-[200px] flex flex-col">
-                      <JobActiveWorkspace
-                        job={job}
-                        onTabChange={handleTabChange}
-                        onClose={onClose}
-                      />
-                    </div>
-                  );
-                }
 
                 return (
                   <div className="space-y-4 flex-1 flex flex-col min-h-0">
@@ -299,7 +365,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                           onClick={() => setTaskViewMode('tasks')}
                           className="text-black font-semibold text-xs"
                         >
-                          รายการงานย่อย ({tasks.length})
+                          รายการงานย่อย ({tasks.length}) (Grid View)
                         </Button>
                       </div>
                     </div>
@@ -307,17 +373,19 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                       <div className="flex-1 min-h-[200px]">
                         <DataGrid 
                           columns={taskCols} 
-                          data={tasks} 
+                          data={tasks.length > 0 ? tasks : displayTasks} 
                           isLoading={isLoadingTasks}
                           getRowId={(row: any) => String(row.id)}
                         />
                       </div>
                     ) : (
-                      <JobActiveWorkspace
-                        job={job}
-                        onTabChange={handleTabChange}
-                        onClose={onClose}
-                      />
+                      <div className="flex-1 min-h-[200px] flex flex-col">
+                        <JobActiveWorkspace
+                          job={job}
+                          onTabChange={handleTabChange}
+                          onClose={onClose}
+                        />
+                      </div>
                     )}
                   </div>
                 );
