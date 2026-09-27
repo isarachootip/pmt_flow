@@ -570,6 +570,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
         <DialogContent className="sm:max-w-[600px] bg-white text-black p-6 max-h-[90vh] overflow-y-auto">
           <QcInspectionForm
             jobId={Number(job.id) || 1}
+            jobType={String(job.project_type || (job as any).job_type || '').toUpperCase().includes('Q') ? 'Q' : 'R'}
             previousReworkCount={
               Array.isArray((job as any).qc_history)
                 ? (job as any).qc_history.filter((h: any) => h.outcome === 'REWORK').length
@@ -580,6 +581,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                 ? (job as any).qc_history
                 : []
             }
+            initialPhotos={job.photos}
             onSubmit={handleQcSubmit}
             onExportSTK={handleQcExportSTK}
             onCancel={() => setShowQcModal(false)}

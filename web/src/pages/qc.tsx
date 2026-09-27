@@ -196,10 +196,22 @@ export default function QcPage() {
 
       {/* QC Form Modal Dialog */}
       <Dialog open={showQcForm} onOpenChange={setShowQcForm}>
-        <DialogContent className="sm:max-w-[550px] bg-white text-black p-6">
+        <DialogContent className="sm:max-w-[600px] bg-white text-black p-6 max-h-[90vh] overflow-y-auto">
           {selectedBooking && (
             <QcInspectionForm
               jobId={Number(selectedBooking.job_id) || 1}
+              jobType={String(selectedJob?.project_type || (selectedJob as any)?.job_type || selectedBooking?.project_type || '').toUpperCase().includes('Q') ? 'Q' : 'R'}
+              previousReworkCount={
+                Array.isArray((selectedJob as any)?.qc_history)
+                  ? (selectedJob as any).qc_history.filter((h: any) => h.outcome === 'REWORK').length
+                  : 0
+              }
+              reworkHistory={
+                Array.isArray((selectedJob as any)?.qc_history)
+                  ? (selectedJob as any).qc_history
+                  : []
+              }
+              initialPhotos={selectedJob?.photos}
               onSubmit={handleQcSubmit}
               onCancel={() => setShowQcForm(false)}
             />
