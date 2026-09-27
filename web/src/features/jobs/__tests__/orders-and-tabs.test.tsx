@@ -4,6 +4,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { JobDetailTabs } from '../job-detail-tabs';
+import { OrderCustomerSummary } from '../order-customer-summary';
+import { JobActiveWorkspace } from '../job-active-workspace';
 import OrdersPage from '@/pages/orders';
 import * as jobsApi from '../api';
 
@@ -158,17 +160,18 @@ function renderWithProviders(ui: React.ReactElement) {
 describe('JobDetailTabs - Core Workflow Pipeline Alignment (R4)', () => {
   const sampleJob = mockJobs[0];
 
-  it('renders all 4 detail tabs strictly in order: [งาน/Task] -> [BOQ] -> [QC] -> [ส่งออก STK]', () => {
+  it('renders all 5 detail tabs strictly in order: [งาน/Task] -> [BOQ] -> [QC] -> [ส่งออก STK] -> [ประวัติ (Timeline)]', () => {
     renderWithProviders(<JobDetailTabs job={sampleJob} />);
 
     // Get all tab triggers
     const tabTriggers = screen.getAllByRole('tab');
-    expect(tabTriggers).toHaveLength(4);
+    expect(tabTriggers).toHaveLength(5);
 
     expect(tabTriggers[0]).toHaveTextContent('งาน/Task');
     expect(tabTriggers[1]).toHaveTextContent('BOQ');
     expect(tabTriggers[2]).toHaveTextContent('QC');
     expect(tabTriggers[3]).toHaveTextContent('ส่งออก STK');
+    expect(tabTriggers[4]).toHaveTextContent('ประวัติ (Timeline)');
   });
 
   it('navigates to "QC" tab and displays inspection checklist with pass indicators', () => {
@@ -212,12 +215,12 @@ describe('JobDetailTabs - Core Workflow Pipeline Alignment (R4)', () => {
 
   it('supports case-insensitive tab routing and aliases (e.g. BOQ)', () => {
     renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="BOQ" />);
-    expect(screen.getByText('รายการประเมินราคา')).toBeInTheDocument();
+    expect(screen.getByText('รายการประเมินราคา (BOQ)')).toBeInTheDocument();
   });
 
   it('supports all pipeline tab aliases (pricing, inspection, export)', () => {
     const { unmount: u1 } = renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="pricing" />);
-    expect(screen.getByText('รายการประเมินราคา')).toBeInTheDocument();
+    expect(screen.getByText('รายการประเมินราคา (BOQ)')).toBeInTheDocument();
     u1();
 
     const { unmount: u2 } = renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="inspection" />);
@@ -540,5 +543,83 @@ describe('OrdersPage - Master List Features (R1, R2, R3, R5)', () => {
     }
   });
 });
+
+describe('Job Detail Refactoring (2026-09-27 Specification)', () => {
+  const sampleJob = mockJobs[0];
+
+  it('renders OrderCustomerSummary as a compact Detail List without card boxes or colored backgrounds', () => {
+    const { container } = renderWithProviders(<OrderCustomerSummary job={sampleJob} />);
+    
+    // Top container must be pure white, bordered, and text-black
+    const topDiv = container.firstChild as HTMLElement;
+    expect(topDiv).toHaveClass('bg-white');
+    expect(topDiv).toHaveClass('border-b');
+    expect(topDiv).toHaveClass('text-black');
+    expect(topDiv).not.toHaveClass('bg-blue-50/40');
+
+    // Labels must use colon format to avoid collision with วันนัดหมาย
+    expect(screen.getByText('ลูกค้า:')).toBeInTheDocument();
+    expect(screen.getByText('สถานที่ติดตั้ง:')).toBeInTheDocument();
+    expect(screen.getByText('สินค้า/บริการ:')).toBeInTheDocument();
+    expect(screen.getByText('สาขา/ประเภท:')).toBeInTheDocument();
+
+    // Data values must be rendered
+    expect(screen.getByText('สมชาย ใจดี')).toBeInTheDocument();
+    expect(screen.getByText('กรุงเทพฯ')).toBeInTheDocument();
+    expect(screen.getByText('ติดตั้งเครื่องทำน้ำอุ่น')).toBeInTheDocument();
+
+    // Must NOT have subtitles or descriptions
+    expect(screen.queryByText(/Order Details/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/คลิกเพื่อ/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('เบอร์โทรติดต่อ:')).not.toBeInTheDocument();
+    expect(screen.queryByText('เปิดนำทางด้วย Google Maps')).not.toBeInTheDocument();
+
+    // Must NOT contain any colored card boxes
+    expect(container.querySelectorAll('.bg-gray-50\\/80')).toHaveLength(0);
+    expect(container.querySelectorAll('.bg-amber-50')).toHaveLength(0);
+    expect(container.querySelectorAll('.bg-blue-100\\/80')).toHaveLength(0);
+  });
+
+  it('positions PhotoSlots 5 below Activity Timeline in JobActiveWorkspace', () => {
+    renderWithProviders(<JobActiveWorkspace job={sampleJob} />);
+
+    // Get headings for Timeline and PhotoSlots
+    const timelineHeading = screen.getByText('ประวัติกิจกรรมหน้างาน (Activity Timeline)');
+    const photosHeading = screen.getByText('รูปถ่ายการปฏิบัติงาน 5 ขั้นตอน (PhotoSlots 5)');
+
+    expect(timelineHeading).toBeInTheDocument();
+    expect(photosHeading).toBeInTheDocument();
+
+    // In DOM tree, timeline section should precede photos section
+    const timelineSection = timelineHeading.closest('section');
+    const photosSection = photosHeading.closest('section');
+    expect(timelineSection).not.toBeNull();
+    expect(photosSection).not.toBeNull();
+
+    // Node.DOCUMENT_POSITION_FOLLOWING is 4
+    const position = timelineSection!.compareDocumentPosition(photosSection!);
+    expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    // Subtitle description must be eliminated from PhotoSlots section
+    expect(screen.queryByText('(ก่อนเริ่มงาน, ระหว่างทำ 1, ระหว่างทำ 2, ทดสอบระบบ, หลังเสร็จสิ้น)')).not.toBeInTheDocument();
+  });
+
+  it('renders Tab 1 summary row with clean white background and neutral time badge', () => {
+    renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="task" />);
+
+    // Appointment label must be intact
+    const appointmentSection = screen.getByText('วันนัดหมาย').parentElement;
+    expect(appointmentSection).toBeInTheDocument();
+    expect(appointmentSection).toHaveTextContent('25/09/2026');
+    expect(appointmentSection).toHaveTextContent('09:00 น.');
+
+    // Time badge must have bg-gray-100 and text-black (not bg-blue-50)
+    const timeBadge = screen.getByText('09:00 น.');
+    expect(timeBadge).toHaveClass('bg-gray-100');
+    expect(timeBadge).toHaveClass('text-black');
+    expect(timeBadge).not.toHaveClass('bg-blue-50');
+  });
+});
+
 
 

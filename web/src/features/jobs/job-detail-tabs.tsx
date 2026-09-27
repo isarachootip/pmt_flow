@@ -234,7 +234,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
           <div className="flex-1 p-4 overflow-auto bg-white text-black">
             {/* 1. งาน/Task */}
             <TabsContent value="task" className="h-full m-0 data-[state=active]:flex flex-col space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-[var(--bg-subtle)] p-3 rounded-lg border border-[var(--border-soft)]">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 py-2 border-b border-gray-200 bg-white text-black">
                 <div>
                   <span className="text-xs text-black block">ประเภทงาน</span>
                   <span className="font-semibold text-black text-sm">{job.project_type || (job as any).job_type || '-'}</span>
@@ -255,7 +255,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                     return (
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="font-semibold text-black text-sm">{formatDMY(rawAppointment)}</span>
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold bg-blue-50 border border-blue-200 text-black">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold bg-gray-100 border border-gray-300 text-black">
                           {displayTime}
                         </span>
                       </div>

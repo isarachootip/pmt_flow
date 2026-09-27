@@ -341,7 +341,7 @@ export function JobActiveWorkspace({
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-white space-y-6">
       {/* 1. Comment & Progress Notes Section with Quick Tags */}
-      <section className="bg-white border border-[var(--border-soft)] rounded-xl p-4 shadow-sm space-y-3">
+      <section className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <MessageSquare className="w-4 h-4 text-black" />
@@ -402,29 +402,8 @@ export function JobActiveWorkspace({
         </div>
       </section>
 
-      {/* 2. Standard 5 Photo Slots (PhotoSlots5) with Upload, Thumbnail & Lightbox */}
-      <section className="bg-white border border-[var(--border-soft)] rounded-xl p-4 shadow-sm space-y-3">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center space-x-2">
-            <Camera className="w-4 h-4 text-black" />
-            <h3 className="text-sm font-bold text-black">
-              รูปถ่ายการปฏิบัติงาน 5 ขั้นตอน (PhotoSlots 5)
-            </h3>
-          </div>
-          <span className="text-xs text-black font-medium">
-            (ก่อนเริ่มงาน, ระหว่างทำ 1, ระหว่างทำ 2, ทดสอบระบบ, หลังเสร็จสิ้น)
-          </span>
-        </div>
-
-        <PhotoSlots5
-          slots={photoSlots}
-          onUpload={handlePhotoUpload}
-          className="pt-1"
-        />
-      </section>
-
-      {/* 3. Activity Timeline Stream */}
-      <section className="bg-white border border-[var(--border-soft)] rounded-xl p-4 shadow-sm space-y-3">
+      {/* 2. Activity Timeline Stream */}
+      <section className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Clock className="w-4 h-4 text-black" />
@@ -443,7 +422,7 @@ export function JobActiveWorkspace({
               {/* Bullet Node */}
               <div className="absolute -left-[21px] top-2 w-2.5 h-2.5 rounded-full bg-primary border-2 border-white shadow-sm" />
               
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-1.5">
+              <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-1.5">
                 <div className="flex items-center justify-between flex-wrap gap-1">
                   <span className="font-semibold text-black text-xs">
                     {act.author}
@@ -452,7 +431,7 @@ export function JobActiveWorkspace({
                     <span className="text-black font-medium">
                       {formatDMY(act.timestamp)}
                     </span>
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold bg-blue-50 border border-blue-200 text-black">
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold bg-gray-100 border border-gray-300 text-black">
                       {format24HourTimeBadge(act.time || null, act.timestamp)}
                     </span>
                   </div>
@@ -489,6 +468,22 @@ export function JobActiveWorkspace({
         </div>
       </section>
 
+      {/* 3. RELOCATED TO BOTTOM: Standard 5 Photo Slots (PhotoSlots5) with Upload, Thumbnail & Lightbox */}
+      <section className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs space-y-3">
+        <div className="flex items-center space-x-2">
+          <Camera className="w-4 h-4 text-black" />
+          <h3 className="text-sm font-bold text-black">
+            รูปถ่ายการปฏิบัติงาน 5 ขั้นตอน (PhotoSlots 5)
+          </h3>
+        </div>
+
+        <PhotoSlots5
+          slots={photoSlots}
+          onUpload={handlePhotoUpload}
+          className="pt-1"
+        />
+      </section>
+
       {/* Lightbox Dialog for Timeline Photos */}
       <Dialog
         open={!!selectedTimelinePhoto}
@@ -506,16 +501,16 @@ export function JobActiveWorkspace({
       </Dialog>
 
       {/* 4. Sticky Bottom Action Bar with Workflow Routing */}
-      <div className="sticky bottom-0 z-20 bg-white border-t px-6 py-3.5 flex items-center justify-between shadow-[0_-4px_12px_rgba(0,0,0,0.06)] -mx-4 -mb-4">
+      <div className="sticky bottom-0 z-20 bg-white border-t border-gray-200 px-6 py-3.5 flex items-center justify-between shadow-[0_-4px_12px_rgba(0,0,0,0.06)] -mx-4 -mb-4">
         {/* Left Side: Job Type Indicator */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-black font-medium">ประเภทงาน:</span>
           {isQuick ? (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 border border-amber-300 text-black">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 border border-gray-300 text-black">
               ⚡ งานด่วน (Quick Service)
             </span>
           ) : isRenovate ? (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 border border-blue-300 text-black">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 border border-gray-300 text-black">
               🏗️ งานรีโนเวท (Renovate)
             </span>
           ) : (

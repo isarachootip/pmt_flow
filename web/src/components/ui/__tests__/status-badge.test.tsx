@@ -3,21 +3,21 @@ import { describe, it, expect } from 'vitest';
 import { StatusBadge, StatusValue } from '../status-badge';
 
 describe('StatusBadge', () => {
-  const statuses: { status: StatusValue; colorVar: string }[] = [
-    { status: 'PENDING', colorVar: 'bg-[var(--st-pending)]' },
-    { status: 'IN_PROGRESS', colorVar: 'bg-[var(--st-progress)]' },
-    { status: 'DONE', colorVar: 'bg-[var(--st-done)]' },
-    { status: 'OVERDUE', colorVar: 'bg-[var(--st-overdue)]' },
-    { status: 'REWORK', colorVar: 'bg-[var(--st-rework)]' },
-    { status: 'DRAFT', colorVar: 'bg-[var(--st-neutral)]' },
-    { status: 'CANCELLED', colorVar: 'bg-[var(--st-neutral)]' },
+  const statuses: { status: StatusValue; expectedLabel: string; colorVar: string }[] = [
+    { status: 'PENDING', expectedLabel: 'PENDING', colorVar: 'bg-[var(--st-pending)]' },
+    { status: 'IN_PROGRESS', expectedLabel: 'กำลังดำเนินการ', colorVar: 'bg-[var(--st-progress)]' },
+    { status: 'DONE', expectedLabel: 'DONE', colorVar: 'bg-[var(--st-done)]' },
+    { status: 'OVERDUE', expectedLabel: 'OVERDUE', colorVar: 'bg-[var(--st-overdue)]' },
+    { status: 'REWORK', expectedLabel: 'ส่งกลับแก้ไข (REWORK)', colorVar: 'bg-[var(--st-rework)]' },
+    { status: 'DRAFT', expectedLabel: 'ร่าง (DRAFT)', colorVar: 'bg-[var(--st-neutral)]' },
+    { status: 'CANCELLED', expectedLabel: 'ยกเลิก', colorVar: 'bg-[var(--st-neutral)]' },
   ];
 
-  it.each(statuses)('renders correctly for status $status', ({ status, colorVar }) => {
+  it.each(statuses)('renders correctly for status $status', ({ status, expectedLabel, colorVar }) => {
     const { container } = render(<StatusBadge status={status} />);
     
     // Test text content
-    const textElement = screen.getByText(status);
+    const textElement = screen.getByText(expectedLabel);
     expect(textElement).toBeInTheDocument();
     
     // text is always black (#000000), using 'text-black' class
