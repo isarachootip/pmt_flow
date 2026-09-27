@@ -9,7 +9,7 @@ import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Input } from '@/components/ui/input';
 import { formatDMY, toDateTime, toISODate, format24HourTimeBadge } from '@/lib/date';
 import { Button } from '@/components/ui/button';
-import { Search, Camera } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CreateJobDrawer } from '@/features/jobs/create-job-drawer';
 import { toast } from 'sonner';
@@ -346,30 +346,6 @@ export default function OrdersPage() {
         const text = Array.isArray(row.services) ? row.services.join(', ') : (row.services || (row as any).project_sub_type || '-');
         return <div className="truncate max-w-[190px] text-black" title={text}>{text}</div>;
       } 
-    },
-    { 
-      id: 'photos', 
-      header: 'รูป', 
-      width: 60, 
-      cell: ({ row }) => {
-        const photos = Array.isArray(row.photos) ? row.photos : [];
-        const photoCount = photos.length;
-        return photoCount > 0 ? (
-          <span className="inline-flex items-center gap-1 text-black font-mono text-xs" title={`มีรูปภาพ ${photoCount} รูป`}>
-            <Camera className="w-3.5 h-3.5 text-black" />
-            {photoCount}
-          </span>
-        ) : (
-          <span className="text-black opacity-40 text-xs">-</span>
-        );
-      }
-    },
-    { 
-      id: 'assigned_tech', 
-      header: 'ช่าง', 
-      accessorKey: 'assigned_tech', 
-      width: 150, 
-      cell: ({ row }) => <span className="text-black">{row.assigned_tech || '-'}</span> 
     },
     { 
       id: 'status', 
