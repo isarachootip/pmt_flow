@@ -8,6 +8,7 @@ import { LoginPage } from './features/auth/login-page';
 import { RequireAuth } from './features/auth/require-auth';
 import { RequireRole } from './features/auth/require-role';
 import { AppLayout } from './features/layout/app-layout';
+import { Toaster } from './components/ui/toast';
 
 const OrdersPage = React.lazy(() => import('./pages/orders'));
 const JobFullPage = React.lazy(() => import('./pages/job-full'));
@@ -76,6 +77,7 @@ export function App() {
             </Route>
           </Routes>
         </BrowserRouter>
+        <Toaster />
       </AuthProvider>
     </QueryClientProvider>
   );

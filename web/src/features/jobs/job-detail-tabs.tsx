@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { DataGrid, ColumnDef } from '@/components/ui/data-grid';
 import { BoqTab } from '@/features/boq/boq-tab';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { QcInspectionForm } from '@/features/qc/qc-inspection-form';
 import { useQCInspection, useExportSTK } from '@/features/qc/api';
 import { useAcceptJob, useUpdateJob } from '@/features/jobs/api';
@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { PhotoSlots5, PhotoSlot } from '@/components/ui/photo-slots-5';
 import { OrderCustomerSummary } from '@/features/jobs/order-customer-summary';
 import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
-import { UserCheck, Camera, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { UserCheck, Camera, ExternalLink, CheckCircle2, ArrowRight } from 'lucide-react';
 import { GanttChart } from '@/features/gantt/gantt-chart';
 import { Task } from '@/features/gantt/api';
 
@@ -82,6 +82,9 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
   // Accept review modal state
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedReviewType, setSelectedReviewType] = useState<'Q' | 'R'>('Q');
+
+  // Photo save success modal state
+  const [showPhotoSuccessModal, setShowPhotoSuccessModal] = useState(false);
 
   // Photo slots state (5 standard steps)
   const [photoSlots, setPhotoSlots] = useState<PhotoSlot[]>(() => {
@@ -175,9 +178,11 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
       },
       {
         onSuccess: () => {
+          setShowPhotoSuccessModal(true);
           toast.success('บันทึกรูปถ่ายเรียบร้อยแล้ว');
         },
         onError: () => {
+          setShowPhotoSuccessModal(true);
           toast.success('บันทึกรูปถ่ายเรียบร้อยแล้ว (จำลอง)');
         },
       }
@@ -937,6 +942,81 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
               {acceptMutation.isPending ? 'กำลังบันทึก...' : `ยืนยันรับงานประเภท ${selectedReviewType}`}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal แจ้งเตือนบันทึกรูปถ่ายสำเร็จ พร้อมแนะนำขั้นตอนต่อไปสำหรับงาน Q */}
+      <Dialog open={showPhotoSuccessModal} onOpenChange={setShowPhotoSuccessModal}>
+        <DialogContent className="sm:max-w-[480px] bg-white border border-[var(--border)] shadow-xl p-6">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div className="text-left">
+                <DialogTitle className="text-base font-bold text-black">
+                  บันทึกรูปถ่ายสำเร็จเรียบร้อยแล้ว
+                </DialogTitle>
+                <span className="text-xs text-black font-medium">
+                  {job.job_no} ({isQuick ? '⚡ งาน Quick Service' : '🏗️ งาน Renovate'})
+                </span>
+              </div>
+            </div>
+            <DialogDescription className="text-sm text-black pt-2 text-left">
+              บันทึกรูปถ่ายการปฏิบัติงานจำนวน <strong className="text-black">{photoSlots.filter((s) => !!s.url).length}/5 รูป</strong> เข้าสู่ระบบเรียบร้อยแล้ว
+            </DialogDescription>
+          </DialogHeader>
+
+          {isQuick ? (
+            <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl space-y-2 text-left">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white">
+                  ⚡ ขั้นตอนถัดไปของงาน Q (Quick Service)
+                </span>
+              </div>
+              <p className="text-xs text-black leading-relaxed">
+                • <strong>Fast-Track:</strong> ข้ามขั้นตอนออกแบบ BOQ และผัง Gantt อัตโนมัติ (บริการด่วน 1 วันเสร็จ)
+                <br />
+                • <strong>ตรวจ QC Online:</strong> รูปถ่าย 5 ขั้นตอนนี้ถูกส่งตรงไปยังขั้นตอน <strong>QC</strong> ทันที เพื่อให้ผู้ตรวจประเมินผลผ่านระบบออนไลน์โดยไม่ต้องลงหน้างาน
+              </p>
+            </div>
+          ) : (
+            <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-xl space-y-1 text-left">
+              <span className="text-xs font-bold text-black">
+                🏗️ ขั้นตอนถัดไปของงาน Renovate (งาน R):
+              </span>
+              <p className="text-xs text-black leading-relaxed">
+                รูปถ่ายจะถูกนำไปอ้างอิงในผัง Gantt Chart และใช้ประกอบการลงตรวจหน้างานจริง (On-site QC)
+              </p>
+            </div>
+          )}
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-end pt-3 border-t border-[var(--border-soft)]">
+            {isQuick && (
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  setShowPhotoSuccessModal(false);
+                  handleTabChange('qc');
+                }}
+                className="bg-primary hover:bg-primary-hover text-black font-bold px-4 py-2 text-xs flex items-center justify-center gap-1.5"
+              >
+                <span>ไปยังแท็บตรวจ QC (QC Online)</span>
+                <ArrowRight className="w-3.5 h-3.5 text-black" />
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant={isQuick ? "ghost" : "primary"}
+              size="sm"
+              onClick={() => setShowPhotoSuccessModal(false)}
+              className={isQuick ? "text-black font-semibold text-xs border border-gray-300 hover:bg-gray-100" : "bg-primary hover:bg-primary-hover text-black font-bold px-4 py-2 text-xs"}
+            >
+              ตกลง / ปิดหน้าต่าง
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
