@@ -682,7 +682,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                   <div className="flex items-start gap-1.5 min-w-0">
                     <span className="font-bold text-black shrink-0">สถานะการส่งออก:</span>
                     <span className="font-bold text-black">
-                      {(job as any).stk_status || 'พร้อมส่งออก (READY)'}
+                      {(job as any).stk_status === 'DELIVERED' ? 'ส่งต่อไป STKแล้ว (closejob)' : ((job as any).stk_status || 'พร้อมส่งออก (READY)')}
                     </span>
                   </div>
                   <div className="flex items-start gap-1.5 min-w-0">
@@ -691,16 +691,6 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                       {formatDateTimeDMY((job as any).stk_exported_at || new Date().toISOString())}
                     </span>
                   </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-white border border-[var(--border-soft)] rounded-lg space-y-2">
-                <h4 className="font-semibold text-black text-sm">สรุปยอดรวมทางการเงินเพื่อเบิกจ่าย</h4>
-                <div className="flex justify-between py-2 text-base font-bold text-black">
-                  <span>ยอดสุทธิรวมตาม BOQ:</span>
-                  <span className="text-lg">
-                    {Number(job.grand_total || (job as any).boq_grand_total || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿
-                  </span>
                 </div>
               </div>
             </TabsContent>
