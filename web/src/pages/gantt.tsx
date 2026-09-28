@@ -56,9 +56,13 @@ export default function GanttPage() {
   });
   const rawJobs: Job[] = Array.isArray(data) ? data : (data?.data || []);
 
-  // Step 2 Project & Gantt: Strictly display ONLY Renovate jobs (งาน R)
+  // Step 2 Project & Gantt: Strictly display ONLY Renovate jobs (งาน R) that have been accepted and moved to Step 2
   const renovateJobs: Job[] = React.useMemo(() => {
-    return rawJobs.filter(j => !isJobClosed(j) && getJobType(j) === 'R');
+    return rawJobs.filter(j => 
+      !isJobClosed(j) && 
+      getJobType(j) === 'R' && 
+      (j.status !== 'NEW' && j.status !== 'NEED_REVIEW' || (j as any).pmt_accepted)
+    );
   }, [rawJobs]);
 
   const [selectedJob, setSelectedJob] = React.useState<Job | null>(null);

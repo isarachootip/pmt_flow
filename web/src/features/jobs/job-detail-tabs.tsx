@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { PhotoSlots5, PhotoSlot } from '@/components/ui/photo-slots-5';
 import { OrderCustomerSummary } from '@/features/jobs/order-customer-summary';
 import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
-import { UserCheck, Camera, ExternalLink, CheckCircle2, ArrowRight } from 'lucide-react';
+import { UserCheck, Camera, ExternalLink, CheckCircle2, ArrowRight, Clock } from 'lucide-react';
 import { GanttChart } from '@/features/gantt/gantt-chart';
 import { Task } from '@/features/gantt/api';
 import { DailyLogModal } from '@/features/daily-logs/daily-log-modal';
@@ -57,6 +57,10 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
 
   const isQuick = getJobType(job) === 'Q';
   const isClosed = job.status === 'CLOSED' || job.status === 'CLOSEJOB' || (job as any).stk_status === 'DELIVERED';
+  const isAcceptedOrPlanned = Boolean(
+    (job as any).pmt_accepted ||
+    (job.status && job.status !== 'NEW' && job.status !== 'NEED_REVIEW')
+  );
 
   // Map legacy / URL tabs to the pipeline steps:
   // [งาน/Task] -> [BOQ] -> [ผัง Gantt] -> [QC] -> [ส่งออก STK] -> [ประวัติ (Timeline)]
@@ -409,6 +413,11 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
   ];
 
   const finalGanttTasks: Task[] = React.useMemo(() => {
+    // If job has not been accepted/planned yet, no Gantt chart tasks exist!
+    if (!isAcceptedOrPlanned) {
+      return [];
+    }
+
     const rawTasks = Array.isArray(tasksData) ? tasksData : (tasksData?.data || job.tasks || []);
     const source = (rawTasks.length > 0 ? rawTasks : displayTasks);
     return source.map((t: any, idx: number) => ({
@@ -430,7 +439,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
       qc_score: t.qc_score,
       rework_count: t.rework_count || 0
     }));
-  }, [tasksData, job, displayTasks]);
+  }, [tasksData, job, displayTasks, isAcceptedOrPlanned]);
 
   const bookingBadge = job.booking_no || (job as any).bookingNo || (job as any).vfix_no;
   const refBadge = job.external_ref_id || (job as any).ref_id || (job as any).stk_ref || (job as any).externalRefId;
@@ -502,13 +511,18 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
               <TabsTrigger 
                 value="gantt" 
                 disabled={isQuick}
-                title={isQuick ? "งาน Quick Service ไม่มีขั้นตอนผัง Gantt" : "ผังกำหนดการทำงาน (Gantt Chart)"}
-                className={`data-[state=active]:border-b-2 data-[state=active]:border-primary font-semibold rounded-none shadow-none px-4 py-3 ${
+                title={isQuick ? "งาน Quick Service ไม่มีขั้นตอนผัง Gantt" : (!isAcceptedOrPlanned ? "รอรับงานก่อนสร้างผัง Gantt" : "ผังกำหนดการทำงาน (Gantt Chart)")}
+                className={`data-[state=active]:border-b-2 data-[state=active]:border-primary font-semibold rounded-none shadow-none px-4 py-3 flex items-center gap-1.5 ${
                   isQuick ? 'opacity-40 cursor-not-allowed text-gray-400' : 'text-black'
                 }`}
               >
                 <span>Gantt</span>
                 {isQuick && <span className="ml-1 text-[10px] text-gray-400">(ไม่ใช้)</span>}
+                {!isQuick && !isAcceptedOrPlanned && (
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold border border-amber-300">
+                    รอรับงาน
+                  </span>
+                )}
               </TabsTrigger>
               <TabsTrigger 
                 value="qc" 
@@ -667,48 +681,74 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
               )}
             </TabsContent>
 
-            {/* 3. ผัง Gantt (เฉพาะงาน Renovate) */}
+            {/* 3. ผัง Gantt (เฉพาะงาน Renovate ที่รับงานแล้ว / สถานะวางแผนงาน) */}
             <TabsContent value="gantt" className="h-full m-0 data-[state=active]:flex flex-col space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-50 border border-gray-200 rounded-xl">
-                <div>
-                  <h3 className="text-sm font-bold text-black flex items-center gap-2">
-                    <span>ผังกำหนดการทำงาน Gantt Chart</span>
-                    <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-200 text-black font-semibold">
-                      {job.job_no}
-                    </span>
-                    <span className="text-xs font-medium text-gray-600">
-                      ({finalGanttTasks.length} รายการงานย่อย)
-                    </span>
-                  </h3>
-                  <p className="text-xs text-gray-600 mt-0.5">
-                    แผนภูมิแสดงแถบเวลาตามแผนงานของช่างแต่ละขั้นตอน พร้อมสถานะความคืบหน้า
-                  </p>
+              {!isAcceptedOrPlanned ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center bg-white border border-gray-200 rounded-xl space-y-4 my-auto shadow-2xs">
+                  <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shadow-2xs">
+                    <Clock className="w-8 h-8" />
+                  </div>
+                  <div className="space-y-1.5 max-w-md">
+                    <h3 className="text-base font-bold text-black">ยังไม่มีผังกำหนดการทำงาน (Gantt Chart)</h3>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      ใบงานนี้อยู่ในสถานะ <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-900 border border-blue-300">รอรับงาน (NEW)</span> และยังไม่ได้ทำรายการรับเข้าสู่ระบบ
+                      <br />
+                      จะมีผัง Gantt Chart ได้ก็ต่อเมื่อกด <strong>"รับงาน"</strong> และย้ายไปสู่สถานะ <strong>"วางแผนงาน (PLANNED)"</strong> ที่ Step 2: Project & Gantt
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleAcceptJob}
+                    disabled={acceptMutation.isPending}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-xs text-xs flex items-center gap-2 cursor-pointer transition hover:scale-102"
+                  >
+                    <UserCheck className="w-4 h-4 text-white" />
+                    <span>{acceptMutation.isPending ? 'กำลังรับงาน...' : '✓ กดรับงานเพื่อสร้างผัง Gantt และเริ่มวางแผนงาน →'}</span>
+                  </Button>
                 </div>
-                <div className="flex items-center gap-2">
-                  {!location.pathname.startsWith('/gantt') && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => navigate(`/gantt?jobId=${job.id}&jobNo=${job.job_no}&tab=gantt`)}
-                      className="text-xs text-indigo-700 bg-white hover:bg-indigo-50 border-indigo-200 font-bold cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>เปิดใน Step 2: Project & Gantt ใหญ่ ↗</span>
-                    </Button>
-                  )}
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-50 border border-gray-200 rounded-xl">
+                    <div>
+                      <h3 className="text-sm font-bold text-black flex items-center gap-2">
+                        <span>ผังกำหนดการทำงาน Gantt Chart</span>
+                        <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-200 text-black font-semibold">
+                          {job.job_no}
+                        </span>
+                        <span className="text-xs font-medium text-gray-600">
+                          ({finalGanttTasks.length} รายการงานย่อย)
+                        </span>
+                      </h3>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        แผนภูมิแสดงแถบเวลาตามแผนงานของช่างแต่ละขั้นตอน พร้อมสถานะความคืบหน้า
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {!location.pathname.startsWith('/gantt') && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/gantt?jobId=${job.id}&jobNo=${job.job_no}&tab=gantt`)}
+                          className="text-xs text-indigo-700 bg-white hover:bg-indigo-50 border-indigo-200 font-bold cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>เปิดใน Step 2: Project & Gantt ใหญ่ ↗</span>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
 
-              <div className="flex-1 min-h-[300px] border border-gray-200 rounded-xl overflow-auto bg-white p-2">
-                <GanttChart
-                  tasks={finalGanttTasks}
-                  onOpenDailyLog={(task) => {
-                    setSelectedDailyLogTask(task);
-                    setIsDailyLogModalOpen(true);
-                  }}
-                  className="h-full"
-                />
-              </div>
+                  <div className="flex-1 min-h-[300px] border border-gray-200 rounded-xl overflow-auto bg-white p-2">
+                    <GanttChart
+                      tasks={finalGanttTasks}
+                      onOpenDailyLog={(task) => {
+                        setSelectedDailyLogTask(task);
+                        setIsDailyLogModalOpen(true);
+                      }}
+                      className="h-full"
+                    />
+                  </div>
+                </>
+              )}
             </TabsContent>
 
             {/* 4. QC (Inline Inspection Workspace - No Popup) */}
