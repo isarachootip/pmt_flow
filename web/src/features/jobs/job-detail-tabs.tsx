@@ -17,11 +17,13 @@ import { toast } from 'sonner';
 import { PhotoSlots5, PhotoSlot } from '@/components/ui/photo-slots-5';
 import { OrderCustomerSummary } from '@/features/jobs/order-customer-summary';
 import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
-import { UserCheck, Camera, ExternalLink, CheckCircle2, ArrowRight, Clock, RefreshCw, X } from 'lucide-react';
+import { UserCheck, Camera, ExternalLink, CheckCircle2, ArrowRight, Clock, RefreshCw, X, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GanttChart } from '@/features/gantt/gantt-chart';
 import { Task } from '@/features/gantt/api';
 import { DailyLogModal } from '@/features/daily-logs/daily-log-modal';
+import { DailyLogList } from '@/features/daily-logs/daily-log-list';
+import { useDailyLogs } from '@/features/daily-logs/api';
 
 const STANDARD_PHOTO_SLOTS: PhotoSlot[] = [
   { id: 'before', label: 'ก่อนเริ่มงาน' },
@@ -53,6 +55,7 @@ export function JobDetailTabs({
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedDailyLogTask, setSelectedDailyLogTask] = useState<Task | null>(null);
   const [isDailyLogModalOpen, setIsDailyLogModalOpen] = useState(false);
+  const { data: dailyLogs } = useDailyLogs(job.id);
 
   /** Determine project type from job data */
   const getJobType = (j: Job): 'Q' | 'R' | null => {
@@ -805,6 +808,40 @@ export function JobDetailTabs({
                       }}
                       className="h-full"
                     />
+                  </div>
+
+                  {/* Daily Technician Work Logs Section */}
+                  <div className="border border-border-soft rounded-xl p-4 bg-white space-y-3 shadow-2xs mt-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                          <Clock className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-black flex items-center gap-2">
+                            <span>ประวัติการบันทึกงานช่างประจำวัน (Daily Technician Logs)</span>
+                            <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold font-mono">
+                              {dailyLogs?.length || 0} รายการ
+                            </span>
+                          </h4>
+                          <p className="text-[11px] text-slate-500">บันทึกความคืบหน้ารายวัน เวลาทำงานจริง 24 ชม. และภาพถ่ายหน้างาน 5 ช่วง</p>
+                        </div>
+                      </div>
+                      {!readOnly && (
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setSelectedDailyLogTask(finalGanttTasks[0] || null);
+                            setIsDailyLogModalOpen(true);
+                          }}
+                          className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>+ บันทึกงานประจำวัน</span>
+                        </Button>
+                      )}
+                    </div>
+                    <DailyLogList logs={dailyLogs || []} />
                   </div>
                 </>
               )}

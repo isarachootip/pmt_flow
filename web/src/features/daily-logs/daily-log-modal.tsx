@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription 
 } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,11 +11,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/ui/date-picker';
 import { TimePicker24 } from '@/components/ui/time-picker-24';
 import { PhotoSlots5, PhotoSlot } from '@/components/ui/photo-slots-5';
-import { useCreateDailyLog } from './api';
+import { useCreateDailyLog, useDailyLogs } from './api';
+import { DailyLogList } from './daily-log-list';
 import { useGanttJobs, useGanttTasks, Task } from '../gantt/api';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Clock, Calendar, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Clock, Calendar, Sparkles, CheckCircle2, PenLine, History, Plus } from 'lucide-react';
 
 interface DailyLogModalProps {
   open: boolean;
@@ -53,6 +55,7 @@ export function DailyLogModal({
   const [materials, setMaterials] = useState('');
   const [slots, setSlots] = useState<PhotoSlot[]>(initialSlots);
   const [userConfirmed, setUserConfirmed] = useState(false);
+  const [activeTab, setActiveTab] = useState<'form' | 'history'>('form');
 
   // Fetch available jobs and tasks for selectors
   const { data: jobs } = useGanttJobs();
@@ -94,6 +97,7 @@ export function DailyLogModal({
 
   const activeJobId = selectedJobId || (jobs && jobs.length > 0 ? String(jobs[0].id) : '1');
   const createLog = useCreateDailyLog(activeJobId);
+  const { data: logs } = useDailyLogs(activeJobId, selectedTaskId);
 
   const applyPreset = (start: string, end: string) => {
     setStartTime(start);
@@ -132,7 +136,7 @@ export function DailyLogModal({
         user_confirmed: userConfirmed
       });
       toast.success('บันทึกงานประจำวันเรียบร้อยแล้ว');
-      onOpenChange(false);
+      setActiveTab('history');
       // Reset form
       setWorkDesc('');
       setIssues('');
@@ -145,7 +149,7 @@ export function DailyLogModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto bg-white p-6 rounded-2xl border border-border-soft shadow-2xl">
+      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto bg-white p-6 rounded-2xl border border-border-soft shadow-2xl">
         <DialogHeader className="border-b border-border-soft pb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl font-bold shadow-2xs">
@@ -163,7 +167,36 @@ export function DailyLogModal({
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5 mt-4 text-xs">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'form' | 'history')} className="w-full mt-4">
+          <div className="flex items-center justify-between border-b border-border-soft pb-2 flex-wrap gap-2">
+            <TabsList className="bg-slate-100 p-1">
+              <TabsTrigger value="form" className="text-xs font-bold flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 cursor-pointer">
+                <PenLine className="w-3.5 h-3.5" />
+                <span>📝 ลงบันทึกงานใหม่</span>
+              </TabsTrigger>
+              <TabsTrigger value="history" className="text-xs font-bold flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 cursor-pointer">
+                <History className="w-3.5 h-3.5" />
+                <span>📋 ประวัติการบันทึกงาน</span>
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-mono">
+                  {logs?.length || 0}
+                </span>
+              </TabsTrigger>
+            </TabsList>
+            {activeTab === 'history' && (
+              <Button 
+                type="button" 
+                size="sm" 
+                onClick={() => setActiveTab('form')}
+                className="h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 shadow-2xs cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ ลงบันทึกวันใหม่</span>
+              </Button>
+            )}
+          </div>
+
+          <TabsContent value="form" className="mt-4">
+            <form onSubmit={handleSubmit} className="space-y-5 text-xs">
           
           {/* Project & Task Selection Bar */}
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -365,25 +398,71 @@ export function DailyLogModal({
           </div>
 
           {/* Form Actions */}
-          <div className="flex justify-end items-center gap-3 pt-4 border-t border-border-soft">
+          <div className="flex justify-between items-center gap-3 pt-4 border-t border-border-soft flex-wrap">
             <Button 
               type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              className="text-black font-medium"
+              variant="ghost" 
+              onClick={() => setActiveTab('history')}
+              className="text-indigo-700 hover:bg-indigo-50 font-semibold text-xs flex items-center gap-1.5 cursor-pointer"
             >
-              ยกเลิก
+              <History className="w-4 h-4" />
+              <span>ดูประวัติที่บันทึกแล้ว ({logs?.length || 0} รายการ)</span>
             </Button>
-            <Button 
-              type="submit" 
-              disabled={createLog.isPending}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 shadow-md"
-            >
-              {createLog.isPending ? 'กำลังบันทึก...' : 'บันทึกรายงานประจำวัน'}
-            </Button>
+            <div className="flex items-center gap-3 ml-auto">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => onOpenChange(false)}
+                className="text-black font-medium cursor-pointer"
+              >
+                ยกเลิก
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={createLog.isPending}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 shadow-md cursor-pointer"
+              >
+                {createLog.isPending ? 'กำลังบันทึก...' : 'บันทึกรายงานประจำวัน'}
+              </Button>
+            </div>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </TabsContent>
+
+      <TabsContent value="history" className="mt-4 space-y-4">
+        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-xs text-black">รายการประวัติบันทึกงานประจำวัน</span>
+            <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-mono font-bold text-[11px]">
+              {logs?.length || 0} รายการ
+            </span>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setActiveTab('form')}
+            className="text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 shadow-2xs cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>+ ลงบันทึกวันใหม่</span>
+          </Button>
+        </div>
+
+        <DailyLogList logs={logs || []} />
+
+        <div className="flex justify-end pt-4 border-t border-border-soft">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="text-xs font-bold text-black cursor-pointer"
+          >
+            ปิดหน้าต่าง
+          </Button>
+        </div>
+      </TabsContent>
+    </Tabs>
+  </DialogContent>
+</Dialog>
   );
 }
