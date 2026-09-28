@@ -12,6 +12,7 @@ export interface PhotoSlot {
 export interface PhotoSlots5Props extends React.HTMLAttributes<HTMLDivElement> {
   slots?: PhotoSlot[];
   onUpload?: (slotId: string, file: File) => void;
+  readOnly?: boolean;
 }
 
 const defaultSlots: PhotoSlot[] = [
@@ -23,10 +24,11 @@ const defaultSlots: PhotoSlot[] = [
 ];
 
 const PhotoSlots5 = React.forwardRef<HTMLDivElement, PhotoSlots5Props>(
-  ({ slots = defaultSlots, onUpload, className, ...props }, ref) => {
+  ({ slots = defaultSlots, onUpload, readOnly = false, className, ...props }, ref) => {
     const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, slotId: string) => {
+      if (readOnly) return;
       const file = e.target.files?.[0];
       if (file && onUpload) {
         onUpload(slotId, file);
@@ -38,17 +40,26 @@ const PhotoSlots5 = React.forwardRef<HTMLDivElement, PhotoSlots5Props>(
         {slots.map((slot) => (
           <div key={slot.id} className="flex flex-col gap-2">
             <span className="text-sm font-medium text-black">{slot.label}</span>
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[12px] border-2 border-dashed border-[var(--border)] bg-[var(--bg-subtle)] transition-colors hover:border-[var(--primary)]">
+            <div className={cn(
+              "relative aspect-[4/3] w-full overflow-hidden rounded-[12px] border-2 bg-[var(--bg-subtle)] transition-colors",
+              readOnly ? "border-gray-200" : "border-dashed border-[var(--border)] hover:border-[var(--primary)]"
+            )}>
               {slot.url ? (
                 <>
                   <img src={slot.url} alt={slot.label} className="h-full w-full object-cover" />
                   <button
                     onClick={() => setPreviewUrl(slot.url || null)}
-                    className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
+                    className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70 cursor-pointer shadow-sm"
+                    title="คลิกเพื่อดูรูปภาพขนาดเต็ม"
                   >
                     <Maximize2 className="h-4 w-4" />
                   </button>
                 </>
+              ) : readOnly ? (
+                <div className="flex h-full w-full flex-col items-center justify-center text-gray-400 bg-gray-50/80 cursor-default select-none">
+                  <Camera className="mb-1.5 h-5 w-5 text-gray-400" />
+                  <span className="text-[11px] text-gray-500 font-medium">ไม่มีรูปภาพ</span>
+                </div>
               ) : (
                 <label className="flex h-full w-full cursor-pointer flex-col items-center justify-center text-[var(--text-placeholder)] hover:text-[var(--primary)]">
                   <Camera className="mb-2 h-6 w-6" />

@@ -22,7 +22,7 @@ export default function OrdersPage() {
   
   // State for search, date range filters, and create drawer
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState<string>('all');
+  const [statusFilter, setStatusFilter] = React.useState<string>('active');
   const [typeFilter, setTypeFilter] = React.useState<'all' | 'Q' | 'R'>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -96,6 +96,17 @@ export default function OrdersPage() {
   const jobsForTypeCounts = React.useMemo(() => {
     if (statusFilter === 'all') return allJobs;
     return allJobs.filter(j => {
+      if (statusFilter === 'active') {
+        return (
+          j.status !== 'COMPLETED' && 
+          j.status !== 'PASSED' && 
+          j.status !== 'QC_PASSED' && 
+          j.status !== 'QC_PASS' && 
+          j.status !== 'CLOSED' && 
+          j.status !== 'CLOSEJOB' && 
+          (j as any).stk_status !== 'DELIVERED'
+        );
+      }
       if (statusFilter === 'NEW') return j.status === 'NEW' || j.status === 'NEED_REVIEW' || !(j as any).pmt_accepted;
       if (statusFilter === 'PLANNED') return j.status === 'PLANNED' || j.status === 'BOQ';
       if (statusFilter === 'WAIT_QC') return j.status === 'WAIT_QC' || j.status === 'QC_PENDING' || j.status === 'REWORK';
@@ -131,7 +142,17 @@ export default function OrdersPage() {
 
     // 0. State Machine Status Filter
     if (statusFilter !== 'all') {
-      if (statusFilter === 'NEW') {
+      if (statusFilter === 'active') {
+        result = result.filter(j => 
+          j.status !== 'COMPLETED' && 
+          j.status !== 'PASSED' && 
+          j.status !== 'QC_PASSED' && 
+          j.status !== 'QC_PASS' && 
+          j.status !== 'CLOSED' && 
+          j.status !== 'CLOSEJOB' && 
+          (j as any).stk_status !== 'DELIVERED'
+        );
+      } else if (statusFilter === 'NEW') {
         result = result.filter(j => j.status === 'NEW' || j.status === 'NEED_REVIEW' || !(j as any).pmt_accepted);
       } else if (statusFilter === 'PLANNED') {
         result = result.filter(j => j.status === 'PLANNED' || j.status === 'BOQ');
@@ -569,7 +590,63 @@ export default function OrdersPage() {
             </span>
           </button>
         </div>
+
+        {/* Queue Scope Filter: Active vs Closed vs All */}
+        <div className="flex items-center gap-1.5 bg-gray-50/90 p-1 rounded-xl border border-gray-300 shadow-2xs">
+          <span className="text-xs font-bold text-black px-2 hidden sm:inline-flex">
+            สถานะคิว:
+          </span>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('active')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              statusFilter === 'active'
+                ? 'bg-emerald-600 text-white shadow-xs font-bold'
+                : 'bg-white text-black border border-gray-300 hover:bg-emerald-50 hover:border-emerald-300'
+            }`}
+          >
+            <span>รอจัดการ (Active)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('COMPLETED')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              statusFilter === 'COMPLETED'
+                ? 'bg-gray-800 text-white shadow-xs font-bold'
+                : 'bg-white text-black border border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+            }`}
+          >
+            <span>ปิดงานแล้ว (Closejob)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('all')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              statusFilter === 'all'
+                ? 'bg-gray-900 text-white shadow-xs font-bold'
+                : 'bg-white text-black border border-gray-300 hover:bg-gray-100'
+            }`}
+          >
+            <span>ทั้งหมด</span>
+          </button>
+        </div>
       </div>
+
+      {statusFilter === 'COMPLETED' && (
+        <div className="my-2 p-2.5 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-between gap-3 text-xs text-blue-900">
+          <div className="flex items-center gap-2">
+            <span>ℹ️</span>
+            <span>กำลังแสดงรายการคำสั่งซื้อที่ส่งมอบและปิดงานเสร็จสิ้นแล้ว (ส่ง STK แล้ว)</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/completed')}
+            className="font-bold underline text-blue-800 hover:text-blue-950 flex items-center gap-1 cursor-pointer shrink-0"
+          >
+            <span>ดูสรุปผลฉบับเต็มในเมนู 4: ปิดงาน ↗</span>
+          </button>
+        </div>
+      )}
 
       {/* Search & Filter Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-4 py-3 px-1">

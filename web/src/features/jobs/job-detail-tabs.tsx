@@ -52,6 +52,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
   };
 
   const isQuick = getJobType(job) === 'Q';
+  const isClosed = job.status === 'CLOSED' || job.status === 'CLOSEJOB' || (job as any).stk_status === 'DELIVERED';
 
   // Map legacy / URL tabs to the pipeline steps:
   // [งาน/Task] -> [BOQ] -> [ผัง Gantt] -> [QC] -> [ส่งออก STK] -> [ประวัติ (Timeline)]
@@ -211,8 +212,8 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
         onSuccess: (res: any) => {
           if (jt === 'Q') {
             toast.success(res?.message || 'รับงานประเภท Quick Service เรียบร้อยแล้ว');
-            toast.info('งาน Quick Service: นำเข้าคิว QC Online ทันที (ข้ามขั้นตอน BOQ และ Gantt)');
-            handleTabChange('qc');
+            toast.info('งาน Quick Service: นำทางสู่เมนู Step 3: QC (ตรวจงาน Online) ทันที');
+            navigate(`/qc?type=quick&jobNo=${job.job_no}`);
           } else if (jt === 'R') {
             toast.success(res?.message || 'รับงาน Renovate เข้าสู่ระบบและสร้างผัง Gantt เรียบร้อยแล้ว');
             toast.info('เปิดหน้าจอแผนงาน Gantt เพื่อเริ่มดำเนินงานและทำการจอง QC ต่อในระบบ');
@@ -237,8 +238,8 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
           setShowReviewModal(false);
           if (jt === 'Q') {
             toast.success(`รับงานประเภท Q (Quick Service) เรียบร้อยแล้ว`);
-            toast.info('งาน Quick Service: นำเข้าคิว QC Online ทันที (ข้ามขั้นตอน BOQ และ Gantt)');
-            handleTabChange('qc');
+            toast.info('งาน Quick Service: นำทางสู่เมนู Step 3: QC (ตรวจงาน Online) ทันที');
+            navigate(`/qc?type=quick&jobNo=${job.job_no}`);
           } else if (jt === 'R') {
             toast.success(`รับงานประเภท R (Renovate) และสร้างผัง Gantt เรียบร้อยแล้ว`);
             toast.info('เปิดหน้าจอแผนงาน Gantt เพื่อเริ่มดำเนินงานและทำการจอง QC ต่อในระบบ');
@@ -608,30 +609,42 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <Camera className="w-4 h-4 text-black" />
-                          <h3 className="text-sm font-bold text-black">
-                            รูปถ่ายการปฏิบัติงาน 5 ขั้นตอน (PhotoSlots 5)
+                          <h3 className="text-sm font-bold text-black flex items-center gap-2">
+                            <span>รูปถ่ายการปฏิบัติงาน 5 ขั้นตอน (PhotoSlots 5)</span>
+                            {isClosed && (
+                              <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-300">
+                                🔒 ปิดงานแล้ว (Readonly)
+                              </span>
+                            )}
                           </h3>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-black font-medium">
                             อัปโหลดแล้ว {photoSlots.filter((s) => !!s.url).length}/5 รูป
                           </span>
-                          <Button
-                            type="button"
-                            variant="primary"
-                            size="sm"
-                            disabled={updateJobMutation.isPending}
-                            onClick={handleSavePhotos}
-                            className="bg-primary hover:bg-primary-hover text-black font-bold px-3 py-1 text-xs"
-                          >
-                            {updateJobMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกรูปถ่าย'}
-                          </Button>
+                          {!isClosed ? (
+                            <Button
+                              type="button"
+                              variant="primary"
+                              size="sm"
+                              disabled={updateJobMutation.isPending}
+                              onClick={handleSavePhotos}
+                              className="bg-primary hover:bg-primary-hover text-black font-bold px-3 py-1 text-xs"
+                            >
+                              {updateJobMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกรูปถ่าย'}
+                            </Button>
+                          ) : (
+                            <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 border border-gray-200">
+                              ส่งงานเรียบร้อย (ห้ามแก้ไข)
+                            </span>
+                          )}
                         </div>
                       </div>
 
                       <PhotoSlots5
                         slots={photoSlots}
                         onUpload={handlePhotoUpload}
+                        readOnly={isClosed}
                         className="pt-1"
                       />
                     </section>
