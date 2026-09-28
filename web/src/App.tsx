@@ -67,6 +67,7 @@ export function App() {
               <Route path="boq" element={<RequireRole><Suspense fallback={<PageSkeleton />}><BoqPage /></Suspense></RequireRole>} />
               <Route path="ma" element={<RequireRole><Suspense fallback={<PageSkeleton />}><MaPage /></Suspense></RequireRole>} />
               <Route path="reports" element={<RequireRole><Suspense fallback={<PageSkeleton />}><ReportsPage /></Suspense></RequireRole>} />
+              <Route path="reports/:jobNo" element={<RequireRole><Suspense fallback={<PageSkeleton />}><ReportsPage /></Suspense></RequireRole>} />
               <Route path="admin/users" element={<RequireRole><Suspense fallback={<PageSkeleton />}><UsersPage /></Suspense></RequireRole>} />
               <Route path="admin/api-logs" element={<RequireRole><Suspense fallback={<PageSkeleton />}><ApiLogsPage /></Suspense></RequireRole>} />
               <Route path="admin/settings" element={<RequireRole><Suspense fallback={<PageSkeleton />}><SettingsPage /></Suspense></RequireRole>} />

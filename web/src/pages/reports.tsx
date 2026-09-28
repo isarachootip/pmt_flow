@@ -1,157 +1,857 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import * as React from 'react';
+import { useJobs, Job } from '@/features/jobs/api';
 import { PageHeader } from '@/components/ui/page-header';
-import { KpiCard } from '@/components/ui/kpi-card';
-import { DatePicker } from '@/components/ui/date-picker';
+import { MasterDetailLayout } from '@/components/ui/master-detail-layout';
+import { DataGrid, ColumnDef } from '@/components/ui/data-grid';
+import { JobDetailTabs } from '@/features/jobs/job-detail-tabs';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { Input } from '@/components/ui/input';
+import { formatDMY, toDateTime, toISODate, format24HourTimeBadge } from '@/lib/date';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { FileSpreadsheet, FileText, Calendar, BarChart3, PieChart } from 'lucide-react';
+import { KpiCard } from '@/components/ui/kpi-card';
+import { 
+  Search, 
+  Filter, 
+  FileSpreadsheet, 
+  Printer, 
+  History, 
+  BarChart3, 
+  X
+} from 'lucide-react';
+import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
+import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
 import { toast } from 'sonner';
 
 export default function ReportsPage() {
-  const [dateRange, setDateRange] = useState({ start: '', end: '' });
-  
-  const queryStr = dateRange.start && dateRange.end ? `?start=${dateRange.start}&end=${dateRange.end}` : '';
-  const query = useQuery({
-    queryKey: ['reports-summary', queryStr],
-    queryFn: () => api.get<any>(`/api/v1/jobs/summary${queryStr}`),
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { jobNo } = useParams<{ jobNo?: string }>();
+  const [searchParams] = useSearchParams();
+
+  // URL Deep Link resolution
+  const targetJobNo = jobNo || searchParams.get('jobNo') || '';
+  const initialTab = searchParams.get('tab') || 'timeline';
+
+  // Filters state
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [statusFilter, setStatusFilter] = React.useState<string>('all');
+  const [typeFilter, setTypeFilter] = React.useState<'all' | 'Q' | 'R'>(() => {
+    const t = searchParams.get('type')?.toUpperCase();
+    if (t === 'Q' || t === 'QUICK') return 'Q';
+    if (t === 'R' || t === 'RENOVATE') return 'R';
+    return 'all';
   });
+  const [startDate, setStartDate] = React.useState(''); // ISO YYYY-MM-DD
+  const [endDate, setEndDate] = React.useState(''); // ISO YYYY-MM-DD
+  const [selectedJob, setSelectedJob] = React.useState<Job | null>(null);
 
-  const summary = query.data?.data || query.data || { total: 0, thisMonth: 0, pendingQc: 0, overdue: 0 };
-  const isLoading = query.isLoading;
-
-  const handleExportExcel = () => {
-    toast.success('กำลังดาวน์โหลดรายงานสรุป Excel (CSV)...');
+  /** Detect project type → 'Q' = Quick Service, 'R' = Renovate */
+  const getJobType = (job: Job): 'Q' | 'R' | null => {
+    if (!job) return null;
+    if (isQuickJob(job)) return 'Q';
+    if (isRenovateJob(job)) return 'R';
+    const jNo = String(job.job_no || '').toUpperCase();
+    const bNo = String(job.booking_no || (job as any).bookingNo || '').toUpperCase();
+    if (jNo.startsWith('JOB-Q') || bNo.startsWith('BK-Q') || jNo.includes('-Q') || bNo.includes('-Q')) return 'Q';
+    if (jNo.startsWith('JOB-R') || bNo.startsWith('BK-R') || jNo.includes('-R') || bNo.includes('-R')) return 'R';
+    return null;
   };
 
-  const handleExportPdf = () => {
-    window.print();
+  // Fetch all jobs across all statuses for reporting
+  const { data, isLoading } = useJobs({ 
+    page: 1, 
+    limit: 1000, 
+    sort_by: 'created_at', 
+    sort_order: 'desc' 
+  });
+  const allJobs: Job[] = Array.isArray(data) ? data : (data?.data || []);
+
+  // Sync selectedJob when jobs load or URL target changes
+  React.useEffect(() => {
+    if (targetJobNo && allJobs.length > 0) {
+      const found = allJobs.find(j => j.job_no === targetJobNo || String(j.id) === targetJobNo);
+      if (found) {
+        setSelectedJob(found);
+      }
+    }
+  }, [targetJobNo, allJobs]);
+
+  const handleRowClick = (row: Job, tab = 'timeline') => {
+    setSelectedJob(row);
+    const params = new URLSearchParams(location.search);
+    if (row.job_no) {
+      params.set('jobNo', row.job_no);
+      params.set('tab', tab);
+      navigate(`/reports?${params.toString()}`, { replace: true });
+    }
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedJob(null);
+    const params = new URLSearchParams(location.search);
+    params.delete('jobNo');
+    params.delete('tab');
+    const search = params.toString() ? `?${params.toString()}` : '';
+    navigate(`/reports${search}`, { replace: true });
+  };
+
+  // Toggle or set type filter and synchronize with URL search params
+  const handleTypeFilterChange = (newType: 'all' | 'Q' | 'R') => {
+    const targetType = typeFilter === newType && newType !== 'all' ? 'all' : newType;
+    setTypeFilter(targetType);
+    const params = new URLSearchParams(location.search);
+    if (targetType === 'all') {
+      params.delete('type');
+    } else {
+      params.set('type', targetType);
+    }
+    const search = params.toString() ? `?${params.toString()}` : '';
+    navigate(`${location.pathname}${search}`, { replace: true });
+  };
+
+  // Base jobs filtered by type (for calculating status tab counts)
+  const jobsForStatusCounts = React.useMemo(() => {
+    if (typeFilter === 'all') return allJobs;
+    return allJobs.filter(j => getJobType(j) === typeFilter);
+  }, [allJobs, typeFilter]);
+
+  // State Machine Status Counts (scoped to current type filter)
+  const statusCounts = React.useMemo(() => {
+    const counts = { all: jobsForStatusCounts.length, NEW: 0, WAIT_QC: 0, PLANNED: 0, COMPLETED: 0 };
+    for (const j of jobsForStatusCounts) {
+      if (j.status === 'NEW' || j.status === 'NEED_REVIEW' || !(j as any).pmt_accepted) counts.NEW++;
+      else if (j.status === 'WAIT_QC' || j.status === 'QC_PENDING' || j.status === 'REWORK') counts.WAIT_QC++;
+      else if (j.status === 'PLANNED' || j.status === 'BOQ') counts.PLANNED++;
+      else if (
+        j.status === 'COMPLETED' || 
+        j.status === 'PASSED' || 
+        j.status === 'QC_PASSED' || 
+        j.status === 'QC_PASS' || 
+        j.status === 'CLOSED' || 
+        j.status === 'CLOSEJOB' || 
+        (j as any).stk_status === 'DELIVERED'
+      ) counts.COMPLETED++;
+    }
+    return counts;
+  }, [jobsForStatusCounts]);
+
+  // Base jobs filtered by status (for calculating type tab counts)
+  const jobsForTypeCounts = React.useMemo(() => {
+    if (statusFilter === 'all') return allJobs;
+    return allJobs.filter(j => {
+      if (statusFilter === 'NEW') return j.status === 'NEW' || j.status === 'NEED_REVIEW' || !(j as any).pmt_accepted;
+      if (statusFilter === 'PLANNED') return j.status === 'PLANNED' || j.status === 'BOQ';
+      if (statusFilter === 'WAIT_QC') return j.status === 'WAIT_QC' || j.status === 'QC_PENDING' || j.status === 'REWORK';
+      if (statusFilter === 'COMPLETED') {
+        return (
+          j.status === 'COMPLETED' || 
+          j.status === 'PASSED' || 
+          j.status === 'QC_PASSED' || 
+          j.status === 'QC_PASS' || 
+          j.status === 'CLOSED' || 
+          j.status === 'CLOSEJOB' || 
+          (j as any).stk_status === 'DELIVERED'
+        );
+      }
+      return j.status === statusFilter;
+    });
+  }, [allJobs, statusFilter]);
+
+  // Job Type Counts (Quick vs Renovate) (scoped to current status filter)
+  const typeCounts = React.useMemo(() => {
+    const counts = { all: jobsForTypeCounts.length, Q: 0, R: 0 };
+    for (const j of jobsForTypeCounts) {
+      const jt = getJobType(j);
+      if (jt === 'Q') counts.Q++;
+      else if (jt === 'R') counts.R++;
+    }
+    return counts;
+  }, [jobsForTypeCounts]);
+
+  // Multi-Field Search + Date Range Filter + Job Type Filter + Sorting
+  const filteredAndSortedJobs = React.useMemo(() => {
+    let result = [...allJobs];
+
+    // 0. State Machine Status Filter
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'NEW') {
+        result = result.filter(j => j.status === 'NEW' || j.status === 'NEED_REVIEW' || !(j as any).pmt_accepted);
+      } else if (statusFilter === 'PLANNED') {
+        result = result.filter(j => j.status === 'PLANNED' || j.status === 'BOQ');
+      } else if (statusFilter === 'WAIT_QC') {
+        result = result.filter(j => j.status === 'WAIT_QC' || j.status === 'QC_PENDING' || j.status === 'REWORK');
+      } else if (statusFilter === 'COMPLETED') {
+        result = result.filter(j => 
+          j.status === 'COMPLETED' || 
+          j.status === 'PASSED' || 
+          j.status === 'QC_PASSED' || 
+          j.status === 'QC_PASS' || 
+          j.status === 'CLOSED' || 
+          j.status === 'CLOSEJOB' || 
+          (j as any).stk_status === 'DELIVERED'
+        );
+      } else {
+        result = result.filter(j => j.status === statusFilter);
+      }
+    }
+
+    // 0.1 Job Type Filter (Quick vs Renovate)
+    if (typeFilter !== 'all') {
+      result = result.filter(j => getJobType(j) === typeFilter);
+    }
+
+    // 1. Multi-Field Search
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      const terms = q.split(/\s+/).filter(Boolean);
+      result = result.filter((job) => {
+        const custName = String(
+          typeof job.customer === 'string' 
+            ? job.customer 
+            : (job.customer?.name || (job as any).customer_name || (job as any).customerName || '')
+        ).toLowerCase();
+
+        const rawPhone = String(
+          typeof job.customer === 'object' && job.customer?.phone 
+            ? job.customer.phone 
+            : ((job as any).customer_phone || (job as any).customerPhone || (job as any).phone || '')
+        );
+        const custPhone = rawPhone.toLowerCase();
+        const cleanPhone = custPhone.replace(/[\s\-\(\)\+]/g, '');
+
+        const bookingNo = String(job.booking_no || (job as any).bookingNo || (job as any).vfix_no || '').toLowerCase();
+        const cleanBookingNo = bookingNo.replace(/[\s\-\_\/]/g, '');
+
+        const ticketNo = String(job.ticket_no || (job as any).ticketNo || (job as any).ticket_number || '').toLowerCase();
+        const cleanTicketNo = ticketNo.replace(/[\s\-\_\/]/g, '');
+
+        const refId = String(job.external_ref_id || (job as any).ref_id || (job as any).stk_ref || (job as any).externalRefId || '').toLowerCase();
+        const cleanRefId = refId.replace(/[\s\-\_\/]/g, '');
+
+        const jobNoStr = String(job.job_no || job.id || '').toLowerCase();
+        const cleanJobNo = jobNoStr.replace(/[\s\-\_\/]/g, '');
+
+        const techName = String(job.assigned_tech || '').toLowerCase();
+
+        const servicesStr = Array.isArray(job.services) 
+          ? job.services.join(' ').toLowerCase() 
+          : String(job.services || (job as any).project_sub_type || '').toLowerCase();
+
+        const projectTypeStr = String(job.project_type || (job as any).job_type || '').toLowerCase();
+
+        return terms.every(term => {
+          const cleanTerm = term.replace(/[\s\-\_\/\(\)\+]/g, '');
+          return (
+            custName.includes(term) ||
+            custPhone.includes(term) ||
+            (cleanTerm && cleanPhone.includes(cleanTerm)) ||
+            bookingNo.includes(term) ||
+            (cleanTerm && cleanBookingNo.includes(cleanTerm)) ||
+            ticketNo.includes(term) ||
+            (cleanTerm && cleanTicketNo.includes(cleanTerm)) ||
+            refId.includes(term) ||
+            (cleanTerm && cleanRefId.includes(cleanTerm)) ||
+            jobNoStr.includes(term) ||
+            (cleanTerm && cleanJobNo.includes(cleanTerm)) ||
+            techName.includes(term) ||
+            servicesStr.includes(term) ||
+            projectTypeStr.includes(term)
+          );
+        });
+      });
+    }
+
+    // 2. Date Range Filter (From Date - To Date)
+    if (startDate || endDate) {
+      const [from, to] = (startDate && endDate && startDate > endDate) ? [endDate, startDate] : [startDate, endDate];
+      result = result.filter((job) => {
+        const createdDate = job.created_at ? toISODate(job.created_at) : '';
+        const planDateRaw = job.plan_date || (job as any).appointment_date || (job as any).date || (job as any).survey_date;
+        const planDate = planDateRaw ? toISODate(planDateRaw) : '';
+        
+        const inCreatedRange = Boolean(createdDate && (!from || createdDate >= from) && (!to || createdDate <= to));
+        const inPlanRange = Boolean(planDate && (!from || planDate >= from) && (!to || planDate <= to));
+
+        return inCreatedRange || inPlanRange;
+      });
+    }
+
+    // 3. Default Sorting to system entry date (`created_at`) descending
+    result.sort((a, b) => {
+      const timeA = toDateTime(a.created_at)?.getTime() || 0;
+      const timeB = toDateTime(b.created_at)?.getTime() || 0;
+      if (timeA !== timeB) {
+        return timeB - timeA;
+      }
+      const numA = typeof a.id === 'number' ? a.id : (parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0);
+      const numB = typeof b.id === 'number' ? b.id : (parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0);
+      if (numA !== numB) {
+        return numB - numA;
+      }
+      return String(b.job_no || b.id || '').localeCompare(String(a.job_no || a.id || ''));
+    });
+
+    return result;
+  }, [allJobs, searchQuery, startDate, endDate, statusFilter, typeFilter]);
+
+  const columns: ColumnDef<Job>[] = [
+    { 
+      id: 'project_type', 
+      header: 'ประเภท', 
+      width: 65, 
+      minWidth: 55,
+      cell: ({ row }) => {
+        const jt = getJobType(row);
+        if (jt === 'Q') return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 border border-blue-400 text-black whitespace-nowrap" title="Quick Service">
+            Q
+          </span>
+        );
+        if (jt === 'R') return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-orange-100 border border-orange-400 text-black whitespace-nowrap" title="Renovate">
+            R
+          </span>
+        );
+        const raw = row.project_type || (row as any).job_type || '-';
+        return <span className="text-black text-xs font-semibold whitespace-nowrap">{raw}</span>;
+      }
+    },
+    { 
+      id: 'job_no', 
+      header: 'รหัสงาน', 
+      width: 135,
+      minWidth: 110,
+      cell: ({ row }) => (
+        <span className="font-semibold text-black font-mono whitespace-nowrap">{row.job_no}</span>
+      )
+    },
+    { 
+      id: 'customer_name', 
+      header: 'ลูกค้า', 
+      width: 165, 
+      minWidth: 130,
+      cell: ({ row }) => {
+        const name = typeof row.customer === 'string' ? row.customer : (row.customer?.name || (row as any).customer_name || '-');
+        return <span className="text-black font-medium truncate block max-w-[155px]" title={name}>{name}</span>;
+      } 
+    },
+    { 
+      id: 'customer_phone', 
+      header: 'เบอร์โทร', 
+      width: 115, 
+      minWidth: 100,
+      cell: ({ row }) => {
+        let phone = '-';
+        if (typeof row.customer === 'object' && row.customer?.phone) phone = row.customer.phone;
+        else if ((row as any).customer_phone) phone = (row as any).customer_phone;
+        else if ((row as any).customerPhone) phone = (row as any).customerPhone;
+        else if ((row as any).phone) phone = (row as any).phone;
+        return <span className="text-black font-mono whitespace-nowrap">{phone}</span>;
+      } 
+    },
+    { 
+      id: 'booking_no', 
+      header: 'Booking No', 
+      width: 195, 
+      minWidth: 175,
+      cell: ({ row }) => {
+        const val = row.booking_no || (row as any).bookingNo || (row as any).vfix_no;
+        return val ? (
+          <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-100 border border-gray-300 text-black font-medium whitespace-nowrap block w-fit">
+            {val}
+          </span>
+        ) : (
+          <span className="text-black">-</span>
+        );
+      } 
+    },
+    { 
+      id: 'ticket_no', 
+      header: 'Ticket', 
+      width: 90, 
+      minWidth: 70,
+      cell: ({ row }) => {
+        const val = row.ticket_no || (row as any).ticketNo || (row as any).ticket_number;
+        return val ? (
+          <span className="font-mono text-xs px-2 py-0.5 rounded bg-yellow-50 border border-yellow-300 text-black font-medium whitespace-nowrap">
+            {val}
+          </span>
+        ) : (
+          <span className="text-black">-</span>
+        );
+      } 
+    },
+    { 
+      id: 'plan_date', 
+      header: 'วันนัด', 
+      width: 170, 
+      minWidth: 150,
+      cell: ({ row }) => {
+        const rawDate = row.plan_date || (row as any).appointment_date || (row as any).survey_date || (row as any).date;
+        if (!rawDate) {
+          return <span className="text-black font-medium">-</span>;
+        }
+        const dateFormatted = formatDMY(rawDate);
+        if (dateFormatted === '-') {
+          return <span className="text-black font-medium">-</span>;
+        }
+
+        const rawTime = (row.plan_time || (row as any).time_slot || (row as any).schedule_plan?.time_slot || (row as any).survey_time || (row as any).time || (row as any).appointment_time || '') as string;
+        const displayTime = format24HourTimeBadge(rawTime, rawDate);
+
+        return (
+          <div className="flex items-center gap-1.5 whitespace-nowrap">
+            <span className="text-black font-medium">{dateFormatted}</span>
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold bg-blue-50 border border-blue-200 text-black">
+              {displayTime}
+            </span>
+          </div>
+        );
+      } 
+    },
+    { 
+      id: 'store', 
+      header: 'สาขา/Store', 
+      width: 130, 
+      minWidth: 105,
+      cell: ({ row }) => {
+        const branch = row.branch_name || (row as any).store?.name || (row as any).branch || '';
+        const code = row.store_code || (row as any).store?.code || row.branch_code || '';
+        const display = branch || code || '-';
+        return (
+          <span className="text-black text-xs truncate block max-w-[120px]" title={display}>
+            {display}
+          </span>
+        );
+      }
+    },
+    { 
+      id: 'services', 
+      header: 'บริการ', 
+      width: 190, 
+      minWidth: 140,
+      cell: ({ row }) => {
+        const text = Array.isArray(row.services) ? row.services.join(', ') : (row.services || (row as any).project_sub_type || '-');
+        return <div className="truncate max-w-[180px] text-black" title={text}>{text}</div>;
+      } 
+    },
+    { 
+      id: 'status', 
+      header: 'สถานะ', 
+      width: 180, 
+      minWidth: 160,
+      cell: ({ row }) => {
+        const isStkDelivered = (row as any).stk_status === 'DELIVERED' || row.status === 'CLOSED' || row.status === 'CLOSEJOB';
+        return <StatusBadge status={isStkDelivered ? 'CLOSEJOB' : (row.status === 'QC_PENDING' ? 'PENDING' : row.status)} />;
+      } 
+    },
+    {
+      id: 'action_btn',
+      header: 'ดูข้อมูลทุกมุม',
+      width: 135,
+      minWidth: 120,
+      cell: ({ row }) => {
+        const isSelected = selectedJob && (selectedJob.id === row.id || selectedJob.job_no === row.job_no);
+        return (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRowClick(row, 'timeline');
+            }}
+            className={`text-xs px-2.5 py-1 rounded font-semibold border transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              isSelected
+                ? 'bg-blue-600 text-white border-blue-700 shadow-2xs font-bold'
+                : 'bg-white text-black border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+            }`}
+            title="ดูข้อมูลทุกมุมและประวัติการทำงาน (Audit Timeline)"
+          >
+            <History className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-blue-700'}`} />
+            <span>ดูประวัติ & ข้อมูล</span>
+          </button>
+        );
+      }
+    },
+  ];
+
+  const handleExportCSV = () => {
+    if (filteredAndSortedJobs.length === 0) {
+      toast.info('ไม่มีข้อมูลให้ส่งออก');
+      return;
+    }
+    const headers = ['รหัสงาน', 'Booking No', 'Ref ID', 'Ticket', 'ลูกค้า', 'เบอร์โทร', 'บริการ', 'ประเภท', 'วันนัด', 'สาขา', 'สถานะ', 'ยอดสุทธิ', 'ช่าง'];
+    const rows = filteredAndSortedJobs.map(j => {
+      const custName = typeof j.customer === 'string' ? j.customer : (j.customer?.name || (j as any).customer_name || '-');
+      const custPhone = typeof j.customer === 'object' && j.customer?.phone ? j.customer.phone : ((j as any).customer_phone || (j as any).phone || '-');
+      const bookingNo = j.booking_no || (j as any).bookingNo || (j as any).vfix_no || '-';
+      const refId = j.external_ref_id || (j as any).ref_id || (j as any).stk_ref || '-';
+      const ticketNo = j.ticket_no || (j as any).ticketNo || (j as any).ticket_number || '-';
+      const rawDate = j.plan_date || (j as any).appointment_date || (j as any).survey_date || (j as any).date;
+      let appointmentCol = '-';
+      if (rawDate) {
+        const dateFormatted = formatDMY(rawDate);
+        if (dateFormatted !== '-') {
+          const rawTime = (j.plan_time || (j as any).time_slot || (j as any).survey_time || (j as any).time || (j as any).appointment_time || '') as string;
+          const timeBadge = format24HourTimeBadge(rawTime, rawDate);
+          appointmentCol = `${dateFormatted} ${timeBadge}`;
+        }
+      }
+      const services = Array.isArray(j.services) ? j.services.join('; ') : (j.services || '-');
+      const branch = j.branch_name || (j as any).store?.name || (j as any).branch || j.store_code || '-';
+      const amt = Number(j.grand_total || (j as any).boq_grand_total || 0);
+
+      return [
+        `"${String(j.job_no || j.id || '').replace(/"/g, '""')}"`,
+        `"${String(bookingNo).replace(/"/g, '""')}"`,
+        `"${String(refId).replace(/"/g, '""')}"`,
+        `"${String(ticketNo).replace(/"/g, '""')}"`,
+        `"${String(custName).replace(/"/g, '""')}"`,
+        `"${String(custPhone).replace(/"/g, '""')}"`,
+        `"${String(services).replace(/"/g, '""')}"`,
+        `"${String(j.project_type || '').replace(/"/g, '""')}"`,
+        `"${appointmentCol}"`,
+        `"${String(branch).replace(/"/g, '""')}"`,
+        `"${String(j.status || '').replace(/"/g, '""')}"`,
+        `"${amt.toFixed(2)}"`,
+        `"${String(j.assigned_tech || '-').replace(/"/g, '""')}"`
+      ].join(',');
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    
+    if (typeof window !== 'undefined' && typeof window.URL?.createObjectURL === 'function') {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `pmt_comprehensive_report_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    }
+    toast.success('ส่งออกรายงานสรุปสำเร็จ');
   };
 
   const actions = (
-    <div className="flex flex-wrap items-center gap-3">
-      <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-border-soft shadow-2xs">
-        <Calendar className="w-4 h-4 text-slate-400" />
-        <DatePicker 
-          placeholder="จาก DD/MM/YYYY" 
-          value={dateRange.start} 
-          onChange={(v) => setDateRange({ ...dateRange, start: v })} 
-          className="w-36 h-8 text-xs"
-        />
-        <span className="text-slate-400 text-xs">—</span>
-        <DatePicker 
-          placeholder="ถึง DD/MM/YYYY" 
-          value={dateRange.end} 
-          onChange={(v) => setDateRange({ ...dateRange, end: v })} 
-          className="w-36 h-8 text-xs"
-        />
-      </div>
-
+    <div className="flex items-center gap-2">
       <Button 
-        variant="outline" 
+        variant="secondary" 
         size="sm" 
-        onClick={handleExportExcel}
-        className="gap-1.5 text-xs text-black border-slate-300 hover:bg-slate-100"
+        onClick={handleExportCSV} 
+        className="text-black font-medium flex items-center gap-1.5"
       >
-        <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-        <span>ส่งออก Excel</span>
+        <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+        <span>ส่งออก Excel (CSV)</span>
       </Button>
-
       <Button 
         variant="outline" 
         size="sm" 
-        onClick={handleExportPdf}
-        className="gap-1.5 text-xs text-black border-slate-300 hover:bg-slate-100"
+        onClick={() => window.print()} 
+        className="text-black font-medium flex items-center gap-1.5 border-gray-300 hover:bg-gray-100"
       >
-        <FileText className="w-3.5 h-3.5 text-rose-600" />
-        <span>พิมพ์ / PDF</span>
+        <Printer className="w-4 h-4 text-slate-700" />
+        <span>พิมพ์รายงาน</span>
       </Button>
     </div>
   );
 
   return (
-    <div className="flex flex-col h-full bg-subtle p-6 overflow-y-auto space-y-6">
+    <div className="flex flex-col h-full bg-subtle p-6 overflow-hidden">
       <PageHeader 
-        title="รายงานและสถิติ (Reports & Analytics)" 
+        title="รายงานภาพรวม & ประวัติงาน (Reports & 360° Audit Explorer)" 
         pageKey="reports" 
         actions={actions} 
       />
 
-      {/* KPI Ribbon */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {isLoading ? (
-          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />)
-        ) : (
-          <>
-            <KpiCard label="งานทั้งหมด (Total)" value={summary?.total || 120} />
-            <KpiCard label="งานประจำเดือนนี้" value={summary?.thisMonth || 45} />
-            <KpiCard label="รอตรวจ QC" value={summary?.pendingQc || 12} />
-            <KpiCard label="เกินกำหนด (Overdue)" value={summary?.overdue || 3} />
-          </>
-        )}
+      {/* KPI Ribbon Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 pt-1 pb-3">
+        <KpiCard 
+          label="งานทั้งหมดในระบบ (Total)" 
+          value={allJobs.length} 
+          clickable
+          onClick={() => setStatusFilter('all')}
+          className={`cursor-pointer transition-all ${statusFilter === 'all' ? 'border-blue-500 shadow-xs' : 'border-gray-200'}`}
+        />
+        <KpiCard 
+          label="รอรับงาน (NEW)" 
+          value={statusCounts.NEW} 
+          clickable
+          onClick={() => setStatusFilter('NEW')}
+          className={`cursor-pointer transition-all ${statusFilter === 'NEW' ? 'border-blue-500 shadow-xs' : 'border-gray-200'}`}
+        />
+        <KpiCard 
+          label="กำลังดำเนินการ (Planned / QC)" 
+          value={statusCounts.PLANNED + statusCounts.WAIT_QC} 
+          clickable
+          onClick={() => setStatusFilter('WAIT_QC')}
+          className={`cursor-pointer transition-all ${(statusFilter === 'WAIT_QC' || statusFilter === 'PLANNED') ? 'border-blue-500 shadow-xs' : 'border-gray-200'}`}
+        />
+        <KpiCard 
+          label="ปิดงานเสร็จสมบูรณ์ (Closejob / STK)" 
+          value={statusCounts.COMPLETED} 
+          clickable
+          onClick={() => setStatusFilter('COMPLETED')}
+          className={`cursor-pointer transition-all ${statusFilter === 'COMPLETED' ? 'border-emerald-500 shadow-xs' : 'border-gray-200'}`}
+        />
       </div>
 
-      {/* Analytics Breakdown Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Status Distribution */}
-        <div className="bg-white rounded-2xl border border-border-soft shadow-sm p-6 space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-border-soft">
-            <h2 className="text-sm font-bold text-black flex items-center gap-2">
-              <PieChart className="w-4 h-4 text-indigo-600" />
-              <span>สัดส่วนสถานะงาน (Jobs by Status)</span>
-            </h2>
-            <span className="text-xs text-slate-500 font-mono">100% สรุปผล</span>
-          </div>
-
-          <div className="space-y-4">
-            {[
-              { status: 'รอดำเนินการ (Step 1-2)', count: 30, percent: 25, color: 'bg-blue-500' },
-              { status: 'กำลังดำเนินการ (Step 3 Gantt)', count: 45, percent: 37.5, color: 'bg-amber-500' },
-              { status: 'รอตรวจ QC (Step 4 QC)', count: 12, percent: 10, color: 'bg-purple-500' },
-              { status: 'ปิดงานเสร็จสิ้น (Step 5 Completed)', count: 33, percent: 27.5, color: 'bg-emerald-500' },
-            ].map((item, i) => (
-              <div key={i} className="space-y-1.5">
-                <div className="flex justify-between text-xs font-semibold text-black">
-                  <span>{item.status}</span>
-                  <span className="font-mono">{item.count} งาน ({item.percent}%)</span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                  <div className={`h-2.5 rounded-full ${item.color}`} style={{ width: `${item.percent}%` }}></div>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* State Machine Status Filter Pills & Job Type Filter */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-1 pb-3 border-b border-soft">
+        {/* Left: State Machine Status Filter Pills */}
+        <div className="flex flex-wrap items-center gap-2">
+          {[
+            { key: 'all', label: 'ทั้งหมด', count: statusCounts.all },
+            { key: 'NEW', label: 'รอรับงาน (NEW)', count: statusCounts.NEW },
+            { key: 'PLANNED', label: 'วางแผน (PLANNED)', count: statusCounts.PLANNED },
+            { key: 'WAIT_QC', label: 'รอตรวจ QC (WAIT_QC)', count: statusCounts.WAIT_QC },
+            { key: 'COMPLETED', label: 'ปิดงานแล้ว (CLOSEJOB)', count: statusCounts.COMPLETED },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setStatusFilter(tab.key)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                statusFilter === tab.key
+                  ? 'bg-blue-600 text-white shadow-xs font-bold'
+                  : 'bg-white text-black border border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+                  statusFilter === tab.key
+                    ? 'bg-blue-700 text-white'
+                    : 'bg-gray-200 text-black'
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          ))}
         </div>
 
-        {/* Service Type Breakdown */}
-        <div className="bg-white rounded-2xl border border-border-soft shadow-sm p-6 space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-border-soft">
-            <h2 className="text-sm font-bold text-black flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-indigo-600" />
-              <span>สัดส่วนประเภทงานบริการ (Jobs by Service Type)</span>
-            </h2>
-            <span className="text-xs text-slate-500 font-mono">100% สรุปผล</span>
+        {/* Right: Job Type Filter (Quick vs Renovate) */}
+        <div className="flex items-center gap-1.5 bg-gray-50/90 p-1 rounded-xl border border-gray-300 shadow-2xs">
+          <span className="text-xs font-bold text-black px-2 hidden sm:inline-flex items-center gap-1.5">
+            <Filter className="w-3.5 h-3.5 text-black" />
+            <span>ประเภทงาน:</span>
+          </span>
+
+          {/* ทั้งหมด */}
+          <button
+            type="button"
+            onClick={() => handleTypeFilterChange('all')}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              typeFilter === 'all'
+                ? 'bg-gray-900 text-white shadow-xs font-bold'
+                : 'bg-white text-black border border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+            }`}
+          >
+            <span>ทั้งหมด</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+                typeFilter === 'all'
+                  ? 'bg-gray-700 text-white'
+                  : 'bg-gray-200 text-black'
+              }`}
+            >
+              {typeCounts.all}
+            </span>
+          </button>
+
+          {/* งาน Quick (Q) */}
+          <button
+            type="button"
+            onClick={() => handleTypeFilterChange('Q')}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              typeFilter === 'Q'
+                ? 'bg-blue-600 text-white shadow-xs font-bold border border-blue-700'
+                : 'bg-white text-black border border-gray-300 hover:bg-blue-50/70 hover:border-blue-300'
+            }`}
+          >
+            <span
+              className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                typeFilter === 'Q'
+                  ? 'bg-blue-800 text-white border border-blue-400'
+                  : 'bg-blue-100 text-blue-900 border border-blue-300'
+              }`}
+            >
+              Q
+            </span>
+            <span>งาน Quick</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+                typeFilter === 'Q'
+                  ? 'bg-blue-700 text-white'
+                  : 'bg-gray-200 text-black'
+              }`}
+            >
+              {typeCounts.Q}
+            </span>
+          </button>
+
+          {/* งาน Renovate (R) */}
+          <button
+            type="button"
+            onClick={() => handleTypeFilterChange('R')}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              typeFilter === 'R'
+                ? 'bg-orange-600 text-white shadow-xs font-bold border border-orange-700'
+                : 'bg-white text-black border border-gray-300 hover:bg-orange-50/70 hover:border-orange-300'
+            }`}
+          >
+            <span
+              className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                typeFilter === 'R'
+                  ? 'bg-orange-800 text-white border border-orange-400'
+                  : 'bg-orange-100 text-orange-900 border border-orange-300'
+              }`}
+            >
+              R
+            </span>
+            <span>งาน Renovate</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+                typeFilter === 'R'
+                  ? 'bg-orange-700 text-white'
+                  : 'bg-gray-200 text-black'
+              }`}
+            >
+              {typeCounts.R}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* Search & Filter Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 py-3 px-1">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Multi-field search */}
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="ค้นหา (ลูกค้า, เบอร์โทร, Booking, Ref ID, Ticket)..."
+              className="pl-9 h-9 text-sm text-black placeholder:text-gray-500 bg-white border-gray-300"
+            />
           </div>
 
-          <div className="space-y-4">
-            {[
-              { type: 'ล้างทำความสะอาดแอร์ (PM)', count: 60, percent: 50, color: 'bg-cyan-500' },
-              { type: 'งานซ่อมบำรุงและแก้ไข (CM)', count: 35, percent: 29.1, color: 'bg-rose-500' },
-              { type: 'ติดตั้งระบบและย้ายจุด (IN)', count: 25, percent: 20.9, color: 'bg-indigo-500' },
-            ].map((item, i) => (
-              <div key={i} className="space-y-1.5">
-                <div className="flex justify-between text-xs font-semibold text-black">
-                  <span>{item.type}</span>
-                  <span className="font-mono">{item.count} งาน ({item.percent}%)</span>
+          {/* Date range filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-black whitespace-nowrap">ช่วงวันที่:</span>
+            <DateRangePicker
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+              className="bg-white"
+            />
+          </div>
+
+          {/* Reset button if filter is active */}
+          {(searchQuery || startDate || endDate || statusFilter !== 'all' || typeFilter !== 'all') && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSearchQuery('');
+                setStartDate('');
+                setEndDate('');
+                setStatusFilter('all');
+                handleTypeFilterChange('all');
+              }}
+              className="h-9 text-xs text-black font-medium hover:bg-gray-100"
+            >
+              ล้างตัวกรอง
+            </Button>
+          )}
+        </div>
+
+        {/* Counter badge */}
+        <div className="text-xs text-black font-medium">
+          แสดง <span className="font-bold text-black">{filteredAndSortedJobs.length}</span> จากทั้งหมด <span className="font-bold text-black">{allJobs.length}</span> รายการ
+        </div>
+      </div>
+
+      {/* Main Master-Detail Exploration Area */}
+      <div className="flex-1 min-h-0 mt-2">
+        <MasterDetailLayout
+          pageKey="reports"
+          masterContent={
+            <DataGrid
+              columns={columns}
+              data={filteredAndSortedJobs}
+              isLoading={isLoading}
+              getRowId={(row) => String(row.id || row.job_no)}
+              onRowSelect={(row) => handleRowClick(row, 'timeline')}
+              selectedRowId={selectedJob ? String(selectedJob.id || selectedJob.job_no) : undefined}
+            />
+          }
+          detailContent={
+            selectedJob ? (
+              <div className="flex flex-col h-full overflow-hidden bg-white border border-soft rounded-xl shadow-card">
+                {/* Header ribbon */}
+                <div className="px-4 py-2.5 bg-slate-50 border-b border-border-soft flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono font-bold text-sm text-black">{selectedJob.job_no}</span>
+                    {getJobType(selectedJob) === 'Q' && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 border border-blue-400 text-blue-900">
+                        ⚡ Quick Service
+                      </span>
+                    )}
+                    {getJobType(selectedJob) === 'R' && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 border border-orange-400 text-orange-900">
+                        🏗️ Renovate
+                      </span>
+                    )}
+                    <StatusBadge status={(selectedJob as any).stk_status === 'DELIVERED' || selectedJob.status === 'CLOSED' || selectedJob.status === 'CLOSEJOB' ? 'CLOSEJOB' : selectedJob.status} />
+                    <span className="text-xs text-black font-medium">
+                      ลูกค้า: <b>{typeof selectedJob.customer === 'string' ? selectedJob.customer : selectedJob.customer?.name || '-'}</b>
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCloseDetail}
+                    className="h-7 w-7 p-0 text-black hover:bg-slate-200"
+                    title="ปิดรายละเอียด"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                  <div className={`h-2.5 rounded-full ${item.color}`} style={{ width: `${item.percent}%` }}></div>
+
+                {/* Tabs view covering all 5 angles: [งาน/Task], [BOQ], [QC], [ส่งออก STK], [ประวัติ (Timeline)] */}
+                <div className="flex-1 min-h-0">
+                  <JobDetailTabs 
+                    job={selectedJob} 
+                    defaultTab={initialTab || 'timeline'}
+                    onClose={handleCloseDetail} 
+                  />
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-card border border-soft rounded-xl shadow-card space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 shadow-2xs">
+                  <BarChart3 className="w-7 h-7" />
+                </div>
+                <h3 className="text-sm font-bold text-black">
+                  เลือกใบงานจากตารางเพื่อดูข้อมูลทุกมุมมอง (360° View) และประวัติการทำงาน (Timeline)
+                </h3>
+                <p className="text-xs text-black/70 max-w-md leading-relaxed">
+                  ศูนย์รวมรายงานและข้อมูลตรวจสอบย้อนกลับ: ดูขอบเขตงาน, รูปถ่าย PhotoSlots 5 ขั้นตอน, รายการ BOQ, ผลตรวจ QC, การส่งมอบ STK และประวัติการเปลี่ยนสถานะ (Audit Trail) ครบถ้วนทุกสถานะงาน
+                </p>
+                <div className="pt-2 flex items-center gap-2">
+                  <span className="text-[11px] font-semibold text-black bg-gray-100 px-2.5 py-1 rounded-full border border-gray-200">
+                    💡 คลิกที่ปุ่ม "ดูประวัติ & ข้อมูล" ในตารางเพื่อเปิดดูข้อมูลใบงาน
+                  </span>
+                </div>
+              </div>
+            )
+          }
+        />
       </div>
     </div>
   );

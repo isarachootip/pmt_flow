@@ -5122,19 +5122,19 @@
                                 <div class="space-y-2">
                                     <div class="flex items-center justify-between">
                                         <span class="px-2 py-0.5 rounded bg-purple-500/15 text-purple-600 font-mono text-[10px] font-bold border border-purple-500/20">TRN-PMT-REP01</span>
-                                        <span class="text-[10px] text-muted-foreground font-mono">ศูนย์รายงาน</span>
+                                        <span class="text-[10px] text-muted-foreground font-mono">ศูนย์รายงาน 360°</span>
                                     </div>
-                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-purple-600 transition">ศูนย์รายงานผลการดำเนินงาน (Report)</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">วิเคราะห์ผลงานและรายได้แยกประเภท Quick & Renovate, Donut & Mixed Charts, กรองเวลา 7D/30D/3M/1Y/Custom และ Export Excel</p>
+                                    <h4 class="font-display font-bold text-xs text-foreground group-hover:text-purple-600 transition">ศูนย์รายงาน 360° & ประวัติงาน (Report Explorer)</h4>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">ศูนย์รายงานผลงานแบบรอบทิศทาง 360°, ตรวจสอบงานทุกสถานะและงาน Closejob, เจาะลึก 5 มุมมอง (งาน, BOQ, QC, STK, Timeline), กรอง Quick/Renovate และ Export</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-1.5">
-                                    <button onclick="app.navigate('report')" class="flex-1 py-1.5 px-2 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
-                                        <i class="ph ph-arrow-square-out"></i> ไปหน้าจอ
+                                    <button onclick="window.open('/reports', '_blank')" class="flex-1 py-1.5 px-2 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
+                                        <i class="ph ph-arrow-square-out"></i> ไปหน้ารายงาน
                                     </button>
                                     <button onclick="app.openStepAuditReportModal()" class="flex-1 py-1.5 px-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-[11px] font-semibold text-purple-600 flex items-center justify-center gap-1 cursor-pointer transition" title="เปิดหน้าต่างตรวจสอบ Audit ทุก Transaction">
                                         <i class="ph ph-clock-counter-clockwise"></i> Audit ทุกงาน
                                     </button>
-                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_รายงานAudit_Timestamps.md', 'โมดูล 12: รายงานบันทึกเวลาตามขั้นตอนปฏิบัติงาน Audit')" class="flex-1 py-1.5 px-2 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-[11px] font-semibold text-purple-700 flex items-center justify-center gap-1 cursor-pointer transition" title="อ่านคู่มือระบบ">
+                                    <button onclick="window.openTrainingDoc('คู่มือการใช้งาน_สรุปคำสั่งซื้อทั้งหมด_Job360Audit.md', 'โมดูล 12: ศูนย์รายงาน 360° และประวัติงานย้อนหลัง')" class="flex-1 py-1.5 px-2 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-[11px] font-semibold text-purple-700 flex items-center justify-center gap-1 cursor-pointer transition" title="อ่านคู่มือระบบ">
                                         <i class="ph ph-book-open"></i> คู่มือ
                                     </button>
                                 </div>

@@ -9,7 +9,7 @@ import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Input } from '@/components/ui/input';
 import { formatDMY, toDateTime, toISODate, format24HourTimeBadge } from '@/lib/date';
 import { Button } from '@/components/ui/button';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, FileText } from 'lucide-react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CreateJobDrawer } from '@/features/jobs/create-job-drawer';
 import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
@@ -482,6 +482,24 @@ export default function OrdersPage() {
             </div>
           );
         }
+        const isStkDelivered = (row as any).stk_status === 'DELIVERED' || row.status === 'CLOSED' || row.status === 'CLOSEJOB';
+        if (isStkDelivered) {
+          return (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/reports?jobNo=${row.job_no}&tab=timeline`);
+              }}
+              className="text-xs px-2.5 py-1 rounded font-semibold border transition-colors cursor-pointer bg-blue-50 text-blue-900 border-blue-300 hover:bg-blue-100 whitespace-nowrap flex items-center gap-1"
+              title="เปิดดูข้อมูลทุกมุมมองและประวัติการทำงานในเมนูรายงาน"
+            >
+              <FileText className="w-3.5 h-3.5 text-blue-700" />
+              <span>ดูในรายงาน</span>
+            </button>
+          );
+        }
+
         return (
           <button
             type="button"
@@ -768,13 +786,33 @@ export default function OrdersPage() {
           }
           detailContent={
             selectedJob ? (
-              <JobDetailTabs 
-                job={selectedJob} 
-                onClose={() => {
-                  setSelectedJob(null);
-                  navigate(`/orders${location.search}`, { replace: true });
-                }} 
-              />
+              <div className="flex flex-col h-full overflow-hidden">
+                {((selectedJob as any).stk_status === 'DELIVERED' || selectedJob.status === 'CLOSED' || selectedJob.status === 'CLOSEJOB') && (
+                  <div className="bg-blue-50 border-b border-blue-200 px-4 py-2 flex items-center justify-between text-xs text-blue-900 shrink-0">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <FileText className="w-4 h-4 text-blue-700 shrink-0" />
+                      <span>ใบงานนี้ปิดงานเสร็จสิ้นแล้ว (ส่ง STK แล้ว) สามารถดูข้อมูลทุกมุมมองและประวัติฉบับเต็มได้ที่เมนูรายงาน</span>
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate(`/reports?jobNo=${selectedJob.job_no}&tab=timeline`)}
+                      className="h-7 text-xs bg-white text-blue-800 border-blue-300 hover:bg-blue-100 cursor-pointer"
+                    >
+                      เปิดในเมนูรายงาน →
+                    </Button>
+                  </div>
+                )}
+                <div className="flex-1 min-h-0">
+                  <JobDetailTabs 
+                    job={selectedJob} 
+                    onClose={() => {
+                      setSelectedJob(null);
+                      navigate(`/orders${location.search}`, { replace: true });
+                    }} 
+                  />
+                </div>
+              </div>
             ) : (
               <div className="flex h-full items-center justify-center text-black bg-card border border-soft rounded-xl shadow-card font-medium">
                 เลือกรายการเพื่อดูรายละเอียด
