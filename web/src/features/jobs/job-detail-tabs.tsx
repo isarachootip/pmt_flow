@@ -37,6 +37,7 @@ interface JobDetailTabsProps {
   onClose?: () => void;
   readOnly?: boolean;
   hideOrderSummary?: boolean;
+  hideHeader?: boolean;
 }
 
 export function JobDetailTabs({ 
@@ -45,6 +46,7 @@ export function JobDetailTabs({
   onClose, 
   readOnly = false,
   hideOrderSummary = false,
+  hideHeader = false,
 }: JobDetailTabsProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -456,54 +458,56 @@ export function JobDetailTabs({
   return (
     <div className="flex flex-col h-full bg-card rounded-xl border border-soft overflow-hidden shadow-card">
       {/* Header bar */}
-      <div className={cn(
-        "flex items-center justify-between border-b border-soft bg-white",
-        hideOrderSummary ? "px-4 py-2" : "p-4"
-      )}>
-        <div className="flex items-center space-x-3 flex-wrap gap-y-1">
-          <span className="font-bold text-black text-lg">{job.job_no}</span>
-          {bookingBadge && (
-            <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-100 border border-gray-300 text-black font-semibold" title="Booking Number">
-              {bookingBadge}
+      {!hideHeader && (
+        <div className={cn(
+          "flex items-center justify-between border-b border-soft bg-white",
+          hideOrderSummary ? "px-4 py-2" : "p-4"
+        )}>
+          <div className="flex items-center space-x-3 flex-wrap gap-y-1">
+            <span className="font-bold text-black text-lg">{job.job_no}</span>
+            {bookingBadge && (
+              <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-100 border border-gray-300 text-black font-semibold" title="Booking Number">
+                {bookingBadge}
+              </span>
+            )}
+            {refBadge && (
+              <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-100 border border-gray-300 text-black font-semibold" title="Reference ID">
+                {refBadge}
+              </span>
+            )}
+            <span className="text-black font-bold">·</span>
+            <span className="text-base text-black font-semibold">
+              {typeof job.customer === 'string' ? job.customer : (job.customer?.name || (job as any).customer_name || 'ลูกค้าทั่วไป')}
             </span>
-          )}
-          {refBadge && (
-            <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-100 border border-gray-300 text-black font-semibold" title="Reference ID">
-              {refBadge}
-            </span>
-          )}
-          <span className="text-black font-bold">·</span>
-          <span className="text-base text-black font-semibold">
-            {typeof job.customer === 'string' ? job.customer : (job.customer?.name || (job as any).customer_name || 'ลูกค้าทั่วไป')}
-          </span>
-          <span className="text-black font-bold">·</span>
-          <StatusBadge status={(job as any).stk_status === 'DELIVERED' || job.status === 'CLOSED' || job.status === 'CLOSEJOB' ? 'CLOSEJOB' : (job.status === 'QC_PENDING' ? 'PENDING' : job.status)} />
+            <span className="text-black font-bold">·</span>
+            <StatusBadge status={(job as any).stk_status === 'DELIVERED' || job.status === 'CLOSED' || job.status === 'CLOSEJOB' ? 'CLOSEJOB' : (job.status === 'QC_PENDING' ? 'PENDING' : job.status)} />
+          </div>
+          <div className="flex items-center space-x-2">
+            {!readOnly && (job.status === 'NEW' || job.status === 'NEED_REVIEW' || !(job as any).pmt_accepted) && (
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={acceptMutation.isPending}
+                onClick={handleAcceptJob}
+                className="bg-green-600 hover:bg-green-700 text-white font-bold px-3 py-1.5 text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <UserCheck className="w-3.5 h-3.5 text-white" />
+                <span>{acceptMutation.isPending ? 'กำลังรับงาน...' : 'รับงาน'}</span>
+              </Button>
+            )}
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-gray-400 hover:text-black hover:bg-gray-100 p-1.5 rounded-lg transition-colors cursor-pointer"
+                title="ปิดหน้าต่าง (Close)"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </div>
-        <div className="flex items-center space-x-2">
-          {!readOnly && (job.status === 'NEW' || job.status === 'NEED_REVIEW' || !(job as any).pmt_accepted) && (
-            <Button
-              variant="primary"
-              size="sm"
-              disabled={acceptMutation.isPending}
-              onClick={handleAcceptJob}
-              className="bg-green-600 hover:bg-green-700 text-white font-bold px-3 py-1.5 text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
-            >
-              <UserCheck className="w-3.5 h-3.5 text-white" />
-              <span>{acceptMutation.isPending ? 'กำลังรับงาน...' : 'รับงาน'}</span>
-            </Button>
-          )}
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-gray-400 hover:text-black hover:bg-gray-100 p-1.5 rounded-lg transition-colors cursor-pointer"
-              title="ปิดหน้าต่าง (Close)"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Order & Customer Summary Details (Site address, phone, Google Maps, items, 24-hr schedule) */}
       {!hideOrderSummary && <OrderCustomerSummary job={job} />}
@@ -511,7 +515,7 @@ export function JobDetailTabs({
       {/* Tabs Container */}
       <div className="flex-1 flex flex-col min-h-0 bg-white">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
-          <div className="px-4 border-b border-soft bg-white">
+          <div className="px-4 border-b border-soft bg-white flex items-center justify-between">
             <TabsList className={cn("bg-transparent flex space-x-2", hideOrderSummary ? "h-10" : "h-12")}>
               <TabsTrigger 
                 value="task" 
@@ -581,6 +585,16 @@ export function JobDetailTabs({
                 ประวัติ (Timeline)
               </TabsTrigger>
             </TabsList>
+            {hideHeader && onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-gray-400 hover:text-black hover:bg-gray-100 p-1.5 rounded-lg transition-colors cursor-pointer ml-auto"
+                title="ปิดหน้าต่าง (Close)"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
           
           <div className={cn("flex-1 overflow-auto bg-white text-black", hideOrderSummary ? "p-2.5" : "p-4")}>

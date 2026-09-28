@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { JobDetailTabs } from '../job-detail-tabs';
@@ -38,18 +38,33 @@ const mockJob: Job = {
   updated_at: '2026-09-25T08:00:00Z',
 } as unknown as Job;
 
-describe('JobDetailTabs - hideOrderSummary prop isolation', () => {
-  it('renders OrderCustomerSummary when hideOrderSummary is omitted (default behavior for Orders, QC, etc.)', () => {
+describe('JobDetailTabs - hideOrderSummary and hideHeader prop isolation', () => {
+  it('renders OrderCustomerSummary and Header when props are omitted (default behavior for Orders, QC, etc.)', () => {
     renderWithProviders(<JobDetailTabs job={mockJob} defaultTab="task" />);
     // Address label must exist
     expect(screen.getByText('สถานที่ติดตั้ง:')).toBeInTheDocument();
     expect(screen.getByText('หมายเหตุ:')).toBeInTheDocument();
+    // Header job_no must exist
+    expect(screen.getByText('JOB-R2609018')).toBeInTheDocument();
   });
 
-  it('omits OrderCustomerSummary when hideOrderSummary={true} (specifically for Project & Gantt window)', () => {
-    renderWithProviders(<JobDetailTabs job={mockJob} defaultTab="gantt" hideOrderSummary={true} />);
+  it('omits OrderCustomerSummary and Header when hideOrderSummary={true} and hideHeader={true} (specifically for Project & Gantt window)', () => {
+    const handleClose = vi.fn();
+    renderWithProviders(
+      <JobDetailTabs 
+        job={mockJob} 
+        defaultTab="gantt" 
+        hideOrderSummary={true} 
+        hideHeader={true}
+        onClose={handleClose}
+      />
+    );
     // Address and remarks labels must NOT exist in the window
     expect(screen.queryByText('สถานที่ติดตั้ง:')).not.toBeInTheDocument();
     expect(screen.queryByText('หมายเหตุ:')).not.toBeInTheDocument();
+    // Customer name in header bar should not be present
+    expect(screen.queryByText('คุณพิชญ์สินี อัครวิวัฒน์')).not.toBeInTheDocument();
+    // Close button must still exist in tabs bar
+    expect(screen.getByTitle('ปิดหน้าต่าง (Close)')).toBeInTheDocument();
   });
 });

@@ -456,6 +456,7 @@ export default function GanttPage() {
                 defaultTab="gantt"
                 onClose={() => setSelectedJob(null)}
                 hideOrderSummary={true}
+                hideHeader={true}
               />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-slate-400 p-8 border border-border-soft rounded-2xl bg-white shadow-2xs">
