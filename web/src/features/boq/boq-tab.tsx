@@ -65,7 +65,7 @@ export function BoqTab({ job }: BoqTabProps) {
     }
   });
 
-  const subtotal = items.reduce((acc, item) => acc + (item.qty * item.unit_price), 0);
+  const subtotal = items.reduce((acc, item) => acc + (item.qty * (item.unit_price || 0)), 0);
   const grandTotal = Math.max(0, subtotal - discount);
 
   const handleAddItem = () => {
@@ -202,16 +202,13 @@ export function BoqTab({ job }: BoqTabProps) {
           <thead className="bg-bg-subtle sticky top-0 z-10 text-black">
             <tr>
               <th className="p-2 border-b border-soft font-semibold text-black">รายการ</th>
-              <th className="p-2 border-b border-soft font-semibold text-black w-24">หน่วย</th>
-              <th className="p-2 border-b border-soft font-semibold text-black w-24">จำนวน</th>
-              <th className="p-2 border-b border-soft font-semibold text-black w-32">ราคา/หน่วย</th>
-              <th className="p-2 border-b border-soft font-semibold text-black w-32 text-right">รวม</th>
+              <th className="p-2 border-b border-soft font-semibold text-black w-28">หน่วย</th>
+              <th className="p-2 border-b border-soft font-semibold text-black w-28">จำนวน</th>
               <th className="p-2 border-b border-soft font-semibold text-black w-12 text-center"></th>
             </tr>
           </thead>
           <tbody className="text-black">
             {items.map((item, idx) => {
-              const rowTotal = item.qty * item.unit_price;
               return (
                 <tr key={idx} className="border-b border-soft hover:bg-[var(--bg-subtle)]">
                   <td className="p-2">
@@ -223,21 +220,15 @@ export function BoqTab({ job }: BoqTabProps) {
                   <td className="p-2">
                     <Input type="number" value={item.qty} onChange={(e) => handleChange(idx, 'qty', parseFloat(e.target.value) || 0)} min="0" className="text-black bg-white" />
                   </td>
-                  <td className="p-2">
-                    <Input type="number" value={item.unit_price} onChange={(e) => handleChange(idx, 'unit_price', parseFloat(e.target.value) || 0)} min="0" className="text-black bg-white" />
-                  </td>
-                  <td className="p-2 text-right tabular-nums align-middle font-medium text-black">
-                    {rowTotal.toLocaleString('th-TH')}
-                  </td>
                   <td className="p-2 text-center align-middle">
-                    <button onClick={() => handleRemoveItem(idx)} className="text-danger hover:text-danger/80 text-lg font-bold">×</button>
+                    <button onClick={() => handleRemoveItem(idx)} className="text-danger hover:text-danger/80 text-lg font-bold" title="ลบรายการ">×</button>
                   </td>
                 </tr>
               );
             })}
             {items.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-black">
+                <td colSpan={4} className="p-8 text-center text-black">
                   <div className="max-w-md mx-auto py-4 flex flex-col items-center justify-center space-y-2.5">
                     <Package className="w-10 h-10 text-blue-600" />
                     <div className="text-sm font-bold text-black">
@@ -276,22 +267,10 @@ export function BoqTab({ job }: BoqTabProps) {
         </table>
       </div>
 
-      <div className="mt-4 border-t border-soft pt-4 flex flex-col items-end gap-2 text-sm text-black">
-        <div className="flex justify-between w-64">
-          <span className="text-black font-medium">รวมเป็นเงิน:</span>
-          <span className="font-bold tabular-nums text-black">{subtotal.toLocaleString('th-TH')}</span>
-        </div>
-        <div className="flex justify-between w-64 items-center">
-          <span className="text-black font-medium">ส่วนลด:</span>
-          <Input type="number" value={discount} onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)} className="w-24 h-8 text-right text-black bg-white font-mono" min="0" />
-        </div>
-        <div className="flex justify-between w-64 text-base font-bold mt-2 text-black">
-          <span>ยอดสุทธิ:</span>
-          <span className="tabular-nums text-black">{grandTotal.toLocaleString('th-TH')}</span>
-        </div>
+      <div className="mt-4 border-t border-soft pt-4 flex justify-end">
         <Button 
           variant="primary" 
-          className="mt-4 w-64 text-black font-semibold bg-primary hover:bg-primary/90 shadow-sm flex items-center justify-center gap-2" 
+          className="w-64 text-white font-semibold bg-blue-600 hover:bg-blue-700 shadow-sm flex items-center justify-center gap-2" 
           onClick={handleConvertToTasks}
           disabled={saveMutation.isPending}
         >
