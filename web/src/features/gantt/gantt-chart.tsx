@@ -145,10 +145,10 @@ export function GanttChart({
                 type="button"
                 onClick={onViewDailyLogs}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition-colors shadow-2xs cursor-pointer"
-                title="คลิกเพื่อเปิดดูประวัติการบันทึกงานช่างประจำวันทั้งหมด (Daily Technician Logs Tab)"
+                title="คลิกเพื่อสลับไปแท็บบันทึกงานช่างประจำวัน (Daily Technician Logs Tab)"
               >
                 <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                <span>ประวัติงานช่าง ({dailyLogs.length} รายการ) ↗</span>
+                <span>แท็บบันทึกช่าง ({dailyLogs.length} รายการ) 📑</span>
               </button>
             )}
           </div>

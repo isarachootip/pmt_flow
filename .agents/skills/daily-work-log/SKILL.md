@@ -39,13 +39,13 @@ This skill governs the **Daily Technician Work Log (บันทึกงาน�
    - Primary and only data-entry interface for technician daily logs, eliminating redundancy.
    - Accessible from Gantt task rows via button **"บันทึกช่าง"** (`app.openDailyWorkLogModal(taskId)`).
    - Allows quick daily progress entry while inspecting project timeline and tasks.
-2. **Dedicated Daily Logs Tab (แท็บประวัติงานช่าง)**:
-   - Full history of technician daily logs is displayed in its own dedicated Tab (`value="daily-logs"`) on the job workspace, rather than cluttering below the Gantt chart.
-   - Restores 100% full vertical and horizontal screen real estate to the Gantt chart.
+2. **Gantt TabSheet Architecture (ระบบ TabSheet ผัง Gantt & บันทึกงานช่าง)**:
+   - Full history of technician daily logs is displayed as a dedicated TabSheet view (`ganttSubTab='logs'`) right inside the Gantt workspace, allowing seamless switching back and forth ("สลับไปมาได้") with `ผังกำหนดการทำงาน (Gantt Chart)`.
+   - Restores 100% full vertical and horizontal screen real estate to both the Gantt chart and daily logs, without clutter or confusing page jumps.
 3. **Green Logged Indicators & Hover Tooltip Hint on Gantt**:
    - When daily work is logged for any task on a given date, the Gantt timeline renders a vibrant green indicator/marker (`bg-emerald-500`) on that day column.
    - **Hover Tooltip Hint**: Hovering over the green indicator reveals a rich popup hint with date (`DD/MM/YYYY`), technician name, 24-hr work duration, progress %, accomplishment summary, and photo count.
-   - A quick jump button `[ 📋 ประวัติงานช่าง (X รายการ) ↗ ]` in the Gantt ribbon allows immediate navigation to the detailed logs tab.
+   - A quick switch button `[ 📑 แท็บบันทึกช่าง (X รายการ) ]` in the Gantt ribbon allows immediate switching to the detailed logs tabsheet.
 
 ### 2.2 Form Fields (Daily Progress Only - เหลือแค่บันทึกรายวัน)
 - **Work Date**: Standard Date input (must display in `DD/MM/YYYY` format).

@@ -85,6 +85,7 @@ export function JobDetailTabs({
   else if (rawTab === 'blueprint' || rawTab === 'tasks' || rawTab === 'task' || rawTab === 'งาน') normalizedTab = 'task';
   else if (rawTab === 'boq' || rawTab === 'pricing') normalizedTab = 'boq';
   else if (rawTab === 'gantt' || rawTab === 'แผนงาน' || rawTab === 'ผังงาน' || rawTab === 'chart') normalizedTab = 'gantt';
+  else if (rawTab === 'daily-logs' || rawTab === 'dailylogs' || rawTab === 'tech-logs' || rawTab === 'technician-logs') normalizedTab = 'gantt';
   else if (rawTab === 'timeline' || rawTab === 'audit' || rawTab === 'logs') normalizedTab = 'timeline';
   
   // If Quick job, disable and disallow boq and gantt tabs!
@@ -94,6 +95,11 @@ export function JobDetailTabs({
 
   const validTabs = ['task', 'boq', 'gantt', 'qc', 'stk', 'timeline'];
   const activeTab = validTabs.includes(normalizedTab) ? normalizedTab : 'task';
+
+  // Sub-tab state for Gantt TabSheet: 'chart' (ผังกำหนดการทำงาน) vs 'logs' (บันทึกงานช่างประจำวัน)
+  const [ganttSubTab, setGanttSubTab] = useState<'chart' | 'logs'>(() => {
+    return (rawTab === 'daily-logs' || rawTab === 'dailylogs' || rawTab === 'tech-logs' || rawTab === 'technician-logs') ? 'logs' : 'chart';
+  });
 
   const { data: tasksData, isLoading: isLoadingTasks } = useJobTasks(job.id);
   const qcMutation = useQCInspection();
@@ -219,6 +225,10 @@ export function JobDetailTabs({
     if (isQuick && value === 'gantt') {
       toast.warning('งาน Quick Service ไม่มีขั้นตอนผัง Gantt');
       return;
+    }
+    if (value === 'daily-logs') {
+      setGanttSubTab('logs');
+      value = 'gantt';
     }
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
@@ -560,23 +570,7 @@ export function JobDetailTabs({
                   </span>
                 )}
               </TabsTrigger>
-              <TabsTrigger 
-                value="daily-logs" 
-                disabled={isQuick}
-                title={isQuick ? "งาน Quick Service ไม่มีขั้นตอนบันทึกช่าง" : "ประวัติการบันทึกงานช่างประจำวัน (Daily Technician Logs)"}
-                className={cn(
-                  "data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-black text-black font-semibold rounded-none shadow-none px-4 flex items-center gap-1.5",
-                  hideOrderSummary ? "py-2 text-xs" : "py-3",
-                  isQuick ? 'opacity-40 cursor-not-allowed text-gray-400' : 'text-black'
-                )}
-              >
-                <span>ประวัติงานช่าง</span>
-                {dailyLogs && dailyLogs.length > 0 ? (
-                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-900 font-bold border border-emerald-300">
-                    {dailyLogs.length}
-                  </span>
-                ) : null}
-              </TabsTrigger>
+
               <TabsTrigger 
                 value="qc" 
                 className={cn(
@@ -781,36 +775,57 @@ export function JobDetailTabs({
                 </div>
               ) : (
                 <>
+                  {/* Gantt & Technician Daily Logs TabSheet */}
                   <div className={cn(
-                    "flex flex-wrap items-center justify-between gap-2 bg-slate-50 border border-gray-200 rounded-lg",
-                    hideOrderSummary ? "px-3 py-1.5" : "p-3"
+                    "flex flex-wrap items-center justify-between gap-3 bg-slate-50 border border-gray-200 rounded-xl",
+                    hideOrderSummary ? "px-3 py-2" : "p-3"
                   )}>
-                    <div>
-                      <h3 className="text-sm font-bold text-black flex items-center gap-2">
-                        <span>ผังกำหนดการทำงาน Gantt Chart</span>
-                        <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-200 text-black font-semibold">
-                          {job.job_no}
-                        </span>
-                        <span className="text-xs font-medium text-gray-600">
-                          ({finalGanttTasks.length} รายการงานย่อย)
-                        </span>
-                      </h3>
-                      {!location.pathname.startsWith('/gantt') && (
-                        <p className="text-xs text-gray-600 mt-0.5">
-                          แผนภูมิแสดงแถบเวลาตามแผนงานของช่างแต่ละขั้นตอน พร้อมสถานะความคืบหน้า
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleTabChange('daily-logs')}
-                        className="text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-300 font-bold cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                    {/* TabSheet Switcher Controls */}
+                    <div className="flex items-center gap-1.5 bg-gray-200/80 p-1 rounded-xl border border-gray-300 shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => setGanttSubTab('chart')}
+                        className={cn(
+                          "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                          ganttSubTab === 'chart'
+                            ? "bg-white text-black shadow-xs border border-gray-300 font-extrabold ring-1 ring-black/5"
+                            : "text-gray-700 hover:text-black hover:bg-white/60"
+                        )}
+                        title="ผังกำหนดการทำงาน Gantt Chart แสดงแถบเวลาและงานย่อย"
                       >
-                        <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>ดูประวัติงานช่าง ({dailyLogs?.length || 0} รายการ) ↗</span>
-                      </Button>
+                        <Layers className={cn("w-4 h-4", ganttSubTab === 'chart' ? "text-indigo-600" : "text-gray-500")} />
+                        <span>ผังกำหนดการทำงาน (Gantt Chart)</span>
+                        <span className="font-mono text-[11px] px-1.5 py-0.2 rounded bg-gray-100 text-black font-semibold border border-gray-200">
+                          {finalGanttTasks.length} งานย่อย
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setGanttSubTab('logs')}
+                        className={cn(
+                          "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                          ganttSubTab === 'logs'
+                            ? "bg-white text-emerald-950 shadow-xs border border-emerald-400 font-extrabold ring-1 ring-emerald-500/20"
+                            : "text-gray-700 hover:text-black hover:bg-white/60"
+                        )}
+                        title="ประวัติการบันทึกงานช่างประจำวัน เวลาทำงานจริง 24 ชม. และภาพถ่ายหน้างาน 5 ช่วง"
+                      >
+                        <Clock className={cn("w-4 h-4", ganttSubTab === 'logs' ? "text-emerald-600" : "text-gray-500")} />
+                        <span>บันทึกงานช่างประจำวัน (Daily Logs)</span>
+                        <span className={cn(
+                          "font-mono text-[11px] px-2 py-0.2 rounded-full font-bold",
+                          (dailyLogs?.length || 0) > 0
+                            ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                            : "bg-gray-100 text-gray-700 border border-gray-200"
+                        )}>
+                          {dailyLogs?.length || 0} รายการ
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Actions on the right */}
+                    <div className="flex items-center gap-2">
                       {!readOnly && (
                         <Button
                           size="sm"
@@ -818,7 +833,7 @@ export function JobDetailTabs({
                             setSelectedDailyLogTask(finalGanttTasks[0] || null);
                             setIsDailyLogModalOpen(true);
                           }}
-                          className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                          className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer px-3.5 py-1.5"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>+ บันทึกช่าง</span>
@@ -838,69 +853,72 @@ export function JobDetailTabs({
                     </div>
                   </div>
 
-                  <div className={cn("flex-1 min-h-[420px] border border-gray-200 rounded-xl overflow-auto bg-white", hideOrderSummary ? "p-1.5" : "p-2")}>
-                    <GanttChart
-                      tasks={finalGanttTasks}
-                      dailyLogs={dailyLogs || []}
-                      onViewDailyLogs={() => handleTabChange('daily-logs')}
-                      onOpenDailyLog={readOnly ? undefined : (task) => {
-                        setSelectedDailyLogTask(task);
-                        setIsDailyLogModalOpen(true);
-                      }}
-                      className="h-full"
-                    />
-                  </div>
-                </>
-              )}
-            </TabsContent>
-
-            {/* 3.1 ประวัติการบันทึกงานช่างประจำวัน (Daily Technician Logs Tab) */}
-            <TabsContent value="daily-logs" className="h-full m-0 data-[state=active]:flex flex-col space-y-4">
-              <div className="border border-border-soft rounded-xl p-5 bg-white space-y-4 shadow-2xs">
-                <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-gray-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center font-bold shadow-2xs">
-                      <Clock className="w-5 h-5 text-emerald-600" />
-                    </div>
-                    <div>
-                      <h4 className="text-base font-bold text-black flex items-center gap-2">
-                        <span>ประวัติการบันทึกงานช่างประจำวัน (Daily Technician Logs)</span>
-                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold font-mono">
-                          {dailyLogs?.length || 0} รายการ
-                        </span>
-                      </h4>
-                      <p className="text-xs text-black">
-                        บันทึกความคืบหน้ารายวัน เวลาทำงานจริง 24 ชม. และภาพถ่ายหน้างาน 5 ช่วง
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleTabChange('gantt')}
-                      className="text-xs text-indigo-700 bg-white hover:bg-indigo-50 border-indigo-200 font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                    >
-                      <Layers className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>กลับไปที่ผัง Gantt ←</span>
-                    </Button>
-                    {!readOnly && (
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setSelectedDailyLogTask(finalGanttTasks[0] || null);
+                  {/* TabSheet View 1: ผังกำหนดการทำงาน Gantt Chart */}
+                  {ganttSubTab === 'chart' && (
+                    <div className={cn("flex-1 min-h-[420px] border border-gray-200 rounded-xl overflow-auto bg-white", hideOrderSummary ? "p-1.5" : "p-2")}>
+                      <GanttChart
+                        tasks={finalGanttTasks}
+                        dailyLogs={dailyLogs || []}
+                        onViewDailyLogs={() => setGanttSubTab('logs')}
+                        onOpenDailyLog={readOnly ? undefined : (task) => {
+                          setSelectedDailyLogTask(task);
                           setIsDailyLogModalOpen(true);
                         }}
-                        className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer px-4 py-2"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>+ บันทึกงานประจำวัน</span>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <DailyLogList logs={dailyLogs || []} />
-              </div>
+                        className="h-full"
+                      />
+                    </div>
+                  )}
+
+                  {/* TabSheet View 2: ประวัติการบันทึกงานช่างประจำวัน (Daily Logs) */}
+                  {ganttSubTab === 'logs' && (
+                    <div className="border border-border-soft rounded-xl p-5 bg-white space-y-4 shadow-2xs">
+                      <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-gray-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center font-bold shadow-2xs">
+                            <Clock className="w-5 h-5 text-emerald-600" />
+                          </div>
+                          <div>
+                            <h4 className="text-base font-bold text-black flex items-center gap-2">
+                              <span>ประวัติการบันทึกงานช่างประจำวัน (Daily Technician Logs)</span>
+                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold font-mono">
+                                {dailyLogs?.length || 0} รายการ
+                              </span>
+                            </h4>
+                            <p className="text-xs text-black">
+                              บันทึกความคืบหน้ารายวัน เวลาทำงานจริง 24 ชม. และภาพถ่ายหน้างาน 5 ช่วง
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setGanttSubTab('chart')}
+                            className="text-xs text-indigo-700 bg-white hover:bg-indigo-50 border-indigo-200 font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                          >
+                            <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>สลับกลับไปที่ผัง Gantt ←</span>
+                          </Button>
+                          {!readOnly && (
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                setSelectedDailyLogTask(finalGanttTasks[0] || null);
+                                setIsDailyLogModalOpen(true);
+                              }}
+                              className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer px-4 py-2"
+                            >
+                              <Plus className="w-4 h-4" />
+                              <span>+ บันทึกงานประจำวัน</span>
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <DailyLogList logs={dailyLogs || []} />
+                    </div>
+                  )}
+                </>
+              )}
             </TabsContent>
 
             {/* 4. QC (Inline Inspection Workspace - No Popup) */}
