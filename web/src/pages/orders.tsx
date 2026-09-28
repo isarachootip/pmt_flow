@@ -100,7 +100,15 @@ export default function OrdersPage() {
       if (j.status === 'NEW' || j.status === 'NEED_REVIEW' || !(j as any).pmt_accepted) counts.NEW++;
       else if (j.status === 'WAIT_QC' || j.status === 'QC_PENDING' || j.status === 'REWORK') counts.WAIT_QC++;
       else if (j.status === 'PLANNED' || j.status === 'BOQ') counts.PLANNED++;
-      else if (j.status === 'COMPLETED' || j.status === 'PASSED' || j.status === 'CLOSED') counts.COMPLETED++;
+      else if (
+        j.status === 'COMPLETED' || 
+        j.status === 'PASSED' || 
+        j.status === 'QC_PASSED' || 
+        j.status === 'QC_PASS' || 
+        j.status === 'CLOSED' || 
+        j.status === 'CLOSEJOB' || 
+        (j as any).stk_status === 'DELIVERED'
+      ) counts.COMPLETED++;
     }
     return counts;
   }, [allJobs]);
@@ -118,7 +126,15 @@ export default function OrdersPage() {
       } else if (statusFilter === 'WAIT_QC') {
         result = result.filter(j => j.status === 'WAIT_QC' || j.status === 'QC_PENDING' || j.status === 'REWORK');
       } else if (statusFilter === 'COMPLETED') {
-        result = result.filter(j => j.status === 'COMPLETED' || j.status === 'PASSED' || j.status === 'CLOSED');
+        result = result.filter(j => 
+          j.status === 'COMPLETED' || 
+          j.status === 'PASSED' || 
+          j.status === 'QC_PASSED' || 
+          j.status === 'QC_PASS' || 
+          j.status === 'CLOSED' || 
+          j.status === 'CLOSEJOB' || 
+          (j as any).stk_status === 'DELIVERED'
+        );
       } else {
         result = result.filter(j => j.status === statusFilter);
       }
@@ -361,7 +377,10 @@ export default function OrdersPage() {
       header: 'สถานะ', 
       width: 180, 
       minWidth: 160,
-      cell: ({ row }) => <StatusBadge status={row.status === 'QC_PENDING' ? 'PENDING' : row.status} /> 
+      cell: ({ row }) => {
+        const isStkDelivered = (row as any).stk_status === 'DELIVERED' || row.status === 'CLOSED' || row.status === 'CLOSEJOB';
+        return <StatusBadge status={isStkDelivered ? 'CLOSEJOB' : (row.status === 'QC_PENDING' ? 'PENDING' : row.status)} />;
+      } 
     },
     {
       id: 'action_btn',

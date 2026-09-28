@@ -89,7 +89,7 @@ export default function QcPage() {
       id: 'status', 
       header: 'สถานะ', 
       width: 130,
-      cell: ({ row }: any) => <StatusBadge status={row.status as any} /> 
+      cell: ({ row }: any) => <StatusBadge status={((row as any).stk_status === 'DELIVERED' || row.status === 'CLOSED' || row.status === 'CLOSEJOB' ? 'CLOSEJOB' : row.status) as any} /> 
     },
     { 
       id: 'inspector', 

@@ -63,7 +63,7 @@ export default function JobFullPage() {
           </div>
           <div className="flex items-center">
             <span className="text-text-secondary mr-2">สถานะ:</span>
-            <StatusBadge status={(job.status === 'QC_PENDING' ? 'PENDING' : job.status) as any} />
+            <StatusBadge status={((job as any).stk_status === 'DELIVERED' || job.status === 'CLOSED' || job.status === 'CLOSEJOB' ? 'CLOSEJOB' : (job.status === 'QC_PENDING' ? 'PENDING' : job.status)) as any} />
           </div>
         </div>
       </div>

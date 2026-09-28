@@ -73,7 +73,7 @@ export default function DashboardPage() {
                     >
                       <td className="px-4 text-sm whitespace-nowrap font-mono font-medium">{job.job_no}</td>
                       <td className="px-4 text-sm whitespace-nowrap">{typeof job.customer === 'string' ? job.customer : job.customer?.name}</td>
-                      <td className="px-4 whitespace-nowrap"><StatusBadge status={job.status === 'QC_PENDING' ? 'PENDING' : job.status} /></td>
+                      <td className="px-4 whitespace-nowrap"><StatusBadge status={(job.stk_status === 'DELIVERED' || job.status === 'CLOSED' || job.status === 'CLOSEJOB' ? 'CLOSEJOB' : (job.status === 'QC_PENDING' ? 'PENDING' : job.status))} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -107,7 +107,7 @@ export default function DashboardPage() {
                     >
                       <td className="px-4 text-sm whitespace-nowrap font-mono font-medium">{job.job_no}</td>
                       <td className="px-4 text-sm whitespace-nowrap">{typeof job.customer === 'string' ? job.customer : job.customer?.name}</td>
-                      <td className="px-4 whitespace-nowrap"><StatusBadge status={job.status === 'QC_PENDING' ? 'PENDING' : job.status} /></td>
+                      <td className="px-4 whitespace-nowrap"><StatusBadge status={(job.stk_status === 'DELIVERED' || job.status === 'CLOSED' || job.status === 'CLOSEJOB' ? 'CLOSEJOB' : (job.status === 'QC_PENDING' ? 'PENDING' : job.status))} /></td>
                     </tr>
                   ))}
                 </tbody>

@@ -11,6 +11,8 @@ describe('StatusBadge', () => {
     { status: 'REWORK', expectedLabel: 'ส่งกลับแก้ไข (REWORK)', colorVar: 'bg-[var(--st-rework)]' },
     { status: 'DRAFT', expectedLabel: 'ร่าง (DRAFT)', colorVar: 'bg-[var(--st-neutral)]' },
     { status: 'CANCELLED', expectedLabel: 'ยกเลิก', colorVar: 'bg-[var(--st-neutral)]' },
+    { status: 'CLOSEJOB', expectedLabel: 'closejob(ส่ง stk แล้ว)', colorVar: 'bg-[var(--st-done)]' },
+    { status: 'CLOSED', expectedLabel: 'closejob(ส่ง stk แล้ว)', colorVar: 'bg-[var(--st-done)]' },
   ];
 
   it.each(statuses)('renders correctly for status $status', ({ status, expectedLabel, colorVar }) => {

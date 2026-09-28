@@ -60,6 +60,9 @@ const getStatusColor = (status: string) => {
     case 'DONE':
     case 'COMPLETED':
     case 'CLOSED':
+    case 'CLOSEJOB':
+    case 'CLOSEJOB(ส่ง STK แล้ว)':
+    case 'DELIVERED':
     case 'SENT':
       return 'bg-[var(--st-done)]';
     case 'REWORK':
@@ -103,9 +106,11 @@ const getStatusDefaultLabel = (status: string): string => {
     case 'COMPLETED':
       return 'ปิดงานเรียบร้อย (COMPLETED)';
     case 'CLOSED':
-      return 'ปิดงาน (CLOSED)';
+    case 'CLOSEJOB':
+    case 'CLOSEJOB(ส่ง STK แล้ว)':
+    case 'DELIVERED':
     case 'SENT':
-      return 'ส่ง STK สำเร็จ';
+      return 'closejob(ส่ง stk แล้ว)';
     case 'SYNC_FAILED':
       return 'ส่ง STK ล้มเหลว';
     case 'DRAFT':

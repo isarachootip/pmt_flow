@@ -399,7 +399,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
             {typeof job.customer === 'string' ? job.customer : (job.customer?.name || (job as any).customer_name || 'ลูกค้าทั่วไป')}
           </span>
           <span className="text-black">·</span>
-          <StatusBadge status={job.status === 'QC_PENDING' ? 'PENDING' : job.status} />
+          <StatusBadge status={(job as any).stk_status === 'DELIVERED' || job.status === 'CLOSED' || job.status === 'CLOSEJOB' ? 'CLOSEJOB' : (job.status === 'QC_PENDING' ? 'PENDING' : job.status)} />
         </div>
         <div className="flex items-center space-x-2">
           {(job.status === 'NEW' || job.status === 'NEED_REVIEW' || !(job as any).pmt_accepted) && (
@@ -655,7 +655,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                   <div className="flex items-start gap-1.5 min-w-0">
                     <span className="font-bold text-black shrink-0">สถานะการส่งออก:</span>
                     <span className="font-bold text-black">
-                      {(job as any).stk_status === 'DELIVERED' ? 'ส่งต่อไป STKแล้ว (closejob)' : ((job as any).stk_status || 'พร้อมส่งออก (READY)')}
+                      {(job as any).stk_status === 'DELIVERED' || job.status === 'CLOSED' || job.status === 'CLOSEJOB' ? 'closejob(ส่ง stk แล้ว)' : ((job as any).stk_status || 'พร้อมส่งออก (READY)')}
                     </span>
                   </div>
                   <div className="flex items-start gap-1.5 min-w-0">

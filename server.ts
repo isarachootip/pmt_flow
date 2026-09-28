@@ -5486,7 +5486,7 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/jobs/:id/stk-export'], require
     stepTimestamps.stk_exported_at = nowIso;
 
     const updatedJob = await dbUpdateJob(param, {
-      status: JobStatus.QC_PASSED,
+      status: JobStatus.CLOSED,
       overall_progress: 100,
       stk_status: 'DELIVERED',
       stk_ref: stkRef,
@@ -5502,6 +5502,7 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/jobs/:id/stk-export'], require
         job_id: updatedJob ? updatedJob.id : numId,
         stk_ref: stkRef,
         stk_status: 'DELIVERED',
+        status: JobStatus.CLOSED,
         exported_at: nowIso,
         sync_result: syncResult
       }
