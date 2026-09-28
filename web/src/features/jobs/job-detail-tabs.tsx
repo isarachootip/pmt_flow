@@ -18,6 +18,8 @@ import { PhotoSlots5, PhotoSlot } from '@/components/ui/photo-slots-5';
 import { OrderCustomerSummary } from '@/features/jobs/order-customer-summary';
 import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
 import { UserCheck, Camera, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { GanttChart } from '@/features/gantt/gantt-chart';
+import { Task } from '@/features/gantt/api';
 
 const STANDARD_PHOTO_SLOTS: PhotoSlot[] = [
   { id: 'before', label: 'ก่อนเริ่มงาน' },
@@ -37,17 +39,37 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Map legacy / URL tabs to the 4 pipeline steps:
-  // [งาน/Task] -> [BOQ] -> [QC] -> [ส่งออก STK]
+  /** Determine project type from job data */
+  const getJobType = (j: Job): 'Q' | 'R' | null => {
+    if (!j) return null;
+    if (isQuickJob(j)) return 'Q';
+    if (isRenovateJob(j)) return 'R';
+    const jNo = String(j.job_no || '').toUpperCase();
+    const bNo = String(j.booking_no || (j as any).bookingNo || '').toUpperCase();
+    if (jNo.startsWith('JOB-Q') || bNo.startsWith('BK-Q') || jNo.includes('-Q') || bNo.includes('-Q')) return 'Q';
+    if (jNo.startsWith('JOB-R') || bNo.startsWith('BK-R') || jNo.includes('-R') || bNo.includes('-R')) return 'R';
+    return null;
+  };
+
+  const isQuick = getJobType(job) === 'Q';
+
+  // Map legacy / URL tabs to the pipeline steps:
+  // [งาน/Task] -> [ผัง Gantt] -> [BOQ] -> [QC] -> [ส่งออก STK] -> [ประวัติ (Timeline)]
   const rawTab = (searchParams.get('tab') || defaultTab).toLowerCase().trim();
   let normalizedTab = rawTab;
   if (rawTab === 'history' || rawTab === 'inspection' || rawTab === 'qc') normalizedTab = 'qc';
   else if (rawTab === 'finance' || rawTab === 'export' || rawTab === 'stk' || rawTab === 'ส่งออก') normalizedTab = 'stk';
   else if (rawTab === 'blueprint' || rawTab === 'tasks' || rawTab === 'task' || rawTab === 'งาน') normalizedTab = 'task';
+  else if (rawTab === 'gantt' || rawTab === 'แผนงาน' || rawTab === 'ผังงาน' || rawTab === 'chart') normalizedTab = 'gantt';
   else if (rawTab === 'boq' || rawTab === 'pricing') normalizedTab = 'boq';
   else if (rawTab === 'timeline' || rawTab === 'audit' || rawTab === 'logs') normalizedTab = 'timeline';
   
-  const validTabs = ['task', 'boq', 'qc', 'stk', 'timeline'];
+  // If Quick job, disable and disallow boq and gantt tabs!
+  if (isQuick && (normalizedTab === 'boq' || normalizedTab === 'gantt')) {
+    normalizedTab = 'task';
+  }
+
+  const validTabs = ['task', 'gantt', 'boq', 'qc', 'stk', 'timeline'];
   const activeTab = validTabs.includes(normalizedTab) ? normalizedTab : 'task';
 
   const { data: tasksData, isLoading: isLoadingTasks } = useJobTasks(job.id);
@@ -162,21 +184,20 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
   };
 
   const handleTabChange = (value: string) => {
+    if (isQuick && value === 'boq') {
+      toast.warning('งาน Quick Service ไม่มีขั้นตอน BOQ (ดำเนินการตรวจ QC Online ได้ทันที)');
+      return;
+    }
+    if (isQuick && value === 'gantt') {
+      toast.warning('งาน Quick Service ไม่มีขั้นตอนผัง Gantt');
+      return;
+    }
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       next.set('tab', value);
       return next;
     });
   };
-
-  /** Determine project type from job data */
-  const getJobType = (j: Job): 'Q' | 'R' | null => {
-    if (isQuickJob(j)) return 'Q';
-    if (isRenovateJob(j)) return 'R';
-    return null;
-  };
-
-  const isQuick = getJobType(job) === 'Q';
 
   const handleAcceptJob = () => {
     if (job.status === 'NEED_REVIEW' || (job as any).job_type === 'NEED_REVIEW') {
@@ -188,15 +209,16 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
       { id: job.id, job_type: jt ?? undefined },
       {
         onSuccess: (res: any) => {
-          toast.success(res?.message || 'รับงานเข้าสู่ระบบเรียบร้อยแล้ว');
           if (jt === 'Q') {
-            // Quick Service → jump straight to QC tab
-            toast.info('งาน Quick Service: นำเข้าคิว QC อัตโนมัติ');
+            toast.success(res?.message || 'รับงานประเภท Quick Service เรียบร้อยแล้ว');
+            toast.info('งาน Quick Service: นำเข้าคิว QC Online ทันที (ข้ามขั้นตอน BOQ และ Gantt)');
             handleTabChange('qc');
           } else if (jt === 'R') {
-            // Renovate → import tasks into Gantt
-            toast.info('งาน Renovate: นำเข้า Tasks และ BOQ เข้า Gantt Chart');
-            navigate('/gantt');
+            toast.success(res?.message || 'รับงาน Renovate เข้าสู่ระบบและสร้างผัง Gantt เรียบร้อยแล้ว');
+            toast.info('เปิดหน้าจอแผนงาน Gantt เพื่อเริ่มดำเนินงานและทำการจอง QC ต่อในระบบ');
+            navigate(`/gantt?jobId=${job.id}&jobNo=${job.job_no}`);
+          } else {
+            toast.success(res?.message || 'รับงานเข้าสู่ระบบเรียบร้อยแล้ว');
           }
         },
         onError: (err: any) => {
@@ -211,15 +233,16 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
     acceptMutation.mutate(
       { id: job.id, job_type: jt },
       {
-        onSuccess: (res: any) => {
+        onSuccess: () => {
           setShowReviewModal(false);
-          toast.success(res?.message || `รับงานและระบุประเภท ${jt} เรียบร้อยแล้ว`);
           if (jt === 'Q') {
-            toast.info('งาน Quick Service: นำเข้าคิว QC อัตโนมัติ');
+            toast.success(`รับงานประเภท Q (Quick Service) เรียบร้อยแล้ว`);
+            toast.info('งาน Quick Service: นำเข้าคิว QC Online ทันที (ข้ามขั้นตอน BOQ และ Gantt)');
             handleTabChange('qc');
           } else if (jt === 'R') {
-            toast.info('งาน Renovate: นำเข้า Tasks และ BOQ เข้า Gantt Chart');
-            navigate('/gantt');
+            toast.success(`รับงานประเภท R (Renovate) และสร้างผัง Gantt เรียบร้อยแล้ว`);
+            toast.info('เปิดหน้าจอแผนงาน Gantt เพื่อเริ่มดำเนินงานและทำการจอง QC ต่อในระบบ');
+            navigate(`/gantt?jobId=${job.id}&jobNo=${job.job_no}`);
           }
         },
         onError: (err: any) => {
@@ -375,6 +398,30 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
     },
   ];
 
+  const finalGanttTasks: Task[] = React.useMemo(() => {
+    const rawTasks = Array.isArray(tasksData) ? tasksData : (tasksData?.data || job.tasks || []);
+    const source = (rawTasks.length > 0 ? rawTasks : displayTasks);
+    return source.map((t: any, idx: number) => ({
+      id: t.id || `task-${job.id}-${idx}`,
+      job_id: job.id,
+      job_no: job.job_no,
+      booking_no: job.booking_no,
+      customer_name: typeof job.customer === 'string' ? job.customer : (job.customer?.name || (job as any).customer_name || 'ลูกค้า'),
+      service_type: job.project_type || (Array.isArray(job.services) ? job.services[0] : job.services) || 'Renovate',
+      area_id: t.area_id || 'general',
+      area_name: t.area_name || 'งานทั่วไป / แผนงานหลัก',
+      task_name: t.task_name || t.name || `งานที่ ${idx + 1}`,
+      assigned_tech: t.assigned_tech || job.assigned_tech || 'รอระบุทีมช่าง',
+      plan_start_date: t.plan_start_date || job.plan_date || new Date().toISOString().slice(0, 10),
+      plan_end_date: t.plan_end_date || job.plan_date || new Date().toISOString().slice(0, 10),
+      duration_days: Number(t.duration_days || t.days || 1),
+      status: (t.status || 'PLANNED') as any,
+      progress_percent: Number(t.progress_percent || t.progress || 0),
+      qc_score: t.qc_score,
+      rework_count: t.rework_count || 0
+    }));
+  }, [tasksData, job, displayTasks]);
+
   const bookingBadge = job.booking_no || (job as any).bookingNo || (job as any).vfix_no;
   const refBadge = job.external_ref_id || (job as any).ref_id || (job as any).stk_ref || (job as any).externalRefId;
 
@@ -452,10 +499,26 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                 งาน/Task
               </TabsTrigger>
               <TabsTrigger 
-                value="boq" 
-                className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-black text-black font-semibold rounded-none shadow-none px-4 py-3"
+                value="gantt" 
+                disabled={isQuick}
+                title={isQuick ? "งาน Quick Service ไม่มีขั้นตอนผัง Gantt" : "ผังกำหนดการทำงาน (Gantt Chart)"}
+                className={`data-[state=active]:border-b-2 data-[state=active]:border-primary font-semibold rounded-none shadow-none px-4 py-3 ${
+                  isQuick ? 'opacity-40 cursor-not-allowed text-gray-400' : 'text-black'
+                }`}
               >
-                BOQ
+                <span>ผัง Gantt</span>
+                {isQuick && <span className="ml-1 text-[10px] text-gray-400">(ไม่ใช้)</span>}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="boq" 
+                disabled={isQuick}
+                title={isQuick ? "งาน Quick Service ไม่มีขั้นตอน BOQ (ข้ามไปตรวจ QC Online ทันที)" : "ประมาณการราคาและรายการพัสดุ (BOQ)"}
+                className={`data-[state=active]:border-b-2 data-[state=active]:border-primary font-semibold rounded-none shadow-none px-4 py-3 ${
+                  isQuick ? 'opacity-40 cursor-not-allowed text-gray-400' : 'text-black'
+                }`}
+              >
+                <span>BOQ</span>
+                {isQuick && <span className="ml-1 text-[10px] text-gray-400 font-normal">(ไม่ใช้ใน Quick)</span>}
               </TabsTrigger>
               <TabsTrigger 
                 value="qc" 
@@ -577,9 +640,67 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
               })()}
             </TabsContent>
 
-            {/* 2. BOQ */}
+            {/* 2. ผัง Gantt (เฉพาะงาน Renovate) */}
+            <TabsContent value="gantt" className="h-full m-0 data-[state=active]:flex flex-col space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-50 border border-gray-200 rounded-xl">
+                <div>
+                  <h3 className="text-sm font-bold text-black flex items-center gap-2">
+                    <span>ผังกำหนดการทำงาน Gantt Chart</span>
+                    <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-200 text-black font-semibold">
+                      {job.job_no}
+                    </span>
+                    <span className="text-xs font-medium text-gray-600">
+                      ({finalGanttTasks.length} รายการงานย่อย)
+                    </span>
+                  </h3>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    แผนภูมิแสดงแถบเวลาตามแผนงานของช่างแต่ละขั้นตอน พร้อมสถานะความคืบหน้า
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate(`/gantt?jobId=${job.id}&jobNo=${job.job_no}`)}
+                    className="text-xs text-indigo-700 bg-white hover:bg-indigo-50 border-indigo-200 font-bold cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>เปิดใน Step 2: Project & Gantt ใหญ่ ↗</span>
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex-1 min-h-[300px] border border-gray-200 rounded-xl overflow-auto bg-white p-2">
+                <GanttChart
+                  tasks={finalGanttTasks}
+                  className="h-full"
+                />
+              </div>
+            </TabsContent>
+
+            {/* 3. BOQ (Disabled สำหรับงาน Quick Service) */}
             <TabsContent value="boq" className="h-full m-0 data-[state=active]:flex flex-col">
-              <BoqTab job={job} />
+              {isQuick ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center bg-gray-50 border border-gray-200 rounded-xl m-4 space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xl font-bold">
+                    Q
+                  </div>
+                  <h3 className="text-base font-bold text-black">งานบริการด่วน (Quick Service) ไม่มีขั้นตอน BOQ</h3>
+                  <p className="text-xs text-gray-600 max-w-md">
+                    งานประเภท Quick Service เป็นบริการติดตั้งด่วนมาตรฐาน ไม่ต้องจัดทำประมาณการราคาและรายการพัสดุ (BOQ) ระบบจะพาเข้าสู่ขั้นตอนตรวจรับรองคุณภาพ QC และส่งออก STK ทันที
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() => handleTabChange('qc')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs cursor-pointer"
+                  >
+                    ไปที่แท็บ QC ตรวจงาน Online →
+                  </Button>
+                </div>
+              ) : (
+                <BoqTab job={job} />
+              )}
             </TabsContent>
 
             {/* 3. QC (Inline Inspection Workspace - No Popup) */}

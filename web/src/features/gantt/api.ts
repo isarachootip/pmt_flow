@@ -152,8 +152,25 @@ export const useGanttTasks = (jobId?: string | number) => {
           const tasks: Task[] = [];
           const areas: GanttArea[] = Array.isArray(job.areas) ? job.areas : [];
           
-          if (Array.isArray(job.tasks) && job.tasks.length > 0) {
-            job.tasks.forEach((t: any, idx: number) => {
+          const rawTaskList = (Array.isArray(job.tasks) && job.tasks.length > 0)
+            ? job.tasks
+            : (Array.isArray(job.job_details) && job.job_details.length > 0)
+              ? job.job_details.map((d: any, idx: number) => ({
+                  id: `jd-${job.id}-${idx}`,
+                  task_name: d.installation_detail || d.job_type || d.product_name || `งานย่อย ${idx + 1}`,
+                  assigned_tech: d.assigned_tech || job.assigned_tech || 'ยังไม่ระบุช่าง',
+                  plan_start_date: d.plan_start_date || job.plan_date || new Date().toISOString().slice(0, 10),
+                  plan_end_date: d.plan_end_date || job.plan_date || new Date().toISOString().slice(0, 10),
+                  duration_days: 1,
+                  status: 'PLANNED',
+                  progress_percent: 0,
+                  area_id: 'general',
+                  area_name: 'งานทั่วไป / แผนงานหลัก'
+                }))
+              : [];
+
+          if (rawTaskList.length > 0) {
+            rawTaskList.forEach((t: any, idx: number) => {
               const matchedArea = areas.find(a => String(a.id) === String(t.area_id));
               const taskObj: Task = {
                 id: t.id || `task-${job.id}-${idx}`,
@@ -197,8 +214,25 @@ export const useGanttTasks = (jobId?: string | number) => {
 
           jobList.forEach(job => {
             const areas: GanttArea[] = Array.isArray(job.areas) ? job.areas : [];
-            if (Array.isArray(job.tasks)) {
-              job.tasks.forEach((t: any, idx: number) => {
+            const rawTasks = (Array.isArray(job.tasks) && job.tasks.length > 0)
+              ? job.tasks
+              : (Array.isArray(job.job_details) && job.job_details.length > 0)
+                ? job.job_details.map((d: any, idx: number) => ({
+                    id: `jd-${job.id}-${idx}`,
+                    task_name: d.installation_detail || d.job_type || d.product_name || `งานย่อย ${idx + 1}`,
+                    assigned_tech: d.assigned_tech || job.assigned_tech || 'ยังไม่ระบุช่าง',
+                    plan_start_date: d.plan_start_date || job.plan_date || new Date().toISOString().slice(0, 10),
+                    plan_end_date: d.plan_end_date || job.plan_date || new Date().toISOString().slice(0, 10),
+                    duration_days: 1,
+                    status: 'PLANNED',
+                    progress_percent: 0,
+                    area_id: 'general',
+                    area_name: 'งานทั่วไป / แผนงานหลัก'
+                  }))
+                : [];
+
+            if (rawTasks.length > 0) {
+              rawTasks.forEach((t: any, idx: number) => {
                 const matchedArea = areas.find(a => String(a.id) === String(t.area_id));
                 const taskObj: Task = {
                   id: t.id || `task-${job.id}-${idx}`,

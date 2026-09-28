@@ -2467,12 +2467,98 @@ app.post('/api/v1/jobs/:id/accept', requireAuth, async (req: AuthRequest, res: R
     const nextStatus = effectiveType === 'Q' ? JobStatus.WAIT_QC : JobStatus.PLANNED;
     const oldStatus = existingJob.status;
 
-    const updatedJob = await dbUpdateJob(param, {
+    let tasksToSave = existingJob.tasks;
+    let areasToSave = existingJob.areas;
+
+    if (effectiveType === 'R' && (!tasksToSave || !Array.isArray(tasksToSave) || tasksToSave.length === 0)) {
+      const defaultAreaId = `AREA_${existingJob.id || param}_1`;
+      const defaultAreaName = 'พื้นที่ปฏิบัติงานหลัก';
+      const defaultQc = existingJob.assigned_qc || 'วิชัย ตรวจดี (ช่าง QC Lead)';
+
+      if (!areasToSave || !Array.isArray(areasToSave) || areasToSave.length === 0) {
+        areasToSave = [{
+          id: defaultAreaId,
+          name: defaultAreaName,
+          assigned_qc: defaultQc,
+          qc_inspector: defaultQc,
+          status: 'PLANNED',
+          created_at: new Date().toISOString()
+        }];
+      }
+
+      const baseDate = existingJob.plan_date || new Date().toISOString().slice(0, 10);
+      const defaultTech = existingJob.assigned_tech || 'Team A (สมศักดิ์)';
+
+      if (Array.isArray(existingJob.job_details) && existingJob.job_details.length > 0) {
+        tasksToSave = existingJob.job_details.map((d: any, idx: number) => {
+          const s = new Date(baseDate);
+          s.setDate(s.getDate() + (idx * 2));
+          const e = new Date(s);
+          e.setDate(e.getDate() + 1);
+          return {
+            id: `T_${param}_${idx + 1}`,
+            job_id: existingJob.id,
+            job_no: existingJob.job_no,
+            area_id: areasToSave[0].id,
+            area_name: areasToSave[0].name,
+            task_name: d.installation_detail || d.job_type || d.product_name || `งานติดตั้ง ${idx + 1}`,
+            name: d.installation_detail || d.job_type || d.product_name || `งานติดตั้ง ${idx + 1}`,
+            plan_start_date: d.plan_start_date || s.toISOString().slice(0, 10),
+            plan_end_date: d.plan_end_date || e.toISOString().slice(0, 10),
+            duration_days: 2,
+            assigned_tech: d.assigned_tech || defaultTech,
+            status: 'PLANNED',
+            progress_percent: 0,
+            quantity: Number(d.product_quantity || d.qty || 1),
+            remark: d.remark || '-'
+          };
+        });
+      } else {
+        const services = Array.isArray(existingJob.services) && existingJob.services.length > 0
+          ? existingJob.services
+          : [existingJob.project_sub_type || 'งานปรับปรุงและติดตั้ง'];
+
+        tasksToSave = services.map((s: any, idx: number) => {
+          const sName = typeof s === 'string' ? s : (s?.name || 'งานติดตั้ง');
+          const startD = new Date(baseDate);
+          startD.setDate(startD.getDate() + (idx * 2));
+          const endD = new Date(startD);
+          endD.setDate(endD.getDate() + 1);
+          return {
+            id: `T_${param}_${idx + 1}`,
+            job_id: existingJob.id,
+            job_no: existingJob.job_no,
+            area_id: areasToSave[0].id,
+            area_name: areasToSave[0].name,
+            task_name: sName,
+            name: sName,
+            plan_start_date: startD.toISOString().slice(0, 10),
+            plan_end_date: endD.toISOString().slice(0, 10),
+            duration_days: 2,
+            assigned_tech: defaultTech,
+            status: 'PLANNED',
+            progress_percent: 0,
+            quantity: 1,
+            remark: '-'
+          };
+        });
+      }
+    }
+
+    const updatePayload: any = {
       pmt_accepted: true,
       pmt_accepted_at: new Date().toISOString(),
       job_type: effectiveType,
       status: nextStatus
-    });
+    };
+    if (tasksToSave && tasksToSave.length > 0) {
+      updatePayload.tasks = tasksToSave;
+    }
+    if (areasToSave && areasToSave.length > 0) {
+      updatePayload.areas = areasToSave;
+    }
+
+    const updatedJob = await dbUpdateJob(param, updatePayload);
 
     await recordAudit(
       req,

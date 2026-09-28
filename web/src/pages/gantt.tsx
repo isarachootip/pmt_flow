@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useGanttJobs, useGanttTasks, useStartTask, useCompleteTask, Task, computeTaskStatus } from '@/features/gantt/api';
 import { useDailyLogs } from '@/features/daily-logs/api';
 import { GanttChart } from '@/features/gantt/gantt-chart';
@@ -23,6 +24,8 @@ import {
 import { toast } from 'sonner';
 
 export default function GanttPage() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [selectedJob, setSelectedJob] = useState<string>('ALL');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
@@ -31,6 +34,22 @@ export default function GanttPage() {
 
   // Fetch real jobs and tasks
   const { data: jobs, isLoading: isJobsLoading } = useGanttJobs();
+
+  // Auto-select job from URL query params (e.g. redirected after accepting Renovate job)
+  useEffect(() => {
+    const queryJobId = searchParams.get('jobId');
+    const queryJobNo = searchParams.get('jobNo');
+    if (jobs && jobs.length > 0 && (queryJobId || queryJobNo)) {
+      const matched = jobs.find(j => 
+        (queryJobId && String(j.id) === String(queryJobId)) || 
+        (queryJobNo && (j.job_no === queryJobNo || String(j.id) === queryJobNo))
+      );
+      if (matched) {
+        setSelectedJob(String(matched.id));
+      }
+    }
+  }, [jobs, searchParams]);
+
   const { data: rawTasks, isLoading: isTasksLoading } = useGanttTasks(selectedJob);
   const { data: dailyLogs, isLoading: isLogsLoading } = useDailyLogs(
     selectedJob !== 'ALL' ? selectedJob : selectedTask?.job_id, 
@@ -122,6 +141,8 @@ export default function GanttPage() {
     setIsLogModalOpen(true);
   };
 
+  const selectedJobObj = jobs?.find(j => String(j.id) === String(selectedJob));
+
   const headerActions = (
     <div className="flex flex-wrap items-center gap-3">
       <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
@@ -142,6 +163,17 @@ export default function GanttPage() {
           ))}
         </select>
       </div>
+
+      {selectedJob !== 'ALL' && selectedJobObj && (
+        <Button
+          onClick={() => navigate(`/qc?jobNo=${selectedJobObj.job_no || selectedJob}`)}
+          className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-2 rounded-xl shadow-xs cursor-pointer text-xs"
+          title="ไปยังหน้า Step 3 QC เพื่อจองคิวและตรวจรับรองคุณภาพ"
+        >
+          <CheckCircle2 className="w-4 h-4 text-white" />
+          <span>จองคิว QC (Step 3 QC) →</span>
+        </Button>
+      )}
 
       <Button 
         onClick={() => setIsLogModalOpen(true)} 

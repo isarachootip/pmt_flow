@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQCBookings } from '@/features/qc/api';
 import { useJob, useJobs } from '@/features/jobs/api';
 import { MasterDetailLayout } from '@/components/ui/master-detail-layout';
@@ -13,8 +14,17 @@ import { useConfirmBooking } from '@/features/qc/api';
 import { formatDMY } from '@/lib/date';
 
 export default function QcPage() {
+  const [searchParams] = useSearchParams();
+  const initialJobNo = searchParams.get('jobNo') || '';
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialJobNo);
+
+  useEffect(() => {
+    const qJobNo = searchParams.get('jobNo');
+    if (qJobNo) {
+      setSearchQuery(qJobNo);
+    }
+  }, [searchParams]);
 
   const { data, isLoading } = useQCBookings();
   const bookings = Array.isArray(data) ? data : (data?.data || []);
