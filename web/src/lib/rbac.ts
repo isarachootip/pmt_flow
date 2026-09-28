@@ -1,6 +1,5 @@
 import { UserRole } from './auth';
 import { 
-  LayoutDashboard, 
   Inbox, 
   GanttChartSquare, 
   CheckSquare, 
@@ -32,12 +31,6 @@ export interface MenuGroup {
 }
 
 export const MENU_STRUCTURE: MenuGroup[] = [
-  {
-    group: 'ภาพรวม',
-    items: [
-      { key: 'dashboard', label: 'แดชบอร์ด', icon: LayoutDashboard, path: '/dashboard', roles: ['ADMIN', 'AE', 'QC', 'CONTACT_CENTER'] }
-    ]
-  },
   {
     group: 'Pipeline',
     items: [
@@ -80,7 +73,7 @@ export function getMenuForRole(role: UserRole): MenuGroup[] {
 }
 
 export function canAccess(role: UserRole, path: string): boolean {
-  if (path === '/' || path === '/dashboard') return true;
+  if (path === '/' || path === '/dashboard' || path === '/orders') return true;
   
   for (const group of MENU_STRUCTURE) {
     for (const item of group.items) {

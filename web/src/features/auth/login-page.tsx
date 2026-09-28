@@ -24,7 +24,7 @@ export function LoginPage() {
 
     try {
       await login(username, password);
-      navigate('/dashboard', { replace: true });
+      navigate('/orders', { replace: true });
     } catch (err: any) {
       if (err?.code === 'USER_INACTIVE') {
         setError('บัญชีนี้ถูกปิดการใช้งาน');

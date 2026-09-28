@@ -2801,7 +2801,7 @@ const app = {
                     if (targetView && document.getElementById(`page-${targetView}`)) {
                         this.navigate(targetView);
                     } else {
-                        this.navigate('dashboard');
+                        this.navigate('jobs');
                     }
                     this.fetchJobsFromApi();
                     this.fetchMAFromApi();

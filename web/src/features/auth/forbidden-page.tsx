@@ -11,7 +11,7 @@ export function ForbiddenPage() {
         <Lock className="w-8 h-8" />
       </div>
       <h1 className="text-xl font-semibold text-text mb-6">ไม่มีสิทธิ์เข้าถึง</h1>
-      <Button variant="secondary" onClick={() => navigate('/dashboard')}>
+      <Button variant="secondary" onClick={() => navigate('/orders')}>
         กลับหน้าหลัก
       </Button>
     </div>

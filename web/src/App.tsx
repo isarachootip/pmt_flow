@@ -9,7 +9,6 @@ import { RequireAuth } from './features/auth/require-auth';
 import { RequireRole } from './features/auth/require-role';
 import { AppLayout } from './features/layout/app-layout';
 
-const DashboardPage = React.lazy(() => import('./pages/dashboard'));
 const OrdersPage = React.lazy(() => import('./pages/orders'));
 const JobFullPage = React.lazy(() => import('./pages/job-full'));
 const TicketsPage = React.lazy(() => import('./pages/tickets'));
@@ -54,8 +53,8 @@ export function App() {
             <Route path="/login" element={<LoginPage />} />
             
             <Route path="/" element={<RequireAuth><AppLayout /></RequireAuth>}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<RequireRole><Suspense fallback={<PageSkeleton />}><DashboardPage /></Suspense></RequireRole>} />
+              <Route index element={<Navigate to="/orders" replace />} />
+              <Route path="dashboard" element={<Navigate to="/orders" replace />} />
               <Route path="orders" element={<RequireRole><Suspense fallback={<PageSkeleton />}><OrdersPage /></Suspense></RequireRole>} />
               <Route path="orders/:jobNo" element={<RequireRole><Suspense fallback={<PageSkeleton />}><OrdersPage /></Suspense></RequireRole>} />
               <Route path="jobs/:jobNo" element={<RequireRole><Suspense fallback={<PageSkeleton />}><JobFullPage /></Suspense></RequireRole>} />
@@ -72,7 +71,7 @@ export function App() {
               <Route path="admin/api-logs" element={<RequireRole><Suspense fallback={<PageSkeleton />}><ApiLogsPage /></Suspense></RequireRole>} />
               <Route path="admin/settings" element={<RequireRole><Suspense fallback={<PageSkeleton />}><SettingsPage /></Suspense></RequireRole>} />
               <Route path="km" element={<RequireRole><Suspense fallback={<PageSkeleton />}><KmPage /></Suspense></RequireRole>} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/orders" replace />} />
             </Route>
           </Routes>
         </BrowserRouter>
