@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCreateJob } from '@/features/jobs/api';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -11,6 +12,7 @@ interface CreateJobDrawerProps {
 }
 
 export function CreateJobDrawer({ open, onOpenChange }: CreateJobDrawerProps) {
+  const navigate = useNavigate();
   const { mutateAsync: createJob, isPending } = useCreateJob();
   const [formData, setFormData] = React.useState({
     project_type: 'Renovate',
@@ -37,22 +39,30 @@ export function CreateJobDrawer({ open, onOpenChange }: CreateJobDrawerProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createJob({
+      const res = await createJob({
         project_type: formData.project_type,
         booking_no: formData.booking_no.trim() || undefined,
         external_ref_id: formData.external_ref_id.trim() || undefined,
         customer: {
-          name: formData.customer_name,
-          phone: formData.customer_phone,
-          address: formData.customer_address,
+          name: formData.customer_name.trim(),
+          phone: formData.customer_phone.trim(),
+          address: formData.customer_address.trim(),
         },
-        property_type: formData.property_type,
+        customer_name: formData.customer_name.trim(),
+        customer_phone: formData.customer_phone.trim(),
+        customer_address: formData.customer_address.trim(),
+        firstName: formData.customer_name.trim().replace(/^คุณ\s*/, '').split(/\s+/)[0] || formData.customer_name.trim(),
+        lastName: formData.customer_name.trim().replace(/^คุณ\s*/, '').split(/\s+/).slice(1).join(' ') || '',
+        phone: formData.customer_phone.trim(),
+        address: formData.customer_address.trim(),
+        property_type: formData.property_type.trim(),
         services: formData.services.split(',').map(s => s.trim()).filter(Boolean),
         plan_date: formData.plan_date || undefined,
         plan_time: formData.plan_time || undefined,
-        assigned_tech: formData.assigned_tech,
+        assigned_tech: formData.assigned_tech.trim(),
         status: 'SURVEYED', // Initial status
       });
+      const createdJob = res?.data || res;
       toast.success('สร้างงานสำเร็จ');
       onOpenChange(false);
       setFormData({
@@ -68,8 +78,11 @@ export function CreateJobDrawer({ open, onOpenChange }: CreateJobDrawerProps) {
         plan_time: '09:00',
         assigned_tech: ''
       });
-    } catch (err) {
-      toast.error('เกิดข้อผิดพลาดในการสร้างงาน');
+      if (createdJob?.job_no) {
+        navigate(`/orders/${createdJob.job_no}`);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'เกิดข้อผิดพลาดในการสร้างงาน');
     }
   };
 

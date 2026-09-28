@@ -3210,32 +3210,156 @@ app.delete('/api/v1/jobs/:id/photos/:photoId', requireAuth, async (req: Request,
 
 app.post('/api/v1/jobs', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { firstName, lastName, phone, address, lat, lng, service, tech, date, job_type, special_instructions, additional_notes, photos, external_ref_id } = req.body;
-    if (!firstName || !lastName) {
-      return res.status(400).json({ success: false, error: { code: 'INVALID_PAYLOAD', message: 'firstName and lastName are required' } });
+    const rawCustomer = (typeof req.body.customer === 'object' && req.body.customer !== null) ? req.body.customer : {};
+    let customerName = (
+      rawCustomer.name ||
+      req.body.customer_name ||
+      req.body.name ||
+      ''
+    ).trim();
+
+    let firstName = (req.body.firstName || rawCustomer.first_name || '').trim();
+    let lastName = (req.body.lastName || rawCustomer.last_name || '').trim();
+
+    if (!customerName && (firstName || lastName)) {
+      customerName = [firstName, lastName].filter(Boolean).join(' ').trim();
+      if (!customerName.startsWith('คุณ')) {
+        customerName = `คุณ${customerName}`;
+      }
+    } else if (customerName && (!firstName && !lastName)) {
+      const stripped = customerName.replace(/^คุณ\s*/, '').trim();
+      const parts = stripped.split(/\s+/);
+      firstName = parts[0] || stripped;
+      lastName = parts.slice(1).join(' ') || '';
+    }
+
+    if (!customerName && !firstName) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_PAYLOAD',
+          message: 'กรุณากรอกชื่อลูกค้า (Customer name is required)'
+        }
+      });
+    }
+
+    if (!customerName.startsWith('คุณ')) {
+      customerName = `คุณ${customerName}`;
+    }
+
+    const phone = (
+      req.body.phone ||
+      rawCustomer.phone ||
+      req.body.customer_phone ||
+      '081-234-5678'
+    ).trim();
+
+    const address = (
+      req.body.address ||
+      rawCustomer.address ||
+      req.body.customer_address ||
+      '123/45 ถนนพหลโยธิน แขวงสามเสนใน เขตพญาไท กทม. 10400'
+    ).trim();
+
+    const lat = Number(req.body.lat || rawCustomer.lat) || 13.7563;
+    const lng = Number(req.body.lng || rawCustomer.lng) || 100.5018;
+
+    const rawProjType = String(req.body.project_type || req.body.job_type || '').trim();
+    let projectType = 'Quick Service';
+    let jobType: 'Q' | 'R' = 'Q';
+
+    if (
+      rawProjType.toLowerCase().includes('renovate') ||
+      rawProjType.toUpperCase() === 'R'
+    ) {
+      projectType = 'Renovate';
+      jobType = 'R';
+    } else if (rawProjType.toLowerCase().includes('survey')) {
+      projectType = 'Survey';
+      jobType = 'Q';
+    } else {
+      projectType = 'Quick Service';
+      jobType = 'Q';
     }
 
     const now = new Date();
     const yy = String(now.getFullYear()).slice(-2);
     const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const runningSeq = Math.floor(1 + Math.random() * 99999);
-    const runningStr = String(runningSeq).padStart(5, '0');
-    const jobNo = `JOB${yy}${mm}${dd}${runningStr}`;
+    const runningSeq = Math.floor(100 + Math.random() * 900);
+    const runningStr = String(runningSeq).padStart(3, '0');
+
+    // Auto-generate unique job_no
+    let jobNo = (req.body.job_no || '').trim();
+    if (!jobNo) {
+      const prefix = `JOB-${jobType}${yy}${mm}`;
+      let candidate = `${prefix}${runningStr}`;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const check = await pool.query('SELECT 1 FROM core_jobs WHERE job_no = $1 LIMIT 1', [candidate]);
+        if (check.rowCount === 0) {
+          jobNo = candidate;
+          break;
+        }
+        candidate = `${prefix}${Math.floor(100 + Math.random() * 900)}`;
+      }
+      if (!jobNo) {
+        jobNo = `${prefix}${Date.now().toString().slice(-4)}`;
+      }
+    }
+
+    // Booking No & External Ref ID
+    const defaultBookingNo = `BK-${jobType}${yy}${mm}-${runningStr}`;
+    const bookingNo = (req.body.booking_no || req.body.bookingNo || defaultBookingNo).trim();
+
+    const externalRefId = (
+      req.body.external_ref_id ||
+      req.body.externalRefId ||
+      bookingNo ||
+      `MANUAL-${Date.now()}`
+    ).trim();
+
+    const propertyType = (
+      req.body.property_type ||
+      req.body.propertyType ||
+      'บ้านเดี่ยว'
+    ).trim();
+
+    let services: string[] = [];
+    if (Array.isArray(req.body.services) && req.body.services.length > 0) {
+      services = req.body.services.map((s: any) => String(s).trim()).filter(Boolean);
+    } else if (typeof req.body.services === 'string' && req.body.services.trim()) {
+      services = req.body.services.split(',').map((s: string) => s.trim()).filter(Boolean);
+    } else if (req.body.service) {
+      services = [String(req.body.service).trim()];
+    } else {
+      services = [jobType === 'R' ? 'งาน Renovate' : 'งานติดตั้ง'];
+    }
+
+    let planDate = req.body.plan_date || req.body.date || new Date().toISOString().split('T')[0];
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(planDate)) {
+      const [d, m, y] = planDate.split('/');
+      planDate = `${y}-${m}-${d}`;
+    }
+    const planTime = req.body.plan_time || req.body.time || '09:00';
+
+    const assignedTech = (
+      req.body.assigned_tech ||
+      req.body.tech ||
+      'Team A (สมศักดิ์)'
+    ).trim();
 
     const customerData = {
       id: Date.now() + Math.floor(Math.random() * 100),
       customer_code: `CUST-${Date.now()}`,
-      name: `คุณ${firstName} ${lastName}`.trim(),
+      name: customerName,
       first_name: firstName,
       last_name: lastName,
-      phone: phone || '081-234-5678',
-      address: address || '123/45 ถนนพหลโยธิน แขวงสามเสนใน เขตพญาไท กทม. 10400',
-      lat: Number(lat) || 13.7563,
-      lng: Number(lng) || 100.5018
+      phone,
+      address,
+      lat,
+      lng
     };
 
-    const formattedPhotos: any[] = Array.isArray(photos) ? photos.map((p: any, idx: number) => {
+    const formattedPhotos: any[] = Array.isArray(req.body.photos) ? req.body.photos.map((p: any, idx: number) => {
       if (typeof p === 'string') {
         return {
           id: `PHOTO_${Date.now()}_${idx + 1}`,
@@ -3257,29 +3381,50 @@ app.post('/api/v1/jobs', requireAuth, async (req: Request, res: Response) => {
       };
     }) : [];
 
+    const initialStatus = req.body.status || JobStatus.SURVEYED;
     const newJob: any = {
       id: Date.now(),
       job_no: jobNo,
-      external_ref_id: external_ref_id || `MANUAL-${Date.now()}`,
+      booking_no: bookingNo,
+      external_ref_id: externalRefId,
       customer_id: customerData.id,
       customer: customerData,
       customer_data: customerData,
-      services: [service || 'งานติดตั้ง'],
-      assigned_tech: tech || 'Team A (สมศักดิ์)',
-      plan_date: date || new Date().toISOString().split('T')[0],
-      status: JobStatus.NEW,
+      customer_name: customerName,
+      customer_phone: phone,
+      customer_address: address,
+      property_type: propertyType,
+      project_type: projectType,
+      job_type: jobType,
+      services,
+      service: services[0] || 'งานติดตั้ง',
+      assigned_tech: assignedTech,
+      tech: assignedTech,
+      plan_date: planDate,
+      date: planDate,
+      plan_time: planTime,
+      schedule_plan: {
+        plan_date: planDate,
+        plan_time: planTime,
+        time_slot: planTime
+      },
+      raw_payload: {
+        plan_time: planTime
+      },
+      status: initialStatus,
+      pmt_accepted: false,
       overall_progress: 0,
-      job_type: (job_type === 'renovate' || job_type === 'R') ? 'R' : 'Q',
       tasks: [],
       photos: formattedPhotos,
       boq_items: [],
-      special_instructions: special_instructions || '',
-      additional_notes: additional_notes || '',
+      special_instructions: req.body.special_instructions || '',
+      additional_notes: req.body.additional_notes || '',
       step_timestamps: {
         step1_order_at: new Date().toISOString()
       },
       created_at: new Date().toISOString()
     };
+
     await dbSaveJob(newJob);
     await recordAudit(req, 'CREATE_JOB_MANUAL', 'JOB', newJob.id, newJob.booking_no, null, newJob, {
       source: 'MANUAL_ENTRY'
@@ -3288,7 +3433,7 @@ app.post('/api/v1/jobs', requireAuth, async (req: Request, res: Response) => {
     return res.status(201).json({
       success: true,
       data: newJob,
-      meta: { message: 'Job created successfully with INT payload and attachments' }
+      meta: { message: 'Job created successfully' }
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
