@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useJobs, Job } from '@/features/jobs/api';
 import { useCSAT, useCloseJob, useExportSTK } from '@/features/qc/api';
 import { MasterDetailLayout } from '@/components/ui/master-detail-layout';
@@ -17,11 +18,22 @@ export default function CompletedPage() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showCsatForm, setShowCsatForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams] = useSearchParams();
+  const urlJobNo = searchParams.get('jobNo');
 
   // Load jobs that are in statuses handled by this page
-  const { data, isLoading } = useJobs({ status: 'QC_PASS,COMPLETED,CLOSED' });
+  const { data, isLoading } = useJobs({ status: 'QC_PASS,QC_PASSED,COMPLETED,CLOSED,CLOSEJOB', limit: 100 });
   const rawJobs: Job[] = Array.isArray(data) ? data : (data?.data || []);
   const jobs = rawJobs.length > 0 ? rawJobs : [];
+
+  useEffect(() => {
+    if (urlJobNo && jobs.length > 0) {
+      const found = jobs.find((j: any) => j.job_no === urlJobNo || String(j.id) === urlJobNo);
+      if (found) {
+        setSelectedJob(found);
+      }
+    }
+  }, [urlJobNo, jobs]);
 
   const csatMutation = useCSAT();
   const closeMutation = useCloseJob();

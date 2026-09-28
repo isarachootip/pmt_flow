@@ -9,7 +9,7 @@ import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Input } from '@/components/ui/input';
 import { formatDMY, toDateTime, toISODate, format24HourTimeBadge } from '@/lib/date';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, FileText } from 'lucide-react';
+import { Search, Filter } from 'lucide-react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CreateJobDrawer } from '@/features/jobs/create-job-drawer';
 import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
@@ -22,7 +22,6 @@ export default function OrdersPage() {
   
   // State for search, date range filters, and create drawer
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState<string>('active');
   const [typeFilter, setTypeFilter] = React.useState<'all' | 'Q' | 'R'>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -62,6 +61,17 @@ export default function OrdersPage() {
     return null;
   };
 
+  // Step 1: รับงาน strictly contains active queue items.
+  // All closed/completed/delivered jobs belong in Step 4: ปิดงาน (/completed).
+  const isJobClosed = (j: any) =>
+    j.status === 'COMPLETED' ||
+    j.status === 'PASSED' ||
+    j.status === 'QC_PASSED' ||
+    j.status === 'QC_PASS' ||
+    j.status === 'CLOSED' ||
+    j.status === 'CLOSEJOB' ||
+    (j as any).stk_status === 'DELIVERED';
+
   // Fetch jobs defaulting to created_at descending
   const { data, isLoading } = useJobs({ 
     page: 1, 
@@ -69,7 +79,10 @@ export default function OrdersPage() {
     sort_by: 'created_at', 
     sort_order: 'desc' 
   });
-  const allJobs: Job[] = Array.isArray(data) ? data : (data?.data || []);
+  const rawJobs: Job[] = Array.isArray(data) ? data : (data?.data || []);
+  const allJobs: Job[] = React.useMemo(() => {
+    return rawJobs.filter(j => !isJobClosed(j));
+  }, [rawJobs]);
 
   const [selectedJob, setSelectedJob] = React.useState<Job | null>(null);
 
@@ -92,86 +105,20 @@ export default function OrdersPage() {
 
 
 
-  // Base jobs filtered by status (for calculating type tab counts)
-  const jobsForTypeCounts = React.useMemo(() => {
-    if (statusFilter === 'all') return allJobs;
-    return allJobs.filter(j => {
-      if (statusFilter === 'active') {
-        return (
-          j.status !== 'COMPLETED' && 
-          j.status !== 'PASSED' && 
-          j.status !== 'QC_PASSED' && 
-          j.status !== 'QC_PASS' && 
-          j.status !== 'CLOSED' && 
-          j.status !== 'CLOSEJOB' && 
-          (j as any).stk_status !== 'DELIVERED'
-        );
-      }
-      if (statusFilter === 'NEW') return j.status === 'NEW' || j.status === 'NEED_REVIEW' || !(j as any).pmt_accepted;
-      if (statusFilter === 'PLANNED') return j.status === 'PLANNED' || j.status === 'BOQ';
-      if (statusFilter === 'WAIT_QC') return j.status === 'WAIT_QC' || j.status === 'QC_PENDING' || j.status === 'REWORK';
-      if (statusFilter === 'COMPLETED') {
-        return (
-          j.status === 'COMPLETED' || 
-          j.status === 'PASSED' || 
-          j.status === 'QC_PASSED' || 
-          j.status === 'QC_PASS' || 
-          j.status === 'CLOSED' || 
-          j.status === 'CLOSEJOB' || 
-          (j as any).stk_status === 'DELIVERED'
-        );
-      }
-      return j.status === statusFilter;
-    });
-  }, [allJobs, statusFilter]);
-
-  // Job Type Counts (Quick vs Renovate) (scoped to current status filter)
+  // Job Type Counts (Quick vs Renovate) for Active Queue
   const typeCounts = React.useMemo(() => {
-    const counts = { all: jobsForTypeCounts.length, Q: 0, R: 0 };
-    for (const j of jobsForTypeCounts) {
+    const counts = { all: allJobs.length, Q: 0, R: 0 };
+    for (const j of allJobs) {
       const jt = getJobType(j);
       if (jt === 'Q') counts.Q++;
       else if (jt === 'R') counts.R++;
     }
     return counts;
-  }, [jobsForTypeCounts]);
+  }, [allJobs]);
 
   // Multi-Field Search + Date Range Filter + Job Type Filter + Creation Date Sorting
   const filteredAndSortedJobs = React.useMemo(() => {
     let result = [...allJobs];
-
-    // 0. State Machine Status Filter
-    if (statusFilter !== 'all') {
-      if (statusFilter === 'active') {
-        result = result.filter(j => 
-          j.status !== 'COMPLETED' && 
-          j.status !== 'PASSED' && 
-          j.status !== 'QC_PASSED' && 
-          j.status !== 'QC_PASS' && 
-          j.status !== 'CLOSED' && 
-          j.status !== 'CLOSEJOB' && 
-          (j as any).stk_status !== 'DELIVERED'
-        );
-      } else if (statusFilter === 'NEW') {
-        result = result.filter(j => j.status === 'NEW' || j.status === 'NEED_REVIEW' || !(j as any).pmt_accepted);
-      } else if (statusFilter === 'PLANNED') {
-        result = result.filter(j => j.status === 'PLANNED' || j.status === 'BOQ');
-      } else if (statusFilter === 'WAIT_QC') {
-        result = result.filter(j => j.status === 'WAIT_QC' || j.status === 'QC_PENDING' || j.status === 'REWORK');
-      } else if (statusFilter === 'COMPLETED') {
-        result = result.filter(j => 
-          j.status === 'COMPLETED' || 
-          j.status === 'PASSED' || 
-          j.status === 'QC_PASSED' || 
-          j.status === 'QC_PASS' || 
-          j.status === 'CLOSED' || 
-          j.status === 'CLOSEJOB' || 
-          (j as any).stk_status === 'DELIVERED'
-        );
-      } else {
-        result = result.filter(j => j.status === statusFilter);
-      }
-    }
 
     // 0.1 Job Type Filter (Quick vs Renovate)
     if (typeFilter !== 'all') {
@@ -267,7 +214,7 @@ export default function OrdersPage() {
     });
 
     return result;
-  }, [allJobs, searchQuery, startDate, endDate, statusFilter, typeFilter]);
+  }, [allJobs, searchQuery, startDate, endDate, typeFilter]);
 
   const columns: ColumnDef<Job>[] = [
     { 
@@ -591,62 +538,7 @@ export default function OrdersPage() {
           </button>
         </div>
 
-        {/* Queue Scope Filter: Active vs Closed vs All */}
-        <div className="flex items-center gap-1.5 bg-gray-50/90 p-1 rounded-xl border border-gray-300 shadow-2xs">
-          <span className="text-xs font-bold text-black px-2 hidden sm:inline-flex">
-            สถานะคิว:
-          </span>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('active')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              statusFilter === 'active'
-                ? 'bg-emerald-600 text-white shadow-xs font-bold'
-                : 'bg-white text-black border border-gray-300 hover:bg-emerald-50 hover:border-emerald-300'
-            }`}
-          >
-            <span>รอจัดการ (Active)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('COMPLETED')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              statusFilter === 'COMPLETED'
-                ? 'bg-gray-800 text-white shadow-xs font-bold'
-                : 'bg-white text-black border border-gray-300 hover:bg-gray-100 hover:border-gray-400'
-            }`}
-          >
-            <span>ปิดงานแล้ว (Closejob)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              statusFilter === 'all'
-                ? 'bg-gray-900 text-white shadow-xs font-bold'
-                : 'bg-white text-black border border-gray-300 hover:bg-gray-100'
-            }`}
-          >
-            <span>ทั้งหมด</span>
-          </button>
-        </div>
       </div>
-
-      {statusFilter === 'COMPLETED' && (
-        <div className="my-2 p-2.5 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-between gap-3 text-xs text-blue-900">
-          <div className="flex items-center gap-2">
-            <span>ℹ️</span>
-            <span>กำลังแสดงรายการคำสั่งซื้อที่ส่งมอบและปิดงานเสร็จสิ้นแล้ว (ส่ง STK แล้ว)</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate('/completed')}
-            className="font-bold underline text-blue-800 hover:text-blue-950 flex items-center gap-1 cursor-pointer shrink-0"
-          >
-            <span>ดูสรุปผลฉบับเต็มในเมนู 4: ปิดงาน ↗</span>
-          </button>
-        </div>
-      )}
 
       {/* Search & Filter Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-4 py-3 px-1">
@@ -675,7 +567,7 @@ export default function OrdersPage() {
           </div>
 
           {/* Reset button if filter is active */}
-          {(searchQuery || startDate || endDate || statusFilter !== 'all' || typeFilter !== 'all') && (
+          {(searchQuery || startDate || endDate || typeFilter !== 'all') && (
             <Button
               variant="ghost"
               size="sm"
@@ -683,7 +575,6 @@ export default function OrdersPage() {
                 setSearchQuery('');
                 setStartDate('');
                 setEndDate('');
-                setStatusFilter('all');
                 handleTypeFilterChange('all');
               }}
               className="h-9 text-xs text-black font-medium hover:bg-gray-100"
@@ -715,22 +606,7 @@ export default function OrdersPage() {
           detailContent={
             selectedJob ? (
               <div className="flex flex-col h-full overflow-hidden">
-                {((selectedJob as any).stk_status === 'DELIVERED' || selectedJob.status === 'CLOSED' || selectedJob.status === 'CLOSEJOB') && (
-                  <div className="bg-blue-50 border-b border-blue-200 px-4 py-2 flex items-center justify-between text-xs text-blue-900 shrink-0">
-                    <span className="flex items-center gap-1.5 font-medium">
-                      <FileText className="w-4 h-4 text-blue-700 shrink-0" />
-                      <span>ใบงานนี้ปิดงานเสร็จสิ้นแล้ว (ส่ง STK แล้ว) สามารถดูข้อมูลทุกมุมมองและประวัติฉบับเต็มได้ที่เมนูรายงาน</span>
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => navigate(`/reports?jobNo=${selectedJob.job_no}&tab=timeline`)}
-                      className="h-7 text-xs bg-white text-blue-800 border-blue-300 hover:bg-blue-100 cursor-pointer"
-                    >
-                      เปิดในเมนูรายงาน →
-                    </Button>
-                  </div>
-                )}
+
                 <div className="flex-1 min-h-0">
                   <JobDetailTabs 
                     job={selectedJob} 

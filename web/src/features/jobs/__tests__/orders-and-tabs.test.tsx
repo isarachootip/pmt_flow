@@ -128,7 +128,7 @@ const mockJobs: jobsApi.Job[] = [
       phone: '0842223344',
       address: 'สมุทรปราการ',
     },
-    status: 'COMPLETED',
+    status: 'IN_PROGRESS',
     project_type: 'Quick Service',
     services: ['ล้างแอร์'],
     assigned_tech: 'ช่างมานะ',
@@ -165,13 +165,14 @@ describe('JobDetailTabs - Core Workflow Pipeline Alignment (R4)', () => {
 
     // Get all tab triggers
     const tabTriggers = screen.getAllByRole('tab');
-    expect(tabTriggers).toHaveLength(5);
+    expect(tabTriggers).toHaveLength(6);
 
     expect(tabTriggers[0]).toHaveTextContent('งาน/Task');
     expect(tabTriggers[1]).toHaveTextContent('BOQ');
-    expect(tabTriggers[2]).toHaveTextContent('QC');
-    expect(tabTriggers[3]).toHaveTextContent('ส่งออก STK');
-    expect(tabTriggers[4]).toHaveTextContent('ประวัติ (Timeline)');
+    expect(tabTriggers[2]).toHaveTextContent('Gantt');
+    expect(tabTriggers[3]).toHaveTextContent('QC');
+    expect(tabTriggers[4]).toHaveTextContent('ส่งออก STK');
+    expect(tabTriggers[5]).toHaveTextContent('ประวัติ (Timeline)');
   });
 
   it('navigates to "QC" tab and displays inspection checklist with pass indicators for Quick jobs (1 question)', () => {
@@ -224,12 +225,14 @@ describe('JobDetailTabs - Core Workflow Pipeline Alignment (R4)', () => {
   });
 
   it('supports case-insensitive tab routing and aliases (e.g. BOQ)', () => {
-    renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="BOQ" />);
+    const renovateJob = mockJobs[1];
+    renderWithProviders(<JobDetailTabs job={renovateJob} defaultTab="BOQ" />);
     expect(screen.getByText('รายการประเมินราคา (BOQ)')).toBeInTheDocument();
   });
 
   it('supports all pipeline tab aliases (pricing, inspection, export)', () => {
-    const { unmount: u1 } = renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="pricing" />);
+    const renovateJob = mockJobs[1];
+    const { unmount: u1 } = renderWithProviders(<JobDetailTabs job={renovateJob} defaultTab="pricing" />);
     expect(screen.getByText('รายการประเมินราคา (BOQ)')).toBeInTheDocument();
     u1();
 

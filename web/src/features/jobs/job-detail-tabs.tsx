@@ -35,7 +35,7 @@ interface JobDetailTabsProps {
   onClose?: () => void;
 }
 
-export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTabsProps) {
+export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: JobDetailTabsProps) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -450,18 +450,6 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
           <StatusBadge status={(job as any).stk_status === 'DELIVERED' || job.status === 'CLOSED' || job.status === 'CLOSEJOB' ? 'CLOSEJOB' : (job.status === 'QC_PENDING' ? 'PENDING' : job.status)} />
         </div>
         <div className="flex items-center space-x-2">
-          {((job as any).stk_status === 'DELIVERED' || job.status === 'CLOSED' || job.status === 'CLOSEJOB') && (
-            <a
-              href="https://vwds.online/wds/pmt-qc"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-bold transition-colors shadow-xs"
-              title="เปิดดูข้อมูลในระบบ WDS (vwds.online/wds/pmt-qc)"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
-              <span>ดูใน WDS ↗</span>
-            </a>
-          )}
           {(job.status === 'NEW' || job.status === 'NEED_REVIEW' || !(job as any).pmt_accepted) && (
             <Button
               variant="primary"
@@ -474,14 +462,6 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
               <span>{acceptMutation.isPending ? 'กำลังรับงาน...' : 'รับงาน'}</span>
             </Button>
           )}
-          {onClose && (
-            <Button variant="ghost" onClick={onClose} size="sm" className="text-black font-medium">
-              ปิด
-            </Button>
-          )}
-          <Button variant="secondary" onClick={() => navigate(`/jobs/${job.job_no}`)} size="sm" className="text-black font-medium">
-            เปิดเต็มหน้า
-          </Button>
         </div>
       </div>
 

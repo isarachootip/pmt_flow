@@ -879,7 +879,12 @@ export async function dbLoadJobsPaginated(options: DbLoadJobsPaginatedOptions = 
       if (rawStatus.includes(',')) {
         const statuses = rawStatus.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
         const placeholders = statuses.map(() => `$${paramIdx++}`).join(', ');
-        whereClauses.push(`UPPER(status) IN (${placeholders})`);
+        const hasCompletedStatus = statuses.some(s => ['COMPLETED', 'CLOSED', 'CLOSEJOB', 'QC_PASS', 'QC_PASSED'].includes(s));
+        if (hasCompletedStatus) {
+          whereClauses.push(`(UPPER(status) IN (${placeholders}) OR UPPER(COALESCE(stk_status, '')) = 'DELIVERED')`);
+        } else {
+          whereClauses.push(`UPPER(status) IN (${placeholders})`);
+        }
         params.push(...statuses);
       } else if (st === 'step1_queue') {
         whereClauses.push(`(UPPER(status) IN ('SURVEYED', 'DRAFT', 'NEW', 'NEW_ORDER', 'NEED_REVIEW') AND (pmt_accepted IS FALSE OR pmt_accepted IS NULL))`);
@@ -888,7 +893,7 @@ export async function dbLoadJobsPaginated(options: DbLoadJobsPaginatedOptions = 
       } else if (st === 'new') {
         whereClauses.push(`UPPER(status) IN ('NEW', 'NEED_REVIEW', 'DRAFT', 'NEW_ORDER')`);
       } else if (st === 'completed') {
-        whereClauses.push(`UPPER(status) IN ('COMPLETED', 'CLOSED', 'QC_PASSED', 'QC_PASS', 'PASSED')`);
+        whereClauses.push(`(UPPER(status) IN ('COMPLETED', 'CLOSED', 'CLOSEJOB', 'QC_PASSED', 'QC_PASS', 'PASSED') OR UPPER(COALESCE(stk_status, '')) = 'DELIVERED')`);
       } else if (st === 'wait_qc' || st === 'qc') {
         whereClauses.push(`UPPER(status) IN ('WAIT_QC', 'QC_PENDING', 'QC_INSPECTING', 'QC_REWORK', 'REWORK')`);
       } else if (st === 'planned') {
@@ -914,7 +919,7 @@ export async function dbLoadJobsPaginated(options: DbLoadJobsPaginatedOptions = 
       } else if (stp === 'step5' || stp === 'qc') {
         whereClauses.push(`(UPPER(status) IN ('WAIT_QC', 'QC_PENDING', 'QC_INSPECTING', 'QC_REWORK', 'REWORK', 'QC_PASSED', 'QC_CONFIRMED', 'DRAFT_QC'))`);
       } else if (stp === 'step6' || stp === 'closed' || stp === 'completed') {
-        whereClauses.push(`(UPPER(status) IN ('COMPLETED', 'CLOSED', 'QC_PASSED', 'PASSED'))`);
+        whereClauses.push(`(UPPER(status) IN ('COMPLETED', 'CLOSED', 'CLOSEJOB', 'QC_PASSED', 'QC_PASS', 'PASSED') OR UPPER(COALESCE(stk_status, '')) = 'DELIVERED')`);
       } else if (stp === 'step7' || stp === 'ma') {
         whereClauses.push(`(UPPER(status) = 'AFTER_SALE' OR LOWER(job_type) = 'ma')`);
       }

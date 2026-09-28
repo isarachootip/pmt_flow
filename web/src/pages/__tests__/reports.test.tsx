@@ -144,12 +144,13 @@ describe('ReportsPage - Comprehensive 360° Job Report & Audit Explorer', () => 
 
     // Detail tabs should be rendered
     const tabs = screen.getAllByRole('tab');
-    expect(tabs.length).toBe(5);
+    expect(tabs.length).toBe(6);
     expect(tabs[0]).toHaveTextContent('งาน/Task');
     expect(tabs[1]).toHaveTextContent('BOQ');
-    expect(tabs[2]).toHaveTextContent('QC');
-    expect(tabs[3]).toHaveTextContent('ส่งออก STK');
-    expect(tabs[4]).toHaveTextContent('ประวัติ (Timeline)');
+    expect(tabs[2]).toHaveTextContent('Gantt');
+    expect(tabs[3]).toHaveTextContent('QC');
+    expect(tabs[4]).toHaveTextContent('ส่งออก STK');
+    expect(tabs[5]).toHaveTextContent('ประวัติ (Timeline)');
   });
 
   it('supports deep linking directly via /reports?jobNo=JOB-Q2609018&tab=timeline', () => {
@@ -158,7 +159,7 @@ describe('ReportsPage - Comprehensive 360° Job Report & Audit Explorer', () => 
     // Should automatically select JOB-Q2609018 and display its tabs
     expect(screen.getAllByText('คุณวราดล อิทธิไพศาล').length).toBeGreaterThanOrEqual(1);
     const tabs = screen.getAllByRole('tab');
-    expect(tabs[4]).toHaveTextContent('ประวัติ (Timeline)');
+    expect(tabs[5]).toHaveTextContent('ประวัติ (Timeline)');
   });
 
   it('filters table by job type (Quick vs Renovate)', async () => {
