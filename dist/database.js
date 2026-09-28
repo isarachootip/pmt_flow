@@ -1862,7 +1862,7 @@ async function dbSeedMockJobs() {
             'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW'
         ];
         let rInserted = 0;
-        const baseDate = new Date('2026-09-28T09:00:00.000Z');
+        const baseDate = new Date('2026-09-29T08:00:00.000Z');
         for (let i = 0; i < 20; i++) {
             const cust = customers[i];
             const template = rProjectsCatalog[i % rProjectsCatalog.length];
@@ -1968,7 +1968,7 @@ async function dbSeedMockJobs() {
             };
             const overallProgress = status === 'COMPLETED' ? 100 : status === 'IN_PROGRESS' ? 35 : 0;
             const pmtAccepted = status !== 'NEW';
-            const planDate = new Date(baseDate.getTime() + (i * 86400000)).toISOString().slice(0, 10);
+            const planDate = baseDate.toISOString().slice(0, 10);
             const createdAt = new Date(baseDate.getTime() - (20 - i) * 3600000).toISOString();
             const photoPreset = qPhotoPresets[i % qPhotoPresets.length];
             const uploadTime = new Date(baseDate.getTime() - (20 - i) * 3600000).toISOString();
