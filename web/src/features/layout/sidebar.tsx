@@ -5,7 +5,7 @@ import { getMenuForRole } from '@/lib/rbac';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { X } from 'lucide-react';
+import { X, ExternalLink } from 'lucide-react';
 
 export function Sidebar({ className, onClose }: { className?: string, onClose?: () => void }) {
   const { user } = useAuth();
@@ -87,7 +87,20 @@ export function Sidebar({ className, onClose }: { className?: string, onClose?: 
           </div>
         ))}
       </div>
-      <div className="p-3 border-t border-surface-border mt-auto">
+      <div className="p-3 border-t border-surface-border mt-auto space-y-1.5">
+        <a
+          href="https://vwds.online/wds/pmt-qc"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold text-black hover:bg-blue-50/80 transition-all border border-blue-200 bg-blue-50/50"
+          title="เปิดระบบตรวจสอบผลตรวจ QC (VWDS Platform: vwds.online)"
+        >
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+            <span className="text-black font-bold">ระบบ WDS (vwds.online)</span>
+          </div>
+          <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
+        </a>
         <a
           href="/v1"
           className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text hover:bg-surface-subtle transition-all"

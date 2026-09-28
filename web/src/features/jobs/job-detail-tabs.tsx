@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { PhotoSlots5, PhotoSlot } from '@/components/ui/photo-slots-5';
 import { OrderCustomerSummary } from '@/features/jobs/order-customer-summary';
 import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
-import { UserCheck, Camera, ExternalLink } from 'lucide-react';
+import { UserCheck, Camera, ExternalLink, CheckCircle2 } from 'lucide-react';
 
 const STANDARD_PHOTO_SLOTS: PhotoSlot[] = [
   { id: 'before', label: 'ก่อนเริ่มงาน' },
@@ -402,6 +402,18 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
           <StatusBadge status={(job as any).stk_status === 'DELIVERED' || job.status === 'CLOSED' || job.status === 'CLOSEJOB' ? 'CLOSEJOB' : (job.status === 'QC_PENDING' ? 'PENDING' : job.status)} />
         </div>
         <div className="flex items-center space-x-2">
+          {((job as any).stk_status === 'DELIVERED' || job.status === 'CLOSED' || job.status === 'CLOSEJOB') && (
+            <a
+              href="https://vwds.online/wds/pmt-qc"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-bold transition-colors shadow-xs"
+              title="เปิดดูข้อมูลในระบบ WDS (vwds.online/wds/pmt-qc)"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
+              <span>ดูใน WDS ↗</span>
+            </a>
+          )}
           {(job.status === 'NEW' || job.status === 'NEED_REVIEW' || !(job as any).pmt_accepted) && (
             <Button
               variant="primary"
@@ -615,10 +627,18 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
 
             {/* 4. ส่งออก STK */}
             <TabsContent value="stk" className="h-full m-0 data-[state=active]:flex flex-col space-y-4">
-              <div className="p-4 border-b border-gray-200 bg-white text-black space-y-3">
-                <div className="flex justify-between items-start">
+              <div className="p-4 border-b border-gray-200 bg-white text-black space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
                   <div>
-                    <h4 className="text-base font-bold text-black">การส่งออกข้อมูลไปยังระบบ STK / BMT</h4>
+                    <h4 className="text-base font-bold text-black flex items-center gap-2">
+                      <span>การส่งออกข้อมูลไปยังระบบ STK / BMT</span>
+                      {((job as any).stk_status === 'DELIVERED' || job.status === 'CLOSED' || job.status === 'CLOSEJOB') && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>closejob(ส่ง stk แล้ว)</span>
+                        </span>
+                      )}
+                    </h4>
                     <p className="text-xs text-black mt-1">
                       ส่งข้อมูลงาน, ยอดเงินตาม BOQ และบันทึกค่าใช้จ่ายเพื่อตัดยอดบัญชีในระบบภายนอก
                     </p>
@@ -628,11 +648,11 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                       href="https://vwds.online/wds/pmt-qc"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-black font-semibold shadow-xs transition-colors"
+                      className="inline-flex items-center gap-1.5 text-xs px-3.5 py-2 rounded-lg border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold shadow-xs transition-colors"
                       title="เปิดหน้าจอตรวจสอบข้อมูล WDS / PMT-QC"
                     >
-                      <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
-                      <span>เปิดระบบ WDS</span>
+                      <ExternalLink className="w-4 h-4 text-blue-600" />
+                      <span>เปิดระบบ WDS (vwds.online)</span>
                     </a>
                     <Button 
                       variant="primary" 
@@ -643,6 +663,36 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                       {stkMutation.isPending ? 'กำลังส่งออก...' : '🚀 ส่งออก STK'}
                     </Button>
                   </div>
+                </div>
+
+                {/* Prominent Direct Link Banner to vwds.online */}
+                <div className="p-3.5 rounded-xl border border-blue-200 bg-blue-50/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2 text-sm font-bold text-black">
+                      <ExternalLink className="w-4 h-4 text-blue-600" />
+                      <span>ลิงก์ระบบภายนอก: WDS Platform (vwds.online)</span>
+                      {((job as any).stk_status === 'DELIVERED' || job.status === 'CLOSED' || job.status === 'CLOSEJOB') && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>closejob(ส่ง stk แล้ว)</span>
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-black">
+                      ตรวจสอบบันทึกผลการตรวจ QC, รายละเอียดงาน และสถานะเบิกจ่ายจริงบนระบบ WDS
+                    </p>
+                    <div className="text-[11px] font-mono text-blue-700 font-semibold">
+                      https://vwds.online/wds/pmt-qc
+                    </div>
+                  </div>
+                  <a
+                    href="https://vwds.online/wds/pmt-qc"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors shrink-0"
+                  >
+                    <span>ไปดูข้อมูลในระบบ vwds.online ↗</span>
+                  </a>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 text-xs pt-2">

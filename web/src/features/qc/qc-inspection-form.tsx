@@ -17,7 +17,8 @@ import {
   FileCheck2, 
   RotateCcw,
   Send,
-  Clock
+  Clock,
+  ExternalLink
 } from 'lucide-react';
 import { formatDateTimeDMY, formatDMY, format24HourTimeBadge } from '@/lib/date';
 import { toast } from 'sonner';
@@ -427,6 +428,19 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
                 </Button>
               )}
 
+              {isAlreadyPassed && (
+                <a
+                  href="https://vwds.online/wds/pmt-qc"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs px-2.5 h-7 rounded border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold transition-colors shadow-xs"
+                  title="เปิดดูข้อมูลผลตรวจ QC ในระบบ WDS (vwds.online/wds/pmt-qc)"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
+                  <span>ดูใน WDS ↗</span>
+                </a>
+              )}
+
               {isAlreadyPassed && !isEditMode && (
                 <Button
                   type="button"
@@ -791,6 +805,16 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
                       🚀 ส่งออก STK (Step 6)
                     </Button>
                   )}
+                  <a
+                    href="https://vwds.online/wds/pmt-qc"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs shadow-xs transition-colors"
+                    title="เปิดดูข้อมูลในระบบ WDS (vwds.online/wds/pmt-qc)"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
+                    <span>ดูใน WDS ↗</span>
+                  </a>
                 </div>
               ) : (
                 <Button

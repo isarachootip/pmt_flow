@@ -7,7 +7,7 @@ import { DataGrid, ColumnDef } from '@/components/ui/data-grid';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, ExternalLink } from 'lucide-react';
 import { JobDetailTabs } from '@/features/jobs/job-detail-tabs';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { CsatForm } from '@/features/qc/csat-form';
@@ -124,10 +124,23 @@ export default function CompletedPage() {
                 ปิดงาน & ส่ง STK
               </Button>
             )}
-            {status === 'CLOSED' && (
-              <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); handleExportStk(row.id); }} className="text-black text-xs">
-                ส่ง STK ซ้ำ
-              </Button>
+            {(status === 'CLOSED' || (row as any).stk_status === 'DELIVERED') && (
+              <div className="flex items-center gap-1.5">
+                <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); handleExportStk(row.id); }} className="text-black text-xs font-semibold">
+                  ส่ง STK ซ้ำ
+                </Button>
+                <a
+                  href="https://vwds.online/wds/pmt-qc"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-bold transition-colors shadow-xs"
+                  title="เปิดดูข้อมูลในระบบ WDS (vwds.online/wds/pmt-qc)"
+                >
+                  <ExternalLink className="w-3 h-3 text-blue-600" />
+                  <span>ดูใน WDS ↗</span>
+                </a>
+              </div>
             )}
           </div>
         );
@@ -163,8 +176,20 @@ export default function CompletedPage() {
           )}
         </div>
 
-        <div className="text-xs text-black font-medium">
-          แสดง <span className="font-bold text-black">{filteredJobs.length}</span> จากทั้งหมด <span className="font-bold text-black">{jobs.length}</span> รายการ
+        <div className="flex items-center gap-3">
+          <a
+            href="https://vwds.online/wds/pmt-qc"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs shadow-xs transition-colors"
+            title="เปิดดูผลการส่งออกและตรวจ QC บนระบบ VWDS Platform (vwds.online)"
+          >
+            <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
+            <span>ไปดูข้อมูลในระบบ vwds.online ↗</span>
+          </a>
+          <div className="text-xs text-black font-medium">
+            แสดง <span className="font-bold text-black">{filteredJobs.length}</span> จากทั้งหมด <span className="font-bold text-black">{jobs.length}</span> รายการ
+          </div>
         </div>
       </div>
 
