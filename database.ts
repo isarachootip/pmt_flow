@@ -1914,15 +1914,10 @@ export async function dbSeedMockJobs(): Promise<number> {
     ];
 
     // Status breakdown for 20 Renovate Jobs:
-    // 1-10: NEW (รอรับงาน - มี BOQ ครบถ้วน เพื่อแปลงเข้า Gantt)
-    // 11-14: PLANNED (เข้าสู่แผนงาน Gantt เรียบร้อย)
-    // 15-18: IN_PROGRESS (กำลังติดตั้งตาม Tasks ใน Gantt)
-    // 19-20: COMPLETED (ส่งมอบสำเร็จ)
+    // ALL 20: NEW (รอรับงาน - มี BOQ ครบถ้วน เพื่อแปลงเข้า Gantt เริ่มต้นใหม่)
     const rStatuses: Array<'NEW' | 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED'> = [
       'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW',
-      'PLANNED', 'PLANNED', 'PLANNED', 'PLANNED',
-      'IN_PROGRESS', 'IN_PROGRESS', 'IN_PROGRESS', 'IN_PROGRESS',
-      'COMPLETED', 'COMPLETED'
+      'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW'
     ];
 
     let rInserted = 0;
@@ -2136,13 +2131,10 @@ export async function dbSeedMockJobs(): Promise<number> {
     ];
 
     // Status breakdown for 20 Quick Jobs:
-    // 21-30: NEW (รอรับงาน - รูปหน้างานจาก QC/ช่างส่งมาพร้อมส่งเข้าระบบ PMT)
-    // 31-36: WAIT_QC (รอตรวจ QC Online พร้อมรูปถ่ายให้ QC ตรวจได้ทันที)
-    // 37-40: COMPLETED (ผ่าน QC และปิดงานสำเร็จ)
+    // ALL 20: NEW (รอรับงาน - รูปหน้างานจาก QC/ช่างส่งมาพร้อมส่งเข้าระบบ PMT เริ่มต้นใหม่)
     const qStatuses: Array<'NEW' | 'WAIT_QC' | 'COMPLETED'> = [
       'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW',
-      'WAIT_QC', 'WAIT_QC', 'WAIT_QC', 'WAIT_QC', 'WAIT_QC', 'WAIT_QC',
-      'COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED'
+      'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW', 'NEW'
     ];
 
     let qInserted = 0;
