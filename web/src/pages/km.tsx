@@ -234,17 +234,17 @@ export default function KMPage() {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-subtle p-6 overflow-hidden">
+    <div className="flex flex-col h-full bg-subtle p-2.5 overflow-hidden">
       <PageHeader 
         title="คลังความรู้ (Knowledge Management)" 
         pageKey="km" 
       />
 
       {/* Filter Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 py-3 px-1">
-        <div className="flex items-center gap-3 flex-1 min-w-[300px]">
+      <div className="flex flex-wrap items-center justify-between gap-2 py-1 px-1 shrink-0">
+        <div className="flex items-center gap-2 flex-1 min-w-[300px]">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <Input 
               placeholder="ค้นหาคู่มือ, ขั้นตอนการทำงาน, รหัส KM..."
               value={searchTerm}

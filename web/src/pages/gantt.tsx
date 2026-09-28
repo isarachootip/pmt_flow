@@ -375,39 +375,39 @@ export default function GanttPage() {
   };
 
   const actions = (
-    <div className="flex gap-2">
-      <Button variant="secondary" onClick={handleExportCSV} className="text-black font-medium">ส่งออก</Button>
-      <Button variant="primary" onClick={() => setShowCreateDrawer(true)} className="text-black font-medium">+ สร้างงาน</Button>
+    <div className="flex items-center gap-1.5">
+      <Button variant="secondary" size="sm" onClick={handleExportCSV} className="h-7 text-xs px-2.5 text-black font-medium">ส่งออก</Button>
+      <Button variant="primary" size="sm" onClick={() => setShowCreateDrawer(true)} className="h-7 text-xs px-2.5 text-black font-medium">+ สร้างงาน</Button>
     </div>
   );
 
   return (
-    <div className="flex flex-col h-full bg-subtle p-6 overflow-hidden">
+    <div className="flex flex-col h-full bg-subtle p-2.5 overflow-hidden">
       <PageHeader title="Project & Gantt" pageKey="gantt" actions={actions} />
 
       {/* Search & Filter Toolbar (No Quick / Type filters: Dedicated to Job R only) */}
-      <div className="flex flex-wrap items-center justify-between gap-4 py-3 px-1">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 py-1 px-1 shrink-0">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Multi-field search */}
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black" />
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-black" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="ค้นหา (ลูกค้า, เบอร์โทร, Booking, Ref ID)..."
-              className="pl-9 h-9 text-sm text-black placeholder:text-gray-500 bg-white border-gray-300"
+              className="pl-8 h-8 text-xs text-black placeholder:text-gray-500 bg-white border-gray-300"
             />
           </div>
 
           {/* Date range filter */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className="text-xs font-semibold text-black whitespace-nowrap">ช่วงวันที่:</span>
             <DateRangePicker
               startDate={startDate}
               endDate={endDate}
               onStartDateChange={setStartDate}
               onEndDateChange={setEndDate}
-              className="bg-white"
+              className="bg-white [&_input]:h-8 [&_input]:text-xs [&_button]:h-8"
             />
           </div>
 
@@ -421,7 +421,7 @@ export default function GanttPage() {
                 setStartDate('');
                 setEndDate('');
               }}
-              className="h-9 text-xs text-black font-medium hover:bg-gray-100"
+              className="h-8 text-xs text-black font-medium hover:bg-gray-100 px-2"
             >
               ล้างตัวกรอง
             </Button>
@@ -435,7 +435,7 @@ export default function GanttPage() {
       </div>
 
       {/* Master Detail Layout: Top Table, Bottom JobDetailTabs with defaultTab="gantt" */}
-      <div className="flex-1 min-h-0 mt-2">
+      <div className="flex-1 min-h-0 mt-1">
         <MasterDetailLayout
           pageKey="gantt"
           masterContent={

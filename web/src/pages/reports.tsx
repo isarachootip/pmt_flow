@@ -558,7 +558,7 @@ export default function ReportsPage() {
   );
 
   return (
-    <div className="flex flex-col h-full bg-subtle p-6 overflow-hidden">
+    <div className="flex flex-col h-full bg-subtle p-2.5 overflow-hidden">
       <PageHeader 
         title="รายงานภาพรวม & ประวัติงาน (Reports & 360° Audit Explorer)" 
         pageKey="reports" 

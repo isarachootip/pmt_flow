@@ -149,7 +149,7 @@ export default function AdminApiLogsPage() {
   );
 
   return (
-    <div className="flex flex-col h-full bg-subtle p-6 overflow-hidden">
+    <div className="flex flex-col h-full bg-subtle p-2.5 overflow-hidden">
       <PageHeader 
         title="API Logs (ประวัติการเรียกใช้งาน API)" 
         pageKey="api-logs" 
@@ -157,15 +157,15 @@ export default function AdminApiLogsPage() {
       />
 
       {/* Filter Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 py-3 px-1">
-        <div className="flex items-center gap-3 flex-1 min-w-[280px]">
+      <div className="flex flex-wrap items-center justify-between gap-2 py-1 px-1 shrink-0">
+        <div className="flex items-center gap-2 flex-1 min-w-[280px]">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <Input 
               placeholder="ค้นหาตาม Path เช่น /api/v1/jobs..."
               value={searchPath}
               onChange={(e) => setSearchPath(e.target.value)}
-              className="pl-9 h-9 text-xs text-black font-medium"
+              className="pl-8 h-8 text-xs text-black font-medium"
             />
           </div>
 
@@ -174,7 +174,7 @@ export default function AdminApiLogsPage() {
             <select
               value={methodFilter}
               onChange={(e) => setMethodFilter(e.target.value)}
-              className="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-semibold text-black focus:outline-none focus:border-indigo-500 shadow-2xs h-9"
+              className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-semibold text-black focus:outline-none focus:border-indigo-500 shadow-2xs h-8"
             >
               <option value="">ทั้งหมด (All)</option>
               <option value="GET">GET</option>
@@ -192,7 +192,7 @@ export default function AdminApiLogsPage() {
       </div>
 
       {/* Top-Bottom Master Detail Layout */}
-      <div className="flex-1 min-h-0 mt-2">
+      <div className="flex-1 min-h-0 mt-1">
         <MasterDetailLayout
           pageKey="api-logs"
           masterContent={

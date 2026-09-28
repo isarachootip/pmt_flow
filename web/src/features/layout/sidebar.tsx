@@ -33,7 +33,7 @@ export function Sidebar({ className, onClose }: { className?: string, onClose?: 
 
   return (
     <aside className={cn("flex flex-col h-full bg-surface-bg font-sans border-r border-surface-border", className)}>
-      <div className="flex items-center justify-between h-[64px] px-6 lg:hidden border-b border-surface-border">
+      <div className="flex items-center justify-between h-[44px] px-4 lg:hidden border-b border-surface-border">
         <span className="font-semibold text-lg text-text">เมนู</span>
         {onClose && (
           <button onClick={onClose} className="p-2 text-text-secondary hover:text-text">

@@ -41,45 +41,45 @@ export function AppLayout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
-        <header className="h-[64px] border-b border-surface-border bg-surface-card px-4 md:px-6 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-4">
+        <header className="h-[44px] border-b border-surface-border bg-surface-card px-3 md:px-4 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 text-text-secondary hover:text-text rounded-md hover:bg-surface-subtle"
+              className="lg:hidden p-1 text-text-secondary hover:text-text rounded-md hover:bg-surface-subtle"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-4 h-4" />
             </button>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-white font-semibold text-base shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center text-white font-bold text-xs shadow-xs">
                 P
               </div>
-              <span className="font-semibold text-lg text-text hidden sm:block tracking-tight">PMT Flow v2</span>
+              <span className="font-semibold text-sm text-text hidden sm:block tracking-tight">PMT Flow v2</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-4">
-            <button className="p-2 text-text-secondary hover:text-text rounded-md hover:bg-surface-subtle flex items-center gap-2">
-              <Search className="w-5 h-5" />
-              <span className="hidden md:inline-block text-sm border border-surface-border px-1.5 py-0.5 rounded text-xs">⌘K</span>
+          <div className="flex items-center gap-1.5 md:gap-3">
+            <button className="p-1.5 text-text-secondary hover:text-text rounded-md hover:bg-surface-subtle flex items-center gap-1.5 text-xs">
+              <Search className="w-4 h-4" />
+              <span className="hidden md:inline-block text-[11px] border border-surface-border px-1 py-0.2 rounded font-mono">⌘K</span>
             </button>
-            <button className="p-2 text-text-secondary hover:text-text rounded-md hover:bg-surface-subtle relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#D12D2D] border border-white"></span>
+            <button className="p-1.5 text-text-secondary hover:text-text rounded-md hover:bg-surface-subtle relative">
+              <Bell className="w-4 h-4" />
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#D12D2D] border border-white"></span>
             </button>
             
-            <div className="h-6 w-px bg-surface-border mx-2" />
+            <div className="h-4 w-px bg-surface-border mx-1" />
             
             <div className="relative" ref={avatarRef}>
               <button 
                 onClick={() => setIsAvatarOpen(!isAvatarOpen)}
-                className="flex items-center gap-2 hover:bg-surface-subtle py-1 px-2 rounded-md transition-colors"
+                className="flex items-center gap-2 hover:bg-surface-subtle py-0.5 px-1.5 rounded-md transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-surface-border flex items-center justify-center text-text font-medium text-sm">
+                <div className="w-6 h-6 rounded-full bg-surface-border flex items-center justify-center text-text font-semibold text-xs">
                   {user?.full_name?.charAt(0) || 'U'}
                 </div>
                 <div className="hidden md:flex flex-col items-start text-left">
-                  <span className="text-sm font-medium text-text leading-tight">{user?.full_name}</span>
-                  <span className="text-xs text-text-secondary leading-tight">{user?.role}</span>
+                  <span className="text-xs font-semibold text-text leading-tight">{user?.full_name}</span>
+                  <span className="text-[10px] text-text-secondary leading-tight">{user?.role}</span>
                 </div>
               </button>
               

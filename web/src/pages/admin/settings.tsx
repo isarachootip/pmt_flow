@@ -31,7 +31,7 @@ export default function AdminSettingsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-subtle p-6 overflow-y-auto space-y-6">
+    <div className="flex flex-col h-full bg-subtle p-2.5 overflow-y-auto space-y-3">
       <PageHeader 
         title="ตั้งค่าระบบและบันทึกความปลอดภัย (Admin Settings)" 
         pageKey="settings" 

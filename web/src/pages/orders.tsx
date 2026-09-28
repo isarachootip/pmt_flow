@@ -455,29 +455,27 @@ export default function OrdersPage() {
   };
 
   const actions = (
-    <div className="flex gap-2">
-      <Button variant="secondary" onClick={handleExportCSV} className="text-black font-medium">ส่งออก</Button>
-      <Button variant="primary" onClick={() => setShowCreateDrawer(true)} className="text-black font-medium">+ สร้างงาน</Button>
+    <div className="flex items-center gap-1.5">
+      <Button variant="secondary" size="sm" onClick={handleExportCSV} className="h-7 text-xs px-2.5 text-black font-medium">ส่งออก</Button>
+      <Button variant="primary" size="sm" onClick={() => setShowCreateDrawer(true)} className="h-7 text-xs px-2.5 text-black font-medium">+ สร้างงาน</Button>
     </div>
   );
 
   return (
-    <div className="flex flex-col h-full bg-subtle p-6 overflow-hidden">
-      <PageHeader title="รับงาน & คิวงาน" pageKey="orders" actions={actions} />
-      
-      {/* Job Type Filter (Quick vs Renovate) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-1 pb-3 border-b border-soft">
-        <div className="flex items-center gap-1.5 bg-gray-50/90 p-1 rounded-xl border border-gray-300 shadow-2xs">
-          <span className="text-xs font-bold text-black px-2 hidden sm:inline-flex items-center gap-1.5">
-            <Filter className="w-3.5 h-3.5 text-black" />
-            <span>ประเภทงาน:</span>
+    <div className="flex flex-col h-full bg-subtle p-2.5 overflow-hidden">
+      <PageHeader title="รับงาน & คิวงาน" pageKey="orders" actions={actions}>
+        {/* Job Type Filter (Quick vs Renovate) */}
+        <div className="flex items-center gap-1 bg-gray-100/90 p-0.5 rounded-lg border border-gray-300 shadow-2xs">
+          <span className="text-[11px] font-bold text-black px-1.5 hidden sm:inline-flex items-center gap-1">
+            <Filter className="w-3 h-3 text-black" />
+            <span>ประเภท:</span>
           </span>
 
           {/* ทั้งหมด */}
           <button
             type="button"
             onClick={() => handleTypeFilterChange('all')}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
               typeFilter === 'all'
                 ? 'bg-gray-900 text-white shadow-xs font-bold'
                 : 'bg-white text-black border border-gray-300 hover:bg-gray-100 hover:border-gray-400'
@@ -485,7 +483,7 @@ export default function OrdersPage() {
           >
             <span>ทั้งหมด</span>
             <span
-              className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
                 typeFilter === 'all'
                   ? 'bg-gray-700 text-white'
                   : 'bg-gray-200 text-black'
@@ -499,14 +497,14 @@ export default function OrdersPage() {
           <button
             type="button"
             onClick={() => handleTypeFilterChange('Q')}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
               typeFilter === 'Q'
                 ? 'bg-blue-600 text-white shadow-xs font-bold border border-blue-700'
                 : 'bg-white text-black border border-gray-300 hover:bg-blue-50/70 hover:border-blue-300'
             }`}
           >
             <span
-              className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
+              className={`inline-flex items-center justify-center px-1 py-0.2 rounded text-[9px] font-bold ${
                 typeFilter === 'Q'
                   ? 'bg-blue-800 text-white border border-blue-400'
                   : 'bg-blue-100 text-blue-900 border border-blue-300'
@@ -516,7 +514,7 @@ export default function OrdersPage() {
             </span>
             <span>งาน Quick</span>
             <span
-              className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
                 typeFilter === 'Q'
                   ? 'bg-blue-700 text-white'
                   : 'bg-gray-200 text-black'
@@ -530,14 +528,14 @@ export default function OrdersPage() {
           <button
             type="button"
             onClick={() => handleTypeFilterChange('R')}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
               typeFilter === 'R'
                 ? 'bg-orange-600 text-white shadow-xs font-bold border border-orange-700'
                 : 'bg-white text-black border border-gray-300 hover:bg-orange-50/70 hover:border-orange-300'
             }`}
           >
             <span
-              className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
+              className={`inline-flex items-center justify-center px-1 py-0.2 rounded text-[9px] font-bold ${
                 typeFilter === 'R'
                   ? 'bg-orange-800 text-white border border-orange-400'
                   : 'bg-orange-100 text-orange-900 border border-orange-300'
@@ -547,7 +545,7 @@ export default function OrdersPage() {
             </span>
             <span>งาน Renovate</span>
             <span
-              className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
                 typeFilter === 'R'
                   ? 'bg-orange-700 text-white'
                   : 'bg-gray-200 text-black'
@@ -557,32 +555,31 @@ export default function OrdersPage() {
             </span>
           </button>
         </div>
-
-      </div>
+      </PageHeader>
 
       {/* Search & Filter Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 py-3 px-1">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 py-1 px-1 shrink-0">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Multi-field search */}
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black" />
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-black" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="ค้นหา (ลูกค้า, เบอร์โทร, Booking, Ref ID)..."
-              className="pl-9 h-9 text-sm text-black placeholder:text-gray-500 bg-white border-gray-300"
+              className="pl-8 h-8 text-xs text-black placeholder:text-gray-500 bg-white border-gray-300"
             />
           </div>
 
           {/* Date range filter */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className="text-xs font-semibold text-black whitespace-nowrap">ช่วงวันที่:</span>
             <DateRangePicker
               startDate={startDate}
               endDate={endDate}
               onStartDateChange={setStartDate}
               onEndDateChange={setEndDate}
-              className="bg-white"
+              className="bg-white [&_input]:h-8 [&_input]:text-xs [&_button]:h-8"
             />
           </div>
 
@@ -597,7 +594,7 @@ export default function OrdersPage() {
                 setEndDate('');
                 handleTypeFilterChange('all');
               }}
-              className="h-9 text-xs text-black font-medium hover:bg-gray-100"
+              className="h-8 text-xs text-black font-medium hover:bg-gray-100 px-2"
             >
               ล้างตัวกรอง
             </Button>
@@ -610,7 +607,7 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 mt-2">
+      <div className="flex-1 min-h-0 mt-1">
         <MasterDetailLayout
           pageKey="orders"
           masterContent={

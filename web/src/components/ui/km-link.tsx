@@ -15,13 +15,13 @@ const KmLink = React.forwardRef<HTMLAnchorElement, KmLinkProps>(
         target="_blank"
         rel="noopener noreferrer"
         className={cn(
-          'inline-flex items-center justify-center rounded-full p-2 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-subtle)] hover:text-black',
+          'inline-flex items-center justify-center rounded-md p-1 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-subtle)] hover:text-black',
           className
         )}
         title="คู่มือการใช้งาน (KM)"
         {...props}
       >
-        <BookOpen className="h-8 w-8" />
+        <BookOpen className="h-4 w-4" />
         <span className="sr-only">คู่มือการใช้งาน (KM)</span>
       </a>
     );

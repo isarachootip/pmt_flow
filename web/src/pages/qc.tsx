@@ -342,11 +342,11 @@ export default function QcPage() {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-subtle p-6 overflow-hidden">
+    <div className="flex flex-col h-full bg-subtle p-2.5 overflow-hidden">
       <PageHeader title="ตรวจรับงาน QC" pageKey="qc" />
 
       {/* Sub-Tabs: Quick Online vs Renovate On-site */}
-      <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-2 pt-2 rounded-t-xl mt-1">
+      <div className="flex items-center gap-1.5 border-b border-gray-200 bg-white px-2 pt-1 rounded-t-lg mt-1 shrink-0">
         <button
           type="button"
           onClick={() => {
@@ -354,15 +354,15 @@ export default function QcPage() {
             setSelectedBooking(null);
             setSearchParams({ type: 'quick', ...(searchQuery ? { jobNo: searchQuery } : {}) });
           }}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
             activeQcTab === 'quick'
               ? 'border-blue-600 text-blue-900 bg-blue-50/50'
               : 'border-transparent text-gray-600 hover:text-black hover:bg-gray-50'
           }`}
         >
-          <Zap className={`w-4 h-4 ${activeQcTab === 'quick' ? 'text-blue-600' : 'text-gray-400'}`} />
+          <Zap className={`w-3.5 h-3.5 ${activeQcTab === 'quick' ? 'text-blue-600' : 'text-gray-400'}`} />
           <span>ตรวจด่วน Online (Quick Service)</span>
-          <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
+          <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
             activeQcTab === 'quick' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-black'
           }`}>
             {filteredQuickJobs.length}
@@ -376,15 +376,15 @@ export default function QcPage() {
             setSelectedQuickJob(null);
             setSearchParams({ type: 'renovate', ...(searchQuery ? { jobNo: searchQuery } : {}) });
           }}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
             activeQcTab === 'renovate'
               ? 'border-purple-600 text-purple-900 bg-purple-50/50'
               : 'border-transparent text-gray-600 hover:text-black hover:bg-gray-50'
           }`}
         >
-          <Building2 className={`w-4 h-4 ${activeQcTab === 'renovate' ? 'text-purple-600' : 'text-gray-400'}`} />
+          <Building2 className={`w-3.5 h-3.5 ${activeQcTab === 'renovate' ? 'text-purple-600' : 'text-gray-400'}`} />
           <span>จองตรวจ On-site (Renovate Projects)</span>
-          <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
+          <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
             activeQcTab === 'renovate' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-black'
           }`}>
             {filteredRenovateList.length}
@@ -393,15 +393,15 @@ export default function QcPage() {
       </div>
 
       {/* Search & Filter Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 py-3 px-1 bg-white border-b border-gray-100">
-        <div className="flex items-center gap-3">
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black" />
+      <div className="flex flex-wrap items-center justify-between gap-2 py-1 px-1 bg-white border-b border-gray-100 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-black" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={activeQcTab === 'quick' ? "ค้นหางาน Quick (รหัสงาน, ลูกค้า, เบอร์โทร)..." : "ค้นหางาน Renovate (รหัสงาน, ลูกค้า, Task, ผู้ตรวจ)..."}
-              className="pl-9 h-9 text-sm text-black placeholder:text-gray-500 bg-white border-gray-300"
+              className="pl-8 h-8 text-xs text-black placeholder:text-gray-500 bg-white border-gray-300"
             />
           </div>
           {searchQuery && (
@@ -412,7 +412,7 @@ export default function QcPage() {
                 setSearchQuery('');
                 setSearchParams({ type: activeQcTab });
               }}
-              className="h-9 text-xs text-black font-medium hover:bg-gray-100 cursor-pointer"
+              className="h-8 text-xs text-black font-medium hover:bg-gray-100 cursor-pointer px-2"
             >
               ล้างตัวกรอง
             </Button>
@@ -421,13 +421,13 @@ export default function QcPage() {
 
         <div className="text-xs text-black font-medium flex items-center gap-2">
           {activeQcTab === 'quick' ? (
-            <span className="inline-flex items-center gap-1.5 text-blue-800 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
-              <Zap className="w-3.5 h-3.5 text-blue-600" />
+            <span className="inline-flex items-center gap-1 text-blue-800 bg-blue-50 px-2 py-0.5 rounded text-[11px] border border-blue-200">
+              <Zap className="w-3 h-3 text-blue-600" />
               <span>โหมดตรวจ Online 1 ข้อ จากรูปถ่าย 5 ขั้นตอน (Fast-track)</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 text-purple-800 bg-purple-50 px-2.5 py-1 rounded-md border border-purple-200">
-              <Building2 className="w-3.5 h-3.5 text-purple-600" />
+            <span className="inline-flex items-center gap-1 text-purple-800 bg-purple-50 px-2 py-0.5 rounded text-[11px] border border-purple-200">
+              <Building2 className="w-3 h-3 text-purple-600" />
               <span>โหมดจองช่าง QC Lead & ตรวจเกณฑ์ 5 ข้อมาตรฐาน On-site</span>
             </span>
           )}
@@ -436,7 +436,7 @@ export default function QcPage() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 mt-2">
+      <div className="flex-1 min-h-0 mt-1">
         <MasterDetailLayout
           pageKey="qc"
           masterContent={

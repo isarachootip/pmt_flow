@@ -25,14 +25,14 @@ export default function JobFullPage() {
   }
 
   const actions = (
-    <div className="flex gap-2">
-      <Button variant="secondary" onClick={() => navigate(-1)}>กลับ</Button>
-      <Button variant="primary">อัปเดตสถานะ</Button>
+    <div className="flex items-center gap-1.5">
+      <Button variant="secondary" size="sm" onClick={() => navigate(-1)} className="h-7 text-xs px-2.5">กลับ</Button>
+      <Button variant="primary" size="sm" className="h-7 text-xs px-2.5">อัปเดตสถานะ</Button>
     </div>
   );
 
   return (
-    <div className="flex flex-col h-full bg-subtle overflow-auto p-6 space-y-6">
+    <div className="flex flex-col h-full bg-subtle overflow-auto p-2.5 space-y-3">
       <PageHeader title={`รายละเอียดงาน: ${job.job_no}`} pageKey={`job-${job.job_no}`} actions={actions} />
       
       <div className="bg-card rounded-2xl p-6 shadow-card border border-soft">
