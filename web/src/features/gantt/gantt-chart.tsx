@@ -42,8 +42,9 @@ export function GanttChart({
   onCompleteTask,
   className 
 }: GanttChartProps) {
-  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const timelineContainerRef = React.useRef<HTMLDivElement>(null);
   const [collapsedAreas, setCollapsedAreas] = React.useState<Record<string, boolean>>({});
+  const today = React.useMemo(() => startOfDay(new Date()), []);
 
   const toggleArea = (areaKey: string) => {
     setCollapsedAreas(prev => ({ ...prev, [areaKey]: !prev[areaKey] }));
@@ -70,8 +71,10 @@ export function GanttChart({
   // Calculate timeline date range
   const { startDate, days } = React.useMemo(() => {
     if (!tasks || tasks.length === 0) {
-      const today = startOfDay(new Date());
-      return { startDate: addDays(today, -2), days: Array.from({ length: 20 }, (_, i) => addDays(addDays(today, -2), i)) };
+      return { 
+        startDate: addDays(today, -3), 
+        days: Array.from({ length: 25 }, (_, i) => addDays(addDays(today, -3), i)) 
+      };
     }
 
     let minDate = parseISO(tasks[0].plan_start_date || new Date().toISOString().slice(0, 10));
@@ -96,15 +99,23 @@ export function GanttChart({
       }
     });
 
-    // Add buffer: 3 days before, 7 days after
-    minDate = addDays(minDate, -3);
-    maxDate = addDays(maxDate, 7);
+    // Ensure today (current date) is ALWAYS included in timeline range
+    if (today < minDate) {
+      minDate = today;
+    }
+    if (today > maxDate) {
+      maxDate = today;
+    }
+
+    // Add buffer: 2 days before, 5 days after
+    minDate = addDays(minDate, -2);
+    maxDate = addDays(maxDate, 5);
 
     const totalDays = Math.max(15, differenceInDays(maxDate, minDate) + 1);
     const daysArr = Array.from({ length: totalDays }, (_, i) => addDays(minDate, i));
 
     return { startDate: minDate, days: daysArr };
-  }, [tasks]);
+  }, [tasks, today]);
 
   const getDayOffset = (dateStr?: string) => {
     if (!dateStr) return 0;
@@ -125,8 +136,18 @@ export function GanttChart({
     }
   };
 
-  const todayOffset = differenceInDays(startOfDay(new Date()), startDate);
+  const todayOffset = differenceInDays(today, startDate);
   const cellWidth = 44; // px per day
+  const totalTimelineWidth = days.length * cellWidth;
+  const totalCanvasWidth = 380 + totalTimelineWidth;
+
+  // Auto-scroll so Today line is nicely in view
+  React.useEffect(() => {
+    if (todayOffset >= 0 && timelineContainerRef.current) {
+      const targetScroll = Math.max(0, todayOffset * cellWidth - 120);
+      timelineContainerRef.current.scrollLeft = targetScroll;
+    }
+  }, [todayOffset, cellWidth]);
 
   return (
     <TooltipProvider delayDuration={100}>
@@ -166,15 +187,15 @@ export function GanttChart({
               <span className="text-emerald-800 font-semibold">เสร็จสมบูรณ์ (Passed)</span>
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-0.5 border-t-2 border-dashed border-red-500"></span>
-              <span className="text-red-600 font-bold">📍 วันนี้ (Today Line)</span>
+              <span className="w-3 h-0.5 bg-red-500"></span>
+              <span className="text-red-600 font-bold">📍 วันนี้ (Current Date Line)</span>
             </span>
           </div>
         </div>
 
         {/* Gantt Timeline Container */}
-        <div className="flex-1 overflow-auto relative">
-          <div className="min-w-full flex flex-col">
+        <div ref={timelineContainerRef} className="flex-1 overflow-auto relative">
+          <div className="flex flex-col relative" style={{ minWidth: totalCanvasWidth, width: totalCanvasWidth }}>
             
             {/* Header Row */}
             <div className="flex border-b border-border-soft bg-slate-100/90 text-black font-semibold select-none sticky top-0 z-30 shadow-2xs">
@@ -185,61 +206,62 @@ export function GanttChart({
               </div>
 
               {/* Date Header Timeline */}
-              <div className="flex-1 overflow-x-auto no-scrollbar flex" ref={scrollRef}>
-                <div className="relative flex" style={{ width: days.length * cellWidth }}>
-                  {days.map((day, i) => {
-                    const todayFlag = isToday(day);
-                    return (
-                      <div
-                        key={i}
-                        className={cn(
-                          "flex-shrink-0 flex flex-col items-center justify-center border-r border-border-soft py-1.5 text-center transition-colors",
-                          todayFlag ? "bg-red-50/80 text-red-700 font-bold border-r-red-300" : "text-black"
-                        )}
-                        style={{ width: cellWidth }}
-                      >
-                        <span className="text-[10px] uppercase font-mono">{format(day, 'EEE', { locale: th })}</span>
-                        <span className={cn(
-                          "text-xs font-bold leading-none mt-0.5",
-                          todayFlag ? "px-1.5 py-0.5 rounded-full bg-red-500 text-white shadow-2xs" : ""
-                        )}>
-                          {format(day, 'd')}
-                        </span>
-                        <span className="text-[9px] text-slate-600 mt-0.5">{format(day, 'MMM', { locale: th })}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+              <div className="flex" style={{ width: totalTimelineWidth }}>
+                {days.map((day, i) => {
+                  const todayFlag = isToday(day);
+                  return (
+                    <div
+                      key={i}
+                      className={cn(
+                        "flex-shrink-0 flex flex-col items-center justify-center border-r border-border-soft py-1.5 text-center transition-colors relative",
+                        todayFlag ? "bg-red-50 text-red-700 font-bold border-r-red-400" : "text-black"
+                      )}
+                      style={{ width: cellWidth }}
+                    >
+                      <span className="text-[10px] uppercase font-mono">{format(day, 'EEE', { locale: th })}</span>
+                      <span className={cn(
+                        "text-xs font-bold leading-none mt-0.5",
+                        todayFlag ? "px-1.5 py-0.5 rounded-full bg-red-600 text-white shadow-2xs font-extrabold" : ""
+                      )}>
+                        {format(day, 'd')}
+                      </span>
+                      <span className="text-[9px] text-slate-600 mt-0.5">{format(day, 'MMM', { locale: th })}</span>
+                      {todayFlag && (
+                        <span className="text-[9px] text-red-600 font-extrabold leading-none mt-0.5">วันนี้</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             {/* Body Rows */}
-            <div className="relative">
+            <div className="relative flex-1">
               
               {/* Full Canvas Background Grid Lines */}
-              <div className="absolute inset-0 flex pointer-events-none pl-[380px]" style={{ width: days.length * cellWidth + 380 }}>
+              <div className="absolute inset-0 flex pointer-events-none pl-[380px]" style={{ width: totalCanvasWidth }}>
                 {days.map((day, i) => (
                   <div 
                     key={i} 
                     className={cn(
                       "flex-shrink-0 border-r border-border-soft/40 h-full",
-                      isToday(day) ? "bg-red-50/20 border-r-red-300" : ""
+                      isToday(day) ? "bg-red-50/25 border-r-red-300" : ""
                     )} 
                     style={{ width: cellWidth }} 
                   />
                 ))}
               </div>
 
-              {/* Today Vertical Line Indicator */}
+              {/* Today Vertical Line Indicator (Current Date Line) */}
               {todayOffset >= 0 && todayOffset < days.length && (
                 <div 
-                  className="absolute top-0 bottom-0 z-20 pointer-events-none flex flex-col items-center"
-                  style={{ left: 380 + todayOffset * cellWidth + cellWidth / 2 - 1 }}
+                  className="absolute top-0 bottom-0 z-25 pointer-events-none flex flex-col items-center"
+                  style={{ left: 380 + todayOffset * cellWidth + Math.floor(cellWidth / 2) - 1, width: 2 }}
                 >
-                  <div className="sticky top-12 z-30 px-2 py-0.5 rounded-md bg-red-600 text-white text-[10px] font-bold shadow-md whitespace-nowrap animate-bounce">
-                    📍 วันนี้ ({format(new Date(), 'd MMM', { locale: th })})
+                  <div className="sticky top-2 z-30 px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold shadow-md whitespace-nowrap border border-red-700">
+                    📍 วันนี้ ({format(today, 'd MMM', { locale: th })})
                   </div>
-                  <div className="w-0.5 h-full bg-red-500 border-l-2 border-dashed border-red-500 opacity-90 shadow-sm" />
+                  <div className="w-[2px] h-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.7)]" />
                 </div>
               )}
 

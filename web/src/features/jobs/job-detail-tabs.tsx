@@ -826,19 +826,6 @@ export function JobDetailTabs({
 
                     {/* Actions on the right */}
                     <div className="flex items-center gap-2">
-                      {!readOnly && (
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setSelectedDailyLogTask(finalGanttTasks[0] || null);
-                            setIsDailyLogModalOpen(true);
-                          }}
-                          className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer px-3.5 py-1.5"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>+ บันทึกช่าง</span>
-                        </Button>
-                      )}
                       {!readOnly && !location.pathname.startsWith('/gantt') && (
                         <Button
                           size="sm"
@@ -909,7 +896,7 @@ export function JobDetailTabs({
                               className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer px-4 py-2"
                             >
                               <Plus className="w-4 h-4" />
-                              <span>+ บันทึกงานประจำวัน</span>
+                              <span>+ บันทึกงานช่าง</span>
                             </Button>
                           )}
                         </div>
