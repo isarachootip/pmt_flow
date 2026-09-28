@@ -44,8 +44,7 @@ This skill governs the **Daily Technician Work Log (บันทึกงาน�
    - Restores 100% full vertical and horizontal screen real estate to both the Gantt chart and daily logs, without clutter or confusing page jumps.
 3. **Green Logged Indicators & Hover Tooltip Hint on Gantt**:
    - When daily work is logged for any task on a given date, the Gantt timeline renders a vibrant green indicator/marker (`bg-emerald-500`) on that day column.
-   - **Hover Tooltip Hint**: Hovering over the green indicator reveals a rich popup hint with date (`DD/MM/YYYY`), technician name, 24-hr work duration, progress %, accomplishment summary, and photo count.
-   - A quick switch button `[ 📑 แท็บบันทึกช่าง (X รายการ) ]` in the Gantt ribbon allows immediate switching to the detailed logs tabsheet.
+   - Dedicated top tab `[ 🕒 บันทึกงานช่างประจำวัน (Daily Logs) ]` directly beside `[ 📊 ผังกำหนดการทำงาน (Gantt Chart) ]` allows clean switching between timeline and detailed daily logs without duplicate ribbon buttons.
 
 ### 2.2 Form Fields (Daily Progress Only - เหลือแค่บันทึกรายวัน)
 - **Work Date**: Standard Date input (must display in `DD/MM/YYYY` format).

@@ -83,33 +83,48 @@ export function DailyLogModal({
     }
   }, [preselectedTaskId, preselectedTask]);
 
-  // When task changes, update defaults
+  // When task changes or loads, update defaults and ensure valid selection
   useEffect(() => {
-    if (selectedTaskId && allTasks) {
-      const found = allTasks.find(t => String(t.id) === String(selectedTaskId));
-      if (found) {
-        if (found.assigned_tech) setTechnician(found.assigned_tech);
-        if (found.progress_percent !== undefined) setProgress(found.progress_percent);
-        if (found.duration_days) setTotalDays(found.duration_days);
+    if (allTasks && allTasks.length > 0) {
+      const match = allTasks.find(t => String(t.id) === String(selectedTaskId));
+      if (!selectedTaskId || !match) {
+        const first = allTasks[0];
+        setSelectedTaskId(String(first.id));
+        if (first.assigned_tech) setTechnician(first.assigned_tech);
+        if (first.progress_percent !== undefined) setProgress(first.progress_percent);
+        if (first.duration_days) setTotalDays(first.duration_days);
+      } else {
+        if (match.assigned_tech && !technician) setTechnician(match.assigned_tech);
+        if (match.duration_days) setTotalDays(match.duration_days);
       }
     }
   }, [selectedTaskId, allTasks]);
 
   const activeJobId = selectedJobId || (jobs && jobs.length > 0 ? String(jobs[0].id) : '1');
   const createLog = useCreateDailyLog(activeJobId);
-  const { data: logs } = useDailyLogs(activeJobId, selectedTaskId);
+  const { data: logs } = useDailyLogs(activeJobId);
 
   const applyPreset = (start: string, end: string) => {
     setStartTime(start);
     setEndTime(end);
   };
 
+  const handleJobChange = (newJobId: string) => {
+    setSelectedJobId(newJobId);
+    setSelectedTaskId('');
+  };
+
   const handleUpload = (slotId: string, file: File) => {
-    const url = URL.createObjectURL(file);
-    setSlots(prev => prev.map(s => s.id === slotId ? { ...s, url } : s));
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setSlots(prev => prev.map(s => s.id === slotId ? { ...s, url: dataUrl } : s));
+    };
+    reader.readAsDataURL(file);
   };
 
   const currentTaskObj = allTasks?.find(t => String(t.id) === String(selectedTaskId)) || preselectedTask;
+  const currentJobObj = jobs?.find(j => String(j.id) === String(activeJobId));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,20 +132,26 @@ export function DailyLogModal({
       toast.error('กรุณาเลือกโครงการ');
       return;
     }
+    const finalJobId = selectedJobId || activeJobId;
+    const finalTaskId = selectedTaskId || (allTasks && allTasks.length > 0 ? String(allTasks[0].id) : '1');
+    const matchedTask = allTasks?.find(t => String(t.id) === String(finalTaskId)) || currentTaskObj;
+    const matchedJob = jobs?.find(j => String(j.id) === String(finalJobId)) || currentJobObj;
+
     try {
       const photos = slots.filter(s => s.url).map(s => s.url!);
       await createLog.mutateAsync({
-        job_id: Number(activeJobId) || 1,
-        task_id: Number(selectedTaskId) || 1,
-        task_name: currentTaskObj?.task_name || 'งานที่เลือก',
+        job_id: finalJobId,
+        job_no: matchedJob?.job_no || (typeof finalJobId === 'string' && finalJobId.startsWith('JOB') ? finalJobId : undefined),
+        task_id: finalTaskId,
+        task_name: matchedTask?.task_name || 'งานที่เลือก',
         log_date: dateStr,
         start_time: startTime,
         end_time: endTime,
-        day_number: dayNumber,
-        total_days: totalDays,
+        day_number: Number(dayNumber) || 1,
+        total_days: Number(totalDays) || 1,
         technician: technician || 'ช่างประจำโครงการ',
-        progress_percent: progress,
-        work_description: workDesc + (issues ? `\n\n⚠️ ปัญหา: ${issues}` : '') + (materials ? `\n\n📦 วัสดุ: ${materials}` : ''),
+        progress_percent: Number(progress) || 0,
+        work_description: (workDesc.trim() || 'บันทึกการปฏิบัติงานประจำวัน') + (issues ? `\n\n⚠️ ปัญหา: ${issues}` : '') + (materials ? `\n\n📦 วัสดุ: ${materials}` : ''),
         photos: photos,
         is_completed: userConfirmed || progress >= 100 || dayNumber >= totalDays,
         user_confirmed: userConfirmed
@@ -204,7 +225,7 @@ export function DailyLogModal({
               <Label className="font-bold text-black">เลือกโครงการ (Project / Booking)</Label>
               <select 
                 value={selectedJobId} 
-                onChange={(e) => setSelectedJobId(e.target.value)}
+                onChange={(e) => handleJobChange(e.target.value)}
                 className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-black focus:outline-none focus:border-indigo-500 shadow-2xs"
               >
                 {jobs && jobs.length > 0 ? (

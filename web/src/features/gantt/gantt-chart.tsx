@@ -35,7 +35,6 @@ interface GanttChartProps {
 export function GanttChart({ 
   tasks, 
   dailyLogs = [],
-  onViewDailyLogs,
   selectedTaskId, 
   onSelectTask, 
   onOpenDailyLog,
@@ -140,17 +139,6 @@ export function GanttChart({
               <Layers className="w-4 h-4 text-indigo-600" />
               <span>ผังแถบเวลา (Timeline Status):</span>
             </div>
-            {onViewDailyLogs && (
-              <button
-                type="button"
-                onClick={onViewDailyLogs}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition-colors shadow-2xs cursor-pointer"
-                title="คลิกเพื่อสลับไปแท็บบันทึกงานช่างประจำวัน (Daily Technician Logs Tab)"
-              >
-                <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                <span>แท็บบันทึกช่าง ({dailyLogs.length} รายการ) 📑</span>
-              </button>
-            )}
           </div>
           <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium">
             <span className="flex items-center gap-1.5">

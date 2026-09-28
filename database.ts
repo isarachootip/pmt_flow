@@ -2404,11 +2404,18 @@ export async function dbLoadDailyWorkLogs(jobId?: string, taskId?: string): Prom
     const params: any[] = [];
     const where: string[] = [];
     if (jobId) {
-      where.push(`(job_id = $${params.length + 1} OR job_no = $${params.length + 1} OR job_id IN (SELECT job_no FROM core_jobs WHERE id::text = $${params.length + 1}) OR job_no IN (SELECT job_no FROM core_jobs WHERE id::text = $${params.length + 1}))`);
+      where.push(`(
+        job_id = $${params.length + 1} 
+        OR job_no = $${params.length + 1} 
+        OR job_id IN (SELECT job_no FROM core_jobs WHERE id::text = $${params.length + 1}) 
+        OR job_no IN (SELECT job_no FROM core_jobs WHERE id::text = $${params.length + 1})
+        OR job_id IN (SELECT id::text FROM core_jobs WHERE job_no = $${params.length + 1})
+        OR job_no IN (SELECT job_no FROM core_jobs WHERE job_no = $${params.length + 1})
+      )`);
       params.push(String(jobId));
     }
     if (taskId) {
-      where.push(`task_id = $${params.length + 1}`);
+      where.push(`(task_id = $${params.length + 1} OR task_name ILIKE $${params.length + 1})`);
       params.push(String(taskId));
     }
     if (where.length > 0) {

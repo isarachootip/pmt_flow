@@ -5214,6 +5214,8 @@ function parseSafeBoolean(val: any): boolean {
 // Helper to create and process daily work log
 async function handleCreateDailyLog(payload: any, jobIdParam?: string): Promise<CoreDailyWorkLog> {
   const id = jobIdParam || payload.job_id || payload.jobId || 'JOB26090900002';
+  const job = await dbGetJob(id);
+  const realJobNo = payload.job_no || job?.job_no || (String(id).startsWith('JOB') ? String(id) : undefined);
   const dayNumber = Math.max(1, Number(payload.day_number || payload.dayNumber) || 1);
   const totalDays = Math.max(1, Number(payload.total_days || payload.totalDays) || 1);
   const isFinalDay = dayNumber >= totalDays;
@@ -5254,8 +5256,8 @@ async function handleCreateDailyLog(payload: any, jobIdParam?: string): Promise<
 
   const newLog: CoreDailyWorkLog = {
     id: payload.id || `LOG_${Date.now()}`,
-    job_id: id,
-    job_no: payload.job_no || (String(id).startsWith('JOB') ? String(id) : `JOB2609090000${id}`),
+    job_id: job ? String(job.job_no || job.id) : (payload.job_id || id),
+    job_no: realJobNo || (String(id).startsWith('JOB') ? String(id) : `JOB-${id}`),
     task_id: payload.task_id || payload.taskId || `T_${id}_1`,
     task_name: payload.task_name || payload.taskName || 'งานบริการติดตั้ง',
     log_date: payload.log_date || payload.logDate || new Date().toISOString().slice(0, 10),
@@ -5285,10 +5287,12 @@ async function handleCreateDailyLog(payload: any, jobIdParam?: string): Promise<
   // If completed (overall complete: reached final day or confirmed early finish), update task and job status to QC_PENDING in DB
   if (isOverallComplete) {
     const nowIso = new Date().toISOString();
-    const job = await dbGetJob(id);
     if (job) {
       const tasks = Array.isArray(job.tasks) ? [...job.tasks] : [];
-      const task = tasks.find((t: any) => String(t.id) === String(newLog.task_id));
+      const task = tasks.find((t: any) => 
+        String(t.id) === String(newLog.task_id) || 
+        (t.task_name && newLog.task_name && t.task_name.trim().toLowerCase() === newLog.task_name.trim().toLowerCase())
+      );
       if (task) {
         task.status = 'DONE';
         task.progress_percent = 100;
@@ -5309,11 +5313,13 @@ async function handleCreateDailyLog(payload: any, jobIdParam?: string): Promise<
     await dbConfirmQCBooking(String(newLog.task_id), undefined, newLog.recorded_by, undefined, newLog.log_date);
   } else {
     // Progressive daily update: update task progress without prematurely marking DONE
-    const job = await dbGetJob(id);
     const updatedJobProgress = Math.min(80, Math.max(job?.overall_progress || 50, Math.round(50 + (dayProgress * 0.35))));
     if (job) {
       const tasks = Array.isArray(job.tasks) ? [...job.tasks] : [];
-      const task = tasks.find((t: any) => String(t.id) === String(newLog.task_id));
+      const task = tasks.find((t: any) => 
+        String(t.id) === String(newLog.task_id) || 
+        (t.task_name && newLog.task_name && t.task_name.trim().toLowerCase() === newLog.task_name.trim().toLowerCase())
+      );
       if (task) {
         task.status = 'IN_PROGRESS';
         task.progress_percent = Math.max(Number(task.progress_percent) || 0, dayProgress);

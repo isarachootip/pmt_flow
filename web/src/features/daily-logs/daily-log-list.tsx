@@ -14,7 +14,7 @@ export function DailyLogList({ logs }: DailyLogListProps) {
   const deleteLog = useDeleteDailyLog();
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: number | string) => {
     if (confirm('ยืนยันการลบประวัติการบันทึกงานนี้?')) {
       try {
         await deleteLog.mutateAsync(id);

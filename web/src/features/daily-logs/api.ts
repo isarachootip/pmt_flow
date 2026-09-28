@@ -2,15 +2,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
 export interface DailyLog {
-  id: number;
-  job_id: number;
+  id: number | string;
+  job_id: number | string;
   job_no?: string;
-  task_id: number;
+  task_id: number | string;
   task_name: string;
   log_date: string;
   start_time: string;
   end_time: string;
-  work_hours?: number;
+  work_hours?: number | string;
   day_number: number;
   total_days: number;
   technician: string;
@@ -36,22 +36,26 @@ export const useDailyLogs = (jobId?: string | number, taskId?: string | number) 
         if (taskId) params.append('taskId', String(taskId));
         url = `${url}?${params.toString()}`;
       }
-      const res = await api.get<{ success: boolean; total: number; data: DailyLog[] }>(url);
-      return res.data;
+      const res = await api.get<any>(url);
+      if (Array.isArray(res)) return res as DailyLog[];
+      if (res && Array.isArray((res as any).data)) return (res as any).data as DailyLog[];
+      return [] as DailyLog[];
     },
   });
 };
 
-export const useCreateDailyLog = (jobId: string | number) => {
+export const useCreateDailyLog = (jobId?: string | number) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: Partial<DailyLog>) => {
-      const res = await api.post<{ success: boolean; data: DailyLog }>(`/api/v1/jobs/${jobId}/daily-logs`, data);
-      return res.data;
+      const targetJobId = jobId || data.job_id || '1';
+      const res = await api.post<any>(`/api/v1/jobs/${targetJobId}/daily-logs`, data);
+      return (res && (res as any).data) ? (res as any).data : res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dailyLogs'] });
       queryClient.invalidateQueries({ queryKey: ['ganttTasks'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
     },
   });
 };
@@ -64,6 +68,8 @@ export const useDeleteDailyLog = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dailyLogs'] });
+      queryClient.invalidateQueries({ queryKey: ['ganttTasks'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
     },
   });
 };
