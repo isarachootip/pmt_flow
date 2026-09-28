@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { PhotoSlots5, PhotoSlot } from '@/components/ui/photo-slots-5';
 import { OrderCustomerSummary } from '@/features/jobs/order-customer-summary';
 import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
-import { UserCheck, Camera, ExternalLink, CheckCircle2, ArrowRight, Clock, RefreshCw, X, Plus } from 'lucide-react';
+import { UserCheck, Camera, ExternalLink, CheckCircle2, ArrowRight, Clock, RefreshCw, X, Plus, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GanttChart } from '@/features/gantt/gantt-chart';
 import { Task } from '@/features/gantt/api';
@@ -561,6 +561,23 @@ export function JobDetailTabs({
                 )}
               </TabsTrigger>
               <TabsTrigger 
+                value="daily-logs" 
+                disabled={isQuick}
+                title={isQuick ? "งาน Quick Service ไม่มีขั้นตอนบันทึกช่าง" : "ประวัติการบันทึกงานช่างประจำวัน (Daily Technician Logs)"}
+                className={cn(
+                  "data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-black text-black font-semibold rounded-none shadow-none px-4 flex items-center gap-1.5",
+                  hideOrderSummary ? "py-2 text-xs" : "py-3",
+                  isQuick ? 'opacity-40 cursor-not-allowed text-gray-400' : 'text-black'
+                )}
+              >
+                <span>ประวัติงานช่าง</span>
+                {dailyLogs && dailyLogs.length > 0 ? (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-900 font-bold border border-emerald-300">
+                    {dailyLogs.length}
+                  </span>
+                ) : null}
+              </TabsTrigger>
+              <TabsTrigger 
                 value="qc" 
                 className={cn(
                   "data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-black text-black font-semibold rounded-none shadow-none px-4",
@@ -785,6 +802,28 @@ export function JobDetailTabs({
                       )}
                     </div>
                     <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleTabChange('daily-logs')}
+                        className="text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-300 font-bold cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                      >
+                        <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>ดูประวัติงานช่าง ({dailyLogs?.length || 0} รายการ) ↗</span>
+                      </Button>
+                      {!readOnly && (
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setSelectedDailyLogTask(finalGanttTasks[0] || null);
+                            setIsDailyLogModalOpen(true);
+                          }}
+                          className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>+ บันทึกช่าง</span>
+                        </Button>
+                      )}
                       {!readOnly && !location.pathname.startsWith('/gantt') && (
                         <Button
                           size="sm"
@@ -799,9 +838,11 @@ export function JobDetailTabs({
                     </div>
                   </div>
 
-                  <div className={cn("flex-1 min-h-[300px] border border-gray-200 rounded-xl overflow-auto bg-white", hideOrderSummary ? "p-1.5" : "p-2")}>
+                  <div className={cn("flex-1 min-h-[420px] border border-gray-200 rounded-xl overflow-auto bg-white", hideOrderSummary ? "p-1.5" : "p-2")}>
                     <GanttChart
                       tasks={finalGanttTasks}
+                      dailyLogs={dailyLogs || []}
+                      onViewDailyLogs={() => handleTabChange('daily-logs')}
                       onOpenDailyLog={readOnly ? undefined : (task) => {
                         setSelectedDailyLogTask(task);
                         setIsDailyLogModalOpen(true);
@@ -809,42 +850,57 @@ export function JobDetailTabs({
                       className="h-full"
                     />
                   </div>
-
-                  {/* Daily Technician Work Logs Section */}
-                  <div className="border border-border-soft rounded-xl p-4 bg-white space-y-3 shadow-2xs mt-3">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-                          <Clock className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-black flex items-center gap-2">
-                            <span>ประวัติการบันทึกงานช่างประจำวัน (Daily Technician Logs)</span>
-                            <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold font-mono">
-                              {dailyLogs?.length || 0} รายการ
-                            </span>
-                          </h4>
-                          <p className="text-[11px] text-slate-500">บันทึกความคืบหน้ารายวัน เวลาทำงานจริง 24 ชม. และภาพถ่ายหน้างาน 5 ช่วง</p>
-                        </div>
-                      </div>
-                      {!readOnly && (
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setSelectedDailyLogTask(finalGanttTasks[0] || null);
-                            setIsDailyLogModalOpen(true);
-                          }}
-                          className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>+ บันทึกงานประจำวัน</span>
-                        </Button>
-                      )}
-                    </div>
-                    <DailyLogList logs={dailyLogs || []} />
-                  </div>
                 </>
               )}
+            </TabsContent>
+
+            {/* 3.1 ประวัติการบันทึกงานช่างประจำวัน (Daily Technician Logs Tab) */}
+            <TabsContent value="daily-logs" className="h-full m-0 data-[state=active]:flex flex-col space-y-4">
+              <div className="border border-border-soft rounded-xl p-5 bg-white space-y-4 shadow-2xs">
+                <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center font-bold shadow-2xs">
+                      <Clock className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-bold text-black flex items-center gap-2">
+                        <span>ประวัติการบันทึกงานช่างประจำวัน (Daily Technician Logs)</span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold font-mono">
+                          {dailyLogs?.length || 0} รายการ
+                        </span>
+                      </h4>
+                      <p className="text-xs text-black">
+                        บันทึกความคืบหน้ารายวัน เวลาทำงานจริง 24 ชม. และภาพถ่ายหน้างาน 5 ช่วง
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleTabChange('gantt')}
+                      className="text-xs text-indigo-700 bg-white hover:bg-indigo-50 border-indigo-200 font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                    >
+                      <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>กลับไปที่ผัง Gantt ←</span>
+                    </Button>
+                    {!readOnly && (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setSelectedDailyLogTask(finalGanttTasks[0] || null);
+                          setIsDailyLogModalOpen(true);
+                        }}
+                        className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer px-4 py-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>+ บันทึกงานประจำวัน</span>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <DailyLogList logs={dailyLogs || []} />
+              </div>
             </TabsContent>
 
             {/* 4. QC (Inline Inspection Workspace - No Popup) */}
