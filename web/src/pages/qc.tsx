@@ -67,9 +67,29 @@ export default function QcPage() {
     }
   }, [searchParams, allJobs]);
 
-  // Quick jobs filtered list
+  // Step 3 QC strictly contains jobs waiting for or undergoing QC inspection.
+  // All closed/completed/delivered jobs belong in Step 4: ปิดงาน (/completed).
+  // All new unaccepted jobs belong in Step 1: รับงาน (/orders).
+  const isJobClosed = (j: any) =>
+    j.status === 'COMPLETED' ||
+    j.status === 'PASSED' ||
+    j.status === 'QC_PASSED' ||
+    j.status === 'QC_PASS' ||
+    j.status === 'CLOSED' ||
+    j.status === 'CLOSEJOB' ||
+    (j as any).stk_status === 'DELIVERED';
+
+  const isJobInQcStage = (j: any) => {
+    if (!j) return false;
+    if (isJobClosed(j)) return false;
+    // Exclude new unaccepted jobs (they belong in Step 1: รับงาน)
+    if (j.status === 'NEW' || j.status === 'NEED_REVIEW' || j.status === 'DRAFT') return false;
+    return true;
+  };
+
+  // Quick jobs filtered list: Only active jobs awaiting or undergoing QC inspection
   const quickJobsList = useMemo(() => {
-    return allJobs.filter(j => isQuickJob(j));
+    return allJobs.filter(j => isQuickJob(j) && isJobInQcStage(j));
   }, [allJobs]);
 
   const filteredQuickJobs = useMemo(() => {
@@ -92,19 +112,24 @@ export default function QcPage() {
   // Renovate bookings or jobs
   const filteredRenovateList = useMemo(() => {
     let list = bookings;
-    // Fallback: If bookings empty, use renovate jobs from allJobs
+    // Filter out completed/closed bookings from active QC waiting list
+    list = list.filter((b: any) => b.status !== 'DONE' && b.status !== 'COMPLETED' && b.status !== 'CLOSED');
+
+    // Fallback: If bookings empty, use renovate jobs from allJobs that are in QC stage
     if (list.length === 0) {
-      list = allJobs.filter(j => isRenovateJob(j)).map((j: any) => ({
-        id: j.id,
-        job_id: j.id,
-        job_no: j.job_no,
-        customer: j.customer,
-        task_name: Array.isArray(j.services) ? j.services[0] : (j.services || 'งานปรับปรุงและติดตั้ง'),
-        booking_date: j.plan_date || j.created_at,
-        time_slot: j.plan_time || '09:00',
-        status: j.status === 'CLOSED' ? 'DONE' : (j.status === 'WAIT_QC' ? 'CONFIRMED' : 'PENDING'),
-        inspector: j.assigned_qc || 'รอระบุ'
-      }));
+      list = allJobs
+        .filter(j => isRenovateJob(j) && isJobInQcStage(j))
+        .map((j: any) => ({
+          id: j.id,
+          job_id: j.id,
+          job_no: j.job_no,
+          customer: j.customer,
+          task_name: Array.isArray(j.services) ? j.services[0] : (j.services || 'งานปรับปรุงและติดตั้ง'),
+          booking_date: j.plan_date || j.created_at,
+          time_slot: j.plan_time || '09:00',
+          status: j.status === 'WAIT_QC' ? 'CONFIRMED' : 'PENDING',
+          inspector: j.assigned_qc || 'รอระบุ'
+        }));
     }
 
     if (searchQuery.trim()) {
