@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { PhotoSlots5, PhotoSlot } from '@/components/ui/photo-slots-5';
 import { OrderCustomerSummary } from '@/features/jobs/order-customer-summary';
 import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
-import { UserCheck, Camera, ExternalLink, CheckCircle2, ArrowRight, Clock, RefreshCw } from 'lucide-react';
+import { UserCheck, Camera, ExternalLink, CheckCircle2, ArrowRight, Clock, RefreshCw, X } from 'lucide-react';
 import { GanttChart } from '@/features/gantt/gantt-chart';
 import { Task } from '@/features/gantt/api';
 import { DailyLogModal } from '@/features/daily-logs/daily-log-modal';
@@ -34,9 +34,10 @@ interface JobDetailTabsProps {
   job: Job;
   defaultTab?: string;
   onClose?: () => void;
+  readOnly?: boolean;
 }
 
-export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: JobDetailTabsProps) {
+export function JobDetailTabs({ job, defaultTab = 'task', onClose, readOnly = false }: JobDetailTabsProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -468,7 +469,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
           <StatusBadge status={(job as any).stk_status === 'DELIVERED' || job.status === 'CLOSED' || job.status === 'CLOSEJOB' ? 'CLOSEJOB' : (job.status === 'QC_PENDING' ? 'PENDING' : job.status)} />
         </div>
         <div className="flex items-center space-x-2">
-          {(job.status === 'NEW' || job.status === 'NEED_REVIEW' || !(job as any).pmt_accepted) && (
+          {!readOnly && (job.status === 'NEW' || job.status === 'NEED_REVIEW' || !(job as any).pmt_accepted) && (
             <Button
               variant="primary"
               size="sm"
@@ -479,6 +480,16 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
               <UserCheck className="w-3.5 h-3.5 text-white" />
               <span>{acceptMutation.isPending ? 'กำลังรับงาน...' : 'รับงาน'}</span>
             </Button>
+          )}
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-gray-400 hover:text-black hover:bg-gray-100 p-1.5 rounded-lg transition-colors cursor-pointer"
+              title="ปิดหน้าต่าง (Close)"
+            >
+              <X className="w-5 h-5" />
+            </button>
           )}
         </div>
       </div>
@@ -625,7 +636,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
                           <span className="text-xs text-black font-medium">
                             อัปโหลดแล้ว {photoSlots.filter((s) => !!s.url).length}/5 รูป
                           </span>
-                          {!isClosed ? (
+                          {!isClosed && !readOnly ? (
                             <Button
                               type="button"
                               variant="primary"
@@ -636,18 +647,18 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
                             >
                               {updateJobMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกรูปถ่าย'}
                             </Button>
-                          ) : (
+                          ) : isClosed ? (
                             <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 border border-gray-200">
                               ส่งงานเรียบร้อย (ห้ามแก้ไข)
                             </span>
-                          )}
+                          ) : null}
                         </div>
                       </div>
 
                       <PhotoSlots5
                         slots={photoSlots}
                         onUpload={handlePhotoUpload}
-                        readOnly={isClosed}
+                        readOnly={isClosed || readOnly}
                         className="pt-1"
                       />
                     </section>
@@ -677,7 +688,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
                   </Button>
                 </div>
               ) : (
-                <BoqTab job={job} />
+                <BoqTab job={job} readOnly={readOnly} />
               )}
             </TabsContent>
 
@@ -696,14 +707,16 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
                       จะมีผัง Gantt Chart ได้ก็ต่อเมื่อกด <strong>"รับงาน"</strong> และย้ายไปสู่สถานะ <strong>"วางแผนงาน (PLANNED)"</strong> ที่ Step 2: Project & Gantt
                     </p>
                   </div>
-                  <Button
-                    onClick={handleAcceptJob}
-                    disabled={acceptMutation.isPending}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-xs text-xs flex items-center gap-2 cursor-pointer transition hover:scale-102"
-                  >
-                    <UserCheck className="w-4 h-4 text-white" />
-                    <span>{acceptMutation.isPending ? 'กำลังรับงาน...' : '✓ กดรับงานเพื่อสร้างผัง Gantt และเริ่มวางแผนงาน →'}</span>
-                  </Button>
+                  {!readOnly && (
+                    <Button
+                      onClick={handleAcceptJob}
+                      disabled={acceptMutation.isPending}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-xs text-xs flex items-center gap-2 cursor-pointer transition hover:scale-102"
+                    >
+                      <UserCheck className="w-4 h-4 text-white" />
+                      <span>{acceptMutation.isPending ? 'กำลังรับงาน...' : '✓ กดรับงานเพื่อสร้างผัง Gantt และเริ่มวางแผนงาน →'}</span>
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <>
@@ -723,7 +736,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {!location.pathname.startsWith('/gantt') && (
+                      {!readOnly && !location.pathname.startsWith('/gantt') && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -740,7 +753,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
                   <div className="flex-1 min-h-[300px] border border-gray-200 rounded-xl overflow-auto bg-white p-2">
                     <GanttChart
                       tasks={finalGanttTasks}
-                      onOpenDailyLog={(task) => {
+                      onOpenDailyLog={readOnly ? undefined : (task) => {
                         setSelectedDailyLogTask(task);
                         setIsDailyLogModalOpen(true);
                       }}
@@ -791,6 +804,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
                 onSubmit={handleQcSubmit}
                 onExportSTK={handleQcExportSTK}
                 isInline={true}
+                readOnly={readOnly}
               />
             </TabsContent>
 
@@ -832,28 +846,30 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
                       <span>เปิดระบบ WDS ↗</span>
                     </a>
 
-                    {isClosed ? (
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={handleExportStk} 
-                        disabled={stkMutation.isPending}
-                        className="text-xs border border-gray-300 bg-white hover:bg-gray-100 text-black font-bold h-9 px-3.5 flex items-center gap-1.5 shadow-xs cursor-pointer"
-                        title="ส่งซิงค์ข้อมูลไปยังระบบภายนอกใหม่อีกครั้ง"
-                      >
-                        <RefreshCw className={`w-3.5 h-3.5 text-black ${stkMutation.isPending ? 'animate-spin' : ''}`} />
-                        <span>{stkMutation.isPending ? 'กำลังส่งข้อมูล...' : 'ส่งข้อมูลซ้ำ (Re-sync)'}</span>
-                      </Button>
-                    ) : (
-                      <Button 
-                        variant="primary" 
-                        size="sm"
-                        onClick={handleExportStk} 
-                        disabled={stkMutation.isPending}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-9 px-4 flex items-center gap-1.5 shadow-xs cursor-pointer"
-                      >
-                        <span>{stkMutation.isPending ? 'กำลังส่งออก...' : '🚀 ส่งออก STK'}</span>
-                      </Button>
+                    {!readOnly && (
+                      isClosed ? (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={handleExportStk} 
+                          disabled={stkMutation.isPending}
+                          className="text-xs border border-gray-300 bg-white hover:bg-gray-100 text-black font-bold h-9 px-3.5 flex items-center gap-1.5 shadow-xs cursor-pointer"
+                          title="ส่งซิงค์ข้อมูลไปยังระบบภายนอกใหม่อีกครั้ง"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 text-black ${stkMutation.isPending ? 'animate-spin' : ''}`} />
+                          <span>{stkMutation.isPending ? 'กำลังส่งข้อมูล...' : 'ส่งข้อมูลซ้ำ (Re-sync)'}</span>
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="primary" 
+                          size="sm"
+                          onClick={handleExportStk} 
+                          disabled={stkMutation.isPending}
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-9 px-4 flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        >
+                          <span>{stkMutation.isPending ? 'กำลังส่งออก...' : '🚀 ส่งออก STK'}</span>
+                        </Button>
+                      )
                     )}
                   </div>
                 </div>

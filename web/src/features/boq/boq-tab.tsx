@@ -18,9 +18,10 @@ interface BoqItem {
 
 interface BoqTabProps {
   job: Job;
+  readOnly?: boolean;
 }
 
-export function BoqTab({ job }: BoqTabProps) {
+export function BoqTab({ job, readOnly = false }: BoqTabProps) {
   const queryClient = useQueryClient();
   const [isConvertDrawerOpen, setIsConvertDrawerOpen] = useState(false);
   
@@ -204,7 +205,7 @@ export function BoqTab({ job }: BoqTabProps) {
               <th className="p-2 border-b border-soft font-semibold text-black">รายการ</th>
               <th className="p-2 border-b border-soft font-semibold text-black w-28">หน่วย</th>
               <th className="p-2 border-b border-soft font-semibold text-black w-28">จำนวน</th>
-              <th className="p-2 border-b border-soft font-semibold text-black w-12 text-center"></th>
+              {!readOnly && <th className="p-2 border-b border-soft font-semibold text-black w-12 text-center"></th>}
             </tr>
           </thead>
           <tbody className="text-black">
@@ -212,53 +213,71 @@ export function BoqTab({ job }: BoqTabProps) {
               return (
                 <tr key={idx} className="border-b border-soft hover:bg-[var(--bg-subtle)]">
                   <td className="p-2">
-                    <Input value={item.name} onChange={(e) => handleChange(idx, 'name', e.target.value)} placeholder="ชื่อรายการ" className="text-black bg-white" />
+                    {readOnly ? (
+                      <span className="text-black font-medium">{item.name}</span>
+                    ) : (
+                      <Input value={item.name} onChange={(e) => handleChange(idx, 'name', e.target.value)} placeholder="ชื่อรายการ" className="text-black bg-white" />
+                    )}
                   </td>
                   <td className="p-2">
-                    <Input value={item.unit} onChange={(e) => handleChange(idx, 'unit', e.target.value)} placeholder="หน่วย" className="text-black bg-white" />
+                    {readOnly ? (
+                      <span className="text-black">{item.unit || '-'}</span>
+                    ) : (
+                      <Input value={item.unit} onChange={(e) => handleChange(idx, 'unit', e.target.value)} placeholder="หน่วย" className="text-black bg-white" />
+                    )}
                   </td>
                   <td className="p-2">
-                    <Input type="number" value={item.qty} onChange={(e) => handleChange(idx, 'qty', parseFloat(e.target.value) || 0)} min="0" className="text-black bg-white" />
+                    {readOnly ? (
+                      <span className="text-black font-mono">{item.qty}</span>
+                    ) : (
+                      <Input type="number" value={item.qty} onChange={(e) => handleChange(idx, 'qty', parseFloat(e.target.value) || 0)} min="0" className="text-black bg-white" />
+                    )}
                   </td>
-                  <td className="p-2 text-center align-middle">
-                    <button onClick={() => handleRemoveItem(idx)} className="text-danger hover:text-danger/80 text-lg font-bold" title="ลบรายการ">×</button>
-                  </td>
+                  {!readOnly && (
+                    <td className="p-2 text-center align-middle">
+                      <button onClick={() => handleRemoveItem(idx)} className="text-danger hover:text-danger/80 text-lg font-bold" title="ลบรายการ">×</button>
+                    </td>
+                  )}
                 </tr>
               );
             })}
             {items.length === 0 && (
               <tr>
-                <td colSpan={4} className="p-8 text-center text-black">
+                <td colSpan={readOnly ? 3 : 4} className="p-8 text-center text-black">
                   <div className="max-w-md mx-auto py-4 flex flex-col items-center justify-center space-y-2.5">
                     <Package className="w-10 h-10 text-blue-600" />
                     <div className="text-sm font-bold text-black">
                       ยังไม่มีรายการประเมินราคา BOQ สำหรับใบงานนี้
                     </div>
-                    <p className="text-xs text-gray-700 max-w-sm">
-                      คุณสามารถดึงรายการสินค้าหรือบริการจากคำสั่งซื้อ (Order) มาเป็นรายการตั้งต้นในตาราง BOQ ได้ทันที หรือกดเพิ่มรายการประเมินราคาเอง
-                    </p>
-                    <div className="flex items-center gap-2 pt-2">
-                      <Button
-                        type="button"
-                        variant="primary"
-                        size="sm"
-                        onClick={handleImportFromOrder}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>ดึงรายการจากคำสั่งซื้อ</span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleAddItem}
-                        className="text-black font-medium text-xs border border-gray-300"
-                      >
-                        <Plus className="w-3.5 h-3.5 mr-1" />
-                        <span>เพิ่มรายการเอง</span>
-                      </Button>
-                    </div>
+                    {!readOnly && (
+                      <>
+                        <p className="text-xs text-gray-700 max-w-sm">
+                          คุณสามารถดึงรายการสินค้าหรือบริการจากคำสั่งซื้อ (Order) มาเป็นรายการตั้งต้นในตาราง BOQ ได้ทันที หรือกดเพิ่มรายการประเมินราคาเอง
+                        </p>
+                        <div className="flex items-center gap-2 pt-2">
+                          <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            onClick={handleImportFromOrder}
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>ดึงรายการจากคำสั่งซื้อ</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={handleAddItem}
+                            className="text-black font-medium text-xs border border-gray-300"
+                          >
+                            <Plus className="w-3.5 h-3.5 mr-1" />
+                            <span>เพิ่มรายการเอง</span>
+                          </Button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -267,16 +286,18 @@ export function BoqTab({ job }: BoqTabProps) {
         </table>
       </div>
 
-      <div className="mt-4 border-t border-soft pt-4 flex justify-end">
-        <Button 
-          variant="primary" 
-          className="w-64 text-white font-semibold bg-blue-600 hover:bg-blue-700 shadow-sm flex items-center justify-center gap-2" 
-          onClick={handleConvertToTasks}
-          disabled={saveMutation.isPending}
-        >
-          <span>⚡ แปลง BOQ เป็น Task</span>
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="mt-4 border-t border-soft pt-4 flex justify-end">
+          <Button 
+            variant="primary" 
+            className="w-64 text-white font-semibold bg-blue-600 hover:bg-blue-700 shadow-sm flex items-center justify-center gap-2" 
+            onClick={handleConvertToTasks}
+            disabled={saveMutation.isPending}
+          >
+            <span>⚡ แปลง BOQ เป็น Task</span>
+          </Button>
+        </div>
+      )}
 
       <ConvertBoqDrawer
         job={job}

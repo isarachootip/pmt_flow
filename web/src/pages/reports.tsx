@@ -15,9 +15,7 @@ import {
   Filter, 
   FileSpreadsheet, 
   Printer, 
-  History, 
-  BarChart3, 
-  X
+  BarChart3 
 } from 'lucide-react';
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
@@ -446,33 +444,6 @@ export default function ReportsPage() {
         return <StatusBadge status={isStkDelivered ? 'CLOSEJOB' : (row.status === 'QC_PENDING' ? 'PENDING' : row.status)} />;
       } 
     },
-    {
-      id: 'action_btn',
-      header: 'ดูข้อมูลทุกมุม',
-      width: 135,
-      minWidth: 120,
-      cell: ({ row }) => {
-        const isSelected = selectedJob && (selectedJob.id === row.id || selectedJob.job_no === row.job_no);
-        return (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleRowClick(row, 'timeline');
-            }}
-            className={`text-xs px-2.5 py-1 rounded font-semibold border transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              isSelected
-                ? 'bg-blue-600 text-white border-blue-700 shadow-2xs font-bold'
-                : 'bg-white text-black border-gray-300 hover:bg-gray-100 hover:border-gray-400'
-            }`}
-            title="ดูข้อมูลทุกมุมและประวัติการทำงาน (Audit Timeline)"
-          >
-            <History className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-blue-700'}`} />
-            <span>ดูประวัติ & ข้อมูล</span>
-          </button>
-        );
-      }
-    },
   ];
 
   const handleExportCSV = () => {
@@ -792,46 +763,12 @@ export default function ReportsPage() {
           }
           detailContent={
             selectedJob ? (
-              <div className="flex flex-col h-full overflow-hidden bg-white border border-soft rounded-xl shadow-card">
-                {/* Header ribbon */}
-                <div className="px-4 py-2.5 bg-slate-50 border-b border-border-soft flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono font-bold text-sm text-black">{selectedJob.job_no}</span>
-                    {getJobType(selectedJob) === 'Q' && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 border border-blue-400 text-blue-900">
-                        ⚡ Quick Service
-                      </span>
-                    )}
-                    {getJobType(selectedJob) === 'R' && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 border border-orange-400 text-orange-900">
-                        🏗️ Renovate
-                      </span>
-                    )}
-                    <StatusBadge status={(selectedJob as any).stk_status === 'DELIVERED' || selectedJob.status === 'CLOSED' || selectedJob.status === 'CLOSEJOB' ? 'CLOSEJOB' : selectedJob.status} />
-                    <span className="text-xs text-black font-medium">
-                      ลูกค้า: <b>{typeof selectedJob.customer === 'string' ? selectedJob.customer : selectedJob.customer?.name || '-'}</b>
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCloseDetail}
-                    className="h-7 w-7 p-0 text-black hover:bg-slate-200"
-                    title="ปิดรายละเอียด"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                {/* Tabs view covering all 5 angles: [งาน/Task], [BOQ], [QC], [ส่งออก STK], [ประวัติ (Timeline)] */}
-                <div className="flex-1 min-h-0">
-                  <JobDetailTabs 
-                    job={selectedJob} 
-                    defaultTab={initialTab || 'timeline'}
-                    onClose={handleCloseDetail} 
-                  />
-                </div>
-              </div>
+              <JobDetailTabs 
+                job={selectedJob} 
+                defaultTab={initialTab || 'timeline'}
+                onClose={handleCloseDetail} 
+                readOnly={true}
+              />
             ) : (
               <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-card border border-soft rounded-xl shadow-card space-y-3">
                 <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 shadow-2xs">
@@ -845,7 +782,7 @@ export default function ReportsPage() {
                 </p>
                 <div className="pt-2 flex items-center gap-2">
                   <span className="text-[11px] font-semibold text-black bg-gray-100 px-2.5 py-1 rounded-full border border-gray-200">
-                    💡 คลิกที่ปุ่ม "ดูประวัติ & ข้อมูล" ในตารางเพื่อเปิดดูข้อมูลใบงาน
+                    💡 คลิกที่แถวรายการในตารางเพื่อเปิดดูข้อมูลใบงาน
                   </span>
                 </div>
               </div>

@@ -85,6 +85,7 @@ export interface QcInspectionFormProps {
   onCancel?: () => void;
   className?: string;
   isInline?: boolean;
+  readOnly?: boolean;
 }
 
 // ─── Default 5 Photo Slots & Demo Samples ──────────────────────────────────────
@@ -147,6 +148,7 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
       onCancel: _onCancel,
       className,
       isInline: _isInline = true,
+      readOnly = false,
     },
     ref
   ) => {
@@ -156,7 +158,7 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
     const currentRound = previousReworkCount + 1;
 
     // Toggle edit mode if already passed (default view-only banner with option to re-inspect)
-    const [isEditMode, setIsEditMode] = React.useState(!isAlreadyPassed);
+    const [isEditMode, setIsEditMode] = React.useState(!isAlreadyPassed && !readOnly);
 
     // ─── State: 5 Photo Slots & Intake Photos ──────────────────────────────────
     // 1. Original Intake Photos from Step 1 (รูปเดิมที่รับงานมา)
@@ -711,16 +713,23 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
                         >
                           <Maximize2 className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRemovePhoto(slot.id)}
-                          className="w-6 h-6 text-white hover:text-red-400 flex items-center justify-center cursor-pointer"
-                          title="ลบรูปภาพนี้"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePhoto(slot.id)}
+                            className="w-6 h-6 text-white hover:text-red-400 flex items-center justify-center cursor-pointer"
+                            title="ลบรูปภาพนี้"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </>
+                  ) : readOnly ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-gray-400 bg-gray-50">
+                      <Camera className="w-5 h-5 text-gray-400 mb-1" />
+                      <span className="text-xs text-gray-400">ไม่มีรูปภาพ</span>
+                    </div>
                   ) : (
                     <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-2 text-center hover:bg-gray-100 transition-colors">
                       <Camera className="w-5 h-5 text-gray-500 mb-1" />
@@ -796,7 +805,7 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
                       </div>
                     </div>
 
-                    {!q.is_mandatory && !isQuick && isEditMode && (
+                    {!q.is_mandatory && !isQuick && isEditMode && !readOnly && (
                       <button
                         type="button"
                         onClick={() => removeCustomQuestion(q.id)}
@@ -816,7 +825,7 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
                         name={`result_${q.id}`}
                         value="PASS"
                         checked={q.result === 'PASS'}
-                        disabled={!isEditMode && isAlreadyPassed}
+                        disabled={readOnly || (!isEditMode && isAlreadyPassed)}
                         onChange={() => updateQuestion(q.id, 'result', 'PASS')}
                         className="w-4 h-4 accent-green-600 cursor-pointer"
                       />
@@ -828,7 +837,7 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
                         name={`result_${q.id}`}
                         value="FAIL"
                         checked={q.result === 'FAIL'}
-                        disabled={!isEditMode && isAlreadyPassed}
+                        disabled={readOnly || (!isEditMode && isAlreadyPassed)}
                         onChange={() => updateQuestion(q.id, 'result', 'FAIL')}
                         className="w-4 h-4 accent-red-600 cursor-pointer"
                       />
@@ -839,7 +848,7 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
                   {/* Remark input per question */}
                   <Input
                     value={q.remark}
-                    disabled={!isEditMode && isAlreadyPassed}
+                    disabled={readOnly || (!isEditMode && isAlreadyPassed)}
                     onChange={(e) => updateQuestion(q.id, 'remark', e.target.value)}
                     placeholder="หมายเหตุเพิ่มเติมสำหรับข้อนี้ (ถ้ามี)"
                     className="h-8 text-xs text-black bg-white border-gray-300"
@@ -849,7 +858,7 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
             </div>
 
             {/* Custom Question for Renovate Jobs: Up to 4 more questions (total max 5) */}
-            {!isQuick && questions.length < MAX_TOTAL_QUESTIONS && isEditMode && (
+            {!isQuick && !readOnly && questions.length < MAX_TOTAL_QUESTIONS && isEditMode && (
               <div className="border border-dashed border-gray-300 rounded-lg p-3 space-y-3 bg-gray-50/70">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <Label className="text-black font-semibold text-xs flex items-center gap-1.5">
@@ -942,7 +951,7 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
             </Label>
             <textarea
               value={overallRemark}
-              disabled={!isEditMode && isAlreadyPassed}
+              disabled={readOnly || (!isEditMode && isAlreadyPassed)}
               onChange={(e) => setOverallRemark(e.target.value)}
               className="w-full border border-gray-300 rounded-md p-2.5 h-16 text-xs text-black bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
               placeholder="สรุปภาพรวมการตรวจ QC เช่น ช่างปฏิบัติตามมาตรฐานงานติดตั้งเรียบร้อย ระบบทำงานได้ตามปกติ..."
@@ -980,73 +989,75 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              {isEditMode && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleResetAnswers}
-                  className="text-black font-semibold text-xs h-8 hover:bg-gray-200"
-                >
-                  <RotateCcw className="w-3.5 h-3.5 mr-1" /> ล้างคำตอบ
-                </Button>
-              )}
-
-              {isAlreadyPassed && !isEditMode ? (
-                <div className="flex items-center gap-2">
+            {!readOnly && (
+              <div className="flex items-center gap-2">
+                {isEditMode && (
                   <Button
                     type="button"
-                    variant="secondary"
+                    variant="ghost"
                     size="sm"
-                    onClick={() => setIsEditMode(true)}
-                    className="text-black font-bold text-xs h-8"
+                    onClick={handleResetAnswers}
+                    className="text-black font-semibold text-xs h-8 hover:bg-gray-200"
                   >
-                    <RefreshCw className="w-3.5 h-3.5 mr-1" /> ประเมินใหม่ / แก้ไขผลตรวจ
+                    <RotateCcw className="w-3.5 h-3.5 mr-1" /> ล้างคำตอบ
                   </Button>
-                  {onExportSTK && (
+                )}
+
+                {isAlreadyPassed && !isEditMode ? (
+                  <div className="flex items-center gap-2">
                     <Button
                       type="button"
-                      variant="primary"
+                      variant="secondary"
                       size="sm"
-                      onClick={onExportSTK}
-                      className="bg-green-600 hover:bg-green-700 text-white font-bold text-xs h-8 px-4"
+                      onClick={() => setIsEditMode(true)}
+                      className="text-black font-bold text-xs h-8"
                     >
-                      🚀 ส่งออก STK (Step 6)
+                      <RefreshCw className="w-3.5 h-3.5 mr-1" /> ประเมินใหม่ / แก้ไขผลตรวจ
                     </Button>
-                  )}
-                  <a
-                    href="https://vwds.online/wds/pmt-qc"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs shadow-xs transition-colors"
-                    title="เปิดดูข้อมูลในระบบ WDS (vwds.online/wds/pmt-qc)"
+                    {onExportSTK && (
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        onClick={onExportSTK}
+                        className="bg-green-600 hover:bg-green-700 text-white font-bold text-xs h-8 px-4"
+                      >
+                        🚀 ส่งออก STK (Step 6)
+                      </Button>
+                    )}
+                    <a
+                      href="https://vwds.online/wds/pmt-qc"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs shadow-xs transition-colors"
+                      title="เปิดดูข้อมูลในระบบ WDS (vwds.online/wds/pmt-qc)"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
+                      <span>ดูใน WDS ↗</span>
+                    </a>
+                  </div>
+                ) : (
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={!allAnswered}
+                    className={`font-bold text-white h-8 text-xs px-4 cursor-pointer ${
+                      !allAnswered
+                        ? 'bg-gray-400 opacity-60 cursor-not-allowed text-black'
+                        : allPassed
+                        ? 'bg-green-600 hover:bg-green-700'
+                        : 'bg-red-600 hover:bg-red-700'
+                    }`}
                   >
-                    <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
-                    <span>ดูใน WDS ↗</span>
-                  </a>
-                </div>
-              ) : (
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={!allAnswered}
-                  className={`font-bold text-white h-8 text-xs px-4 cursor-pointer ${
-                    !allAnswered
-                      ? 'bg-gray-400 opacity-60 cursor-not-allowed text-black'
+                    {!allAnswered
+                      ? `กรุณาตอบให้ครบ (เหลือ ${unansweredQ} ข้อ)`
                       : allPassed
-                      ? 'bg-green-600 hover:bg-green-700'
-                      : 'bg-red-600 hover:bg-red-700'
-                  }`}
-                >
-                  {!allAnswered
-                    ? `กรุณาตอบให้ครบ (เหลือ ${unansweredQ} ข้อ)`
-                    : allPassed
-                    ? '✅ ยืนยันบันทึกผลผ่าน QC'
-                    : '🔄 ยืนยันส่งกลับแก้ไข (Rework)'}
-                </Button>
-              )}
-            </div>
+                      ? '✅ ยืนยันบันทึกผลผ่าน QC'
+                      : '🔄 ยืนยันส่งกลับแก้ไข (Rework)'}
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </form>
 
