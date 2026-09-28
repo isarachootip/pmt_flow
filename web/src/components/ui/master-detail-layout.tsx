@@ -6,24 +6,31 @@ export interface MasterDetailLayoutProps extends React.HTMLAttributes<HTMLDivEle
   pageKey: string;
   masterContent: React.ReactNode;
   detailContent: React.ReactNode;
+  defaultMasterHeight?: number;
 }
 
 const MasterDetailLayout = React.forwardRef<HTMLDivElement, MasterDetailLayoutProps>(
-  ({ pageKey, masterContent, detailContent, className, ...props }, ref) => {
+  ({ pageKey, masterContent, detailContent, defaultMasterHeight = 300, className, ...props }, ref) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
     React.useImperativeHandle(ref, () => containerRef.current as HTMLDivElement);
 
-    const [masterHeight, setMasterHeight] = React.useState<number>(300);
+    const [masterHeight, setMasterHeight] = React.useState<number>(defaultMasterHeight);
 
     React.useEffect(() => {
       const saved = localStorage.getItem(`pmt_master_h_${pageKey}`);
       if (saved) {
         const val = Number(saved);
         if (!isNaN(val) && val >= 120 && val <= 500) {
-          setMasterHeight(val);
+          if (val === 300 && defaultMasterHeight !== 300) {
+            setMasterHeight(defaultMasterHeight);
+          } else {
+            setMasterHeight(val);
+          }
         }
+      } else if (defaultMasterHeight) {
+        setMasterHeight(defaultMasterHeight);
       }
-    }, [pageKey]);
+    }, [pageKey, defaultMasterHeight]);
 
     const handleDrag = React.useCallback(
       (e: MouseEvent | TouchEvent) => {

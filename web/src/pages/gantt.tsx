@@ -438,6 +438,7 @@ export default function GanttPage() {
       <div className="flex-1 min-h-0 mt-1">
         <MasterDetailLayout
           pageKey="gantt"
+          defaultMasterHeight={160}
           masterContent={
             <DataGrid
               columns={columns}
@@ -454,6 +455,7 @@ export default function GanttPage() {
                 job={selectedJob}
                 defaultTab="gantt"
                 onClose={() => setSelectedJob(null)}
+                hideOrderSummary={true}
               />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-slate-400 p-8 border border-border-soft rounded-2xl bg-white shadow-2xs">

@@ -126,7 +126,7 @@ export function GanttChart({
     <div className={cn("border border-border-soft rounded-2xl bg-white overflow-hidden flex flex-col shadow-sm text-xs", className)}>
       
       {/* Legend & Summary Ribbon */}
-      <div className="bg-slate-50/80 px-4 py-2.5 border-b border-border-soft flex flex-wrap items-center justify-between gap-3 shrink-0">
+      <div className="bg-slate-50/80 px-3 py-1.5 border-b border-border-soft flex flex-wrap items-center justify-between gap-2.5 shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 font-bold text-black text-xs">
             <Layers className="w-4 h-4 text-indigo-600" />

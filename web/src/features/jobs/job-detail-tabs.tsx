@@ -18,6 +18,7 @@ import { PhotoSlots5, PhotoSlot } from '@/components/ui/photo-slots-5';
 import { OrderCustomerSummary } from '@/features/jobs/order-customer-summary';
 import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
 import { UserCheck, Camera, ExternalLink, CheckCircle2, ArrowRight, Clock, RefreshCw, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { GanttChart } from '@/features/gantt/gantt-chart';
 import { Task } from '@/features/gantt/api';
 import { DailyLogModal } from '@/features/daily-logs/daily-log-modal';
@@ -35,9 +36,16 @@ interface JobDetailTabsProps {
   defaultTab?: string;
   onClose?: () => void;
   readOnly?: boolean;
+  hideOrderSummary?: boolean;
 }
 
-export function JobDetailTabs({ job, defaultTab = 'task', onClose, readOnly = false }: JobDetailTabsProps) {
+export function JobDetailTabs({ 
+  job, 
+  defaultTab = 'task', 
+  onClose, 
+  readOnly = false,
+  hideOrderSummary = false,
+}: JobDetailTabsProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -448,7 +456,10 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose, readOnly = fa
   return (
     <div className="flex flex-col h-full bg-card rounded-xl border border-soft overflow-hidden shadow-card">
       {/* Header bar */}
-      <div className="flex items-center justify-between p-4 border-b border-soft bg-white">
+      <div className={cn(
+        "flex items-center justify-between border-b border-soft bg-white",
+        hideOrderSummary ? "px-4 py-2" : "p-4"
+      )}>
         <div className="flex items-center space-x-3 flex-wrap gap-y-1">
           <span className="font-bold text-black text-lg">{job.job_no}</span>
           {bookingBadge && (
@@ -495,16 +506,19 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose, readOnly = fa
       </div>
 
       {/* Order & Customer Summary Details (Site address, phone, Google Maps, items, 24-hr schedule) */}
-      <OrderCustomerSummary job={job} />
+      {!hideOrderSummary && <OrderCustomerSummary job={job} />}
 
       {/* Tabs Container */}
       <div className="flex-1 flex flex-col min-h-0 bg-white">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
           <div className="px-4 border-b border-soft bg-white">
-            <TabsList className="bg-transparent h-12 flex space-x-2">
+            <TabsList className={cn("bg-transparent flex space-x-2", hideOrderSummary ? "h-10" : "h-12")}>
               <TabsTrigger 
                 value="task" 
-                className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-black text-black font-semibold rounded-none shadow-none px-4 py-3"
+                className={cn(
+                  "data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-black text-black font-semibold rounded-none shadow-none px-4",
+                  hideOrderSummary ? "py-2 text-xs" : "py-3"
+                )}
               >
                 งาน/Task
               </TabsTrigger>
@@ -512,9 +526,11 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose, readOnly = fa
                 value="boq" 
                 disabled={isQuick}
                 title={isQuick ? "งาน Quick Service ไม่มีขั้นตอน BOQ (ข้ามไปตรวจ QC Online ทันที)" : "ประมาณการราคาและรายการพัสดุ (BOQ)"}
-                className={`data-[state=active]:border-b-2 data-[state=active]:border-primary font-semibold rounded-none shadow-none px-4 py-3 ${
+                className={cn(
+                  "data-[state=active]:border-b-2 data-[state=active]:border-primary font-semibold rounded-none shadow-none px-4",
+                  hideOrderSummary ? "py-2 text-xs" : "py-3",
                   isQuick ? 'opacity-40 cursor-not-allowed text-gray-400' : 'text-black'
-                }`}
+                )}
               >
                 <span>BOQ</span>
                 {isQuick && <span className="ml-1 text-[10px] text-gray-400 font-normal">(ไม่ใช้ใน Quick)</span>}
@@ -523,9 +539,11 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose, readOnly = fa
                 value="gantt" 
                 disabled={isQuick}
                 title={isQuick ? "งาน Quick Service ไม่มีขั้นตอนผัง Gantt" : (!isAcceptedOrPlanned ? "รอรับงานก่อนสร้างผัง Gantt" : "ผังกำหนดการทำงาน (Gantt Chart)")}
-                className={`data-[state=active]:border-b-2 data-[state=active]:border-primary font-semibold rounded-none shadow-none px-4 py-3 flex items-center gap-1.5 ${
+                className={cn(
+                  "data-[state=active]:border-b-2 data-[state=active]:border-primary font-semibold rounded-none shadow-none px-4 flex items-center gap-1.5",
+                  hideOrderSummary ? "py-2 text-xs" : "py-3",
                   isQuick ? 'opacity-40 cursor-not-allowed text-gray-400' : 'text-black'
-                }`}
+                )}
               >
                 <span>Gantt</span>
                 {isQuick && <span className="ml-1 text-[10px] text-gray-400">(ไม่ใช้)</span>}
@@ -537,26 +555,35 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose, readOnly = fa
               </TabsTrigger>
               <TabsTrigger 
                 value="qc" 
-                className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-black text-black font-semibold rounded-none shadow-none px-4 py-3"
+                className={cn(
+                  "data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-black text-black font-semibold rounded-none shadow-none px-4",
+                  hideOrderSummary ? "py-2 text-xs" : "py-3"
+                )}
               >
                 QC
               </TabsTrigger>
               <TabsTrigger 
                 value="stk" 
-                className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-black text-black font-semibold rounded-none shadow-none px-4 py-3"
+                className={cn(
+                  "data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-black text-black font-semibold rounded-none shadow-none px-4",
+                  hideOrderSummary ? "py-2 text-xs" : "py-3"
+                )}
               >
                 ส่งออก STK
               </TabsTrigger>
               <TabsTrigger 
                 value="timeline" 
-                className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-black text-black font-semibold rounded-none shadow-none px-4 py-3"
+                className={cn(
+                  "data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-black text-black font-semibold rounded-none shadow-none px-4",
+                  hideOrderSummary ? "py-2 text-xs" : "py-3"
+                )}
               >
                 ประวัติ (Timeline)
               </TabsTrigger>
             </TabsList>
           </div>
           
-          <div className="flex-1 p-4 overflow-auto bg-white text-black">
+          <div className={cn("flex-1 overflow-auto bg-white text-black", hideOrderSummary ? "p-2.5" : "p-4")}>
             {/* 1. งาน/Task */}
             <TabsContent value="task" className="h-full m-0 data-[state=active]:flex flex-col space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-2 text-sm py-3 border-b border-gray-200 bg-white text-black">
@@ -693,7 +720,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose, readOnly = fa
             </TabsContent>
 
             {/* 3. ผัง Gantt (เฉพาะงาน Renovate ที่รับงานแล้ว / สถานะวางแผนงาน) */}
-            <TabsContent value="gantt" className="h-full m-0 data-[state=active]:flex flex-col space-y-3">
+            <TabsContent value="gantt" className={cn("h-full m-0 data-[state=active]:flex flex-col", hideOrderSummary ? "space-y-2" : "space-y-3")}>
               {!isAcceptedOrPlanned ? (
                 <div className="flex flex-col items-center justify-center p-12 text-center bg-white border border-gray-200 rounded-xl space-y-4 my-auto shadow-2xs">
                   <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shadow-2xs">
@@ -720,7 +747,10 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose, readOnly = fa
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-50 border border-gray-200 rounded-xl">
+                  <div className={cn(
+                    "flex flex-wrap items-center justify-between gap-2 bg-slate-50 border border-gray-200 rounded-lg",
+                    hideOrderSummary ? "px-3 py-1.5" : "p-3"
+                  )}>
                     <div>
                       <h3 className="text-sm font-bold text-black flex items-center gap-2">
                         <span>ผังกำหนดการทำงาน Gantt Chart</span>
@@ -731,9 +761,11 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose, readOnly = fa
                           ({finalGanttTasks.length} รายการงานย่อย)
                         </span>
                       </h3>
-                      <p className="text-xs text-gray-600 mt-0.5">
-                        แผนภูมิแสดงแถบเวลาตามแผนงานของช่างแต่ละขั้นตอน พร้อมสถานะความคืบหน้า
-                      </p>
+                      {!location.pathname.startsWith('/gantt') && (
+                        <p className="text-xs text-gray-600 mt-0.5">
+                          แผนภูมิแสดงแถบเวลาตามแผนงานของช่างแต่ละขั้นตอน พร้อมสถานะความคืบหน้า
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       {!readOnly && !location.pathname.startsWith('/gantt') && (
@@ -750,7 +782,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose, readOnly = fa
                     </div>
                   </div>
 
-                  <div className="flex-1 min-h-[300px] border border-gray-200 rounded-xl overflow-auto bg-white p-2">
+                  <div className={cn("flex-1 min-h-[300px] border border-gray-200 rounded-xl overflow-auto bg-white", hideOrderSummary ? "p-1.5" : "p-2")}>
                     <GanttChart
                       tasks={finalGanttTasks}
                       onOpenDailyLog={readOnly ? undefined : (task) => {
