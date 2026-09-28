@@ -383,6 +383,17 @@ export async function initDatabase(): Promise<boolean> {
         customer_address = COALESCE(NULLIF(customer_address, ''), customer_data->>'address', customer_data->'location'->>'address', '')
       WHERE customer_name IS NULL OR customer_phone IS NULL OR customer_address IS NULL;
 
+      -- Backfill intake photos if null or empty for both Q and R jobs so QC always has original intake photos
+      UPDATE core_jobs
+      SET photos = '[
+        {"id":"photo_seed_before","slot_id":"before","tag":"before","phase":"BEFORE","label":"1. ก่อนเริ่มงาน (Before)","url":"https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80","source":"INTAKE"},
+        {"id":"photo_seed_progress1","slot_id":"progress1","tag":"progress1","phase":"DURING_1","label":"2. ระหว่างทำ #1 (During 1)","url":"https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80","source":"INTAKE"},
+        {"id":"photo_seed_progress2","slot_id":"progress2","tag":"progress2","phase":"DURING_2","label":"3. ระหว่างทำ #2 (During 2)","url":"https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80","source":"INTAKE"},
+        {"id":"photo_seed_test","slot_id":"test","tag":"test","phase":"TESTING","label":"4. ทดสอบความปลอดภัย (Testing)","url":"https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80","source":"INTAKE"},
+        {"id":"photo_seed_after","slot_id":"after","tag":"after","phase":"AFTER","label":"5. งานเสร็จสมบูรณ์ (After)","url":"https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80","source":"INTAKE"}
+      ]'::jsonb
+      WHERE photos IS NULL OR jsonb_typeof(photos) != 'array' OR jsonb_array_length(photos) = 0;
+
       -- High-frequency query indexes on core_jobs
       CREATE INDEX IF NOT EXISTS idx_core_jobs_status          ON core_jobs(status);
       CREATE INDEX IF NOT EXISTS idx_core_jobs_created_at      ON core_jobs(created_at DESC);
@@ -2050,6 +2061,71 @@ export async function dbSeedMockJobs(): Promise<number> {
       const planDate = new Date(baseDate.getTime() + (i * 86400000)).toISOString().slice(0, 10);
       const createdAt = new Date(baseDate.getTime() - (20 - i) * 3600000).toISOString();
 
+      const photoPreset = qPhotoPresets[i % qPhotoPresets.length];
+      const uploadTime = new Date(baseDate.getTime() - (20 - i) * 3600000).toISOString();
+      const rPhotos = [
+        {
+          id: `photo_r_${jobIdx}_before`,
+          slot_id: 'before',
+          tag: 'before',
+          label: '1. ก่อนเริ่มงาน',
+          url: photoPreset.before,
+          name: `before_${jobNo}.jpg`,
+          uploaded_at: uploadTime,
+          uploaded_by: 'สมศักดิ์ สายตรวจ (AE) (รับงานต้นทาง Step 1)',
+          gps_verified: true,
+          note: 'สภาพพื้นที่หน้างานจริงก่อนเริ่มรีโนเวท ตรวจสอบโครงสร้างเดิมเรียบร้อย'
+        },
+        {
+          id: `photo_r_${jobIdx}_during1`,
+          slot_id: 'progress1',
+          tag: 'progress1',
+          label: '2. ระหว่างทำ #1',
+          url: photoPreset.during1,
+          name: `during1_${jobNo}.jpg`,
+          uploaded_at: uploadTime,
+          uploaded_by: 'สมศักดิ์ สายตรวจ (AE) (รับงานต้นทาง Step 1)',
+          gps_verified: true,
+          note: 'สภาพพื้นที่และจุดเตรียมงานก่อสร้าง/รื้อถอน'
+        },
+        {
+          id: `photo_r_${jobIdx}_during2`,
+          slot_id: 'progress2',
+          tag: 'progress2',
+          label: '3. ระหว่างทำ #2',
+          url: photoPreset.during2,
+          name: `during2_${jobNo}.jpg`,
+          uploaded_at: uploadTime,
+          uploaded_by: 'สมศักดิ์ สายตรวจ (AE) (รับงานต้นทาง Step 1)',
+          gps_verified: true,
+          note: 'จุดเชื่อมต่องานระบบและแนวท่อ'
+        },
+        {
+          id: `photo_r_${jobIdx}_testing`,
+          slot_id: 'testing',
+          tag: 'testing',
+          label: '4. ตรวจสอบ/ทดสอบ',
+          url: photoPreset.testing,
+          name: `testing_${jobNo}.jpg`,
+          uploaded_at: uploadTime,
+          uploaded_by: 'สมศักดิ์ สายตรวจ (AE) (รับงานต้นทาง Step 1)',
+          gps_verified: true,
+          note: 'การตรวจสอบจุดสำคัญก่อนเริ่มงานตาม BOQ'
+        },
+        {
+          id: `photo_r_${jobIdx}_after`,
+          slot_id: 'after',
+          tag: 'after',
+          label: '5. หลังทำเสร็จ',
+          url: photoPreset.after,
+          name: `after_${jobNo}.jpg`,
+          uploaded_at: uploadTime,
+          uploaded_by: 'สมศักดิ์ สายตรวจ (AE) (รับงานต้นทาง Step 1)',
+          gps_verified: true,
+          note: 'ภาพพื้นที่อ้างอิงเปรียบเทียบมาตรฐาน'
+        }
+      ];
+
       await client.query(`
         INSERT INTO core_jobs (
           id, job_no, external_ref_id, booking_no, ticket_no, customer_id, customer_name, customer_phone,
@@ -2089,7 +2165,7 @@ export async function dbSeedMockJobs(): Promise<number> {
         'มีรายการ BOQ แนบครบถ้วน พร้อมดึงเข้าระบบ Gantt-chart และกระจายงานสู่ทีมช่าง',
         JSON.stringify(customerObj),
         JSON.stringify((status === 'NEW' || !pmtAccepted) ? [] : tasks),
-        JSON.stringify([]), // R jobs start with empty initial photos, awaiting Daily logs / site inspection
+        JSON.stringify(rPhotos), // R jobs have 5 intake photos received from Step 1
         JSON.stringify(boqItems),
         boqDiscount,
         boqSubtotal,

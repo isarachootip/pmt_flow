@@ -4982,7 +4982,7 @@
                                         <span class="text-[10px] text-muted-foreground font-mono">Step 5 (QC)</span>
                                     </div>
                                     <h4 class="font-display font-bold text-xs text-foreground group-hover:text-teal-600 transition">Step 5: ตรวจรับรองคุณภาพ (QC)</h4>
-                                    <p class="text-[11px] text-muted-foreground leading-relaxed">ตรวจ QC Online งานด่วน (รูป Visit Plan), จองคิวช่าง Renovate 24-Hr, ให้คะแนน 5 ข้อมาตรฐาน Yes=5/No=1, Gating ส่งต่อ CSAT 100%</p>
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">แสดงรูปถ่ายเดิมจากตอนรับงาน (Step 1) ทั้ง Quick & Renovate, คำถามแรกมาตรฐานเดียวกัน "ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด", Renovate เพิ่มคำถามได้อีกไม่เกิน 4 ข้อ (รวมไม่เกิน 5 ข้อ) พร้อมส่ง STK</p>
                                 </div>
                                 <div class="pt-2 border-t border-border flex items-center gap-2">
                                     <button onclick="app.navigate('qc')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground flex items-center justify-center gap-1 cursor-pointer transition">
@@ -5598,8 +5598,8 @@
                                     <ol class="list-decimal list-inside space-y-1 pl-1 text-[11px]">
                                         <li><strong>แยกตรวจและส่งประเมิน STK รายงานหลัก (Main Task QC)</strong>: หากโครงการมีหลายงานหลัก (เช่น งานทาสี, งานปูกระเบื้อง) จะแยกตรวจและปิดงานส่ง STK ทีละงานหลัก โดยงานหลักไหนเสร็จก่อน สามารถกดปิดงานและส่งผลประเมินไป STK ได้ทันที ไม่ต้องรอให้เสร็จพร้อมกันทั้งโครงการ</li>
                                         <li><strong>งานย่อย (Subtasks) รวมอยู่ในงานหลัก</strong>: งานย่อยทั้งหมดถือเป็นเนื้องานภายในงานหลักนั้นๆ และจะสรุปรวมส่งผลประเมินไปพร้อมกับงานหลัก</li>
-                                        <li><strong>ข้อคำถามมาตรฐาน 1 ข้อ + QC เพิ่มคำถามเองได้</strong>: แต่ละงานหลักมีข้อคำถามมาตรฐานตั้งต้น 1 ข้อ (On-site Inspection) พร้อมปุ่มให้ QC เพิ่มข้อคำถามประเมินเฉพาะหน้างานได้เองอย่างอิสระ</li>
-                                        <li><strong>ตรวจสอบภาพถ่าย 5 รูปของช่าง</strong>: ดึงรูปถ่ายหน้างาน 5 รูปจากบันทึกประจำวันของช่างมาให้ตรวจเทียบ On-site</li>
+                                         <li><strong>ข้อคำถามหลักข้อที่ 1 เหมือนกันทุกงาน + Renovate เพิ่มได้ไม่เกิน 4 ข้อ (รวมสูงสุด 5 ข้อ)</strong>: ทั้งงาน Quick Service และ Renovate เริ่มต้นด้วยข้อคำถามหลักข้อที่ 1 เดียวกันคือ <em>"ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด"</em> โดยงาน Quick ประเมิน 1 ข้อจบกระบวนการ ส่วนงาน Renovate สามารถเพิ่มข้อคำถามหน้างานเพิ่มเติมได้อีกไม่เกิน 4 ข้อ รวมไม่เกิน 5 ข้อ (มี Preset แนะนำ เช่น โครงสร้าง, ความปลอดภัย, คุณภาพวัสดุตาม BOQ, ความสะอาด)</li>
+                                        <li><strong>แสดงรูปเดิมที่รับงานมา (Intake Photos — จาก Step 1)</strong>: หน้าจอ QC แสดงรูปถ่ายเดิมตอนรับงานทั้งงาน Quick และ Renovate เพื่อใช้เปรียบเทียบมาตรฐาน พร้อมปุ่มลัด <em>"📋 นำรูปเดิมมาใส่ในช่องตรวจ QC"</em> และตรวจสอบรูปถ่ายหน้างาน 5 รูป</li>
                                         <li><strong>จบกระบวนการที่ STK (ไม่มีส่งต่อ CSAT)</strong>: เมื่อตรวจผ่านและกดส่ง STK งานหลักนั้นจะล็อกผลตรวจทันที และเมื่อทุกงานหลักส่ง STK ครบแล้ว โครงการจะปิดสมบูรณ์ 100% (CLOSED) สิ้นสุดกระบวนการใน PMT Flow โดยระบบภายนอก STK จะนำไปประมวลผลต่อเอง</li>
                                         <li><strong>🔒 ล็อกการประเมินจนกว่างานใน Gantt จะเสร็จสิ้น (Gantt Completion Gating)</strong>: งานหลักที่สถานะในตาราง Gantt ยังไม่ใช่ DONE (กำลังทำ / รอดำเนินการ หรือบันทึกประจำวันของช่างยังไม่ครบ 100%) ฝ่าย QC จะยังไม่สามารถประเมินผล Yes/No แนบรูป หรือกดปิดงานส่ง STK ได้ โดยระบบจะแสดงป้ายเตือน <code class="bg-muted px-1.5 py-0.5 rounded font-medium text-[10px]">⏳ ช่างกำลังทำใน Gantt</code> และล็อกปุ่มประเมินทุกจุด จนกว่างานใน Gantt จะถูกบันทึกเสร็จสิ้น 100% จึงจะปลดล็อกให้ประเมินได้</li>
                                     </ol>
@@ -5612,14 +5612,15 @@
                                 <summary class="font-semibold text-xs text-foreground cursor-pointer flex items-center justify-between list-none">
                                     <span class="flex items-center gap-2">
                                         <span class="text-brand-500 font-bold">Q8B:</span>
-                                        <span>การประเมินคุณภาพ QC งานด่วน Quick Service แตกต่างจาก Renovate อย่างไร (ตอบ 1 ข้อจบ) และกฎเกณฑ์ล็อกคะแนน 1.0 อัตโนมัติในรอบตรวจครั้งที่ 2, 3, 4 ทำงานอย่างไร?</span>
+                                        <span>การประเมินคุณภาพ QC งานด่วน Quick Service แตกต่างจาก Renovate อย่างไร และรูปเดิมจากตอนรับงานทำงานอย่างไร?</span>
                                     </span>
                                     <i class="ph ph-caret-down text-muted-foreground group-open:rotate-180 transition-transform"></i>
                                 </summary>
                                 <div class="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed space-y-2">
-                                    <p><strong class="text-foreground">คำตอบ:</strong> สำหรับงานบริการด่วน (Quick Services เช่น ล้างแอร์, ติดตั้ง Digital Door Lock, EV Charger) ระบบได้ปรับปรุงกระบวนการตรวจรับรองคุณภาพ QC ให้รวดเร็วและตรงจุดตามหลักการดังนี้:</p>
+                                    <p><strong class="text-foreground">คำตอบ:</strong> สำหรับการตรวจรับรองคุณภาพ QC ระบบได้ปรับปรุงกระบวนการให้รวดเร็วและตรงจุดตามหลักการดังนี้:</p>
                                     <ul class="list-disc list-inside space-y-1.5 pl-1 text-[11px]">
-                                        <li><strong>ตอบ 1 ข้อคำถามเดียวจบกระบวนการ:</strong> แตกต่างจาก Renovate ที่มี 5 ข้อคำถาม โดยงาน Quick Service ประเมินเพียง 1 ข้อ คือ <em>"ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด"</em> และตัดแถบปุ่มเหมา 5 ข้อของ Renovate ออก เพื่อลดความซ้ำซ้อนและสามารถตรวจอนุมัติปิดงานได้อย่างรวดเร็ว</li>
+                                        <li><strong>รูปเดิมที่รับงานมา (Intake Photos จาก Step 1):</strong> ทั้งงาน Quick และ Renovate จะแสดงรูปถ่ายเดิมที่บันทึกไว้ในตอนรับงานขึ้นมาบนหน้าต่าง QC เพื่อให้ผู้ตรวจเปิดดูรูปใหญ่ (Lightbox) และกดปุ่มลัดคัดลอกรูปมาใส่ในช่องตรวจ QC 5 รูปได้ทันที</li>
+                                        <li><strong>คำถามแรกมาตรฐานเดียวกัน:</strong> ข้อที่ 1 ของทั้งสองประเภทงานคือ <em>"1. ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด"</em> โดยงาน Quick ประเมินเพียงข้อเดียวจบกระบวนการ ส่วนงาน Renovate สามารถเพิ่มคำถามหน้างานได้อีกไม่เกิน 4 ข้อ (รวมทั้งสิ้นไม่เกิน 5 ข้อ)</li>
                                         <li><strong>ระบบบันทึกประวัติการตรวจ & ส่งแก้ไขงาน (Inspection & Rework History Timeline):</strong> ทุกครั้งที่มีการตรวจรับงาน หรือแจ้งส่งกลับแก้ไขงาน (Rework) ระบบจะบันทึกประวัติย้อนหลังลงใน <code class="bg-muted px-1.5 py-0.5 rounded font-mono text-[10px]">job.qc_history</code> ระบุรอบที่ตรวจ (ครั้งที่ 1, 2, 3, 4...), วันที่และเวลาในระบบ 24 ชั่วโมง, ผู้ตรวจ, สถานะ, หมายเหตุ, และคะแนนที่ได้รับ พร้อมแสดงผลเป็น Timeline ในหน้าต่างตรวจ QC อย่างโปร่งใส</li>
                                         <li><strong>🚨 กฎเหล็กบังคับล็อก 1.0 คะแนนอัตโนมัติในรอบแก้ไข (Strict 1.0 Penalty on Round >= 2):</strong>
                                             <span class="block mt-0.5 pl-3">• <strong>รอบแรก (ครั้งที่ 1 / First Round):</strong> หากผ่านเกณฑ์มาตรฐาน จะได้รับคะแนนเต็ม <strong>5.0 คะแนน</strong></span>

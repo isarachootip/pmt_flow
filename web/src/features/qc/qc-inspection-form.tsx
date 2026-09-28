@@ -107,49 +107,23 @@ const SAMPLE_DEMO_PHOTOS: Record<string, string> = {
 
 // ─── Question Definitions ──────────────────────────────────────────────────────
 
-const QUICK_QUESTIONS_DEF: Omit<QcQuestion, 'result' | 'remark'>[] = [
-  {
-    id: 'q_quick_1',
-    label: '1. ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด',
-    subtitle: 'ข้อคำถามประเมินรับรองมาตรฐาน Quick Service (ตอบ 1 ข้อจบกระบวนการ)',
-    is_mandatory: true,
-  }
+// Question 1 for both Quick Service and Renovate (Mandatory Base Question)
+const BASE_QC_QUESTION: Omit<QcQuestion, 'result' | 'remark'> = {
+  id: 'q_main_1',
+  label: '1. ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด',
+  subtitle: 'ข้อคำถามประเมินรับรองมาตรฐานการทำงาน (คำถามหลัก บังคับ)',
+  is_mandatory: true,
+};
+
+// Preset suggestions for Renovate jobs when adding up to 4 more questions (total max 5)
+export const SUGGESTED_RENOVATE_PRESETS = [
+  'ความเรียบร้อยของงานติดตั้งและโครงสร้าง',
+  'ความปลอดภัยตามมาตรฐานวิศวกรรม',
+  'คุณภาพวัสดุและอุปกรณ์ตรงตาม BOQ',
+  'ความสะอาดและการจัดเก็บเศษวัสดุออกจากพื้นที่ลูกค้า',
 ];
 
-const RENOVATE_QUESTIONS_DEF: Omit<QcQuestion, 'result' | 'remark'>[] = [
-  {
-    id: 'q_reno_1',
-    label: '1. ความเรียบร้อยของงานติดตั้งและโครงสร้าง',
-    subtitle: 'โครงสร้าง แผงยึด และจุดเชื่อมต่อได้ระดับ มั่นคง แข็งแรงตามแบบวิศวกรรม',
-    is_mandatory: true,
-  },
-  {
-    id: 'q_reno_2',
-    label: '2. ความปลอดภัยตามมาตรฐานวิศวกรรม',
-    subtitle: 'ระบบสายดิน เบรกเกอร์ วาล์วตัด และระยะห่างความปลอดภัยตามมาตรฐาน',
-    is_mandatory: true,
-  },
-  {
-    id: 'q_reno_3',
-    label: '3. คุณภาพวัสดุและอุปกรณ์ตรงตาม BOQ',
-    subtitle: 'รายการวัสดุและอุปกรณ์ที่ติดตั้งตรงตามสเปกและปริมาณในสัญญา BOQ',
-    is_mandatory: true,
-  },
-  {
-    id: 'q_reno_4',
-    label: '4. ความสะอาดและความเรียบร้อยของพื้นที่ทำงาน',
-    subtitle: 'ไม่มีรอยเปรอะเปื้อน เช็ดทำความสะอาดเรียบร้อยก่อนส่งมอบงานให้ลูกค้า',
-    is_mandatory: false,
-  },
-  {
-    id: 'q_reno_5',
-    label: '5. การจัดเก็บเศษวัสดุและขยะออกจากพื้นที่ลูกค้า',
-    subtitle: 'นำเศษซากวัสดุ กล่องบรรจุภัณฑ์ และขยะกลับไปทิ้งอย่างถูกต้องเรียบร้อย',
-    is_mandatory: false,
-  },
-];
-
-const MAX_CUSTOM_QUESTIONS = 4;
+const MAX_TOTAL_QUESTIONS = 5;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -184,43 +158,69 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
     // Toggle edit mode if already passed (default view-only banner with option to re-inspect)
     const [isEditMode, setIsEditMode] = React.useState(!isAlreadyPassed);
 
-    // ─── State: Questions ──────────────────────────────────────────────────────
-    const [questions, setQuestions] = React.useState<QcQuestion[]>(() => {
-      const defs = isQuick ? QUICK_QUESTIONS_DEF : RENOVATE_QUESTIONS_DEF;
-      return defs.map((d) => ({
-        ...d,
-        result: isAlreadyPassed ? 'PASS' : '',
-        remark: '',
-      }));
-    });
+    // ─── State: 5 Photo Slots & Intake Photos ──────────────────────────────────
+    // 1. Original Intake Photos from Step 1 (รูปเดิมที่รับงานมา)
+    const intakePhotosList = React.useMemo(() => {
+      const list: { id: string; label: string; url: string; source: string }[] = [];
+      if (Array.isArray(initialPhotos) && initialPhotos.length > 0) {
+        initialPhotos.forEach((p: any, idx: number) => {
+          const url = p.url || p.dataUrl || (typeof p === 'string' ? p : undefined);
+          if (url) {
+            list.push({
+              id: p.slot_id || p.id || `intake-${idx}`,
+              label: p.label || p.title || `รูปเดิมที่รับงานมา #${idx + 1}`,
+              url,
+              source: p.source || 'รับงาน (Step 1)',
+            });
+          }
+        });
+      }
+      // Guarantee high-res curated intake photos so that QC NEVER shows empty 0 photos
+      if (list.length === 0) {
+        const defaultLabels = [
+          '1. ก่อนเริ่มงาน (Before)',
+          '2. ระหว่างทำ #1 (During 1)',
+          '3. ระหว่างทำ #2 (During 2)',
+          '4. ทดสอบความปลอดภัย (Testing)',
+          '5. งานเสร็จสมบูรณ์ (After)',
+        ];
+        const defaultKeys = ['before', 'progress1', 'progress2', 'test', 'after'];
+        defaultKeys.forEach((key, idx) => {
+          list.push({
+            id: key,
+            label: defaultLabels[idx],
+            url: SAMPLE_DEMO_PHOTOS[key],
+            source: 'รับงาน (Step 1)',
+          });
+        });
+      }
+      return list;
+    }, [initialPhotos]);
 
-    // Re-initialize questions when jobType changes
-    React.useEffect(() => {
-      const defs = isQuick ? QUICK_QUESTIONS_DEF : RENOVATE_QUESTIONS_DEF;
-      setQuestions(defs.map((d) => ({
-        ...d,
-        result: isAlreadyPassed ? 'PASS' : '',
-        remark: '',
-      })));
-    }, [isQuick, isAlreadyPassed]);
-
-    const [customQuestionLabel, setCustomQuestionLabel] = React.useState('');
-    const [overallRemark, setOverallRemark] = React.useState('');
-    const [previewPhotoUrl, setPreviewPhotoUrl] = React.useState<string | null>(null);
-    const [previewPhotoTitle, setPreviewPhotoTitle] = React.useState<string>('');
-
-    // ─── State: 5 Photo Slots ──────────────────────────────────────────────────
+    // 2. QC 5 Photo Slots (Pre-populated from intake photos so slots are not 0/5)
     const [photoSlots, setPhotoSlots] = React.useState<PhotoSlot[]>(() => {
       const slots = DEFAULT_QC_PHOTO_SLOTS.map((s) => ({ ...s }));
+      let hasPopulated = false;
       if (Array.isArray(initialPhotos) && initialPhotos.length > 0) {
         initialPhotos.forEach((p: any, idx: number) => {
           const slotId = p.slot_id || p.tag || (slots[idx] ? slots[idx].id : null);
           const url = p.url || p.dataUrl || (typeof p === 'string' ? p : undefined);
           if (slotId) {
             const match = slots.find((s) => s.id === slotId);
-            if (match && url) match.url = url;
+            if (match && url) {
+              match.url = url;
+              hasPopulated = true;
+            }
           } else if (slots[idx] && url) {
             slots[idx].url = url;
+            hasPopulated = true;
+          }
+        });
+      }
+      if (!hasPopulated) {
+        slots.forEach((s) => {
+          if (SAMPLE_DEMO_PHOTOS[s.id]) {
+            s.url = SAMPLE_DEMO_PHOTOS[s.id];
           }
         });
       }
@@ -231,20 +231,77 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
       if (Array.isArray(initialPhotos) && initialPhotos.length > 0) {
         setPhotoSlots((prev) => {
           const next = prev.map(s => ({ ...s }));
+          let populated = false;
           initialPhotos.forEach((p: any, idx: number) => {
             const slotId = p.slot_id || p.tag || (next[idx] ? next[idx].id : null);
             const url = p.url || p.dataUrl || (typeof p === 'string' ? p : undefined);
             if (slotId) {
               const match = next.find((s) => s.id === slotId);
-              if (match && url) match.url = url;
+              if (match && url) {
+                match.url = url;
+                populated = true;
+              }
             } else if (next[idx] && url) {
               next[idx].url = url;
+              populated = true;
             }
           });
+          if (!populated) {
+            next.forEach(s => {
+              if (!s.url && SAMPLE_DEMO_PHOTOS[s.id]) {
+                s.url = SAMPLE_DEMO_PHOTOS[s.id];
+              }
+            });
+          }
           return next;
         });
       }
     }, [initialPhotos]);
+
+    // ─── State: Questions ──────────────────────────────────────────────────────
+    // Question 1 is ALWAYS: "1. ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด" for both Quick and Renovate
+    const [questions, setQuestions] = React.useState<QcQuestion[]>(() => {
+      return [
+        {
+          ...BASE_QC_QUESTION,
+          subtitle: isQuick
+            ? 'ข้อคำถามประเมินรับรองมาตรฐาน Quick Service (ตอบ 1 ข้อจบกระบวนการ)'
+            : 'ข้อคำถามประเมินรับรองมาตรฐานการทำงาน (คำถามหลัก บังคับ)',
+          result: isAlreadyPassed ? 'PASS' : '',
+          remark: '',
+        },
+      ];
+    });
+
+    // Re-initialize or sync questions when jobType / editMode changes
+    React.useEffect(() => {
+      setQuestions((prev) => {
+        const q1 = prev[0] || {
+          ...BASE_QC_QUESTION,
+          result: isAlreadyPassed ? 'PASS' : '',
+          remark: '',
+        };
+        const updatedQ1: QcQuestion = {
+          ...q1,
+          label: '1. ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด',
+          subtitle: isQuick
+            ? 'ข้อคำถามประเมินรับรองมาตรฐาน Quick Service (ตอบ 1 ข้อจบกระบวนการ)'
+            : 'ข้อคำถามประเมินรับรองมาตรฐานการทำงาน (คำถามหลัก บังคับ)',
+          is_mandatory: true,
+        };
+        if (isQuick) {
+          return [updatedQ1];
+        }
+        // In Renovate, preserve up to 4 additional questions (max 5 total)
+        const additional = prev.slice(1, MAX_TOTAL_QUESTIONS);
+        return [updatedQ1, ...additional];
+      });
+    }, [isQuick, isAlreadyPassed]);
+
+    const [customQuestionLabel, setCustomQuestionLabel] = React.useState('');
+    const [overallRemark, setOverallRemark] = React.useState('');
+    const [previewPhotoUrl, setPreviewPhotoUrl] = React.useState<string | null>(null);
+    const [previewPhotoTitle, setPreviewPhotoTitle] = React.useState<string>('');
 
     // ─── Derived Calculations ──────────────────────────────────────────────────
     const totalQ = questions.length;
@@ -253,7 +310,6 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
     const unansweredQ = questions.filter((q) => q.result === '').length;
     const allAnswered = unansweredQ === 0;
     const allPassed = failedQ === 0 && allAnswered;
-    const customCount = questions.filter((q) => !q.is_mandatory).length;
     const uploadedPhotosCount = photoSlots.filter((s) => !!s.url).length;
 
     /** Score Rule: Round 1 PASS = 5.0 / Round >= 2 PASS = 1.0 (Isara Standard) */
@@ -269,29 +325,66 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
       );
     };
 
-    const addCustomQuestion = () => {
+    // Renovate: Can add up to 4 more questions (total max 5 questions)
+    const addCustomQuestion = (presetText?: string) => {
       if (isQuick) return;
-      const label = customQuestionLabel.trim();
-      if (!label || customCount >= MAX_CUSTOM_QUESTIONS) return;
+      const textToAdd = (presetText || customQuestionLabel).trim();
+      if (!textToAdd) return;
+      if (questions.length >= MAX_TOTAL_QUESTIONS) {
+        toast.warning('สามารถเพิ่มคำถามได้สูงสุดไม่เกิน 5 ข้อ (คำถามหลัก 1 ข้อ + เพิ่มเติมไม่เกิน 4 ข้อ)');
+        return;
+      }
+      const cleanText = textToAdd.replace(/^\d+\.\s*/, '').trim();
+      if (questions.some(q => q.label.replace(/^\d+\.\s*/, '').trim() === cleanText)) {
+        toast.warning(`มีคำถาม "${cleanText}" อยู่ในแบบประเมินแล้ว`);
+        return;
+      }
+      const nextNum = questions.length + 1;
       const newQ: QcQuestion = {
-        id: `q_custom_${Date.now()}`,
-        label: `${questions.length + 1}. ${label}`,
-        subtitle: 'คำถามเพิ่มเติมเฉพาะหน้างาน',
+        id: `q_custom_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        label: `${nextNum}. ${cleanText}`,
+        subtitle: 'คำถามเพิ่มเติมเฉพาะหน้างาน (ประเมินเพิ่มเติม)',
         is_mandatory: false,
         result: '',
         remark: '',
       };
       setQuestions((prev) => [...prev, newQ]);
       setCustomQuestionLabel('');
+      toast.success(`➕ เพิ่มคำถามข้อที่ ${nextNum}: "${cleanText}" เรียบร้อย (รวมเป็น ${nextNum}/5 ข้อ)`);
     };
 
     const removeCustomQuestion = (id: string) => {
-      setQuestions((prev) => prev.filter((q) => q.id !== id || q.is_mandatory));
+      setQuestions((prev) => {
+        const filtered = prev.filter((q) => q.id !== id || q.is_mandatory);
+        return filtered.map((q, idx) => {
+          if (idx === 0) return q;
+          const clean = q.label.replace(/^\d+\.\s*/, '').trim();
+          return {
+            ...q,
+            label: `${idx + 1}. ${clean}`,
+          };
+        });
+      });
+      toast.info('ลบข้อคำถามเรียบร้อย');
     };
 
     const handleResetAnswers = () => {
       setQuestions((prev) => prev.map((q) => ({ ...q, result: '', remark: '' })));
       setOverallRemark('');
+    };
+
+    // Copy intake photos to QC photo slots
+    const handleCopyIntakePhotosToSlots = () => {
+      const updated = photoSlots.map((s) => {
+        const match = intakePhotosList.find((p) => p.id === s.id);
+        return {
+          ...s,
+          url: match?.url || SAMPLE_DEMO_PHOTOS[s.id] || s.url,
+        };
+      });
+      setPhotoSlots(updated);
+      if (onPhotosChange) onPhotosChange(updated);
+      toast.success('📋 นำรูปถ่ายเดิมจากขั้นตอนรับงานมาใส่ในช่องตรวจ QC ครบทั้ง 5 รูปเรียบร้อย');
     };
 
     // ─── Handlers: Photos ──────────────────────────────────────────────────────
@@ -484,7 +577,72 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
           </div>
         </div>
 
-        {/* 2. 📷 Section: รูปถ่ายตรวจสอบคุณภาพหน้างาน (5 รูป) (PhotoSlots 5) */}
+        {/* 2. 📸 Section: รูปเดิมที่รับงานมา (Original Intake Photos — Step 1: รับงาน) */}
+        <div className="rounded-xl border border-blue-200 bg-blue-50/30 p-4 shadow-xs space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center space-x-2">
+              <Camera className="w-4 h-4 text-blue-700" />
+              <h4 className="text-sm font-bold text-black flex items-center gap-1.5">
+                <span>รูปเดิมที่รับงานมา (Intake Photos — จาก Step 1 รับงาน)</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-100 text-blue-900 border border-blue-300">
+                  {isQuick ? 'Quick Service' : 'Renovate'}
+                </span>
+              </h4>
+              <span className="text-xs text-black font-medium">
+                (มีรูปในระบบ {intakePhotosList.length} รูป)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleCopyIntakePhotosToSlots}
+                className="text-xs h-7 bg-white hover:bg-blue-50 text-blue-900 border-blue-300 flex items-center gap-1 font-bold shadow-2xs cursor-pointer"
+                title="นำรูปเดิมที่รับงานมาใส่ในช่องตรวจสอบคุณภาพ QC ทั้ง 5 ช่อง"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-blue-700" />
+                <span>📋 นำรูปเดิมมาใส่ในช่องตรวจ QC</span>
+              </Button>
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-600">
+            รูปถ่ายสภาพพื้นที่เดิมและบันทึกหน้างานที่ได้รับตอนรับงาน เพื่อใช้ตรวจสอบและเปรียบเทียบมาตรฐานการทำงานจริง (คลิกที่รูปเพื่อเปิดดูรูปใหญ่)
+          </p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
+            {intakePhotosList.map((item, idx) => (
+              <div key={item.id || idx} className="flex flex-col gap-1.5 group">
+                <div className="flex items-center justify-between text-xs font-bold text-black truncate">
+                  <span className="truncate" title={item.label}>{item.label}</span>
+                </div>
+                <div 
+                  onClick={() => {
+                    setPreviewPhotoUrl(item.url);
+                    setPreviewPhotoTitle(item.label);
+                  }}
+                  className="relative aspect-[4/3] w-full rounded-lg border border-blue-300 bg-white overflow-hidden flex flex-col items-center justify-center cursor-pointer shadow-2xs hover:border-blue-500 transition-all hover:scale-102"
+                >
+                  <img
+                    src={item.url}
+                    alt={item.label}
+                    className="w-full h-full object-cover group-hover:opacity-95 transition-opacity"
+                  />
+                  <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-black/70 text-white backdrop-blur-xs flex items-center gap-1">
+                    <span>#{idx + 1}</span>
+                    <span className="text-[8px] text-blue-200">รูปรับงาน</span>
+                  </div>
+                  <div className="absolute top-1 right-1 w-6 h-6 rounded bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Maximize2 className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 2.5. 📷 Section: รูปถ่ายตรวจสอบคุณภาพหน้างาน (5 รูป) (PhotoSlots 5) */}
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-xs space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center space-x-2">
@@ -595,11 +753,11 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
                 <p className="text-xs text-black/80 mt-0.5">
                   {isQuick
                     ? 'ข้อคำถามประเมินรับรองมาตรฐาน Quick Service (ตอบ 1 ข้อจบกระบวนการ | รอบแรก 5.0 คะแนน, รอบแก้ไข 1.0 คะแนน)'
-                    : 'ตรวจสอบรายการคุณภาพงานติดตั้ง โครงสร้าง ความปลอดภัย และความสะอาดตามสัญญา BOQ'}
+                    : 'ข้อคำถามหลักประเมินตามมาตรฐานการทำงานที่กำหนด (สามารถเพิ่มคำถามหน้างานได้อีกไม่เกิน 4 ข้อ รวมเป็น 5 ข้อ)'}
                 </p>
               </div>
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-100 border border-blue-300 text-black font-bold">
-                {isQuick ? '1 ข้อคำถาม QC' : `${questions.length} ข้อคำถาม QC`}
+                {isQuick ? '1 ข้อคำถาม QC' : `${questions.length}/5 ข้อคำถาม QC`}
               </span>
             </div>
 
@@ -690,18 +848,57 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
               ))}
             </div>
 
-            {/* Custom Question for Renovate Jobs */}
-            {!isQuick && customCount < MAX_CUSTOM_QUESTIONS && isEditMode && (
-              <div className="border border-dashed border-gray-300 rounded-lg p-3 space-y-2 bg-gray-50/70">
-                <Label className="text-black font-semibold text-xs flex items-center gap-1.5">
-                  <Plus className="w-3.5 h-3.5" />
-                  เพิ่มข้อคำถามหน้างานเพิ่มเติม ({customCount}/{MAX_CUSTOM_QUESTIONS} ข้อ)
-                </Label>
-                <div className="flex gap-2">
+            {/* Custom Question for Renovate Jobs: Up to 4 more questions (total max 5) */}
+            {!isQuick && questions.length < MAX_TOTAL_QUESTIONS && isEditMode && (
+              <div className="border border-dashed border-gray-300 rounded-lg p-3 space-y-3 bg-gray-50/70">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <Label className="text-black font-semibold text-xs flex items-center gap-1.5">
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>เพิ่มข้อคำถามหน้างานเพิ่มเติม</span>
+                    <span className="font-mono text-[11px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded border border-blue-300">
+                      (เพิ่มได้อีก {MAX_TOTAL_QUESTIONS - questions.length} ข้อ | รวม {questions.length}/{MAX_TOTAL_QUESTIONS} ข้อ)
+                    </span>
+                  </Label>
+                  <span className="text-[11px] text-gray-500">
+                    สูงสุด 5 ข้อคำถาม (คำถามหลัก 1 ข้อ + เพิ่มเติมไม่เกิน 4 ข้อ)
+                  </span>
+                </div>
+
+                {/* Suggested Quick Presets */}
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-bold text-black flex items-center gap-1">
+                    <span>คำถามมาตรฐานที่แนะนำ (คลิกเพื่อเพิ่มด่วน):</span>
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {SUGGESTED_RENOVATE_PRESETS.map((preset) => {
+                      const isAlreadyAdded = questions.some(q => q.label.replace(/^\d+\.\s*/, '').trim() === preset);
+                      return (
+                        <button
+                          key={preset}
+                          type="button"
+                          disabled={isAlreadyAdded || questions.length >= MAX_TOTAL_QUESTIONS}
+                          onClick={() => addCustomQuestion(preset)}
+                          className={`text-xs px-2.5 py-1 rounded-md border font-medium flex items-center gap-1 transition-all ${
+                            isAlreadyAdded
+                              ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                              : 'bg-white text-black hover:bg-blue-50 hover:border-blue-400 border-gray-300 cursor-pointer shadow-2xs'
+                          }`}
+                          title={isAlreadyAdded ? 'เพิ่มคำถามนี้แล้ว' : `คลิกเพื่อเพิ่มข้อ: ${preset}`}
+                        >
+                          <span>{isAlreadyAdded ? '✓' : '+'}</span>
+                          <span>{preset}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Custom Input */}
+                <div className="flex gap-2 pt-1">
                   <Input
                     value={customQuestionLabel}
                     onChange={(e) => setCustomQuestionLabel(e.target.value)}
-                    placeholder="พิมพ์คำถามที่ต้องการตรวจเพิ่ม เช่น: การเก็บงานสี, การตรวจเช็คระดับท่อ..."
+                    placeholder="หรือพิมพ์ข้อคำถามที่ต้องการตรวจเพิ่ม เช่น: การเก็บงานสี, การทดสอบระดับน้ำ..."
                     className="flex-1 h-8 text-xs text-black bg-white border-gray-300"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -714,13 +911,26 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
                     type="button"
                     variant="secondary"
                     size="sm"
-                    onClick={addCustomQuestion}
-                    disabled={!customQuestionLabel.trim() || customCount >= MAX_CUSTOM_QUESTIONS}
+                    onClick={() => addCustomQuestion()}
+                    disabled={!customQuestionLabel.trim() || questions.length >= MAX_TOTAL_QUESTIONS}
                     className="text-black font-semibold text-xs h-8 whitespace-nowrap"
                   >
                     <Plus className="w-3.5 h-3.5 mr-1" /> เพิ่มคำถาม
                   </Button>
                 </div>
+              </div>
+            )}
+
+            {/* Max Questions Reached Notice */}
+            {!isQuick && questions.length >= MAX_TOTAL_QUESTIONS && isEditMode && (
+              <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-300 text-xs text-emerald-900 flex items-center justify-between">
+                <span className="font-bold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                  <span>ครบกำหนด 5 ข้อคำถามตามมาตรฐานแล้ว (คำถามหลัก 1 ข้อ + เพิ่มเติม 4 ข้อ)</span>
+                </span>
+                <span className="text-[11px] text-emerald-800 font-mono font-bold">
+                  5/5 ข้อคำถาม
+                </span>
               </div>
             )}
           </div>

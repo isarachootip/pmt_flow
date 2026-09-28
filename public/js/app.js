@@ -25588,8 +25588,8 @@ const app = {
                         {
                             id: `q_${task.id}_std1`,
                             num: 1,
-                            title: 'ช่างปฏิบัติงานติดตั้งได้ตามแบบ BOQ และมาตรฐาน On-site ถูกต้องเรียบร้อย',
-                            category: 'มาตรฐาน On-site & BOQ',
+                            title: 'ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด',
+                            category: 'มาตรฐานการทำงานที่กำหนด',
                             is_standard: true,
                             mandatory: true,
                             answer: null,
@@ -27126,6 +27126,10 @@ const app = {
                     return;
                 }
                 const evalData = this.ensureTaskQCEvaluation(task, job);
+                if (Array.isArray(evalData.questions) && evalData.questions.length >= 5) {
+                    this.showToast('⚠️ งาน Renovate สามารถมีคำถามได้ไม่เกิน 5 ข้อ (คำถามหลัก 1 ข้อ + เพิ่มเติมได้ไม่เกิน 4 ข้อ)', 'warning');
+                    return;
+                }
                 let title = customTitle;
                 if (!title) {
                     const inputEl = document.getElementById(`input-add-question-${task.id}`);
