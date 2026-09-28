@@ -9,15 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { JobDetailTabs } from '@/features/jobs/job-detail-tabs';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { QcInspectionForm } from '@/features/qc/qc-inspection-form';
-import { useConfirmBooking, useQCInspection } from '@/features/qc/api';
-import { isQuickJob } from '@/features/jobs/job-active-workspace';
+import { useConfirmBooking } from '@/features/qc/api';
 import { formatDMY } from '@/lib/date';
 
 export default function QcPage() {
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
-  const [showQcForm, setShowQcForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data, isLoading } = useQCBookings();
@@ -30,20 +26,9 @@ export default function QcPage() {
   const selectedJob = jobData?.data || jobData || allJobs.find((j: any) => String(j.id) === String(selectedBooking?.job_id) || j.job_no === selectedBooking?.job_no);
 
   const confirmBooking = useConfirmBooking();
-  const qcInspection = useQCInspection();
 
   const handleConfirmBooking = (bookingId: number) => {
     confirmBooking.mutate({ id: bookingId, data: { confirmed_by: 'System', confirmed_at: new Date().toISOString() } });
-  };
-
-  const handleQcSubmit = (formData: any) => {
-    if (selectedBooking) {
-      qcInspection.mutate({ jobId: selectedBooking.job_id, data: formData }, {
-        onSuccess: () => {
-          setShowQcForm(false);
-        }
-      });
-    }
   };
 
   const filteredBookings = useMemo(() => {
@@ -124,7 +109,7 @@ export default function QcPage() {
             </Button>
           )}
           {(row.status === 'CONFIRMED' || row.status === 'PENDING') && (
-            <Button size="sm" variant="primary" onClick={(e) => { e.stopPropagation(); setSelectedBooking(row); setShowQcForm(true); }} className="text-black text-xs font-semibold">
+            <Button size="sm" variant="primary" onClick={(e) => { e.stopPropagation(); setSelectedBooking(row); }} className="text-black text-xs font-semibold">
               เริ่มตรวจ QC
             </Button>
           )}
@@ -194,31 +179,6 @@ export default function QcPage() {
           }
         />
       </div>
-
-      {/* QC Form Modal Dialog */}
-      <Dialog open={showQcForm} onOpenChange={setShowQcForm}>
-        <DialogContent className="sm:max-w-[600px] bg-white text-black p-6 max-h-[90vh] overflow-y-auto">
-          {selectedBooking && (
-            <QcInspectionForm
-              jobId={Number(selectedBooking.job_id) || 1}
-              jobType={isQuickJob(selectedJob || (selectedBooking as any)) ? 'Q' : 'R'}
-              previousReworkCount={
-                Array.isArray((selectedJob as any)?.qc_history)
-                  ? (selectedJob as any).qc_history.filter((h: any) => h.outcome === 'REWORK').length
-                  : 0
-              }
-              reworkHistory={
-                Array.isArray((selectedJob as any)?.qc_history)
-                  ? (selectedJob as any).qc_history
-                  : []
-              }
-              initialPhotos={selectedJob?.photos}
-              onSubmit={handleQcSubmit}
-              onCancel={() => setShowQcForm(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

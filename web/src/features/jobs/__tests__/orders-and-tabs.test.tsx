@@ -180,7 +180,7 @@ describe('JobDetailTabs - Core Workflow Pipeline Alignment (R4)', () => {
     expect(screen.getByText('แบบประเมินมาตรฐานงาน QUICK SERVICE (1 ข้อคำถาม)')).toBeInTheDocument();
     expect(screen.getByText('1 ข้อคำถาม QC')).toBeInTheDocument();
     expect(screen.getByText('1. ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด')).toBeInTheDocument();
-    expect(screen.getByText('เปิดแบบฟอร์มตรวจ QC')).toBeInTheDocument();
+    expect(screen.getByText(/ตรวจรับรองคุณภาพ QC/)).toBeInTheDocument();
   });
 
   it('displays full 5-item checklist for Renovate jobs in QC tab', () => {

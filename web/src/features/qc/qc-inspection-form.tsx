@@ -4,13 +4,30 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Plus, Trash2, RefreshCw, Camera, Maximize2, Sparkles, X } from 'lucide-react';
+import { 
+  Camera, 
+  Maximize2, 
+  Sparkles, 
+  X, 
+  CheckCircle2, 
+  AlertTriangle, 
+  RefreshCw, 
+  Plus, 
+  Trash2, 
+  FileCheck2, 
+  RotateCcw,
+  Send,
+  Clock
+} from 'lucide-react';
+import { formatDateTimeDMY, formatDMY, format24HourTimeBadge } from '@/lib/date';
+import { toast } from 'sonner';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface QcQuestion {
   id: string;
   label: string;
+  subtitle?: string;
   is_mandatory: boolean;
   result: 'PASS' | 'FAIL' | '';
   remark: string;
@@ -19,10 +36,13 @@ export interface QcQuestion {
 export interface ReworkRecord {
   round: number;
   inspected_at: string;
-  questions: { id: string; label: string; result: string; remark: string }[];
-  overall_remark: string;
+  questions?: { id: string; label: string; result: string; remark: string }[];
+  overall_remark?: string;
+  remarks?: string;
   score: number;
-  outcome: 'REWORK' | 'PASS';
+  outcome?: 'REWORK' | 'PASS' | 'FAIL';
+  result?: string;
+  inspector?: string;
 }
 
 export interface PhotoSlot {
@@ -32,18 +52,28 @@ export interface PhotoSlot {
 }
 
 export interface QcInspectionFormProps {
-  jobId: number;
-  /** ประเภทงาน: 'Q' | 'Quick' หรือ 'R' | 'Renovate' (default: 'R') */
+  jobId: number | string;
+  jobNo?: string;
+  /** ประเภทงาน: 'Q' | 'Quick' หรือ 'R' | 'Renovate' */
   jobType?: 'Q' | 'R' | 'Quick' | 'Renovate' | string;
-  /** จำนวน Rework ที่ผ่านมาแล้ว (รับมาจาก job.qc_history หรือ 0) */
+  jobStatus?: string;
+  assignedTech?: string;
+  planDate?: string;
+  planTime?: string;
+  qcScore?: number;
+  /** จำนวน Rework ที่ผ่านมาแล้ว */
   previousReworkCount?: number;
   /** ประวัติ rework ที่ผ่านมา */
   reworkHistory?: ReworkRecord[];
   /** รูปภาพเริ่มต้น (เช่น job.photos) */
   initialPhotos?: any[];
+  onPhotosChange?: (photos: PhotoSlot[]) => void;
   onSubmit: (data: {
+    answers?: any[];
+    items?: any[];
     questions: QcQuestion[];
     overall_remark: string;
+    remarks: string;
     score: number;
     outcome: 'PASS' | 'REWORK';
     round: number;
@@ -51,11 +81,12 @@ export interface QcInspectionFormProps {
   }) => void;
   /** เรียกเมื่อผ่าน QC ต้องการส่ง STK */
   onExportSTK?: () => void;
-  onCancel: () => void;
+  onCancel?: () => void;
   className?: string;
+  isInline?: boolean;
 }
 
-// ─── Default 5 Photo Slots ───────────────────────────────────────────────────
+// ─── Default 5 Photo Slots & Demo Samples ──────────────────────────────────────
 
 const DEFAULT_QC_PHOTO_SLOTS: PhotoSlot[] = [
   { id: 'before', label: '1. ก่อนเริ่ม (Before)' },
@@ -65,7 +96,6 @@ const DEFAULT_QC_PHOTO_SLOTS: PhotoSlot[] = [
   { id: 'after', label: '5. งานเสร็จสมบูรณ์' },
 ];
 
-// Sample placeholder demo photos for QA & training
 const SAMPLE_DEMO_PHOTOS: Record<string, string> = {
   before: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80',
   progress1: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=600&q=80',
@@ -74,28 +104,51 @@ const SAMPLE_DEMO_PHOTOS: Record<string, string> = {
   after: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=600&q=80',
 };
 
-// ─── Main questions ───────────────────────────────────────────────────────────
+// ─── Question Definitions ──────────────────────────────────────────────────────
 
-const MAIN_QUESTION_QUICK: Omit<QcQuestion, 'result' | 'remark'> = {
-  id: 'q_quick_main',
-  label: 'ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด',
-  is_mandatory: true,
-};
+const QUICK_QUESTIONS_DEF: Omit<QcQuestion, 'result' | 'remark'>[] = [
+  {
+    id: 'q_quick_1',
+    label: '1. ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด',
+    subtitle: 'ข้อคำถามประเมินรับรองมาตรฐาน Quick Service (ตอบ 1 ข้อจบกระบวนการ)',
+    is_mandatory: true,
+  }
+];
 
-const MAIN_QUESTION_RENOVATE: Omit<QcQuestion, 'result' | 'remark'> = {
-  id: 'q_renovate_main',
-  label: 'ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด และงานมีความเรียบร้อยตาม BOQ',
-  is_mandatory: true,
-};
+const RENOVATE_QUESTIONS_DEF: Omit<QcQuestion, 'result' | 'remark'>[] = [
+  {
+    id: 'q_reno_1',
+    label: '1. ความเรียบร้อยของงานติดตั้งและโครงสร้าง',
+    subtitle: 'โครงสร้าง แผงยึด และจุดเชื่อมต่อได้ระดับ มั่นคง แข็งแรงตามแบบวิศวกรรม',
+    is_mandatory: true,
+  },
+  {
+    id: 'q_reno_2',
+    label: '2. ความปลอดภัยตามมาตรฐานวิศวกรรม',
+    subtitle: 'ระบบสายดิน เบรกเกอร์ วาล์วตัด และระยะห่างความปลอดภัยตามมาตรฐาน',
+    is_mandatory: true,
+  },
+  {
+    id: 'q_reno_3',
+    label: '3. คุณภาพวัสดุและอุปกรณ์ตรงตาม BOQ',
+    subtitle: 'รายการวัสดุและอุปกรณ์ที่ติดตั้งตรงตามสเปกและปริมาณในสัญญา BOQ',
+    is_mandatory: true,
+  },
+  {
+    id: 'q_reno_4',
+    label: '4. ความสะอาดและความเรียบร้อยของพื้นที่ทำงาน',
+    subtitle: 'ไม่มีรอยเปรอะเปื้อน เช็ดทำความสะอาดเรียบร้อยก่อนส่งมอบงานให้ลูกค้า',
+    is_mandatory: false,
+  },
+  {
+    id: 'q_reno_5',
+    label: '5. การจัดเก็บเศษวัสดุและขยะออกจากพื้นที่ลูกค้า',
+    subtitle: 'นำเศษซากวัสดุ กล่องบรรจุภัณฑ์ และขยะกลับไปทิ้งอย่างถูกต้องเรียบร้อย',
+    is_mandatory: false,
+  },
+];
 
 const MAX_CUSTOM_QUESTIONS = 4;
-
-function nowThai(): string {
-  return new Date().toLocaleString('th-TH', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: false,
-  });
-}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -103,35 +156,57 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
   (
     {
       jobId,
+      jobNo,
       jobType = 'R',
+      jobStatus = 'NEW',
+      assignedTech,
+      planDate,
+      planTime,
+      qcScore,
       previousReworkCount = 0,
       reworkHistory = [],
       initialPhotos = [],
+      onPhotosChange,
       onSubmit,
       onExportSTK,
-      onCancel,
+      onCancel: _onCancel,
       className,
+      isInline: _isInline = true,
     },
     ref
   ) => {
     const isQuick = String(jobType || '').toUpperCase().includes('Q');
+    const isAlreadyPassed = jobStatus === 'QC_PASS' || jobStatus === 'QC_PASSED' || jobStatus === 'PASSED' || jobStatus === 'COMPLETED';
+    const isRework = jobStatus === 'REWORK';
     const currentRound = previousReworkCount + 1;
 
+    // Toggle edit mode if already passed (default view-only banner with option to re-inspect)
+    const [isEditMode, setIsEditMode] = React.useState(!isAlreadyPassed);
+
     // ─── State: Questions ──────────────────────────────────────────────────────
-    const [questions, setQuestions] = React.useState<QcQuestion[]>(() => [
-      {
-        ...(isQuick ? MAIN_QUESTION_QUICK : MAIN_QUESTION_RENOVATE),
-        result: '',
+    const [questions, setQuestions] = React.useState<QcQuestion[]>(() => {
+      const defs = isQuick ? QUICK_QUESTIONS_DEF : RENOVATE_QUESTIONS_DEF;
+      return defs.map((d) => ({
+        ...d,
+        result: isAlreadyPassed ? 'PASS' : '',
         remark: '',
-      },
-    ]);
+      }));
+    });
+
+    // Re-initialize questions when jobType changes
+    React.useEffect(() => {
+      const defs = isQuick ? QUICK_QUESTIONS_DEF : RENOVATE_QUESTIONS_DEF;
+      setQuestions(defs.map((d) => ({
+        ...d,
+        result: isAlreadyPassed ? 'PASS' : '',
+        remark: '',
+      })));
+    }, [isQuick, isAlreadyPassed]);
 
     const [customQuestionLabel, setCustomQuestionLabel] = React.useState('');
     const [overallRemark, setOverallRemark] = React.useState('');
-    const [reworkRemark, setReworkRemark] = React.useState('');
-    const [submitted, setSubmitted] = React.useState(false);
-    const [outcome, setOutcome] = React.useState<'PASS' | 'REWORK' | null>(null);
-    const [finalScore, setFinalScore] = React.useState<number | null>(null);
+    const [previewPhotoUrl, setPreviewPhotoUrl] = React.useState<string | null>(null);
+    const [previewPhotoTitle, setPreviewPhotoTitle] = React.useState<string>('');
 
     // ─── State: 5 Photo Slots ──────────────────────────────────────────────────
     const [photoSlots, setPhotoSlots] = React.useState<PhotoSlot[]>(() => {
@@ -151,11 +226,26 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
       return slots;
     });
 
-    // Lightbox modal state
-    const [previewPhotoUrl, setPreviewPhotoUrl] = React.useState<string | null>(null);
-    const [previewPhotoTitle, setPreviewPhotoTitle] = React.useState<string>('');
+    React.useEffect(() => {
+      if (Array.isArray(initialPhotos) && initialPhotos.length > 0) {
+        setPhotoSlots((prev) => {
+          const next = prev.map(s => ({ ...s }));
+          initialPhotos.forEach((p: any, idx: number) => {
+            const slotId = p.slot_id || p.tag || (next[idx] ? next[idx].id : null);
+            const url = p.url || p.dataUrl || (typeof p === 'string' ? p : undefined);
+            if (slotId) {
+              const match = next.find((s) => s.id === slotId);
+              if (match && url) match.url = url;
+            } else if (next[idx] && url) {
+              next[idx].url = url;
+            }
+          });
+          return next;
+        });
+      }
+    }, [initialPhotos]);
 
-    // ─── Derived calculations ──────────────────────────────────────────────────
+    // ─── Derived Calculations ──────────────────────────────────────────────────
     const totalQ = questions.length;
     const passedQ = questions.filter((q) => q.result === 'PASS').length;
     const failedQ = questions.filter((q) => q.result === 'FAIL').length;
@@ -165,13 +255,13 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
     const customCount = questions.filter((q) => !q.is_mandatory).length;
     const uploadedPhotosCount = photoSlots.filter((s) => !!s.url).length;
 
-    /** Score rule: Round 1 PASS = 5.0 / Round >= 2 PASS = 1.0 (Isara Standard) */
+    /** Score Rule: Round 1 PASS = 5.0 / Round >= 2 PASS = 1.0 (Isara Standard) */
     const computeScore = (pass: boolean) => {
       if (!pass) return 0;
       return currentRound === 1 ? 5.0 : 1.0;
     };
 
-    // ─── Question handlers ─────────────────────────────────────────────────────
+    // ─── Handlers: Questions ───────────────────────────────────────────────────
     const updateQuestion = (id: string, field: keyof QcQuestion, val: string) => {
       setQuestions((prev) =>
         prev.map((q) => (q.id === id ? { ...q, [field]: val } : q))
@@ -179,12 +269,13 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
     };
 
     const addCustomQuestion = () => {
-      if (isQuick) return; // Quick cannot add custom questions
+      if (isQuick) return;
       const label = customQuestionLabel.trim();
       if (!label || customCount >= MAX_CUSTOM_QUESTIONS) return;
       const newQ: QcQuestion = {
         id: `q_custom_${Date.now()}`,
-        label,
+        label: `${questions.length + 1}. ${label}`,
+        subtitle: 'คำถามเพิ่มเติมเฉพาะหน้างาน',
         is_mandatory: false,
         result: '',
         remark: '',
@@ -197,339 +288,272 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
       setQuestions((prev) => prev.filter((q) => q.id !== id || q.is_mandatory));
     };
 
-    // ─── Photo handlers ────────────────────────────────────────────────────────
+    const handleResetAnswers = () => {
+      setQuestions((prev) => prev.map((q) => ({ ...q, result: '', remark: '' })));
+      setOverallRemark('');
+    };
+
+    // ─── Handlers: Photos ──────────────────────────────────────────────────────
     const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>, slotId: string) => {
       const file = e.target.files?.[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (ev) => {
         const dataUrl = ev.target?.result as string;
-        setPhotoSlots((prev) =>
-          prev.map((s) => (s.id === slotId ? { ...s, url: dataUrl } : s))
-        );
+        const updated = photoSlots.map((s) => (s.id === slotId ? { ...s, url: dataUrl } : s));
+        setPhotoSlots(updated);
+        if (onPhotosChange) onPhotosChange(updated);
       };
       reader.readAsDataURL(file);
     };
 
     const handleRemovePhoto = (slotId: string) => {
-      setPhotoSlots((prev) =>
-        prev.map((s) => (s.id === slotId ? { ...s, url: undefined } : s))
-      );
+      const updated = photoSlots.map((s) => (s.id === slotId ? { ...s, url: undefined } : s));
+      setPhotoSlots(updated);
+      if (onPhotosChange) onPhotosChange(updated);
     };
 
     const handleLoadSamplePhotos = () => {
-      setPhotoSlots((prev) =>
-        prev.map((s) => ({
-          ...s,
-          url: SAMPLE_DEMO_PHOTOS[s.id] || s.url,
-        }))
-      );
+      const updated = photoSlots.map((s) => ({
+        ...s,
+        url: SAMPLE_DEMO_PHOTOS[s.id] || s.url,
+      }));
+      setPhotoSlots(updated);
+      if (onPhotosChange) onPhotosChange(updated);
+      toast.success('โหลดรูปถ่ายตัวอย่าง 5 ภาพเรียบร้อยแล้ว');
     };
 
-    // ─── Submit handlers ───────────────────────────────────────────────────────
-    const handleSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!allAnswered) return;
+    const handleClearAllPhotos = () => {
+      const updated = photoSlots.map((s) => ({ ...s, url: undefined }));
+      setPhotoSlots(updated);
+      if (onPhotosChange) onPhotosChange(updated);
+    };
+
+    // ─── Submit Handlers ───────────────────────────────────────────────────────
+    const handleSubmit = (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
+      if (!allAnswered) {
+        toast.warning(`กรุณาตอบคำถามให้ครบถ้วน (เหลือ ${unansweredQ} ข้อ)`);
+        return;
+      }
 
       const result: 'PASS' | 'REWORK' = allPassed ? 'PASS' : 'REWORK';
       const score = computeScore(allPassed);
 
-      setOutcome(result);
-      setFinalScore(score);
-      setSubmitted(true);
-
       onSubmit({
+        answers: questions.map((q) => ({
+          item_id: q.id,
+          item_name: q.label,
+          label: q.label,
+          result: q.result,
+          is_mandatory: q.is_mandatory,
+          remark: q.remark,
+        })),
+        items: questions.map((q) => ({
+          item_id: q.id,
+          item_name: q.label,
+          label: q.label,
+          result: q.result,
+          is_mandatory: q.is_mandatory,
+          remark: q.remark,
+        })),
         questions,
+        remarks: overallRemark,
         overall_remark: overallRemark,
         score,
         outcome: result,
         round: currentRound,
         photos: photoSlots,
       });
+
+      if (allPassed) {
+        setIsEditMode(false);
+      }
     };
 
-    const handleReworkConfirm = () => {
-      onSubmit({
-        questions,
-        overall_remark: reworkRemark,
-        score: 0,
-        outcome: 'REWORK',
-        round: currentRound,
-        photos: photoSlots,
-      });
-    };
-
-    const handleExportSTK = () => {
-      if (onExportSTK) onExportSTK();
-    };
-
-    // ─── Result Screen (After Submit) ──────────────────────────────────────────
-    if (submitted && outcome) {
-      return (
-        <div ref={ref} className={cn('space-y-5 text-black', className)}>
-          {/* Outcome banner */}
-          <div
-            className={`rounded-xl border-2 p-5 text-center space-y-2 ${
-              outcome === 'PASS'
-                ? 'border-green-400 bg-green-50'
-                : 'border-red-400 bg-red-50'
-            }`}
-          >
-            <div className="text-4xl">{outcome === 'PASS' ? '✅' : '🔄'}</div>
-            <h3 className="text-xl font-bold text-black">
-              {outcome === 'PASS'
-                ? `ผ่านการตรวจ QC (${isQuick ? 'Quick Service' : 'Renovate'}) รอบที่ ${currentRound}`
-                : `ไม่ผ่านเกณฑ์ — ส่งกลับแก้ไข (Rework)`}
-            </h3>
-            {outcome === 'PASS' && (
-              <p className="text-sm text-black font-semibold">
-                คะแนนผลตรวจ: <span className="text-2xl font-bold">{finalScore?.toFixed(1)}</span> / 5.0
-                {currentRound > 1 && (
-                  <span className="ml-2 text-xs text-black bg-yellow-100 border border-yellow-300 px-2 py-0.5 rounded-full">
-                    🔒 ล็อกคะแนนรอบแก้ไข (กฎ Isara Standard)
-                  </span>
-                )}
-              </p>
-            )}
-          </div>
-
-          {/* Photo Preview Summary */}
-          <div className="border border-gray-200 rounded-lg p-3 bg-white space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-black flex items-center gap-1.5">
-                <Camera className="w-3.5 h-3.5" /> รูปถ่ายหน้างาน 5 รูป ({uploadedPhotosCount}/5)
-              </span>
-            </div>
-            <div className="grid grid-cols-5 gap-2">
-              {photoSlots.map((slot) => (
-                <div key={slot.id} className="flex flex-col items-center gap-1">
-                  <div className="relative aspect-[4/3] w-full rounded-md border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
-                    {slot.url ? (
-                      <img
-                        src={slot.url}
-                        alt={slot.label}
-                        className="w-full h-full object-cover cursor-pointer hover:opacity-90"
-                        onClick={() => {
-                          setPreviewPhotoUrl(slot.url || null);
-                          setPreviewPhotoTitle(slot.label);
-                        }}
-                      />
-                    ) : (
-                      <span className="text-[10px] text-gray-400">ไม่มีรูป</span>
-                    )}
-                  </div>
-                  <span className="text-[10px] text-black font-medium truncate w-full text-center" title={slot.label}>
-                    {slot.label.split(' ')[0]}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Questions table */}
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
-            <table className="w-full text-sm text-black">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left px-3 py-2 font-bold text-black">คำถาม</th>
-                  <th className="text-center px-3 py-2 font-bold text-black w-24">ผล</th>
-                  <th className="text-left px-3 py-2 font-bold text-black">หมายเหตุ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {questions.map((q) => (
-                  <tr key={q.id} className="border-b border-gray-100 last:border-0">
-                    <td className="px-3 py-2 text-black">
-                      {q.label}
-                      {q.is_mandatory && (
-                        <span className="ml-1 text-[10px] text-black bg-red-100 border border-red-200 px-1 rounded">
-                          บังคับ
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <span
-                        className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
-                          q.result === 'PASS'
-                            ? 'bg-green-100 border-green-400 text-black'
-                            : 'bg-red-100 border-red-400 text-black'
-                        }`}
-                      >
-                        {q.result === 'PASS' ? '✓ ผ่าน' : '✗ ไม่ผ่าน'}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-black text-xs">{q.remark || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Rework reason input */}
-          {outcome === 'REWORK' && (
-            <div className="space-y-2 border border-orange-200 bg-orange-50 rounded-lg p-4">
-              <Label className="text-black font-bold">📋 บันทึกสาเหตุการส่งกลับแก้ไข (Rework Remark)</Label>
-              <textarea
-                value={reworkRemark}
-                onChange={(e) => setReworkRemark(e.target.value)}
-                placeholder="ระบุจุดที่ต้องแก้ไข เช่น: ท่อระบายน้ำรั่วซึม, งานติดตั้งไม่ได้ระดับ..."
-                className="w-full border border-orange-300 rounded-md p-2 h-20 text-black bg-white focus:outline-none focus:ring-2 focus:ring-orange-300 text-sm"
-              />
-              <div className="flex justify-end gap-2 pt-1">
-                <Button variant="secondary" onClick={onCancel} className="text-black font-medium">
-                  ปิด
-                </Button>
-                <Button
-                  onClick={handleReworkConfirm}
-                  className="bg-orange-600 hover:bg-orange-700 text-white font-bold"
-                >
-                  🔄 ยืนยันส่งกลับแก้ไข (Rework)
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Pass: STK export action */}
-          {outcome === 'PASS' && (
-            <div className="border border-green-200 bg-green-50 rounded-lg p-4 space-y-3">
-              <p className="text-sm font-bold text-black">
-                ✅ งานผ่าน QC เรียบร้อย — พร้อมส่งออกข้อมูลตัดยอดในระบบ STK (Step 6)
-              </p>
-              <div className="flex justify-end gap-2">
-                <Button variant="secondary" onClick={onCancel} className="text-black font-medium">
-                  ปิด
-                </Button>
-                <Button
-                  onClick={handleExportSTK}
-                  className="bg-green-600 hover:bg-green-700 text-white font-bold"
-                >
-                  🚀 ส่งออก STK (Step 6)
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Lightbox Dialog */}
-          <Dialog open={!!previewPhotoUrl} onOpenChange={(open) => !open && setPreviewPhotoUrl(null)}>
-            <DialogContent className="max-w-3xl bg-white p-4 text-black">
-              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-                <span className="font-bold text-sm text-black">{previewPhotoTitle || 'รูปถ่ายตรวจสอบ'}</span>
-              </div>
-              {previewPhotoUrl && (
-                <div className="mt-2 flex items-center justify-center">
-                  <img
-                    src={previewPhotoUrl}
-                    alt={previewPhotoTitle}
-                    className="max-h-[70vh] w-auto rounded-lg object-contain"
-                  />
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
-        </div>
-      );
-    }
-
-    // ─── Main Form Screen ──────────────────────────────────────────────────────
+    // ─── Render Inline QC Workspace ────────────────────────────────────────────
     return (
-      <div ref={ref} className={cn('space-y-4 text-black', className)}>
-        {/* Header bar */}
-        <div className="flex items-start justify-between pb-2 border-b border-gray-200">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-base font-bold text-black">
-                ตรวจรับรองคุณภาพ QC — ใบงาน #{jobId}
-              </h2>
+      <div ref={ref} className={cn('space-y-4 text-black bg-white', className)}>
+        {/* 1. Header & Meta Status Strip */}
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-xs space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <FileCheck2 className="w-5 h-5 text-black shrink-0" />
+              <h3 className="text-base font-bold text-black">
+                ตรวจรับรองคุณภาพ QC {jobNo ? `— ใบงาน ${jobNo}` : `(ID: ${jobId})`}
+              </h3>
               {isQuick ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 border border-amber-300 text-black">
-                  QUICK SERVICE (QC ONLINE)
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 border border-amber-300 text-black">
+                  ⚡ QUICK SERVICE (QC ONLINE)
                 </span>
               ) : (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 border border-orange-400 text-black">
-                  RENOVATE PROJECT (ON-SITE QC)
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 border border-blue-300 text-black">
+                  🔨 RENOVATE PROJECT (ON-SITE QC)
                 </span>
+              )}
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold font-mono bg-gray-100 border border-gray-300 text-black">
+                รอบที่ {currentRound}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {isAlreadyPassed ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-100 border border-green-300 text-black">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-700" />
+                  ผ่านการตรวจ QC ({qcScore ? qcScore.toFixed(1) : '5.0'}/5.0)
+                </span>
+              ) : isRework ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-100 border border-red-300 text-black">
+                  <AlertTriangle className="w-3.5 h-3.5 text-red-700" />
+                  ส่งกลับแก้ไข (Rework)
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 border border-blue-200 text-black">
+                  <Clock className="w-3.5 h-3.5 text-blue-700" />
+                  รอการตรวจสอบ QC หน้างาน
+                </span>
+              )}
+
+              {isAlreadyPassed && onExportSTK && (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={onExportSTK}
+                  className="bg-green-600 hover:bg-green-700 text-white font-bold text-xs h-7 px-3 flex items-center gap-1"
+                >
+                  <Send className="w-3 h-3 text-white" />
+                  <span>🚀 ส่งออก STK (Step 6)</span>
+                </Button>
+              )}
+
+              {isAlreadyPassed && !isEditMode && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsEditMode(true)}
+                  className="text-black font-semibold text-xs h-7 px-2.5"
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" /> ตรวจประเมินใหม่
+                </Button>
               )}
             </div>
-            <p className="text-xs text-black mt-0.5">
-              รอบที่ <span className="font-bold">{currentRound}</span>
-              {currentRound > 1 && (
-                <span className="ml-2 text-xs bg-yellow-100 border border-yellow-300 text-black px-2 py-0.5 rounded-full font-semibold">
-                  ⚠️ รอบแก้ไข — คะแนนสูงสุดล็อกที่ 1.0 (กฎ Isara Standard)
-                </span>
-              )}
-            </p>
           </div>
-          <div className="text-xs text-black font-mono bg-gray-100 border border-gray-300 px-2 py-1 rounded shrink-0">
-            {nowThai()}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 text-xs text-black">
+            <div className="flex items-start gap-1.5 min-w-0">
+              <span className="font-bold text-black shrink-0">ผู้ตรวจ QC:</span>
+              <span className="text-black truncate font-normal">
+                {assignedTech || 'QC Inspector (สถาพร ช่างตรวจงาน)'}
+              </span>
+            </div>
+            <div className="flex items-start gap-1.5 min-w-0">
+              <span className="font-bold text-black shrink-0">วันนัดตรวจ QC:</span>
+              <span className="text-black font-normal">
+                {planDate && formatDMY(planDate) !== '-' ? formatDMY(planDate) : 'ตามเวลานัดหมาย'}
+                {planTime && (
+                  <span className="ml-1.5 inline-flex items-center px-1.5 py-0.2 rounded text-[11px] font-mono font-semibold bg-gray-100 border border-gray-300 text-black">
+                    {format24HourTimeBadge(planTime, planDate)}
+                  </span>
+                )}
+              </span>
+            </div>
+            <div className="flex items-start gap-1.5 min-w-0">
+              <span className="font-bold text-black shrink-0">เกณฑ์คะแนน:</span>
+              <span className="text-black font-normal">
+                {currentRound === 1 
+                  ? 'รอบแรกผ่านได้เต็ม 5.0 คะแนน' 
+                  : '🔒 รอบแก้ไข ครั้งที่ 2+ ล็อกที่ 1.0 คะแนน (Isara Standard)'}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* 📷 5 Photo Slots (Both Quick & Renovate) */}
-        <div className="border border-gray-200 rounded-lg p-3 bg-white space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-black flex items-center gap-1.5">
+        {/* 2. 📷 Section: รูปถ่ายตรวจสอบคุณภาพหน้างาน (5 รูป) (PhotoSlots 5) */}
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-xs space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center space-x-2">
               <Camera className="w-4 h-4 text-black" />
-              รูปถ่ายตรวจสอบคุณภาพหน้างาน (5 รูป)
-              <span className="text-[11px] font-normal text-gray-500">
-                ({uploadedPhotosCount}/5 รูป)
+              <h4 className="text-sm font-bold text-black">
+                รูปถ่ายตรวจสอบคุณภาพหน้างาน (5 รูป)
+              </h4>
+              <span className="text-xs text-black font-medium">
+                (อัปโหลดแล้ว {uploadedPhotosCount}/5 รูป)
               </span>
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleLoadSamplePhotos}
-              className="text-[11px] h-7 text-black hover:bg-gray-100 flex items-center gap-1 font-semibold"
-              title="โหลดรูปตัวอย่างสำหรับการสาธิตหรือทดสอบ"
-            >
-              <Sparkles className="w-3 h-3 text-amber-600" /> โหลดรูปตัวอย่าง 5 ภาพ
-            </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleLoadSamplePhotos}
+                className="text-xs h-7 text-black hover:bg-gray-100 flex items-center gap-1 font-semibold"
+                title="โหลดรูปตัวอย่างสำหรับการสาธิตหรือทดสอบระบบ"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <span>✨ โหลดรูปตัวอย่าง 5 ภาพ</span>
+              </Button>
+              {uploadedPhotosCount > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearAllPhotos}
+                  className="text-xs h-7 text-red-600 hover:bg-red-50 flex items-center gap-1 font-semibold"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>ล้างรูปทั้งหมด</span>
+                </Button>
+              )}
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {photoSlots.map((slot) => (
-              <div key={slot.id} className="flex flex-col gap-1">
-                <span className="text-[11px] font-bold text-black truncate" title={slot.label}>
+              <div key={slot.id} className="flex flex-col gap-1.5">
+                <span className="text-xs font-bold text-black truncate" title={slot.label}>
                   {slot.label}
                 </span>
-                <div className="relative aspect-[4/3] w-full rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-500 bg-gray-50 overflow-hidden flex flex-col items-center justify-center transition-colors">
+                <div className="relative aspect-[4/3] w-full rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-500 bg-gray-50 overflow-hidden flex flex-col items-center justify-center transition-colors">
                   {slot.url ? (
                     <>
                       <img
                         src={slot.url}
                         alt={slot.label}
-                        className="w-full h-full object-cover cursor-pointer"
+                        className="w-full h-full object-cover cursor-pointer hover:opacity-95"
                         onClick={() => {
                           setPreviewPhotoUrl(slot.url || null);
                           setPreviewPhotoTitle(slot.label);
                         }}
                       />
-                      <div className="absolute top-1 right-1 flex items-center gap-1">
+                      <div className="absolute top-1.5 right-1.5 flex items-center gap-1 bg-black/60 rounded-md p-0.5">
                         <button
                           type="button"
                           onClick={() => {
                             setPreviewPhotoUrl(slot.url || null);
                             setPreviewPhotoTitle(slot.label);
                           }}
-                          className="w-6 h-6 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center p-1"
+                          className="w-6 h-6 text-white hover:text-blue-300 flex items-center justify-center cursor-pointer"
                           title="ดูรูปใหญ่"
                         >
-                          <Maximize2 className="w-3 h-3 text-white" />
+                          <Maximize2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           type="button"
                           onClick={() => handleRemovePhoto(slot.id)}
-                          className="w-6 h-6 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center p-1"
-                          title="ลบรูป"
+                          className="w-6 h-6 text-white hover:text-red-400 flex items-center justify-center cursor-pointer"
+                          title="ลบรูปภาพนี้"
                         >
-                          <X className="w-3 h-3 text-white" />
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </>
                   ) : (
-                    <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-2 text-center hover:bg-blue-50/50">
-                      <Camera className="w-5 h-5 text-gray-400 mb-1" />
-                      <span className="text-[10px] font-semibold text-black">อัปโหลดรูป</span>
+                    <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-2 text-center hover:bg-gray-100 transition-colors">
+                      <Camera className="w-5 h-5 text-gray-500 mb-1" />
+                      <span className="text-xs font-bold text-black">อัปโหลดรูป</span>
+                      <span className="text-[10px] text-gray-500 mt-0.5">JPG / PNG</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -544,154 +568,166 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
           </div>
         </div>
 
-        {/* Form: Questions & Remarks */}
-        <form onSubmit={handleSubmit} className="space-y-3.5">
-          {/* Questions list */}
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-black block">
-                {isQuick
-                  ? 'แบบประเมินมาตรฐานงาน QUICK SERVICE (1 ข้อคำถาม) (ประเมิน 1 ยิงจบ | รอบแรกผ่านได้ 5.0 คะแนน, หากเป็นรอบแก้ไขครั้งที่ 2, 3, 4 จะได้ 1.0 คะแนนอัตโนมัติ)'
-                  : `รายการประเมิน Checklist (${questions.length} ข้อ):`}
-              </span>
-              {isQuick && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 border border-blue-300 text-black font-bold shrink-0">
-                  1 ข้อคำถาม QC
-                </span>
-              )}
-            </div>
-            {questions.map((q, idx) => (
-              <div
-                key={q.id}
-                className={`rounded-lg border p-3 space-y-2.5 transition-colors ${
-                  q.result === 'PASS'
-                    ? 'border-green-300 bg-green-50/70'
-                    : q.result === 'FAIL'
-                    ? 'border-red-300 bg-red-50/70'
-                    : 'border-gray-200 bg-white'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-start gap-2 flex-1 min-w-0">
-                    <span className="shrink-0 w-5 h-5 rounded-full bg-gray-200 text-black text-xs font-bold flex items-center justify-center mt-0.5">
-                      {idx + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm font-semibold text-black block">{q.label}</span>
-                      {isQuick && q.id === 'q_quick_main' && (
-                        <span className="text-xs text-black/70 block mt-0.5">
-                          ข้อคำถามประเมินรับรองมาตรฐาน Quick Service (ตอบ 1 ข้อจบกระบวนการ)
-                        </span>
-                      )}
-                      {q.is_mandatory && (
-                        <span className="text-[10px] text-black bg-red-100 border border-red-200 px-1.5 py-0.5 rounded-full font-bold inline-block mt-1">
-                          ★ คำถามหลัก (บังคับ)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {!q.is_mandatory && !isQuick && (
-                    <button
-                      type="button"
-                      onClick={() => removeCustomQuestion(q.id)}
-                      className="text-black hover:opacity-60 shrink-0 cursor-pointer p-1"
-                      title="ลบคำถามนี้"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Radio choices */}
-                <div className="flex items-center gap-5">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name={`result_${q.id}`}
-                      value="PASS"
-                      checked={q.result === 'PASS'}
-                      onChange={() => updateQuestion(q.id, 'result', 'PASS')}
-                      className="w-4 h-4 accent-green-600"
-                    />
-                    <span className="text-sm font-bold text-black">✓ ผ่าน (PASS)</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name={`result_${q.id}`}
-                      value="FAIL"
-                      checked={q.result === 'FAIL'}
-                      onChange={() => updateQuestion(q.id, 'result', 'FAIL')}
-                      className="w-4 h-4 accent-red-600"
-                    />
-                    <span className="text-sm font-bold text-black">✗ ไม่ผ่าน (FAIL)</span>
-                  </label>
-                </div>
-
-                {/* Remark input */}
-                <Input
-                  value={q.remark}
-                  onChange={(e) => updateQuestion(q.id, 'remark', e.target.value)}
-                  placeholder="หมายเหตุเพิ่มเติมสำหรับข้อนี้ (ถ้ามี)"
-                  className="h-8 text-xs text-black bg-white border-gray-300"
-                />
+        {/* 3. 📋 Section: แบบประเมินและเกณฑ์มาตรฐานคุณภาพ (QC Checklist & Questions) */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-xs space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2 border-b border-gray-100 pb-2.5">
+              <div>
+                <h4 className="text-sm font-bold text-black">
+                  {isQuick
+                    ? 'แบบประเมินมาตรฐานงาน QUICK SERVICE (1 ข้อคำถาม)'
+                    : 'Checklist คุณภาพงานมาตรฐาน (QC Checklist)'}
+                </h4>
+                <p className="text-xs text-black/80 mt-0.5">
+                  {isQuick
+                    ? 'ข้อคำถามประเมินรับรองมาตรฐาน Quick Service (ตอบ 1 ข้อจบกระบวนการ | รอบแรก 5.0 คะแนน, รอบแก้ไข 1.0 คะแนน)'
+                    : 'ตรวจสอบรายการคุณภาพงานติดตั้ง โครงสร้าง ความปลอดภัย และความสะอาดตามสัญญา BOQ'}
+                </p>
               </div>
-            ))}
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-100 border border-blue-300 text-black font-bold">
+                {isQuick ? '1 ข้อคำถาม QC' : `${questions.length} ข้อคำถาม QC`}
+              </span>
+            </div>
+
+            {/* Questions List */}
+            <div className="space-y-3">
+              {questions.map((q, idx) => (
+                <div
+                  key={q.id}
+                  className={`rounded-lg border p-3.5 space-y-2.5 transition-colors ${
+                    q.result === 'PASS'
+                      ? 'border-green-300 bg-green-50/60'
+                      : q.result === 'FAIL'
+                      ? 'border-red-300 bg-red-50/60'
+                      : 'border-gray-200 bg-white'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                      <span className="shrink-0 w-6 h-6 rounded-full bg-gray-200 text-black text-xs font-bold flex items-center justify-center mt-0.5">
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-bold text-black">{q.label}</span>
+                          {q.is_mandatory && (
+                            <span className="text-[10px] text-black bg-red-100 border border-red-300 px-2 py-0.5 rounded font-bold">
+                              ★ คำถามหลัก (ข้อบังคับ)
+                            </span>
+                          )}
+                        </div>
+                        {q.subtitle && (
+                          <span className="text-xs text-black/80 block mt-0.5">
+                            {q.subtitle}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {!q.is_mandatory && !isQuick && isEditMode && (
+                      <button
+                        type="button"
+                        onClick={() => removeCustomQuestion(q.id)}
+                        className="text-black hover:opacity-70 shrink-0 cursor-pointer p-1"
+                        title="ลบคำถามนี้"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Radio Choice (PASS / FAIL) */}
+                  <div className="flex items-center gap-6 pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="radio"
+                        name={`result_${q.id}`}
+                        value="PASS"
+                        checked={q.result === 'PASS'}
+                        disabled={!isEditMode && isAlreadyPassed}
+                        onChange={() => updateQuestion(q.id, 'result', 'PASS')}
+                        className="w-4 h-4 accent-green-600 cursor-pointer"
+                      />
+                      <span className="text-xs font-bold text-black">✓ ผ่าน (PASS)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="radio"
+                        name={`result_${q.id}`}
+                        value="FAIL"
+                        checked={q.result === 'FAIL'}
+                        disabled={!isEditMode && isAlreadyPassed}
+                        onChange={() => updateQuestion(q.id, 'result', 'FAIL')}
+                        className="w-4 h-4 accent-red-600 cursor-pointer"
+                      />
+                      <span className="text-xs font-bold text-black">✗ ไม่ผ่าน (FAIL)</span>
+                    </label>
+                  </div>
+
+                  {/* Remark input per question */}
+                  <Input
+                    value={q.remark}
+                    disabled={!isEditMode && isAlreadyPassed}
+                    onChange={(e) => updateQuestion(q.id, 'remark', e.target.value)}
+                    placeholder="หมายเหตุเพิ่มเติมสำหรับข้อนี้ (ถ้ามี)"
+                    className="h-8 text-xs text-black bg-white border-gray-300"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Custom Question for Renovate Jobs */}
+            {!isQuick && customCount < MAX_CUSTOM_QUESTIONS && isEditMode && (
+              <div className="border border-dashed border-gray-300 rounded-lg p-3 space-y-2 bg-gray-50/70">
+                <Label className="text-black font-semibold text-xs flex items-center gap-1.5">
+                  <Plus className="w-3.5 h-3.5" />
+                  เพิ่มข้อคำถามหน้างานเพิ่มเติม ({customCount}/{MAX_CUSTOM_QUESTIONS} ข้อ)
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={customQuestionLabel}
+                    onChange={(e) => setCustomQuestionLabel(e.target.value)}
+                    placeholder="พิมพ์คำถามที่ต้องการตรวจเพิ่ม เช่น: การเก็บงานสี, การตรวจเช็คระดับท่อ..."
+                    className="flex-1 h-8 text-xs text-black bg-white border-gray-300"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addCustomQuestion();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={addCustomQuestion}
+                    disabled={!customQuestionLabel.trim() || customCount >= MAX_CUSTOM_QUESTIONS}
+                    className="text-black font-semibold text-xs h-8 whitespace-nowrap"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" /> เพิ่มคำถาม
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Add custom question (Only for Renovate, Strictly hidden for Quick) */}
-          {!isQuick && customCount < MAX_CUSTOM_QUESTIONS && (
-            <div className="border border-dashed border-gray-300 rounded-lg p-2.5 space-y-1.5 bg-gray-50">
-              <Label className="text-black font-semibold text-xs flex items-center gap-1">
-                <Plus className="w-3.5 h-3.5" />
-                เพิ่มคำถามหน้างาน ({customCount}/{MAX_CUSTOM_QUESTIONS} — สูงสุด {MAX_CUSTOM_QUESTIONS} ข้อเพิ่มเติม)
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  value={customQuestionLabel}
-                  onChange={(e) => setCustomQuestionLabel(e.target.value)}
-                  placeholder="พิมพ์คำถามที่ต้องการตรวจเพิ่ม เช่น: การเก็บงานสี, การตรวจเช็คระดับท่อ..."
-                  className="flex-1 h-8 text-xs text-black bg-white border-gray-300"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addCustomQuestion();
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={addCustomQuestion}
-                  disabled={!customQuestionLabel.trim() || customCount >= MAX_CUSTOM_QUESTIONS}
-                  className="text-black font-semibold text-xs h-8 whitespace-nowrap"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1" /> เพิ่ม
-                </Button>
-              </div>
-            </div>
-          )}
-          {!isQuick && customCount >= MAX_CUSTOM_QUESTIONS && (
-            <p className="text-xs text-black bg-yellow-50 border border-yellow-200 rounded px-2.5 py-1">
-              ⚠️ ครบ {MAX_CUSTOM_QUESTIONS} คำถามเพิ่มเติมแล้ว (รวมคำถามหลักเป็น 5 ข้อ)
-            </p>
-          )}
-
-          {/* Overall remark */}
-          <div className="space-y-1">
-            <Label className="text-black font-semibold text-xs">หมายเหตุภาพรวม (Overall Remark)</Label>
+          {/* 4. 📝 Section: หมายเหตุภาพรวม (Overall QC Remark) */}
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-xs space-y-1.5">
+            <Label className="text-black font-bold text-xs">
+              หมายเหตุภาพรวมการตรวจ QC (Overall Remark)
+            </Label>
             <textarea
               value={overallRemark}
+              disabled={!isEditMode && isAlreadyPassed}
               onChange={(e) => setOverallRemark(e.target.value)}
-              className="w-full border border-gray-300 rounded-md p-2 h-16 text-xs text-black bg-white focus:outline-none focus:ring-2 focus:ring-gray-300"
-              placeholder="สรุปภาพรวมการตรวจ QC..."
+              className="w-full border border-gray-300 rounded-md p-2.5 h-16 text-xs text-black bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
+              placeholder="สรุปภาพรวมการตรวจ QC เช่น ช่างปฏิบัติตามมาตรฐานงานติดตั้งเรียบร้อย ระบบทำงานได้ตามปกติ..."
             />
           </div>
 
-          {/* Summary action bar */}
+          {/* 5. ⚡ Section: แถบสรุปผลและการดำเนินการ (QC Action & Outcome Bar) */}
           <div
-            className={`rounded-lg px-3.5 py-2.5 border text-xs flex items-center justify-between flex-wrap gap-2 ${
+            className={`rounded-xl p-4 border text-xs flex items-center justify-between flex-wrap gap-3 shadow-xs ${
               allPassed && allAnswered
                 ? 'bg-green-50 border-green-300'
                 : failedQ > 0
@@ -699,76 +735,131 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
                 : 'bg-gray-50 border-gray-200'
             }`}
           >
-            <div className="flex items-center gap-2 text-black font-semibold flex-wrap">
-              <span>ผลรวม: <span className="font-bold">{passedQ}</span>/{totalQ} ผ่าน</span>
+            <div className="flex items-center gap-3 text-black font-semibold flex-wrap">
+              <span className="text-sm">
+                ผลรวม: <span className="font-bold text-black">{passedQ}</span>/{totalQ} ผ่าน
+              </span>
               {failedQ > 0 && (
-                <span className="text-black bg-red-100 border border-red-300 px-2 py-0.5 rounded-full text-[11px] font-bold">
-                  {failedQ} ไม่ผ่าน → Rework
+                <span className="text-black bg-red-100 border border-red-300 px-2.5 py-0.5 rounded-full text-xs font-bold">
+                  ⚠️ มี {failedQ} ข้อไม่ผ่าน → ส่งกลับแก้ไข (Rework)
                 </span>
               )}
               {unansweredQ > 0 && (
-                <span className="text-black text-[11px]">ยังไม่ตอบ {unansweredQ} ข้อ</span>
+                <span className="text-black text-xs font-medium bg-gray-200 px-2 py-0.5 rounded-full">
+                  ยังไม่ตอบ {unansweredQ} ข้อ
+                </span>
               )}
               {allPassed && allAnswered && (
-                <span className="text-black font-bold">
-                  คะแนน: {currentRound === 1 ? '5.0' : '1.0 (รอบแก้ไข)'}
+                <span className="text-black font-bold text-sm bg-green-200/80 px-2.5 py-0.5 rounded-md">
+                  คะแนนผลตรวจ: {currentRound === 1 ? '5.0' : '1.0 (รอบแก้ไข)'} / 5.0
                 </span>
               )}
             </div>
-            <div className="flex gap-2">
-              <Button type="button" variant="secondary" size="sm" onClick={onCancel} className="text-black font-medium h-8">
-                ยกเลิก
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={!allAnswered}
-                className={`font-bold text-white h-8 ${
-                  allPassed
-                    ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-red-600 hover:bg-red-700'
-                }`}
-              >
-                {!allAnswered
-                  ? `กรุณาตอบให้ครบ (เหลือ ${unansweredQ} ข้อ)`
-                  : allPassed
-                  ? '✅ ยืนยันผ่าน QC'
-                  : '🔄 ยืนยันส่ง Rework'}
-              </Button>
+
+            <div className="flex items-center gap-2">
+              {isEditMode && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetAnswers}
+                  className="text-black font-semibold text-xs h-8 hover:bg-gray-200"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 mr-1" /> ล้างคำตอบ
+                </Button>
+              )}
+
+              {isAlreadyPassed && !isEditMode ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setIsEditMode(true)}
+                    className="text-black font-bold text-xs h-8"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 mr-1" /> ประเมินใหม่ / แก้ไขผลตรวจ
+                  </Button>
+                  {onExportSTK && (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={onExportSTK}
+                      className="bg-green-600 hover:bg-green-700 text-white font-bold text-xs h-8 px-4"
+                    >
+                      🚀 ส่งออก STK (Step 6)
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={!allAnswered}
+                  className={`font-bold text-white h-8 text-xs px-4 cursor-pointer ${
+                    !allAnswered
+                      ? 'bg-gray-400 opacity-60 cursor-not-allowed text-black'
+                      : allPassed
+                      ? 'bg-green-600 hover:bg-green-700'
+                      : 'bg-red-600 hover:bg-red-700'
+                  }`}
+                >
+                  {!allAnswered
+                    ? `กรุณาตอบให้ครบ (เหลือ ${unansweredQ} ข้อ)`
+                    : allPassed
+                    ? '✅ ยืนยันบันทึกผลผ่าน QC'
+                    : '🔄 ยืนยันส่งกลับแก้ไข (Rework)'}
+                </Button>
+              )}
             </div>
           </div>
         </form>
 
-        {/* Rework history */}
+        {/* 6. 📜 Section: ประวัติการตรวจย้อนหลัง (Rework History) */}
         {reworkHistory.length > 0 && (
-          <div className="border border-gray-200 rounded-lg p-2.5 space-y-1.5">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-xs space-y-2">
             <h4 className="font-bold text-black text-xs flex items-center gap-1.5">
               <RefreshCw className="w-3.5 h-3.5 text-black" /> ประวัติการตรวจย้อนหลัง ({reworkHistory.length} รอบ)
             </h4>
-            {reworkHistory.map((r) => (
-              <div key={r.round} className="text-[11px] text-black bg-gray-50 border border-gray-200 rounded p-1.5 space-y-0.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold">รอบที่ {r.round}</span>
-                  <span
-                    className={`px-1.5 py-0.5 rounded-full font-bold border text-[10px] ${
-                      r.outcome === 'PASS' ? 'bg-green-100 border-green-400' : 'bg-orange-100 border-orange-400'
-                    }`}
-                  >
-                    {r.outcome === 'PASS' ? '✓ ผ่าน' : '🔄 Rework'}
-                  </span>
+            <div className="space-y-1.5">
+              {reworkHistory.map((r, i) => (
+                <div
+                  key={r.round || i}
+                  className="text-xs text-black bg-gray-50 border border-gray-200 rounded-lg p-2.5 space-y-1"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">รอบที่ {r.round || i + 1}</span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full font-bold border text-[11px] ${
+                        r.outcome === 'PASS' || r.result === 'PASS'
+                          ? 'bg-green-100 border-green-400 text-black'
+                          : 'bg-orange-100 border-orange-400 text-black'
+                      }`}
+                    >
+                      {r.outcome === 'PASS' || r.result === 'PASS' ? '✓ ผ่าน (PASS)' : '🔄 ส่งแก้ไข (Rework)'}
+                    </span>
+                  </div>
+                  <div className="text-black/80">
+                    วันที่: {r.inspected_at ? formatDateTimeDMY(r.inspected_at) : '-'} · คะแนน: {typeof r.score === 'number' ? r.score.toFixed(1) : '-'} / 5.0
+                    {r.inspector && ` · ผู้ตรวจ: ${r.inspector}`}
+                  </div>
+                  {(r.overall_remark || r.remarks) && (
+                    <div className="text-black font-medium">
+                      หมายเหตุ: {r.overall_remark || r.remarks}
+                    </div>
+                  )}
                 </div>
-                <div>วันที่: {r.inspected_at} · คะแนน: {r.score.toFixed(1)}</div>
-                {r.overall_remark && <div>หมายเหตุ: {r.overall_remark}</div>}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Lightbox Dialog */}
+        {/* Lightbox Dialog (Only for zoom viewing of photos) */}
         <Dialog open={!!previewPhotoUrl} onOpenChange={(open) => !open && setPreviewPhotoUrl(null)}>
           <DialogContent className="max-w-3xl bg-white p-4 text-black">
             <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-              <span className="font-bold text-sm text-black">{previewPhotoTitle || 'รูปถ่ายตรวจสอบ'}</span>
+              <span className="font-bold text-sm text-black">{previewPhotoTitle || 'รูปถ่ายตรวจสอบคุณภาพ'}</span>
             </div>
             {previewPhotoUrl && (
               <div className="mt-2 flex items-center justify-center">
@@ -785,6 +876,7 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
     );
   }
 );
+
 QcInspectionForm.displayName = 'QcInspectionForm';
 
 export { QcInspectionForm };

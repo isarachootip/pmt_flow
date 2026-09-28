@@ -56,8 +56,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
   const acceptMutation = useAcceptJob();
   const updateJobMutation = useUpdateJob();
 
-  // QC modal & Accept review modal state
-  const [showQcModal, setShowQcModal] = useState(false);
+  // Accept review modal state
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedReviewType, setSelectedReviewType] = useState<'Q' | 'R'>('Q');
 
@@ -255,7 +254,6 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
 
   /** เรียกตรง จาก QC Form เมื่อผ่าน QC → ส่ง STK ทันที (Step 6) */
   const handleQcExportSTK = () => {
-    setShowQcModal(false);
     stkMutation.mutate(job.id, {
       onSuccess: () => {
         toast.success(`🚀 ส่งออก STK สำเร็จ (ใบงาน ${job.job_no})`);
@@ -570,86 +568,47 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
               <BoqTab job={job} />
             </TabsContent>
 
-            {/* 3. QC */}
+            {/* 3. QC (Inline Inspection Workspace - No Popup) */}
             <TabsContent value="qc" className="h-full m-0 data-[state=active]:flex flex-col space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 py-2.5 px-3 border-b border-gray-200 bg-white text-black">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 text-xs flex-1 min-w-0">
-                  <div className="flex items-start gap-1.5 min-w-0">
-                    <span className="font-bold text-black shrink-0">สถานะการตรวจ QC:</span>
-                    <span className="font-bold text-black">
-                      {job.status === 'QC_PASS' ? '✅ ผ่านการตรวจ QC เรียบร้อย' : '⏳ รอการตรวจสอบ QC หน้างาน'}
-                    </span>
-                  </div>
-                  <div className="flex items-start gap-1.5 min-w-0">
-                    <span className="font-bold text-black shrink-0">ผู้ตรวจ QC:</span>
-                    <span className="text-black truncate font-normal">{job.assigned_tech || 'QC Inspector (สถาพร)'}</span>
-                  </div>
-                  <div className="flex items-start gap-1.5 min-w-0">
-                    <span className="font-bold text-black shrink-0">วันที่ตรวจ:</span>
-                    <span className="text-black font-normal">{formatDateTimeDMY(job.updated_at || new Date().toISOString())}</span>
-                  </div>
-                </div>
-                <Button 
-                  variant="primary" 
-                  size="sm" 
-                  onClick={() => setShowQcModal(true)}
-                  className="text-black font-semibold shrink-0"
-                >
-                  เปิดแบบฟอร์มตรวจ QC
-                </Button>
-              </div>
-
-              <div className="flex-1 overflow-auto border border-[var(--border-soft)] rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-black text-sm">
-                    {isQuick 
-                      ? 'แบบประเมินมาตรฐานงาน QUICK SERVICE (1 ข้อคำถาม)' 
-                      : 'Checklist คุณภาพงานมาตรฐาน (QC Checklist)'}
-                  </h4>
-                  {isQuick && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 border border-blue-300 text-black font-bold">
-                      1 ข้อคำถาม QC
-                    </span>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  {(isQuick ? [
-                    { 
-                      title: '1. ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด', 
-                      subtitle: 'ข้อคำถามประเมินรับรองมาตรฐาน Quick Service (ตอบ 1 ข้อจบกระบวนการ)',
-                      mandatory: true, 
-                      status: 'PASS' 
-                    }
-                  ] : [
-                    { title: '1. ความเรียบร้อยของงานติดตั้งและโครงสร้าง', subtitle: '', mandatory: true, status: 'PASS' },
-                    { title: '2. ความปลอดภัยตามมาตรฐานวิศวกรรม', subtitle: '', mandatory: true, status: 'PASS' },
-                    { title: '3. คุณภาพวัสดุและอุปกรณ์ตรงตาม BOQ', subtitle: '', mandatory: true, status: 'PASS' },
-                    { title: '4. ความสะอาดและความเรียบร้อยของพื้นที่ทำงาน', subtitle: '', mandatory: false, status: 'PASS' },
-                    { title: '5. การจัดเก็บเศษวัสดุและขยะออกจากพื้นที่ลูกค้า', subtitle: '', mandatory: false, status: 'PASS' },
-                  ]).map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-md">
-                      <div className="flex flex-col space-y-0.5">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-black font-medium text-sm">{item.title}</span>
-                          {item.mandatory && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 border border-red-300 text-black font-bold">
-                              ข้อบังคับ
-                            </span>
-                          )}
-                        </div>
-                        {item.subtitle && (
-                          <span className="text-xs text-black/70">
-                            {item.subtitle}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-xs px-2.5 py-1 rounded bg-green-100 border border-green-300 text-black font-bold">
-                        ผ่าน (PASS)
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <QcInspectionForm
+                jobId={job.id}
+                jobNo={job.job_no}
+                jobType={isQuick ? 'Q' : 'R'}
+                jobStatus={job.status}
+                assignedTech={job.assigned_tech}
+                planDate={job.plan_date || (job as any).appointment_date || (job as any).date}
+                planTime={(job.plan_time || (job as any).time_slot || (job as any).appointment_time) as string}
+                qcScore={(job as any).qc_score}
+                previousReworkCount={
+                  Array.isArray((job as any).qc_history)
+                    ? (job as any).qc_history.filter((h: any) => h.outcome === 'REWORK' || h.result === 'FAIL').length
+                    : 0
+                }
+                reworkHistory={
+                  Array.isArray((job as any).qc_history)
+                    ? (job as any).qc_history
+                    : []
+                }
+                initialPhotos={job.photos}
+                onPhotosChange={(photos) => {
+                  setPhotoSlots(photos);
+                  const uploadedPhotos = photos
+                    .filter((s) => !!s.url)
+                    .map((s) => ({
+                      slot_id: s.id,
+                      tag: s.id,
+                      label: s.label,
+                      url: s.url,
+                    }));
+                  updateJobMutation.mutate({
+                    id: job.id,
+                    data: { photos: uploadedPhotos },
+                  });
+                }}
+                onSubmit={handleQcSubmit}
+                onExportSTK={handleQcExportSTK}
+                isInline={true}
+              />
             </TabsContent>
 
             {/* 4. ส่งออก STK */}
@@ -692,6 +651,18 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                     </span>
                   </div>
                 </div>
+
+                <div className="pt-3 border-t border-gray-100">
+                  <h5 className="text-xs font-bold text-black">สรุปยอดรวมทางการเงินเพื่อเบิกจ่าย</h5>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 text-xs pt-2">
+                    <div className="flex items-start gap-1.5 min-w-0">
+                      <span className="font-bold text-black shrink-0">ยอดเงินรวม:</span>
+                      <span className="font-mono font-bold text-black">
+                        ฿{Number(job.grand_total || (job as any).boq_grand_total || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </TabsContent>
 
@@ -702,30 +673,6 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
           </div>
         </Tabs>
       </div>
-
-      {/* QC Form Modal Dialog */}
-      <Dialog open={showQcModal} onOpenChange={setShowQcModal}>
-        <DialogContent className="sm:max-w-[600px] bg-white text-black p-6 max-h-[90vh] overflow-y-auto">
-          <QcInspectionForm
-            jobId={Number(job.id) || 1}
-            jobType={isQuick ? 'Q' : 'R'}
-            previousReworkCount={
-              Array.isArray((job as any).qc_history)
-                ? (job as any).qc_history.filter((h: any) => h.outcome === 'REWORK').length
-                : 0
-            }
-            reworkHistory={
-              Array.isArray((job as any).qc_history)
-                ? (job as any).qc_history
-                : []
-            }
-            initialPhotos={job.photos}
-            onSubmit={handleQcSubmit}
-            onExportSTK={handleQcExportSTK}
-            onCancel={() => setShowQcModal(false)}
-          />
-        </DialogContent>
-      </Dialog>
 
 
       {/* Need Review Accept Modal Dialog */}
