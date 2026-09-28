@@ -9,6 +9,7 @@ export interface User {
   role: 'ADMIN' | 'AE' | 'QC' | 'CONTACT_CENTER';
   user_code: string;
   is_active: boolean;
+  password?: string;
   last_login_at?: string;
   created_at: string;
 }
@@ -50,6 +51,7 @@ export function useUsers() {
     data: Array.isArray(query.data) ? query.data : ((query.data as any)?.data || []),
     isLoading: query.isLoading,
     isError: query.isError,
+    refetch: query.refetch,
   };
 }
 
@@ -74,8 +76,12 @@ export function useUpdateUser() {
 }
 
 export function useResetPassword() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, new_password }: { id: string; new_password: string }) => api.post(`/api/v1/users/${id}/reset-password`, { new_password }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
   });
 }
 
@@ -92,13 +98,16 @@ export function useDeleteUser() {
 export function useLoginLogs() {
   const query = useQuery({
     queryKey: ['login-logs'],
-    queryFn: () => api.get<PaginatedResponse<LoginLog>>('/api/v1/auth/login-logs'),
+    queryFn: () => api.get<any>('/api/v1/auth/login-logs'),
   });
 
+  const list = Array.isArray(query.data) ? query.data : ((query.data as any)?.data || []);
+
   return {
-    data: Array.isArray(query.data) ? query.data : ((query.data as any)?.data || []),
+    data: list as LoginLog[],
     isLoading: query.isLoading,
     isError: query.isError,
+    refetch: query.refetch,
   };
 }
 
